@@ -14,7 +14,8 @@ namespace KeePassGate.Store
     /// or which group is the recycle bin.
     ///
     /// **Total.** No content of a file makes this throw: a version that does not read a single way
-    /// fails, and nothing a version holds is more than a string to compare.
+    /// fails, a version that is not a record is passed over or is damage, and everything else is
+    /// a state.
     ///
     /// **It keeps no key.** The keys found are the checked forms' own, held by the forms that
     /// gave them; what it answers with are the tags they give and the entries that pass under
@@ -24,16 +25,46 @@ namespace KeePassGate.Store
     /// about its own key while keys are found, and past the ceiling about no other, so a file that
     /// brings a key for each of its entries costs a reading no more than a version each.
     /// </remarks>
-    internal sealed class StoreReading
+    internal sealed partial class StoreReading
     {
         private readonly ISet<int> _tags;
         private readonly ISet<string> _passing;
 
-        private StoreReading(ISet<int> tags, ISet<string> passing)
+        private StoreReading(ISet<int> tags, ISet<string> passing, Judgment judged)
         {
             _tags = tags;
             _passing = passing;
+            State = judged.State;
+            Reason = judged.Reason;
+            Damage = judged.Damage;
+            Passed = judged.Passed;
+            ByHistory = judged.ByHistory;
+            Judged = judged.Judged;
         }
+
+        /// <summary>
+        /// Whether the store was judged, and the counts beside its state mean anything: past
+        /// `StoreFormat.MaxKeys` it is not.
+        /// </summary>
+        public bool Judged { get; private set; }
+
+        /// <summary>Whether the gate may serve the database, and if not why, `STORE.md` §656.</summary>
+        public StoreState State { get; private set; }
+
+        /// <summary>
+        /// Why the store is in its state, for the log: entries named by the first eight characters
+        /// of their identifiers, and nothing of any content. Null for a store that is whole.
+        /// </summary>
+        public string Reason { get; private set; }
+
+        /// <summary>How many entries are damage under the store key, `STORE.md` §621.</summary>
+        public int Damage { get; private set; }
+
+        /// <summary>How many candidates are no record and no damage, passed over and shown.</summary>
+        public int Passed { get; private set; }
+
+        /// <summary>How many records count by a version from their history, `STORE.md` §622.</summary>
+        public int ByHistory { get; private set; }
 
         /// <summary>
         /// Reads the store from these candidates, keeping in <paramref name="next"/> the checked
@@ -101,9 +132,9 @@ namespace KeePassGate.Store
                 }
 
                 // Past the ceiling nothing is asked of a version under a key not its own, which
-                // is what grows with the keys times the versions, `STORE.md` §649: every candidate
-                // is the store's to the guard, which leaves out at least what it would have left
-                // out under every key, `StoreFormat.MaxKeys`.
+                // is what grows with the keys times the versions: the store is split, `STORE.md`
+                // §649, and every candidate is the store's to the guard, which leaves out at
+                // least what it would have left out under every key, `StoreFormat.MaxKeys`.
                 var beyond = keys.Count > StoreFormat.MaxKeys;
                 var passing = new HashSet<string>(StringComparer.Ordinal);
                 for (var at = 0; at < candidates.Count; at++)
@@ -124,7 +155,10 @@ namespace KeePassGate.Store
                     }
                 }
 
-                return new StoreReading(tags, passing);
+                var judged = beyond
+                    ? Judgment.Beyond(keys.Count, candidates.Count)
+                    : Judgment.Of(candidates, forms, keys, deletions ?? Array.Empty<byte[]>());
+                return new StoreReading(tags, passing, judged);
             }
             finally
             {

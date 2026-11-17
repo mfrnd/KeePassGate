@@ -65,11 +65,30 @@ namespace KeePassGate.Pipeline
                 return ClientIdentity.Locked(databaseId);
             }
 
-            if (target.Unavailable != null)
+            // The same for a database holding several authorities, where none is loaded to judge a
+            // certificate with, because loading one would be choosing between them, and for a
+            // database whose store holds the gate back. Read once, and on its own: answering it
+            // reads the store with KeePass's thread held, and a reading that could not be made is
+            // a database to ask again or one that shut, never a stranger, who could pair.
+            string unavailable;
+            try
             {
-                // The same for a database holding several authorities: none is loaded to judge a
-                // certificate with, because loading one would be choosing between them.
-                return ClientIdentity.Unavailable(databaseId, target.Unavailable);
+                unavailable = target.Unavailable;
+            }
+            catch (DatabaseShut error)
+            {
+                logger.Info("a connection could not be judged, because " + error.Message);
+                return ClientIdentity.Locked(databaseId);
+            }
+            catch (VaultUnsettled error)
+            {
+                logger.Warn("whether this database can be served could not be read for now: " + error.Message);
+                return ClientIdentity.Unavailable(databaseId, "busy");
+            }
+
+            if (unavailable != null)
+            {
+                return ClientIdentity.Unavailable(databaseId, unavailable);
             }
 
             if (presented == null)
@@ -209,9 +228,23 @@ namespace KeePassGate.Pipeline
                 return ClientIdentity.Locked(databaseId);
             }
 
-            if (target.Unavailable != null)
+            // Read once and on its own, for the reason `For` gives: a database that shut is locked,
+            // and a reading that could not be made is thrown on as `VaultUnsettled`, which the
+            // caller answers `busy`.
+            string unavailable;
+            try
             {
-                return ClientIdentity.Unavailable(databaseId, target.Unavailable);
+                unavailable = target.Unavailable;
+            }
+            catch (DatabaseShut error)
+            {
+                logger.Info("a request could not be judged again, because " + error.Message);
+                return ClientIdentity.Locked(databaseId);
+            }
+
+            if (unavailable != null)
+            {
+                return ClientIdentity.Unavailable(databaseId, unavailable);
             }
 
             try

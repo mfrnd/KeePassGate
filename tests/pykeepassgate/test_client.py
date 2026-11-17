@@ -29,6 +29,10 @@ from pykeepassgate.errors import (
     ProtocolError,
     RouteRefused,
     StorageError,
+    StoreFrozen,
+    StoreOutdated,
+    StoreSplit,
+    StoreStopped,
     TransportError,
 )
 from pykeepassgate.pairing import Pairing
@@ -191,6 +195,10 @@ def test_an_empty_answer_is_an_empty_object_rather_than_a_failure(
         (503, "locked", DatabaseLocked),
         (503, "busy", GateBusy),
         (503, "undecided", AuthorityUndecided),
+        (503, "split", StoreSplit),
+        (503, "outdated", StoreOutdated),
+        (503, "stopped", StoreStopped),
+        (503, "frozen", StoreFrozen),
         (503, "teapot", GateUnavailable),
         (401, "unpaired", NotAdmitted),
         (404, "no such route", RouteRefused),
@@ -223,7 +231,9 @@ def test_every_refusal_becomes_something_a_caller_can_act_on(
         assert (raised.value.status, raised.value.error) == (status, error)
 
 
-@pytest.mark.parametrize("error", ["locked", "busy", "undecided", "teapot"])
+@pytest.mark.parametrize(
+    "error", ["locked", "busy", "undecided", "split", "outdated", "stopped", "frozen", "teapot"]
+)
 def test_a_503_keeps_the_word_and_the_delay_the_gate_gave(
     gate: FakeGate, paired: GateClient, error: str
 ) -> None:
@@ -917,6 +927,46 @@ class TestWaitingOutARefusal:
         self._refusing(gate, 1, "undecided")
         assert self._client(stored, retry_undecided_timeout=30.0).status().ok
         assert waited == [2.0]
+
+    @pytest.mark.parametrize(
+        ("word", "refusal"),
+        [
+            ("split", StoreSplit),
+            ("outdated", StoreOutdated),
+            ("stopped", StoreStopped),
+            ("frozen", StoreFrozen),
+        ],
+    )
+    def test_a_store_that_holds_the_gate_back_is_never_waited_out(
+        self,
+        tmp_path: Path,
+        bundle: dict[str, Any],
+        gate: FakeGate,
+        waited: list[float],
+        word: str,
+        refusal: type[GateUnavailable],
+    ) -> None:
+        # Each ends by an act of the operator's at KeePass, of a length nothing here knows, so no
+        # budget a caller gave for KeePass being busy, locked or undecided is spent on it, and a
+        # HEAD is answered it as its GET is.
+        stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
+        everything = self._client(
+            stored,
+            retry_busy_timeout=300.0,
+            retry_locked_timeout=300.0,
+            retry_undecided_timeout=300.0,
+        )
+
+        self._refusing(gate, 1, word)
+        with pytest.raises(refusal) as refused:
+            everything.status()
+        assert refused.value.error == word
+
+        self._refusing(gate, 1, word, status=False)
+        with pytest.raises(refusal):
+            everything.head("/gate/status")
+
+        assert waited == []
 
     def test_a_word_no_budget_names_is_never_waited_out(
         self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate, waited: list[float]

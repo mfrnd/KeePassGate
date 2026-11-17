@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Threading;
 using KeePassGate.Diagnostics;
 using KeePassGate.Store;
@@ -44,6 +45,7 @@ namespace KeePassGate.Bridge
         private readonly object _gate = new object();
         private readonly object _work = new object();
         private readonly IReadHold _hold;
+        private readonly IGateLog _log;
         private PwDatabase _database;
         private bool _keepNothing;
         private StoreKept _kept = new StoreKept();
@@ -55,8 +57,11 @@ namespace KeePassGate.Bridge
         private int _turnDepth;
         private StoreReading _turnReading;
 
+        // The state the log last named, so that a state lasting over many requests is named once.
+        // It answers nothing: every request is judged by the reading of its own hold.
+        private StoreState _logged = StoreState.None;
 
-        public StoreReadings(PwDatabase database, IReadHold hold)
+        public StoreReadings(PwDatabase database, IReadHold hold, IGateLog log)
         {
             if (database == null)
             {
@@ -70,6 +75,59 @@ namespace KeePassGate.Bridge
 
             _database = database;
             _hold = hold;
+            _log = log ?? NullGateLog.Instance;
+        }
+
+        /// <summary>
+        /// The word every connection to this database is answered with under `503` while its store
+        /// holds the gate back, or null, read now in a hold of KeePass's thread, `STORE.md` §656.
+        /// </summary>
+        /// <remarks>
+        /// **A reading that could not be made is no answer**, and never a store that is whole:
+        /// <see cref="VaultUnsettled"/> where KeePass's thread could not be held, and
+        /// <see cref="DatabaseShut"/> where the database has gone, each thrown to the caller,
+        /// which answers them `busy` and `locked`.
+        /// </remarks>
+        public string Word
+        {
+            get { return _hold.Hold(WordNow); }
+        }
+
+        private string WordNow()
+        {
+            var reading = Now();
+            var word = StoreWords.Of(reading.State);
+
+            StoreState was;
+            lock (_gate)
+            {
+                was = _logged;
+                _logged = reading.State;
+            }
+
+            if (was == reading.State)
+            {
+                return word;
+            }
+
+            // Logged inside the hold, which queues the line, `ControlUiThread.MayNotWait`. What
+            // the reading counted beside its state is what tells an operator where to look.
+            var counted = !reading.Judged ? string.Empty : string.Format(
+                CultureInfo.InvariantCulture,
+                " ({0} damaged, {1} passed over, {2} counting by their history)",
+                reading.Damage,
+                reading.Passed,
+                reading.ByHistory);
+            if (word != null)
+            {
+                _log.Warn("not serving a database whose store is " + word + ": " + reading.Reason + counted);
+            }
+            else if (StoreWords.Of(was) != null)
+            {
+                _log.Info("serving a database whose store held it back as " + StoreWords.Of(was) + " again" + counted);
+            }
+
+            return word;
         }
 
         /// <summary>

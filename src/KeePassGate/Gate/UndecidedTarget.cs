@@ -38,12 +38,18 @@ namespace KeePassGate.Gate
         private readonly string _databaseId;
         private readonly byte[] _gateKey;
         private readonly CertifiedKey _host;
+        private readonly Func<string> _store;
 
         // The cache holds the first of these; every caller `Current` hands it to takes one more,
         // exactly as `LockedTarget` counts them.
         private int _holders = 1;
 
-        public UndecidedTarget(string databaseId, byte[] gateKey, CertifiedKey host)
+        /// <summary>A candidate answering under its own gate key and host certificate.</summary>
+        /// <param name="store">
+        /// The word the database's store holds the gate back with, read now, or null where it
+        /// holds nothing back.
+        /// </param>
+        public UndecidedTarget(string databaseId, byte[] gateKey, CertifiedKey host, Func<string> store)
         {
             if (string.IsNullOrEmpty(databaseId))
             {
@@ -60,9 +66,15 @@ namespace KeePassGate.Gate
                 throw new ArgumentNullException(nameof(host));
             }
 
+            if (store == null)
+            {
+                throw new ArgumentNullException(nameof(store));
+            }
+
             _databaseId = databaseId;
             _gateKey = (byte[])gateKey.Clone();
             _host = host;
+            _store = store;
         }
 
         /// <summary>Nothing: the name is only read onto an approval dialog, and pairing is refused here.</summary>
@@ -162,9 +174,19 @@ namespace KeePassGate.Gate
             get { return false; }
         }
 
+        /// <summary>
+        /// The store's word where the store holds the gate back, and `undecided` otherwise.
+        /// </summary>
+        /// <remarks>
+        /// **The store first, as `STORE.md` §656 orders the words**: which authority is served is
+        /// asked only of a store that is whole, so a database holding several authorities and a
+        /// store that is split, outdated or stopped is answered the store's word, under each of
+        /// its authorities. A reading that could not be made throws, as for a target that is
+        /// served.
+        /// </remarks>
         public string Unavailable
         {
-            get { return Error; }
+            get { return _store() ?? Error; }
         }
 
         public void Retain()

@@ -194,12 +194,16 @@ def test_what_a_caller_does_next_is_one_class_each_under_the_one_root() -> None:
 
 def test_every_503_is_one_family_with_one_class_per_word() -> None:
     # A caller that waits out any `503` catches the base; one that waits out a lock and not a
-    # busy KeePass catches the one it means. None of the three sits under another, or a lock
+    # busy KeePass catches the one it means. None of them sits under another, or a lock
     # caught as `GateBusy` would spend the budget for a busy KeePass.
     for kind, word in (
         (errors.GateBusy, "busy"),
         (errors.DatabaseLocked, "locked"),
         (errors.AuthorityUndecided, "undecided"),
+        (errors.StoreSplit, "split"),
+        (errors.StoreOutdated, "outdated"),
+        (errors.StoreStopped, "stopped"),
+        (errors.StoreFrozen, "frozen"),
     ):
         assert kind.__bases__ == (errors.GateUnavailable,), f"{kind.__name__} is elsewhere"
         assert kind.word == word

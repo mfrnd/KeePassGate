@@ -201,11 +201,35 @@ namespace KeePassGate.Tests.Fakes
             get { return false; }
         }
 
+        private string _unavailable;
+
         /// <summary>
         /// Set to the word a database nobody is served from for now answers with, and null while
         /// this database is served.
         /// </summary>
-        public string Unavailable { get; set; }
+        public string Unavailable
+        {
+            get
+            {
+                if (UnavailableThrows != null)
+                {
+                    throw UnavailableThrows;
+                }
+
+                return _unavailable;
+            }
+
+            set
+            {
+                _unavailable = value;
+            }
+        }
+
+        /// <summary>
+        /// Set to make asking whether the database is served fail, as a reading of its store that
+        /// could not be made does.
+        /// </summary>
+        public Exception UnavailableThrows { get; set; }
 
         /// <summary>Set to fail the write after it was allowed to start.</summary>
         public AdmissionWrite AdmitAnswers { get; set; }

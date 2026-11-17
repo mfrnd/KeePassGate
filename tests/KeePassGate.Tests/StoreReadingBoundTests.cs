@@ -10,8 +10,8 @@ using NUnit.Framework;
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// What a reading costs in the number of store keys a file brings, and what the guard hides
-    /// past the ceiling on them, `StoreFormat.MaxKeys`.
+    /// What a reading costs in the number of store keys a file brings, and what it answers past
+    /// the ceiling on them, `StoreFormat.MaxKeys`.
     /// </summary>
     /// <remarks>
     /// Anybody can make a file whose entries each pass under a key of their own, since a key is
@@ -29,14 +29,14 @@ namespace KeePassGate.Tests
         {
             // Entries each an authority under a key of its own. The second reading is what every
             // hold after the first costs: what the checked forms keep answers it. Measured in
-            // Release at 30 ms for a thousand, where it was 19 seconds while the keys were each
-            // asked of every version, so the bound passes a slow machine and fails that growth.
+            // Release at a millisecond for a thousand, where it was 19 seconds while the keys were
+            // each asked of every version, so the bound passes a slow machine and fails that growth.
             var versions = new StoreVersions();
             var candidates = Enumerable.Range(0, count).Select(index => versions.Candidate(Authority(index))).ToList();
 
             var first = new StoreKept();
             var clock = Stopwatch.StartNew();
-            StoreReading.Of(candidates, Array.Empty<byte[]>(), new StoreKept(), first);
+            var reading = StoreReading.Of(candidates, Array.Empty<byte[]>(), new StoreKept(), first);
             var firstTime = clock.Elapsed;
 
             clock.Restart();
@@ -50,7 +50,8 @@ namespace KeePassGate.Tests
                 firstTime.TotalMilliseconds,
                 secondTime.TotalMilliseconds));
 
-            Assert.That(again.Holds(candidates[0].Identifier), Is.True);
+            Assert.That(reading.State, Is.EqualTo(StoreState.Split));
+            Assert.That(again.State, Is.EqualTo(StoreState.Split));
             Assert.That(secondTime, Is.LessThan(TimeSpan.FromSeconds(2)));
         }
 
@@ -79,6 +80,30 @@ namespace KeePassGate.Tests
                 keylessTime.TotalMilliseconds));
 
             Assert.That(keyedTime, Is.LessThan(TimeSpan.FromTicks((keylessTime.Ticks * 2) + TimeSpan.FromMilliseconds(50).Ticks)));
+        }
+
+        [Test]
+        public void At_the_ceiling_every_key_is_judged_and_past_it_none_is_and_the_store_is_split()
+        {
+            var at = Keyed(StoreFormat.MaxKeys);
+            var reading = StoreReading.Of(at.Candidates, Array.Empty<byte[]>(), null, new StoreKept());
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Split));
+            Assert.That(reading.Reason, Does.StartWith("records under " + StoreFormat.MaxKeys));
+            Assert.That(reading.Holds(at.Stranger), Is.False, "at the ceiling a stranger's entry is passed over and served");
+
+            var past = Keyed(StoreFormat.MaxKeys + 1);
+            var beyond = StoreReading.Of(past.Candidates, Array.Empty<byte[]>(), null, new StoreKept());
+
+            Assert.That(beyond.State, Is.EqualTo(StoreState.Split));
+            Assert.That(beyond.Judged, Is.False, "nothing of the store is judged, so it counts nothing");
+            Assert.That(
+                beyond.Reason,
+                Does.Contain((StoreFormat.MaxKeys + 1).ToString(CultureInfo.InvariantCulture) + " store keys")
+                    .And.Contain("all " + past.Candidates.Count.ToString(CultureInfo.InvariantCulture) + " entries")
+                    .And.Contain("have to be deleted before the store is judged again"),
+                "the line names the keys, what is hidden, and what the operator does");
+            Assert.That(reading.Judged, Is.True);
         }
 
         [Test]

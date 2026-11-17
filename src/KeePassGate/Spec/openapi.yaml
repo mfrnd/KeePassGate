@@ -1884,8 +1884,9 @@ components:
             its body a sentence: the transport's refusals but its `417`, each known by its
             status. Where several share a status, the response
             declaring them names what each means, and those are the words worth matching on,
-            because each is a different thing for a client to do next: `locked`, `undecided` and
-            `busy` on a `503`; `proof` on a `401` from pairing; `no invitation` and `no exchange` on
+            because each is a different thing for a client to do next: `locked`, `undecided`,
+            `busy`, `split`, `outdated`, `stopped` and `frozen` on a `503`; `proof` on a `401`
+            from pairing; `no invitation` and `no exchange` on
             a `409` from pairing, and `this session`, `too early` and `forever` on a `409` from
             renewal; `malformed`, `name` and `profile` on a `400` from `pairRequest`; and
             `not saved`, `not verified`, `not recorded` and `internal error` on a `500`. The rest
@@ -2345,10 +2346,12 @@ components:
     # afterwards, inside its turn, keeps the line its decision got. §502
     Unavailable:
       description: |
-        Not now, and worth trying again shortly, where a refusal is not. The body carries
-        `locked`, `undecided` or `busy`, and so does `KPG-Unavailable`, for a `head`, and `busy`
-        covers everything the password manager is doing that this request cannot be served
-        underneath.
+        Not now, where a refusal is not. The body carries `locked`, `undecided`, `busy`, `split`,
+        `outdated` or `stopped`, and so does `KPG-Unavailable`, for a `head`. `locked` and `busy`
+        are worth trying again shortly, and `busy` covers everything the password manager is
+        doing that this request cannot be served underneath; the others each last until a person
+        acts at KeePass, for as long as that takes. `frozen` is declared beside them and sent by
+        no gate of this version.
 
         `locked` is the database being locked, answered before a route is chosen at all, by a
         second host certificate held only in memory so that a locked KeePass answers rather than
@@ -2369,6 +2372,30 @@ components:
         authorities not kept are refused from then on and pair again. A request already waiting
         for its turn on KeePass's thread when a second authority arrived is answered `undecided`
         as well.
+
+        `split`, `outdated` and `stopped` are about the plugin's store in the database, and each
+        is answered before a route is chosen, with the host certificate of the authority the
+        database serves, or of each authority where nobody has chosen between them, to every
+        request whatever it asks, pairing included. A request that changes or reads a group or an
+        entry, already waiting for its turn on KeePass's thread when the store came to hold the
+        gate back, is answered the same word; a pairing, a renewal and a client's revocation of
+        itself are not asked again once they arrived.
+        Where several hold, the first in this order is answered: `locked`, `split`, `outdated`,
+        `stopped`, `undecided`.
+
+        `split` is records of the store under more than one store key, as a synchronize with a
+        copy that made a store of its own leaves them, and it lasts until the operator keeps
+        one store at KeePass. `outdated` is a store that a later release of the plugin raised
+        above the release this gate runs, or that holds a record of a kind this release does not
+        know, and it lasts until the plugin on this machine is updated or the operator starts the
+        store again. `stopped` is a store that is not whole, as a record edited or deleted
+        by hand leaves it, and it lasts until the operator seals the store again at KeePass.
+
+        `frozen` is a store a newer plugin reads and has not yet been raised to, answered by such
+        a gate to `pairHello`, `pairRequest`, `renewCertificate` and `revokeCertificate` and to
+        nothing else, until the operator raises the store. A gate of this version never sends
+        it, and a client meeting it from a later gate waits for the operator as for `split`,
+        `outdated` and `stopped`.
 
         `busy` is five things, and a read meets the first as readily as a write meets the others.
         KeePass's own thread could not be held still for the read: every read waits its turn on that
@@ -2697,8 +2724,9 @@ components:
 
     Unavailable:
       description: |
-        Which refusal this is, the word the body's `error` names: `locked`, `undecided` or
-        `busy`, on every `503` this gate sends and on nothing else. Here as well as in the body
+        Which refusal this is, the word the body's `error` names: `locked`, `undecided`, `busy`,
+        `split`, `outdated` or `stopped`, on every `503` this gate sends and on nothing else, and
+        `frozen` from a later gate. Here as well as in the body
         for the answer to a `head`, which carries no body, so that a client asking whether
         something is there tells `busy` from `locked` and waits each out as it would for a
         `get`. RFC 9110 section 9.3.2 asks a `head` for the header fields a `get` would

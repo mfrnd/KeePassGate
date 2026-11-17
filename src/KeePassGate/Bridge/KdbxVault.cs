@@ -82,7 +82,7 @@ namespace KeePassGate.Bridge
 
         /// <summary>The same, holding KeePass's thread still for every read.</summary>
         public KdbxVault(PwDatabase database, DatabaseWriter writer, NodeTags tags, IReadHold hold, IGateLog log)
-            : this(database, writer, tags, hold, log, database == null || hold == null ? null : new StoreReadings(database, hold))
+            : this(database, writer, tags, hold, log, database == null || hold == null ? null : new StoreReadings(database, hold, log))
         {
         }
 

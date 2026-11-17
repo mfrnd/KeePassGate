@@ -32,7 +32,7 @@ namespace KeePassGate.Tests
         {
             _authority = TestAuthority.New();
             _gateKey = _authority.GateKey;
-            _undecided = new UndecidedTarget(_authority.DatabaseId, _gateKey, _authority.Host);
+            _undecided = new UndecidedTarget(_authority.DatabaseId, _gateKey, _authority.Host, () => null);
 
             _log = new RecordingGateLog();
             _handler = new CountingHandler();
@@ -124,11 +124,24 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void It_is_never_built_without_the_three_things_it_needs()
+        public void It_is_never_built_without_what_it_needs()
         {
-            Assert.Throws<ArgumentException>(() => new UndecidedTarget(null, _gateKey, _authority.Host));
-            Assert.Throws<ArgumentNullException>(() => new UndecidedTarget("db", null, _authority.Host));
-            Assert.Throws<ArgumentNullException>(() => new UndecidedTarget("db", _gateKey, null));
+            Assert.Throws<ArgumentException>(() => new UndecidedTarget(null, _gateKey, _authority.Host, () => null));
+            Assert.Throws<ArgumentNullException>(() => new UndecidedTarget("db", null, _authority.Host, () => null));
+            Assert.Throws<ArgumentNullException>(() => new UndecidedTarget("db", _gateKey, null, () => null));
+            Assert.Throws<ArgumentNullException>(() => new UndecidedTarget("db", _gateKey, _authority.Host, null));
+        }
+
+        [TestCase("split")]
+        [TestCase("outdated")]
+        [TestCase("stopped")]
+        public void A_store_that_holds_the_gate_back_is_answered_before_which_authority_is_served(string word)
+        {
+            // `STORE.md` §656: which authority is served is asked only of a store that is whole.
+            using (var target = new UndecidedTarget(_authority.DatabaseId, _authority.GateKey, _authority.Host, () => word))
+            {
+                Assert.That(ClientCredentials.For(null, target, null).UnavailableError, Is.EqualTo(word));
+            }
         }
 
         private sealed class CountingHandler : IGateHandler

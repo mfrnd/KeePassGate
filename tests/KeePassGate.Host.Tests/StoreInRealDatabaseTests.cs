@@ -132,6 +132,29 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_stop_that_lasts_is_logged_once_and_its_end_once()
+        {
+            var authority = Add(_group, Authority(One, 'a'));
+            var log = new Lines();
+            var readings = new StoreReadings(_database.Database, CurrentThread.Instance, log);
+
+            for (var request = 0; request < 10; request++)
+            {
+                Assert.That(readings.Word, Is.EqualTo("stopped"), "an authority and no summary entry");
+            }
+
+            Add(_group, StoreComposer.Record(
+                One, "head", "store", StoreComposer.Content(("after", string.Empty), ("height", "1")), 1,
+                new[] { StoreComposer.Item(("format", "1"), ("kind", "format"), ("plugin", "0.3.0")) }));
+            Assert.That(readings.Word, Is.Null);
+            Assert.That(readings.Word, Is.Null);
+
+            Assert.That(log.Warnings, Has.Count.EqualTo(1));
+            Assert.That(log.Warnings[0], Does.Contain("stopped").And.Not.Contain(authority.Strings.ReadSafe(StoreComposer.Data)));
+            Assert.That(log.Infos, Has.Count.EqualTo(1));
+        }
+
+        [Test]
         public void What_is_kept_goes_when_the_cache_lets_go_whoever_still_reads()
         {
             // A connection can hold a target after the cache has let go of it at a lock, a pairing
@@ -192,6 +215,45 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        [Test]
+        public void A_change_reads_the_store_once_for_its_turn_however_often_it_is_asked()
+        {
+            // A change's turn on KeePass's thread, where every question used to read afresh: the
+            // lookup of its node, and the client read again inside the rules, `ClientCredentials`,
+            // which asks whether the store holds the gate back.
+            var entry = new PwEntry(true, true);
+            entry.Strings.Set(PwDefs.TitleField, new ProtectedString(false, "an invented service"));
+            _database.RootGroup.AddEntry(entry, true);
+            Add(_group, Authority(One, 'a'));
+
+            var hold = new Counted();
+            var readings = new StoreReadings(_database.Database, hold, null);
+            var vault = new KdbxVault(
+                _database.Database,
+                new DatabaseWriter(CurrentThread.Instance, database => database.Save(null), null, null, null),
+                TestTags.Fixed,
+                hold,
+                null,
+                readings);
+            var asking = new KeePassGate.Vault.VaultAsking(
+                found =>
+                {
+                    Assert.That(readings.Word, Is.EqualTo("stopped"));
+                    return true;
+                },
+                null,
+                null,
+                false);
+
+            var written = vault.UpdateEntry(
+                entry.Uuid.ToHexString(),
+                new System.Collections.Generic.Dictionary<string, string> { { PwDefs.TitleField, "renamed" } },
+                asking);
+
+            Assert.That(written.Ok, Is.True, written.Reason);
+            Assert.That(hold.Readings, Is.EqualTo(1), "the store was read once for the turn");
+        }
+
         /// <summary>The bytes of every key the readings keep, read off their kept forms.</summary>
         private static System.Collections.Generic.List<byte[]> KeptKeys(StoreReadings readings)
         {
@@ -215,7 +277,7 @@ namespace KeePassGate.Host.Tests
 
         private StoreReadings Readings(IReadHold hold)
         {
-            return new StoreReadings(_database.Database, hold);
+            return new StoreReadings(_database.Database, hold, null);
         }
 
         private static PwEntry Add(PwGroup group, StoreComposer.Composed record)
@@ -255,6 +317,55 @@ namespace KeePassGate.Host.Tests
             var group = new PwGroup(true, true, name, PwIcon.Folder);
             parent.AddGroup(group, true);
             return group;
+        }
+
+        private sealed class Lines : KeePassGate.Diagnostics.IGateLog
+        {
+            public System.Collections.Generic.List<string> Warnings { get; } = new System.Collections.Generic.List<string>();
+
+            public System.Collections.Generic.List<string> Infos { get; } = new System.Collections.Generic.List<string>();
+
+            public void Info(string message)
+            {
+                Infos.Add(message);
+            }
+
+            public void Warn(string message)
+            {
+                Warnings.Add(message);
+            }
+
+            public void Error(string message, Exception error)
+            {
+                Warnings.Add(message);
+            }
+
+            public void Unexpected(string message, Exception error)
+            {
+                Warnings.Add(message);
+            }
+        }
+        /// <summary>
+        /// KeePass's own thread, which every question reads afresh on: counting each time a
+        /// reading asks which hold it is in, which is once for each reading made.
+        /// </summary>
+        private sealed class Counted : IReadHold
+        {
+            public int Readings { get; private set; }
+
+            public long Stamp
+            {
+                get
+                {
+                    Readings++;
+                    return 0;
+                }
+            }
+
+            public T Hold<T>(Func<T> read)
+            {
+                return read();
+            }
         }
 
         /// <summary>

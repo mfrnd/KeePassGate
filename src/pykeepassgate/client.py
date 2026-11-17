@@ -144,8 +144,9 @@ class GateClient:
     ) -> None:
         """Take a paired identity, how long to wait on its socket, and where to dial it.
 
-        The three retry budgets are how long this client will go on waiting out a `503`, one per
-        word, and all three are `None` here: nothing retries unless a caller says so, and the
+        The retry budgets are how long this client will go on waiting out a `503`, one for each
+        word it knows how to wait out, and each is `None` here: nothing retries unless a caller
+        says so, and the
         refusal is raised exactly as it was before there was anything to say. They are separate
         because each ends differently: a busy KeePass is in the middle of something, a locked one
         is waiting for a person to come back, and an undecided one for a person to choose between
@@ -428,9 +429,9 @@ class GateClient:
         approved and the new record did not reach the disk, so nothing was handed over.
 
         **A `503` is the gate's, answered before anything is written**, and raised as on every
-        route, `GateBusy`, `DatabaseLocked` or `AuthorityUndecided`, or waited out on this client's
-        own budgets, since there is no budget given per call here. Waiting one out sends the
-        renewal again, and a renewal refused busy waits its turn for the screen again: the
+        route, as the class its word names, or waited out on this client's own budgets where one
+        is given for that word, since there is no budget given per call here. Waiting one out
+        sends the renewal again, and a renewal refused busy waits its turn for the screen again: the
         operator's dialog comes up again for it, and a busy one can take two minutes to arrive.
         **Except an approval the gate holds**: when the operator approved and KeePass was too busy
         to write it, `GateBusy` carries `held_until`, and this asks again by itself, every
@@ -1290,8 +1291,8 @@ class GateClient:
         next line is the answer. What a refusal cannot carry is the gate's word, since that is
         written in a body and this answer has none: a `RouteRefused` from here holds the status and
         an empty `error`. **A `503` is the exception**, since the gate names its word in a field
-        as well, so a `503` here is `GateBusy`, `DatabaseLocked` or `AuthorityUndecided` as it is
-        from any route, and is waited out on the three budgets this takes as a `get` is. The gate
+        as well, so a `503` here is the class its word names, as it is from any route, and is
+        waited out on the budgets this takes as a `get` is. The gate
         omits `Content-Length` on these, which RFC 9110 section 9.3.2 permits for a value
         determined only while generating content, so this method reads to the close the gate
         sends anyway. With `if_match`, a node that has changed since is
