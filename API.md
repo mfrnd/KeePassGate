@@ -460,24 +460,39 @@ operator. Either raises an error naming both versions, and the command line exit
 version that does not read as three whole numbers is refused as well, since nothing about it can
 be compared.
 
-**Under 0.x the rule has a consequence.** With the major versions required to be equal, a change
-that breaks an existing client can no longer be a 0.x minor version, since the client it breaks
-would still take the gate for a gate it works with. So the next such change is 1.0.
+**Under 0.x a release may break an earlier 0.x release.** While the version begins with 0, a
+release owes an earlier release nothing, so a change that breaks an existing client can be a
+0.x minor version, and the release notes mark it as breaking. Only a release from 1.0.0 on is
+owed anything by a later release: from there on a change that breaks an existing client moves
+the major, as the rule above has it. `STORE.md` §645 states the same for what a release stores
+in a database.
 
-**0.2 breaks the 0.1 client, the single time that rule was set aside.** 0.1.0 was released and
-had no users, so the operator ruled on 2026-11-08 that the changes of 0.2 that break it stay in
-0.2, and that the consequence above holds from 0.2.0 on. A 0.1 client checks no version and
-reads an answer under a `Content-Length` and nothing else, so against a 0.2 gate it raises
-`ProtocolError` for every answer written as it is sent, §412: each listing and each read of an
-entry, of a field or of an attachment.
+**The comparison cannot tell such a break.** Every 0.x release has the same major version, so
+a client that a later 0.x gate breaks still takes that gate for a gate it works with. Under
+0.x the release notes are where a break is stated, and what the comparison still catches is a
+client that leads its gate.
+
+**This reverses a consequence this section drew, and the reason it drew it is the paragraph
+above.** With the major versions required to be equal, a change that breaks an existing client
+was held to be no 0.x minor version any longer, since the client it breaks would still take
+the gate for a gate it works with, and the next such change was to be 1.0. The operator ruled
+on 2026-11-15 that a 0.x release may break an earlier 0.x release and that earlier versions
+count from 1.0 on. So the consequence is given up and what it guarded against is accepted
+while the version begins with 0: a break that the client's check does not catch.
+
+**0.2 breaks the 0.1 client.** 0.1.0 was released and had no users, so the operator ruled on
+2026-11-08 that the changes of 0.2 that break it stay in 0.2. That ruling set the consequence
+aside a single time and had it hold from 0.2.0 on, which the ruling of 2026-11-15 reversed. A
+0.1 client checks no version and reads an answer under a `Content-Length` and nothing else, so
+against a 0.2 gate it raises `ProtocolError` for every answer written as it is sent, §412: each
+listing and each read of an entry, of a field or of an attachment.
 
 **0.3 narrows what a program may name, and stays 0.3.** From 0.3.0 on a field whose name begins
 `KPG.` is the plugin's own and out of every route, `STORE.md` §633, so a program that named
 fields of its own with that prefix has to rename them, and the release notes mark that as
 breaking. Nothing else changes for a program: the client is not changed by it, and a 0.2 client
-works with a 0.3 gate as the rule above has it. It stays in 0.3 by the operator's ruling of
-2026-11-15, that a 0.x release may break an earlier 0.x release and that earlier versions count
-from 1.0 on.
+works with a 0.3 gate as the rule above has it. It stays in 0.3 by the rule for 0.x, which the
+ruling of 2026-11-15 gave.
 
 **0.3 adds words a client may rely on**, which is what moves the minor version. A `503` carries
 `split`, `outdated` or `stopped` where the database's store holds the gate back, and the routing
