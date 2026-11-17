@@ -1084,3 +1084,29 @@ Reported, not fixed.
   derivation; KeePassXC releases other than 2.8.0 outside `b-merges`, `apart`, `same`, `states`
   and `switch`.
 - Everything the store as decided does not run.
+
+## Vectors for the product
+
+Added on 2026-11-18. `vectors.py`, beside `run.ps1`, prints values the product's tests hold its
+reading of the store to: the tags, subject hashes and key names of the kinds, summary entries at
+several heights, a record of each kind the family never wrote (`withdrawn`, `kept`, `format`), and
+small stores with what `probe\read.py` answers for each with its history rule on. It imports
+`probe\store.py` and `probe\read.py`, calls their functions over inputs written out in the script,
+and starts no program and writes no file, so it runs without KeePass:
+
+```powershell
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\vectors.py
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\vectors.py --readings
+```
+
+The first prints every vector. The second prints the small stores in the shape of the product's
+`tests\Shared\StoreReadingVectors.json`, byte for byte, with the three words of the read's status
+written as the names the product gives those states; the script's `STATES` is that table.
+
+### Defects and limits
+
+- A record of a kind the family never wrote is composed by the family's functions and read by
+  nothing here: its vector holds the check and the identifier, and no reading of that kind.
+- The small stores are dumps composed in the script, not files a program saved.
+- It has no record of its own under `recorded\`: the product's file is its record, and a change of
+  `store.py` or `read.py` that changes a value shows as a difference from that file.
