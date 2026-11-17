@@ -1,0 +1,4 @@
+﻿b-deletions.txt: 216 cells in both, 0 per profile only, 0 whole-rule only; whole-rule -> per profile: Seal again does not apply -> Seal again does not apply 3, as decided -> as decided 153, narrower -> narrower 18, not needed -> not needed 30, refuses -> refuses 12
+b-clear.txt: 252 cells in both, 0 per profile only, 0 whole-rule only; whole-rule -> per profile: as decided -> as decided 240, narrower -> narrower 6, refuses -> refuses 6
+b-history.txt: 600 cells in both, 60 per profile only, 0 whole-rule only; whole-rule -> per profile:  ->  10, as decided -> as decided 408, narrower -> narrower 10, refuses -> refuses 172
+   per profile only: as decided 42, refuses 18

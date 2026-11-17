@@ -1,0 +1,5 @@
+== the store as decided, a rule stored as a record for each node and profile, a removed row written as again
+== 200000 histories over two copies; histories with a merge that gave a letter neither copy gave just before it: 68; such merges: 68 (at N 68)
+   shortest with a switch act: at N, pf:w pg:-: switch 0 N deny ; merge kp_sync 1 0 ; row 1 root pf rw ; switch 0 N inherit ; merge kp_sync 1 0
+   shortest without a switch act: at N, pf:- pg:w: row 1 N pg  ; merge kp_sync 0 1 ; row 1 N pg off ; row 0 root pg rw ; merge kp_sync 0 1
+== 111 s

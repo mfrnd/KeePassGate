@@ -39,12 +39,70 @@ def lines(path):
         return out
 
 
+def classes(path):
+    """ADDED (rules per profile): the class of every cell of b-deletions, b-clear or b-history, keyed
+    by its section, its operation where it has one, and its label."""
+    out, sec, op = {}, None, None
+    for line in lines(path):
+        if line.startswith('## '):
+            sec, op = line[3:].split(';')[0], None
+            continue
+        if sec is None:
+            continue
+        if line.startswith('      ') and not line.startswith('       ') and op is not None:
+            label, rest = line[6:36].strip(), line[36:]
+            if label not in ('copy 0 as it is', 'Synchronize into 1', 'Synchronize into 0', 'KeePassXC 2.8.0 into 1',
+                             'KeePassXC 2.8.0 into 0', 'copy 0, the gate writes again'):
+                continue
+            rest = rest.replace('cannot write; ', '')
+        elif line.startswith('   ') and not line.startswith('    ') and ': ' in line:
+            label, rest = line[3:].split(': ', 1)
+            if label.startswith('C ') or label.startswith('the gate wrote'):
+                continue
+            if rest and not rest.split(' ')[0] in ('as', 'narrower:', 'refuses:', 'WIDER:', 'not', 'Seal', 'cannot'):
+                op = label
+                continue
+        else:
+            continue
+        c = rest.split(' {')[0].split(' [')[0].split(' (')[0].split(' |')[0].split(':')[0].strip()
+        out[(sec, op, label)] = c
+    return out
+
+
+def against_decided(out_dir, rec_dir):
+    """ADDED (rules per profile): each cell of b-deletions, b-clear and b-history per profile against
+    the same cell of the store as decided's record, the whole-rule form."""
+    for name in ('b-deletions.txt', 'b-clear.txt', 'b-history.txt'):
+        a, b = os.path.join(out_dir, name), os.path.join(rec_dir, name)
+        if not os.path.exists(a):
+            continue
+        x, y = classes(a), classes(b)
+        common = sorted(set(x) & set(y), key=str)
+        pairs = {}
+        for k in common:
+            pairs[(y[k], x[k])] = pairs.get((y[k], x[k]), 0) + 1
+        print('%s: %d cells in both, %d per profile only, %d whole-rule only; whole-rule -> per profile: %s' % (
+            name, len(common), len(set(x) - set(y)), len(set(y) - set(x)),
+            ', '.join('%s -> %s %d' % (p, q, n) for (p, q), n in sorted(pairs.items()))))
+        for k in common:
+            if x[k] != y[k]:
+                print('   %s | %s | %s: whole-rule %s, per profile %s' % (k[0], k[1] or '-', k[2], y[k], x[k]))
+        tally = {}
+        for k in set(x) - set(y):
+            tally[x[k]] = tally.get(x[k], 0) + 1
+        if tally:
+            print('   per profile only: ' + ', '.join('%s %d' % kv for kv in sorted(tally.items())))
+
+
 def main():
     global OUT, REC
+    if sys.argv[1:] == ['--rows-against-decided']:      # ADDED (rules per profile)
+        against_decided(os.path.join(OUT, 'rows'), os.path.join(FAMILY, 'recorded-decided'))
+        sys.exit(0)
     # ADDED (two readings): the last two; ADDED (copies extended): --reading-LEVEL
     if sys.argv[1:] in (['--decided'], ['--rewrite'], ['--copies']) or sys.argv[1:2] in (
             ['--reading-nothing'], ['--reading-profile'], ['--reading-verb'], ['--reading-cap'],
-            ['--reading-cap-items']):
+            ['--reading-cap-items'], ['--rows']):     # ADDED (rules per profile): --rows
         name = sys.argv[1][2:]
         OUT, REC = os.path.join(OUT, name), os.path.join(FAMILY, 'recorded-' + name)
     bad = 0

@@ -340,6 +340,57 @@ def part_section6(n):
         print()
 
 
+def part_beyond(n):
+    """ADDED (rules per profile): how often a merge gives, at a node, a letter that neither copy gave
+    just before it. Random histories over two copies of acts on rules and merges (KeePass's
+    Synchronize, its other methods, KeePassXC), 4 to 10 steps; at each merge that applies, the
+    rules' answer at the root and at N of the merged copy is held to both copies' answers before
+    it. Per profile: the acts on a single row and on the switch. The whole-rule form: rule acts of
+    whole tables, every profile named or some left out."""
+    import random
+    rng = random.Random(34)
+    flags = M.STORE.but(repair=False, pending=False)
+    R = range(2)
+    acts = []
+    for r in R:
+        for node in ('root', 'N'):
+            if M.ROWS is not None:
+                acts += [('switch', r, node, x) for x in ('deny', 'inherit')]
+                acts += [('row', r, node, p, x) for p in M.PROFS for x in ('rw', 'r', '', 'off')]
+            else:
+                acts += [('rule', r, node, d) for d in list(M.DOCS) + ['pf=r', 'pg=r', 'pf=rw,pg=', 'pf=,pg=rw']]
+    merges = [('merge', p, d, s) for p in ('kp_sync', 'kp_other', 'xc') for d in R for s in R if d != s]
+    hists, events, by_node, shortest = 0, 0, {}, {}
+    for _ in range(n):
+        ops = [rng.choice(acts if rng.random() < 0.6 else merges) for _ in range(rng.randint(4, 10))]
+        W = M.World(2, flags)
+        hit = False
+        for k, op in enumerate(ops):
+            pre = None
+            if op[0] == 'merge':
+                pre = (W.fold(W.reps[op[2]])['words_raw'], W.fold(W.reps[op[3]])['words_raw'])
+            if not W.step(op):
+                continue
+            if pre is None:
+                continue
+            after = W.fold(W.reps[op[2]])['words_raw']
+            for node in ('root', 'N'):
+                extra = after.get(node, frozenset()) - pre[0].get(node, frozenset()) - pre[1].get(node, frozenset())
+                if extra:
+                    events += 1
+                    hit = True
+                    by_node[node] = by_node.get(node, 0) + 1
+                    kind = 'with a switch act' if any(o[0] == 'switch' for o in ops[:k]) else 'without a switch act'
+                    if kind not in shortest or k + 1 < len(shortest[kind][0]):
+                        shortest[kind] = (ops[:k + 1], node, M.words_text(extra))
+        hists += hit
+    print('== %d histories over two copies; histories with a merge that gave a letter neither copy gave just'
+          ' before it: %d; such merges: %d (%s)' % (n, hists, events, ', '.join(
+              'at %s %d' % kv for kv in sorted(by_node.items())) or 'none'))
+    for kind, (ops, node, w) in sorted(shortest.items()):
+        print('   shortest %s: at %s, %s: %s' % (kind, node, w, ' ; '.join(fmt(op) for op in ops)))
+
+
 def main():
     # ADDED (decided store): --decided runs search, search-noauth or ext on the store as decided on
     # 2026-11-16, which has no repair (decision 14). The model holds no entry history, so an edit is
@@ -351,12 +402,29 @@ def main():
             raise SystemExit('--decided runs search, search-noauth and ext only')
         STORE = M.STORE.but(repair=False)
         print('== the store as decided: no repair after a Synchronize')
+    # ADDED (rules per profile): --rows VARIANT runs search on the store as decided with a rule
+    # stored as a record for each node and profile (crdt_model.ROWS); `--rows VARIANT acts` also puts
+    # the acts on a single row and on the switch into the alphabet
+    elif sys.argv[1] == '--rows':
+        # `--rows whole beyond`: the part `beyond` in the whole-rule form
+        M.ROWS, M.PP = (sys.argv[2] if sys.argv[2] != 'whole' else None), True
+        del sys.argv[1:3]
+        if sys.argv[1] == 'acts':
+            M.ROW_ACTS = True
+            del sys.argv[1]
+        if sys.argv[1] not in ('search', 'search-noauth', 'beyond'):
+            raise SystemExit('--rows runs search, search-noauth and beyond only')
+        STORE = M.STORE.but(repair=False)
+        print('== the store as decided, a rule stored as a record for each node and profile, a removed row'
+              ' written as %s%s' % (M.ROWS, '; the acts on a row and on the switch in the alphabet'
+                                   if M.ROW_ACTS else ''))
     part = sys.argv[1]
     n = int(sys.argv[2]) if len(sys.argv) > 2 else 20000
     sys.stdout.reconfigure(line_buffering=True)
     t0 = time.time()
     {'search': part_search, 'search-noauth': part_search_noauth, 'ext': part_ext, 'scenarios': part_scenarios,
-     'ablations': part_ablations, 'section6': part_section6}[part](n)
+     'ablations': part_ablations, 'section6': part_section6,
+     'beyond': part_beyond}[part](n)     # ADDED (rules per profile): beyond
     print('== %.0f s' % (time.time() - t0))
 
 

@@ -40,7 +40,22 @@ def mac(key, kind, data, extra):
     return hm(key, text).hex()
 
 
+# ADDED (rules per profile): the identifier of a row's version. 'pair', the form run: the subject
+# hash over the object, the node and the profile together. 'split', the form measured beside it for
+# the cost of a deletion record (rows.py, the part `dels`): the subject hash over the node's rule
+# alone, 'rule:<node>', and the two bytes of the height, which are 0 for a version, a keyed tag of
+# the profile's name.
+ID_FORM = 'pair'
+
+
+def profile_tag(key, name):
+    return hm(key, 'profile\n' + name)[:2].hex()
+
+
 def ident(key, kind, subject, height, m):
+    if ID_FORM == 'split' and kind == 'version' and subject.startswith('rule:') and '/' in subject:
+        node, _, p = subject.partition('/')         # ADDED (rules per profile)
+        return tag(key, kind) + subject_hash(key, node) + profile_tag(key, p) + m[:12]
     return tag(key, kind) + subject_hash(key, subject) + int(height).to_bytes(2, 'big').hex() + m[:12]
 
 
@@ -69,6 +84,15 @@ PROFS = ('pf', 'pg')    # ADDED (copies extended): the profiles a rule may name
 
 
 def doc(f):
+    # ADDED (rules per profile): a row's version: 'row:<letters>' (an empty rule is 'row:'), 'off:'
+    # the rule taken off, 'void:' a version holding nothing of its own, 'cut:<letters>' letters
+    # granted and the rule taken off together; a switch's version: 'sw:deny' or 'sw:inherit'
+    if f[0] == 'rows':
+        if f[1] is None:
+            return 'off:' if f[2] else 'void:'
+        return ('cut:' if f[2] else 'row:') + ''.join(sorted(f[1]))
+    if f[0] == 'sws':
+        return 'sw:' + '/'.join(sorted(f[1]))
     if f[0] == 'pp':    # ADDED (copies extended): 'pp:pf=rw,pg=', a profile left out inheriting
         named = [p for p in PROFS if not any(x.startswith(p + '.') for x in f[2])]
         return 'pp:' + ','.join('%s=%s' % (p, ''.join(sorted(x[-1] for x in f[1] if x.startswith(p + '.'))))
@@ -78,6 +102,19 @@ def doc(f):
 
 def undoc(s):
     k, w = s.split(':', 1)
+    if k in ('row', 'cut', 'off', 'void'):      # ADDED (rules per profile)
+        if not set(w) <= set('rw') or (k in ('off', 'void') and w):
+            raise ValueError(s)
+        if k == 'off':
+            return ('rows', None, True)
+        if k == 'void':
+            return ('rows', None, False)
+        return ('rows', frozenset(w), k == 'cut')
+    if k == 'sw':       # ADDED (rules per profile)
+        vals = frozenset(w.split('/'))
+        if not vals or not vals <= {'deny', 'inherit'}:
+            raise ValueError(s)
+        return ('sws', vals)
     if k == 'pp':       # ADDED (copies extended)
         named = dict(part.split('=') for part in w.split(',')) if w else {}
         if not set(named) <= set(PROFS) or not all(set(x) <= set('rw') for x in named.values()):
@@ -99,7 +136,13 @@ class Encoder:
     def obj(self, o):
         if o.startswith('rule:'):
             n = o[5:]
-            return 'rule:' + self.nodes.get(n, n)
+            # ADDED (rules per profile): 'rule:<node>/<profile>', a row; the node mapped, the
+            # profile's name as it is
+            n, sep, p = n.partition('/')
+            return 'rule:' + self.nodes.get(n, n) + sep + p
+        if o.startswith('sw:'):     # ADDED (rules per profile): the node's switch
+            n = o[3:]
+            return 'switch:' + self.nodes.get(n, n)
         return o
 
     def key(self, e):

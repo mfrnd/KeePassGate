@@ -59,7 +59,36 @@ def gen(f):
     return ('pp', s, frozenset()) if f[0] == 'const' else ('pp', frozenset(), s)
 
 
+# ADDED (rules per profile): a rule stored as a record for each node and profile, and the node's
+# switch "Refuse any profile not named here" as a record of its own (STORE.md 617). With ROWS set,
+# a rule act writes a version of the object 'rule:<node>/<profile>' for each row it changes, and
+# 'sw:<node>' for the switch; a node's rule is put together from those objects (`rows_node`). The
+# value of a row's versions is ('rows', G, off): G the letters the granting versions all hold
+# (None where no version grants), `off` whether a version takes the rule off. A version holds
+# ('rows', letters, False), an empty rule ('rows', frozenset(), False), or the rule taken off
+# ROW_OFF. ROW_VOID, a version that holds nothing of its own, is written only by the removal of a
+# single version in the form 'void' (the part `same` of rows.py). The switch's value is ('sws',
+# the values its standing versions hold). ROWS names how a removed row is written: 'empty', as
+# decided, an empty rule where the gate reads the switch as refusing, and nothing written where the
+# row is an empty rule already; 'again' the same, but removing an empty rule under a refusing switch
+# takes the rule off; 'off', the control, the rule taken off always. None: a version of a node's
+# whole rule, as every configuration before.
+ROWS = None
+ROW_ACTS = False     # the alphabet holds the acts on a single row and on the switch (store_runs.py)
+ROW_OFF = ('rows', None, True)
+ROW_VOID = ('rows', None, False)
+
+
+def row(letters):
+    return ('rows', frozenset(letters), False)
+
+
 def meet(f, g):
+    if f[0] == 'rows' and g[0] == 'rows':   # ADDED (rules per profile): the versions of a row
+        G = f[1] if g[1] is None else g[1] if f[1] is None else f[1] & g[1]
+        return ('rows', G, f[2] or g[2])
+    if f[0] == 'sws' and g[0] == 'sws':     # ADDED (rules per profile): the versions of a switch
+        return ('sws', f[1] | g[1])
     if f[0] == 'pp' or g[0] == 'pp':    # ADDED (copies extended): letter by letter
         f, g = gen(f), gen(g)
         c = f[1] & g[1]
@@ -108,6 +137,81 @@ def words_text(w):
     if len(set(per.values())) == 1:
         return per[PROFS[0]]
     return ' '.join('%s:%s' % (p, per[p] or '-') for p in PROFS)
+
+
+# ADDED (rules per profile): a rule act's table: for each profile, the letters of its row, or None
+# where the act names no row for it (a row taken off, or never made)
+def table_of(spec):
+    if spec in DOCS:
+        f = DOCS[spec]
+        return {p: (f[1] if f[0] == 'const' else None) for p in PROFS}
+    named = {}
+    for part in spec.split(','):
+        p, w = part.split('=')
+        if p not in PROFS or not set(w) <= ALL:
+            raise ValueError(spec)
+        named[p] = frozenset(w)
+    return {p: named.get(p) for p in PROFS}
+
+
+# ADDED (rules per profile): what a switch's value means
+def switch_refuses(s):
+    """No version of the switch standing inherits; a refusal (a version lost), or any standing
+    version that refuses, refuses: versions made apart refuse while they differ."""
+    return s is not None and (s[0] == 'const' or 'deny' in s[1])
+
+
+def rows_node(freg, n, depth):
+    """ADDED (rules per profile): a node's rule put together from its rows and its switch, as a
+    document of the form with profiles. A row that grants gives its letters whatever arrives from
+    above; a row whose versions grant and take the rule off gives what arrives cut to the granted
+    letters where the switch inherits, and nothing where it refuses; a profile with no row standing,
+    or with every version taking the rule off, is a profile the node does not name: what arrives
+    where the switch inherits, nothing where it refuses; a row that refuses (a version lost) gives
+    nothing."""
+    deny = switch_refuses(freg('sw:' + n, depth))
+    C, P = set(), set()
+    for p in PROFS:
+        r = freg('rule:%s/%s' % (n, p), depth)
+        L = set(p + '.' + w for w in ALL)
+        if r is not None and r[0] == 'const':
+            continue
+        if r is None or r[1] is None:
+            if not deny:
+                P |= L
+        elif r[2]:
+            if not deny:
+                P |= set(p + '.' + w for w in r[1])
+        else:
+            C |= set(p + '.' + w for w in r[1])
+    return ('pp', frozenset(C), frozenset(P))
+
+
+def refusal_of(obj):
+    """ADDED (rules per profile): what Seal again writes for an object whose version was lost."""
+    if ROWS and obj.startswith('sw:'):
+        return ('sws', frozenset(['deny']))
+    if ROWS and obj.startswith('rule:') and '/' in obj:
+        return row('')
+    return REFUSE
+
+
+def obj_match(obj, sel):
+    """ADDED (rules per profile): a selection by a node's rule names every row of that node."""
+    return obj == sel or (ROWS is not None and sel.startswith('rule:') and obj.startswith(sel + '/'))
+
+
+def row_text(f):
+    """ADDED (rules per profile): a row's or a switch's value as text, for the parts that print it."""
+    if f is None:
+        return 'none'
+    if f[0] == 'const':
+        return 'refuses'
+    if f[0] == 'sws':
+        return '/'.join(sorted(f[1]))
+    if f[1] is None:
+        return 'off' if f[2] else 'void'
+    return (''.join(sorted(f[1])) or 'empty') + ('|off' if f[2] else '')
 
 
 # -------------------------------------------------------------------- elements
@@ -205,7 +309,8 @@ STORE = Flags(T=False, witness=False, mark=False, revkey=True, keyretire=True, p
               repair=True, gates=0, newacts=True)
 GATE_ACTS = ('pair', 'revoke', 'recreate', 'padd', 'prem', 'rule', 'renew', 'adopt', 'save', 'reseal',
              'renewcert', 'delauth', 'create',   # ADDED (store-as-a-whole): the last three
-             'keep')                             # ADDED (copies extended): no alphabet holds it
+             'keep',                             # ADDED (copies extended): no alphabet holds it
+             'row', 'switch', 'drop')            # ADDED (rules per profile): with ROWS only
 
 
 class World:
@@ -227,8 +332,11 @@ class World:
         base.nodes = {'root': ['root', 1], 'N': [None, 1]}
         els = [El('auth:a0', 'auth', 'a0'),
                self.mk('padd', 'pf', height=1),
-               El('rec:c0', 'rec', 'c0', data=('a0', frozenset(['pf']))),
-               self.mk('ver', 'rule:root', data=DOCS['r'])]
+               El('rec:c0', 'rec', 'c0', data=('a0', frozenset(['pf'])))]
+        if ROWS is None:
+            els.append(self.mk('ver', 'rule:root', data=DOCS['r']))
+        else:       # ADDED (rules per profile): the root's rule of read, a row for each profile
+            els += [self.mk('ver', 'rule:root/' + p, data=row('r')) for p in PROFS]
         for e in els:
             self.EL[e.id] = e
             base.entries[e.id] = [e.id, 1, True]
@@ -431,6 +539,8 @@ class World:
             if depth > 8:
                 return REFUSE
             f = freg('rule:' + n, depth)
+            if ROWS is not None:    # ADDED (rules per profile)
+                f = rows_node(freg, n, depth)
             m = rep.nodes[n][0] if n in rep.nodes else None
             if not fl.mark:     # ADDED (store-as-a-whole): without the mark a node reads no mark
                 m = None
@@ -546,7 +656,7 @@ class World:
                 after = set(ids) | set(v['vers'].get(obj, {}))
                 for e in v['vers'].get(obj, {}).values():
                     after |= e.after
-                e = self.mk('ver', obj, after=after, data=REFUSE)
+                e = self.mk('ver', obj, after=after, data=refusal_of(obj))     # ADDED (rules per profile): refusal_of
                 rep.entries[e.id] = [e.id, t, True]
                 self.K[i].add(e.id)
             for n, (m, mt) in sorted(rep.nodes.items()):
@@ -576,9 +686,13 @@ class World:
         elif v['status'] != 'ok':
             return False
         # ADDED (store-as-a-whole): a rule waits in memory for the next save (change 4)
-        if kind == 'rule' and self.flags.pending and rep.disk is None:
+        just = False    # ADDED (rules per profile): a rule act that changes no row writes nothing
+        # ADDED (rules per profile): the row acts as well
+        if (kind == 'rule' or (ROWS is not None and kind in ('row', 'switch', 'drop'))) \
+                and self.flags.pending and rep.disk is None:
             rep.disk = rep.clone()
             self.Kdisk[i] = set(self.K[i])
+            just = True
         if kind == 'create':
             pass
         elif kind == 'pair':
@@ -648,6 +762,15 @@ class World:
                 return False
             for a in sorted(v['auths'], key=lambda x: (int(x[1:]) if x[1:].isdigit() else 0, x))[1:]:
                 new.append(self.mk('ref', a, data=('retired', a)))
+        # ADDED (rules per profile): a rule act writes a version for each row it changes; `row` sets
+        # one profile's row ('off' takes it off); `switch` sets the node's switch; `drop` removes a
+        # single version of a row that stands in several (rows.py, the part `same`)
+        elif ROWS is not None and kind in ('rule', 'row', 'switch', 'drop'):
+            new += self.rows_act(v, op)
+            if not new:
+                if just:
+                    self.flush(i)
+                return False
         elif kind in ('rule', 'renew', 'adopt'):
             if kind == 'rule':
                 obj, doc, node = 'rule:' + op[2], doc_of(op[3]), op[2]     # ADDED (copies extended): doc_of
@@ -692,9 +815,93 @@ class World:
             self.K[i].add(e.id)
         self.K[i].add(self.write_head(rep, set(e.id for e in new)))
         self.Kever[i] |= self.K[i]
-        if not (kind == 'rule' and self.flags.pending):     # ADDED (store-as-a-whole)
+        # ADDED (store-as-a-whole); ADDED (rules per profile): the row acts as well
+        if not ((kind == 'rule' or (ROWS is not None and kind in ('row', 'switch', 'drop')))
+                and self.flags.pending):
             self.flush(i)
         return True
+
+    # ADDED (rules per profile): the versions a rule act, a row act, a switch act or the removal of a
+    # single version writes, from the gate's read `v` of its own file
+    def rows_act(self, v, op):
+        kind, node = op[0], op[2]
+
+        def standing(obj):
+            V = v['vers'].get(obj, {})
+            dead, after = set(), set(V)
+            for e in V.values():
+                dead |= e.after
+                after |= e.after
+            return [e for i, e in sorted(V.items()) if i not in dead], after
+
+        def refused(obj):
+            cur = v['regval'].get(obj)
+            return cur is not None and cur[0] == 'const'
+
+        deny = switch_refuses(v['regval'].get('sw:' + node))
+        out = []
+
+        def set_row(p, want):
+            obj = 'rule:%s/%s' % (node, p)
+            st, after = standing(obj)
+            vals = [e.data for e in st]
+            real = [x for x in vals if x != ROW_VOID]
+            shown = [x for x in real if x != ROW_OFF]
+            gone = refused(obj)
+            if want is None:
+                if not shown and not gone:
+                    return          # no row to take off
+                val = ROW_OFF
+                if ROWS != 'off' and deny:
+                    # decided: a row removed where the switch refuses is written as an empty rule
+                    val = row('')
+                    if real == [row('')] and not gone:
+                        if ROWS == 'empty':
+                            return  # the row is an empty rule already: nothing changes
+                        val = ROW_OFF   # 'again': removing the empty rule takes the rule off
+            else:
+                val = row(want)
+                if vals == [val] and not gone:
+                    return          # the row is unchanged
+            out.append(self.mk('ver', obj, after=after, data=val))
+
+        if kind == 'rule':
+            for p, want in sorted(table_of(op[3]).items()):
+                set_row(p, want)
+        elif kind == 'row':
+            set_row(op[3], None if op[4] == 'off' else frozenset(op[4]))
+        elif kind == 'switch':
+            obj = 'sw:' + node
+            st, after = standing(obj)
+            val = ('sws', frozenset([op[3]]))
+            if not refused(obj) and ([e.data for e in st] == [val] or (not st and op[3] == 'inherit')):
+                return []
+            out.append(self.mk('ver', obj, after=after, data=val))
+        elif kind == 'drop':
+            # op: ('drop', gate, node, profile, which, form). The standing versions are ordered by
+            # their value as the editor orders its rows, then by identifier; `which` is removed.
+            obj = 'rule:%s/%s' % (node, op[3])
+            st, _ = standing(obj)
+            st = sorted(st, key=lambda e: (row_text(e.data), e.id))
+            if len(st) < 2:
+                return []
+            gone = st[op[4] % len(st)]
+            keep = [e for e in st if e is not gone]
+            base = set([gone.id]) | gone.after
+            form = op[5]
+            if form == 'again':     # each version left written again, naming the removed version
+                for e in keep:
+                    out.append(self.mk('ver', obj, after=base | set([e.id]) | e.after, data=e.data))
+            elif form == 'void':    # a version that names the removed version and holds nothing
+                out.append(self.mk('ver', obj, after=base, data=ROW_VOID))
+            elif form == 'limit':   # a version that names the removed version and holds what the
+                m = keep[0].data    # versions left allow together
+                for e in keep[1:]:
+                    m = meet(m, e.data)
+                out.append(self.mk('ver', obj, after=base, data=m))
+            else:
+                raise ValueError(op)
+        return out
 
     # ------------------------------------------------- other programs, people
     def pick(self, rep, sel):
@@ -711,7 +918,8 @@ class World:
         if k == 'ref':
             c = [e for e in present if e.kind == 'ref' and e.data[0] == sel[1]]
         elif k == 'ver':
-            V = [e for e in present if e.kind in ('ver', 'pin') and e.obj == sel[1]]
+            # ADDED (rules per profile): obj_match for ==
+            V = [e for e in present if e.kind in ('ver', 'pin') and obj_match(e.obj, sel[1])]
             dead = set()
             for e in V:
                 dead |= e.after
@@ -782,7 +990,9 @@ class World:
             m = 'M%d' % self.ncopy
             # ADDED (store-as-a-whole): without the mark, a copy of a node ruled in the store is
             # counted, so that a copy wider than its original (accepted, decision 16) shows
-            if rep.nodes['N'][0] or (not self.flags.mark and self.fold(rep)['vers'].get('rule:N')):
+            # ADDED (rules per profile): any row of N
+            if rep.nodes['N'][0] or (not self.flags.mark and any(
+                    obj_match(o, 'rule:N') and V for o, V in self.fold(rep)['vers'].items())):
                 self.copies[m] = 'N'    # the promise is about a copy of a ruled node
             rep.nodes[m] = [rep.nodes['N'][0], self.now()]
             return True
@@ -804,7 +1014,9 @@ class World:
             rep = reps[op[1]]
             t = self.now()
             what = op[2]
-            if what == 'rule':
+            if what == 'rule' and ROWS is not None:     # ADDED (rules per profile): a row
+                e = self.mk('ver', 'rule:N/pf', data=row('rw'), key='F')
+            elif what == 'rule':
                 e = self.mk('ver', 'rule:N', data=DOCS['rw'], key='F')
             elif what == 'retire':
                 e = self.mk('ref', 'a0', data=('retired', 'a0'), key='F')
@@ -827,11 +1039,12 @@ class World:
         if k == 'plantk':
             rep = reps[op[1]]
             v = self.fold(rep)
-            V = v['vers'].get('rule:N', {})
+            obj, data = ('rule:N/pf', row('rw')) if ROWS is not None else ('rule:N', DOCS['rw'])     # ADDED (rules per profile)
+            V = v['vers'].get(obj, {})
             after = set(V)
             for e in V.values():
                 after |= e.after
-            e = self.mk('ver', 'rule:N', after=after, data=DOCS['rw'], key=sorted(v['held'])[0] if v['held'] else 'K')
+            e = self.mk('ver', obj, after=after, data=data, key=sorted(v['held'])[0] if v['held'] else 'K')
             rep.entries[e.id] = [e.id, self.now(), True]
             self.write_head(rep, {e.id})    # whoever holds the key can write the head as well
             return True
@@ -1117,6 +1330,9 @@ def alphabet(nrep, cfg, flags=None):     # ADDED (store-as-a-whole): `flags`
         for n in ('root', 'N'):
             for d in DOCS:
                 acts.append(('rule', r, n, d))
+            if ROW_ACTS:     # ADDED (rules per profile): a single row, and the switch
+                acts += [('switch', r, n, x) for x in ('deny', 'inherit')]
+                acts += [('row', r, n, p, x) for p in PROFS for x in ('rw', 'r', '', 'off')]
         # ADDED (store-as-a-whole): the store's other acts
         if flags is not None and flags.newacts:
             acts += [('renewcert', r, 'c0'), ('renewcert', r, 'c1'), ('delauth', r), ('create', r)]

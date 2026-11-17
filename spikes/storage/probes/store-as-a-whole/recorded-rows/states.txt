@@ -1,0 +1,122 @@
+== Item 4: an empty rule (E), a rule taken off (O) and a row never made (X), at N for pf, under
+   a root that grants read and write and a switch that inherits. Each cell: the state of N/pf
+   as read, what N gives pf, and the oracle's class. Expected: E gives nothing, O and X give
+   what arrives (rw); O and X are told apart by the version O holds.
+   base: rule 0 root rw ; row 0 N pg r ; row 0 N pf r ; merge kp_sync 1 0
+## E at copy 0: row 0 N pf 
+   every merge, copy 1 holding the earlier row:
+   KeePass Synchronize    into 1: E, gives pf nothing, as decided [entries 0, read 0] | into 0: E, gives pf nothing, as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: E, gives pf nothing, as decided [entries 0, read 0] | into 0: E, gives pf nothing, as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: E, gives pf nothing, as decided [entries 0, read 0] | into 0: E, gives pf nothing, as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: E, gives pf nothing, as decided [entries 0, read 0] | into 0: E, gives pf nothing, as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: row:r, gives pf r, WIDER [entries 0, read 0] | into 0: E, gives pf nothing, as decided [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: E, gives pf nothing, as decided [entries 0, read 0] | into 0: E, gives pf nothing, as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: E, gives pf nothing, as decided [entries 0, read 0] | into 0: E, gives pf nothing, as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: E, gives pf nothing, as decided [entries 0, read 0] | into 0: E, gives pf nothing, as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: E, gives pf nothing, as decided [entries 0, read 0] | into 0: E, gives pf nothing, as decided [entries 0, read 0]
+   dialog: the version's text changed in the entry dialog
+      copy 0: E, gives pf nothing, store ok, as decided
+      Synchronize into 1: E, gives pf nothing, store ok, as decided
+      Synchronize into 0: E, gives pf nothing, store ok, as decided
+      KeePassXC 2.8.0 into 1: E, gives pf nothing, store ok, as decided
+      KeePassXC 2.8.0 into 0: E, gives pf nothing, store ok, as decided
+   edits11: the dialog edit and 10 more dialog edits of the title
+      copy 0: E, gives pf nothing, store incomplete, refuses
+      Synchronize into 1: E, gives pf nothing, store incomplete, refuses
+      Synchronize into 0: E, gives pf nothing, store incomplete, refuses
+      KeePassXC 2.8.0 into 1: E, gives pf nothing, store incomplete, refuses
+      KeePassXC 2.8.0 into 0: E, gives pf nothing, store incomplete, refuses
+   delete: deleted for good, with a deletion record
+      copy 0: E, gives pf nothing, store ok, as decided
+      Synchronize into 1: E, gives pf nothing, store ok, as decided
+      Synchronize into 0: E, gives pf nothing, store ok, as decided
+      KeePassXC 2.8.0 into 1: E, gives pf nothing, store ok, as decided
+      KeePassXC 2.8.0 into 0: E, gives pf nothing, store ok, as decided
+   unrecorded: deleted for good, no deletion record
+      copy 0: E, gives pf nothing, store ok, as decided
+      Synchronize into 1: E, gives pf nothing, store ok, as decided
+      Synchronize into 0: E, gives pf nothing, store ok, as decided
+      KeePassXC 2.8.0 into 1: E, gives pf nothing, store ok, as decided
+      KeePassXC 2.8.0 into 0: E, gives pf nothing, store ok, as decided
+   bin: deleted to the recycle bin
+      copy 0: E, gives pf nothing, store ok, as decided
+      Synchronize into 1: E, gives pf nothing, store ok, as decided
+      Synchronize into 0: E, gives pf nothing, store ok, as decided
+      KeePassXC 2.8.0 into 1: E, gives pf nothing, store ok, as decided
+      KeePassXC 2.8.0 into 0: E, gives pf nothing, store ok, as decided
+   lost: deleted for good with a deletion record, the summary entry too, then Seal again
+      copy 0: E, gives pf nothing, store ok, as decided
+      Synchronize into 1: E, gives pf nothing, store ok, as decided
+      Synchronize into 0: E, gives pf nothing, store ok, as decided
+      KeePassXC 2.8.0 into 1: E, gives pf nothing, store ok, as decided
+      KeePassXC 2.8.0 into 0: E, gives pf nothing, store ok, as decided
+## O at copy 0: row 0 N pf off
+   every merge, copy 1 holding the earlier row:
+   KeePass Synchronize    into 1: O, gives pf rw, as decided [entries 0, read 0] | into 0: O, gives pf rw, as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: O, gives pf rw, as decided [entries 0, read 0] | into 0: O, gives pf rw, as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: O, gives pf rw, as decided [entries 0, read 0] | into 0: O, gives pf rw, as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: O, gives pf rw, as decided [entries 0, read 0] | into 0: O, gives pf rw, as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: row:r, gives pf r, narrower [entries 0, read 0] | into 0: O, gives pf rw, as decided [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: O, gives pf rw, as decided [entries 0, read 0] | into 0: O, gives pf rw, as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: O, gives pf rw, as decided [entries 0, read 0] | into 0: O, gives pf rw, as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: O, gives pf rw, as decided [entries 0, read 0] | into 0: O, gives pf rw, as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: O, gives pf rw, as decided [entries 0, read 0] | into 0: O, gives pf rw, as decided [entries 0, read 0]
+   dialog: the version's text changed in the entry dialog
+      copy 0: O, gives pf rw, store ok, as decided
+      Synchronize into 1: O, gives pf rw, store ok, as decided
+      Synchronize into 0: O, gives pf rw, store ok, as decided
+      KeePassXC 2.8.0 into 1: O, gives pf rw, store ok, as decided
+      KeePassXC 2.8.0 into 0: O, gives pf rw, store ok, as decided
+   edits11: the dialog edit and 10 more dialog edits of the title
+      copy 0: O, gives pf rw, store incomplete, refuses
+      Synchronize into 1: O, gives pf rw, store incomplete, refuses
+      Synchronize into 0: O, gives pf rw, store incomplete, refuses
+      KeePassXC 2.8.0 into 1: O, gives pf rw, store incomplete, refuses
+      KeePassXC 2.8.0 into 0: O, gives pf rw, store incomplete, refuses
+   delete: deleted for good, with a deletion record
+      copy 0: O, gives pf rw, store ok, as decided
+      Synchronize into 1: O, gives pf rw, store ok, as decided
+      Synchronize into 0: O, gives pf rw, store ok, as decided
+      KeePassXC 2.8.0 into 1: O, gives pf rw, store ok, as decided
+      KeePassXC 2.8.0 into 0: O, gives pf rw, store ok, as decided
+   unrecorded: deleted for good, no deletion record
+      copy 0: O, gives pf rw, store ok, as decided
+      Synchronize into 1: O, gives pf rw, store ok, as decided
+      Synchronize into 0: O, gives pf rw, store ok, as decided
+      KeePassXC 2.8.0 into 1: O, gives pf rw, store ok, as decided
+      KeePassXC 2.8.0 into 0: O, gives pf rw, store ok, as decided
+   bin: deleted to the recycle bin
+      copy 0: O, gives pf rw, store ok, as decided
+      Synchronize into 1: O, gives pf rw, store ok, as decided
+      Synchronize into 0: O, gives pf rw, store ok, as decided
+      KeePassXC 2.8.0 into 1: O, gives pf rw, store ok, as decided
+      KeePassXC 2.8.0 into 0: O, gives pf rw, store ok, as decided
+   lost: deleted for good with a deletion record, the summary entry too, then Seal again
+      copy 0: E, gives pf nothing, store ok, as decided
+      Synchronize into 1: E, gives pf nothing, store ok, as decided
+      Synchronize into 0: E, gives pf nothing, store ok, as decided
+      KeePassXC 2.8.0 into 1: E, gives pf nothing, store ok, as decided
+      KeePassXC 2.8.0 into 0: E, gives pf nothing, store ok, as decided
+## X at copy 0: rule 0 root rw ; row 0 N pg r ; merge kp_sync 1 0 ; row 0 N pg rw
+   every merge, copy 1 holding the earlier row:
+   KeePass Synchronize    into 1: X, gives pf rw, as decided [entries 0, read 0] | into 0: X, gives pf rw, as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: X, gives pf rw, as decided [entries 0, read 0] | into 0: X, gives pf rw, as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: X, gives pf rw, as decided [entries 0, read 0] | into 0: X, gives pf rw, as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: X, gives pf rw, as decided [entries 0, read 0] | into 0: X, gives pf rw, as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: X, gives pf rw, narrower [entries 0, read 0] | into 0: X, gives pf rw, as decided [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: X, gives pf rw, as decided [entries 0, read 0] | into 0: X, gives pf rw, as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: X, gives pf rw, as decided [entries 0, read 0] | into 0: X, gives pf rw, as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: X, gives pf rw, as decided [entries 0, read 0] | into 0: X, gives pf rw, as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: X, gives pf rw, as decided [entries 0, read 0] | into 0: X, gives pf rw, as decided [entries 0, read 0]
+## E made at copy 0 and O made at copy 1, apart, from the row r both held
+   KeePass Synchronize    into 1: off:+row:, gives pf nothing, as decided | into 0: off:+row:, gives pf nothing, as decided
+   KeePass OverwriteIfNewer into 1: off:+row:, gives pf nothing, as decided | into 0: off:+row:, gives pf nothing, as decided
+   KeePass OverwriteExisting into 1: off:+row:, gives pf nothing, as decided | into 0: off:+row:, gives pf nothing, as decided
+   KeePass KeepExisting   into 1: off:+row:, gives pf nothing, as decided | into 0: off:+row:, gives pf nothing, as decided
+   KeePass CreateNewUuids into 1: O, gives pf rw, WIDER | into 0: E, gives pf nothing, as decided
+   KeePassXC 2.4.2        into 1: off:+row:, gives pf nothing, as decided | into 0: off:+row:, gives pf nothing, as decided
+   KeePassXC 2.6.6        into 1: off:+row:, gives pf nothing, as decided | into 0: off:+row:, gives pf nothing, as decided
+   KeePassXC 2.7.12       into 1: off:+row:, gives pf nothing, as decided | into 0: off:+row:, gives pf nothing, as decided
+   KeePassXC 2.8.0        into 1: off:+row:, gives pf nothing, as decided | into 0: off:+row:, gives pf nothing, as decided
+== tally (state made, operation, state read after the merge): E bin E 4, E delete E 4, E dialog E 4, E edits11 store incomplete 4, E lost E 4, E merge E 17, E merge row:r 1, E unrecorded E 4, O bin O 4, O delete O 4, O dialog O 4, O edits11 store incomplete 4, O lost E 4, O merge O 17, O merge row:r 1, O unrecorded O 4, X merge X 18
+== 35 s

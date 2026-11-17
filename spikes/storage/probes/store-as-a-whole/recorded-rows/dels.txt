@@ -1,0 +1,76 @@
+== Item 6: a deletion record of a row's version. A version and the summary entry deleted for good
+   with deletion records at copy 0, so that only the deletion record tells of the version;
+   Seal again; then copy 1 merged in. Read with the identifier in the form run (`pair`: the subject
+   hash over the node and the profile) and in the form `split` (the subject hash over the node,
+   the profile's keyed tag in the two bytes of the height).
+   base: rule 0 root rw ; switch 0 N deny ; row 0 N pf r ; row 0 N pg  ; row 0 root pg r ; merge kp_sync 1 0
+## pair, the version of N/pf deleted
+   after the deletions: store incomplete, lost N/pf lost
+   Seal again: store ok, gives root pf:rw pg:r, N nothing; root/pf row:rw; root/pg row:r; N/pf row:; N/pg row:; N switch sw:deny
+   Synchronize into 1: store ok, gives root pf:rw pg:r, N nothing; root/pf row:rw; root/pg row:r; N/pf row:; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   Synchronize into 0: store ok, gives root pf:rw pg:r, N nothing; root/pf row:rw; root/pg row:r; N/pf row:; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: store ok, gives root pf:rw pg:r, N nothing; root/pf row:rw; root/pg row:r; N/pf row:; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: store ok, gives root pf:rw pg:r, N nothing; root/pf row:rw; root/pg row:r; N/pf row:; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+## pair, the version of N/pg deleted
+   after the deletions: store incomplete, lost N/pg lost
+   Seal again: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny
+   Synchronize into 1: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   Synchronize into 0: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+## pair, the version of N switch deleted
+   after the deletions: store incomplete, lost N switch lost
+   Seal again: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny
+   Synchronize into 1: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   Synchronize into 0: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+## pair, the version of root/pg deleted
+   after the deletions: store incomplete, lost root/pg lost
+   Seal again: store ok, gives root pf:rw pg:-, N pf:r pg:-; root/pf row:rw; root/pg row:; N/pf row:r; N/pg row:; N switch sw:deny
+   Synchronize into 1: store ok, gives root pf:rw pg:-, N pf:r pg:-; root/pf row:rw; root/pg row:; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   Synchronize into 0: store ok, gives root pf:rw pg:-, N pf:r pg:-; root/pf row:rw; root/pg row:; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: store ok, gives root pf:rw pg:-, N pf:r pg:-; root/pf row:rw; root/pg row:; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: store ok, gives root pf:rw pg:-, N pf:r pg:-; root/pf row:rw; root/pg row:; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+## split, the version of N/pf deleted
+   after the deletions: store incomplete, lost N/pf lost
+   Seal again: store ok, gives root pf:rw pg:r, N nothing; root/pf row:rw; root/pg row:r; N/pf row:; N/pg row:; N switch sw:deny
+   Synchronize into 1: store ok, gives root pf:rw pg:r, N nothing; root/pf row:rw; root/pg row:r; N/pf row:; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   Synchronize into 0: store ok, gives root pf:rw pg:r, N nothing; root/pf row:rw; root/pg row:r; N/pf row:; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: store ok, gives root pf:rw pg:r, N nothing; root/pf row:rw; root/pg row:r; N/pf row:; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: store ok, gives root pf:rw pg:r, N nothing; root/pf row:rw; root/pg row:r; N/pf row:; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+## split, the version of N/pg deleted
+   after the deletions: store incomplete, lost N/pg lost
+   Seal again: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny
+   Synchronize into 1: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   Synchronize into 0: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+## split, the version of N switch deleted
+   after the deletions: store incomplete, lost N switch lost
+   Seal again: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny
+   Synchronize into 1: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   Synchronize into 0: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: store ok, gives root pf:rw pg:r, N pf:r pg:-; root/pf row:rw; root/pg row:r; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+## split, the version of root/pg deleted
+   after the deletions: store incomplete, lost root/pg lost
+   Seal again: store ok, gives root pf:rw pg:-, N pf:r pg:-; root/pf row:rw; root/pg row:; N/pf row:r; N/pg row:; N switch sw:deny
+   Synchronize into 1: store ok, gives root pf:rw pg:-, N pf:r pg:-; root/pf row:rw; root/pg row:; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   Synchronize into 0: store ok, gives root pf:rw pg:-, N pf:r pg:-; root/pf row:rw; root/pg row:; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: store ok, gives root pf:rw pg:-, N pf:r pg:-; root/pf row:rw; root/pg row:; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: store ok, gives root pf:rw pg:-, N pf:r pg:-; root/pf row:rw; root/pg row:; N/pf row:r; N/pg row:; N switch sw:deny; oracle as decided [entries 0, read 0]
+== the two forms give the same lines: 4 of 4 deletions
+== the cost of telling a deletion record, by the reading's own count of keyed hashes and its time
+   (Python, median of 5, a dump of a real file with that many ruled nodes added as groups, each
+   with four rows of four profile names and the switch named by a deletion record)
+   pair     20 ruled nodes:    228 keyed hashes for subjects, read 1.1 ms
+   pair    200 ruled nodes:   1308 keyed hashes for subjects, read 8.4 ms
+   pair   2000 ruled nodes:  12108 keyed hashes for subjects, read 48.1 ms
+   split    20 ruled nodes:     88 keyed hashes for subjects, read 0.6 ms
+   split   200 ruled nodes:    448 keyed hashes for subjects, read 2.7 ms
+   split  2000 ruled nodes:   4048 keyed hashes for subjects, read 23.0 ms
+   The names the file knows here: pf, p3, p4 on the list, and pg from its rows: four. The form
+   `pair` computes for each node of the tree a hash for its rule, its switch and each name; the
+   form `split` a hash for its rule and its switch, and a tag for each name once.
+== 16 s

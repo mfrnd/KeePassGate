@@ -1,0 +1,4 @@
+== random histories of rows and switches, the removal written as empty: 300 histories, steps 1724, entry disagreements 0, read differences 0, 123 s
+   files at the end against every decision: WIDER 234, as decided 383, narrower 95
+   merges that gave a letter neither copy gave just before: 0
+== 123 s

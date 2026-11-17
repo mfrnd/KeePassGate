@@ -109,6 +109,31 @@ def extended(level, variant, **toggles):
     RD.PP = True
 
 
+ROWS = None     # ADDED (rules per profile): set by rows()
+
+
+def rows(variant):
+    """ADDED (rules per profile): the store as decided, with a rule stored as a record for each node
+    and profile and the node's switch as a record of its own (crdt_model.ROWS, read.ROWS).
+    `variant` is how a removed row is written: 'empty' (decided), 'again' or 'off' (the control)."""
+    global PREFIX, ROWS
+    decide()
+    ROWS = variant
+    M.ROWS = variant
+    M.PP = True
+    RD.PP = True
+    RD.ROWS = True
+    PREFIX = 'p%s-' % variant[0]
+
+
+def use(form):
+    """ADDED (rules per profile): 'rows', the configuration's form, or 'whole', a version of a node's
+    whole rule as every configuration before, with the words per profile kept on, so that a part
+    can play the same history in both forms. Each Bridge is played and read in a single form."""
+    M.ROWS = ROWS if form == 'rows' else None
+    RD.ROWS = form == 'rows'
+
+
 def cat(o):
     """ADDED (copies extended): an outcome's class, with what `outcome` puts in braces left out."""
     return o.split(' {')[0].split(':')[0]

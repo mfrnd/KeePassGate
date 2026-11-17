@@ -155,8 +155,10 @@ def part_merges(host, speed='fast', only_xc=False):
     if only_xc:
         print('   Only the KeePassXC cells, of the histories %s and %s.' % (', '.join(SLOW), ', '.join(SLOW_TREE)))
     tally = {}
-    # ADDED (copies extended): the histories with rules per profile, under --reading only
-    for hid, what, hist in HISTORIES + (PROFILE_HISTORIES if B.EXT else []):
+    pairs = {}      # ADDED (rules per profile): each cell in the whole-rule form and per profile
+    # ADDED (copies extended): the histories with rules per profile, under --reading only;
+    # ADDED (rules per profile): and under --rows
+    for hid, what, hist in HISTORIES + (PROFILE_HISTORIES if B.EXT or B.ROWS else []):
         if only_xc and hid not in SLOW:
             continue
         print('## %s: %s' % (hid, what))
@@ -168,6 +170,13 @@ def part_merges(host, speed='fast', only_xc=False):
             for d, s in ((1, 0), (0, 1)):
                 b = run_cell(host, hist, prog, d, s, 'm-' + speed, speed)
                 o, r = B.outcome(b, d)
+                if B.ROWS:      # ADDED (rules per profile): the same cell in the whole-rule form
+                    B.use('whole')
+                    ow, _ = B.outcome(run_cell(host, hist, prog, d, s, 'mw-' + speed, speed), d)
+                    B.use('rows')
+                    pairs[(B.cat(ow), B.cat(o))] = pairs.get((B.cat(ow), B.cat(o)), 0) + 1
+                    if B.cat(ow) != B.cat(o):
+                        o += ' {whole-rule: %s}' % ow
                 cells.append('into %d: %s [%s]' % (d, o, c_note(b)))
                 tally[B.cat(o)] = tally.get(B.cat(o), 0) + 1     # ADDED (copies extended): cat
                 for x in b.disagree:
@@ -181,6 +190,9 @@ def part_merges(host, speed='fast', only_xc=False):
             for c in cells[1:]:
                 print('   %-22s %s' % ('', c))
     print('== tally: ' + ', '.join('%s %d' % kv for kv in sorted(tally.items())))
+    if B.ROWS:      # ADDED (rules per profile)
+        print('== every cell, the whole-rule form -> per profile: ' + ', '.join(
+            '%s -> %s %d' % (a, c, n) for (a, c), n in sorted(pairs.items())))
     print('== B.1 for a user node under a rule (real files only; the model has no tree)')
     base = [('rule', 0, 'N', 'none'), ('rule', 0, 'root', 'rw'), ('merge', 'kp_sync', 1, 0)]
     for tid, what, ops in TREE:
@@ -518,6 +530,40 @@ def alphabet(nrep):
     return acts, merges, faults
 
 
+# ADDED (rules per profile): what a merge gave beyond what either copy gave before it
+def answer_words(b, i):
+    r = b.as_model(B.rd(b.dump(i), B.DECIDED))
+    return {n: w for n, w in r['words_raw'].items()}
+
+
+def beyond(before_d, before_s, after):
+    """None, or the letters at a node that the merged file gives and neither copy gave before."""
+    out = []
+    for n in sorted(after):
+        extra = after[n] - before_d.get(n, frozenset()) - before_s.get(n, frozenset())
+        if extra:
+            out.append('%s gives %s' % (n, words_text(extra)))
+    return '; '.join(out) or None
+
+
+def play_counting(b, ops, k0=0):
+    """ADDED (rules per profile): play ops on a bridge; at each merge, what the merged file gives
+    beyond what both copies gave just before it. Answers the list of (step, op, what)."""
+    found = []
+    for k, op in enumerate(ops):
+        pre = None
+        if op[0] == 'merge':
+            d, s = op[2], op[3]
+            pre = (answer_words(b, d), answer_words(b, s))
+        if not b.step(k0 + k, op):
+            continue
+        if pre is not None:
+            w = beyond(pre[0], pre[1], answer_words(b, op[2]))
+            if w:
+                found.append((k0 + k, op, w))
+    return found
+
+
 def part_random(host, count, seed):
     import crdt_model as M
     rng = random.Random(seed)
@@ -525,6 +571,7 @@ def part_random(host, count, seed):
     nsteps, ndis, nread, nfail = 0, 0, 0, 0
     lines, outs = [], {}
     nrewrites, nstops = 0, 0    # ADDED (two readings)
+    pairs, pair_lines = {}, []      # ADDED (rules per profile): each file in both forms
     for h in range(count):
         nrep = 2 if rng.random() < 0.6 else 3
         acts, merges, faults = alphabet(nrep)
@@ -535,8 +582,17 @@ def part_random(host, count, seed):
         b = B.Bridge(host, nrep, 'rnd')
         fails = []
         for k, op in enumerate(ops):
+            pre = None      # ADDED (rules per profile): what both copies gave before a merge
+            if B.ROWS and op[0] == 'merge':
+                pre = (answer_words(b, op[2]), answer_words(b, op[3]))
             if not b.step(k, op):
                 continue
+            if pre is not None:
+                w = beyond(pre[0], pre[1], answer_words(b, op[2]))
+                if w:
+                    pair_lines.append('## history %d, step %d, per profile: the merge gave beyond both copies: %s; %s'
+                                  % (h, k, w, ' ; '.join(' '.join(map(str, x)) for x in ops)))
+                    pairs[('beyond', 'rows')] = pairs.get(('beyond', 'rows'), 0) + 1
             nsteps += 1
             for i in range(nrep):
                 w = M.narrower(b.W.fold(b.W.reps[i]), b.W.ideal(i), b.W.reps[i].nodes)
@@ -544,9 +600,26 @@ def part_random(host, count, seed):
                     fails.append(('safety', k, 'file %d: %s' % (i, w)))
             if fails:
                 break
+        mine = []
         for i in range(nrep):
             o, r = B.outcome(b, i)
             outs[B.cat(o)] = outs.get(B.cat(o), 0) + 1       # ADDED (copies extended): cat
+            mine.append(o)
+        if B.ROWS:      # ADDED (rules per profile): the same history in the whole-rule form
+            B.use('whole')
+            bw = B.Bridge(host, nrep, 'rnd-w')
+            for k, op, w in play_counting(bw, ops):
+                pair_lines.append('## history %d, step %d, whole-rule: the merge gave beyond both copies: %s; %s'
+                              % (h, k, w, ' ; '.join(' '.join(map(str, x)) for x in ops)))
+                pairs[('beyond', 'whole')] = pairs.get(('beyond', 'whole'), 0) + 1
+            theirs = [B.outcome(bw, i)[0] for i in range(nrep)]
+            B.use('rows')
+            for i in range(nrep):
+                key = (B.cat(theirs[i]), B.cat(mine[i]))
+                pairs[key] = pairs.get(key, 0) + 1
+                if key[0] != key[1]:
+                    pair_lines.append('## history %d, file %d: whole-rule %s; per profile %s' % (h, i, theirs[i], mine[i]))
+                    pair_lines.append('   ' + ' ; '.join(' '.join(map(str, op)) for op in ops))
         nrewrites, nstops = nrewrites + len(b.rewrites), nstops + b.copy_stops     # ADDED (two readings)
         if b.disagree or b.readdiff or fails:
             lines.append('## history %d (%d files)' % (h, nrep))
@@ -568,6 +641,62 @@ def part_random(host, count, seed):
         print('records written again at the gate\'s own writes: %d' % nrewrites)
     if B.COPIES:    # ADDED (two readings)
         print('gate acts refused because the reading of copies stops the store: %d' % nstops)
+    for x in lines:
+        print(x)
+    if B.ROWS:      # ADDED (rules per profile)
+        files = {k: n for k, n in pairs.items() if k[0] != 'beyond'}
+        print('== every file at the end, the whole-rule form and per profile, the same history: %d files, %d of the same class'
+              % (sum(files.values()), sum(n for (a, c), n in files.items() if a == c)))
+        for (a, c), n in sorted(files.items()):
+            print('   %s -> %s: %d' % (a, c, n))
+        print('== merges that gave a letter neither copy gave just before: whole-rule %d, per profile %d'
+              % (pairs.get(('beyond', 'whole'), 0), pairs.get(('beyond', 'rows'), 0)))
+        for x in pair_lines:
+            print(x)
+
+
+# ADDED (rules per profile): random histories whose acts are rows and switches. Each history is
+# played in the configuration's form, and at each merge the merged file is held to what both copies
+# gave just before it: a letter at a node that neither gave is counted, with its sequence.
+ROW_SPECS = ('rw', 'r', '', 'off')
+
+
+def part_random_rows(host, count, seed):
+    rng = random.Random(seed)
+    t0 = time.time()
+    outs, beyonds, lines, nsteps, ndis, nread = {}, 0, [], 0, 0, 0
+    for h in range(count):
+        nrep = 2 if rng.random() < 0.6 else 3
+        R = range(nrep)
+        acts = []
+        for r in R:
+            for n in ('root', 'N'):
+                acts += [('switch', r, n, x) for x in ('deny', 'inherit')]
+                acts += [('row', r, n, p, x) for p in ('pf', 'pg') for x in ROW_SPECS]
+        merges = [m for d in R for s in R if d != s for m in
+                  [('merge', 'kp_sync', d, s), ('merge', 'kp_other', d, s, 'OverwriteIfNewer'),
+                   ('merge', 'xc', d, s, '2.8.0')]]
+        ops = []
+        for _ in range(rng.randint(4, 10)):
+            ops.append(rng.choice(acts if rng.random() < 0.6 else merges))
+        b = B.Bridge(host, nrep, 'rrw')
+        found = play_counting(b, ops)
+        nsteps += len([x for x in b.log if x[:2].strip().isdigit() and 'does not apply' not in x])
+        for i in R:
+            o, r = B.outcome(b, i)
+            outs[B.cat(o)] = outs.get(B.cat(o), 0) + 1
+        ndis += len(b.disagree)
+        nread += len(b.readdiff)
+        if found or b.disagree or b.readdiff:
+            lines.append('## history %d (%d files): %s' % (h, nrep, ' ; '.join(' '.join(map(str, op)) for op in ops)))
+            for k, op, w in found:
+                beyonds += 1
+                lines.append('   BEYOND BOTH COPIES at step %d (%s): %s' % (k, ' '.join(map(str, op)), w))
+            lines += c_lines(b)
+    print('== random histories of rows and switches, the removal written as %s: %d histories, steps %d,'
+          ' entry disagreements %d, read differences %d, %.0f s' % (B.ROWS, count, nsteps, ndis, nread, time.time() - t0))
+    print('   files at the end against every decision: ' + ', '.join('%s %d' % kv for kv in sorted(outs.items())))
+    print('   merges that gave a letter neither copy gave just before: %d' % beyonds)
     for x in lines:
         print(x)
 
@@ -649,7 +778,13 @@ def part_history(host):
     print('   base: ' + ' ; '.join(' '.join(map(str, op)) for op in HIST_BASE))
     print('   base of the last kind: ' + ' ; '.join(' '.join(map(str, op)) for op in HIST_BASE_KEY))
     tally, per_kind = {}, {}
-    for kind_name, sel, field, base in HIST_KINDS:
+    kinds = list(HIST_KINDS)
+    if B.ROWS:      # ADDED (rules per profile): the node's switch, a record of its own
+        base_sw = HIST_BASE[:-1] + [('switch', 0, 'N', 'deny'), ('merge', 'kp_sync', 1, 0)]
+        kinds.insert(7, ('a switch version (N, refusing)', ('ver', 'sw:N', 'new'), 'object', base_sw))
+        print('   per profile, the rule version is the newest row of N (pg\'s); the switch\'s base: '
+              + ' ; '.join(' '.join(map(str, op)) for op in base_sw))
+    for kind_name, sel, field, base in kinds:
         key_carrier = sel == ('carry',)
         print('## %s' % kind_name)
         for oid, what, edits in HIST_OPS:
@@ -742,6 +877,10 @@ def main():
     elif sys.argv[1] == '--reading':
         B.extended(sys.argv[2], sys.argv[3])
         del sys.argv[1:4]
+    # ADDED (rules per profile): --rows VARIANT
+    elif sys.argv[1] == '--rows':
+        B.rows(sys.argv[2])
+        del sys.argv[1:3]
     part = sys.argv[1]
     sys.stdout.reconfigure(line_buffering=True)
     host = kp.Host()
@@ -765,6 +904,8 @@ def main():
             part_random(host, int(sys.argv[2]), int(sys.argv[3]))
         elif part == 'history' and B.DECIDED:
             part_history(host)
+        elif part == 'random-rows' and B.ROWS:      # ADDED (rules per profile)
+            part_random_rows(host, int(sys.argv[2]), int(sys.argv[3]))
         else:
             raise SystemExit('unknown part ' + part)
     finally:

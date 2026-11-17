@@ -84,6 +84,30 @@
       the same names ending in -exempt
                            the same with exempt
 
+    With -Rows (ADDED, rules per profile), the store as decided with a rule stored as a record for
+    each node and profile and the node's switch "Refuse any profile not named here" as a record of
+    its own. A removed row is written as decided (`empty`: an empty rule where the switch refuses)
+    unless a part names `off` (the control: the rule taken off). Output in `out\rows\`, compared
+    with `recorded-rows\`; databases in `work\pe-*` and `work\po-*`:
+
+      b-merges, b-deletions, b-clear, b-history
+                           cases.py --rows empty: the parts of the store as decided, per profile
+      b-random             cases.py --rows empty random 300 7: the histories of the store as
+                           decided, each file also played in the whole-rule form
+      b-random-rows, b-random-rows-off
+                           cases.py --rows empty|off random-rows 300 11: histories of rows and
+                           switches, each merge held to what both copies gave before it
+      store-search, store-search-acts
+                           store_runs.py --rows empty [acts] search: the model's search, with the
+                           acts on a row and on the switch in the alphabet in the second
+      store-search-noauth  the same with those acts, and no hand deletion or edit of the
+                           authority's entry
+      beyond, beyond-again, beyond-off, beyond-whole
+                           store_runs.py --rows empty|again|off|whole beyond 200000: how often a
+                           merge in the model gives a letter neither copy gave just before it
+      apart, same, states, switch, dels, growth
+                           rows.py --rows empty: items 2 to 7 of measured-rules-per-profile.md
+
 .PARAMETER Parts
     Which parts to run; every part by default.
 
@@ -110,9 +134,10 @@
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1 -Decided
 #>
 param([string[]] $Parts = @(), [int] $Parallel = 6, [switch] $Decided, [switch] $Rewrite, [switch] $Copies,
-    [ValidateSet('', 'nothing', 'profile', 'verb', 'cap', 'cap-items')] [string] $Reading = '')
-if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent, ($Reading -ne '') | Where-Object { $_ }).Count -gt 1) {
-    throw 'One of -Decided, -Rewrite, -Copies, -Reading.'     # ADDED (two readings); -Reading (copies extended)
+    [ValidateSet('', 'nothing', 'profile', 'verb', 'cap', 'cap-items')] [string] $Reading = '',
+    [switch] $Rows)     # ADDED (rules per profile)
+if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent, ($Reading -ne ''), $Rows.IsPresent | Where-Object { $_ }).Count -gt 1) {
+    throw 'One of -Decided, -Rewrite, -Copies, -Reading, -Rows.'     # ADDED (two readings); -Reading (copies extended); -Rows (rules per profile)
 }
 
 $ErrorActionPreference = 'Stop'
@@ -200,6 +225,32 @@ if ($Reading) {
         $all["kinds$suffix"] = @("$probe\readings.py", '--reading', $Reading, $variant, 'kinds')
     }
 }
+# ADDED (rules per profile): a rule as a record for each node and profile
+if ($Rows) {
+    $config = 'rows'
+    $all = [ordered]@{
+        'store-search'       = @("$model\store_runs.py", '--rows', 'empty', 'search')
+        'store-search-acts'  = @("$model\store_runs.py", '--rows', 'empty', 'acts', 'search')
+        'store-search-noauth' = @("$model\store_runs.py", '--rows', 'empty', 'acts', 'search-noauth')
+        'beyond'            = @("$model\store_runs.py", '--rows', 'empty', 'beyond', '200000')
+        'beyond-again'       = @("$model\store_runs.py", '--rows', 'again', 'beyond', '200000')
+        'beyond-off'         = @("$model\store_runs.py", '--rows', 'off', 'beyond', '200000')
+        'beyond-whole'       = @("$model\store_runs.py", '--rows', 'whole', 'beyond', '200000')
+        'b-merges'           = @("$probe\cases.py", '--rows', 'empty', 'merges')
+        'b-random'           = @("$probe\cases.py", '--rows', 'empty', 'random', '300', '7')
+        'b-clear'            = @("$probe\cases.py", '--rows', 'empty', 'clear')
+        'b-deletions'        = @("$probe\cases.py", '--rows', 'empty', 'deletions')
+        'b-history'          = @("$probe\cases.py", '--rows', 'empty', 'history')
+        'b-random-rows'      = @("$probe\cases.py", '--rows', 'empty', 'random-rows', '300', '11')
+        'b-random-rows-off'  = @("$probe\cases.py", '--rows', 'off', 'random-rows', '300', '11')
+        'apart'              = @("$probe\rows.py", '--rows', 'empty', 'apart')
+        'same'               = @("$probe\rows.py", '--rows', 'empty', 'same')
+        'states'             = @("$probe\rows.py", '--rows', 'empty', 'states')
+        'switch'             = @("$probe\rows.py", '--rows', 'empty', 'switch')
+        'dels'               = @("$probe\rows.py", '--rows', 'empty', 'dels')
+        'growth'             = @("$probe\rows.py", '--rows', 'empty', 'growth')
+    }
+}
 # Through -File a list arrives as one string, so commas are split here.
 $Parts = @($Parts | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 if ($Parts.Count -eq 0) { $Parts = @($all.Keys) }
@@ -213,7 +264,7 @@ if ($Parts.Count -eq $all.Count) {
     if ($config) {
         # ADDED (two readings): the configuration's own output and databases only
         if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
-        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } else {
+        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } elseif ($Rows) { 'pe-*', 'po-*' } else {
             $letter = if ($Reading -eq 'cap-items') { 'i' } else { $Reading[0] }     # ADDED (copies extended)
             "x${letter}h-*", "x${letter}e-*"
         }
@@ -270,6 +321,10 @@ while ($queue.Count -gt 0 -or $running.Count -gt 0) {
     }
 }
 $times | Add-Content -Encoding UTF8 (Join-Path $out 'times.txt')
+if ($Rows) {     # ADDED (rules per profile): each cell of three parts against the store as decided's record
+    & uv run --no-project python -I -X utf8 (Join-Path $family 'compare.py') --rows-against-decided |
+        Set-Content -Encoding UTF8 (Join-Path $out 'against-decided.txt')
+}
 if ($config) {     # ADDED (two readings)
     & uv run --no-project python -I -X utf8 (Join-Path $family 'compare.py') "--$config"
 } elseif ($Decided) {

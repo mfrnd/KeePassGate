@@ -67,6 +67,18 @@ IDENT = ('cap', ALL)
 REFUSE = ('const', frozenset())
 PP = False      # ADDED (copies extended): rules per profile
 UNIV = frozenset(p + '.' + v for p in S.PROFS for v in 'rw')
+# ADDED (rules per profile): a rule stored as a record for each node and profile, 'rule:<node>/<p>',
+# and the node's switch as a record of its own, 'switch:<node>' (crdt_model.ROWS). A node's rule is
+# put together from them as crdt_model.rows_node does. A deletion record of a row's version is told
+# by trying, for each node of the tree, each profile name the file knows (store.ID_FORM 'pair'), or,
+# in the form 'split', each node once and each name once.
+ROWS = False
+SHOW = False    # the answer also lists the standing versions of every rule object, in either form
+
+
+def switch_refuses(s):
+    """ADDED (rules per profile): as crdt_model.switch_refuses."""
+    return s is not None and (s[0] == 'const' or 'deny' in s[1])
 
 
 def gen(f):
@@ -79,10 +91,16 @@ def gen(f):
 
 def und(s):
     """ADDED (copies extended): a document's text read; with PP, in the form with profiles."""
-    return gen(S.undoc(s)) if PP else S.undoc(s)
+    f = S.undoc(s)
+    return gen(f) if PP and f[0] not in ('rows', 'sws') else f     # ADDED (rules per profile): not a row
 
 
 def meet(f, g):
+    if f[0] == 'rows' and g[0] == 'rows':   # ADDED (rules per profile): as crdt_model.meet
+        G = f[1] if g[1] is None else g[1] if f[1] is None else f[1] & g[1]
+        return ('rows', G, f[2] or g[2])
+    if f[0] == 'sws' and g[0] == 'sws':     # ADDED (rules per profile)
+        return ('sws', f[1] | g[1])
     if f[0] == 'pp' or g[0] == 'pp':    # ADDED (copies extended): letter by letter
         f, g = gen(f), gen(g)
         c = f[1] & g[1]
@@ -394,6 +412,21 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
     objects.add('rule:' + dump['root'])
     for u, e in dump['entries'].items():
         objects.add('rule:' + u)
+    # ADDED (rules per profile): every node's switch and, in the form 'pair', every node's row for
+    # each profile name the file knows: the names of the list's records and items, and the profile
+    # of every row object a version or an item names
+    row_names = set()
+    if ROWS:
+        row_names = set(names)
+        for o in set(vers) | supers:
+            if o.startswith('rule:') and '/' in o:
+                row_names.add(o.split('/', 1)[1])
+        nodes = [o[5:] for o in objects if o.startswith('rule:') and '/' not in o]
+        for n in nodes:
+            objects.add('switch:' + n)
+            if S.ID_FORM == 'pair':
+                for p in row_names:
+                    objects.add('rule:%s/%s' % (n, p))
     deadall = set()
     for V in vers.values():
         for after, f in V.values():
@@ -410,11 +443,24 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
             subj[(k, S.subject_hash(k, 'profile:' + n))] = ('profile', n)
         for o in objects:
             subj[(k, S.subject_hash(k, o))] = ('object', o)
+    profile_tags = {}      # ADDED (rules per profile): the form 'split', a profile's tag to its name
+    if ROWS and S.ID_FORM == 'split':
+        for k in held:
+            for p in row_names:
+                profile_tags[(k, S.profile_tag(k, p))] = p
     for u in dels:
         for kind, k in tags.get(u[:6], ()):
             what = subj.get((k, u[6:16]))
             if what is None:
                 continue
+            # ADDED (rules per profile): in the form 'split' a row's version is told by the node's
+            # rule and the profile's tag
+            if profile_tags and kind == 'version' and what[0] == 'object' and what[1].startswith('rule:') \
+                    and '/' not in what[1] and u[16:20] != '0000':
+                p = profile_tags.get((k, u[16:20]))
+                if p is None:
+                    continue
+                what = ('object', what[1] + '/' + p)
             if kind == 'revoked' and what[0] == 'client':
                 refusals.add(('revoked', what[1]))
             elif kind == 'retired' and what[0] == 'authority':
@@ -565,6 +611,22 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
         f = freg('rule:' + n) or IDENT
         if PP:      # ADDED (copies extended)
             f = gen(f)
+        if ROWS:    # ADDED (rules per profile): the node's rule from its rows and its switch
+            deny = switch_refuses(freg('switch:' + n))
+            C, P = set(), set()
+            for p in S.PROFS:
+                r = freg('rule:%s/%s' % (n, p))
+                if r is not None and r[0] == 'const':
+                    continue
+                if r is None or r[1] is None:
+                    if not deny:
+                        P |= set(p + '.' + w for w in 'rw')
+                elif r[2]:
+                    if not deny:
+                        P |= set(p + '.' + w for w in r[1])
+                else:
+                    C |= set(p + '.' + w for w in r[1])
+            f = ('pp', frozenset(C), frozenset(P))
         up = frozenset() if n == dump['root'] else words(parent[n])
         memo[n] = app(f, up)
         return memo[n]
@@ -592,7 +654,20 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
     if copies and ext:      # ADDED (copies extended): objects a copy limits; keys taken from a copy
         counts['limited'] = len(limited)
         counts['copied_keys'] = copied_keys
-    return dict(status=status, served=served, auths=auths, adm=adm if serve else {}, valid=valid,
+    extra = {}
+    if ROWS or SHOW:    # ADDED (rules per profile): each row's and switch's standing versions, as
+        # text, and the keyed hashes the reading computed to tell what a deletion record is of
+        counts['subject_hashes'] = len(subj) + len(profile_tags)
+        standing = {}
+        for o, V in vers.items():
+            if o.startswith('rule:') or o.startswith('switch:'):
+                dead = set()
+                for after, f in V.values():
+                    dead |= after
+                standing[o] = sorted(S.doc(f) for i, (after, f) in V.items() if i not in dead)
+        extra = dict(standing=standing, lost=sorted(lost), row_values={o: freg(o) for o in
+                     set(vers) | set(lost) | supers if o.startswith('rule:') or o.startswith('switch:')})
+    return dict(**extra,status=status, served=served, auths=auths, adm=adm if serve else {}, valid=valid,
                 names=sorted(on), words={n: (w if serve else frozenset()) for n, w in raw.items()},
                 words_raw=raw, renew=renew, refusals=refusals, counts=counts,
                 # ADDED (two readings)

@@ -27,6 +27,11 @@ read with a copy of a record applied as far as it can only take access away, wit
 in the model and in the probe. Each has a record of its own, `recorded-reading-<name>\`. The section
 "The wider readings of a copy" at the end holds them.
 
+**A further configuration, rules per profile**, was added on 2026-11-17 for the report
+`papers\ground\measured-rules-per-profile.md`: `run.ps1 -Rows`, the store as decided with a rule
+stored as a record for each node and profile and the node's switch as a record of its own. Its
+record is `recorded-rows\`. The section "Rules per profile" at the end holds it.
+
 | Path | What it is |
 | --- | --- |
 | `model\crdt_model.py` | a copy of `spikes\storage\model\crdt_model.py` with the switches of section "What was added" below; every new switch at its default is the design's model |
@@ -46,6 +51,8 @@ in the model and in the probe. Each has a record of its own, `recorded-reading-<
 | `probe\readings.py` | the parts of the two readings of the store as decided (section "The two readings") |
 | `recorded-rewrite\`, `recorded-copies\` | the output of the runs of the two readings, which `measured-two-readings.md` quotes |
 | `recorded-reading-nothing\`, `-profile\`, `-verb\`, `-cap\`, `-cap-items\` | the output of the runs of the wider readings of a copy, which `measured-copies-extended.md` quotes |
+| `probe\rows.py` | the parts of rules per profile (section "Rules per profile") |
+| `recorded-rows\` | the output of the runs of rules per profile, which `measured-rules-per-profile.md` quotes |
 
 **Everything ran twice**, on 2026-11-16, on a machine other measurements were sharing. Every
 output of the second run is the same as the record line for line, apart from what `compare.py`
@@ -884,3 +891,196 @@ Reported, not fixed.
 - A copy under a store key the file does not hold, which every reading passes over.
 - Create at a file where a copied retirement leaves nothing served; two KeePass instances.
 - Everything the store as decided and the two readings do not run.
+
+## Rules per profile
+
+Added on 2026-11-17 for `papers\ground\measured-rules-per-profile.md`. Every configuration before
+this section stored an access rule as a version of a node's whole rule, for every profile at once,
+and the configurations of "The wider readings of a copy" wrote such a version so that it names each
+profile with its words. The project has since decided that a rule is a record for each node and
+profile, a **row** of the grant editor, with versions of its own, and that the node's switch "Refuse
+any profile not named here" is a record of its own. `run.ps1 -Rows` runs the store as decided in
+that form. A row's version holds the letters it grants, no letter (an **empty rule**, which grants
+nothing from there down), or the rule taken off (the profile is then not named at the node). With
+the switch refusing, a removed row is written as an empty rule (the latest decision); the parts that
+name `off` write the rule taken off instead, as the control. Its record is `recorded-rows\`.
+
+### What it runs
+
+`run.ps1 -Rows` runs these parts, each into `out\rows\<part>.txt`, held to `recorded-rows\` by
+`compare.py --rows`; after them `compare.py --rows-against-decided` writes
+`against-decided.txt`, every cell of `b-deletions`, `b-clear` and `b-history` against the same
+cell of `recorded-decided\`.
+
+| Part | What it is |
+| --- | --- |
+| `store-search` | the model's search of the store as decided (`store_runs.py search`, the same alphabet and seeds), a rule act writing a version for each row it changes |
+| `store-search-acts`, `store-search-noauth` | the same with the acts on a single row and on the switch in the alphabet; and that alphabet with no hand deletion or edit of the authority's entry |
+| `beyond`, `beyond-again`, `beyond-off`, `beyond-whole` | 200,000 random histories in the model over two copies, acts on rules and merges only: how often a merge gives at a node a letter that neither copy gave just before it. The removed row written as decided, in the form `again` (below), taken off, and the whole-rule form. Its header names the whole-rule form "written as None" |
+| `b-merges` | the 13 histories of the store as decided and the eight of `PROFILE_HISTORIES` with H22, every merge both ways; each cell also played in the whole-rule form, and a class that differs printed in braces: 396 cells, and the 90 cells of a user node |
+| `b-deletions`, `b-clear`, `b-history` | the parts of the store as decided, per profile; `b-history` adds the switch as an eleventh kind of record |
+| `b-random` | `random 300 7`, the histories of the store as decided's record, each also played in the whole-rule form; at each merge, the merged file held to both copies just before it |
+| `b-random-rows`, `b-random-rows-off` | `random-rows 300 11`: histories of acts on a single row and on the switch at the root and at N, with Synchronize, Overwrite if newer and KeePassXC 2.8.0, each merge held to both copies; the removal written as decided and taken off |
+| `apart` | item 2 of the report: seven cases of two copies that change different profiles at a node, every merge both ways, in both forms |
+| `same` | item 3: the same profile's row changed apart in two and three copies, and the removal of a single version in three forms, with every merge both ways |
+| `states` | item 4: an empty rule, a rule taken off and a row never made, through every merge and six operations by hand |
+| `switch` | item 5: nine sequences about the switch, sequence S34 of `STORE.md` among them, under three ways of writing a removed row; each merge held to both copies just before it |
+| `dels` | item 6: what a deletion record of a row's version tells, in the identifier's form run and in the form `split`, and what the reading computes to tell it |
+| `growth` | item 7: the store's strings for the same rules in both forms, from `store.py`'s format, at 20, 200 and 2,000 nodes with one, four and ten rows |
+
+**How a row is written.** The object of a row's version is `rule:<node>/<profile>`, the switch's
+`switch:<node>`. A row's text is `row:<letters>`, `row:` for an empty rule, `off:` for the rule
+taken off; the switch's is `sw:deny` or `sw:inherit`. A rule act names a table of rows (the
+whole-rule acts of the earlier configurations read as a table that names every profile alike, and
+`inherit` as every row taken off) and writes a version for each row whose standing value it
+changes, naming every version of that row it read; a row the act leaves as it reads writes
+nothing. Removing a row whose switch the gate reads as refusing writes an empty rule; where the row
+is an empty rule already, nothing is written (`empty`, the form run). `again` writes the rule taken
+off in that last case, and `off` takes the rule off always. Seal again writes, for a row whose
+version was lost, an empty rule, and for a switch, `sw:deny`.
+
+**How a node's rule is read.** For each profile the standing versions of its row are put together:
+the letters all granting versions hold; with a version that takes the rule off beside them, what
+arrives from above cut to those letters where the switch inherits and nothing where it refuses; a
+profile with no row, or with every version taking the rule off, gets what arrives where the switch
+inherits and nothing where it refuses; a row a deletion record shows lost gives nothing. Versions
+of the switch that differ refuse.
+
+**Removing a single version of a row that stands in several** (`drop` in the model). `again`, the
+form proposed: each version left is written again, naming the removed version and itself. `void`:
+a single version that names the removed version and holds nothing of its own. `limit`: a single
+version that names the removed version and holds what the versions left allow together.
+
+**The identifier of a row's version.** `pair`, the form run: the subject hash over
+`rule:<node>/<profile>`, so that the reading tries each node of the tree with each profile name the
+file knows. `split`, run in `dels` only: the subject hash over `rule:<node>`, and the two bytes of
+the height, 0 for every version until now, a keyed tag of the profile's name.
+
+### The command
+
+From the branch root, in Windows PowerShell 5.1:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1 -Rows -Parallel 8
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\compare.py --rows
+```
+
+A run of every part empties `out\rows\` and the databases `work\pe-*` and `work\po-*` and nothing of
+the other configurations'. Both runs here were made under an ordinary user token.
+
+**How long**, in seconds:
+
+| Part | Run 1 | Run 2 |
+| --- | --- | --- |
+| `store-search` | 747 | 747 |
+| `store-search-acts` | 752 | 742 |
+| `store-search-noauth` | 586 | 667 |
+| `beyond` | 115 | 130 |
+| `beyond-again` | 115 | 130 |
+| `beyond-off` | 115 | 130 |
+| `beyond-whole` | 95 | 105 |
+| `b-merges` | 281 | 211 |
+| `b-random` | 236 | 221 |
+| `b-clear` | 116 | 100 |
+| `b-history` | 120 | 105 |
+| `b-random-rows` | 126 | 115 |
+| `b-random-rows-off` | 130 | 115 |
+| `b-deletions` | 65 | 65 |
+| `apart` | 85 | 80 |
+| `same` | 156 | 150 |
+| `switch` | 155 | 135 |
+| `states` | 40 | 35 |
+| `dels` | 20 | 20 |
+| `growth` | 5 | 5 |
+
+**How the two runs were made.** Run 1 was `run.ps1 -Rows -Parallel 8` with every part but the four
+parts `beyond` and `store-search-noauth`, which were added while it ran and ran next with `-Parts`,
+the four first. During run 1, local names in the code were renamed for the spelling check; the parts
+that had started printed what they would have printed, since a name changes no output, and the part
+`states` started after the rename and prints its label `unrecorded` from it. Run 2 was
+`run.ps1 -Rows -Parallel 8` with every part.
+
+**Compared.** Every output of run 2 is the same as `recorded-rows\` line for line, with the masks of
+"Running it": 21 files.
+
+| Figure | Recorded | Second run | Reproduced |
+| --- | --- | --- | --- |
+| `b-merges`, 396 cells: as decided, narrower, refusing, wider; cells whose class differs from the whole-rule form | 373, 6, 1, 16; 1, H20 Create new IDs into 0 | the same | yes |
+| `b-merges`: N under its own rule in every cell of a user node | gives nothing, 90 cells | the same | yes |
+| `against-decided.txt`: cells of `b-deletions`, `b-clear`, `b-history` of the same class as `recorded-decided\` | 216 of 216, 252 of 252, 600 of 600; the switch in `b-history` 42 as decided and 18 refusing | the same | yes |
+| `b-random`: files of the same class in both forms; merges beyond both copies, whole-rule and per profile | 718 of 724; 1 and 1 | the same | yes |
+| `b-random-rows`, `-off`: steps; files at the end; merges beyond both copies | 1,724 and 1,725; WIDER 234, as decided 383, narrower 95 in each; 0 and 0 | the same | yes |
+| `store-search`: `safety` per cell A to K, two files; three files | 0, 3, 3, 1, 2, 5, 3, 2, 2, 2, 2, 2; 0, 2, 2, 0, 0, 0, 0, 1, 1, 1, 0, 2 | the same | yes |
+| `store-search-acts`; `store-search-noauth`: `safety`, two files; three files | 0, 1, 0, 4, 1, 0, 1, 3, 1, 0, 3, 3; 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0. B 1, C 2, E 1; C 1 | the same | yes |
+| `store-search`, `-acts`: exhaustive histories; failures | 11,110, 47,988, 40,494, 27,930; none | the same | yes |
+| `beyond`, `-again`, `-off`, `-whole`: histories with a merge beyond both copies, of 200,000 | 67, 68, 69, 298 | the same | yes |
+| `apart`: per profile; whole-rule | 112 as decided with nothing to settle, imports 6 wider and 8 narrower; 16 as decided and 80 narrower with two versions, imports 5 wider and 7 narrower | the same | yes |
+| `same`: cells beyond both copies | 16, all D3 in the form `void` | the same | yes |
+| `states`: the state read after each operation | as the report's section 6 | the same | yes |
+| `switch`: cells beyond both copies | W3 `off` 16, W6 `again` 16, W8 16 in each way, W9 16 | the same | yes |
+| `dels`: the same lines in both forms; keyed hashes at 20, 200, 2,000 nodes, `pair` and `split` | 4 of 4; 228, 1,308, 12,108 and 88, 448, 4,048 | the same | yes |
+| `dels`: the read, ms | 1.1, 8.4, 48.1 and 0.6, 2.7, 23.0 | 1.8, 3.7, 40.0 and 0.6, 1.9, 21.5 | differs, a time |
+| `growth`: every size | as the report's section 9 | the same | yes |
+
+### What was added for it
+
+Each line added or changed carries "ADDED (rules per profile)". With the new switches off, every
+part prints what it printed before: after the addition, `-Decided` was run again in the parts
+`b-merges`, `b-deletions`, `b-history`, `b-random` and `b-clear`, `-Reading cap` in `b-merges`,
+`b-random-exempt` and `kinds`, and the first record in `b-merges`, `b-dedupe` and
+`store-scenarios`; each came out the same as its record line for line, with the masks of "Running
+it".
+
+- `crdt_model.py`: `ROWS` and `ROW_ACTS`; a row's value `('rows', letters, off)` and the switch's
+  `('sws', values)`, met in `meet`; `table_of`, `rows_node`, `switch_refuses`, `refusal_of`,
+  `obj_match`, `row_text`; `World.rows_act`, the acts `row`, `switch` and `drop`; the root's rule of
+  the start as a row for each profile; `pick`, `copy`, `plant` and `plantk` by row; with `ROW_ACTS`
+  the alphabet holds the acts on a row and on the switch.
+- `store.py`: the texts of a row's and a switch's version; the objects `rule:<node>/<profile>` and
+  `switch:<node>`; `ID_FORM` and `profile_tag`, the form `split`.
+- `read.py`: `ROWS` and `SHOW`; a node's rule from its rows and its switch; a deletion record of a
+  row's version or a switch's told by the names the file knows, or in the form `split` by the
+  profile's tag; with either switch the answer names each row's standing versions (`standing`),
+  the rows lost (`lost`), and the count of keyed hashes computed (`subject_hashes`).
+- `bridge.py`: `rows(variant)`, the configuration, and `use(form)`, a part's history played in the
+  whole-rule form beside it.
+- `cases.py`: `--rows VARIANT`; `merges` with the profile histories and each cell in both forms;
+  `random` in both forms, and each merge held to both copies; the part `random-rows`; the switch as
+  a kind of `history`.
+- `rows.py`: new, the parts `apart`, `same`, `states`, `switch`, `dels` and `growth`.
+- `store_runs.py`: `--rows VARIANT [acts]` for `search` and `search-noauth`, and the part `beyond`.
+- `run.ps1`: `-Rows`. `compare.py`: `--rows`, and `--rows-against-decided`.
+
+### Defects and limits of this configuration
+
+Reported, not fixed.
+
+- **Two profiles and two letters**, `pf` and `pg`, read and write, as in the configurations before.
+  The switches of a rule (attachments, protected values) are not written; a profile name that is
+  not on the list can have a row here, since the whole-rule acts name both profiles.
+- **The oracle is every decision any gate made, read in the same form.** It answers for the form's
+  own combination and so does not tell a merge that adds up rows to more than either copy gave:
+  `switch`, `same`, `beyond` and the two random parts hold each merge to both copies just before it
+  instead. A cell "into" a copy by Create new IDs is a copy that stays stale, since the store reads
+  no copy of its own records.
+- **The same random history differs between the forms** where a rule act changes no row, which
+  writes nothing per profile and a version of the node's rule in the whole-rule form, and where a
+  hand deletion picks a single row's version (the newest row by identifier, `pg`'s at N) rather
+  than the node's rule. `b-history` names its rule version the same way.
+- **The cost of a deletion record is timed in Python**, over a dump with groups added as nodes of
+  the tree and a deletion record of a switch for each, not in the plugin's C#.
+- **`growth` writes no file**: its sizes are of the strings `store.py` would write, the whole-rule
+  document a stand-in of the same length.
+- **The repair after a Synchronize does not read rows** (`World.repair`); it is off in every part
+  here, as in the store as decided.
+- **KeePassLib stands for KeePass's window** in every edit, as in the configurations before.
+
+### Not run in this configuration
+
+- The grant editor, a window, a phone, a second KeePass with the plugin.
+- A row of a name off the list whose records are all gone; more than two profiles in a file; a
+  rule on a group between the root and N.
+- The forms `void` and `limit` and the form `split` beyond the parts that name them; the slow key
+  derivation; KeePassXC releases other than 2.8.0 outside `b-merges`, `apart`, `same`, `states`
+  and `switch`.
+- Everything the store as decided does not run.

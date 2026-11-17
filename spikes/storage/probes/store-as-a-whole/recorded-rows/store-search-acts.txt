@@ -1,0 +1,268 @@
+== the store as decided, a rule stored as a record for each node and profile, a removed row written as empty; the acts on a row and on the switch in the alphabet
+== the recommended store: the design's random search, its configurations and seeds,
+   with the store's own acts added to the alphabet (renewal under the same key, Delete of
+   the authority, Create, a save, KeePass ending before a save)
+== lattice laws on the ideal transport: 0 violations in 10000 random pairs of files
+A merges only (every program)                                      2 files  20000 histories  accepted:copy-wider x13, accepted:unsaved-rule-lost x100
+    shortest accepted:copy-wider (file 0: M1):
+        row 0 N pf 
+        merge kp_sync 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+B + deletions by hand with a deletion record                       2 files  20000 histories  accepted:copy-wider x12, accepted:unsaved-rule-lost x109, safety x1
+    shortest accepted:copy-wider (file 1: M1):
+        row 1 N pf rw
+        merge kp_other 1 0
+        copy 1
+        row 1 N pg 
+    shortest accepted:unsaved-rule-lost (file 1: node N grants r):
+        rule 1 N none
+        quit 1
+    shortest safety (file 1: node root grants pf:rw pg:-):
+        del 0 ('auth',) 1
+        create 0
+        merge dx 1 0
+        row 1 root pf rw
+C + deletions that leave no record                                 2 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x121
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        merge kp_other 1 0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        row 1 root pf 
+        quit 1
+D + records dated before the entry (a clock behind)                2 files  20000 histories  accepted:copy-wider x2, accepted:unsaved-rule-lost x105, safety x4
+    shortest accepted:copy-wider (file 0: M1):
+        row 0 N pg 
+        merge kp_other 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root none
+        quit 1
+    shortest safety (file 1: renewal of c0 asked):
+        renew 1 c0 forever
+        del 1 ('auth',) 1
+        create 1
+E + deletion records cleared                                       2 files  20000 histories  accepted:copy-wider x6, accepted:unsaved-rule-lost x116, safety x1
+    shortest accepted:copy-wider (file 1: M1):
+        row 1 N pg 
+        renew 1 c0 forever
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        row 1 root pf off
+        quit 1
+    shortest safety (file 1: renewal of c0 asked):
+        renew 0 c0 forever
+        del 0 ('ver', 'renew:c0', 'new') 1
+        del 0 ('head', 'old') 0
+        merge kp_other 1 0
+F + foreign: edits, import with new identifiers, planted entries   2 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x108
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        plant 0 record
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root none
+        quit 1
+G + a copy stripped of its reference                               2 files  20000 histories  accepted:copy-wider x6, accepted:unsaved-rule-lost x107, safety x1
+    shortest accepted:copy-wider (file 0: M1):
+        row 0 N pg 
+        save 0
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node N grants r):
+        row 1 N pf 
+        quit 1
+    shortest safety (file 1: node root grants rw):
+        del 1 ('auth',) 1
+        create 1
+        rule 1 root rw
+H + a whole file written over another                              2 files  20000 histories  accepted:copy-wider x11, accepted:unsaved-rule-lost x113, rollback-by-overwrite x123, safety x3
+    shortest accepted:copy-wider (file 0: M1):
+        row 0 N pg 
+        merge kp_sync 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        row 1 root pf 
+        quit 1
+    shortest rollback-by-overwrite (file 1):
+        revoke 1 c0
+        over 1 0
+    shortest safety (file 1: node root grants rw):
+        del 1 ('auth',) 1
+        create 1
+        rule 1 root rw
+I everything at once                                               2 files  20000 histories  accepted:copy-wider x11, accepted:unsaved-rule-lost x104, rollback-by-overwrite x24, safety x1
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        merge kp_sync 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node N grants r):
+        switch 0 N deny
+        quit 0
+    shortest rollback-by-overwrite (file 0):
+        prem 0 pf
+        over 0 1
+    shortest safety (file 0: node root grants rw):
+        edit 1 ('auth',)
+        create 1
+        merge dx 0 1
+        rule 0 root rw
+J only KeePass Synchronize and Keepass2Android; deletions with a record 2 files  20000 histories  accepted:copy-wider x10, accepted:unsaved-rule-lost x114
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        merge kp_sync 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node N grants r):
+        row 1 N pf 
+        quit 1
+J2 the same; every kind of deletion                                2 files  20000 histories  accepted:copy-wider x7, accepted:unsaved-rule-lost x91, safety x3
+    shortest accepted:copy-wider (file 0: M1):
+        row 0 N pf 
+        merge kp_sync 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root inherit
+        quit 0
+    shortest safety (file 0: renewal of c0 asked):
+        renew 0 c0 forever
+        del 1 ('auth',) 1
+        create 1
+        merge k2a 0 1
+K the same, and foreign edits, imports and planted entries         2 files  20000 histories  accepted:copy-wider x15, accepted:unsaved-rule-lost x117, safety x3
+    shortest accepted:copy-wider (file 1: M1):
+        row 1 N pf 
+        merge kp_sync 1 0
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        row 0 root pg off
+        quit 0
+    shortest safety (file 0: node root grants rw):
+        del 1 ('auth',) 1
+        create 1
+        merge kp_sync 0 1
+        rule 0 root rw
+A merges only (every program)                                      3 files  20000 histories  accepted:copy-wider x7, accepted:unsaved-rule-lost x81
+    shortest accepted:copy-wider (file 2: M1):
+        rule 2 N none
+        padd 2 pg
+        copy 2
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        row 1 root pg off
+        quit 1
+B + deletions by hand with a deletion record                       3 files  20000 histories  accepted:copy-wider x1, accepted:unsaved-rule-lost x70
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        merge kp_other 0 1
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 2: node N grants r):
+        row 2 N pg 
+        quit 2
+C + deletions that leave no record                                 3 files  20000 histories  accepted:copy-wider x1, accepted:unsaved-rule-lost x74
+    shortest accepted:copy-wider (file 1: M1):
+        row 1 N pg 
+        save 1
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        row 0 root pg off
+        quit 0
+D + records dated before the entry (a clock behind)                3 files  20000 histories  accepted:copy-wider x7, accepted:unsaved-rule-lost x76, safety x1
+    shortest accepted:copy-wider (file 1: M1):
+        row 1 N pg r
+        merge kp_other 1 0
+        copy 1
+        switch 1 N deny
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root none
+        quit 1
+    shortest safety (file 1: node root grants rw):
+        del 1 ('auth',) 1
+        create 1
+        rule 1 root rw
+E + deletion records cleared                                       3 files  20000 histories  accepted:copy-wider x3, accepted:unsaved-rule-lost x86
+    shortest accepted:copy-wider (file 1: M1):
+        rule 1 N none
+        merge kp_other 1 2
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node N grants r):
+        row 1 N pf 
+        quit 1
+F + foreign: edits, import with new identifiers, planted entries   3 files  20000 histories  accepted:copy-wider x1, accepted:unsaved-rule-lost x88, safety x1
+    shortest accepted:copy-wider (file 0: M1):
+        rule 2 N none
+        merge kp_other 2 1
+        merge kp_other 0 2
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 1: node N grants r):
+        row 1 N pf 
+        quit 1
+    shortest safety (file 2: client c0 holds ['pf']):
+        prem 0 pf
+        del 0 ('head', 'new') 1
+        del 0 ('prem',) 1
+        merge kp_other 2 0
+G + a copy stripped of its reference                               3 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x71
+    shortest accepted:copy-wider (file 1: M1):
+        row 1 N pg 
+        pair 1
+        copy 1
+    shortest accepted:unsaved-rule-lost (file 1: node N grants r):
+        row 1 N pf 
+        quit 1
+H + a whole file written over another                              3 files  20000 histories  accepted:copy-wider x3, accepted:unsaved-rule-lost x92, rollback-by-overwrite x173, safety x1
+    shortest accepted:copy-wider (file 2: M1):
+        rule 2 N none
+        merge kp_sync 2 0
+        copy 2
+    shortest accepted:unsaved-rule-lost (file 2: node N grants r):
+        rule 2 N none
+        quit 2
+    shortest rollback-by-overwrite (file 1):
+        revoke 1 c0
+        over 1 2
+    shortest safety (file 0: node root grants rw):
+        del 0 ('auth',) 1
+        create 0
+        rule 0 root rw
+I everything at once                                               3 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x79, rollback-by-overwrite x42
+    shortest accepted:copy-wider (file 2: M1):
+        rule 2 N none
+        recreate 2
+        copy 2
+    shortest accepted:unsaved-rule-lost (file 2: node root grants r):
+        row 2 root pf 
+        quit 2
+    shortest rollback-by-overwrite (file 0):
+        renew 0 c0 forever
+        over 0 1
+J only KeePass Synchronize and Keepass2Android; deletions with a record 3 files  20000 histories  accepted:copy-wider x2, accepted:unsaved-rule-lost x78
+    shortest accepted:copy-wider (file 0: M1):
+        row 0 N pg 
+        prem 0 pf
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        rule 0 root none
+        quit 0
+J2 the same; every kind of deletion                                3 files  20000 histories  accepted:copy-wider x3, accepted:unsaved-rule-lost x83
+    shortest accepted:copy-wider (file 0: M1):
+        rule 0 N none
+        renew 0 c0 forever
+        copy 0
+    shortest accepted:unsaved-rule-lost (file 0: node root grants r):
+        row 0 root pg off
+        quit 0
+K the same, and foreign edits, imports and planted entries         3 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x88
+    shortest accepted:copy-wider (file 2: M1):
+        row 2 N pf 
+        merge kp_sync 2 0
+        copy 2
+    shortest accepted:unsaved-rule-lost (file 1: node root grants r):
+        rule 1 root inherit
+        quit 1
+== exhaustive, after the design's fixed divergence (each rule saved at once)
+merges                                        10 steps wide, depth 4:   11110 histories  no failure
+merges and deletions with a record            36 steps wide, depth 3:   47988 histories  no failure
+merges and deletions without a record         34 steps wide, depth 3:   40494 histories  no failure
+Synchronize and Keepass2Android only, deletions with a record 30 steps wide, depth 3:   27930 histories  no failure
+== 750 s
