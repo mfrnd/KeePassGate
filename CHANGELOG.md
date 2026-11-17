@@ -9,7 +9,7 @@ Newest first. A version is written here before it is released, under its own hea
 it releases, as `0.1.1, the plugin and the client, unreleased` would, and a minor version names
 none, since it releases both.
 
-## 0.2.0, unreleased
+## 0.2.0, 2026-11-17
 
 0.2 breaks programs written for 0.1, the single time the rule of `API.md` §411 is set aside, so what
 makes a 0.1 client, a program built on PyKeePassGate, a script around its command line or an

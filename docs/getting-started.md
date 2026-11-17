@@ -53,7 +53,7 @@ sums in that directory, and only then copy the folder into `plugins`. In PowerSh
 directory, with the zip's own name in the first line:
 
 ```powershell
-Expand-Archive KeePassGate-0.1.0.zip -DestinationPath .
+Expand-Archive KeePassGate-0.2.0.zip -DestinationPath .
 Get-Content SHA256SUMS | ForEach-Object {
     $hash, $name = $_ -split '  ', 2
     $found = (Get-FileHash -LiteralPath $name -Algorithm SHA256).Hash

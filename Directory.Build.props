@@ -51,7 +51,7 @@
          build stamps it on the plugin and writes it into the document's `info.version` as it
          embeds that, since a YAML file cannot take it from anywhere, and hatchling reads it from
          here for the client's package. -->
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Product>KeePassGate</Product>
     <Company>KeePassGate</Company>
     <Copyright>Copyright (c) KeePassGate contributors</Copyright>
