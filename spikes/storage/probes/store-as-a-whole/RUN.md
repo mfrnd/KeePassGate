@@ -1113,10 +1113,14 @@ keys sorted:
   fix, composed by `store.py`'s `dumps`, `mac` and `ident` as `rec` composes them. An authority
   with `ca`, `host`, `id`, `sniKey` and `storeKey`; a retirement with and without `storeKey`; an
   admission with the members of S4, with and without `from`; a revocation holding `client` alone;
-  a `withdrawn` record with `from` and `renewed`, and with an empty `renewed`; and summary entries
-  of height 1 and of height 2, the last naming both in `after` and holding the items `format`,
-  `retired`, `revoked` and `withdrawn`. Each with its inputs, its content text, its check, its
-  subject and number, its identifier and every string of its entry.
+  a `withdrawn` record with `from` and `renewed`, and with an empty `renewed`; two summary entries
+  of height 1; and two of height 2, each naming both of height 1 in `after`. The first of height
+  2 holds the items `format`, `retired`, `revoked` and `withdrawn`, the second `format` and an
+  item `withdrawn` for each `withdrawn` record of the file. Each with its inputs, its content
+  text, its check, its subject and number, its identifier and every string of its entry. An item
+  `withdrawn` is in the form S29 settled on 2026-11-17 for §611, §648 and §658: it holds the
+  identifier of the record it restates as `id`, and that record's `certificate`, `renewed` and
+  `from` text for text, with no `from` where the record holds none.
 - **`--meanings`**, `StoreMeaningVectors.json`: thirteen small stores of those records, with what
   `read.py` answers for each with its history rule on, as `status`, `served`, `auths`, `adm`,
   `valid`, `refusals` and `names`: an authority alone, two authorities, a retirement by record,

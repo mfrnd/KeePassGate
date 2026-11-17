@@ -267,15 +267,34 @@ RECORDS_ABOUT = (
     'is the SHA-256 of a der, so an admission reads as STORE.md 615 has it. The client paired '
     'with the first certificate, renewed it to the second, and renewed the second to the third '
     'and the fourth. Every list, in profiles, renewed and after, is sorted, as the probe writes '
-    'every list. No record holds v, as STORE.md 607 has it.')
+    'every list. No record holds v, as STORE.md 607 has it. An item withdrawn is in the form '
+    'that S29 settles for STORE.md 611, 648 and 658: it restates a single withdrawn record of '
+    'this file, holding that record\'s identifier as id and its certificate, renewed and from '
+    'text for text, and no from where the record holds none. The second summary entry of '
+    'height 2 restates both withdrawn records of this file.')
 
 RENEWED = ' '.join(sorted([K3, K4]))
+withdrawn = record('withdrawn', {'certificate': K2, 'from': K1, 'nonce': NONCE,
+                                 'renewed': RENEWED}, subject='certificate:' + K2)
+withdrawn0 = record('withdrawn', {'certificate': K1, 'nonce': NONCE, 'renewed': ''},
+                    subject='certificate:' + K1)
+
+
+def restating(w):
+    """ADDED (S29 restating): the item that restates a withdrawn record: its identifier as `id`,
+    and its `certificate`, `renewed` and `from` as the record holds them."""
+    item = {k: v for k, v in w['members'].items() if k in ('certificate', 'renewed', 'from')}
+    return dict(item, id=w['id'], kind='withdrawn')
+
+
 head1 = record('head', {'after': '', 'height': '1', 'nonce': NONCE}, [FORMAT], 1)
 head1b = record('head', {'after': '', 'height': '1', 'nonce': NONCE2}, [FORMAT], 1)
-head2 = record('head', {'after': ' '.join(sorted([head1['id'], head1b['id']])), 'height': '2',
-                        'nonce': NONCE},
+after2 = ' '.join(sorted([head1['id'], head1b['id']]))
+head2 = record('head', {'after': after2, 'height': '2', 'nonce': NONCE},
                [FORMAT, {'authority': A1, 'kind': 'retired'}, {'client': K1, 'kind': 'revoked'},
-                {'certificate': K2, 'from': K1, 'kind': 'withdrawn', 'renewed': RENEWED}], 2)
+                restating(withdrawn)], 2)
+head2w = record('head', {'after': after2, 'height': '2', 'nonce': NONCE2},
+                [FORMAT, restating(withdrawn), restating(withdrawn0)], 2)
 out['records'] = {'about': RECORDS_ABOUT, 'key': ONE.hex(), 'records': {
     'authority': record('authority', authority(A1)),
     'retired': record('retired', {'authority': A1, 'nonce': NONCE}),
@@ -284,15 +303,12 @@ out['records'] = {'about': RECORDS_ABOUT, 'key': ONE.hex(), 'records': {
     'client, paired': record('client', admission(0, A1)),
     'client, renewed': record('client', admission(2, A1, K2)),
     'revoked': record('revoked', {'client': K1, 'nonce': NONCE}),
-    'withdrawn': record(
-        'withdrawn', {'certificate': K2, 'from': K1, 'nonce': NONCE, 'renewed': RENEWED},
-        subject='certificate:' + K2),
-    'withdrawn, nothing renewed': record(
-        'withdrawn', {'certificate': K1, 'nonce': NONCE, 'renewed': ''},
-        subject='certificate:' + K1),
+    'withdrawn': withdrawn,
+    'withdrawn, nothing renewed': withdrawn0,
     'head of height 1': head1,
     'head of height 1, made apart': head1b,
     'head of height 2': head2,
+    'head of height 2, restating both withdrawn records': head2w,
 }}
 
 
