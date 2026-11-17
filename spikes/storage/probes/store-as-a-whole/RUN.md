@@ -481,9 +481,10 @@ Reported, not fixed.
 
 - **The model holds no history of an entry.** In the model's searches an edit is damage, as in the
   first record; the history rule is run on files only (`b-history`, `b-random`).
-- **The plugin writes nothing again for a record that counts by its history**, the narrowest reading
-  of a point `EVALUATION.md` section 8 leaves open: the next write of the plugin leaves the edited
-  entry as it is, and the summary entry it writes restates what is in force as before.
+- **The plugin writes nothing again for a record that counts by its history** in this
+  configuration: the next write of the plugin leaves the edited entry as it is, and the summary
+  entry it writes restates what is in force as before. Writing such a record again at the plugin's
+  next own write is the configuration of "The two readings" below.
 - **A store entry is recognized as damaged only under a key the file holds.** An authority, or a
   retirement that holds the store key, with no passing version leaves no key in the file, so the
   read answers `nostore` and the model `incomplete`, as in the first record's defect of the same
