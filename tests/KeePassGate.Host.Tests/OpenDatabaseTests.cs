@@ -142,6 +142,31 @@ namespace KeePassGate.Host.Tests
                 "a saved database has nothing left to save, which is what the tab is telling them to do");
         }
 
+        [Test]
+        public void Where_the_dialogs_are_not_watched_the_tab_holds_no_act_and_states_why()
+        {
+            // The plugin's load logs a watch that did not start, and every write of the store is
+            // refused from then on: the tab took the press all the same, and OK dropped it.
+            using (var windows = new GlobalWindowManagerWindows())
+            using (var never = new GroupDialogs(windows, NullGateLog.Instance))
+            {
+                var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, never, NullGateLog.Instance);
+                var pending = new PendingDatabase(
+                    new OpenDatabase(_database.Database, delegate { }, writer, NullGateLog.Instance), NullGateLog.Instance);
+
+                Assert.That(pending.Store.Unwritable, Is.EqualTo(GroupDialogs.NotWatched));
+
+                using (var panel = new AuthorityPanel(pending, new NeverAsked(), NullGateLog.Instance))
+                {
+                    panel.CreateAuthority();
+                }
+
+                Assert.That(pending.StoreWaiting, Is.False);
+                Assert.That(pending.Apply(), Is.False);
+                Assert.That(Authority(), Is.False);
+            }
+        }
+
         /// <summary>
         /// The panel as the plugin actually builds it, wrapped in the decorator that holds its
         /// writes back until the dialog is accepted.

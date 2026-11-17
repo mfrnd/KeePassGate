@@ -44,6 +44,12 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>Why every write is refused, as a writer refuses a write, or null for writes that are made.</summary>
         public string RefuseWrites { get; set; }
 
+        /// <summary>
+        /// Why no write of the operator's is made in this session, as where the dialogs that would
+        /// take a write back are not watched, or null; a write is refused with it as well.
+        /// </summary>
+        public string Unwritable { get; set; }
+
         /// <summary>What a read throws, or null for reads that work.</summary>
         public Exception ThrowOnRead { get; set; }
 
@@ -133,9 +139,9 @@ namespace KeePassGate.Tests.Fakes
                 throw ThrowOnWrite;
             }
 
-            if (RefuseWrites != null)
+            if (RefuseWrites != null || Unwritable != null)
             {
-                return StoreWritten.Refused(RefuseWrites);
+                return StoreWritten.Refused(RefuseWrites ?? Unwritable);
             }
 
             if (DamageAuthorities)
@@ -163,7 +169,7 @@ namespace KeePassGate.Tests.Fakes
                 _deletions = applied.Value.ToList();
             }
 
-            return StoreWritten.Done(plan.LeftOut);
+            return StoreWritten.Done(plan.Taken, plan.LeftOut, !plan.Empty);
         }
 
         /// <summary>The same act, with every authority it holds composed again with parts no reader takes.</summary>
@@ -188,7 +194,7 @@ namespace KeePassGate.Tests.Fakes
                     return StoreRecord.Compose(key, StoreKinds.Authority, members);
                 }).ToList();
 
-                return new StoreAct(act.Name, key, records, act.Why);
+                return new StoreAct(act.Name, key, records, act.Why, act.EndsAdmissions);
             }
             finally
             {

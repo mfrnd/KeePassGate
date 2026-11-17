@@ -19,6 +19,10 @@ namespace KeePassGate.Ui
     /// meanwhile is left out and named. An authority made on the dialog and retired on it reaches
     /// no database, its retirement with it. **Cancel drops every act**, and a store key made on
     /// the dialog goes with the act that held it.
+    ///
+    /// **What an act takes out of the custom data is not held here**: the admissions a Recreate or
+    /// a Delete takes away are read as gone while it waits, and `PendingDatabase` takes them out of
+    /// the live custom data at OK only where the write took the act.
     /// </remarks>
     public sealed class PendingRecords : IGateStore
     {
@@ -52,6 +56,12 @@ namespace KeePassGate.Ui
             get { return _acts.Count > 0; }
         }
 
+        /// <summary>Whether an act waiting takes every admission away, as a Recreate and a Delete do.</summary>
+        public bool EndsAdmissions
+        {
+            get { return _acts.Any(act => act.EndsAdmissions); }
+        }
+
         /// <summary>
         /// The store as OK would leave it: the live store with the acts written over it in memory,
         /// or the live store as it is where they leave nothing or no longer apply.
@@ -77,13 +87,20 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// Holds these acts for the dialog's OK, where they apply to the store as the page shows
-        /// it; refused, with nothing held, where they do not.
+        /// it; refused, with nothing held, where they do not, and where nothing is written into
+        /// the store in this session.
         /// </summary>
         public StoreWritten Write(IReadOnlyList<StoreAct> acts)
         {
             if (acts == null || acts.Count == 0)
             {
                 return StoreWritten.Refused("there is nothing to write");
+            }
+
+            var unwritable = Unwritable;
+            if (unwritable != null)
+            {
+                return StoreWritten.Refused(unwritable);
             }
 
             using (var shown = Read())
@@ -95,8 +112,14 @@ namespace KeePassGate.Ui
                 }
 
                 _acts.AddRange(acts);
-                return StoreWritten.Done(write.LeftOut);
+                return StoreWritten.Waiting(write.Taken, write.LeftOut);
             }
+        }
+
+        /// <summary>Why the live store takes no write of the operator's in this session, or null.</summary>
+        public string Unwritable
+        {
+            get { return _live().Unwritable; }
         }
 
         /// <summary>Drops every act, which is what Cancel means, and overwrites the keys they held.</summary>

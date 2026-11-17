@@ -24,7 +24,9 @@ namespace KeePassGate.Authority
     ///
     /// **The admissions are where the database keeps them**, beside the store, and Recreate and
     /// Delete take every admission away with the authority that issued them, as the store's own
-    /// admission records will be taken away by their issuer's retirement.
+    /// admission records will be taken away by their issuer's retirement. Over a store that holds
+    /// the act for a dialog's OK they are taken away there, and only where the write takes the
+    /// act, `PendingDatabase`; over a store that writes it, as soon as it is written.
     /// </remarks>
     public sealed class AuthorityService
     {
@@ -137,7 +139,7 @@ namespace KeePassGate.Authority
                     }
                 }
 
-                return Issue("created", reading, Array.Empty<string>());
+                return Issue("created", reading, Array.Empty<string>(), out _);
             }
         }
 
@@ -149,6 +151,7 @@ namespace KeePassGate.Authority
         public AuthorityChange Recreate()
         {
             AuthorityChange result;
+            bool waits;
             using (var reading = _store.Read())
             {
                 var held = HeldBack(reading);
@@ -157,15 +160,14 @@ namespace KeePassGate.Authority
                     return held;
                 }
 
-                result = Issue("recreated", reading, Standing(reading));
+                result = Issue("recreated", reading, Standing(reading), out waits);
             }
 
-            if (!result.Succeeded)
+            if (result.Succeeded && !waits)
             {
-                return result;
+                _log.Info("authority recreated, admission records removed: " + RemoveAdmissions());
             }
 
-            _log.Info("authority recreated, admission records removed: " + RemoveAdmissions());
             return result;
         }
 
@@ -176,6 +178,7 @@ namespace KeePassGate.Authority
         /// </summary>
         public AuthorityChange Delete()
         {
+            var waits = false;
             using (var reading = _store.Read())
             {
                 var held = HeldBack(reading);
@@ -187,7 +190,7 @@ namespace KeePassGate.Authority
                 var standing = Standing(reading);
                 if (standing.Count > 0)
                 {
-                    var written = Write(Retirements(reading, "Delete", standing, null, true));
+                    var written = Write(Retirements(reading, "Delete", standing, null, true), out waits);
                     if (written != null)
                     {
                         _log.Warn("the authority could not be deleted: " + written);
@@ -207,7 +210,11 @@ namespace KeePassGate.Authority
                 }
             }
 
-            _log.Info("authority deleted, admission records removed: " + RemoveAdmissions());
+            if (!waits)
+            {
+                _log.Info("authority deleted, admission records removed: " + RemoveAdmissions());
+            }
+
             return AuthorityChange.Done();
         }
 
@@ -264,7 +271,7 @@ namespace KeePassGate.Authority
 
                 // None to retire is the authority already standing alone, which is kept as it is.
                 others = standing.Where(id => id != fingerprint).ToList();
-                var written = others.Count == 0 ? null : Write(Retirements(reading, "keeping an authority", others, listed, true));
+                var written = others.Count == 0 ? null : Write(Retirements(reading, "keeping an authority", others, listed, false), out _);
                 if (written != null)
                 {
                     if (written.Contains(Overtaken))
@@ -333,18 +340,19 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// An act retiring these authorities, held to the authorities that stood when it was
-        /// composed, or to those listed.
+        /// An act retiring these authorities, each retirement holding the store key, held to the
+        /// authorities that stood when it was composed, or to those listed.
         /// </summary>
+        /// <param name="endsAdmissions">Whether every admission goes with the act, as with a Delete.</param>
         private static StoreAct Retirements(
-            StoreReading reading, string name, IReadOnlyList<string> retired, ISet<string> listed, bool holdingKey)
+            StoreReading reading, string name, IReadOnlyList<string> retired, ISet<string> listed, bool endsAdmissions)
         {
             var key = (byte[])reading.InForce.Key.Bytes.Clone();
             try
             {
                 var stood = listed ?? new HashSet<string>(Standing(reading), StringComparer.Ordinal);
-                var records = retired.Select(id => Retirement(key, id, holdingKey)).ToList();
-                return new StoreAct(name, key, records, ground => ground.Standing.SetEquals(stood) ? null : Overtaken);
+                var records = retired.Select(id => Retirement(key, id, true)).ToList();
+                return new StoreAct(name, key, records, ground => ground.Standing.SetEquals(stood) ? null : Overtaken, endsAdmissions);
             }
             finally
             {
@@ -364,9 +372,14 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>Writes an act, answering why it was not written, or null where it was.</summary>
-        private string Write(StoreAct act)
+        /// <param name="waits">
+        /// Whether the store holds the act for a dialog's OK, where what the act takes out of the
+        /// custom data is decided.
+        /// </param>
+        private string Write(StoreAct act, out bool waits)
         {
             var written = _store.Write(new[] { act });
+            waits = written.Taken && written.Waits;
             return written.Taken ? null : written.Reason;
         }
 
@@ -391,11 +404,13 @@ namespace KeePassGate.Authority
         /// authority it replaces, and reads it back, which is what creating and recreating have in
         /// common.
         /// </summary>
-        private AuthorityChange Issue(string verb, StoreReading reading, IReadOnlyList<string> replacing)
+        /// <param name="waits">Whether the store holds the act for a dialog's OK.</param>
+        private AuthorityChange Issue(string verb, StoreReading reading, IReadOnlyList<string> replacing, out bool waits)
         {
             byte[] sniKey = null;
             byte[] key = null;
             string minted;
+            waits = false;
 
             try
             {
@@ -417,9 +432,10 @@ namespace KeePassGate.Authority
                         verb == "created" ? "Create" : "Recreate",
                         key,
                         records,
-                        ground => ground.Standing.SetEquals(stood) ? null : Overtaken);
+                        ground => ground.Standing.SetEquals(stood) ? null : Overtaken,
+                        verb != "created");
 
-                    var written = Write(act);
+                    var written = Write(act, out waits);
                     if (written != null)
                     {
                         _log.Warn("the authority could not be " + verb + ": " + written);

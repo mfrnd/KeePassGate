@@ -878,9 +878,7 @@ namespace KeePassGate.Authority
                 var keys = _store.Keys;
                 var found = keys == null
                     ? new List<KeyValuePair<string, string>>()
-                    : keys.Where(key => AuthorityKeys.IsClientRecord(key)
-                                        || AuthorityKeys.IsRevocation(key)
-                                        || AuthorityKeys.IsRenewalRefusal(key))
+                    : keys.Where(AuthorityKeys.IsAdmission)
                           .Select(key => new KeyValuePair<string, string>(key, _store.Get(key)))
                           .ToList();
 

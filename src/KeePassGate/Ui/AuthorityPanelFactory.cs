@@ -225,16 +225,6 @@ namespace KeePassGate.Ui
                                 Revoked(live, database, clients ?? new Dictionary<string, string>(StringComparer.Ordinal));
                                 Lifted(database);
                             }
-
-                            // Refused by the questions every write asks, which a dialog's close
-                            // meets only where KeePass is part way through something of its own:
-                            // a state the design holds for unreachable here, so it is counted.
-                            if (database.StoreRefusal != null)
-                            {
-                                _incidents.Record(
-                                    "what the " + GateName.Product + " tab held for the plugin's store was not written: "
-                                    + database.StoreRefusal, null);
-                            }
                         }
 
                         foreach (var key in session.Apply())
@@ -320,14 +310,16 @@ namespace KeePassGate.Ui
         /// **When it lands, which is now.** A revocation pressed on the Clients page waits in the
         /// dialog's buffer with everything else on the tab, and Cancel takes it away with nothing
         /// written anywhere. What is written is what the buffer stored, so a client revoked by
-        /// itself while the dialog was open is not written down a second time, and a revocation an
-        /// authority's recreation took away again is not written down at all.
+        /// itself while the dialog was open is not written down a second time, and a revocation
+        /// that a Recreate or a Delete the same OK wrote took away with every admission is not
+        /// written down at all.
         ///
         /// The database is named by the authority it serves now, as the gate's own lines name it,
         /// or as nothing when it serves none. That is the authority served once OK is through, not
-        /// necessarily the one that issued the revoked certificate: after a recreate in the same
-        /// dialog it is the new one, and in a database whose two copies each made an authority it
-        /// is nothing, which `docs/audit.md` says beside the `database` member.
+        /// necessarily the authority that issued the revoked certificate: where the same dialog
+        /// kept another authority it is the authority kept, and in a database whose two copies
+        /// each made an authority it is nothing, as `docs/audit.md` has it beside the `database`
+        /// member.
         /// </remarks>
         /// <param name="clients">
         /// The client key of every record the live database held before OK, by admission key, which

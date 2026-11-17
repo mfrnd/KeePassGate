@@ -621,7 +621,8 @@ namespace KeePassGate.Tests
                 AuthorityDescription.RetiredHeadline,
                 AuthorityDescription.HeldBackHeadline(StoreWords.Outdated),
                 AuthorityDescription.HeldBackHeadline(StoreWords.Stopped),
-                AuthorityDescription.HeldBackHeadline(StoreWords.Split)
+                AuthorityDescription.HeldBackHeadline(StoreWords.Split),
+                AuthorityDescription.UnwritableHeadline
             }), "every headline, since which is tallest is not something to assume");
 
             var damaged = longest.Single(description => description.Headline == AuthorityDescription.DamagedHeadline);

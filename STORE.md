@@ -749,12 +749,15 @@ revocations are still kept where `CA.md` §204 keeps them, and are handed the au
 stand: a client is judged by the anchor pin against the authority served before any record is
 asked, so a record of a certificate another authority issued admits nobody, and a revocation
 names the standing authority that issued its certificate. Recreate and Delete take every
-admission away as the custom data the tab buffers, beside the act on the store, so a Recreate
-left out at the tab's OK, for a ground that went under the dialog, still takes them away:
-nobody is admitted who was not before, and the admissions' move into the store (§615) makes
-their removal part of the act. *Held by* `StoreAuthoritiesTests`,
-`AuthorityCommandsInStoreTests`, `AuthorityServiceTests` and `StoreAuthorityServedTests`, and
-in a real KeePass by `LiveAuthorityTests` and `LiveAuthorityChooserTests`.
+admission record, revocation and standing answer out of the custom data only where the store
+write takes the act: at the tab's OK the store is written first, and the custom data loses them
+as it stands then, a record that a pairing landed under the dialog among them. An act refused or
+left out at OK takes nothing away, since a revocation taken away while the authority that
+issued its certificate is still served lets a stale copy merged in admit that client again. The
+admissions' move into the store (§615) makes their removal part of the act. *Held by*
+`StoreAuthoritiesTests`, `AuthorityCommandsInStoreTests`, `AuthorityServiceTests`,
+`StoreAuthorityServedTests` and `PendingRecordsTests`, and in a real KeePass by
+`LiveAuthorityTests` and `LiveAuthorityChooserTests`.
 
 ### Admission and revocation §615
 
@@ -1940,7 +1943,11 @@ every other unsaved edit where the database is closed without saving.
 today is applied with no question asked. A write is made on KeePass's thread, after the
 questions every write asks there, `DESIGN.md` §119 and §124, and after the store was read in
 that same turn (step 1). A write of the operator's that is refused there adds nothing, and the
-log names what was not written and why.
+log names what was not written and why. The settings dialog's OK can meet a save of the plugin's
+own, pumping under the dialog while a pairing lands, and is refused there like any other write
+(§644 item 30). Where the dialogs that would take a write back are not watched, which the
+plugin's load logs, every such write is refused for the session, and the KPG tab offers no
+command on the store and states why, as under a word (§636).
 
 **Whether the store has room** is a property of the file, which the reading judges where the
 store is whole. It works out the summary entry that a write adding nothing would write: its
@@ -1994,10 +2001,14 @@ it stands then. An act whose ground went meanwhile, as a Recreate of an authorit
 longer stands, is left out, and the log names it. Every other act's records are written in a
 single write, with the summary entry over what is then in force. A revocation and a
 certificate taken away have no such ground, and are always written. Cancel drops the buffer,
-and a store key that was made on the dialog goes with it. *Held by* `PendingRecordsTests`: a
-revocation pressed beside a Recreate whose authority was retired underneath the dialog is
-written, and the Recreate is not; a Create and a Delete on the same dialog write nothing; and
-a page reads a revoked client as gone before OK.
+and a store key that was made on the dialog goes with it. **What an act takes out of the custom
+data waits with the act** (this document's own): the admissions a Recreate or a Delete takes
+away read as gone on the page while it waits, and leave the custom data at OK only where the
+write took the act (§614). *Held by* `PendingRecordsTests`: a revocation pressed beside a
+Recreate whose authority was retired underneath the dialog is written, and the Recreate is not;
+a Recreate refused or left out at OK takes no revocation away; a Create and a Delete on the
+same dialog write nothing and change nothing; and a page reads a revoked client as gone before
+OK.
 
 **What is built.** The writes of the authority's commands (§614): Create, Recreate and Delete
 at the settings dialog's OK, buffered by `PendingRecords` beside the keys the tab buffers in
@@ -2944,6 +2955,9 @@ guard as product code, with its setting, was not run (§644).
   a store (§652).
 - **It is the only place that takes anything away.** Deleting an entry of the store by hand
   revokes nothing, which the notes of every record state (§607).
+- **It offers no command on the store where nothing is written into it in the session**, as
+  where the dialogs that would take a write back are not watched (§627), and states that and
+  why, as under a word. Built, and held by `AuthorityPanelTests` and `OpenDatabaseTests`.
 
 Nothing of the tab was run.
 
@@ -3774,6 +3788,13 @@ that finds a measurement against a decision reports it and does not design aroun
     protection of an authority's content taken off in KeePass's entry dialog, the plugin's
     next write, and each merge with a copy that still holds the unprotected version. Owed by
     the pull request that builds the first writes. *Could overturn*: the answer to S18.
+30. **The operator's write behind the plugin's own save.** The settings dialog's OK pressed
+    while a save of the plugin's own pumps under the dialog, as a pairing's does, is refused by
+    the writer's guard, and nothing the tab held for the store is written (§627): the log names
+    it, while the dialog closes as accepted. The write should wait for that save to end and then
+    be made, held to its ground as it stands then. This item is this document's own, read from
+    the code and not run. Owed by the pull request that keeps the admissions in the store,
+    which builds the writes that save.
 
 ---
 

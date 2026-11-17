@@ -345,7 +345,9 @@ before anything is chosen**, to answer on one copy and synchronize before answer
 **Recreating and deleting both remove every admission record, and every revocation with the records
 it emptied.** Each certificate they name chains to the authority just retired, and the retirement
 refuses it whatever a stale copy brings back, so a revocation beside it would refuse nothing more.
-This reverses recreation emptying the records rather than removing them, which it did while the
+They go with the retirement and never without it: both wait for the settings dialog's OK, and the
+custom data loses them there only where the store write took the act, `STORE.md` §614. This
+reverses recreation emptying the records rather than removing them, which it did while the
 replacement went under the same key and an emptied record was the only mark a merge with an older
 copy would carry.
 

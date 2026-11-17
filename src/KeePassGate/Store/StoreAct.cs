@@ -27,7 +27,9 @@ namespace KeePassGate.Store
         /// Why the act no longer applies to a store as it stands, or null where it applies; null
         /// for an act with no ground.
         /// </param>
-        internal StoreAct(string name, byte[] key, IReadOnlyList<StoreRecord> records, Func<StoreGround, string> ground)
+        /// <param name="endsAdmissions">Whether every admission goes with the act, as with a Recreate and a Delete.</param>
+        internal StoreAct(
+            string name, byte[] key, IReadOnlyList<StoreRecord> records, Func<StoreGround, string> ground, bool endsAdmissions = false)
         {
             if (key == null)
             {
@@ -44,7 +46,15 @@ namespace KeePassGate.Store
             KeyName = StoreFormat.KeyName(_key);
             Records = records.ToList();
             _ground = ground;
+            EndsAdmissions = endsAdmissions;
         }
+
+        /// <summary>
+        /// Whether every admission kept beside the store goes with this act, as every admission
+        /// goes with a Recreate and a Delete: taken out of the custom data where a write takes the
+        /// act, and nowhere else.
+        /// </summary>
+        internal bool EndsAdmissions { get; private set; }
 
         /// <summary>What the log calls the act.</summary>
         internal string Name { get; private set; }
@@ -115,11 +125,14 @@ namespace KeePassGate.Store
     /// <summary>What a write into the store came to: taken, or refused and why, and the acts left out.</summary>
     public sealed class StoreWritten
     {
-        private StoreWritten(bool taken, string reason, IReadOnlyList<string> leftOut)
+        private StoreWritten(bool taken, string reason, IReadOnlyList<StoreAct> acts, IReadOnlyList<string> leftOut, bool wrote, bool waits)
         {
             Taken = taken;
             Reason = reason;
+            Acts = acts ?? Array.Empty<StoreAct>();
             LeftOut = leftOut ?? Array.Empty<string>();
+            Wrote = wrote;
+            Waits = waits;
         }
 
         /// <summary>Whether the write was made, with every act it took.</summary>
@@ -131,30 +144,38 @@ namespace KeePassGate.Store
         /// <summary>Each act left out, by its name and why its ground went.</summary>
         public IReadOnlyList<string> LeftOut { get; private set; }
 
-        /// <summary>
-        /// Whether the writer's guard refused the write before the store was asked: KeePass part
-        /// way through something of its own, or a window holding what the write touches.
-        /// </summary>
+        /// <summary>The acts taken, in the order they were given; none where the write was refused.</summary>
         /// <remarks>
-        /// Told apart from a refusal of the store's, a ground that went or a store that holds the
-        /// gate back, because those follow from what a merge or another dialog did and the guard's
-        /// refusal at a dialog's close is a state the design holds for unreachable.
+        /// For a writer that holds what an act takes out of the custom data until the act is taken,
+        /// which a Recreate and a Delete do with every admission: an act left out takes nothing.
         /// </remarks>
-        public bool Guarded { get; private set; }
+        public IReadOnlyList<StoreAct> Acts { get; private set; }
 
-        internal static StoreWritten Done(IReadOnlyList<string> leftOut)
+        /// <summary>
+        /// Whether anything was written into the database: false where the acts taken cancel out,
+        /// as an authority made and retired again does, and where they are held for a dialog's OK.
+        /// </summary>
+        public bool Wrote { get; private set; }
+
+        /// <summary>
+        /// Whether the acts taken are held for a dialog's OK rather than written: what comes of
+        /// them, and of what they take out of the custom data, is decided there.
+        /// </summary>
+        public bool Waits { get; private set; }
+
+        internal static StoreWritten Done(IReadOnlyList<StoreAct> taken, IReadOnlyList<string> leftOut, bool wrote)
         {
-            return new StoreWritten(true, null, leftOut);
+            return new StoreWritten(true, null, taken, leftOut, wrote, false);
+        }
+
+        internal static StoreWritten Waiting(IReadOnlyList<StoreAct> taken, IReadOnlyList<string> leftOut)
+        {
+            return new StoreWritten(true, null, taken, leftOut, false, true);
         }
 
         internal static StoreWritten Refused(string reason, IReadOnlyList<string> leftOut = null)
         {
-            return new StoreWritten(false, reason, leftOut);
-        }
-
-        internal static StoreWritten Held(string reason)
-        {
-            return new StoreWritten(false, reason, null) { Guarded = true };
+            return new StoreWritten(false, reason, null, leftOut, false, false);
         }
     }
 
@@ -175,5 +196,12 @@ namespace KeePassGate.Store
         /// what came of it.
         /// </summary>
         StoreWritten Write(IReadOnlyList<StoreAct> acts);
+
+        /// <summary>
+        /// Why no write of the operator's is made into this store in this session, whatever it
+        /// holds, or null where a write may be made: the dialogs that would take a write back not
+        /// watched. The KPG tab offers no command on the store then, as under a word.
+        /// </summary>
+        string Unwritable { get; }
     }
 }

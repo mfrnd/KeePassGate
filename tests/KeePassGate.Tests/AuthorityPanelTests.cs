@@ -80,6 +80,54 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Where_nothing_can_be_written_the_page_states_why_and_every_command_on_the_store_is_off()
+        {
+            // As where the dialogs that would take a write back are not watched: the log at load
+            // names it, and the tab took presses that every OK then dropped.
+            StoreSeeds.Authority(_database.Store, _database.Values);
+            _database.Records.Unwritable = "the dialogs that would take a write back could not be watched";
+
+            using (var panel = NewPanel(true))
+            {
+                Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.UnwritableHeadline));
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Contain("could not be watched"));
+                Assert.That(Button(panel, GateTab.CreateButtonName).Enabled, Is.False);
+                Assert.That(Button(panel, GateTab.RecreateButtonName).Enabled, Is.False);
+                Assert.That(Button(panel, GateTab.DeleteButtonName).Enabled, Is.False);
+            }
+        }
+
+        [Test]
+        public void A_revocation_on_the_tab_takes_a_revocation_away_only_for_an_authority_the_live_store_no_longer_holds()
+        {
+            // An authority kept on the tab retires the other in the page's reading, and OK may
+            // yet leave that keep out: the prune a revocation rides on is judged by the store as
+            // the database holds it.
+            var both = StoreSeeds.Undecided(_database.Store, _database.Values);
+            var kept = both[0];
+            var other = both[1];
+            var ofOther = AdmittedBy(other);
+            Assume.That(new AdmissionStore(_database.Values, _database.Store, _log).Remove(ofOther), Is.True);
+            var ofKept = AdmittedBy(kept);
+            var pending = new PendingDatabase(_database, _log);
+
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                Assert.That(new AuthorityService(pending.Store, pending.PluginCustomData, _log).Keep(kept, both).Succeeded, Is.True);
+                Assert.That(panel.Revoke(ofKept), Is.Null);
+                Assert.That(pending.PluginCustomData.Get(AuthorityKeys.RevocationKey(ofOther)), Is.Not.Null,
+                    "the authority that issued it still stands in the database");
+
+                // A third authority arrives under the dialog, and the keep is left out at OK.
+                StoreSeeds.Beside(_database.Store);
+                pending.Apply();
+            }
+
+            Assert.That(_database.Values.Get(AuthorityKeys.RevocationKey(ofOther)), Is.Not.Null);
+            Assert.That(_database.Values.Get(AuthorityKeys.RevocationKey(ofKept)), Is.Not.Null);
+        }
+
+        [Test]
         public void A_store_past_half_its_room_adds_its_line_and_leaves_the_commands_as_they_are()
         {
             _database = HeldBack.Database(HeldBack.Half);
@@ -1303,13 +1351,12 @@ namespace KeePassGate.Tests
 
         [TestCase(true)]
         [TestCase(false)]
-        public void A_pairing_that_lands_while_a_recreate_or_delete_waits_is_kept_and_named_a_stranger(bool recreating)
+        public void A_pairing_that_lands_while_a_recreate_or_delete_waits_goes_with_every_admission_at_OK(bool recreating)
         {
-            // The one case the key by key replay leaves behind on purpose, run whole rather than
-            // in its parts. The tab buffers the recreate or the delete, which lists the records
-            // there are as it is pressed; a pairing then lands on the live database, a record under
-            // the authority the gate still serves and the profile it approved named in the same
-            // write; and OK replays only what was buffered.
+            // The tab holds the recreate or the delete; a pairing then lands on the live database,
+            // a record under the authority the gate still serves and the profile it approved named
+            // in the same write; and OK takes every admission out of the custom data as it stands
+            // then, once the write took the act.
             Assume.That(new AuthorityService(_database.Store, _database.Values, null).Create().Succeeded, Is.True);
             var before = IssuedAndAdmitted("agent-before");
 
@@ -1325,17 +1372,11 @@ namespace KeePassGate.Tests
             pending.Apply();
 
             var admissions = new AdmissionStore(_database.Values, null);
-            Assert.That(admissions.Find(before.AdmissionKey), Is.Null, "the records it listed went with it");
-            Assert.That(admissions.Find(landed.AdmissionKey), Is.Not.Null, "the one that landed meanwhile is kept");
+            Assert.That(admissions.Find(before.AdmissionKey), Is.Null, "the records there were went with it");
+            Assert.That(_database.Values.Get(AuthorityKeys.ClientRecordKey(landed.AdmissionKey)), Is.Null,
+                "and so did the record that landed meanwhile, whose authority is retired");
             Assert.That(ProfileNames.Read(_database.Values.Get(ProfileNames.CustomDataKey)).Names,
-                Does.Contain("reader"), "and so is the name it brought");
-
-            using (var panel = NewPanel(true))
-            {
-                Assert.That(panel.Reaches(panel.AdmittedClients())[landed.AdmissionKey],
-                    Is.EqualTo(ClientReach.Stranger),
-                    "its certificate chains to an authority that is gone, which the clients page says on its row");
-            }
+                Does.Contain("reader"), "while the name it brought stays");
         }
 
         /// <summary>A client of the authority the database holds now, admitted in the live store.</summary>
@@ -2110,6 +2151,16 @@ namespace KeePassGate.Tests
         private AuthorityPanel NewPanel(IOperatorPrompt prompt)
         {
             return new AuthorityPanel(_database, prompt, _log);
+        }
+
+        /// <summary>A client of this authority admitted in the database, answering its admission key.</summary>
+        private string AdmittedBy(string authority)
+        {
+            using (var client = new AuthorityIssuer().IssueClient(StoreSeeds.KeyOf(_database.Store, authority), "agent-fictitious", new[] { "reader" }).Read())
+            {
+                new AdmissionStore(_database.Values, _log).Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "reader" }));
+                return CertificateDigest.Of(client);
+            }
         }
 
         /// <summary>The authority the panel created, as the key it issues with.</summary>

@@ -519,8 +519,7 @@ namespace KeePassGate
                     // `GroupDialogs` answers refuses from here on, so the gate serves and reads,
                     // and writes nothing and admits nobody, which is the safe half of being wrong.
                     _log.Error(
-                        "the dialogs that would take a write back could not be watched, so nothing " +
-                        "is written and no client can be paired with this session", null);
+                        GroupDialogs.NotWatched + ", so nothing is written and no client can be paired with this session", null);
                 }
 
                 _invitations = new InvitationBook(_log);

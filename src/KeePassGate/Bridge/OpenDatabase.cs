@@ -160,9 +160,17 @@ namespace KeePassGate.Bridge
         public StoreWritten Write(IReadOnlyList<StoreAct> acts)
         {
             return _writer == null
-                ? StoreWritten.Refused("this database is open without a way to write to it")
+                ? StoreWritten.Refused(NoWriter)
                 : _writer.ByOperator(_database, () => _store.Write(acts));
         }
+
+        /// <summary>Why the writer refuses every write of the operator's in this session, or null.</summary>
+        public string Unwritable
+        {
+            get { return _writer == null ? NoWriter : _writer.Unwritable; }
+        }
+
+        private const string NoWriter = "this database is open without a way to write to it";
     }
 
     /// <summary>

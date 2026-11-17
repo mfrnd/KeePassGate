@@ -1241,8 +1241,10 @@ namespace KeePassGate.Bridge
         /// it ends. A connection's write waiting for its turn waits for this write to end.
         ///
         /// **Refused where KeePass is part way through something of its own**, a merge or a save
-        /// among it, or a window holds what the write touches: the same questions `Keep` asks.
-        /// Nothing is added then, and the caller names what was not written.
+        /// among it, a save of this writer's included, or a window holds what the write touches:
+        /// the same questions `Keep` asks. Nothing is added then, and the caller names what was not
+        /// written. The settings dialog's OK can meet a save of this writer's, pumping under the
+        /// dialog while a pairing lands, so this is a refusal like any other and no defect.
         /// </remarks>
         /// <param name="write">The write, planned and applied against the store as it stands then.</param>
         public StoreWritten ByOperator(PwDatabase database, Func<StoreWritten> write)
@@ -1260,7 +1262,7 @@ namespace KeePassGate.Bridge
             var interrupting = Interrupting();
             if (interrupting != null)
             {
-                return StoreWritten.Held(interrupting);
+                return StoreWritten.Refused(interrupting);
             }
 
             if (_dialogs != null)
@@ -1268,17 +1270,30 @@ namespace KeePassGate.Bridge
                 var open = _dialogs.BlockingRecords(database) ?? _dialogs.BlockingSaves(database);
                 if (open != null)
                 {
-                    return StoreWritten.Held(open);
+                    return StoreWritten.Refused(open);
                 }
             }
 
             var written = write();
-            if (written.Taken)
+            if (written.Wrote)
             {
                 Redraw(database, true);
             }
 
             return written;
+        }
+
+        /// <summary>
+        /// Why every write of the operator's into a store is refused in this session, or null:
+        /// the dialogs that would take a write back were not watched from the plugin's load.
+        /// </summary>
+        /// <remarks>
+        /// Asked by the KPG tab before it offers a command, so that a press is never taken that
+        /// every OK refuses. Null where this writer was given no watch, which is a test.
+        /// </remarks>
+        public string Unwritable
+        {
+            get { return _dialogs != null && !_dialogs.Watching ? GroupDialogs.NotWatched : null; }
         }
 
         private VaultWrite ChangeOnTheUiThread(

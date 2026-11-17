@@ -36,6 +36,10 @@ namespace KeePassGate.Ui
         public const string UndecidedHeadline =
             "This database holds more than one authority, so nothing is served.";
 
+        /// <summary>The headline of a page over a store nothing pressed on the tab is written into in this session.</summary>
+        public const string UnwritableHeadline =
+            "Nothing is written into the store of this database in this session.";
+
         public const string RetiredHeadline =
             "Every authority this database has held is retired, so nothing is served.";
 
@@ -160,25 +164,37 @@ namespace KeePassGate.Ui
         /// <summary>
         /// This description as the page shows it beside the store it was read from, `STORE.md`
         /// §636: under a store that holds the gate back, the word, why, and no command offered;
-        /// under a store past half its room, a line with how many changes still fit.
+        /// under a store nothing is written into in this session, that and why, and no command
+        /// offered; under a store past half its room, a line with how many changes still fit.
         /// </summary>
         /// <remarks>
         /// **Every command is off while the store holds the gate back**, Create among them, since
         /// a write into such a store is refused at the press and again at the dialog's OK,
         /// `STORE.md` §624. The words and what ends each are those of `STORE.md` §656.
+        ///
+        /// **And while nothing is written into it at all**, as where the dialogs that would take a
+        /// write back are not watched: the plugin's load logs it, and every OK refuses what the tab
+        /// holds for the store. A code handed out is not offered either, since no client is
+        /// paired then.
         /// </remarks>
-        internal AuthorityDescription Under(StoreReading store)
+        /// <param name="unwritable">Why nothing is written into the store in this session, or null.</param>
+        internal AuthorityDescription Under(StoreReading store, string unwritable)
         {
-            if (store == null)
-            {
-                return this;
-            }
-
-            var word = StoreWords.Of(store.State);
+            var word = store == null ? null : StoreWords.Of(store.State);
             if (word != null)
             {
                 return new AuthorityDescription(
                     HeldBackHeadline(word), null, new[] { HeldBackLine(word), Clipped.Message(store.Reason) }, false, false, false);
+            }
+
+            if (unwritable != null)
+            {
+                return new AuthorityDescription(UnwritableHeadline, null, new[] { Clipped.Message(unwritable) }, false, false, false);
+            }
+
+            if (store == null)
+            {
+                return this;
             }
 
             var room = store.Room;
@@ -479,6 +495,7 @@ namespace KeePassGate.Ui
                 new AuthorityDescription(HeldBackHeadline(StoreWords.Outdated), null, new[] { HeldBackLine(StoreWords.Outdated), Clipped.Message(Thrown) }, false, false, false),
                 new AuthorityDescription(HeldBackHeadline(StoreWords.Stopped), null, new[] { HeldBackLine(StoreWords.Stopped), Clipped.Message(Thrown) }, false, false, false),
                 new AuthorityDescription(HeldBackHeadline(StoreWords.Split), null, new[] { HeldBackLine(StoreWords.Split), Clipped.Message(Thrown) }, false, false, false),
+                new AuthorityDescription(UnwritableHeadline, null, new[] { Clipped.Message(Thrown) }, false, false, false),
                 new AuthorityDescription(UndecidedHeadline, null, new[] { Longest(UndecidedLine) }, false, true, true)
                 {
                     CanChoose = true

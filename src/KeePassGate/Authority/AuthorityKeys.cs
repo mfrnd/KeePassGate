@@ -185,6 +185,15 @@ namespace KeePassGate.Authority
             return IsRenewalRefusal(key) ? key.Substring(RenewalRefusedPrefix.Length) : null;
         }
 
+        /// <summary>
+        /// Whether a key is about an admission: a record, a revocation or a standing answer to a
+        /// renewal, each of which goes with the authority that issued its certificate.
+        /// </summary>
+        public static bool IsAdmission(string key)
+        {
+            return IsClientRecord(key) || IsRevocation(key) || IsRenewalRefusal(key);
+        }
+
         public static bool IsOurs(string key)
         {
             return key != null && key.StartsWith(Prefix, StringComparison.Ordinal);

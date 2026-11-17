@@ -82,8 +82,14 @@ namespace KeePassGate.Bridge
                     _log.Warn("an act on the plugin's store was left out, because what it was composed against went: " + left);
                 }
 
-                return StoreWritten.Done(write.LeftOut);
+                return StoreWritten.Done(write.Taken, write.LeftOut, !write.Empty);
             }
+        }
+
+        /// <summary>Null: this writes whenever it is asked, and the questions before it are the writer's.</summary>
+        public string Unwritable
+        {
+            get { return null; }
         }
     }
 }

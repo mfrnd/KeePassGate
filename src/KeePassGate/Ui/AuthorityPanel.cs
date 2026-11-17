@@ -807,7 +807,8 @@ namespace KeePassGate.Ui
         {
             try
             {
-                var description = DescribeNow(reading, admitted, reaches).Under(stored);
+                var unwritable = _service == null || !_database.IsOpen ? null : _database.Store.Unwritable;
+                var description = DescribeNow(reading, admitted, reaches).Under(stored, unwritable);
                 _status.Text = description.Headline;
 
                 Draw(description.Facts);
@@ -2242,8 +2243,13 @@ namespace KeePassGate.Ui
 
             try
             {
-                // Beside the plugin's store, which names the authority that issued the certificate.
-                var store = new AdmissionStore(_database.PluginCustomData, _database.Store, _log);
+                // Beside the plugin's store as the database holds it, which names the authority
+                // that issued the certificate and decides which revocations the prune riding on
+                // this takes away: an act waiting for OK may yet be left out there, so a page's
+                // reading of it is no ground for taking a revocation away.
+                var pending = _database as IPendingChanges;
+                var store = new AdmissionStore(
+                    _database.PluginCustomData, pending == null ? _database.Store : pending.LiveStore, _log);
 
                 // **The answer is not thrown away.** `AdmissionStore.Remove` reads the key back
                 // before it says yes, precisely because telling somebody a client is revoked when

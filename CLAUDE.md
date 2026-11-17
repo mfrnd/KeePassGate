@@ -257,9 +257,13 @@ designing around them.
   for this session has no key: `PendingSessionRefusals` holds the lift beside the buffer, and the
   factory applies it to the plugin's one `SessionRefusals` on OK and drops it otherwise.
 
-  One case survives all of that, deliberately: recreating or deleting the authority while a pairing
-  lands leaves that record behind, inert, because its certificate chains to an authority that is
-  gone. The clients page says so on the row rather than listing it as a client.
+  **What a Recreate or a Delete takes away lands only with the act the store took.** Every
+  admission record, revocation and standing answer to a renewal goes at OK, and only where the
+  store write took the Recreate or the Delete, out of the custom data as it stands at that moment:
+  a record a pairing landed while the dialog was open goes with them, since its certificate chains
+  to the authority just retired. An act refused or left out at OK takes nothing away, so no
+  revocation goes while the authority that issued its certificate is still served. While such an
+  act waits, the page reads every admission as gone. `STORE.md` §614.
 
   **Revocation waits too, and that is a cost that was argued and accepted.** Immediacy is something
   a revocation would rather have, and an operator who revokes and leaves the dialog open has revoked
