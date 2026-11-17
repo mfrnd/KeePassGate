@@ -167,9 +167,14 @@ namespace KeePassGate.Store
         /// <summary>
         /// The values that records, items and deletion records take away for a kind a summary
         /// entry restates by a member, `STORE.md` §623 step 2: the authorities retired, the
-        /// clients revoked, the certificates taken away and the names removed. Nothing for any
-        /// other kind.
+        /// clients revoked, the certificates taken away, and every name a removal names. Nothing
+        /// for any other kind.
         /// </summary>
+        /// <remarks>
+        /// **Every name a removal names is not the names off the list**: a name an addition has
+        /// put back on the list after its removal is among them, and which names are off the list
+        /// is the profile names' meaning, `STORE.md` §616, which this does not work out.
+        /// </remarks>
         public IReadOnlyCollection<string> Taken(string kind)
         {
             HashSet<string> values;
@@ -651,7 +656,11 @@ namespace KeePassGate.Store
             // A version and a keep record are carried whole, each by its identifier, with the
             // members its item holds: from an item where a summary entry holds an item, and from its
             // record where none does.
-            foreach (var item in HeadsInForce.SelectMany(head => head.Form.Items).Where(item => item.Kind == StoreKinds.Version))
+            // A standing version only, `STORE.md` §611: an item of a version that a version in
+            // force replaces is no more carried than its record is, whichever summary entry
+            // holds it.
+            foreach (var item in HeadsInForce.SelectMany(head => head.Form.Items)
+                         .Where(item => item.Kind == StoreKinds.Version && !ReplacedVersions.Contains(item.Member(StoreKinds.Id))))
             {
                 Carry(_versions, item.Member(StoreKinds.Id), item.Members);
             }

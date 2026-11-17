@@ -1948,11 +1948,12 @@ store is whole. It works out the summary entry that a write adding nothing would
 entry that a deletion record tells of, and its items, which restate what is in force: the item
 `format`; an item for each client key revoked and each authority retired, by a record, an item
 or a deletion record; an item for each removal of a name and for each statement that took a
-certificate away, each by its identifier (§616, §648); and an item for each version and each
-keep record that a summary entry carries (§611, §623). The
-store has **no room** where the content that holds that `after`, beside the summary entry's
-height and nonce, is longer than the plugin's ceiling for a string, or where those items leave
-no item name for a further item (§643). The content is held to the ceiling, and not the `after`
+certificate away, each by its identifier (§616, §648); and an item for each standing version
+and each keep record, as a record or an item of a summary entry carries it, a version that a
+version in force replaces carried by neither (§611, §623). The store has **no room** where the
+content that holds that `after`, beside the summary entry's height and nonce, is longer than the
+plugin's ceiling for a string, or where those items leave no item name for a further item
+(§643). The content is held to the ceiling, and not the `after`
 alone (this document's own), since a store whose `after` fitted and whose content did not would
 be served while every write into it was refused. So a store that has room takes every write a
 client can ask for, each of which adds a single item at most, and no store serves while it

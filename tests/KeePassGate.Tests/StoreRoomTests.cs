@@ -191,6 +191,131 @@ namespace KeePassGate.Tests
                     .And.Contain(room.Writes.ToString(CultureInfo.InvariantCulture)));
         }
 
+        [TestCase("version")]
+        [TestCase("kept")]
+        [TestCase("removed")]
+        [TestCase("retired")]
+        [TestCase("withdrawn")]
+        public void Each_kind_of_item_counts_toward_the_ceiling_of_items_alone(string kind)
+        {
+            // `STORE.md` §627: the item `format` and an item for each of these, so a store holding
+            // 9,997 of them has room and a store holding 9,998 has none.
+            var fits = Carrying(kind, StoreFormat.MaxItems - 2);
+            Assert.That(fits.Room.Items, Is.EqualTo(StoreFormat.MaxItems - 1), fits.Reason);
+            Assert.That(fits.Room.HasRoom, Is.True);
+
+            var over = Carrying(kind, StoreFormat.MaxItems - 1);
+            Assert.That(over.Room.Items, Is.EqualTo(StoreFormat.MaxItems));
+            Assert.That(over.Room.HasRoom, Is.False);
+        }
+
+        [Test]
+        public void Removals_of_a_single_name_count_an_item_for_each_identifier()
+        {
+            // `STORE.md` §611: a removal is restated by its name and its identifier both.
+            var store = new ComposedStore(One);
+            store.Drop(store.Head);
+            store.Add(Head(
+                One, 1, string.Empty,
+                StoreComposer.Item(("id", new string('1', 32)), ("kind", "removed"), ("name", "reader")),
+                StoreComposer.Item(("id", new string('2', 32)), ("kind", "removed"), ("name", "reader"))));
+
+            Assert.That(store.Read().InForce.Room.Items, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void A_version_a_version_in_force_replaces_is_not_counted_whichever_carries_it()
+        {
+            // `STORE.md` §611 restates a standing version, and §623 step 3: a version that a
+            // version in force names in `after` does not stand. Two summary entries in force,
+            // made apart, the second carrying a version that replaces the first's.
+            var first = new string('1', 32);
+            var store = new ComposedStore(One);
+            store.Drop(store.Head);
+            store.Add(Head(One, 1, string.Empty, VersionItemOf(first, string.Empty)));
+            store.Add(Head(One, 1, string.Empty, VersionItemOf(new string('2', 32), first)));
+
+            var reading = store.Read();
+
+            Assert.That(reading.InForce.HeadsInForce, Has.Count.EqualTo(2));
+            Assert.That(reading.InForce.Room.Items, Is.EqualTo(2), "the item format and the standing version");
+            Assert.That(reading.InForce.Restated().Count(item => item.Kind == "version"), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void The_next_height_stops_at_its_ceiling_and_a_fifth_digit_takes_a_character()
+        {
+            Assert.That(Heading(StoreFormat.MaxNumber).Room.Height, Is.EqualTo(StoreFormat.MaxNumber));
+            Assert.That(Heading(StoreFormat.MaxNumber - 1).Room.Height, Is.EqualTo(StoreFormat.MaxNumber));
+            Assert.That(
+                Heading(9999).Room.Content - Heading(9998).Room.Content,
+                Is.EqualTo(1),
+                "the next height of 10,000 is a digit longer than 9,999");
+            Assert.That(
+                Heading(StoreFormat.MaxNumber).Room.Content,
+                Is.EqualTo(Heading(StoreFormat.MaxNumber - 1).Room.Content),
+                "at the ceiling the next height is the same");
+        }
+
+        [Test]
+        public void A_deletion_record_of_a_summary_entry_raises_the_next_height_and_is_named_where_no_after_names_it()
+        {
+            // `STORE.md` §611: the next summary entry is higher than any summary entry present or
+            // told of, and names every summary entry a deletion record tells of.
+            var store = new ComposedStore(One);
+            var told = StoreComposer.IdentifierOf(One, "head", "store", 7, new string('5', 64));
+            store.Deleted.Add(told);
+
+            var room = store.Read().InForce.Room;
+
+            Assert.That(room.Height, Is.EqualTo(8));
+            Assert.That(store.Read().InForce.After, Does.Contain(KeePassGate.Hex.Of(told)));
+            Assert.That(room.Named, Is.EqualTo(2), "the summary entry present and the summary entry told of");
+        }
+
+        /// <summary>A whole store whose summary entry carries this many items of a kind, beside the item format.</summary>
+        private static StoreReading Carrying(string kind, int count)
+        {
+            var store = new ComposedStore(One);
+            store.Drop(store.Head);
+            store.Add(Head(One, 1, string.Empty, Enumerable.Range(0, count).Select(index => ItemOf(kind, index)).ToArray()));
+            return store.Read();
+        }
+
+        private static string ItemOf(string kind, int index)
+        {
+            var id = index.ToString("x32", CultureInfo.InvariantCulture);
+            var value = index.ToString("x64", CultureInfo.InvariantCulture);
+            switch (kind)
+            {
+                case "version":
+                    return VersionItemOf(id, string.Empty);
+                case "kept":
+                    return StoreComposer.Item(("after", string.Empty), ("id", id), ("key", StoreComposer.KeyName(Three)), ("kind", "kept"));
+                case "removed":
+                    return StoreComposer.Item(("id", id), ("kind", "removed"), ("name", "reader"));
+                case "retired":
+                    return StoreComposer.Item(("authority", value), ("kind", "retired"));
+                default:
+                    return StoreComposer.Item(("certificate", value), ("id", id), ("kind", "withdrawn"), ("renewed", string.Empty));
+            }
+        }
+
+        private static string VersionItemOf(string id, string after)
+        {
+            return StoreComposer.Item(
+                ("after", after), ("doc", "a rule"), ("id", id), ("kind", "version"), ("object", "rule:" + id));
+        }
+
+        /// <summary>A whole store whose summary entry stands at this height.</summary>
+        private static StoreReading Heading(int height)
+        {
+            var store = new ComposedStore(One);
+            store.Drop(store.Head);
+            store.Add(Head(One, height, string.Empty));
+            return store.Read();
+        }
+
         /// <summary>A whole store whose next summary entry names this many summary entries.</summary>
         private static StoreReading Naming(int named)
         {
