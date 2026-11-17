@@ -110,8 +110,9 @@ release, and that includes a change to `build.ps1` alone, which a minor version 
 number may exist on one side only, and the client at `0.1.2` beside the plugin at `0.1.1` is a
 pair, because patches are not compared. A full split, with a protocol version the gate serves
 apart from the release, waits for a second client: until then the release's version is the
-protocol's, and the next change that breaks an existing client is 1.0 whatever else it brings, as
-§411 has it. [`RELEASING.md`](RELEASING.md) is how a version is published.
+protocol's. A 0.x release may break an earlier 0.x release, and from 1.0.0 on a change that
+breaks an existing client moves the major whatever else it brings, as §411 has it.
+[`RELEASING.md`](RELEASING.md) is how a version is published.
 
 **From the first release on, every change goes into [`CHANGELOG.md`](CHANGELOG.md)**, under the
 version it will ship in and in the same commit as the change, as the design documents do. Until

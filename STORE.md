@@ -3362,6 +3362,8 @@ afterwards.
 **The rule this rests on**, which §652 cites as well. While the version begins with 0, a release
 owes an earlier release nothing: no migration, no cleanup, no detection, and no reading of what
 the earlier release stored. Only a release from 1.0.0 on is owed any of that by a later release.
+`API.md` §411 holds the same for the API's contract: a 0.x release may break a client of an
+earlier 0.x release.
 
 **The steps, in this order.** The order is part of the decision. The exact path through
 KeePass's windows for the last step is verified in a real KeePass by the pull request that
