@@ -411,6 +411,37 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void An_entry_s_history_still_takes_the_version_before_an_edit_at_its_end()
+        {
+            // What the store's reading takes a history in, from its last item to its first as
+            // newest first, `StoreSource`: KeePass's entry dialog and its quick edits back an
+            // entry up with `CreateBackup` before they change it, and the backup is appended.
+            var entry = new KeePassLib.PwEntry(true, true);
+            entry.Strings.Set("KPG.Data", new ProtectedString(false, "first"));
+            entry.CreateBackup(null);
+            entry.Strings.Set("KPG.Data", new ProtectedString(false, "second"));
+            entry.CreateBackup(null);
+            entry.Strings.Set("KPG.Data", new ProtectedString(false, "third"));
+
+            Assert.That(entry.History.UCount, Is.EqualTo(2u));
+            Assert.That(entry.History.GetAt(0).Strings.ReadSafe("KPG.Data"), Is.EqualTo("first"));
+            Assert.That(entry.History.GetAt(1).Strings.ReadSafe("KPG.Data"), Is.EqualTo("second"));
+        }
+
+        [Test]
+        public void A_deletion_record_still_names_the_identifier_of_the_object_deleted()
+        {
+            // All a deletion record is, `STORE.md` §609: an identifier and a time, read by the
+            // store from `PwDatabase.DeletedObjects` and by nothing else.
+            var database = new KeePassLib.PwDatabase();
+            var identifier = new KeePassLib.PwUuid(true);
+            database.DeletedObjects.Add(new KeePassLib.PwDeletedObject(identifier, DateTime.UtcNow));
+
+            Assert.That(database.DeletedObjects.UCount, Is.EqualTo(1u));
+            Assert.That(database.DeletedObjects.GetAt(0).Uuid.UuidBytes, Is.EqualTo(identifier.UuidBytes));
+        }
+
+        [Test]
         public void Reading_a_protected_string_as_text_still_ends_its_protection_and_copying_its_bytes_does_not()
         {
             // Why the gate reads a protected value from the bytes KeePass keeps for it, and

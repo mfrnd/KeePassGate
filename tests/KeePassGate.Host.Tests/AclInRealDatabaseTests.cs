@@ -292,6 +292,11 @@ namespace KeePassGate.Host.Tests
 
             public int Overlapped { get; private set; }
 
+            public long Stamp
+            {
+                get { return _hold.Stamp; }
+            }
+
             public T Hold<T>(Func<T> read)
             {
                 return _hold.Hold(() =>

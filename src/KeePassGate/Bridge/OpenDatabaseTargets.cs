@@ -1145,10 +1145,18 @@ namespace KeePassGate.Bridge
                 return string.Equals(_stored, stored, StringComparison.Ordinal);
             }
 
+            /// <summary>Lets go of everything this database was served with, as the cache drops it.</summary>
+            /// <remarks>
+            /// **What the store's readings keep goes now**, at the lock, the close or the change of
+            /// what is served that lets go of this, whoever still holds a target: a connection can
+            /// hold one for as long as a pairing's budget, and the readings go on for it reading
+            /// afresh and keeping nothing.
+            /// </remarks>
             public void Dispose()
             {
                 if (_target != null)
                 {
+                    _target.ForgetStore();
                     _target.Dispose();
                 }
 
@@ -1170,6 +1178,7 @@ namespace KeePassGate.Bridge
             private readonly IGateLog _log;
             private readonly KdbxVault _vault;
             private readonly NodeTags _tags;
+            private readonly StoreReadings _store;
 
             // The cache holds the first of these; `Current` takes one more per caller.
             private int _holders = 1;
@@ -1203,7 +1212,10 @@ namespace KeePassGate.Bridge
                     Array.Clear(key, 0, key.Length);
                 }
 
-                _vault = new KdbxVault(database, writer, _tags, hold, log);
+                // The plugin's store, read once for each hold, by the vault's lookups as by
+                // whatever else asks it in that hold.
+                _store = new StoreReadings(database, hold);
+                _vault = new KdbxVault(database, writer, _tags, hold, log, _store);
             }
 
             /// <summary>The database's tag key, with the copy of the host key it came from wiped.</summary>
@@ -1381,6 +1393,15 @@ namespace KeePassGate.Bridge
             public CertifiedKey AuthorityKey
             {
                 get { return _reading.Material.AuthorityKey; }
+            }
+
+            /// <summary>
+            /// Lets go of what the store's readings keep, while whoever still holds this goes on
+            /// reading afresh.
+            /// </summary>
+            public void ForgetStore()
+            {
+                _store.Forget();
             }
 
             /// <summary>Takes a reference, for a caller about to use this outside the cache lock.</summary>
@@ -1563,6 +1584,7 @@ namespace KeePassGate.Bridge
                     _database = null;
                     _reading.Dispose();
                     _tags.Clear();
+                    _store.Dispose();
                 }
             }
 

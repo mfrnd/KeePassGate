@@ -329,6 +329,11 @@ namespace KeePassGate.Host.Tests
             /// <summary>How many times the thread was taken, a hold inside a hold not counted.</summary>
             public int Holds { get; private set; }
 
+            public long Stamp
+            {
+                get { return 0; }
+            }
+
             public T Hold<T>(Func<T> read)
             {
                 if (_depth > 0)

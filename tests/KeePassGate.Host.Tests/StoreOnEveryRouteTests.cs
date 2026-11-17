@@ -543,9 +543,21 @@ namespace KeePassGate.Host.Tests
                 _bin, one, "version", "rule:" + Hex('f'), Data(("after", string.Empty), ("doc", "{}"), ("object", "rule:" + Hex('f'))));
             Record(_fictitious, two, "profile", "profile:" + Profile, Data(("after", string.Empty), ("name", Profile)));
 
-            // Damaged: an identifier of the store, and a check nobody computed.
+            // The kinds the measured code never wrote, `STORE.md` §658, each of which a tag tells.
+            Record(_holder, one, "withdrawn", "certificate:" + Hex('d'), Data(("certificate", Hex('d'))));
+            Record(
+                _holder, one, "kept", "key:" + StoreComposer.KeyName(two),
+                Data(("after", string.Empty), ("key", StoreComposer.KeyName(two))));
+            Record(group, one, "format", "format:1", Data(("format", "1"), ("plugin", "0.3.0")), 1);
+
+            // Damaged: an identifier of the store, and a check nobody computed, for a kind the
+            // measured code wrote and for a kind it did not.
             var damaged = Record(_fictitious, one, "removed", "profile:other", Data(("name", "other")));
             damaged.Strings.Set(StoreFormat.CheckField, new ProtectedString(false, new string('0', 64)));
+            var unmeasured = Record(
+                _fictitious, two, "kept", "key:" + StoreComposer.KeyName(one),
+                Data(("after", string.Empty), ("key", StoreComposer.KeyName(one))));
+            unmeasured.Strings.Set(StoreFormat.CheckField, new ProtectedString(false, new string('0', 64)));
 
             // Stripped of every string of the store, STORE.md §621.
             var stripped = Record(_fictitious, one, "client", "client:" + Hex('9'), Data(("client", Hex('9'))));
@@ -593,47 +605,27 @@ namespace KeePassGate.Host.Tests
         /// <summary>
         /// A record as `STORE.md` §607 to §609 have it, in the form the store was measured with.
         /// </summary>
-        private PwEntry Record(PwGroup parent, byte[] key, string kind, string subject, string data, int height = 0)
+        private PwEntry Record(PwGroup parent, byte[] key, string kind, string subject, string data, int number = 0)
         {
-            var entry = new PwEntry(true, true);
-            var check = Strings(entry, key, kind, data);
-            entry.Uuid = new PwUuid(StoreFormat.Identifier(key, kind, subject, height, check));
-            entry.Strings.Set(PwDefs.TitleField, new ProtectedString(false, "KPG " + kind));
-            entry.Strings.Set(PwDefs.NotesField, new ProtectedString(false, "KeePassGate data."));
+            var entry = StoreEntries.Of(StoreComposer.Record(key, kind, subject, data, number));
             parent.AddEntry(entry, true);
             _storeEntries.Add(entry);
             return entry;
         }
 
-        private static string Strings(PwEntry entry, byte[] key, string kind, string data)
+        private static void Strings(PwEntry entry, byte[] key, string kind, string data)
         {
-            string check;
-            using (var hmac = new HMACSHA256(key))
-            {
-                check = KeePassGate.Hex.Of(hmac.ComputeHash(Encoding.UTF8.GetBytes(kind + "\n" + data)));
-            }
-
-            entry.Strings.Set(StoreFormat.KindField, new ProtectedString(false, kind));
-            entry.Strings.Set(StoreFormat.DataField, new ProtectedString(kind == "authority" || kind == "retired", data));
-            entry.Strings.Set(StoreFormat.CheckField, new ProtectedString(false, check));
-            return check;
+            StoreEntries.Put(entry, StoreComposer.Record(key, kind, kind, data));
         }
 
         private static string Data(params (string Name, string Value)[] members)
         {
-            return Bodies.Of(members
-                .Concat(new[] { ("nonce", new PwUuid(true).ToHexString().ToLowerInvariant()), ("v", "2") })
-                .OrderBy(member => member.Item1, StringComparer.Ordinal)
-                .Select<(string, string), (string Name, object Value)>(member => (member.Item1, member.Item2))
-                .ToArray());
+            return StoreComposer.Content(members);
         }
 
         private static byte[] Key(string label)
         {
-            using (var sha = SHA256.Create())
-            {
-                return sha.ComputeHash(Encoding.UTF8.GetBytes("a store key for tests/" + label));
-            }
+            return StoreComposer.Key(label);
         }
 
         private static string Hex(byte[] bytes)

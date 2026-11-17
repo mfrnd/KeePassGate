@@ -653,6 +653,11 @@ namespace KeePassGate.Host.Tests
 
             public bool Armed { get; set; }
 
+            public long Stamp
+            {
+                get { return 0; }
+            }
+
             public T Hold<T>(Func<T> read)
             {
                 var value = read();
