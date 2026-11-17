@@ -495,6 +495,8 @@ words:
   - fromcopy
   - nrewrites
   - nstops
+  # Git's setting for paths past Windows' limit, which the README names for a checkout.
+  - longpaths
   # What the kdbx-places probes name, kept as they were recorded: the cipher ChaCha20 as
   # `kdbx_raw.py` spells its constant, and the `encryptor` and `decryptor` objects of Python's
   # `cryptography`; and the package `argon2-cffi` the family's commands install.
