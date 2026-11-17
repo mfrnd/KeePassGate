@@ -153,11 +153,15 @@ namespace KeePassGate.Store
                 var kept = keys.Count == 1 ? new List<Relation>() : KeptRelations(keys, records).ToList();
                 var told = keys.Count == 1 ? new List<Relation>() : DeletedRelations(keys, deleted).ToList();
                 var standing = Standing(keys.Count, kept.Concat(told).ToList());
+
+                // The deletion records by their tags, once for every key, `STORE.md` §649.
+                var byTag = ByTag(deleted);
                 if (standing.Count > 1)
                 {
                     // A word is answered under each authority that stands under each key that
-                    // stands, `STORE.md` §656: what is in force under each key is worked out for
-                    // that, and for nothing else.
+                    // stands, `STORE.md` §656: the authorities that stand under each key are worked
+                    // out for that, and nothing else of what is in force, so no value of a record
+                    // under another key is hashed but the `id` of an authority present.
                     return new Judgment(
                         StoreState.Split,
                         "records under " + standing.Count.ToString(CultureInfo.InvariantCulture)
@@ -165,7 +169,7 @@ namespace KeePassGate.Store
                     {
                         Passed = passed,
                         Answering = standing
-                            .SelectMany(key => StoreInForce.Of(keys[key], records[key], deleted, Array.Empty<KeyValuePair<string, string>>()).Authorities)
+                            .SelectMany(key => StoreInForce.Standing(keys[key], records[key], byTag))
                             .ToList(),
                     };
                 }
@@ -174,7 +178,7 @@ namespace KeePassGate.Store
                 var keptByDeletion = told.Where(relation => relation.Source == store)
                     .Select(relation => new KeyValuePair<string, string>(relation.Id, keys[relation.Target].Name))
                     .ToList();
-                var judged = Store(keys[store], records[store], damage[store], deleted, keptByDeletion);
+                var judged = Store(keys[store], records[store], damage[store], byTag, keptByDeletion);
                 judged.Damage = damage[store].Count;
                 judged.Passed = passed;
                 judged.ByHistory = records[store].Count(record => record.ByHistory);
@@ -189,10 +193,10 @@ namespace KeePassGate.Store
                 FoundKey key,
                 IReadOnlyList<FoundRecord> records,
                 IReadOnlyList<string> damage,
-                ISet<string> deleted,
+                IReadOnlyDictionary<string, List<string>> byTag,
                 IReadOnlyCollection<KeyValuePair<string, string>> keptByDeletion)
             {
-                var inForce = StoreInForce.Of(key, records, deleted, keptByDeletion);
+                var inForce = StoreInForce.Of(key, records, byTag, keptByDeletion);
 
                 // A record of a kind the plugin does not know, an item of such a kind, or a
                 // version of an object of such a type: outdated, with or without a version
@@ -489,6 +493,29 @@ namespace KeePassGate.Store
                 }
 
                 return deleted;
+            }
+
+            /// <summary>
+            /// The identifiers the deletion records name, by the tag each begins with, as
+            /// lowercase hexadecimal: sorted once, for every key the reading judges.
+            /// </summary>
+            private static Dictionary<string, List<string>> ByTag(IEnumerable<string> deleted)
+            {
+                var byTag = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+                foreach (var identifier in deleted)
+                {
+                    List<string> tagged;
+                    var tag = identifier.Substring(0, StoreFormat.TagLength * 2);
+                    if (!byTag.TryGetValue(tag, out tagged))
+                    {
+                        tagged = new List<string>();
+                        byTag[tag] = tagged;
+                    }
+
+                    tagged.Add(identifier);
+                }
+
+                return byTag;
             }
 
             private static IReadOnlyList<string> After(string list)

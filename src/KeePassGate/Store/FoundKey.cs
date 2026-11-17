@@ -85,9 +85,14 @@ namespace KeePassGate.Store
         /// A reading asks for a subject only where a deletion record under the key carries the
         /// tag of a kind with that subject, so a store whose deletion records name nothing of it
         /// costs no digest here, and a store whose deletion records do costs a digest a subject
-        /// once and none at the holds after it. A hash tells nothing of the key, and every deletion record of the
-        /// subject shows it already. Asked only by the reading that holds the form the key came
-        /// from, one reading at a time, as everything kept with a form is, `StoreReadings`.
+        /// once and none at the holds after it. A hash tells nothing of the key, and every
+        /// deletion record of the subject shows it already. The subject's text is kept with its
+        /// hash, as long as the key is, `STORE.md` §620.
+        ///
+        /// **Asked only while a reading is made**, by `StoreInForce` on the thread making it: a
+        /// gate's reading holds the forms it reuses under `StoreReadings`' lock on its work, one
+        /// reading at a time, and a reading beside it, or made afresh, asks only forms of its own.
+        /// Nothing asks a reading handed out for a subject, so the cache has no lock.
         /// </remarks>
         public string Subject(string subject)
         {

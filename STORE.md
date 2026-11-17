@@ -1308,8 +1308,12 @@ KeePass replaces a string object when a text changes and never changes a string 
 place, which `KeePassContractTests` pins, so the same objects are the same text, and any other
 object is checked again. **Nothing else is kept as an answer**: no list of the entries that are
 candidates, no key that stands, no record that counts, no summary entry in force, no word, and
-no answer that admits or grants. Every hold walks every entry of the database with its history,
-holds each version to what is kept by its objects, and works out everything else again. The
+no answer that admits or grants. **With a key its checked form gave, a reading keeps** the tags
+of every kind under it and the hash of every subject it was asked for, each subject's text with
+its hash, as long as the key is kept: a subject is asked for only where a deletion record under
+the key carries the tag of a kind about it, and in a store under several keys only the `id` of
+an authority present is. Every hold walks every entry of the database with its history, holds
+each version to what is kept by its objects, and works out everything else again. The
 reading of the last hold, its state and what the guard hides by, keys aside, is held until the
 next replaces it, and answers nothing after its hold: it is kept by a number that names its
 hold, `IReadHold.Stamp`, and no number is given to two holds. What is kept goes when the gate lets go
@@ -1388,9 +1392,10 @@ room of §627. A deletion record tells of a certificate taken away by the admiss
 admission names, its `certificate` and its `from`, only once the admissions are read, which
 comes with the pull request that keeps the admissions in the store: until then such a deletion
 record tells of nothing but what a record or an item of that kind names. The authorities
-that stand under each key that stands are worked out for every state but no key, as a word is
-answered under them (§656). What each kind means for access beyond that (steps 3 and 5) is
-built by the pull requests that bring each kind's meaning, the authority's among them (§614).
+that stand under each key that stands are worked out for every state but no key and a store past
+`StoreFormat.MaxKeys`, of which no key is judged, as a word is answered under them (§656). What
+each kind means for access beyond that (steps 3 and 5) is built by the pull requests that bring
+each kind's meaning, the authority's among them (§614).
 The authority a database is served with is the single authority that stands in a store that is
 whole, read from the version that passed, and every admission holds the target it is made on to
 what the store then reads: the authority's entry, the version of it that passed, and that it
@@ -1594,10 +1599,13 @@ the API's guard leaves out every entry that carries a string of the store, besid
 under a tag of any key found, which is what reaches a record stripped of every string of the store
 outside the plugin's group. A key's tags are made once and kept with the checked form that gave
 the key, as the key is, so a hold past the ceiling costs the walk and a few numbers for each key,
-and no digest. A database the operator keeps holds a handful of keys over its life,
-one for each store started again and for each pair of copies that made a first store apart, so
-the ceiling is several times what a real database reaches. Within it, the marking of the keys is
-over their pairs and every record, item and deletion record is looked at once. *Held by*
+and no digest. A key also keeps the hash of each subject it was asked for, with the subject's
+text, §620; under several keys that stand, only the `id` of an authority present is asked for.
+A database the operator keeps holds a handful of keys over its life, one for each store started
+again and for each pair of copies that made a first store apart, so the ceiling is several times
+what a real database reaches. Within it, the marking of the keys is over their pairs, the
+deletion records are sorted by their tags once for every key, and every record, item and
+deletion record is looked at once. *Held by*
 `StoreReadingBoundTests`: at the ceiling every key is judged, past it none is and the store is
 split with the guard hiding more, and a file of 1,000 such entries is read again in milliseconds;
 explicitly, the second reading of 20,000 such entries, 35 ms, is held to that of 20,000 entries

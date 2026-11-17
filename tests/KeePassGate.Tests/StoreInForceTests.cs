@@ -505,6 +505,51 @@ namespace KeePassGate.Tests
             return StoreComposer.IdentifierOf(key, kind, subject, number, new string('5', 64));
         }
 
+        [Test]
+        public void A_split_store_hashes_no_subject_under_any_key_but_the_id_of_an_authority_present()
+        {
+            // `STORE.md` §649 and §656: of a store under several keys only the authorities that
+            // stand are worked out, so no value of an outsider's records is hashed or kept with
+            // its key, and a retirement told by a deletion record still takes its authority away.
+            var split = new ComposedStore(One);
+            var second = split.Add(StoreRecords.Authority(Two, 'b'));
+            split.Add(StoreRecords.Authority(Two, 'e'));
+            split.Add(StoreComposer.Record(Two, "revoked", "client:" + Hex('c'), StoreComposer.Content(("client", Hex('c')))));
+            split.Add(StoreComposer.Record(Two, "removed", "profile:reader", StoreComposer.Content(("name", "reader"))));
+            split.Deleted.Add(Told(Two, "revoked", "client:" + Hex('c')));
+            split.Deleted.Add(Told(Two, "removed", "profile:reader"));
+            split.Deleted.Add(Told(Two, "format", "format:2", 2));
+            split.Deleted.Add(Told(Two, "retired", "authority:" + Hex('e')));
+            split.Deleted.Add(Told(One, "revoked", "client:" + Hex('c')));
+
+            var reading = split.Read();
+
+            Assume.That(reading.State, Is.EqualTo(StoreState.Split));
+            Assert.That(reading.Answering.Select(record => record.Hex), Is.EquivalentTo(new[] { split.Authority.Hex, second.Hex }),
+                "the authority a deletion record retires under its own key does not stand");
+            var subjects = new[] { split.Authority, second }
+                .Select(record => reading.Answering.First(found => found.Hex == record.Hex).Form.StoreKey)
+                .SelectMany(Subjects)
+                .ToList();
+            // A key's name is hashed under the other keys to tell what sets which aside, §649.
+            Assert.That(
+                subjects,
+                Is.SubsetOf(new[]
+                {
+                    "authority:" + Hex('a'), "authority:" + Hex('b'), "authority:" + Hex('e'),
+                    "key:" + StoreComposer.KeyName(One), "key:" + StoreComposer.KeyName(Two),
+                }),
+                "nothing of a record's but an authority's id is hashed: " + string.Join(", ", subjects));
+            Assert.That(subjects, Does.Contain("authority:" + Hex('e')), "the retirement told by a deletion record was looked for");
+        }
+
+        /// <summary>The subjects hashed under a key and kept with it.</summary>
+        private static IEnumerable<string> Subjects(FoundKey key)
+        {
+            var kept = typeof(FoundKey).GetField("_subjects", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            return ((Dictionary<string, string>)kept.GetValue(key)).Keys.ToList();
+        }
+
         /// <summary>How many subjects were hashed under the store key and kept with it.</summary>
         private static int Hashed(StoreReading reading)
         {

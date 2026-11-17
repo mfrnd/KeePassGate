@@ -14,8 +14,16 @@ namespace KeePassGate.Store
     /// <remarks>
     /// **Made by the judgment, from what the reading found under a single key**, and handed out
     /// for a store that is whole or stopped, which is the store a write is made into or sealed
-    /// again: of a store under several keys, or of a form the plugin does not read, nothing but
-    /// the authorities a word is answered under is taken from it.
+    /// again: of a form the plugin does not read, nothing but the authorities a word is answered
+    /// under is taken from it, and of a store under several keys it is not made at all, since
+    /// <see cref="Standing"/> works out those authorities alone.
+    ///
+    /// **Where it may be asked from.** It is made inside the reading, on the thread making it,
+    /// which is the only caller of `FoundKey.Subject` and `FoundKey.TagOf`; what is handed out is
+    /// read and never asked for a subject. <see cref="Key"/> holds bytes a writer composes under
+    /// only where the reading was made afresh in the writer's own turn, `StoreReading.Afresh`: a
+    /// gate's reading may hand out forms whose keys were overwritten as it ended, which is why no
+    /// connection thread takes a key from one.
     ///
     /// **What takes access away is a union**, `STORE.md` §623 step 2: the records present, the
     /// items of every summary entry present, in force or not, and the deletion records that tell
@@ -80,8 +88,9 @@ namespace KeePassGate.Store
 
         /// <summary>
         /// The store key, as the form that gave it holds it: what a write composes its records
-        /// under. Overwritten when the forms kept are let go, so it is read inside the hold or the
-        /// turn the reading was made in.
+        /// under, read from a reading made afresh in the writer's own turn. Overwritten when the
+        /// forms are let go, which a gate's reading made beside a lapsed hold does before it is
+        /// handed out.
         /// </summary>
         public FoundKey Key { get; private set; }
 
@@ -228,9 +237,9 @@ namespace KeePassGate.Store
         /// What is in force under this key, from the records found under it and the identifiers
         /// the deletion records name.
         /// </summary>
-        /// <param name="deleted">
+        /// <param name="byTag">
         /// The identifiers the deletion records name that begin with a tag under a key found, as
-        /// lowercase hexadecimal.
+        /// lowercase hexadecimal, by that tag.
         /// </param>
         /// <param name="keptByDeletion">
         /// The deletion records that tell of a keep record under this key, each with the name of
@@ -240,7 +249,7 @@ namespace KeePassGate.Store
         public static StoreInForce Of(
             FoundKey key,
             IReadOnlyList<FoundRecord> records,
-            ISet<string> deleted,
+            IReadOnlyDictionary<string, List<string>> byTag,
             IReadOnlyCollection<KeyValuePair<string, string>> keptByDeletion)
         {
             var made = new StoreInForce { Key = key, Records = records };
@@ -248,7 +257,7 @@ namespace KeePassGate.Store
             made.HeadsInForce = made.Heads.Where(head => head.InForce).ToList();
             made.Items = made.Heads.SelectMany(head => head.Form.Items).ToList();
 
-            var byKind = ByKind(key, deleted);
+            var byKind = ByKind(key, byTag);
             made.Told = Telling(key, byKind, StoreKinds.Head, StoreKinds.StoreSubject).ToList();
             made.Highest(key, byKind);
             made.Take(key, byKind);
@@ -266,45 +275,62 @@ namespace KeePassGate.Store
         }
 
         /// <summary>
-        /// The deletion records under this key, by the kind whose tag they begin with. Two kinds
-        /// whose tags meet under a key each take the deletion records of both, which tells of
-        /// more and never of less.
+        /// The deletion records under this key, by the kind whose tag they begin with: looked up
+        /// by tag, so this key costs a lookup a kind and none a deletion record. Two kinds whose
+        /// tags meet under a key each take the deletion records of both, which tells of more and
+        /// never of less.
         /// </summary>
-        private static Dictionary<string, List<string>> ByKind(FoundKey key, IEnumerable<string> deleted)
+        private static Dictionary<string, List<string>> ByKind(FoundKey key, IReadOnlyDictionary<string, List<string>> byTag)
         {
-            var kindsOf = new Dictionary<string, List<StoreKind>>(StringComparer.Ordinal);
-            foreach (var kind in StoreKinds.All)
-            {
-                List<StoreKind> sharing;
-                var tag = key.TagOf(kind);
-                if (!kindsOf.TryGetValue(tag, out sharing))
-                {
-                    sharing = new List<StoreKind>();
-                    kindsOf[tag] = sharing;
-                }
-
-                sharing.Add(kind);
-            }
-
             var byKind = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             foreach (var kind in StoreKinds.All)
             {
-                byKind[kind.Name] = new List<string>();
-            }
-
-            foreach (var identifier in deleted)
-            {
-                List<StoreKind> kinds;
-                if (kindsOf.TryGetValue(identifier.Substring(0, StoreFormat.TagLength * 2), out kinds))
-                {
-                    foreach (var kind in kinds)
-                    {
-                        byKind[kind.Name].Add(identifier);
-                    }
-                }
+                List<string> tagged;
+                byKind[kind.Name] = byTag.TryGetValue(key.TagOf(kind), out tagged) ? tagged : new List<string>();
             }
 
             return byKind;
+        }
+
+        /// <summary>
+        /// The authorities that stand under a key, and nothing else of what is in force: what a
+        /// word is answered under where several keys stand, `STORE.md` §656. The authority
+        /// records in force, less those a retirement names by record, by an item of any summary
+        /// entry present, or by a deletion record of its tag whose subject hash is that of an
+        /// authority present: the `id` of an authority present is the only value hashed.
+        /// </summary>
+        public static IReadOnlyList<FoundRecord> Standing(
+            FoundKey key, IReadOnlyList<FoundRecord> records, IReadOnlyDictionary<string, List<string>> byTag)
+        {
+            var authorities = records.Where(record => record.Is(StoreKinds.Authority) && record.InForce).ToList();
+            if (authorities.Count == 0)
+            {
+                return authorities;
+            }
+
+            var retired = new HashSet<string>(
+                records.Where(record => record.Is(StoreKinds.Retired)).Select(record => record.Form.Member(StoreKinds.AuthorityMember)),
+                StringComparer.Ordinal);
+            retired.UnionWith(records
+                .Where(record => record.Is(StoreKinds.Head))
+                .SelectMany(head => head.Form.Items)
+                .Where(item => item.Kind == StoreKinds.Retired)
+                .Select(item => item.Member(StoreKinds.AuthorityMember)));
+
+            List<string> told;
+            var retirement = StoreKinds.Find(StoreKinds.Retired);
+            if (byTag.TryGetValue(key.TagOf(retirement), out told) && told.Count > 0)
+            {
+                var subjects = new HashSet<string>(told.Select(SubjectOf), StringComparer.Ordinal);
+                retired.UnionWith(authorities
+                    .Select(record => record.Form.Member(StoreKinds.Id))
+                    .Where(id => subjects.Contains(key.Subject(retirement.SubjectPrefix + id))));
+            }
+
+            return authorities
+                .Where(record => !retired.Contains(record.Form.Member(StoreKinds.Id)))
+                .OrderBy(record => record.Hex, StringComparer.Ordinal)
+                .ToList();
         }
 
         /// <summary>
