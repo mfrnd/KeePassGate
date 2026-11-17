@@ -159,7 +159,7 @@ namespace KeePassGate.Bridge
 
             foreach (var child in group.Groups)
             {
-                if (Discarded(child, bin))
+                if (Discarded(child, bin) || StoreNodes.Holds(child))
                 {
                     continue;
                 }
@@ -190,7 +190,7 @@ namespace KeePassGate.Bridge
             // group and its children.
             root.TraverseTree(TraversalMethod.PreOrder, group =>
             {
-                if (!Discarded(group, bin))
+                if (!Discarded(group, bin) && !StoreNodes.Holds(group))
                 {
                     found.Add(Describe(group));
                 }
@@ -259,10 +259,18 @@ namespace KeePassGate.Bridge
 
             Func<IReadOnlyList<VaultViewField>> fields = () =>
             {
-                // In the order KeePass keeps them, which is the order `read` writes them in.
+                // In the order KeePass keeps them, which is the order `read` writes them in. A
+                // string of the plugin's store is in no view, on whichever entry it is, and so in
+                // no answer and no tag, `STORE.md` §633: asked here, after the hold, since the
+                // question is a comparison by the culture's collation.
                 var made = new List<VaultViewField>(strings.Count);
                 foreach (var pair in strings)
                 {
+                    if (StoreNodes.IsField(pair.Key))
+                    {
+                        continue;
+                    }
+
                     // As stored, and never compiled: KeePass resolves a reference against the
                     // whole open database, which knows nothing about the rules this answer was
                     // allowed by. Read so that a value KeePass protects in memory is still
@@ -314,7 +322,8 @@ namespace KeePassGate.Bridge
 
         private IReadOnlyList<VaultEntry> EntriesInside(string groupUuid)
         {
-            var group = FindGroup(groupUuid);
+            var root = _database.RootGroup;
+            var group = FindGroup(root, groupUuid);
             var found = new List<VaultEntry>();
 
             if (group == null)
@@ -322,8 +331,17 @@ namespace KeePassGate.Bridge
                 return null;
             }
 
+            // A record of the store counts wherever it sits, so an ordinary group can hold a
+            // record.
+            var store = StoreNodes.Of(root);
+
             foreach (var entry in group.Entries)
             {
+                if (store.Holds(entry))
+                {
+                    continue;
+                }
+
                 found.Add(Describe(entry));
             }
 
@@ -341,10 +359,11 @@ namespace KeePassGate.Bridge
             }
 
             var bin = Bin(root);
+            var store = StoreNodes.Of(root);
 
             foreach (var entry in root.GetEntries(true))
             {
-                if (Discarded(entry, bin))
+                if (Discarded(entry, bin) || store.Holds(entry))
                 {
                     continue;
                 }
@@ -832,6 +851,14 @@ namespace KeePassGate.Bridge
                 if (refusal != null)
                 {
                     return refusal;
+                }
+
+                // A string of the plugin's store is absent, `STORE.md` §633, so creating such a
+                // string is answered as an absent node is, whether or not the entry holds it,
+                // and before asking whether it does.
+                if (StoreNodes.IsField(name))
+                {
+                    return VaultWrite.Missing();
                 }
 
                 if (entry.Strings.Exists(name))
@@ -1638,10 +1665,13 @@ namespace KeePassGate.Bridge
         /// Resolving the caller's name here is what makes the two agree. A name that is not one of
         /// the entry's own keys is a name the entry does not carry, which is the 404 every absent
         /// name already gets; a name that is one of them is the name the guard just judged.
+        ///
+        /// **A string of the plugin's store is a string no entry carries** for a route, `STORE.md`
+        /// §633, so it is changed and stripped nowhere.
         /// </remarks>
         private static bool Holds(PwEntry entry, string name)
         {
-            if (entry == null || name == null)
+            if (entry == null || name == null || StoreNodes.IsField(name))
             {
                 return false;
             }
@@ -2191,10 +2221,15 @@ namespace KeePassGate.Bridge
 
             var id = Identifier(uuid);
             var group = id == null ? null : root.FindGroup(id, true);
-            return Discarded(group, Bin(root)) ? null : group;
+            return Discarded(group, Bin(root)) || StoreNodes.Holds(group) ? null : group;
         }
 
         /// <summary>An entry by identifier, reading the root once for the reason `FindGroup` gives.</summary>
+        /// <remarks>
+        /// **Neither an entry in the recycle bin nor an entry of the plugin's store**, each found
+        /// and then left out, so every route answers it as a node that is not there,
+        /// `DESIGN.md` §138 and `STORE.md` §633. The store is walked only for an entry found.
+        /// </remarks>
         private PwEntry FindEntry(string uuid)
         {
             var root = _database.RootGroup;
@@ -2205,7 +2240,12 @@ namespace KeePassGate.Bridge
 
             var id = Identifier(uuid);
             var entry = id == null ? null : root.FindEntry(id, true);
-            return Discarded(entry, Bin(root)) ? null : entry;
+            if (entry == null || Discarded(entry, Bin(root)))
+            {
+                return null;
+            }
+
+            return StoreNodes.Of(root).Holds(entry) ? null : entry;
         }
 
         /// <summary>
