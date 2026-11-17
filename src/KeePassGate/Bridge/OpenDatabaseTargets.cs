@@ -871,7 +871,7 @@ namespace KeePassGate.Bridge
                 // key held until KeePass exits.
                 Discard(path);
 
-                var entry = new CachedTarget(stored, path, Responder(reading), target, null);
+                var entry = new CachedTarget(stored, path, Responder(reading), target, null, null);
                 _cache[database] = entry;
                 kept = true;
 
@@ -919,6 +919,13 @@ namespace KeePassGate.Bridge
         {
             var targets = new List<UndecidedTarget>();
 
+            // The store is asked before which authority is served, `STORE.md` §656, once for all
+            // the candidates. The cached entry makes it keep nothing as it goes, since a
+            // connection may still hold a candidate and ask it.
+            // codeql[cs/missed-using-statement] let go by the cached entry, or disposed below when it is not cached
+            var store = new StoreReadings(database, _hold, _log);
+            Func<string> word = () => store.Word;
+
             // Each candidate holds a copy of its gate key until it is disposed, and nothing owns
             // them before the cache does, so a throw on the way there gives back every one built,
             // as `TargetFor` gives back its reading.
@@ -940,7 +947,7 @@ namespace KeePassGate.Bridge
                         var gateKey = candidate.Material.SniKey;
                         try
                         {
-                            targets.Add(new UndecidedTarget(candidate.Fingerprint, gateKey, host));
+                            targets.Add(new UndecidedTarget(candidate.Fingerprint, gateKey, host, word));
                         }
                         finally
                         {
@@ -961,7 +968,7 @@ namespace KeePassGate.Bridge
                 var path = PathOf(database);
                 Discard(path);
 
-                var entry = new CachedTarget(stored, path, null, null, targets);
+                var entry = new CachedTarget(stored, path, null, null, targets, store);
                 _cache[database] = entry;
                 kept = true;
                 return entry;
@@ -975,6 +982,8 @@ namespace KeePassGate.Bridge
                     {
                         target.Dispose();
                     }
+
+                    store.Dispose();
                 }
             }
         }
@@ -1031,19 +1040,27 @@ namespace KeePassGate.Bridge
             private readonly CertifiedKey _responder;
             private readonly MaterialTarget _target;
             private readonly List<UndecidedTarget> _undecided;
+            private readonly StoreReadings _store;
 
+            /// <summary>What a database answers with, as it was read now.</summary>
+            /// <param name="store">
+            /// The store the undecided candidates ask, which this lets go of with them, or null
+            /// where a served target owns its own.
+            /// </param>
             public CachedTarget(
                 string stored,
                 string path,
                 CertifiedKey responder,
                 MaterialTarget target,
-                List<UndecidedTarget> undecided)
+                List<UndecidedTarget> undecided,
+                StoreReadings store)
             {
                 _stored = stored;
                 _path = path;
                 _responder = responder;
                 _target = target;
                 _undecided = undecided ?? new List<UndecidedTarget>();
+                _store = store;
             }
 
             /// <summary>What is served, or null while the database holds several authorities.</summary>
@@ -1145,16 +1162,29 @@ namespace KeePassGate.Bridge
                 return string.Equals(_stored, stored, StringComparison.Ordinal);
             }
 
+            /// <summary>Lets go of everything this database was served with, as the cache drops it.</summary>
+            /// <remarks>
+            /// **What the store's readings keep goes now**, at the lock, the close or the change of
+            /// what is served that lets go of this, whoever still holds a target: a connection can
+            /// hold one for as long as a pairing's budget, and the readings go on for it reading
+            /// afresh and keeping nothing.
+            /// </remarks>
             public void Dispose()
             {
                 if (_target != null)
                 {
+                    _target.ForgetStore();
                     _target.Dispose();
                 }
 
                 foreach (var candidate in _undecided)
                 {
                     candidate.Dispose();
+                }
+
+                if (_store != null)
+                {
+                    _store.Forget();
                 }
             }
         }
@@ -1170,6 +1200,7 @@ namespace KeePassGate.Bridge
             private readonly IGateLog _log;
             private readonly KdbxVault _vault;
             private readonly NodeTags _tags;
+            private readonly StoreReadings _store;
 
             // The cache holds the first of these; `Current` takes one more per caller.
             private int _holders = 1;
@@ -1203,7 +1234,10 @@ namespace KeePassGate.Bridge
                     Array.Clear(key, 0, key.Length);
                 }
 
-                _vault = new KdbxVault(database, writer, _tags, hold, log);
+                // The plugin's store, read once for each hold, by the vault's lookups as by
+                // whatever else asks it in that hold.
+                _store = new StoreReadings(database, hold, log);
+                _vault = new KdbxVault(database, writer, _tags, hold, log, _store);
             }
 
             /// <summary>The database's tag key, with the copy of the host key it came from wiped.</summary>
@@ -1383,6 +1417,15 @@ namespace KeePassGate.Bridge
                 get { return _reading.Material.AuthorityKey; }
             }
 
+            /// <summary>
+            /// Lets go of what the store's readings keep, while whoever still holds this goes on
+            /// reading afresh.
+            /// </summary>
+            public void ForgetStore()
+            {
+                _store.Forget();
+            }
+
             /// <summary>Takes a reference, for a caller about to use this outside the cache lock.</summary>
             public void Retain()
             {
@@ -1536,10 +1579,20 @@ namespace KeePassGate.Bridge
                 get { return false; }
             }
 
-            /// <summary>Never: this is the database being served.</summary>
+            /// <summary>
+            /// The word the store holds the gate back with, read now in a hold of KeePass's thread,
+            /// or null while it holds nothing back, `STORE.md` §656.
+            /// </summary>
+            /// <remarks>
+            /// **Answered under the authority this target serves**, with its host certificate and
+            /// gate key, so its clients reach the word. Throws `VaultUnsettled` where KeePass's
+            /// thread could not be held for the reading, and `DatabaseShut` where the database has
+            /// gone, which the caller answers `busy` and `locked`: a reading that could not be made
+            /// is never a store that holds nothing back.
+            /// </remarks>
             public string Unavailable
             {
-                get { return null; }
+                get { return _store.Word; }
             }
 
             /// <summary>
@@ -1563,6 +1616,7 @@ namespace KeePassGate.Bridge
                     _database = null;
                     _reading.Dispose();
                     _tags.Clear();
+                    _store.Dispose();
                 }
             }
 

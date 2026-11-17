@@ -157,6 +157,13 @@ namespace KeePassGate.Ui
         [ThreadStatic]
         private static int t_holds;
 
+        /// <summary>The stamp of the outermost hold the current thread is inside, 0 for none.</summary>
+        [ThreadStatic]
+        private static long t_stamp;
+
+        /// <summary>The last stamp given, shared by every thread.</summary>
+        private static long s_stamps;
+
         private readonly Control _control;
         private readonly Func<bool> _merging;
         private readonly TimeSpan _holdWait;
@@ -332,6 +339,15 @@ namespace KeePassGate.Ui
             return false;
         }
 
+        /// <summary>
+        /// The stamp of the hold this connection thread is inside, and 0 on KeePass's own thread,
+        /// where a hold is run inline and the tree can move between two of them.
+        /// </summary>
+        public long Stamp
+        {
+            get { return t_stamp; }
+        }
+
         public T Hold<T>(Func<T> read)
         {
             if (read == null)
@@ -377,13 +393,17 @@ namespace KeePassGate.Ui
                 throw new VaultUnsettled("KeePass's thread is no longer taking reads");
             }
 
+            // A stamp of its own for this hold, which every hold inside it shares, since they run
+            // inline: the tree stands still from here to the release.
             T result;
+            Stamped();
             try
             {
                 result = Inline(read);
             }
             finally
             {
+                Unstamped();
                 turn.Release();
             }
 
@@ -432,6 +452,21 @@ namespace KeePassGate.Ui
         {
             return new ObjectDisposedException(
                 nameof(ControlUiThread), "KeePass is closing, so work waiting for its thread was turned away.");
+        }
+
+        /// <summary>
+        /// Gives the calling thread a stamp no hold of the process has had, for the outermost hold
+        /// it is beginning.
+        /// </summary>
+        private static void Stamped()
+        {
+            t_stamp = Interlocked.Increment(ref s_stamps);
+        }
+
+        /// <summary>Takes the calling thread's stamp away, as its outermost hold ends.</summary>
+        private static void Unstamped()
+        {
+            t_stamp = 0;
         }
 
         private static T Inline<T>(Func<T> read)
@@ -849,6 +884,12 @@ namespace KeePassGate.Ui
             }
 
             return read();
+        }
+
+        /// <summary>0: there is no other thread here, so nothing to hold still and nothing shared.</summary>
+        public long Stamp
+        {
+            get { return 0; }
         }
     }
 }

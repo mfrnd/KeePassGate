@@ -31,7 +31,7 @@ PyKeePassGate is the reference client, a library and a command line covering eve
 | [`API.md`](API.md) | the reasoning behind the routes and what is deliberately absent, with the per-route detail in [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) |
 | [`CA.md`](CA.md) | the certificate authority: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
-| [`STORE.md`](STORE.md) | the store decided for 0.3.0: where the plugin's data lives in a database, how it is written and read, and a section attacking it. **Decided and not built**: 0.2.0 ships the store of `CA.md` §204 |
+| [`STORE.md`](STORE.md) | the store decided for 0.3.0: where the plugin's data lives in a database, how it is written and read, and a section attacking it. **Decided, and built only in part**, the guard and the reading: 0.2.0 ships the store of `CA.md` §204 |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
 | [`TESTING.md`](TESTING.md) | the four test tiers, what each one buys, and how to run them |
 | [`RELEASING.md`](RELEASING.md) | how a version is published, and the settings a release needs |
@@ -126,7 +126,10 @@ designing around them.
   §604 what it reverses and on which measurements, and `spikes/storage-survival` holds those
   measurements with the evaluation they were decided from. **Do not build anything new on custom
   data, and do not re-propose what those decisions closed**, which §612, §630 and §634 list with
-  the measurement behind each.
+  the measurement behind each. **Two parts of it are built**: the API's guard, §633, and the
+  store's reading, §620 to §624, read once for each hold and answered `503 split`, `outdated` or
+  `stopped` before a route is chosen, §656. Nothing writes the store yet, and the authority is
+  still served from where `CA.md` §204 keeps it.
 - **The admission record is load bearing.** A certificate that chains, passes its EKU check and has
   no record in the database is refused, and so is one whose record has a revocation beside it. The
   permitted profiles are read from the **record**, less any name the database's list of profiles no
@@ -711,6 +714,16 @@ KeePass through UI automation cannot unload. Run them from **Windows PowerShell*
   ahead of UTC raises `OverflowError`. A hundred years, the fallback the operator named, is read
   exactly by every reader on the path in every zone tried. `LongLivedCertificateTests` on this
   side, and `test_an_authority_and_a_host_good_for_a_hundred_years_are_accepted` on the client's.
+- **Reading the plugin's store at every hold costs a walk of every entry with its history.**
+  Through the real router and vault over ten thousand entries: 3.5 ms for a hold without history
+  and 60 with ten history items on each, a listing of every entry 39 and 100. A version is kept
+  checked between holds by the very string objects it holds, which is right only because KeePass
+  replaces a string's object when its text changes and changes none in place, which
+  `KeePassContractTests` pins. **And a file can bring a key for each of its entries**, since a key
+  is found by passing under itself: asked of every version under every key, a thousand such
+  entries took nineteen seconds a reading, so past `StoreFormat.MaxKeys` nothing is judged and the
+  store is split. `StoreReadingCostTests`, explicit, `StoreReadingBoundTests`, and `FINDINGS.md`
+  section 22.
 - **A KeePass merge of `PwDatabase.CustomData` visits the source's keys and no others, and never
   reads a value.** `PwDatabase.MergeInDbProperties` is the whole of it, run at the end of every
   `MergeIn`, which is File then Synchronize and File then Import alike. So no method removes a key

@@ -221,9 +221,14 @@ namespace KeePassGate.Gate
         /// when it is served.
         /// </summary>
         /// <remarks>
-        /// `locked` for a locked database, and `undecided` for one holding several authorities
-        /// while the operator has not chosen between them. Both are answered before a request is
+        /// `locked` for a locked database, `undecided` for one holding several authorities while
+        /// the operator has not chosen between them, and a word of <c>StoreWords</c> for one
+        /// whose store holds the gate back, `STORE.md` §656. Each is answered before a request is
         /// judged at all, because each has the same answer for every path, method and body.
+        ///
+        /// **Asking it may read the database**, with KeePass's thread held, so it throws
+        /// `VaultUnsettled` where the thread could not be held and `DatabaseShut` where the
+        /// database has gone, as <see cref="Admission"/> does: never an answer that it is served.
         /// </remarks>
         string Unavailable { get; }
     }

@@ -18,12 +18,13 @@ takes access away is a further entry, never an entry deleted or changed.
 
 > **Decided, and not built.** This document is the contract for the store of release 0.3.0. Release
 > 0.2.0 ships the store `CA.md` §204 describes: the database's own custom data, and a `KPG` key in
-> the custom data of groups and entries. Nothing below describes what the plugin does today, with a
-> single exception: the API's guard of §633 is built, with what tells a node of the store by its
-> identifier, and §633 states which part that is. Each pull request that builds a part of this
-> store brings `CA.md`, `DESIGN.md`, `PAIRING.md`, `API.md` and `docs/` into line with the code it
-> adds. Until then those documents hold for 0.2.0, and this document holds for what replaces its
-> store.
+> the custom data of groups and entries. Nothing below describes what the plugin does today, with
+> two exceptions: the API's guard of §633 is built, with what tells a node of the store by its
+> identifier, and the reading of §620 to §624 is built, with the words `split`, `outdated` and
+> `stopped` of §656; §620, §633 and §656 state which parts those are. Each pull request that
+> builds a part of this store brings `CA.md`, `DESIGN.md`, `PAIRING.md`, `API.md` and `docs/`
+> into line with the code it adds. Until then those documents hold for 0.2.0, and this document
+> holds for what replaces its store.
 
 **How to read it.**
 
@@ -70,6 +71,13 @@ takes access away is a further entry, never an entry deleted or changed.
 - **To settle** marks what neither a decision, nor the measured code, nor the design paper fixes.
   Each such point is an item of §646, cited as S and its number. Nothing in §646 is decided, and
   an option named there is a proposal.
+- **What §646 left to the pull request that builds the store's core is fixed, and is no decision
+  of the project.** Each is a name, a length, a ceiling or an order that an implementer would
+  otherwise have had to choose. It follows from the conditions its item stated, from what is
+  decided and from what was measured, and the measured form is kept wherever nothing speaks
+  against it. A sentence that states such a detail names its item, as "S12", and §646 lists
+  where each is. None of them was run. Each names what holds it: a test, by the fixture that the
+  pull request building that part writes.
 - **Wider** is a client reaching more than the last decision of the operator allowed. A sequence
   that ends wider is **fail-open** and is named as that. **Refusing** is the plugin refusing what
   the last decision allowed. **Narrower** is a database granting less than the last decision
@@ -187,16 +195,17 @@ Every format in this section is given as measured, from `probe/store.py`, `probe
 `probe/Store.cs`, unless the sentence names another source.
 
 **Where the probe's form is a stand-in or an artifact**, and so no proposal for the product: the
-member `v` and its value (S1); the nonces and the store keys, derived from fixed texts (S2); the
+member `v` and its value, which the product does not write (S1, §607); the nonces and the store
+keys, derived from fixed texts (S2); the
 authority's content, which held no certificate (S3); the admission's members (S4); a revocation
 written for each certificate (S5); the answer to a renewal, in its object and its texts (S7); the
 rule documents, and a rule as a version of a node's whole rule, where a later decision has a
 record for each node and profile (§617, S8); a title made of the kind and a piece of the
 identifier (S14); and the
 reading of several store keys, which holds every key found and counts under each, where §649
-departs from it. The kinds of record that this document adds were in no run at all, and their
-formats are to settle: a certificate taken away (§648), a keep record (§649) and the version
-record (§650).
+departs from it. The kinds of record that this document adds were in no run at all: a
+certificate taken away (§648), a keep record (§649) and the version record (§650). §658 fixes
+of each what the core reads, and leaves the rest to the pull request that brings its meaning.
 
 ### The group §606
 
@@ -236,7 +245,7 @@ A record is an ordinary entry, written once.
 | Password | present, empty, protected |
 | Notes | `KeePassGate data. Managed on the KPG tab in KeePass. Deleting an entry here revokes nothing.` |
 | Auto-type | off for the entry |
-| `KPG.Kind` | the kind of record: `authority`, `retired`, `client`, `revoked`, `profile`, `removed`, `version` or `head`. The kinds of §647, §648 and §649 were not measured and have no name yet (S23) |
+| `KPG.Kind` | the kind of record: `authority`, `retired`, `client`, `revoked`, `profile`, `removed`, `version` or `head`. The kinds of §648, §649 and §650 were not measured: `withdrawn`, `kept` and `format` (S23, §658) |
 | `KPG.Data` | the content: a single flat JSON object whose values are all strings |
 | `KPG.Mac` | the check, §608 |
 | `KPG.S.0001` and on | on a summary entry only: an item for each decision it restates, §611 |
@@ -250,12 +259,42 @@ code wrote it with its members sorted by name and no white space. Nothing reads 
 check is over the text as it is stored. **A member that appears twice makes the version fail**
 (this document's own): the probe's reader kept the last of two, which lets two readers take two
 contents from a single text that passes, and `JsonBody` refuses a repeated name today. An item of
-a summary entry is read the same way. Every record holds two members beside its own: `v`, which
-the measured code wrote as `2` and never read (S1), and `nonce`, 16 random bytes as 32 hexadecimal
-characters. The nonce is what gives every act of writing an identity of its own: a rule set, taken
-away and set again to the same text is a new record, so no record can arrive already replaced
-under an earlier identifier (the design paper 3.3). The probe derived its nonces from a fixed
-text, to make its runs repeatable; the product draws them at random (S2).
+a summary entry is read the same way. Every record holds a member beside its own: `nonce`, 16
+random bytes as 32 hexadecimal characters. The nonce is what gives every act of writing an
+identity of its own: a rule set, taken away and set again to the same text is a new record, so no
+record can arrive already replaced under an earlier identifier (the design paper 3.3). The probe
+derived its nonces from a fixed text, to make its runs repeatable; the product draws them at
+random (S2).
+
+**No record holds a marker of its form** (S1). The measured code wrote a member `v`, as `2`, in
+every record and read it nowhere. The product writes no such member: the format number of §650
+is the only statement of the store's form, and a constant beside it in every record is a second
+number for a reader to give a meaning to. No count rests on the member, since nothing read it.
+*Held by* `StoreFormatTests`: the vectors of the measured code, which hold the member, pass,
+and a record composed without the member passes and reads alike.
+
+**A reader passes over a member it does not know, in a kind it knows** (S26). A content or an
+item may hold members beside those its kind names, and a reader takes nothing from them. That is
+what lets a later release add a member that an earlier reader may ignore, without a new format
+number (§650), and it is what lets the measured code's records, with their `v`, read. It rules
+out a reader that fails a version for an unknown member, under which every added member would
+be a new format. A member a reader must not ignore is added only with a new format number.
+*Held by* `StoreReadingTests`: a record with a further member counts, and counts for what it
+counted for without that member.
+
+**What a reader refuses of a version, whole** (S13). A version fails, and is never read in
+part, where a string of the store in it is longer than 1,048,576 characters, where its content
+or an item holds more than 32 members, or where an `after` is anything but identifiers of 32
+lowercase hexadecimal characters each, separated by single spaces, or empty. The first two are
+the ceilings of the reader the wire's bodies are read with, which is the reader of a content
+today.
+A list cut short would leave out what it names as replaced or restates as refused, so a version
+beyond a ceiling counts for nothing: an earlier version in the history may still pass (§622),
+and an entry of the store with no version that passes is damage (§621). A string is held to its
+length before anything of it is hashed or parsed. What the plugin itself writes stays well
+inside these ceilings, §643. *Held by* `StoreReadingTests`: a version at each ceiling counts,
+and the same version a character, a member or an item beyond it fails whole and stops the
+store.
 
 **A list inside a member is a string of items separated by single spaces**: identifiers in
 `after`, names in `profiles`.
@@ -319,7 +358,8 @@ A record's identifier is made of its content, which is how a copy is told from t
 ```text
 bytes  1 to 3    the first 3 bytes of HMAC-SHA256(store key, "tag" LF kind)
 bytes  4 to 8    the first 5 bytes of HMAC-SHA256(store key, "subject" LF subject)
-bytes  9 to 10   the height, big-endian: 0 for every kind but a summary entry
+bytes  9 to 10   a number, big-endian: the height for a summary entry, the format number for a
+                 version record (§650), and 0 for every other kind
 bytes 11 to 16   the first 6 bytes of the check
 ```
 
@@ -331,8 +371,11 @@ bytes 11 to 16   the first 6 bytes of the check
 | `profile`, `removed` | `profile:` and the name |
 | `version` | the object it is a version of. As measured: `rule:` and the node's identifier as 32 hexadecimal characters, or `renew:` and the client key. A rule's object is now a node and a profile, and the switch's a node (§617), in a form that is S8 |
 | `head` | `store` |
+| `withdrawn` | `certificate:` and the admission key of the certificate taken away (S23) |
+| `kept` | `key:` and the name of the store key not kept, §649 (S23) |
+| `format` | `format:` and the format number in decimal (S23) |
 
-The subjects of the kinds that were not measured are S23.
+§658 has every kind with what the core reads of it.
 
 **An entry is a record only under the identifier its content gives.** The reading computes the
 check from the entry's strings, then the identifier from the kind, the subject, the height and
@@ -351,16 +394,43 @@ the key what kind of record it was and what it was about, and for a summary entr
 and a file made outside cannot carry a deletion record that names a record of this store (the
 design paper 3.2, 3.3).
 
-**The height has two bytes**, which the measured runs never came near (S12).
+**The height has two bytes and stops at 65,535** (S12). A summary entry's height is a whole
+number from 1 to 65,535, in its content and in its identifier alike, and a write whose height
+would be higher writes 65,535. Height decides nothing between two records (§611), two gates that
+write apart give their summary entries the same height already, and what tells two summary
+entries apart is the check, so summary entries that share the highest height read as any others
+do. No write is refused for the height, and a deletion record of a summary entry still tells
+how high, up to that number. It rules out a third byte, which the identifier has no room for
+without taking it from the subject or the check, and a refusal at the last height, which would
+stop a store for its age alone. A store reaches that height only past the ceilings of §643, so
+only after a compaction exists. *Held by* `StoreReadingTests`: a summary entry of height 65,535
+that names a summary entry of the same height is in force, and a content whose height is 0,
+above 65,535 or not the number in the identifier fails.
 
-**The identifier holds six bytes of the check**, as measured, and those bytes are all that binds
-an entry's content to its identifier. That is enough against a copy, and against anybody who
-does not hold the store key, who cannot compute a check at all. It does not bind against
+**The identifier holds six bytes of the check** (S31), as measured, and those bytes are all that
+binds an entry's content to its identifier. That is enough against a copy, and against anybody
+who does not hold the store key, who cannot compute a check at all. It does not bind against
 somebody who holds the key: that person can search, away from the database, for another content
 whose check begins with the same six bytes, which is about 2^48 tries for a chosen entry, and
-put it into the entry in place of what the plugin wrote (reasoning). With the file in hand that
-person writes any record anyway (§639). The search matters for somebody who holds the key and
-can do no more than change fields, as a client of a 0.2 gate can (§654). The length is S31.
+put it into the entry in place of what the plugin wrote (reasoning). At a billion tries a second
+that is about three days of computing, so against that person the six bytes are a delay and no
+barrier (reasoning; no rate was measured). With the file in hand that person writes any record
+anyway (§639). The search matters for somebody who holds the key and can do no more than change
+fields. From 0.3.0 on no route gives a client either (§633). What is left is a client of a 0.2
+gate whose rule reaches the plugin's group with `read`, the `protected` switch and `update`
+(§654): that client holds the authority's private key as well, and the search would let it
+write an admission for a certificate of its own into an existing record. The order of the move
+leaves no 0.2 gate serving, and granting on groups and not at the root closes it (§645).
+
+**Six, and not more.** More bytes of the check have to come from the subject hash or from bytes
+9 and 10. The subject hash is what lets a deletion record tell what it was about, among the
+subjects the file knows (§623), and with fewer bytes two subjects of a database meet by chance.
+Bytes 9 and 10 hold a summary entry's height and a version record's format number, which a
+deletion record has to tell (§623), and the form of a rule's version may come to use them
+(S8). So the layout is the measured layout, for every kind, and every count of this document is
+of it. *Held by* `StoreFormatTests`, against the measured code's own identifiers, and by
+`StoreReadingTests`: an entry whose identifier differs from the identifier its content gives in
+any single byte is no record.
 
 ### The order of decisions §610
 
@@ -386,7 +456,7 @@ summary entry it replaces (§627).
 | --- | --- |
 | `KPG.Kind` | `head` |
 | `KPG.Data` | `v`, `nonce`, `height` as a decimal number, and `after`: the identifier of every summary entry this entry replaces |
-| `KPG.S.nnnn` | an item for each decision restated, a flat JSON object of strings. The items are sorted by their text and numbered from `KPG.S.0001` with four digits (S13) |
+| `KPG.S.nnnn` | an item for each decision restated, a flat JSON object of strings. The items are sorted by their text and numbered from `KPG.S.0001` with four digits, so a summary entry holds at most 9,999 (S13, §643) |
 | Identifier | as every record's, with the subject `store` and the height in bytes 9 and 10 |
 
 **The height** is 1 more than the highest height the writer has seen: among the summary entries in
@@ -404,17 +474,21 @@ summary entry a deletion record in the file names.
 | `{"kind":"retired",...}` | `authority` | a retirement of that authority |
 | `{"kind":"removed",...}` | `name`, `id` | the removal of a profile name, with the identifier of the removal's record |
 | `{"kind":"version",...}` | `id`, `object`, `after`, `doc` | a standing version of a rule, of a node's switch or of an answer to a renewal, whole, with its text. With a rule for each node and profile there is an item for each profile's standing version at each node (§617) |
+| `{"kind":"withdrawn",...}` | `certificate`, and what S29 adds | a certificate taken away, by its admission key (§648) |
+| `{"kind":"kept",...}` | `id`, `key`, `after` | a keep record, with its identifier, the name of the key not kept and the keep records it replaces (§649) |
+| `{"kind":"format",...}` | `format`, `plugin` | the highest format number and the highest plugin version the store states (§650). Every summary entry holds exactly this single item of the kind |
 
 It restates every revocation, every retirement, every removal and every standing version. It
 holds no authority, no admission and no profile addition, because losing any of those admits
 nobody. Each alone, the records or the newest summary entry, is enough to compute what takes
 access away, and the reading unites them (§623).
 
-**What the kinds that were not measured add to it** (proposed; the items' forms are S23). Each of
-them takes something away or holds a plugin back, so each is restated: a certificate taken
-away, by an item that names the certificate and the renewals its record names (§648); a keep
-record, by an item that names the keys not kept (§649); and the highest format number and the
-highest plugin version the store states (§650).
+**What the kinds that were not measured add to it** (proposed; the items are those of the table,
+S23). Each of them takes something away or holds a plugin back, so each is restated: a
+certificate taken away, by an item that names the certificate and the renewals its record names
+(§648); a keep record, by an item for each (§649); and the highest format number and the
+highest plugin version the store states (§650). **An item of a kind the table does not hold
+stops the gate**, as a record of such a kind does (§621).
 
 Without the summary entry as a second carrier, 20 of 20,000 histories failed the model's check,
 against 2 with it (evaluation 4.1).
@@ -451,6 +525,67 @@ against 2 with it (evaluation 4.1).
 
 The members named are those the measured code wrote and read, beside `v` and `nonce`. Where the
 product's own content differs from the probe's stand-in, the paragraph names the item of §646.
+
+### What the core reads of each kind §658
+
+The core of the store reads, checks, orders and restates the records of every kind, and stops
+for a record of a kind it does not know, without knowing what a kind does to access. This table
+is what it needs of each kind (S23). The kinds, the subjects, the members and the items of the
+kinds that were measured are as measured. Whatever else a kind holds, and everything it means,
+is left to the pull request that brings its meaning, under the item the last column names.
+
+| Kind | Subject | Members the core reads | Beside a deletion record naming it | Restated by | Left to |
+| --- | --- | --- | --- | --- | --- |
+| `authority` | `authority:` and `id` | `id`, `storeKey` | out of force, and its key still found (§621) | nothing | S3 |
+| `retired` | `authority:` and `authority` | `authority`, and `storeKey` where it holds the key | counts | an item `retired` with the same `authority` | nothing |
+| `client` | `client:` and `client` | `client` | out of force | nothing | S4, S24, S29 |
+| `revoked` | `client:` and `client` | `client` | counts | an item `revoked` with the same `client` | S5 |
+| `withdrawn` | `certificate:` and `certificate` | `certificate` | counts | an item `withdrawn` with the same `certificate` | S29 |
+| `profile` | `profile:` and `name` | `name`, `after` | out of force | nothing | S21 |
+| `removed` | `profile:` and `name` | `name` | counts | an item `removed` with the same `name`, whose `id` is the record's identifier | nothing |
+| `version` | the `object` | `object`, `after`, `doc` | out of force | an item `version` whose `id` is the record's identifier, where no version in force names the record in `after` | S7, S8 |
+| `kept` | `key:` and `key` | `key`, `after` | counts | an item `kept` whose `id` is the record's identifier | nothing |
+| `format` | `format:` and `format` | `format`, `plugin` | counts | the item `format` of a summary entry that states a format number at least the record's | nothing |
+| `head` | `store` | `height`, `after`, and every item | out of force | nothing | nothing |
+
+**The forms of the members.** `id`, `authority`, `client`, `name`, `object` and `doc` are texts
+the core compares and does not look into. `storeKey` and `certificate` are 64 lowercase
+hexadecimal characters, and `key` is the name of a store key (§649). `after` is a list of
+identifiers (§607). `format` and `height` are whole numbers from 1 to 65,535 in decimal, with no
+sign and no leading zero, and `plugin` is three such numbers, each from 0, joined by periods.
+
+**A version reads as its kind** where its content holds every member its row names, in these
+forms. A version that passes its check and does not read as its kind fails, as the measured
+reading failed a content without the member its subject is made of, and what follows is the
+history rule and then damage (§622). A summary entry reads as its kind only with exactly a
+single item `format`.
+
+**The object of a `version` has a type**, which is the text before its first colon: `rule` for a
+profile's rule at a node, `switch` for a node's switch, and `renew` for an answer to a renewal.
+The measured code wrote `rule` and `renew`. **A version, or an item `version`, whose object is of
+another type is of a kind the plugin does not know**, and stops the gate as §621 has it (this
+document's own). Without that, a later release could add a kind of object, as a record of the
+recycle bin would be (§619), that an earlier plugin read as a rule about nothing wherever the
+format number was lost.
+
+**What is left to a later pull request is what a kind means, and never whether it is read.**
+The text of an object after its type, the text of `doc`, the members of an admission and of an
+authority beside those named here, and the renewals a `withdrawn` record names are fixed by the
+pull requests that build those kinds. A member that such a pull request adds is passed over by
+the core (§607). Where the form of a rule's version takes bytes 9 and 10 of its identifier
+(S8), that pull request changes the row of `version` here.
+
+**How a kind comes to the table.** The table holds every kind of the first format, from the
+pull request that builds the core on, so that no pull request before release 0.3.0 has to add a
+kind in order to bring a meaning. Until that release, a row may still be added or changed by the
+pull request that needs it, and the format number stays 1: no released plugin has written or
+read the first format, and nothing is owed to a store that a build before the release wrote
+(§645). From that release on, a new kind, a new kind of item, a new type of object or a changed
+row is a new form of the store, and moves the format number (§650).
+
+*Held by* `StoreKindsTests`, which holds the table, the layout of §609 and the text of §608 to a
+description written beside the format number (§650), and by `StoreFormatTests` for the tag and
+the subject of each kind that was measured, against the measured code.
 
 ### Authority and retirement §614
 
@@ -557,11 +692,12 @@ copies the client key into the new record, so the old and the new certificate ca
 client key. Written as a revocation that names the client's key, that call would refuse the
 certificate the renewal had just issued.
 
-**What the record holds** (proposed; the kind's name, its members and its subject are S23). It
-names the certificate by its admission key, the SHA-256 over the certificate that `CA.md` §217
-defines, and it names the renewals made from that certificate that its writer had read (below).
-The subject in its identifier is that certificate, so that a deletion record of it still tells
-which certificate was taken away (§609).
+**What the record holds** (proposed). Its kind is `withdrawn` (S23, §658). It names the
+certificate by its admission key, the SHA-256 over the certificate that `CA.md` §217 defines, in
+the member `certificate`, and it names the renewals made from that certificate that its writer
+had read (below), in a member that is S29. The subject in its identifier is `certificate:` and
+that admission key, so that a deletion record of it still tells which certificate was taken
+away (§609).
 
 **What it does in the reading** (proposed). A certificate is not admitted while a record of this
 kind names it. Such a record counts as a revocation counts: as an entry wherever it sits, as an
@@ -792,8 +928,90 @@ records. Nothing is written at an open, at a read or after a merge. The steps ar
 as decided is a count of (`measured-decided-store` 1), with these differences, each named where
 it applies: several store keys stop the gate (§649), a record of a kind the plugin does not know
 stops it (§621), a version has to read a single way (§607, §608), and the kinds of §648, §649
-and §650 are read as those sections have it. None of the differences was run. What the reading
-costs on KeePass's thread was not measured (S20).
+and §650 are read as those sections have it. None of the differences was run.
+
+**What may be kept between two readings** (S20). The reading runs with KeePass's thread held
+still, `DESIGN.md` §119. Inside a single hold by a connection the tree cannot move, so the store
+is read once there, and every question of that hold is answered from that reading. Between two
+holds the plugin keeps a single thing: **the checked form of a version**, which is whether its
+strings pass the check under a key the file holds, and what they parse to. It is kept by the
+identifier of the entry and by the very string objects the version holds, name for name.
+KeePass replaces a string object when a text changes and never changes a string object in
+place, which `KeePassContractTests` pins, so the same objects are the same text, and any other
+object is checked again. **Nothing else is kept as an answer**: no list of the entries that are
+candidates, no key that stands, no record that counts, no summary entry in force, no word, and
+no answer that admits or grants. Every hold walks every entry of the database with its history,
+holds each version to what is kept by its objects, and works out everything else again. The
+reading of the last hold, its state and what the guard hides by, keys aside, is held until the
+next replaces it, and answers nothing after its hold: it is kept by a number that names its
+hold, `IReadHold.Stamp`, and no number is given to two holds. What is kept goes when the gate lets go
+of the database at a lock or a close, and a store key among it is overwritten then, as the gate
+key is, `CA.md` §208, even where a connection still holds what the database was served with, as a
+pairing can for its whole budget: that connection reads afresh from then on and keeps nothing.
+§632 states what of a key cannot be overwritten.
+
+**A change of the API's reads the store once as well**, on KeePass's own thread, where every
+other question reads afresh: from the lookup of its node to the change it hands the writer,
+since nothing a route may change is a node or a string of the store (§633). The save that
+follows is read afresh.
+
+**No thread waits on a reading.** What is kept is used by a single reading at a time, which
+takes it without waiting and puts the next in its place; a reading that finds it in use, which is
+one beside a hold that lapsed with its reading still going, reads with nothing kept and keeps
+nothing, and letting the database go at a lock marks what is kept to go and does not wait.
+
+**What that rules out.** Nothing is kept by a modification time, since pykeepass 4.2.0 changes
+a string and leaves the time (`measured-edited-refusals` 9.2). Nothing is kept until an event
+of KeePass's announces a change, since an import raises no event and a synchronize is announced
+only while KeePass's trigger system is on (`measured-desktop-windows` 6.3): a reading kept that
+way would admit a revoked client until some event came. And no answer is kept at all, so a
+revocation that is in the gate's copy when a hold begins holds in that hold: the margin is
+none, and a request is never judged by an earlier reading.
+
+**What it costs** (an estimate, run for this document outside the reports: KeePassLib 2.62 on
+objects in memory, Windows PowerShell 5.1, a single machine, the median of 21 runs). The walk
+is what grows with the database: 2.5 ms for 10,000 entries that hold no history, 13 ms where
+each holds three history items, and 51 ms where each holds ten, KeePass's default limit. The
+check of a store as the growth run left it after 1,000 writes (§643), 286 entries and 224,894
+characters, took 0.9 ms with nothing kept and 0.06 ms where every version was kept, and a
+summary entry at the plugin's own ceilings (§643) 6.8 ms. Holding 2,008 deletion records to the
+tags took 0.02 ms. The hold `DESIGN.md` §119 allows is five seconds, and a listing of 10,000
+entries holds the thread 22 to 26 ms today. So the reading stays within what a request already
+holds the thread for, and a database in which every entry carries a full history is where it
+shows. This estimate parsed no content and went through no router.
+
+**What it costs through the product** (measured by `StoreReadingCostTests`, explicit, through the
+real router and vault, in Release, the median of 21 runs; `FINDINGS.md` section 22). Over 10,000
+entries in a hundred groups beside a store of 282 entries: the hold a connection is judged in,
+which reads the store and nothing else, 3.5 ms; a read of an entry 3.5 ms; a listing of every
+entry 39 ms. Where every entry holds ten history items, 60, 59 and 100 ms, and the worst run 143
+ms. The first reading, with nothing kept, adds about 40 ms once. A request takes two holds that
+read the store. A change's turn on KeePass's thread reads it once: 2.6 ms, and 58 ms where every
+entry holds ten history items, where it read it at each question and took 6.3 and 120 ms. A
+file that brings a store key of its own for each of its entries costs what any file of its size
+costs (§649): 2 ms for a second reading of 300 such entries and 1 ms for 1,000, where the work
+under each key took 0.7 and 19 seconds. So the estimate holds in its shape, the walk somewhat
+dearer in the product, and reading every entry at every request stays well within the five
+seconds a hold is let run, with a full history on every entry the case that shows. *Held by*
+`StoreReadingBoundTests`, `StoreReadingTests` and
+`StoreInRealDatabaseTests`: a string replaced by an object of another text is read at the next
+hold with the entry's times left as they were; a second question inside a hold walks nothing;
+and nothing kept outlasts a lock.
+
+**What is built.** The reading of this section, of §621 to §624, of §649 to §651 and of §658,
+whole as far as it decides whether a store may be served: `StoreReading` over the candidates
+and the deletion records `StoreSource` walks, read once for each hold through
+`IReadHold.Stamp`, with the checked forms kept in `StoreKept` and let go, their keys overwritten,
+with the target at a lock and a close. It answers the state of §656 and the guard's keys and
+tags (§633). What is in force by meaning (§623, steps 1 to 5) is worked out only as far as
+wholeness needs it, and the pull requests that bring each kind's meaning build the rest. In this
+build the authority a database is served with is still the one `CA.md` §204 describes: the store
+is asked for a database the gate serves or holds several authorities of, a database with no
+store key is served as before, and no released plugin writes a store, so a store reaches a
+database only in a file that already holds one. *Held by* `StoreReadingTests`,
+`StoreReadingStatesTests`, `StoreReadingKeysTests`, `StoreReadingFormatTests`,
+`StoreReadingWholeTests`, `StoreInRealDatabaseTests` and `StoreStatesInRealDatabaseTests`, and in
+a real KeePass by `LiveStoreTests`.
 
 ### Which entries are records §621
 
@@ -843,7 +1061,8 @@ that was raised does (§652). The measured reading passed such a record over, wh
 where the record takes access away. This rule is a second safeguard beside the store's format
 number: it needs no version record, so it holds where the format number was lost (§639). An
 item of a kind the plugin does not know, in a summary entry that passes, stops the gate in the
-same way (proposed).
+same way (proposed), and so does a version whose object is of a type the plugin does not know
+(§658). The kinds a plugin knows are the rows of §658.
 
 **The store reads only its own records** (decision 23). A copy of a record fails the comparison
 of §609 and is passed over wherever it sits. A copy grants nothing, takes nothing away, is no
@@ -895,9 +1114,10 @@ sets that key aside (below) as that person can write any record under it (§639)
 2. **Keys are compared by their value.** An authority's entry and a retirement that hold the
    same key give a single key.
 3. **A keep record** is what the operator's choice writes (below): a record under the key kept
-   that names each key not kept, and that names in `after` every keep record its writer had
-   read (§610). A keep record that another keep record names in `after` is replaced and does
-   not count, under whichever key each of the two is. So a later answer replaces an earlier.
+   that names a key not kept, and that names in `after` every keep record its writer had read
+   (§610). A choice writes a keep record for each key not kept. A keep record that another keep
+   record names in `after` is replaced and does not count, under whichever key each of the two
+   is. So a later answer replaces an earlier.
 4. **A key is set aside** when a keep record that counts names it, under a key that is not set
    aside itself. That is worked out from the keys that no keep record names: they stand, the
    keys their keep records name are set aside, the keep records under a key set aside are
@@ -926,13 +1146,29 @@ recognized: its authority with its fingerprint and when it was made, the clients
 profile names and how many rules it holds. Until the operator has answered, a connection is
 answered as §656 has it.
 
-**What keeping a store writes** (proposed; the record's kind, its content and its item are
-S23). A single write under the key kept, through the writer: a keep record, and the summary
-entry, which restates it. The keep record names a key by a digest of that key, which nobody
-computes who has not held that key, so a file from somebody who does not hold the database's
-key cannot bring a record that names it. A keep record counts wherever it sits, as an entry, as
-an item of any summary entry present and as a deletion record that tells of it. A plugin keeps
-only a store that it may write (§652), and no other write is made while several keys stand.
+**What keeping a store writes** (proposed). A single write under the key kept, through the
+writer: a keep record for each key not kept, and the summary entry, which restates each. The
+keep record names a key by a digest of that key, which nobody computes who has not held that
+key, so a file from somebody who does not hold the database's key cannot bring a record that
+names it. A keep record counts wherever it sits, as an entry, as an item of any summary entry
+present and as a deletion record that tells of it. A plugin keeps only a store that it may
+write (§652), and no other write is made while several keys stand.
+
+**The form of a keep record** (S23, §658). Its kind is `kept`. Its content holds `key`, the
+name of the key not kept, and `after`. **The name of a store key** is the HMAC-SHA256 under
+that key over the three characters `key`, as 64 lowercase hexadecimal characters. That text
+holds no line feed, and every other text the store puts under a key holds a line feed (§608,
+§609), so a name is no tag, no subject hash and no check. The subject in the identifier is
+`key:` and that name. **A keep record names a single key**, and not each key not kept, because
+a deletion record is an identifier and nothing more: with a single key for a subject, the
+deletion record of a keep record still tells which key was set aside and under which key
+(§623), and with several it could tell neither. Its item in the summary entry holds its
+identifier, the name and its `after` (§611). The plugin never deletes a keep record. A store
+started again is no kind of its own: the command writes keep records under the new key (§632).
+*Held by* `StoreReadingTests`: a key that a keep record, its item or its deletion record names
+is set aside; a keep record that a later keep record names in `after` sets nothing aside; keys
+whose keep records name each other all stand; and a keep record under a key that is set aside
+sets nothing aside.
 
 **Keeping a store deletes nothing.** The entries under a key not kept stay in the file. An
 earlier form of this section deleted them with deletion records, and that form loses both
@@ -960,6 +1196,30 @@ then brings the entry that carried the lost key back, since an entry that a merg
 gives its key again (§632). The operator then chooses between the store started again and the
 store that was lost. A store started again by the command of §632 comes about with nobody being
 asked: the command sets every other key aside in the write that makes the new key.
+
+**The reading bounds its work in the keys it finds** (this document's own). A key is found by
+passing under itself, so a file anybody can make brings a key for each of its entries, and the
+work the reading does under each key, a check of every version under it and a look at every pair
+of keys, grows with their product. Past 32 keys found, `StoreFormat.MaxKeys`, the reading does no
+work under a key that is not a version's own: the store is split, nothing of it is judged, and
+the API's guard leaves out every entry that carries a string of the store, besides every entry
+under a tag of any key found, which is what reaches a record stripped of every string of the store
+outside the plugin's group. A key's tags are made once and kept with the checked form that gave
+the key, as the key is, so a hold past the ceiling costs the walk and a few numbers for each key,
+and no digest. A database the operator keeps holds a handful of keys over its life,
+one for each store started again and for each pair of copies that made a first store apart, so
+the ceiling is several times what a real database reaches. Within it, the marking of the keys is
+over their pairs and every record, item and deletion record is looked at once. *Held by*
+`StoreReadingBoundTests`: at the ceiling every key is judged, past it none is and the store is
+split with the guard hiding more, and a file of 1,000 such entries is read again in milliseconds;
+explicitly, the second reading of 20,000 such entries, 35 ms, is held to that of 20,000 entries
+that give no key, 14 ms.
+
+**What the operator does past the ceiling** is not what ends an ordinary split. Keeping a store
+judges the keys, and past the ceiling none is judged, so no keep record can be read until the
+entries that brought the keys are gone: the operator deletes them, which the log names by how
+many keys were found and how many entries are hidden, and the store is judged again at the next
+reading once the keys found are back within the ceiling.
 
 **What it costs.**
 
@@ -1086,13 +1346,24 @@ taken away, a keep record and a version record they are proposed.
 6. **The highest format number and the highest plugin version** are the greatest that a version
    record that counts, a summary entry present, or a deletion record that tells of a version
    record states (proposed, §650). A deletion record tells of a version record when its
-   identifier begins with that kind's tag under the store key. Where its subject is a format
-   number up to the plugin's own, it states that number. Where it is none of those, it states a
-   format number above the plugin's own, and the plugin is held back (§652). Where the subject
-   is not known, the three bytes of the tag are all that tells, which the deletion record of an
-   ordinary entry meets by chance about once in 17 million; what else such a deletion record is
-   held to is part of S23. What the plugin does with the store follows from the comparison of
-   §651, before anything is served.
+   identifier begins with that kind's tag under the store key, holds a number from 1 in bytes 9
+   and 10, and holds in bytes 4 to 8 the subject hash of `format:` and that number (S23). It
+   then states that number as a format number, whether or not the plugin knows a format of that
+   number, and it states no plugin version. So eight keyed bytes tell, and never the three of
+   the tag alone: the deletion record of an ordinary entry meets them by chance about once in
+   2^64, where the tag alone is met about once in 17 million and would hold a plugin back for
+   good. What the plugin does with the store follows from the comparison of §651, before
+   anything is served.
+7. **A deletion record tells of a summary entry** when its identifier begins with that kind's
+   tag under the store key and holds in bytes 4 to 8 the subject hash of `store`, and bytes 9
+   and 10 are then its height (S23). The measured code held such a deletion record to the tag
+   alone, which the deletion record of an ordinary entry meets by chance, and the store then
+   stops for a summary entry that never was (§624). Every summary entry carries that subject
+   hash, so no deletion record of a summary entry is missed. **A deletion record tells of a
+   keep record** when its identifier begins with that kind's tag under a key found and holds
+   the subject hash of `key:` and the name of another key found. It counts as a keep record
+   under the first key that names the second and names nothing in `after`, and it is replaced
+   where a keep record that counts names its identifier (§649).
 
 No step reads a time, the place of a record, or which group is the recycle bin.
 
@@ -1114,7 +1385,10 @@ for any failing entry where the history rule now stands.
   record is restated by some summary entry present, and every record of kind `version` in force
   that no version names is carried by some summary entry present. A decision without a summary
   entry that restates it means that summary entry was lost on the way. A certificate taken
-  away, a keep record and a version record are held to the same (proposed).
+  away, a keep record and a version record are held to the same (proposed), each by the item
+  that §658 names for its kind. A version record is restated by any summary entry present that
+  states a format number at least its own, so a version record that states nothing higher than
+  the store already states stops nothing.
 
 **No condition asks whether the store states a format number.** Every summary entry states it
 (§650), and a summary entry that states none does not read as a summary entry, so a store that
@@ -1427,8 +1701,8 @@ keep everything written under it.
 - **What it writes** (proposed). A single write through the writer, applied at the settings
   dialog's OK like everything on that tab: a new store key; an authority that holds it, with its
   host certificate and its gate key; a version record with the plugin's version and format
-  number (§650); a keep record under the new key that names every other key found, and names in
-  `after` every keep record its writer had read (§649); and the summary entry that restates
+  number (§650); a keep record under the new key for every other key found, each of which names
+  in `after` every keep record its writer had read (§649); and the summary entry that restates
   them. It deletes nothing. The entries of the earlier store stay in the file, passed over and
   shown (S30).
 - **What its warning names** (proposed). Every client has to be paired again. Every profile
@@ -1456,6 +1730,17 @@ and a merge then brings the entry that carried the lost key back, as a merge tha
 deletion record does, the file holds two keys that each vouch for themselves, and the gate
 serves nothing until the operator keeps a store (§649). The operator can then keep the store
 that was lost (reasoning).
+
+**What of a key the plugin overwrites, and what it cannot** (read from the product). A store key
+the reading finds is held as bytes by the checked form of the version that gave it, and
+overwritten when that form is let go: at a lock, at a close, and when the version leaves its
+entry. Nothing else of a key is kept between two holds: what a form was asked is filed by the
+key's name (§649), which tells nothing of the key. What cannot be overwritten is every string the
+key passed through on its way to those bytes, as with the host key, `CA.md` §208: the content of
+an authority's or a retirement's version, which holds the key in hexadecimal and will hold the
+authority's private key, as KeePass hands it to a reader; the text the check is computed over,
+until it is made into bytes; and the strings the JSON reader makes of the content's members.
+Each goes with the collector, and none is kept by the plugin past the reading that made it.
 
 **Who holds the key.** Whoever can open the database, or could open any copy of it made since
 the first authority, since the key is never renewed (reasoning; §639).
@@ -1496,7 +1781,7 @@ is a second safeguard that needs no version record (§621).
 ### What is recorded §650
 
 **A version record** is a record of a kind of its own, under the check as every record is, in
-the plugin's group (the kind's name, its members and its subject are S23). In this document the
+the plugin's group. Its form is below (S23). In this document the
 words name this record alone: a record of kind `version` is something else, a version of a rule
 or of an answer to a renewal (§617), and a version of an entry is its current strings or an item
 of its history (§621). A version record states two things: the version of the plugin that wrote
@@ -1507,6 +1792,28 @@ store as that plugin writes it.
 decides what a plugin does with a store (§651), and the plugin's version decides nothing: it is
 there for the operator to read, on the tab and in the log, which release wrote the store and
 which raised it.
+
+**The form of a version record, fixed with 0.3.0 for good** (S23). Every plugin from 0.3.0 on
+has to read a version record that any later plugin wrote, so this form never changes, whatever
+else a later format changes, the check and the identifier of other records among it.
+
+| Part | Form |
+| --- | --- |
+| `KPG.Kind` | `format` |
+| `KPG.Data` | `format`, the format number, a whole number from 1 to 65,535 in decimal with no sign and no leading zero; `plugin`, the plugin's version as three whole numbers in decimal joined by periods, as `0.3.0`; and `nonce` |
+| `KPG.Mac` | the check of §608 |
+| Identifier | as §609, with the subject `format:` and the format number in decimal, and the format number in bytes 9 and 10 |
+| Its item in a summary entry | `{"format":"1","kind":"format","plugin":"0.3.0"}`: the highest of each that the store states |
+
+It is not protected. A reader passes over a further member (§607), which is how a later format
+adds to it. The number is in the identifier twice, in clear and under the key, so that a
+deletion record of a version record states its format number to a plugin that has never heard
+of that format (§623). **A later format that changes how a store key is found** leaves an
+earlier plugin with no key: it then reads no version record, finds no store and serves nothing
+(§632), which is the same refusal by another road.
+
+**The first format number is 1**, and it is the form release 0.3.0 writes. Until that release,
+every build states 1 while the form is still being built, as §658 has it for the kinds.
 
 **What alters the store's form**, and so moves the number (proposed):
 
@@ -1519,7 +1826,7 @@ which raised it.
 
 A text that nothing reads does not alter it, and neither does a member that an earlier reader
 may ignore without reading anything else differently. So a reader passes over a member it does
-not know, in a kind it knows (proposed).
+not know, in a kind it knows (S26, §607).
 
 **Where the number is written down** (proposed). A single constant in the plugin's source,
 beside the code that writes a record, and nowhere else. It is not taken from the release's
@@ -1534,6 +1841,17 @@ identifier is laid out. A change to what the writer emits fails the test until t
 is changed with it, and the description is changed together with the number or with a stated
 reason why the form is the same. That puts the judgment in front of whoever makes the change,
 in the change that makes it.
+
+**The form of that description** (S26). It is a text written out in the test `StoreKindsTests`,
+beside the number: a line for the text the check covers (§608), a line for the layout of an
+identifier (§609), a line for each ceiling (§607, §643), and a line for each kind, in the order
+of §658, that gives its name, its subject, what bytes 9 and 10 hold, each member the core
+reads with its form, what a deletion record naming it does, its item with the item's members,
+and for `version` each type of object. The test makes the same text from the table the code
+reads by and from the code's own constants, and holds the two to each other character for
+character. A pull request that brings a kind's meaning adds that kind's further members to its
+line. So the description is not a second implementation: it is the table as a person reads it,
+and it cannot move without the test's own text moving in the same change.
 
 **A patch release never changes the format number.** A fix that has to change the store's form
 is therefore a minor release, which by `CONVENTIONS.md` is also what a change the operator has
@@ -1550,9 +1868,17 @@ three whole numbers, or whose build states no format number, writes nothing into
 - **When the operator raises the store** (§652). It states the raising plugin's version and
   format number. This is the only write that states a higher format number than the store's.
 - **With a write of the plugin's own, where the plugin's version is above the highest the store
-  states and its format number is the store's.** That record states the same format number and
-  holds no plugin back. It is what keeps the record true to "the version of the plugin that
-  wrote it". Whether it is worth an entry is part of S26.
+  states and its format number is the store's** (S26). That record states the same format
+  number and holds no plugin back. It is what keeps the record true to "the version of the
+  plugin that wrote it", which is what the decision asked of it, and it is what lets the tab and
+  the log name the release that last wrote. It costs an entry for each release that writes into
+  a store, and a further entry where two gates of that release each write before their copies
+  meet, and the summary entry's single item does not grow by it. It rules out a record for
+  every write, which would be an entry for each, and no record until the format moves, under
+  which a store would name only the release that made it. A plugin whose version is not above
+  the highest the store states writes none. *Held by* `StoreWriteTests`, with the first write:
+  a write by a plugin of a higher version adds the record, a second write by it adds none, and
+  a write by a plugin of a lower version adds none.
 
 **Every summary entry restates the highest format number and the highest plugin version** the
 store states at that write. So each has two carriers, as everything has whose loss could end
@@ -1649,7 +1975,13 @@ the rule of §645.
 - **What the button writes.** A single write through the writer: a version record that states
   the plugin's version and its format number, and a summary entry that restates both. From then
   on the plugin writes in its own form.
-- **Release 0.3.0 has no older store**, since the store begins with it.
+- **Release 0.3.0 has no older store**, since the store begins with it. No store states a
+  format number below 1, so no state of a 0.3.0 plugin offers the button or refuses a write for
+  it, and code that nothing can reach is not built. **The release that first moves the format
+  number builds the button, its warning and the refusal** (S26, S16): it writes the caption
+  and the words of the warning, held to what the warning has to name above, and it refuses the
+  requests §656 lists. What 0.3.0 fixes is what a client has to know by then: the word and the
+  requests it answers.
 
 ### What the version record can do to access §653
 
@@ -1808,7 +2140,8 @@ leaves out:
 
 **What follows from telling a record by its tag.** An ordinary entry of the operator's whose
 identifier begins with a tag is absent too: a random identifier meets a given tag about once in 17
-million entries (§621), so with the eight kinds and a single store key about once in two million.
+million entries (§621), and the tag of some kind of §658 under a single store key as many times as
+often as the table has kinds.
 Where the file holds no key, nothing outside the plugin's groups is told as the store's, and a
 record there reads as an entry holding a title and notes, every string of the store left out.
 
@@ -1819,11 +2152,14 @@ the gate (§621, §652), is absent by its content passing the check, whether or 
 stopped: the stop belongs to the reading, and hiding does not wait for it.
 
 **The formats it takes as stated, and where each is open.** The prefix's eight bytes, as measured
-(§606). The kinds, as measured, and none of §648, §649 and §650, whose names are S23. Six bytes of
-the check in an identifier, S31, which only the identifier of an entry that carries a key is
-composed with, and the height in two bytes, S12, zero there. The members `id`, `authority` and
-`storeKey`, the key as 64 hexadecimal characters, S3. The reader of `JsonBody` for a content, with
-its ceilings, S13. Each is written once in the code, so settling it is a change in a single place.
+(§606). Every kind of §658, each of which a tag tells. Six bytes of the check in an identifier
+(§609), and two bytes for a number. The members `id`, `authority` and `storeKey`, the key as 64
+lowercase hexadecimal characters, S3. The reader of `JsonBody` for a content, with its ceilings
+(§607). Each is written once in the code, so a change to it is a change in a single place.
+
+**It takes its keys from the store's reading** (§620), which the hold the lookup is made in has
+made once: the tags of every kind under every key found, and the entries with a version whose
+check passes under any of them. The guard walks nothing of its own.
 
 **The cases the test drives** are the ways a route names a node, and each operation the routing
 document declares has a case, read off the document: no node, for the gate itself, the caller's
@@ -1900,21 +2236,87 @@ who can act on the difference.
 **`frozen` is the only word that not every request gets.** A gate with a newer plugin on a
 store that was not raised serves, and refuses what needs a write into the store: a pairing, a
 renewal and a certificate given up (§652). A read is served, and so is a change to the
-operator's own entries. Which other requests it is answered to is left to the pull request that
-builds the answers (S16).
+operator's own entries.
+
+**The requests `frozen` is answered to** (S16) are those of the operations `pairHello`,
+`pairRequest`, `renewCertificate` and `revokeCertificate` of the routing document, and of no
+other operation. Those are the requests through which a client writes into the store (§627):
+no other route writes a record, since a client's change to a group or an entry adds nothing to
+the store, sets no edited record back, and deletes no rule with the node it removes. A pairing
+is answered at its hello and at its request alike, before the operator is asked and before the
+invitation is spent, as every `503` of a pairing is today, `PAIRING.md` §311, and a renewal
+before its dialog. It rules out answering `frozen` to every route that changes something,
+which would refuse a change to the operator's own entries, and it rules out leaving the hello
+served, which would have a client ask the operator for a pairing that cannot be written. A
+route added later that writes into the store joins the list in the change that adds it. **A
+gate of release 0.3.0 never answers it** (§652). *Held by* the test that the release which
+first moves the format number writes, over every operation the routing document declares: the
+listed operations answer `frozen`, and every other operation answers what it answers on a
+store of the plugin's own format.
+
+**A database in several of these states is answered the first of them in this order**
+(S33): `locked`, as today, since nothing of a locked database can be read; `lost`; `split`;
+`outdated`; `stopped`; `undecided`; and `frozen`, which is asked only once a request is
+otherwise served. The order is the order in which the reading can know each: without a store
+key nothing else can be asked, without a single standing key no record counts, a store raised
+above the plugin is not judged whole or stopped by a plugin that does not know its form, and
+which authority is served is asked only of a store that is whole (§614). *Held by*
+`StoreWordsTests`: a store in two of the states answers the earlier word, for each pair.
 
 **Where the words become part of the contract.** In the routing document, in the pull request
 that makes the gate answer them. `API.md` §411 counts a status and its word on the wire as the
 contract, and a word a client may rely on moves the minor version, which is 0.3.0. The reference
 client gets a class for each word in the same pull request, as it has for each word today. A
-0.2 client takes each for the gate being unavailable (§645).
+0.2 client takes each for the gate being unavailable (§645). `frozen` is declared with the
+words the core answers, and its description states that a gate of that release never sends it,
+so that a client built for 0.3.0 knows the word when a later gate sends it.
 
-**Whether every word can be sent is not settled** (S33). An answer takes a host certificate and
-a gate key, and both are in the authority's record. A database with no store key holds no
-authority the plugin reads, so its name resolves to nothing and the connection is dropped with
-no answer, as for a database with no authority today, `DESIGN.md` §112 (reasoning). `lost` can
-then be sent only where the gate still holds the gate key from before the store key was lost.
-The same holds for `outdated` where the newer form changed the authority's record itself.
+**Which certificate a word is answered with, and when no word can be sent** (S33). An answer
+takes a host certificate and a gate key, and both are in an authority's record. The rule is
+that of `undecided` today, for every word:
+
+- **A word is answered under each authority that stands**, with that authority's own host
+  certificate and under its own gate key: an authority whose record passes under a key that
+  stands, is not beside a deletion record naming it, and is named by no retirement under that
+  same key (§614). For `stopped` and `outdated` that is the authority the store would serve,
+  or each of several. For `split` it is each authority that stands under each key that stands,
+  so the clients of every store reach the word, as the clients of every authority reach
+  `undecided`. No client certificate is judged on such a connection, and nothing is read or
+  written for it.
+- **Where the reading finds no authority to answer with, the gate answers from what it held
+  when it last served that database**: the host certificate and the gate key of the authority
+  it was serving, kept in memory since, and let go at the lock, at the close and when KeePass
+  ends, as the host key is today, `CA.md` §208. That is the only way `lost` reaches a client:
+  a gate that was serving when the key was lost, by a synchronize that brought the deletion or
+  by the edits in its own window, answers `lost` until the database is locked or closed. It is
+  also how `outdated` is answered where a later format changed the authority's record so that
+  an earlier plugin reads no host certificate in it.
+- **In every other case the name resolves to nothing and the connection is dropped with no
+  answer**, as for a database with no authority today, `DESIGN.md` §112: a database opened or
+  unlocked with no store key in it, a KeePass started after the key was lost, and a database
+  that never held a store. The responder a locked database answers with is not used for
+  another word, since a client that meets it takes the database for locked before it sends
+  anything, `CA.md` §208.
+
+So every word can reach a client, and `lost` reaches a client only from a gate that was serving
+when the key went. It rules out minting a certificate to answer with, which needs the
+authority's key and would be a choice between authorities where several stand, and it rules out
+answering under a retired authority, whose clients are told nothing today. *Held by*
+`StoreWordsTests` and `GateListenerTests`: each state answers its word over a real handshake
+with the standing authority's host certificate, to a request before a route is chosen and to a
+`head`; a database opened with no store key resolves no name; and a gate that was serving
+answers `lost` after the key carrier is deleted under it, and nothing after a lock.
+
+**What is built.** `split`, `outdated` and `stopped`, answered before a route is chosen by the
+target of a database the gate serves, and, ahead of `undecided`, by each target of a database
+that holds several authorities, under the host certificate of the authority `CA.md` §204 has it
+served with or of each of those authorities. A database with no store key, and a database with
+no authority, are answered as they are today. `lost`, and the memory of what a gate last served
+with, come with the authority's record (§632); `frozen` comes with the release that first moves
+the format number (§652), and the routing document declares it and the reference client knows
+it already. *Held by* `StoreWordsTests`, `StoreHeldBackGateTests`, `UndecidedGateTests` and
+`UnavailableWordsTests`, the order of the words by `StoreReadingStatesTests`, and in a real
+KeePass by `LiveStoreTests`.
 
 ---
 
@@ -2515,7 +2917,34 @@ format and for each release that stated itself, and the summary entry states a s
 string any run on an emulator carried. Keepass2Android and KeePassDX, each as its own code
 compiled for the desktop, kept strings of up to 262,144 characters through load, save, edit and
 merge (`measured-source-harness` 4.1); on a device that was not measured (§644). The plugin's
-own reader has ceilings as well (S13).
+own reader has ceilings as well (§607).
+
+**The plugin's own ceilings are below its reader's** (S13). The plugin writes no string of the
+store longer than 262,144 characters, the longest string measured to come through the listed
+programs, and no item past `KPG.S.9999`. Its reader takes a string of up to 1,048,576
+characters (§607). The distance between the two is what keeps growth from ever reading as
+damage: records that each fit the first ceiling are each read, however many a merge brings
+together, and only the next write, which names them all, has to fit again. A summary entry's
+`after` holds 33
+characters for each summary entry it names, so it reaches 262,144 characters at 7,943 summary
+entries named, which is about that many writes of the plugin's own into a store, and the
+reader's ceiling at 31,775.
+
+**The operator is told from half of either ceiling.** From a summary entry whose `after` holds
+131,072 characters, which is about 3,970 writes, or which holds 5,000 items, the log states at
+every write how far the store has grown and what it has room for, and the KPG tab states it
+beside the store's size (§636). That is the condition S13 set: the store does not reach a
+ceiling before the operator has been told for as many writes again.
+
+**A write that would pass a ceiling is refused whole, before anything is added**, since no
+listed program was measured with a longer string, and a record beyond the reader's ceiling
+would be damage in every copy it reached. **What the gate does with a store that has no room
+for its next write is S35**, a decision of the project. Its provisional form is the most
+restrictive: such a store is stopped, and serves nothing until the store is started again
+(§632) or, once a compaction exists, compacted. It is judged where the write is built, so the
+pull request that builds the first write builds it. *Held by* `StoreWriteTests`, with that
+write: a write that fits is written; the same write a character or an item beyond is refused
+and leaves the database as it was; and two stores that each fit, synchronized, read as whole.
 
 **Deferred to after 0.3.0: a compaction by hand when the store is sealed again.** The press would
 then also write the store fresh and drop the lists, and a copy that is behind would refuse until
@@ -2549,9 +2978,12 @@ that finds a measurement against a decision reports it and does not design aroun
    history page, and KeePassLib's other methods and the other KeePassXC releases for an edited
    entry; a rule set again after the loss of the entry that carries the key; an edit that leaves
    a record's subject intact, three copies and chains of merges; and the model with an entry's
-   history, which it does not hold, so that the history rule was run on files only. Owed by the
-   pull request that builds the reading. *Could overturn*: the history rule as worded, and what
-   §632 states of a store started again.
+   history, which it does not hold, so that the history rule was run on files only. The pull
+   request that builds the reading runs, over real databases, an edit, the content removed, ten
+   edits and the eleventh, a quick edit and a move, a database that keeps no history, the
+   authority's entry edited past the limit, and Synchronize carrying a deleted summary entry
+   (`StoreStatesInRealDatabaseTests`); the rest of this item stays owed. *Could overturn*: the
+   history rule as worded, and what §632 states of a store started again.
 3. **The record written again, beyond the run that was made** (`measured-two-readings` 5): in
    KeePass's window and by the plugin itself; beside a second KeePass with the plugin; on a
    phone or an emulator; with KeePassXC releases other than 2.8.0; with the slow key derivation;
@@ -2588,10 +3020,11 @@ that finds a measurement against a decision reports it and does not design aroun
 11. **The sequences of §639 that were not replayed on the store**: a node's place decided by a
     merge, a merge that makes another group the recycle bin, a rule narrowed while a save runs,
     the differing files of row 16, and a deleting device whose clock is behind, on real files.
-12. **The reading on KeePass's thread.** The only timing is of a reading written in Python: 14 to
-    16 ms after 1,000 writes (`measured-store-as-a-whole` 3.8). Owed by the pull request that
-    builds the reading (S20). *Could overturn*: reading every entry of the database at every
-    request.
+12. **The reading on KeePass's thread.** Measured, with a change's turn and with a key for each
+    entry of a file, by the pull request that builds the reading,
+    through the real router and vault, and recorded in §620, in `DESIGN.md` §119 and in
+    `FINDINGS.md` section 22: it overturns nothing. What stays owed is the same run on a
+    machine that is not a developer's, and a database of more entries than 10,000.
 13. **The page that seals the store again**: what it shows after each kind of loss. Nothing of it
     was run as a page.
 14. **Which of KeePass's windows takes back or takes away an entry of the plugin's group** while
@@ -2606,8 +3039,12 @@ that finds a measurement against a decision reports it and does not design aroun
     answers and after the answer. Then two copies that each made a first authority; copies that
     keep different stores and are asked again; a later answer that takes an earlier answer
     back; a lost key that comes back beside the key of a store started again; and a file from a
-    holder of the database's key with a keep record that names it. Owed by the pull request
-    that builds the reading. *Could overturn*: how the decision on a second key is built.
+    holder of the database's key with a keep record that names it. The pull request that builds
+    the reading runs a file that brings a key of its own by Synchronize and by each import
+    method that keeps identifiers, and copies that keep different stores, over real databases,
+    and the keep records, their items, their deletion records, circles and chains over composed
+    ones; KeePassXC, the reading after an answer, and the rest stay owed. *Could overturn*: how
+    the decision on a second key is built.
 16. **A single certificate taken away** (§648), of which nothing was run: a renewal and the old
     certificate given up at a gate while another gate holds a copy from before; a renewal made
     from that certificate at the other gate in the meantime, and a renewal onward from that;
@@ -2617,15 +3054,19 @@ that finds a measurement against a decision reports it and does not design aroun
 17. **Create refused on a stopped store** (§624), which the measured code does not do. Owed by
     the pull request that builds the authority's commands on the store.
 18. **A version that has to read a single way** (§607, §608): a string beginning `KPG.S.` that is
-    not four digits, a line feed in a part, a member that appears twice. Each has to fail, and
-    none was run. Owed by the pull request that builds the check.
+    not four digits, a line feed in a part, a member that appears twice. Each fails in
+    `StoreReadingTests`, over composed versions; none was run through another program's save.
 19. **The format number, the version record and a kind the plugin does not know** (§647, §621),
     of which nothing was run: the highest of each after each program's merge; an older plugin
     on a store that was raised; a newer plugin on an older store, before and after the operator
     raises it; a write refused in between; a deletion record that tells of a version record; a
     record and an item of a kind the plugin does not know; a gate on a stale copy; and a store
     started again from a store that holds the plugin back, with the earlier store coming back
-    by a merge. Owed by the pull request that builds §647.
+    by a merge. The pull request that builds the store's core runs, over real databases, a
+    version record of a later format and its deletion record arriving by Synchronize, and a
+    record of a kind the plugin does not know with no version record present; and over
+    composed stores, the item, the deletion record that tells a number and one that does not.
+    The rest is owed by the pull request that builds the writing of §647.
 20. **The move from 0.2** (§645, §654), which was read from the source of 0.2.0 and not run. The
     steps, and the path through KeePass's windows for clearing what 0.2 left, are run in a real
     KeePass by the pull request that writes the warning.
@@ -2635,8 +3076,10 @@ that finds a measurement against a decision reports it and does not design aroun
     that still serves the earlier store. Owed by the pull request that builds the command.
 22. **The words of §656**, of which nothing was run: each state answered with its word, to a
     request before a route is chosen and to a `head`; `frozen` to a write and to no read; and
-    whether `lost` and `outdated` can be sent at all (S33). Owed by the pull request that makes
-    the gate answer them.
+    whether `lost` and `outdated` can be sent at all (S33). The pull request that builds the
+    store's core runs `split`, `outdated` and `stopped` over a real handshake to a request and to
+    a `head` (`StoreHeldBackGateTests`), and `stopped` in a real KeePass (`LiveStoreTests`).
+    `lost` and `frozen` stay owed by the pull requests that make the gate answer them.
 23. **The grant editor's rows for a rule in several versions** (§657). The pictures the decision
     was taken from are of a prototype with rows that were made up, and not of a store: two and
     three versions, scrolled, under a high contrast setting, and with what removing a row and
@@ -2659,6 +3102,18 @@ that finds a measurement against a decision reports it and does not design aroun
     for a profile, `DatabaseNodes`, leaves the recycle bin out and not the plugin's store, which
     the API leaves out beside it (§633). Owed by the pull request that brings the tab's listing
     of the store.
+26. **The store asked again where a client writes into it.** A pairing, a renewal and a client's
+    own revocation are judged against the store where the connection arrives, and not again
+    where their write is made, since a rule governs none of them and the router asks the store
+    again only where a rule is asked; one that waits for its dialog meets a store that came to
+    hold the gate back meanwhile only at its next request. Owed by the pull request that moves the
+    admissions into the store: each of the three asks the store again at its write and answers
+    the store's word there.
+27. **What the tab shows past the ceiling on store keys** (§649). A store past it is split with
+    nothing judged, and the dialog that keeps a store has nothing to offer, since no keep record
+    is read: the tab states the number of keys found and the number of entries hidden, and that
+    the entries that brought the keys are to be deleted first. Owed by the pull request that
+    builds the tab's listing of the store.
 
 ---
 
@@ -2742,8 +3197,13 @@ what is the project's to decide and no pull request's. A list before them names 
 settled since, and where an item was settled in part, what is left of it stands in its group
 under the same number.
 
-**Settled, and where the answer is.**
+**Settled, and where the answer is.** An item that the project decided names the decision's
+section. An item marked **fixed for the core** was left to the pull request that builds the
+store's core and is fixed there, as the implementer's detail and not as a decision of the
+project; its section has the reason, what it rules out and the test that holds it.
 
+- **S1. The marker `v`.** Fixed for the core: no record holds such a member, and a reader
+  passes over it where it is present, §607.
 - **S2. Where the random bytes come from.** The store key, the nonce and the second half of the
   group's identifier are drawn from the generator the product draws the gate key from today
   (read from the product).
@@ -2751,91 +3211,53 @@ under the same number.
 - **S9, in part. How the grant editor shows a rule in several versions.** As rows bound
   together, with no message box and no dialog held at OK, §657. What is left is below.
 - **S10. A record of the recycle bin.** Not in 0.3.0, §619.
+- **S12. The height.** Fixed for the core: two bytes, from 1 to 65,535, and a write whose
+  height would be higher writes 65,535; no write is refused for it, §609.
+- **S13, in part. The reader's ceilings against the store's growth.** Fixed for the core: what
+  a reader refuses of a version, whole, §607; the plugin's own ceilings below the reader's, and
+  the operator told from half of either, §643. What is left is S35, below.
 - **S15, in part. Where a rule waits between the dialog's OK and the save.** In the database, in
   memory, added at the OK, §629. What is left is below.
-- **S16, in part. Which word a client gets while the gate holds back.** A word for each reason,
-  and the five words of §656. What is left is below.
+- **S16. Which word a client gets while the gate holds back, and to which requests.** A word for
+  each reason, and the five words of §656. Fixed for the core: the operations that `frozen` is
+  answered to, and the order of the words where several states hold, §656.
 - **S17. Where the guard's setting lives.** The plugin's window under Tools, §635.
 - **S19. What an expired certificate left.** It stays until the compaction, and nothing is
   removed by a clock, §643.
+- **S20. What the reading costs, and what may be kept between requests.** Fixed for the core:
+  the checked form of a version, kept by the string objects it holds, and nothing else, with an
+  estimate of the cost, §620. The measurement through the product stays owed, §644.
 - **S22. What the operator's documentation advises for what 0.2 left in the file.** The steps
   of §645, in the release notes and in `docs/`.
+- **S23, in part. The form of the kinds that were in no run.** Fixed for the core: the kinds
+  `withdrawn`, `kept` and `format`, with what the core reads of every kind, §658; the keep
+  record, §649; the version record, for good, and the first format number, §650; what a
+  deletion record tells of each, §623. A rule and a switch are records of kind `version`, as
+  measured, with an object of a type the core knows, §658. What is left is S8, S7 and S29,
+  below.
 - **S25. An entry of the plugin's stripped of all its fields.** A deleted record, and not
   damage, §621.
+- **S26, in part. What is left of the version record.** Fixed for the core: a version record is
+  written where the plugin's version rises, §650; the form of the description the test holds,
+  §650; a reader passes over a member it does not know, §607. The caption of the button that
+  raises a store and the words of its warning are left to the release that first moves the
+  format number, since no state of 0.3.0 offers the button, §652.
 - **S27. A 0.2 plugin on a database that holds the store.** A warning and no code, §654.
 - **S28, in part. A command that starts the store again.** A command on the tab, §632. What is
   left is below.
+- **S31. How many bytes of the check the identifier holds.** Fixed for the core: six, as
+  measured, with what that does and does not bind, §609.
 - **S32. What the grant editor writes while a rule still shows several rows.** A rule is a
   record for each node and profile, so a row is a record and nothing else at the node is held
   back, §617 and §657.
+- **S33. Whether every word of §656 can be sent.** Fixed for the core: a word is answered under
+  each authority that stands, with its own host certificate; where the reading finds none, from
+  what the gate held when it last served the database; and otherwise the connection is
+  dropped, §656. Every word can reach a client, and `lost` only from a gate that was serving
+  when the key went.
 
-**What the first pull request that builds the store settles.**
-
-- **S1. The marker `v`.** The measured code wrote `2` in every record and read it nowhere. With
-  the format number of §650, a marker in every record has nothing left to decide. Options: no
-  such member; the member as measured, unread. Has to satisfy: no reader gives it a meaning the
-  format number does not have.
-- **S12. The height.** The identifier gives it two bytes, and a write adds a summary entry, so
-  the format has no encoding for a height above 65,535 (read from the measured code; the longest
-  run made 1,000 writes after its setup). Has to satisfy: a deletion record still tells of a
-  summary entry and how high, and no write is refused for the store's own age without the
-  operator having been told.
-- **S13. The reader's ceilings against the store's growth.** `JsonBody` reads at most 32 members
-  and a string of at most 1 MiB. The summary entry's `after` held 37,830 characters after 1,000
-  writes, about 33 for each summary entry named, so it reaches that ceiling at about 31,000
-  summary entries named (reasoning from the measured sizes). The items are numbered with four
-  digits, which §608 requires of every item's name, so a summary entry has no name for an item
-  past 9,999; it held 272 strings after 1,000 writes, and a certificate taken away adds an item
-  for good (§643). Has to satisfy: the store never stops for its own growth before the
-  compaction of §643 exists, or the operator is told well before it would; and a record beyond a
-  ceiling is damage, never read in part, since a list cut short would leave out what it names as
-  replaced or restates as refused.
-- **S16. Which requests `frozen` is answered to** (§656). Decided: the five words and their
-  meanings. Not fixed: which requests need a write into the store beyond a pairing, a renewal
-  and a certificate given up. Has to satisfy: a read, and a change to the operator's own
-  entries, are served; and the words are fixed in the routing document with 0.3.0, `API.md`
-  §411.
-- **S20. What the reading costs, and what may be kept between requests.** The reading takes
-  every entry of the database with its history. The design paper keeps the checked form of an
-  unchanged entry and never an answer that grants. Has to satisfy: a revocation still holds at
-  the next request; a read holds KeePass's thread no longer than `DESIGN.md` §119 allows; and
-  whatever is kept is keyed on the strings an entry holds and never on its modification time,
-  since pykeepass 4.2.0 changes a string and leaves the time as it was
-  (`measured-edited-refusals` 9.2).
-- **S23. The form of the kinds that were in no run**: a certificate taken away (§648), a keep
-  record (§649), the version record (§650), and a rule as a record for each node and profile
-  with the switch as a record of its own (§617, whose forms are S8). For each: the name of the
-  kind, its members, the subject in its identifier, and its item in the summary entry; and for
-  the version record the first format number. Has to satisfy: the subject lets a deletion
-  record of the record still tell what it was about (§609), which for a version record is its
-  format number (§623); a key not kept is named by something nobody computes without holding
-  that key; a certificate is named by its admission key, `CA.md` §217; an item is a flat JSON
-  object of strings as every item is; the deletion record of an ordinary entry is not taken for
-  a version record of a higher format by the three bytes of a tag alone, since that would hold
-  the plugin back for good; and the version record's form is fixed with 0.3.0 for good, since
-  every plugin from 0.3.0 on has to read it.
-- **S26. What is left of the version record** (§647). Not fixed: whether a version record is
-  written where only the plugin's version rises and the format number is the store's; the form
-  of the description the pinning test holds; the caption of the button that raises a store and
-  the words of its warning; and whether a reader passes over a member it does not know, which
-  §650 proposes. Has to satisfy: a version record never makes anything count; nothing but the
-  operator's press states a higher format number in a store; and a plugin that cannot state its
-  version and its format number writes nothing.
-- **S31. How many bytes of the check the identifier holds.** Six, as measured (§609). They bind
-  the content against a copy and against anybody without the store key, and not against
-  somebody who holds the key and searches for a second content with the same six bytes. Options:
-  as measured; more bytes of the check, at the cost of the subject hash or the height, which the
-  identifier's sixteen bytes also hold. Has to satisfy: a deletion record still tells the kind
-  and the subject of what it names; and the answer is given before 0.3.0, since an identifier's
-  layout cannot change without a new format number.
-- **S33. Whether every word of §656 can be sent.** An answer takes the authority's host
-  certificate and the gate key. Not fixed: whether the gate still holds a gate key where the
-  file holds no store key, so that `lost` reaches anybody; what an older plugin answers with
-  where the newer form changed the authority's record, so that it can read no host certificate;
-  and which authority's host certificate answers `split`, where `undecided` answers with each
-  authority's own. Has to satisfy: a name that resolves to nothing is dropped with no answer, as
-  today, `DESIGN.md` §112; and a word that turns out never to reach a client is put to the
-  project, since the decision gave each reason a word.
+**What the first pull request that builds the store settles.** Every item of this group is
+fixed, and the list above names where: S1, S12, S13, S16, S20, S23, S26, S31 and S33.
 
 **What a later pull request settles.**
 
@@ -2960,3 +3382,14 @@ names where. What stands here is what those answers newly opened.
   under a switch that refuses is written as an empty rule. Has to satisfy: two copies that
   change different profiles at a node still do not meet; and an empty rule and a rule taken off
   stay apart for the operator.
+- **S35. What does the gate do with a store that has no room for its next write** (§643)? The
+  plugin writes no string longer than 262,144 characters and no item past the 9,999th, so a
+  store takes about 7,900 writes of the plugin's own, and the operator is told from half of
+  that. A write that would pass a ceiling is refused. Answers: the gate keeps serving and
+  refuses every further write into that store, so that nobody is paired, renewed or revoked
+  there until the store is started again; the same, with a part of the room kept for writes
+  that only take access away, so that a revocation still fits when a pairing no longer does;
+  the gate serves nothing for that database until the store is started again. Provisional,
+  until the project answers: the last, as the most restrictive, answered `stopped`. Has to
+  satisfy: no record beyond a ceiling is ever written; the operator has been told well before;
+  and whatever the answer, the command that starts the store again still works (§632).

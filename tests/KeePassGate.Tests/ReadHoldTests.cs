@@ -57,6 +57,48 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_hold_carries_a_stamp_no_other_hold_had_and_its_inner_holds_share_it()
+        {
+            // What lets a hold read the plugin's store once, `IReadHold.Stamp`: a number for the
+            // outermost hold, shared by the holds inside it, never given twice, and 0 outside a
+            // hold and on KeePass's own thread.
+            using (var form = Made())
+            using (var ui = new ControlUiThread(form, NoMerge))
+            {
+                var stamps = new List<long>();
+                var outside = -1L;
+
+                var reader = Start(() =>
+                {
+                    for (var hold = 0; hold < 2; hold++)
+                    {
+                        ui.Hold(() =>
+                        {
+                            stamps.Add(ui.Stamp);
+                            return ui.Hold(() =>
+                            {
+                                stamps.Add(ui.Stamp);
+                                return 0;
+                            });
+                        });
+                    }
+
+                    outside = ui.Stamp;
+                });
+
+                PumpUntil(() => !reader.IsAlive);
+
+                Assert.That(stamps, Has.Count.EqualTo(4));
+                Assert.That(stamps, Has.None.EqualTo(0L));
+                Assert.That(stamps[1], Is.EqualTo(stamps[0]), "an inner hold shares the outer hold's stamp");
+                Assert.That(stamps[3], Is.EqualTo(stamps[2]));
+                Assert.That(stamps[2], Is.Not.EqualTo(stamps[0]), "no stamp is given to two holds");
+                Assert.That(outside, Is.Zero, "outside a hold");
+                Assert.That(ui.Hold(() => ui.Stamp), Is.Zero, "on KeePass's own thread");
+            }
+        }
+
+        [Test]
         public void A_read_is_held_inside_DoEvents_so_a_long_save_does_not_hold_reads_up()
         {
             using (var form = Made())

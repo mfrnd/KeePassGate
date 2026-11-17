@@ -1,0 +1,283 @@
+{
+  "about": "What probe/read.py of spikes/storage/probes/store-as-a-whole on spikes/storage-survival answers with its history rule on for small stores that probe/store.py composed there, made by vectors.py beside the probe and never from this side. Its three answers are written as the states they are: its ok as Whole, its incomplete as Stopped, and its answer for a file with no store as None. Each entry's history is oldest first, as the probe's dump numbers it.",
+  "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+  "readings": {
+    "a deleted summary entry nothing names": {
+      "state": "Stopped",
+      "damage": 0,
+      "passed": 0,
+      "byHistory": 0,
+      "deletions": [
+        "e34b4d9d4d36de780007abababababab"
+      ],
+      "entries": {
+        "923300d9141b2a5c0000457549501333": {
+          "strings": {
+            "KPG.Data": "{\"client\":\"c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "revoked",
+            "KPG.Mac": "457549501333754b870db2711143dfa511786e7fb8a09f090e6ea53e2ebdd0ef"
+          },
+          "history": []
+        },
+        "b8f37c30b55aab19000032b912477e3b": {
+          "strings": {
+            "KPG.Data": "{\"id\":\"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "32b912477e3b5440bf27c1ac071ea9597a2037f99798bca52980af51f06fde97"
+          },
+          "history": []
+        },
+        "e34b4d9d4d36de780001310b9e458c29": {
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "310b9e458c29c37610e69a5fc65bfdb3c5d969c8a878c0fe3ff0346ac273da2c",
+            "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}",
+            "KPG.S.0002": "{\"client\":\"c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3\",\"kind\":\"revoked\"}"
+          },
+          "history": []
+        }
+      }
+    },
+    "a revocation not restated": {
+      "state": "Stopped",
+      "damage": 0,
+      "passed": 0,
+      "byHistory": 0,
+      "deletions": [],
+      "entries": {
+        "923300d9141b2a5c0000457549501333": {
+          "strings": {
+            "KPG.Data": "{\"client\":\"c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "revoked",
+            "KPG.Mac": "457549501333754b870db2711143dfa511786e7fb8a09f090e6ea53e2ebdd0ef"
+          },
+          "history": []
+        },
+        "b8f37c30b55aab19000032b912477e3b": {
+          "strings": {
+            "KPG.Data": "{\"id\":\"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "32b912477e3b5440bf27c1ac071ea9597a2037f99798bca52980af51f06fde97"
+          },
+          "history": []
+        },
+        "e34b4d9d4d36de78000193e143624c3a": {
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "93e143624c3aa814fb10eecde57aa3f9158118670455fc322b6792324530e082",
+            "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
+          },
+          "history": []
+        }
+      }
+    },
+    "a stranger entry": {
+      "state": "Whole",
+      "damage": 0,
+      "passed": 1,
+      "byHistory": 0,
+      "deletions": [],
+      "entries": {
+        "923300d9141b2a5c0000457549501333": {
+          "strings": {
+            "KPG.Data": "{\"client\":\"c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "revoked",
+            "KPG.Mac": "457549501333754b870db2711143dfa511786e7fb8a09f090e6ea53e2ebdd0ef"
+          },
+          "history": []
+        },
+        "99999999999999999999999999999999": {
+          "strings": {
+            "KPG.Data": "{}",
+            "KPG.Kind": "revoked",
+            "KPG.Mac": "00"
+          },
+          "history": []
+        },
+        "b8f37c30b55aab19000032b912477e3b": {
+          "strings": {
+            "KPG.Data": "{\"id\":\"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "32b912477e3b5440bf27c1ac071ea9597a2037f99798bca52980af51f06fde97"
+          },
+          "history": []
+        },
+        "e34b4d9d4d36de780001310b9e458c29": {
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "310b9e458c29c37610e69a5fc65bfdb3c5d969c8a878c0fe3ff0346ac273da2c",
+            "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}",
+            "KPG.S.0002": "{\"client\":\"c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3\",\"kind\":\"revoked\"}"
+          },
+          "history": []
+        }
+      }
+    },
+    "edited, no version that passes": {
+      "state": "Stopped",
+      "damage": 1,
+      "passed": 0,
+      "byHistory": 0,
+      "deletions": [],
+      "entries": {
+        "923300d9141b2a5c0000457549501333": {
+          "strings": {
+            "KPG.Data": "{\"client\":\"c4c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "revoked",
+            "KPG.Mac": "457549501333754b870db2711143dfa511786e7fb8a09f090e6ea53e2ebdd0ef"
+          },
+          "history": []
+        },
+        "b8f37c30b55aab19000032b912477e3b": {
+          "strings": {
+            "KPG.Data": "{\"id\":\"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "32b912477e3b5440bf27c1ac071ea9597a2037f99798bca52980af51f06fde97"
+          },
+          "history": []
+        },
+        "e34b4d9d4d36de780001310b9e458c29": {
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "310b9e458c29c37610e69a5fc65bfdb3c5d969c8a878c0fe3ff0346ac273da2c",
+            "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}",
+            "KPG.S.0002": "{\"client\":\"c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3\",\"kind\":\"revoked\"}"
+          },
+          "history": []
+        }
+      }
+    },
+    "edited, the written version in the history": {
+      "state": "Whole",
+      "damage": 0,
+      "passed": 0,
+      "byHistory": 1,
+      "deletions": [],
+      "entries": {
+        "923300d9141b2a5c0000457549501333": {
+          "strings": {
+            "KPG.Data": "{\"client\":\"c4c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "revoked",
+            "KPG.Mac": "457549501333754b870db2711143dfa511786e7fb8a09f090e6ea53e2ebdd0ef"
+          },
+          "history": [
+            {
+              "KPG.Data": "{\"client\":\"c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+              "KPG.Kind": "revoked",
+              "KPG.Mac": "457549501333754b870db2711143dfa511786e7fb8a09f090e6ea53e2ebdd0ef"
+            }
+          ]
+        },
+        "b8f37c30b55aab19000032b912477e3b": {
+          "strings": {
+            "KPG.Data": "{\"id\":\"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "32b912477e3b5440bf27c1ac071ea9597a2037f99798bca52980af51f06fde97"
+          },
+          "history": []
+        },
+        "e34b4d9d4d36de780001310b9e458c29": {
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "310b9e458c29c37610e69a5fc65bfdb3c5d969c8a878c0fe3ff0346ac273da2c",
+            "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}",
+            "KPG.S.0002": "{\"client\":\"c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3\",\"kind\":\"revoked\"}"
+          },
+          "history": []
+        }
+      }
+    },
+    "no key": {
+      "state": "None",
+      "damage": 0,
+      "passed": 2,
+      "byHistory": 0,
+      "deletions": [],
+      "entries": {
+        "923300d9141b2a5c0000457549501333": {
+          "strings": {
+            "KPG.Data": "{\"client\":\"c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "revoked",
+            "KPG.Mac": "457549501333754b870db2711143dfa511786e7fb8a09f090e6ea53e2ebdd0ef"
+          },
+          "history": []
+        },
+        "e34b4d9d4d36de780001310b9e458c29": {
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "310b9e458c29c37610e69a5fc65bfdb3c5d969c8a878c0fe3ff0346ac273da2c",
+            "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}",
+            "KPG.S.0002": "{\"client\":\"c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3\",\"kind\":\"revoked\"}"
+          },
+          "history": []
+        }
+      }
+    },
+    "no summary entry": {
+      "state": "Stopped",
+      "damage": 0,
+      "passed": 0,
+      "byHistory": 0,
+      "deletions": [],
+      "entries": {
+        "923300d9141b2a5c0000457549501333": {
+          "strings": {
+            "KPG.Data": "{\"client\":\"c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "revoked",
+            "KPG.Mac": "457549501333754b870db2711143dfa511786e7fb8a09f090e6ea53e2ebdd0ef"
+          },
+          "history": []
+        },
+        "b8f37c30b55aab19000032b912477e3b": {
+          "strings": {
+            "KPG.Data": "{\"id\":\"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "32b912477e3b5440bf27c1ac071ea9597a2037f99798bca52980af51f06fde97"
+          },
+          "history": []
+        }
+      }
+    },
+    "whole": {
+      "state": "Whole",
+      "damage": 0,
+      "passed": 0,
+      "byHistory": 0,
+      "deletions": [],
+      "entries": {
+        "923300d9141b2a5c0000457549501333": {
+          "strings": {
+            "KPG.Data": "{\"client\":\"c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "revoked",
+            "KPG.Mac": "457549501333754b870db2711143dfa511786e7fb8a09f090e6ea53e2ebdd0ef"
+          },
+          "history": []
+        },
+        "b8f37c30b55aab19000032b912477e3b": {
+          "strings": {
+            "KPG.Data": "{\"id\":\"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "32b912477e3b5440bf27c1ac071ea9597a2037f99798bca52980af51f06fde97"
+          },
+          "history": []
+        },
+        "e34b4d9d4d36de780001310b9e458c29": {
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "310b9e458c29c37610e69a5fc65bfdb3c5d969c8a878c0fe3ff0346ac273da2c",
+            "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}",
+            "KPG.S.0002": "{\"client\":\"c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3\",\"kind\":\"revoked\"}"
+          },
+          "history": []
+        }
+      }
+    }
+  }
+}

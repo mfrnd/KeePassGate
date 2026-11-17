@@ -24,8 +24,21 @@ none, since it releases both.
   everything in it, and every entry of that store wherever it sits, are left out of every route
   as the recycle bin is, and a group holding such an entry cannot be removed. An entry of the
   operator's is taken for such an entry only where its identifier begins with a tag the store's
-  key gives, which a random identifier meets about once in two million entries. Nothing else
-  changes for a program, and a 0.2 client works with a 0.3 gate, `API.md` §411. `STORE.md` §633.
+  key gives, which a random identifier meets about once in one and a half million entries.
+  Nothing else changes for a program, and a 0.2 client works with a 0.3 gate, `API.md` §411.
+  `STORE.md` §633.
+- **A gate answers `503 split`, `503 outdated` or `503 stopped` to every request for a database
+  whose store holds it back, and PyKeePassGate raises `StoreSplit`, `StoreOutdated` and
+  `StoreStopped` for them.** `split` is a store under more than one store key, as a copy that
+  made a store of its own leaves after a synchronize, until the operator keeps one; `outdated`
+  is a store a later release raised, or that holds a record of a kind this release does not know,
+  until the plugin is updated; `stopped` is a store that is not whole, as a record of the
+  plugin's deleted or edited by hand leaves it, until the operator seals it again. Each is
+  answered before a route is chosen, in the body and in `KPG-Unavailable`, as `locked` and
+  `undecided` are, and ahead of `undecided`. None is waited out, since each ends by an act of
+  the operator's. The routing document declares `frozen` beside them, which a later gate sends
+  and this one never does, and the client raises `StoreFrozen` for it. A 0.2 client takes each
+  for the gate being unavailable, `API.md` §411. `STORE.md` §656.
 
 ## 0.2.0, 2026-11-17
 

@@ -40,6 +40,19 @@ namespace KeePassGate.Ui
         /// tree cannot move under it either way.
         /// </remarks>
         T Hold<T>(Func<T> read);
+
+        /// <summary>
+        /// A number naming the outermost hold the calling thread is inside, never the same for two
+        /// holds, and 0 inside none and on KeePass's own thread.
+        /// </summary>
+        /// <remarks>
+        /// **What lets a hold read the plugin's store once**, `STORE.md` §620: inside a hold by a
+        /// connection the tree cannot move, so every question of that hold is answered from the
+        /// reading made for it, and a reading is used by no other hold. On KeePass's own thread
+        /// the tree can move between two questions of a single turn, so nothing is shared there,
+        /// and every question reads afresh.
+        /// </remarks>
+        long Stamp { get; }
     }
 
     /// <summary>

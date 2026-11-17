@@ -67,6 +67,7 @@ namespace KeePassGate.Bridge
         private readonly DatabaseWriter _writer;
         private readonly NodeTags _tags;
         private readonly IReadHold _hold;
+        private readonly StoreReadings _store;
         private readonly IGateLog _log;
 
         /// <summary>
@@ -81,6 +82,16 @@ namespace KeePassGate.Bridge
 
         /// <summary>The same, holding KeePass's thread still for every read.</summary>
         public KdbxVault(PwDatabase database, DatabaseWriter writer, NodeTags tags, IReadHold hold, IGateLog log)
+            : this(database, writer, tags, hold, log, database == null || hold == null ? null : new StoreReadings(database, hold, log))
+        {
+        }
+
+        /// <summary>
+        /// The same, reading the plugin's store through the readings its target owns, which the
+        /// target answers for the store with as well, so that a hold reads it once.
+        /// </summary>
+        internal KdbxVault(
+            PwDatabase database, DatabaseWriter writer, NodeTags tags, IReadHold hold, IGateLog log, StoreReadings store)
         {
             if (database == null)
             {
@@ -97,10 +108,16 @@ namespace KeePassGate.Bridge
                 throw new ArgumentNullException(nameof(hold));
             }
 
+            if (store == null)
+            {
+                throw new ArgumentNullException(nameof(store));
+            }
+
             _database = database;
             _writer = writer;
             _tags = tags;
             _hold = hold;
+            _store = store;
             _log = log ?? NullGateLog.Instance;
         }
 
@@ -333,7 +350,7 @@ namespace KeePassGate.Bridge
 
             // A record of the store counts wherever it sits, so an ordinary group can hold a
             // record.
-            var store = StoreNodes.Of(root);
+            var store = StoreNodes.Of(_store.Now(_database, root));
 
             foreach (var entry in group.Entries)
             {
@@ -359,7 +376,7 @@ namespace KeePassGate.Bridge
             }
 
             var bin = Bin(root);
-            var store = StoreNodes.Of(root);
+            var store = StoreNodes.Of(_store.Now(_database, root));
 
             foreach (var entry in root.GetEntries(true))
             {
@@ -1407,10 +1424,18 @@ namespace KeePassGate.Bridge
             return write;
         }
 
+        /// <summary>A change, through the plugin's single writer, refused where nothing can write.</summary>
+        /// <remarks>
+        /// **The store is read once for the change**, from the lookup of its node to the change it
+        /// hands the writer, however many questions of the store the lookups, the rules and the
+        /// client read again ask on KeePass's thread, `StoreReadings.InTurn`.
+        /// </remarks>
         private VaultWrite Change(Func<VaultChange> change)
         {
             var blocked = WriteBlocked;
-            return Logged(blocked != null ? VaultWrite.Failed(blocked) : _writer.Change(_database, change));
+            return Logged(blocked != null
+                ? VaultWrite.Failed(blocked)
+                : _writer.Change(_database, () => _store.InTurn(change)));
         }
 
         /// <summary>
@@ -2245,7 +2270,7 @@ namespace KeePassGate.Bridge
                 return null;
             }
 
-            return StoreNodes.Of(root).Holds(entry) ? null : entry;
+            return StoreNodes.Of(_store.Now(_database, root)).Holds(entry) ? null : entry;
         }
 
         /// <summary>

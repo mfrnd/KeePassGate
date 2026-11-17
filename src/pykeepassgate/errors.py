@@ -267,6 +267,96 @@ class AuthorityUndecided(GateUnavailable):
         super().__init__(message, self.word, retry_after)
 
 
+class StoreSplit(GateUnavailable):
+    """`503 split`: the database holds the plugin's store under more than one store key.
+
+    A copy that made a store of its own met this one in a synchronize, and the operator is asked
+    at KeePass which store to keep. Every route answers this until somebody answers, pairing
+    included. It ends only when a person chooses, and can end with the store this client belongs
+    to not kept, after which this client reaches nothing and pairs again. Nothing waits it out.
+    """
+
+    #: The word the gate sends with this refusal.
+    word: ClassVar[str] = "split"
+
+    def __init__(self, message: str = "", retry_after: float | None = None) -> None:
+        """Keep the delay the gate answered with, where it gave one."""
+        super().__init__(
+            message
+            or "the gate holds more than one store for this database, and serves nothing until "
+            "the operator keeps one at KeePass",
+            self.word,
+            retry_after,
+        )
+
+
+class StoreOutdated(GateUnavailable):
+    """`503 outdated`: the database's store is of a form the plugin on that machine does not read.
+
+    A later release of the plugin raised the store, or wrote a record of a kind this release
+    does not know. Every route answers this until the plugin on that machine is updated, or the
+    operator starts the store again. Nothing waits it out: what ends it is an install.
+    """
+
+    #: The word the gate sends with this refusal.
+    word: ClassVar[str] = "outdated"
+
+    def __init__(self, message: str = "", retry_after: float | None = None) -> None:
+        """Keep the delay the gate answered with, where it gave one."""
+        super().__init__(
+            message
+            or "the gate's plugin does not read this database's store, and serves nothing until "
+            "it is updated",
+            self.word,
+            retry_after,
+        )
+
+
+class StoreStopped(GateUnavailable):
+    """`503 stopped`: the database's store is not whole, and the gate serves nothing from it.
+
+    A record of the plugin's was deleted or edited by hand, or a merge left the store with
+    something missing. Every route answers this until the operator seals the store again at
+    KeePass, after looking at what it shows. Nothing waits it out.
+    """
+
+    #: The word the gate sends with this refusal.
+    word: ClassVar[str] = "stopped"
+
+    def __init__(self, message: str = "", retry_after: float | None = None) -> None:
+        """Keep the delay the gate answered with, where it gave one."""
+        super().__init__(
+            message
+            or "the gate found this database's store not whole, and serves nothing until the "
+            "operator seals it again at KeePass",
+            self.word,
+            retry_after,
+        )
+
+
+class StoreFrozen(GateUnavailable):
+    """`503 frozen`: a newer gate that has not been told to raise the store refuses to write it.
+
+    Answered to pairing, to a renewal and to giving a certificate up, and to nothing else, by a
+    gate whose plugin is newer than the store it serves, until the operator raises the store at
+    KeePass. A gate of the release this client was built with never sends it. Nothing waits it
+    out.
+    """
+
+    #: The word the gate sends with this refusal.
+    word: ClassVar[str] = "frozen"
+
+    def __init__(self, message: str = "", retry_after: float | None = None) -> None:
+        """Keep the delay the gate answered with, where it gave one."""
+        super().__init__(
+            message
+            or "the gate writes nothing into this database's store until the operator raises it "
+            "at KeePass",
+            self.word,
+            retry_after,
+        )
+
+
 class NotAdmitted(GateError):
     """The gate does not admit this certificate: no record, a revoked one, or an expired one.
 

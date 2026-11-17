@@ -1273,6 +1273,25 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
+        /// Changes the database as a later part of the plugin, a merge or a person leaves its
+        /// store, before KeePass opens it, for the reason <see cref="Grant"/> gives.
+        /// </summary>
+        public void ChangeTheStore(Action<PwDatabase> change)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                change(database);
+                database.Save(null);
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>
         /// Puts a small invented tree in the database: two groups and four entries.
         /// </summary>
         /// <remarks>

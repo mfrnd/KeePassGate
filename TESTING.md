@@ -132,6 +132,29 @@ real tree, and holds every answer byte for byte to the answer about a node that 
 `STORE.md` §633 lists what it drives, and what tells a node of the store is held to the code the
 store was measured with by `StoreFormatTests`, in the unit tier.
 
+**It reads the store out of real databases.** `StoreInRealDatabaseTests` walks a real tree, the
+recycle bin and its groups among it, holds a hold to a single reading, and reads a store again
+after a lock and an unlock. `StoreStatesInRealDatabaseTests` makes the history KeePass makes, with
+its limit, deletes with deletion records, and merges by `PwDatabase.MergeIn` under each method,
+and holds the state the store reads as after each. Every record in them, and in the unit tier's
+`StoreReadingTests` and the fixtures that read a `ComposedStore`, is made by
+`tests/Shared/StoreComposer.cs`, which keeps an HMAC of its own so that no record is one only the
+plugin's code could make.
+
+**The store's vectors come from the measured code and never from this side.** The values in
+`StoreFormatTests` and the stores in `tests/Shared/StoreReadingVectors.json`, with what the
+measured reading answered for each, are the output of
+`spikes/storage/probes/store-as-a-whole/vectors.py` on `spikes/storage-survival`, committed there
+at `05c8cc64`, which calls nothing but `probe/store.py` and `probe/read.py` beside it. They are
+regenerated there and never from this side, offline, by
+`uv run --no-project python -I -X utf8 spikes/storage/probes/store-as-a-whole/vectors.py`, and the
+JSON file is that command's output with `--readings`, byte for byte, so a reader checks it with
+the one command. The three words of the measured reading's status are written as the product's
+states by the script's `STATES` table.
+
+`StoreReadingCostTests` is explicit, as `Headroom_at_one_room_size` is: it times what reading the
+store holds KeePass's thread for through the real router and vault, and is run by name and read.
+
 **It is also where KeePass's own compiler is asked.** `ReferenceVectorsTests` builds a database in
 memory holding the entries `tests/Shared/ReferenceVectors.json` writes down, compiles every value
 in it with KeePass's `SprEngine`, as a copy of the field compiles one less what acts, and holds the

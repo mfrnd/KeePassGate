@@ -12,14 +12,15 @@ namespace KeePassGate.Store
     /// identifier, and a record by the keyed tag at the start of its own, `STORE.md` §606 and §609.
     /// </summary>
     /// <remarks>
-    /// **The smallest part of the store's reading, and the part the API's guard rests on**,
-    /// `STORE.md` §633. It finds the store keys, checks a version and composes an identifier as
-    /// §608, §609 and §621 state them, and decides nothing about what is in force.
+    /// **The bytes of the store, each written once, here**: the names of its strings, the check,
+    /// the identifier and the ceilings of its reader, `STORE.md` §607 to §609, beside the format
+    /// number they make up with the kinds of <see cref="StoreKinds"/>. It decides nothing about
+    /// what is in force.
     ///
     /// **Every format here is the form the store was measured with**, as `probe/store.py` on
-    /// `spikes/storage-survival` wrote it, and several are not settled: the prefix's bytes, the
-    /// kinds, and how many bytes of the check an identifier holds, `STORE.md` §646. Each is
-    /// written once, here, so that settling it is a change to this class and nothing else.
+    /// `spikes/storage-survival` wrote it, with what `STORE.md` §646 fixed for the store's core
+    /// where the measured code left a format open: six bytes of the check in an identifier, S31,
+    /// and two for the number, S12.
     ///
     /// **Whether a node is the store's never rests on its own content passing.** A group is the
     /// plugin's by its identifier alone, and an entry is a record of the store by the first three
@@ -59,48 +60,69 @@ namespace KeePassGate.Store
         /// <summary>The bytes that name what a record is about, keyed.</summary>
         public const int SubjectLength = 5;
 
-        /// <summary>The bytes of a summary entry's height, zero for every other kind.</summary>
+        /// <summary>
+        /// The bytes of a summary entry's height and of a version record's format number, zero
+        /// for every other kind.
+        /// </summary>
         public const int HeightLength = 2;
 
-        /// <summary>
-        /// The bytes of the check an identifier holds, as measured, which S31 leaves open.
-        /// </summary>
+        /// <summary>The bytes of the check an identifier holds, as measured, `STORE.md` §609.</summary>
         public const int CheckLength = 6;
 
         /// <summary>The digits of an item's number, `STORE.md` §608.</summary>
-        private const int ItemDigits = 4;
+        public const int ItemDigits = 4;
 
         /// <summary>
-        /// A store key, written as 64 hexadecimal characters in the content that holds it.
+        /// The format number of the store this plugin reads, `STORE.md` §650: the form of every
+        /// record, every item, the check and the identifier, as `StoreKinds` and this class hold
+        /// them.
         /// </summary>
-        private const int KeyLength = 32;
+        /// <remarks>
+        /// **A number of the store's own, and never the release's version**, which moves only
+        /// when a release is made: a build between two releases that changed the store's form
+        /// carries a number of its own, and that is what tells its store apart from the release's.
+        /// It moves in the very change that alters the form, and `StoreKindsTests` holds it beside
+        /// a description of that form, so the change cannot be made without the description and
+        /// the number being looked at together. Until release 0.3.0 every build states 1 while the
+        /// form is still being built, `STORE.md` §658. A patch release never moves it.
+        /// </remarks>
+        public const int Number = 1;
+
+        /// <summary>A store key, written as 64 hexadecimal characters in the content that holds it.</summary>
+        public const int KeyLength = 32;
 
         /// <summary>
-        /// The member of an authority's or a retirement's content that holds the store key.
+        /// The longest string of the store a reader takes, `STORE.md` §607: the ceiling of the
+        /// reader the wire's bodies are read with, which is the reader of a content.
         /// </summary>
-        private const string KeyMember = "storeKey";
+        public const int MaxStringLength = JsonBody.MaxStringLength;
 
-        private const string AuthorityKind = "authority";
+        /// <summary>
+        /// The most store keys a reading works under, `STORE.md` §649: past it the store is split,
+        /// and no version is checked under a key not its own.
+        /// </summary>
+        /// <remarks>
+        /// **A key is added to a database rarely, and never taken away.** A Recreate carries the
+        /// key and a Create after a Delete keeps it, `STORE.md` §632; what adds one is a store
+        /// started again, which sets every earlier key aside and leaves it in the file, and copies
+        /// that each made a first store before they met. So a database the operator keeps holds a
+        /// handful over its whole life, and this is several times that. What it rules out is the
+        /// file that brings a key for each of thousands of entries, which anybody can make, since
+        /// a key is found by passing under itself: the work the reading does under each key is a
+        /// check of every version of every candidate and a look at every pair of keys, and past
+        /// this the reading does neither, answers that several keys stand, which serves nothing,
+        /// and leaves out of every route every entry that carries a string of the store.
+        /// </remarks>
+        public const int MaxKeys = 32;
 
-        private const string RetiredKind = "retired";
+        /// <summary>The highest number bytes 9 and 10 of an identifier can hold, `STORE.md` §609.</summary>
+        public const int MaxNumber = 65535;
 
         /// <summary>
         /// The first eight bytes of the plugin's group's identifier, the ASCII of `KPG/STOR`, as
         /// measured, `STORE.md` §606.
         /// </summary>
         private static readonly byte[] GroupPrefix = Encoding.ASCII.GetBytes("KPG/STOR");
-
-        /// <summary>
-        /// The kinds of record the store was measured with, `STORE.md` §607.
-        /// </summary>
-        /// <remarks>
-        /// The kinds a later part of the store adds have no name yet, S23, and each is added here
-        /// as it is named, since a kind missing from this list is a record its tag does not tell.
-        /// </remarks>
-        public static readonly IReadOnlyList<string> Kinds = Array.AsReadOnly(new[]
-        {
-            AuthorityKind, RetiredKind, "revoked", "client", "profile", "removed", "version", "head",
-        });
 
         /// <summary>Whether this is the identifier of the plugin's own group.</summary>
         public static bool IsGroupIdentifier(byte[] identifier)
@@ -136,66 +158,51 @@ namespace KeePassGate.Store
             return Keyed(key, "tag\n" + kind, TagLength);
         }
 
-        /// <summary>
-        /// Whether a version's check is the check its content gives under this key, whatever the
-        /// identifier of the entry holding it.
-        /// </summary>
-        /// <param name="version">
-        /// The version's strings whose names begin with the prefix, by name.
-        /// </param>
-        public static bool Passes(byte[] key, IReadOnlyDictionary<string, string> version)
+        /// <summary>The first three bytes of an identifier, or of a tag, as a number.</summary>
+        public static int TagNumber(byte[] bytes)
         {
-            var check = Field(version, CheckField);
-            var computed = Check(key, version);
-            return computed != null && string.Equals(computed, check, StringComparison.Ordinal);
+            return bytes == null || bytes.Length < TagLength ? -1 : (bytes[0] << 16) | (bytes[1] << 8) | bytes[2];
         }
 
         /// <summary>
-        /// The store key a version gives, or null for a version that gives none.
+        /// The bytes of an identifier that name what a record is about under this key: the first
+        /// five of HMAC-SHA256 over `subject`, a line feed and the subject, `STORE.md` §609.
+        /// </summary>
+        public static byte[] Subject(byte[] key, string subject)
+        {
+            return Keyed(key, "subject\n" + subject, SubjectLength);
+        }
+
+        /// <summary>
+        /// The name of a store key, `STORE.md` §649: HMAC-SHA256 under that key over the three
+        /// characters `key`, as 64 lowercase hexadecimal characters.
         /// </summary>
         /// <remarks>
-        /// `STORE.md` §621: a version of an authority or of a retirement whose content holds a key,
-        /// that passes under that very key, held by the entry whose identifier its content gives
-        /// under that key. So a copy gives none, and neither does a version whose check another
-        /// key made.
+        /// That text holds no line feed, and every other text the store puts under a key holds
+        /// one, so a name is no tag, no subject hash and no check. Nobody computes it who has not
+        /// held the key, so a file from somebody who does not hold a key cannot name it.
         /// </remarks>
-        /// <param name="identifier">The identifier of the entry holding the version.</param>
-        public static byte[] KeyOf(byte[] identifier, IReadOnlyDictionary<string, string> version)
+        public static string KeyName(byte[] key)
         {
-            var kind = Field(version, KindField);
-            if (!string.Equals(kind, AuthorityKind, StringComparison.Ordinal)
-                && !string.Equals(kind, RetiredKind, StringComparison.Ordinal))
-            {
-                return null;
-            }
-
-            var content = Content(Field(version, DataField));
-            var key = content == null ? null : KeyFrom(content.Text(KeyMember));
-            var subject = content == null
-                ? null
-                : content.Text(string.Equals(kind, AuthorityKind, StringComparison.Ordinal) ? "id" : "authority");
-
-            if (key == null || subject == null || !Passes(key, version))
-            {
-                return null;
-            }
-
-            var expected = Identifier(key, kind, "authority:" + subject, 0, Field(version, CheckField));
-            return identifier != null && expected.SequenceEqual(identifier) ? key : null;
+            return Hex.Of(Keyed(key, "key", 32));
         }
 
         /// <summary>
         /// The identifier a record's content gives, `STORE.md` §609: the tag, the keyed hash of
-        /// the subject, the height, and the start of the check.
+        /// the subject, a number, and the start of the check.
         /// </summary>
-        internal static byte[] Identifier(byte[] key, string kind, string subject, int height, string check)
+        /// <param name="number">
+        /// The height for a summary entry, the format number for a version record, and 0 for every
+        /// other kind: big-endian in bytes 9 and 10.
+        /// </param>
+        internal static byte[] Identifier(byte[] key, string kind, string subject, int number, string check)
         {
             var identifier = new byte[TagLength + SubjectLength + HeightLength + CheckLength];
 
             Buffer.BlockCopy(Tag(key, kind), 0, identifier, 0, TagLength);
-            Buffer.BlockCopy(Keyed(key, "subject\n" + subject, SubjectLength), 0, identifier, TagLength, SubjectLength);
-            identifier[TagLength + SubjectLength] = (byte)(height >> 8);
-            identifier[TagLength + SubjectLength + 1] = (byte)height;
+            Buffer.BlockCopy(Subject(key, subject), 0, identifier, TagLength, SubjectLength);
+            identifier[TagLength + SubjectLength] = (byte)(number >> 8);
+            identifier[TagLength + SubjectLength + 1] = (byte)number;
 
             for (var index = 0; index < CheckLength; index++)
             {
@@ -207,103 +214,48 @@ namespace KeePassGate.Store
         }
 
         /// <summary>
-        /// The check a version's content gives under this key, as lowercase hexadecimal, or null
-        /// for a version that does not read a single way.
+        /// The identifiers a list names, `STORE.md` §607: identifiers of 32 lowercase hexadecimal
+        /// characters, separated by single spaces, or nothing at all; null for any other text.
         /// </summary>
-        /// <remarks>
-        /// `STORE.md` §608: the kind, a line feed and the content, then a line feed, the name, a
-        /// line feed and the value of each item, in ordinal order of the names. A part holding a
-        /// line feed, a string beginning `KPG.S.` that is not named with exactly four digits, and
-        /// a content or an item that is not one flat object of strings each make a version that
-        /// fails, since two sets of strings could otherwise give one text, and two readers two
-        /// contents.
-        /// </remarks>
-        private static string Check(byte[] key, IReadOnlyDictionary<string, string> version)
+        public static IReadOnlyList<string> Identifiers(string text)
         {
-            var kind = Field(version, KindField);
-            var data = Field(version, DataField);
-            var check = Field(version, CheckField);
-
-            if (key == null || kind == null || check == null || kind.IndexOf('\n') >= 0 || !Readable(data))
+            if (text == null)
             {
                 return null;
             }
 
-            var text = new StringBuilder(kind).Append('\n').Append(data);
-            var items = version.Keys
-                .Where(name => name.StartsWith(ItemPrefix, StringComparison.Ordinal))
-                .OrderBy(name => name, StringComparer.Ordinal);
-
-            foreach (var name in items)
+            if (text.Length == 0)
             {
-                var value = version[name];
-                if (!IsItemName(name) || !Readable(value))
+                return Array.Empty<string>();
+            }
+
+            var length = (TagLength + SubjectLength + HeightLength + CheckLength) * 2;
+            if ((text.Length + 1) % (length + 1) != 0)
+            {
+                return null;
+            }
+
+            var identifiers = new List<string>((text.Length + 1) / (length + 1));
+            for (var at = 0; at < text.Length; at += length + 1)
+            {
+                if (at + length < text.Length && text[at + length] != ' ')
                 {
                     return null;
                 }
 
-                text.Append('\n').Append(name).Append('\n').Append(value);
-            }
-
-            return Hex.Of(Keyed(key, text.ToString(), 32));
-        }
-
-        private static bool IsItemName(string name)
-        {
-            if (name.Length != ItemPrefix.Length + ItemDigits)
-            {
-                return false;
-            }
-
-            for (var index = ItemPrefix.Length; index < name.Length; index++)
-            {
-                if (!Ascii.IsDigit(name[index]))
+                for (var index = at; index < at + length; index++)
                 {
-                    return false;
+                    var character = text[index];
+                    if (!((character >= '0' && character <= '9') || (character >= 'a' && character <= 'f')))
+                    {
+                        return null;
+                    }
                 }
+
+                identifiers.Add(text.Substring(at, length));
             }
 
-            return true;
-        }
-
-        /// <summary>
-        /// Whether a part is JSON written with no line feed, one flat object of strings.
-        /// </summary>
-        private static bool Readable(string part)
-        {
-            return part != null && part.IndexOf('\n') < 0 && Content(part) != null;
-        }
-
-        /// <summary>
-        /// A content read strictly, `STORE.md` §607, or null: the reader the wire's bodies are
-        /// read with, which refuses a member named twice, and every value a string.
-        /// </summary>
-        private static JsonBody Content(string text)
-        {
-            var content = text == null ? null : JsonBody.Read(text);
-            return content == null || content.Names.Any(name => content.Text(name) == null) ? null : content;
-        }
-
-        private static byte[] KeyFrom(string hex)
-        {
-            if (hex == null || hex.Length != KeyLength * 2 || !hex.All(Ascii.IsHexDigit))
-            {
-                return null;
-            }
-
-            var key = new byte[KeyLength];
-            for (var index = 0; index < KeyLength; index++)
-            {
-                key[index] = Convert.ToByte(hex.Substring(index * 2, 2), 16);
-            }
-
-            return key;
-        }
-
-        private static string Field(IReadOnlyDictionary<string, string> version, string name)
-        {
-            string value;
-            return version != null && version.TryGetValue(name, out value) ? value : null;
+            return identifiers;
         }
 
         private static byte[] Keyed(byte[] key, string text, int length)
