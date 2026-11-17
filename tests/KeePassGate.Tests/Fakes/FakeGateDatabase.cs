@@ -31,9 +31,18 @@ namespace KeePassGate.Tests.Fakes
         /// </remarks>
         public int MarkedModifiedCount { get; private set; }
 
-        public InMemoryKeyValueStore Store
+        /// <summary>The custom data the admissions are kept in.</summary>
+        public InMemoryKeyValueStore Values
         {
             get { return _store; }
+        }
+
+        /// <summary>The plugin's store, in memory.</summary>
+        public MemoryStore Records { get; } = new MemoryStore();
+
+        public KeePassGate.Store.IGateStore Store
+        {
+            get { return Records; }
         }
 
         /// <summary>What a screen calls it. Invented, like everything else in a test.</summary>

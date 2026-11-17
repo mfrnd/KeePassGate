@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
+using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassLib;
 using NUnit.Framework;
@@ -14,10 +16,10 @@ namespace KeePassGate.Host.Tests.Live
     /// <remarks>
     /// **What no other tier shows**: the store read on KeePass's real thread through the real
     /// hold, at each request, with the plugin loaded beside it, and KeePass's window still taking
-    /// its own work while requests arrive. The store is composed into the file before KeePass
-    /// opens it, an authority's record and no summary entry, which is a store whose summary entry
-    /// was deleted for good: every request is answered `503 stopped`, and the log names the stop
-    /// once for all of them.
+    /// its own work while requests arrive. The seeded authority's store has its summary entry
+    /// deleted for good before KeePass opens the file, with a deletion record as KeePass's own
+    /// delete and an emptied recycle bin leave it: every request is answered `503 stopped`, and
+    /// the log names the stop once for all of them.
     /// </remarks>
     [TestFixture]
     [Category(TestCategories.Live)]
@@ -41,12 +43,10 @@ namespace KeePassGate.Host.Tests.Live
 
             keePass.ChangeTheStore(database =>
             {
-                var key = StoreComposer.Key("live");
-                var group = new PwGroup(true, true, "KeePassGate", PwIcon.TerminalEncrypted);
-                database.RootGroup.AddGroup(group, true);
-                group.AddEntry(StoreEntries.Of(StoreComposer.Record(
-                    key, "authority", "authority:" + new string('a', 64),
-                    StoreComposer.Content(("id", new string('a', 64)), ("storeKey", StoreComposer.HexOf(key))))), true);
+                var head = database.RootGroup.GetEntries(true)
+                    .Single(entry => entry.Strings.ReadSafe(StoreFormat.KindField) == StoreKinds.Head);
+                head.ParentGroup.Entries.Remove(head);
+                database.DeletedObjects.Add(new PwDeletedObject(head.Uuid, DateTime.UtcNow));
             });
 
             using (var admitted = keePass.IssueClientCertificate("agent-fictitious"))

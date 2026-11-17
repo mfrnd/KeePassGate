@@ -7,6 +7,7 @@ using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
+using KeePassGate.Store;
 using KeePassGate.Ui;
 
 namespace KeePassGate.Bridge
@@ -372,7 +373,8 @@ namespace KeePassGate.Bridge
             _asking.Remove(database);
 
             string served;
-            using (var reading = new AuthorityStore(new CustomDataStore(database), _log).Read())
+            using (var reading = new AuthorityService(
+                       new KdbxStore(database, GateVersion.Current, _log), new CustomDataStore(database), _log).Read())
             {
                 if (reading.Presence == AuthorityPresence.Undecided)
                 {
@@ -511,13 +513,19 @@ namespace KeePassGate.Bridge
         {
             offered = null;
             var store = new CustomDataStore(database);
+            var authorities = new KdbxStore(database, GateVersion.Current, _log);
+
 
             AuthorityChoice choice;
-            using (var reading = new AuthorityStore(store, _log).Read())
+            StoreReading stored;
+            using (var reading = new AuthorityService(authorities, store, _log).Read(out stored))
+            using (stored)
             {
-                if (reading.Presence != AuthorityPresence.Undecided)
+                // Asked only of a store that is whole: several store keys are a store to keep, and
+                // a store that holds the gate back takes no answer, `STORE.md` §614. Decided since
+                // it was noticed is no question either, by the tab or by another save.
+                if (stored == null || stored.State != StoreState.Whole || reading.Presence != AuthorityPresence.Undecided)
                 {
-                    // Decided since it was noticed, by the tab or by another save.
                     return null;
                 }
 

@@ -1,0 +1,2655 @@
+{
+  "about": "The file after each act of two fixed sequences that the model plays, World.step and World.act of model/crdt_model.py of spikes/storage/probes/store-as-a-whole on spikes/storage-survival under the FLAGS of probe/bridge.py, the store as decided, written out as entries by store.py's Encoder as the family's runs write them, and read by read.py with its history rule on; made by vectors.py beside the probe and never from this side. Each sequence starts from the store the model's World starts with, given as start: the authority a0, the profile name pf, the admission of the client c0 under a0 with the profiles pf and pg, a version of the rule of the root granting read, and a summary entry of height 1, each under the key label K; the second sequence's two copies start as the same file. The first sequence raises the model's maxclients to 4, as growth.py raises it, so that three pairings fit beside c0. The first Create of the sequence asked for, on a database with no store, is not played. On a file with no store the model's Create writes its authority under a new key label, K and a number, while its pairing writes every admission under the label K whatever key the file holds; played from emptied files, every admission after that Create was under a key the file does not hold, passed over by read.py, and the revocation did not apply. The Create after Delete is played: it takes the key the retirement holds. Each step names the command, the model's act, the copy whose file follows, whether the act applied, the store keys of the records present, every record present and every deletion record in the file by identifier, kind, subject and number, the deletion records the step added, each summary entry present with its identifier, its height, the count of its after and its items, read.py's answer as the meanings file gives it, and the file itself. Synchronize is the model's kp_sync merge of copy 1 into copy 0, which writes copy 0 alone. The records hold v, the model's short names (a0, c1), nonces derived from the model's elements and store keys derived from its labels, so the product holds them by shape and by answer. What the model writes otherwise than STORE.md fixes: no version record at Create and no item format in any summary entry (650, 611); an authority holding id and storeKey alone (614); an admission without der, subject and admitted (615); a revocation that also holds certificate (615); and a retirement for keeping an authority that does not hold the store key (614).",
+  "sequences": {
+    "one copy": {
+      "start": {
+        "answer": {
+          "adm": {
+            "c0": [
+              "pf"
+            ]
+          },
+          "auths": [
+            "a0"
+          ],
+          "names": [
+            "pf"
+          ],
+          "refusals": [],
+          "served": "a0",
+          "status": "ok",
+          "valid": {
+            "c0": [
+              "pf"
+            ]
+          }
+        },
+        "copy": 0,
+        "deletions": [],
+        "file": {
+          "deletions": [],
+          "entries": {
+            "100a5ae2ed1d7eee000030714c86708e": {
+              "history": [],
+              "strings": {
+                "KPG.Data": "{\"id\":\"a0\",\"nonce\":\"4d938c5f2c8bcd279ebaa42e0cf6b2f5\",\"storeKey\":\"8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549\",\"v\":\"2\"}",
+                "KPG.Kind": "authority",
+                "KPG.Mac": "30714c86708e799b82b6662343acd17c634cefe77a40239ae75e5bceb4f07d0c"
+              }
+            },
+            "229364bac544227500001a9e5d31b850": {
+              "history": [],
+              "strings": {
+                "KPG.Data": "{\"after\":\"\",\"doc\":\"const:r\",\"nonce\":\"7b0069e19bde0e63cfb0f8979bb8fc5a\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"v\":\"2\"}",
+                "KPG.Kind": "version",
+                "KPG.Mac": "1a9e5d31b8509fa1f7a1ff6d1a87c36f9294e0823e400beea89a15883e0654e3"
+              }
+            },
+            "5e657a449dc56a4000010119dccca0c1": {
+              "history": [],
+              "strings": {
+                "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"d4d600551f8c7bec9262c1ad853fde9e\",\"v\":\"2\"}",
+                "KPG.Kind": "head",
+                "KPG.Mac": "0119dccca0c16c969bb6efa55c7de469bed5d91bf0a421214d6d35755f371cee",
+                "KPG.S.0001": "{\"after\":\"\",\"doc\":\"const:r\",\"id\":\"229364bac544227500001a9e5d31b850\",\"kind\":\"version\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}"
+              }
+            },
+            "835bd0b13a8535b000005535a3575c80": {
+              "history": [],
+              "strings": {
+                "KPG.Data": "{\"certificate\":\"c0\",\"client\":\"c0\",\"issuer\":\"a0\",\"nonce\":\"eb5410d0513601226cd886d783bb49c7\",\"profiles\":\"pf\",\"v\":\"2\"}",
+                "KPG.Kind": "client",
+                "KPG.Mac": "5535a3575c80a894221ac2bb6378555aaa9170c7180fc1ef5271eb5cc54352a7"
+              }
+            },
+            "a806c93eb3b7471b0000ba0aa6f61f34": {
+              "history": [],
+              "strings": {
+                "KPG.Data": "{\"after\":\"\",\"name\":\"pf\",\"nonce\":\"520382dffdfd83e13ad50c943a907045\",\"v\":\"2\"}",
+                "KPG.Kind": "profile",
+                "KPG.Mac": "ba0aa6f61f34c60803b9bf5d77d1621addaa1a8ef75e3af76736b21c2673e263"
+              }
+            }
+          }
+        },
+        "heads": [
+          {
+            "after": 0,
+            "height": 1,
+            "id": "5e657a449dc56a4000010119dccca0c1",
+            "items": [
+              {
+                "after": "",
+                "doc": "const:r",
+                "id": "229364bac544227500001a9e5d31b850",
+                "kind": "version",
+                "object": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ]
+          }
+        ],
+        "keys": [
+          "8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549"
+        ],
+        "present": [
+          {
+            "id": "100a5ae2ed1d7eee000030714c86708e",
+            "kind": "authority",
+            "number": 0,
+            "subject": "authority:a0"
+          },
+          {
+            "id": "835bd0b13a8535b000005535a3575c80",
+            "kind": "client",
+            "number": 0,
+            "subject": "client:c0"
+          },
+          {
+            "id": "5e657a449dc56a4000010119dccca0c1",
+            "kind": "head",
+            "number": 1,
+            "subject": "store"
+          },
+          {
+            "id": "a806c93eb3b7471b0000ba0aa6f61f34",
+            "kind": "profile",
+            "number": 0,
+            "subject": "profile:pf"
+          },
+          {
+            "id": "229364bac544227500001a9e5d31b850",
+            "kind": "version",
+            "number": 0,
+            "subject": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ]
+      },
+      "steps": [
+        {
+          "act": [
+            "pair",
+            0
+          ],
+          "answer": {
+            "adm": {
+              "c0": [
+                "pf"
+              ],
+              "c1": [
+                "pf"
+              ]
+            },
+            "auths": [
+              "a0"
+            ],
+            "names": [
+              "pf"
+            ],
+            "refusals": [],
+            "served": "a0",
+            "status": "ok",
+            "valid": {
+              "c0": [
+                "pf"
+              ],
+              "c1": [
+                "pf"
+              ]
+            }
+          },
+          "command": "Pair",
+          "copy": 0,
+          "deleted": [
+            {
+              "id": "5e657a449dc56a4000010119dccca0c1",
+              "kind": "head",
+              "number": 1,
+              "subject": "store"
+            }
+          ],
+          "deletions": [
+            {
+              "id": "5e657a449dc56a4000010119dccca0c1",
+              "kind": "head",
+              "number": 1,
+              "subject": "store"
+            }
+          ],
+          "file": {
+            "deletions": [
+              "5e657a449dc56a4000010119dccca0c1"
+            ],
+            "entries": {
+              "100a5ae2ed1d7eee000030714c86708e": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"id\":\"a0\",\"nonce\":\"4d938c5f2c8bcd279ebaa42e0cf6b2f5\",\"storeKey\":\"8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549\",\"v\":\"2\"}",
+                  "KPG.Kind": "authority",
+                  "KPG.Mac": "30714c86708e799b82b6662343acd17c634cefe77a40239ae75e5bceb4f07d0c"
+                }
+              },
+              "229364bac544227500001a9e5d31b850": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"doc\":\"const:r\",\"nonce\":\"7b0069e19bde0e63cfb0f8979bb8fc5a\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"v\":\"2\"}",
+                  "KPG.Kind": "version",
+                  "KPG.Mac": "1a9e5d31b8509fa1f7a1ff6d1a87c36f9294e0823e400beea89a15883e0654e3"
+                }
+              },
+              "5e657a449dc56a4000027d7540179cf6": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"5e657a449dc56a4000010119dccca0c1\",\"height\":\"2\",\"nonce\":\"ce7a1722dc0885fd5b1f99f9beaad57a\",\"v\":\"2\"}",
+                  "KPG.Kind": "head",
+                  "KPG.Mac": "7d7540179cf69fd51ef290cc8f7c4964ae65a33220987c3fc34476a391ab50dd",
+                  "KPG.S.0001": "{\"after\":\"\",\"doc\":\"const:r\",\"id\":\"229364bac544227500001a9e5d31b850\",\"kind\":\"version\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}"
+                }
+              },
+              "835bd04ae974b03d0000df6923328bdb": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"certificate\":\"c1\",\"client\":\"c1\",\"issuer\":\"a0\",\"nonce\":\"b8b24e30420dc9a0b2026432d032fcbd\",\"profiles\":\"pf pg\",\"v\":\"2\"}",
+                  "KPG.Kind": "client",
+                  "KPG.Mac": "df6923328bdb868de4cd51404e6d6af623d076b8dd08767474119c07ac5305bb"
+                }
+              },
+              "835bd0b13a8535b000005535a3575c80": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"certificate\":\"c0\",\"client\":\"c0\",\"issuer\":\"a0\",\"nonce\":\"eb5410d0513601226cd886d783bb49c7\",\"profiles\":\"pf\",\"v\":\"2\"}",
+                  "KPG.Kind": "client",
+                  "KPG.Mac": "5535a3575c80a894221ac2bb6378555aaa9170c7180fc1ef5271eb5cc54352a7"
+                }
+              },
+              "a806c93eb3b7471b0000ba0aa6f61f34": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"name\":\"pf\",\"nonce\":\"520382dffdfd83e13ad50c943a907045\",\"v\":\"2\"}",
+                  "KPG.Kind": "profile",
+                  "KPG.Mac": "ba0aa6f61f34c60803b9bf5d77d1621addaa1a8ef75e3af76736b21c2673e263"
+                }
+              }
+            }
+          },
+          "heads": [
+            {
+              "after": 1,
+              "height": 2,
+              "id": "5e657a449dc56a4000027d7540179cf6",
+              "items": [
+                {
+                  "after": "",
+                  "doc": "const:r",
+                  "id": "229364bac544227500001a9e5d31b850",
+                  "kind": "version",
+                  "object": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                }
+              ]
+            }
+          ],
+          "keys": [
+            "8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549"
+          ],
+          "played": true,
+          "present": [
+            {
+              "id": "100a5ae2ed1d7eee000030714c86708e",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "835bd0b13a8535b000005535a3575c80",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c0"
+            },
+            {
+              "id": "835bd04ae974b03d0000df6923328bdb",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c1"
+            },
+            {
+              "id": "5e657a449dc56a4000027d7540179cf6",
+              "kind": "head",
+              "number": 2,
+              "subject": "store"
+            },
+            {
+              "id": "a806c93eb3b7471b0000ba0aa6f61f34",
+              "kind": "profile",
+              "number": 0,
+              "subject": "profile:pf"
+            },
+            {
+              "id": "229364bac544227500001a9e5d31b850",
+              "kind": "version",
+              "number": 0,
+              "subject": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "act": [
+            "pair",
+            0
+          ],
+          "answer": {
+            "adm": {
+              "c0": [
+                "pf"
+              ],
+              "c1": [
+                "pf"
+              ],
+              "c2": [
+                "pf"
+              ]
+            },
+            "auths": [
+              "a0"
+            ],
+            "names": [
+              "pf"
+            ],
+            "refusals": [],
+            "served": "a0",
+            "status": "ok",
+            "valid": {
+              "c0": [
+                "pf"
+              ],
+              "c1": [
+                "pf"
+              ],
+              "c2": [
+                "pf"
+              ]
+            }
+          },
+          "command": "Pair",
+          "copy": 0,
+          "deleted": [
+            {
+              "id": "5e657a449dc56a4000027d7540179cf6",
+              "kind": "head",
+              "number": 2,
+              "subject": "store"
+            }
+          ],
+          "deletions": [
+            {
+              "id": "5e657a449dc56a4000010119dccca0c1",
+              "kind": "head",
+              "number": 1,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a4000027d7540179cf6",
+              "kind": "head",
+              "number": 2,
+              "subject": "store"
+            }
+          ],
+          "file": {
+            "deletions": [
+              "5e657a449dc56a4000010119dccca0c1",
+              "5e657a449dc56a4000027d7540179cf6"
+            ],
+            "entries": {
+              "100a5ae2ed1d7eee000030714c86708e": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"id\":\"a0\",\"nonce\":\"4d938c5f2c8bcd279ebaa42e0cf6b2f5\",\"storeKey\":\"8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549\",\"v\":\"2\"}",
+                  "KPG.Kind": "authority",
+                  "KPG.Mac": "30714c86708e799b82b6662343acd17c634cefe77a40239ae75e5bceb4f07d0c"
+                }
+              },
+              "229364bac544227500001a9e5d31b850": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"doc\":\"const:r\",\"nonce\":\"7b0069e19bde0e63cfb0f8979bb8fc5a\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"v\":\"2\"}",
+                  "KPG.Kind": "version",
+                  "KPG.Mac": "1a9e5d31b8509fa1f7a1ff6d1a87c36f9294e0823e400beea89a15883e0654e3"
+                }
+              },
+              "5e657a449dc56a400003081231d1447f": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"5e657a449dc56a4000010119dccca0c1 5e657a449dc56a4000027d7540179cf6\",\"height\":\"3\",\"nonce\":\"636afb156f2abb414febd3e71cee990f\",\"v\":\"2\"}",
+                  "KPG.Kind": "head",
+                  "KPG.Mac": "081231d1447fa0d43c09694ae745a764d6df349cb0756f1d3341422f37df1362",
+                  "KPG.S.0001": "{\"after\":\"\",\"doc\":\"const:r\",\"id\":\"229364bac544227500001a9e5d31b850\",\"kind\":\"version\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}"
+                }
+              },
+              "835bd04ae974b03d0000df6923328bdb": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"certificate\":\"c1\",\"client\":\"c1\",\"issuer\":\"a0\",\"nonce\":\"b8b24e30420dc9a0b2026432d032fcbd\",\"profiles\":\"pf pg\",\"v\":\"2\"}",
+                  "KPG.Kind": "client",
+                  "KPG.Mac": "df6923328bdb868de4cd51404e6d6af623d076b8dd08767474119c07ac5305bb"
+                }
+              },
+              "835bd059d0c9ff2300000860be72663c": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"certificate\":\"c2\",\"client\":\"c2\",\"issuer\":\"a0\",\"nonce\":\"7ab3513f9458b6dc178fc9d19edb46cf\",\"profiles\":\"pf pg\",\"v\":\"2\"}",
+                  "KPG.Kind": "client",
+                  "KPG.Mac": "0860be72663c72ec33c207839f316504f40f8ad674f6a65556cc76988b67c888"
+                }
+              },
+              "835bd0b13a8535b000005535a3575c80": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"certificate\":\"c0\",\"client\":\"c0\",\"issuer\":\"a0\",\"nonce\":\"eb5410d0513601226cd886d783bb49c7\",\"profiles\":\"pf\",\"v\":\"2\"}",
+                  "KPG.Kind": "client",
+                  "KPG.Mac": "5535a3575c80a894221ac2bb6378555aaa9170c7180fc1ef5271eb5cc54352a7"
+                }
+              },
+              "a806c93eb3b7471b0000ba0aa6f61f34": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"name\":\"pf\",\"nonce\":\"520382dffdfd83e13ad50c943a907045\",\"v\":\"2\"}",
+                  "KPG.Kind": "profile",
+                  "KPG.Mac": "ba0aa6f61f34c60803b9bf5d77d1621addaa1a8ef75e3af76736b21c2673e263"
+                }
+              }
+            }
+          },
+          "heads": [
+            {
+              "after": 2,
+              "height": 3,
+              "id": "5e657a449dc56a400003081231d1447f",
+              "items": [
+                {
+                  "after": "",
+                  "doc": "const:r",
+                  "id": "229364bac544227500001a9e5d31b850",
+                  "kind": "version",
+                  "object": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                }
+              ]
+            }
+          ],
+          "keys": [
+            "8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549"
+          ],
+          "played": true,
+          "present": [
+            {
+              "id": "100a5ae2ed1d7eee000030714c86708e",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "835bd0b13a8535b000005535a3575c80",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c0"
+            },
+            {
+              "id": "835bd04ae974b03d0000df6923328bdb",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c1"
+            },
+            {
+              "id": "835bd059d0c9ff2300000860be72663c",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c2"
+            },
+            {
+              "id": "5e657a449dc56a400003081231d1447f",
+              "kind": "head",
+              "number": 3,
+              "subject": "store"
+            },
+            {
+              "id": "a806c93eb3b7471b0000ba0aa6f61f34",
+              "kind": "profile",
+              "number": 0,
+              "subject": "profile:pf"
+            },
+            {
+              "id": "229364bac544227500001a9e5d31b850",
+              "kind": "version",
+              "number": 0,
+              "subject": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "act": [
+            "revoke",
+            0,
+            "c1"
+          ],
+          "answer": {
+            "adm": {
+              "c0": [
+                "pf"
+              ],
+              "c2": [
+                "pf"
+              ]
+            },
+            "auths": [
+              "a0"
+            ],
+            "names": [
+              "pf"
+            ],
+            "refusals": [
+              [
+                "revoked",
+                "c1"
+              ]
+            ],
+            "served": "a0",
+            "status": "ok",
+            "valid": {
+              "c0": [
+                "pf"
+              ],
+              "c2": [
+                "pf"
+              ]
+            }
+          },
+          "command": "Revoke",
+          "copy": 0,
+          "deleted": [
+            {
+              "id": "835bd04ae974b03d0000df6923328bdb",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c1"
+            },
+            {
+              "id": "5e657a449dc56a400003081231d1447f",
+              "kind": "head",
+              "number": 3,
+              "subject": "store"
+            }
+          ],
+          "deletions": [
+            {
+              "id": "835bd04ae974b03d0000df6923328bdb",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c1"
+            },
+            {
+              "id": "5e657a449dc56a4000010119dccca0c1",
+              "kind": "head",
+              "number": 1,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a4000027d7540179cf6",
+              "kind": "head",
+              "number": 2,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a400003081231d1447f",
+              "kind": "head",
+              "number": 3,
+              "subject": "store"
+            }
+          ],
+          "file": {
+            "deletions": [
+              "5e657a449dc56a4000010119dccca0c1",
+              "5e657a449dc56a4000027d7540179cf6",
+              "5e657a449dc56a400003081231d1447f",
+              "835bd04ae974b03d0000df6923328bdb"
+            ],
+            "entries": {
+              "100a5ae2ed1d7eee000030714c86708e": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"id\":\"a0\",\"nonce\":\"4d938c5f2c8bcd279ebaa42e0cf6b2f5\",\"storeKey\":\"8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549\",\"v\":\"2\"}",
+                  "KPG.Kind": "authority",
+                  "KPG.Mac": "30714c86708e799b82b6662343acd17c634cefe77a40239ae75e5bceb4f07d0c"
+                }
+              },
+              "229364bac544227500001a9e5d31b850": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"doc\":\"const:r\",\"nonce\":\"7b0069e19bde0e63cfb0f8979bb8fc5a\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"v\":\"2\"}",
+                  "KPG.Kind": "version",
+                  "KPG.Mac": "1a9e5d31b8509fa1f7a1ff6d1a87c36f9294e0823e400beea89a15883e0654e3"
+                }
+              },
+              "5b6f754ae974b03d000095a8167501bf": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"certificate\":\"c1\",\"client\":\"c1\",\"nonce\":\"1562427a8fb92869f3ddc59c629fccdf\",\"v\":\"2\"}",
+                  "KPG.Kind": "revoked",
+                  "KPG.Mac": "95a8167501bff9f643da1dab8beee3835e045f01c97c9e28bde595daf01cfdaf"
+                }
+              },
+              "5e657a449dc56a4000048ae88a626eff": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"5e657a449dc56a4000010119dccca0c1 5e657a449dc56a4000027d7540179cf6 5e657a449dc56a400003081231d1447f\",\"height\":\"4\",\"nonce\":\"47dd8eff16ca68d50fef232023f11155\",\"v\":\"2\"}",
+                  "KPG.Kind": "head",
+                  "KPG.Mac": "8ae88a626eff3fe14009792c54de25acd81684a3fe7ed0e7bf04b144708e3f6a",
+                  "KPG.S.0001": "{\"after\":\"\",\"doc\":\"const:r\",\"id\":\"229364bac544227500001a9e5d31b850\",\"kind\":\"version\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+                  "KPG.S.0002": "{\"client\":\"c1\",\"kind\":\"revoked\"}"
+                }
+              },
+              "835bd059d0c9ff2300000860be72663c": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"certificate\":\"c2\",\"client\":\"c2\",\"issuer\":\"a0\",\"nonce\":\"7ab3513f9458b6dc178fc9d19edb46cf\",\"profiles\":\"pf pg\",\"v\":\"2\"}",
+                  "KPG.Kind": "client",
+                  "KPG.Mac": "0860be72663c72ec33c207839f316504f40f8ad674f6a65556cc76988b67c888"
+                }
+              },
+              "835bd0b13a8535b000005535a3575c80": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"certificate\":\"c0\",\"client\":\"c0\",\"issuer\":\"a0\",\"nonce\":\"eb5410d0513601226cd886d783bb49c7\",\"profiles\":\"pf\",\"v\":\"2\"}",
+                  "KPG.Kind": "client",
+                  "KPG.Mac": "5535a3575c80a894221ac2bb6378555aaa9170c7180fc1ef5271eb5cc54352a7"
+                }
+              },
+              "a806c93eb3b7471b0000ba0aa6f61f34": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"name\":\"pf\",\"nonce\":\"520382dffdfd83e13ad50c943a907045\",\"v\":\"2\"}",
+                  "KPG.Kind": "profile",
+                  "KPG.Mac": "ba0aa6f61f34c60803b9bf5d77d1621addaa1a8ef75e3af76736b21c2673e263"
+                }
+              }
+            }
+          },
+          "heads": [
+            {
+              "after": 3,
+              "height": 4,
+              "id": "5e657a449dc56a4000048ae88a626eff",
+              "items": [
+                {
+                  "after": "",
+                  "doc": "const:r",
+                  "id": "229364bac544227500001a9e5d31b850",
+                  "kind": "version",
+                  "object": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "client": "c1",
+                  "kind": "revoked"
+                }
+              ]
+            }
+          ],
+          "keys": [
+            "8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549"
+          ],
+          "played": true,
+          "present": [
+            {
+              "id": "100a5ae2ed1d7eee000030714c86708e",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "835bd0b13a8535b000005535a3575c80",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c0"
+            },
+            {
+              "id": "835bd059d0c9ff2300000860be72663c",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c2"
+            },
+            {
+              "id": "5e657a449dc56a4000048ae88a626eff",
+              "kind": "head",
+              "number": 4,
+              "subject": "store"
+            },
+            {
+              "id": "a806c93eb3b7471b0000ba0aa6f61f34",
+              "kind": "profile",
+              "number": 0,
+              "subject": "profile:pf"
+            },
+            {
+              "id": "5b6f754ae974b03d000095a8167501bf",
+              "kind": "revoked",
+              "number": 0,
+              "subject": "client:c1"
+            },
+            {
+              "id": "229364bac544227500001a9e5d31b850",
+              "kind": "version",
+              "number": 0,
+              "subject": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "act": [
+            "recreate",
+            0
+          ],
+          "answer": {
+            "adm": {},
+            "auths": [
+              "a9"
+            ],
+            "names": [
+              "pf"
+            ],
+            "refusals": [
+              [
+                "retired",
+                "a0"
+              ],
+              [
+                "revoked",
+                "c1"
+              ]
+            ],
+            "served": "a9",
+            "status": "ok",
+            "valid": {}
+          },
+          "command": "Recreate",
+          "copy": 0,
+          "deleted": [
+            {
+              "id": "100a5ae2ed1d7eee000030714c86708e",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "835bd0b13a8535b000005535a3575c80",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c0"
+            },
+            {
+              "id": "835bd059d0c9ff2300000860be72663c",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c2"
+            },
+            {
+              "id": "5e657a449dc56a4000048ae88a626eff",
+              "kind": "head",
+              "number": 4,
+              "subject": "store"
+            }
+          ],
+          "deletions": [
+            {
+              "id": "100a5ae2ed1d7eee000030714c86708e",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "835bd0b13a8535b000005535a3575c80",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c0"
+            },
+            {
+              "id": "835bd04ae974b03d0000df6923328bdb",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c1"
+            },
+            {
+              "id": "835bd059d0c9ff2300000860be72663c",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c2"
+            },
+            {
+              "id": "5e657a449dc56a4000010119dccca0c1",
+              "kind": "head",
+              "number": 1,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a4000027d7540179cf6",
+              "kind": "head",
+              "number": 2,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a400003081231d1447f",
+              "kind": "head",
+              "number": 3,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a4000048ae88a626eff",
+              "kind": "head",
+              "number": 4,
+              "subject": "store"
+            }
+          ],
+          "file": {
+            "deletions": [
+              "100a5ae2ed1d7eee000030714c86708e",
+              "5e657a449dc56a4000010119dccca0c1",
+              "5e657a449dc56a4000027d7540179cf6",
+              "5e657a449dc56a400003081231d1447f",
+              "5e657a449dc56a4000048ae88a626eff",
+              "835bd04ae974b03d0000df6923328bdb",
+              "835bd059d0c9ff2300000860be72663c",
+              "835bd0b13a8535b000005535a3575c80"
+            ],
+            "entries": {
+              "100a5a65fb1a55870000fbd1b1cece08": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"id\":\"a9\",\"nonce\":\"dda788dbf3a89cf01596d56b9feb6cbd\",\"storeKey\":\"8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549\",\"v\":\"2\"}",
+                  "KPG.Kind": "authority",
+                  "KPG.Mac": "fbd1b1cece081fe26a9ec96804f04fd05bad06608be031ae131ad3c247f15363"
+                }
+              },
+              "229364bac544227500001a9e5d31b850": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"doc\":\"const:r\",\"nonce\":\"7b0069e19bde0e63cfb0f8979bb8fc5a\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"v\":\"2\"}",
+                  "KPG.Kind": "version",
+                  "KPG.Mac": "1a9e5d31b8509fa1f7a1ff6d1a87c36f9294e0823e400beea89a15883e0654e3"
+                }
+              },
+              "5b6f754ae974b03d000095a8167501bf": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"certificate\":\"c1\",\"client\":\"c1\",\"nonce\":\"1562427a8fb92869f3ddc59c629fccdf\",\"v\":\"2\"}",
+                  "KPG.Kind": "revoked",
+                  "KPG.Mac": "95a8167501bff9f643da1dab8beee3835e045f01c97c9e28bde595daf01cfdaf"
+                }
+              },
+              "5e657a449dc56a40000592b4d7459e08": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"5e657a449dc56a4000010119dccca0c1 5e657a449dc56a4000027d7540179cf6 5e657a449dc56a400003081231d1447f 5e657a449dc56a4000048ae88a626eff\",\"height\":\"5\",\"nonce\":\"0b75268b637f01b235e44a07f0a9cb7e\",\"v\":\"2\"}",
+                  "KPG.Kind": "head",
+                  "KPG.Mac": "92b4d7459e08d9903f2473b4b223a69a4898f60653037ab56829a115a163cfec",
+                  "KPG.S.0001": "{\"after\":\"\",\"doc\":\"const:r\",\"id\":\"229364bac544227500001a9e5d31b850\",\"kind\":\"version\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+                  "KPG.S.0002": "{\"authority\":\"a0\",\"kind\":\"retired\"}",
+                  "KPG.S.0003": "{\"client\":\"c1\",\"kind\":\"revoked\"}"
+                }
+              },
+              "a806c93eb3b7471b0000ba0aa6f61f34": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"name\":\"pf\",\"nonce\":\"520382dffdfd83e13ad50c943a907045\",\"v\":\"2\"}",
+                  "KPG.Kind": "profile",
+                  "KPG.Mac": "ba0aa6f61f34c60803b9bf5d77d1621addaa1a8ef75e3af76736b21c2673e263"
+                }
+              },
+              "b2140ee2ed1d7eee0000684a754e780d": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"authority\":\"a0\",\"nonce\":\"e0ab8c4a75f85073d34713f6bbc0c36b\",\"v\":\"2\"}",
+                  "KPG.Kind": "retired",
+                  "KPG.Mac": "684a754e780d1071af81dd8aaa99a0cef5c9a3e79519405b21c204cc344d35fb"
+                }
+              }
+            }
+          },
+          "heads": [
+            {
+              "after": 4,
+              "height": 5,
+              "id": "5e657a449dc56a40000592b4d7459e08",
+              "items": [
+                {
+                  "after": "",
+                  "doc": "const:r",
+                  "id": "229364bac544227500001a9e5d31b850",
+                  "kind": "version",
+                  "object": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "authority": "a0",
+                  "kind": "retired"
+                },
+                {
+                  "client": "c1",
+                  "kind": "revoked"
+                }
+              ]
+            }
+          ],
+          "keys": [
+            "8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549"
+          ],
+          "played": true,
+          "present": [
+            {
+              "id": "100a5a65fb1a55870000fbd1b1cece08",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a9"
+            },
+            {
+              "id": "5e657a449dc56a40000592b4d7459e08",
+              "kind": "head",
+              "number": 5,
+              "subject": "store"
+            },
+            {
+              "id": "a806c93eb3b7471b0000ba0aa6f61f34",
+              "kind": "profile",
+              "number": 0,
+              "subject": "profile:pf"
+            },
+            {
+              "id": "b2140ee2ed1d7eee0000684a754e780d",
+              "kind": "retired",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "5b6f754ae974b03d000095a8167501bf",
+              "kind": "revoked",
+              "number": 0,
+              "subject": "client:c1"
+            },
+            {
+              "id": "229364bac544227500001a9e5d31b850",
+              "kind": "version",
+              "number": 0,
+              "subject": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "act": [
+            "pair",
+            0
+          ],
+          "answer": {
+            "adm": {
+              "c3": [
+                "pf"
+              ]
+            },
+            "auths": [
+              "a9"
+            ],
+            "names": [
+              "pf"
+            ],
+            "refusals": [
+              [
+                "retired",
+                "a0"
+              ],
+              [
+                "revoked",
+                "c1"
+              ]
+            ],
+            "served": "a9",
+            "status": "ok",
+            "valid": {
+              "c3": [
+                "pf"
+              ]
+            }
+          },
+          "command": "Pair",
+          "copy": 0,
+          "deleted": [
+            {
+              "id": "5e657a449dc56a40000592b4d7459e08",
+              "kind": "head",
+              "number": 5,
+              "subject": "store"
+            }
+          ],
+          "deletions": [
+            {
+              "id": "100a5ae2ed1d7eee000030714c86708e",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "835bd0b13a8535b000005535a3575c80",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c0"
+            },
+            {
+              "id": "835bd04ae974b03d0000df6923328bdb",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c1"
+            },
+            {
+              "id": "835bd059d0c9ff2300000860be72663c",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c2"
+            },
+            {
+              "id": "5e657a449dc56a4000010119dccca0c1",
+              "kind": "head",
+              "number": 1,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a4000027d7540179cf6",
+              "kind": "head",
+              "number": 2,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a400003081231d1447f",
+              "kind": "head",
+              "number": 3,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a4000048ae88a626eff",
+              "kind": "head",
+              "number": 4,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a40000592b4d7459e08",
+              "kind": "head",
+              "number": 5,
+              "subject": "store"
+            }
+          ],
+          "file": {
+            "deletions": [
+              "100a5ae2ed1d7eee000030714c86708e",
+              "5e657a449dc56a4000010119dccca0c1",
+              "5e657a449dc56a4000027d7540179cf6",
+              "5e657a449dc56a400003081231d1447f",
+              "5e657a449dc56a4000048ae88a626eff",
+              "5e657a449dc56a40000592b4d7459e08",
+              "835bd04ae974b03d0000df6923328bdb",
+              "835bd059d0c9ff2300000860be72663c",
+              "835bd0b13a8535b000005535a3575c80"
+            ],
+            "entries": {
+              "100a5a65fb1a55870000fbd1b1cece08": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"id\":\"a9\",\"nonce\":\"dda788dbf3a89cf01596d56b9feb6cbd\",\"storeKey\":\"8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549\",\"v\":\"2\"}",
+                  "KPG.Kind": "authority",
+                  "KPG.Mac": "fbd1b1cece081fe26a9ec96804f04fd05bad06608be031ae131ad3c247f15363"
+                }
+              },
+              "229364bac544227500001a9e5d31b850": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"doc\":\"const:r\",\"nonce\":\"7b0069e19bde0e63cfb0f8979bb8fc5a\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"v\":\"2\"}",
+                  "KPG.Kind": "version",
+                  "KPG.Mac": "1a9e5d31b8509fa1f7a1ff6d1a87c36f9294e0823e400beea89a15883e0654e3"
+                }
+              },
+              "5b6f754ae974b03d000095a8167501bf": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"certificate\":\"c1\",\"client\":\"c1\",\"nonce\":\"1562427a8fb92869f3ddc59c629fccdf\",\"v\":\"2\"}",
+                  "KPG.Kind": "revoked",
+                  "KPG.Mac": "95a8167501bff9f643da1dab8beee3835e045f01c97c9e28bde595daf01cfdaf"
+                }
+              },
+              "5e657a449dc56a400006f8128bc3d87f": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"5e657a449dc56a4000010119dccca0c1 5e657a449dc56a4000027d7540179cf6 5e657a449dc56a400003081231d1447f 5e657a449dc56a4000048ae88a626eff 5e657a449dc56a40000592b4d7459e08\",\"height\":\"6\",\"nonce\":\"a8f84728af202a63c74f7049c1974982\",\"v\":\"2\"}",
+                  "KPG.Kind": "head",
+                  "KPG.Mac": "f8128bc3d87feb8856f869f750f2379acb7a7d0dabff1d9c212300b4a6e10889",
+                  "KPG.S.0001": "{\"after\":\"\",\"doc\":\"const:r\",\"id\":\"229364bac544227500001a9e5d31b850\",\"kind\":\"version\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+                  "KPG.S.0002": "{\"authority\":\"a0\",\"kind\":\"retired\"}",
+                  "KPG.S.0003": "{\"client\":\"c1\",\"kind\":\"revoked\"}"
+                }
+              },
+              "835bd0993a394aae000075999d633880": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"certificate\":\"c3\",\"client\":\"c3\",\"issuer\":\"a9\",\"nonce\":\"ade3a852742ffb0f6ead0f5df0e0bb3b\",\"profiles\":\"pf pg\",\"v\":\"2\"}",
+                  "KPG.Kind": "client",
+                  "KPG.Mac": "75999d633880c9de4f4c2b83c4d55885bd0c8b360eb5bac3ffa1d8f5adcefb77"
+                }
+              },
+              "a806c93eb3b7471b0000ba0aa6f61f34": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"name\":\"pf\",\"nonce\":\"520382dffdfd83e13ad50c943a907045\",\"v\":\"2\"}",
+                  "KPG.Kind": "profile",
+                  "KPG.Mac": "ba0aa6f61f34c60803b9bf5d77d1621addaa1a8ef75e3af76736b21c2673e263"
+                }
+              },
+              "b2140ee2ed1d7eee0000684a754e780d": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"authority\":\"a0\",\"nonce\":\"e0ab8c4a75f85073d34713f6bbc0c36b\",\"v\":\"2\"}",
+                  "KPG.Kind": "retired",
+                  "KPG.Mac": "684a754e780d1071af81dd8aaa99a0cef5c9a3e79519405b21c204cc344d35fb"
+                }
+              }
+            }
+          },
+          "heads": [
+            {
+              "after": 5,
+              "height": 6,
+              "id": "5e657a449dc56a400006f8128bc3d87f",
+              "items": [
+                {
+                  "after": "",
+                  "doc": "const:r",
+                  "id": "229364bac544227500001a9e5d31b850",
+                  "kind": "version",
+                  "object": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "authority": "a0",
+                  "kind": "retired"
+                },
+                {
+                  "client": "c1",
+                  "kind": "revoked"
+                }
+              ]
+            }
+          ],
+          "keys": [
+            "8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549"
+          ],
+          "played": true,
+          "present": [
+            {
+              "id": "100a5a65fb1a55870000fbd1b1cece08",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a9"
+            },
+            {
+              "id": "835bd0993a394aae000075999d633880",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c3"
+            },
+            {
+              "id": "5e657a449dc56a400006f8128bc3d87f",
+              "kind": "head",
+              "number": 6,
+              "subject": "store"
+            },
+            {
+              "id": "a806c93eb3b7471b0000ba0aa6f61f34",
+              "kind": "profile",
+              "number": 0,
+              "subject": "profile:pf"
+            },
+            {
+              "id": "b2140ee2ed1d7eee0000684a754e780d",
+              "kind": "retired",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "5b6f754ae974b03d000095a8167501bf",
+              "kind": "revoked",
+              "number": 0,
+              "subject": "client:c1"
+            },
+            {
+              "id": "229364bac544227500001a9e5d31b850",
+              "kind": "version",
+              "number": 0,
+              "subject": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "act": [
+            "delauth",
+            0
+          ],
+          "answer": {
+            "adm": {},
+            "auths": [],
+            "names": [
+              "pf"
+            ],
+            "refusals": [
+              [
+                "retired",
+                "a0"
+              ],
+              [
+                "retired",
+                "a9"
+              ],
+              [
+                "revoked",
+                "c1"
+              ]
+            ],
+            "served": null,
+            "status": "ok",
+            "valid": {}
+          },
+          "command": "Delete",
+          "copy": 0,
+          "deleted": [
+            {
+              "id": "100a5a65fb1a55870000fbd1b1cece08",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a9"
+            },
+            {
+              "id": "835bd0993a394aae000075999d633880",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c3"
+            },
+            {
+              "id": "5e657a449dc56a400006f8128bc3d87f",
+              "kind": "head",
+              "number": 6,
+              "subject": "store"
+            }
+          ],
+          "deletions": [
+            {
+              "id": "100a5ae2ed1d7eee000030714c86708e",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "100a5a65fb1a55870000fbd1b1cece08",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a9"
+            },
+            {
+              "id": "835bd0b13a8535b000005535a3575c80",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c0"
+            },
+            {
+              "id": "835bd04ae974b03d0000df6923328bdb",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c1"
+            },
+            {
+              "id": "835bd059d0c9ff2300000860be72663c",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c2"
+            },
+            {
+              "id": "835bd0993a394aae000075999d633880",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c3"
+            },
+            {
+              "id": "5e657a449dc56a4000010119dccca0c1",
+              "kind": "head",
+              "number": 1,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a4000027d7540179cf6",
+              "kind": "head",
+              "number": 2,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a400003081231d1447f",
+              "kind": "head",
+              "number": 3,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a4000048ae88a626eff",
+              "kind": "head",
+              "number": 4,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a40000592b4d7459e08",
+              "kind": "head",
+              "number": 5,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a400006f8128bc3d87f",
+              "kind": "head",
+              "number": 6,
+              "subject": "store"
+            }
+          ],
+          "file": {
+            "deletions": [
+              "100a5a65fb1a55870000fbd1b1cece08",
+              "100a5ae2ed1d7eee000030714c86708e",
+              "5e657a449dc56a4000010119dccca0c1",
+              "5e657a449dc56a4000027d7540179cf6",
+              "5e657a449dc56a400003081231d1447f",
+              "5e657a449dc56a4000048ae88a626eff",
+              "5e657a449dc56a40000592b4d7459e08",
+              "5e657a449dc56a400006f8128bc3d87f",
+              "835bd04ae974b03d0000df6923328bdb",
+              "835bd059d0c9ff2300000860be72663c",
+              "835bd0993a394aae000075999d633880",
+              "835bd0b13a8535b000005535a3575c80"
+            ],
+            "entries": {
+              "229364bac544227500001a9e5d31b850": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"doc\":\"const:r\",\"nonce\":\"7b0069e19bde0e63cfb0f8979bb8fc5a\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"v\":\"2\"}",
+                  "KPG.Kind": "version",
+                  "KPG.Mac": "1a9e5d31b8509fa1f7a1ff6d1a87c36f9294e0823e400beea89a15883e0654e3"
+                }
+              },
+              "5b6f754ae974b03d000095a8167501bf": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"certificate\":\"c1\",\"client\":\"c1\",\"nonce\":\"1562427a8fb92869f3ddc59c629fccdf\",\"v\":\"2\"}",
+                  "KPG.Kind": "revoked",
+                  "KPG.Mac": "95a8167501bff9f643da1dab8beee3835e045f01c97c9e28bde595daf01cfdaf"
+                }
+              },
+              "5e657a449dc56a400007b4e72ab6ef8b": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"5e657a449dc56a4000010119dccca0c1 5e657a449dc56a4000027d7540179cf6 5e657a449dc56a400003081231d1447f 5e657a449dc56a4000048ae88a626eff 5e657a449dc56a40000592b4d7459e08 5e657a449dc56a400006f8128bc3d87f\",\"height\":\"7\",\"nonce\":\"f130c0a2f6dfa3df05b21b03c808874e\",\"v\":\"2\"}",
+                  "KPG.Kind": "head",
+                  "KPG.Mac": "b4e72ab6ef8b4bb6af2883e336b8c17ffa2519dbde13dd26f9f27295d8b593e7",
+                  "KPG.S.0001": "{\"after\":\"\",\"doc\":\"const:r\",\"id\":\"229364bac544227500001a9e5d31b850\",\"kind\":\"version\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+                  "KPG.S.0002": "{\"authority\":\"a0\",\"kind\":\"retired\"}",
+                  "KPG.S.0003": "{\"authority\":\"a9\",\"kind\":\"retired\"}",
+                  "KPG.S.0004": "{\"client\":\"c1\",\"kind\":\"revoked\"}"
+                }
+              },
+              "a806c93eb3b7471b0000ba0aa6f61f34": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"name\":\"pf\",\"nonce\":\"520382dffdfd83e13ad50c943a907045\",\"v\":\"2\"}",
+                  "KPG.Kind": "profile",
+                  "KPG.Mac": "ba0aa6f61f34c60803b9bf5d77d1621addaa1a8ef75e3af76736b21c2673e263"
+                }
+              },
+              "b2140e65fb1a55870000c261a4a5b776": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"authority\":\"a9\",\"nonce\":\"52a08338698ade12c9ea96d4c5b641d2\",\"storeKey\":\"8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549\",\"v\":\"2\"}",
+                  "KPG.Kind": "retired",
+                  "KPG.Mac": "c261a4a5b77629f2c849be6545f787245ad2a9b2a86aa19c735c8a49d32517aa"
+                }
+              },
+              "b2140ee2ed1d7eee0000684a754e780d": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"authority\":\"a0\",\"nonce\":\"e0ab8c4a75f85073d34713f6bbc0c36b\",\"v\":\"2\"}",
+                  "KPG.Kind": "retired",
+                  "KPG.Mac": "684a754e780d1071af81dd8aaa99a0cef5c9a3e79519405b21c204cc344d35fb"
+                }
+              }
+            }
+          },
+          "heads": [
+            {
+              "after": 6,
+              "height": 7,
+              "id": "5e657a449dc56a400007b4e72ab6ef8b",
+              "items": [
+                {
+                  "after": "",
+                  "doc": "const:r",
+                  "id": "229364bac544227500001a9e5d31b850",
+                  "kind": "version",
+                  "object": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "authority": "a0",
+                  "kind": "retired"
+                },
+                {
+                  "authority": "a9",
+                  "kind": "retired"
+                },
+                {
+                  "client": "c1",
+                  "kind": "revoked"
+                }
+              ]
+            }
+          ],
+          "keys": [
+            "8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549"
+          ],
+          "played": true,
+          "present": [
+            {
+              "id": "5e657a449dc56a400007b4e72ab6ef8b",
+              "kind": "head",
+              "number": 7,
+              "subject": "store"
+            },
+            {
+              "id": "a806c93eb3b7471b0000ba0aa6f61f34",
+              "kind": "profile",
+              "number": 0,
+              "subject": "profile:pf"
+            },
+            {
+              "id": "b2140ee2ed1d7eee0000684a754e780d",
+              "kind": "retired",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "b2140e65fb1a55870000c261a4a5b776",
+              "kind": "retired",
+              "number": 0,
+              "subject": "authority:a9"
+            },
+            {
+              "id": "5b6f754ae974b03d000095a8167501bf",
+              "kind": "revoked",
+              "number": 0,
+              "subject": "client:c1"
+            },
+            {
+              "id": "229364bac544227500001a9e5d31b850",
+              "kind": "version",
+              "number": 0,
+              "subject": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "act": [
+            "create",
+            0
+          ],
+          "answer": {
+            "adm": {},
+            "auths": [
+              "a14"
+            ],
+            "names": [
+              "pf"
+            ],
+            "refusals": [
+              [
+                "retired",
+                "a0"
+              ],
+              [
+                "retired",
+                "a9"
+              ],
+              [
+                "revoked",
+                "c1"
+              ]
+            ],
+            "served": "a14",
+            "status": "ok",
+            "valid": {}
+          },
+          "command": "Create",
+          "copy": 0,
+          "deleted": [
+            {
+              "id": "5e657a449dc56a400007b4e72ab6ef8b",
+              "kind": "head",
+              "number": 7,
+              "subject": "store"
+            }
+          ],
+          "deletions": [
+            {
+              "id": "100a5ae2ed1d7eee000030714c86708e",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "100a5a65fb1a55870000fbd1b1cece08",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a9"
+            },
+            {
+              "id": "835bd0b13a8535b000005535a3575c80",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c0"
+            },
+            {
+              "id": "835bd04ae974b03d0000df6923328bdb",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c1"
+            },
+            {
+              "id": "835bd059d0c9ff2300000860be72663c",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c2"
+            },
+            {
+              "id": "835bd0993a394aae000075999d633880",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c3"
+            },
+            {
+              "id": "5e657a449dc56a4000010119dccca0c1",
+              "kind": "head",
+              "number": 1,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a4000027d7540179cf6",
+              "kind": "head",
+              "number": 2,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a400003081231d1447f",
+              "kind": "head",
+              "number": 3,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a4000048ae88a626eff",
+              "kind": "head",
+              "number": 4,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a40000592b4d7459e08",
+              "kind": "head",
+              "number": 5,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a400006f8128bc3d87f",
+              "kind": "head",
+              "number": 6,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a400007b4e72ab6ef8b",
+              "kind": "head",
+              "number": 7,
+              "subject": "store"
+            }
+          ],
+          "file": {
+            "deletions": [
+              "100a5a65fb1a55870000fbd1b1cece08",
+              "100a5ae2ed1d7eee000030714c86708e",
+              "5e657a449dc56a4000010119dccca0c1",
+              "5e657a449dc56a4000027d7540179cf6",
+              "5e657a449dc56a400003081231d1447f",
+              "5e657a449dc56a4000048ae88a626eff",
+              "5e657a449dc56a40000592b4d7459e08",
+              "5e657a449dc56a400006f8128bc3d87f",
+              "5e657a449dc56a400007b4e72ab6ef8b",
+              "835bd04ae974b03d0000df6923328bdb",
+              "835bd059d0c9ff2300000860be72663c",
+              "835bd0993a394aae000075999d633880",
+              "835bd0b13a8535b000005535a3575c80"
+            ],
+            "entries": {
+              "100a5a8a1ab0445700005225a36f0e4d": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"id\":\"a14\",\"nonce\":\"c24199c4753f894d13653351b5d96759\",\"storeKey\":\"8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549\",\"v\":\"2\"}",
+                  "KPG.Kind": "authority",
+                  "KPG.Mac": "5225a36f0e4dd3138bb3fec6f8aae40af20758b74a6b3ee4859d2667a7c3f8e3"
+                }
+              },
+              "229364bac544227500001a9e5d31b850": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"doc\":\"const:r\",\"nonce\":\"7b0069e19bde0e63cfb0f8979bb8fc5a\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"v\":\"2\"}",
+                  "KPG.Kind": "version",
+                  "KPG.Mac": "1a9e5d31b8509fa1f7a1ff6d1a87c36f9294e0823e400beea89a15883e0654e3"
+                }
+              },
+              "5b6f754ae974b03d000095a8167501bf": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"certificate\":\"c1\",\"client\":\"c1\",\"nonce\":\"1562427a8fb92869f3ddc59c629fccdf\",\"v\":\"2\"}",
+                  "KPG.Kind": "revoked",
+                  "KPG.Mac": "95a8167501bff9f643da1dab8beee3835e045f01c97c9e28bde595daf01cfdaf"
+                }
+              },
+              "5e657a449dc56a400008af46b2bf0bc6": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"5e657a449dc56a4000010119dccca0c1 5e657a449dc56a4000027d7540179cf6 5e657a449dc56a400003081231d1447f 5e657a449dc56a4000048ae88a626eff 5e657a449dc56a40000592b4d7459e08 5e657a449dc56a400006f8128bc3d87f 5e657a449dc56a400007b4e72ab6ef8b\",\"height\":\"8\",\"nonce\":\"d32675345715b7d6a8845407ca6d082c\",\"v\":\"2\"}",
+                  "KPG.Kind": "head",
+                  "KPG.Mac": "af46b2bf0bc6d8bfc4307b53fd07d5a884e7bdab98dd6915897741546a0ce850",
+                  "KPG.S.0001": "{\"after\":\"\",\"doc\":\"const:r\",\"id\":\"229364bac544227500001a9e5d31b850\",\"kind\":\"version\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+                  "KPG.S.0002": "{\"authority\":\"a0\",\"kind\":\"retired\"}",
+                  "KPG.S.0003": "{\"authority\":\"a9\",\"kind\":\"retired\"}",
+                  "KPG.S.0004": "{\"client\":\"c1\",\"kind\":\"revoked\"}"
+                }
+              },
+              "a806c93eb3b7471b0000ba0aa6f61f34": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"name\":\"pf\",\"nonce\":\"520382dffdfd83e13ad50c943a907045\",\"v\":\"2\"}",
+                  "KPG.Kind": "profile",
+                  "KPG.Mac": "ba0aa6f61f34c60803b9bf5d77d1621addaa1a8ef75e3af76736b21c2673e263"
+                }
+              },
+              "b2140e65fb1a55870000c261a4a5b776": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"authority\":\"a9\",\"nonce\":\"52a08338698ade12c9ea96d4c5b641d2\",\"storeKey\":\"8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549\",\"v\":\"2\"}",
+                  "KPG.Kind": "retired",
+                  "KPG.Mac": "c261a4a5b77629f2c849be6545f787245ad2a9b2a86aa19c735c8a49d32517aa"
+                }
+              },
+              "b2140ee2ed1d7eee0000684a754e780d": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"authority\":\"a0\",\"nonce\":\"e0ab8c4a75f85073d34713f6bbc0c36b\",\"v\":\"2\"}",
+                  "KPG.Kind": "retired",
+                  "KPG.Mac": "684a754e780d1071af81dd8aaa99a0cef5c9a3e79519405b21c204cc344d35fb"
+                }
+              }
+            }
+          },
+          "heads": [
+            {
+              "after": 7,
+              "height": 8,
+              "id": "5e657a449dc56a400008af46b2bf0bc6",
+              "items": [
+                {
+                  "after": "",
+                  "doc": "const:r",
+                  "id": "229364bac544227500001a9e5d31b850",
+                  "kind": "version",
+                  "object": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "authority": "a0",
+                  "kind": "retired"
+                },
+                {
+                  "authority": "a9",
+                  "kind": "retired"
+                },
+                {
+                  "client": "c1",
+                  "kind": "revoked"
+                }
+              ]
+            }
+          ],
+          "keys": [
+            "8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549"
+          ],
+          "played": true,
+          "present": [
+            {
+              "id": "100a5a8a1ab0445700005225a36f0e4d",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a14"
+            },
+            {
+              "id": "5e657a449dc56a400008af46b2bf0bc6",
+              "kind": "head",
+              "number": 8,
+              "subject": "store"
+            },
+            {
+              "id": "a806c93eb3b7471b0000ba0aa6f61f34",
+              "kind": "profile",
+              "number": 0,
+              "subject": "profile:pf"
+            },
+            {
+              "id": "b2140ee2ed1d7eee0000684a754e780d",
+              "kind": "retired",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "b2140e65fb1a55870000c261a4a5b776",
+              "kind": "retired",
+              "number": 0,
+              "subject": "authority:a9"
+            },
+            {
+              "id": "5b6f754ae974b03d000095a8167501bf",
+              "kind": "revoked",
+              "number": 0,
+              "subject": "client:c1"
+            },
+            {
+              "id": "229364bac544227500001a9e5d31b850",
+              "kind": "version",
+              "number": 0,
+              "subject": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        }
+      ]
+    },
+    "two copies": {
+      "start": {
+        "answer": {
+          "adm": {
+            "c0": [
+              "pf"
+            ]
+          },
+          "auths": [
+            "a0"
+          ],
+          "names": [
+            "pf"
+          ],
+          "refusals": [],
+          "served": "a0",
+          "status": "ok",
+          "valid": {
+            "c0": [
+              "pf"
+            ]
+          }
+        },
+        "copy": 0,
+        "deletions": [],
+        "file": {
+          "deletions": [],
+          "entries": {
+            "100a5ae2ed1d7eee000030714c86708e": {
+              "history": [],
+              "strings": {
+                "KPG.Data": "{\"id\":\"a0\",\"nonce\":\"4d938c5f2c8bcd279ebaa42e0cf6b2f5\",\"storeKey\":\"8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549\",\"v\":\"2\"}",
+                "KPG.Kind": "authority",
+                "KPG.Mac": "30714c86708e799b82b6662343acd17c634cefe77a40239ae75e5bceb4f07d0c"
+              }
+            },
+            "229364bac544227500001a9e5d31b850": {
+              "history": [],
+              "strings": {
+                "KPG.Data": "{\"after\":\"\",\"doc\":\"const:r\",\"nonce\":\"7b0069e19bde0e63cfb0f8979bb8fc5a\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"v\":\"2\"}",
+                "KPG.Kind": "version",
+                "KPG.Mac": "1a9e5d31b8509fa1f7a1ff6d1a87c36f9294e0823e400beea89a15883e0654e3"
+              }
+            },
+            "5e657a449dc56a4000010119dccca0c1": {
+              "history": [],
+              "strings": {
+                "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"d4d600551f8c7bec9262c1ad853fde9e\",\"v\":\"2\"}",
+                "KPG.Kind": "head",
+                "KPG.Mac": "0119dccca0c16c969bb6efa55c7de469bed5d91bf0a421214d6d35755f371cee",
+                "KPG.S.0001": "{\"after\":\"\",\"doc\":\"const:r\",\"id\":\"229364bac544227500001a9e5d31b850\",\"kind\":\"version\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}"
+              }
+            },
+            "835bd0b13a8535b000005535a3575c80": {
+              "history": [],
+              "strings": {
+                "KPG.Data": "{\"certificate\":\"c0\",\"client\":\"c0\",\"issuer\":\"a0\",\"nonce\":\"eb5410d0513601226cd886d783bb49c7\",\"profiles\":\"pf\",\"v\":\"2\"}",
+                "KPG.Kind": "client",
+                "KPG.Mac": "5535a3575c80a894221ac2bb6378555aaa9170c7180fc1ef5271eb5cc54352a7"
+              }
+            },
+            "a806c93eb3b7471b0000ba0aa6f61f34": {
+              "history": [],
+              "strings": {
+                "KPG.Data": "{\"after\":\"\",\"name\":\"pf\",\"nonce\":\"520382dffdfd83e13ad50c943a907045\",\"v\":\"2\"}",
+                "KPG.Kind": "profile",
+                "KPG.Mac": "ba0aa6f61f34c60803b9bf5d77d1621addaa1a8ef75e3af76736b21c2673e263"
+              }
+            }
+          }
+        },
+        "heads": [
+          {
+            "after": 0,
+            "height": 1,
+            "id": "5e657a449dc56a4000010119dccca0c1",
+            "items": [
+              {
+                "after": "",
+                "doc": "const:r",
+                "id": "229364bac544227500001a9e5d31b850",
+                "kind": "version",
+                "object": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ]
+          }
+        ],
+        "keys": [
+          "8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549"
+        ],
+        "present": [
+          {
+            "id": "100a5ae2ed1d7eee000030714c86708e",
+            "kind": "authority",
+            "number": 0,
+            "subject": "authority:a0"
+          },
+          {
+            "id": "835bd0b13a8535b000005535a3575c80",
+            "kind": "client",
+            "number": 0,
+            "subject": "client:c0"
+          },
+          {
+            "id": "5e657a449dc56a4000010119dccca0c1",
+            "kind": "head",
+            "number": 1,
+            "subject": "store"
+          },
+          {
+            "id": "a806c93eb3b7471b0000ba0aa6f61f34",
+            "kind": "profile",
+            "number": 0,
+            "subject": "profile:pf"
+          },
+          {
+            "id": "229364bac544227500001a9e5d31b850",
+            "kind": "version",
+            "number": 0,
+            "subject": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ]
+      },
+      "steps": [
+        {
+          "act": [
+            "recreate",
+            0
+          ],
+          "answer": {
+            "adm": {},
+            "auths": [
+              "a5"
+            ],
+            "names": [
+              "pf"
+            ],
+            "refusals": [
+              [
+                "retired",
+                "a0"
+              ]
+            ],
+            "served": "a5",
+            "status": "ok",
+            "valid": {}
+          },
+          "command": "Recreate",
+          "copy": 0,
+          "deleted": [
+            {
+              "id": "100a5ae2ed1d7eee000030714c86708e",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "835bd0b13a8535b000005535a3575c80",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c0"
+            },
+            {
+              "id": "5e657a449dc56a4000010119dccca0c1",
+              "kind": "head",
+              "number": 1,
+              "subject": "store"
+            }
+          ],
+          "deletions": [
+            {
+              "id": "100a5ae2ed1d7eee000030714c86708e",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "835bd0b13a8535b000005535a3575c80",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c0"
+            },
+            {
+              "id": "5e657a449dc56a4000010119dccca0c1",
+              "kind": "head",
+              "number": 1,
+              "subject": "store"
+            }
+          ],
+          "file": {
+            "deletions": [
+              "100a5ae2ed1d7eee000030714c86708e",
+              "5e657a449dc56a4000010119dccca0c1",
+              "835bd0b13a8535b000005535a3575c80"
+            ],
+            "entries": {
+              "100a5a69f3c95e700000e9164bb85c60": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"id\":\"a5\",\"nonce\":\"f89b151a1d7cff1e658b5502a6654c3c\",\"storeKey\":\"8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549\",\"v\":\"2\"}",
+                  "KPG.Kind": "authority",
+                  "KPG.Mac": "e9164bb85c60e974b14fda9c937588c3e69c06427a09916049b50318bed635ae"
+                }
+              },
+              "229364bac544227500001a9e5d31b850": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"doc\":\"const:r\",\"nonce\":\"7b0069e19bde0e63cfb0f8979bb8fc5a\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"v\":\"2\"}",
+                  "KPG.Kind": "version",
+                  "KPG.Mac": "1a9e5d31b8509fa1f7a1ff6d1a87c36f9294e0823e400beea89a15883e0654e3"
+                }
+              },
+              "5e657a449dc56a40000271510700c383": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"5e657a449dc56a4000010119dccca0c1\",\"height\":\"2\",\"nonce\":\"0d8dfe85097212d97a0d28da9ac02e5e\",\"v\":\"2\"}",
+                  "KPG.Kind": "head",
+                  "KPG.Mac": "71510700c383df2f31993cdc3f0f56f25a63a68e9414313212fa28972d22876a",
+                  "KPG.S.0001": "{\"after\":\"\",\"doc\":\"const:r\",\"id\":\"229364bac544227500001a9e5d31b850\",\"kind\":\"version\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+                  "KPG.S.0002": "{\"authority\":\"a0\",\"kind\":\"retired\"}"
+                }
+              },
+              "a806c93eb3b7471b0000ba0aa6f61f34": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"name\":\"pf\",\"nonce\":\"520382dffdfd83e13ad50c943a907045\",\"v\":\"2\"}",
+                  "KPG.Kind": "profile",
+                  "KPG.Mac": "ba0aa6f61f34c60803b9bf5d77d1621addaa1a8ef75e3af76736b21c2673e263"
+                }
+              },
+              "b2140ee2ed1d7eee0000510a582b68a6": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"authority\":\"a0\",\"nonce\":\"595f774c905a401d69e56578f89e9887\",\"v\":\"2\"}",
+                  "KPG.Kind": "retired",
+                  "KPG.Mac": "510a582b68a6b0a915644fb25d7c538e12edb43cd309a16cba7849fdc4304002"
+                }
+              }
+            }
+          },
+          "heads": [
+            {
+              "after": 1,
+              "height": 2,
+              "id": "5e657a449dc56a40000271510700c383",
+              "items": [
+                {
+                  "after": "",
+                  "doc": "const:r",
+                  "id": "229364bac544227500001a9e5d31b850",
+                  "kind": "version",
+                  "object": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "authority": "a0",
+                  "kind": "retired"
+                }
+              ]
+            }
+          ],
+          "keys": [
+            "8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549"
+          ],
+          "played": true,
+          "present": [
+            {
+              "id": "100a5a69f3c95e700000e9164bb85c60",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a5"
+            },
+            {
+              "id": "5e657a449dc56a40000271510700c383",
+              "kind": "head",
+              "number": 2,
+              "subject": "store"
+            },
+            {
+              "id": "a806c93eb3b7471b0000ba0aa6f61f34",
+              "kind": "profile",
+              "number": 0,
+              "subject": "profile:pf"
+            },
+            {
+              "id": "b2140ee2ed1d7eee0000510a582b68a6",
+              "kind": "retired",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "229364bac544227500001a9e5d31b850",
+              "kind": "version",
+              "number": 0,
+              "subject": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "act": [
+            "recreate",
+            1
+          ],
+          "answer": {
+            "adm": {},
+            "auths": [
+              "a8"
+            ],
+            "names": [
+              "pf"
+            ],
+            "refusals": [
+              [
+                "retired",
+                "a0"
+              ]
+            ],
+            "served": "a8",
+            "status": "ok",
+            "valid": {}
+          },
+          "command": "Recreate",
+          "copy": 1,
+          "deleted": [
+            {
+              "id": "100a5ae2ed1d7eee000030714c86708e",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "835bd0b13a8535b000005535a3575c80",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c0"
+            },
+            {
+              "id": "5e657a449dc56a4000010119dccca0c1",
+              "kind": "head",
+              "number": 1,
+              "subject": "store"
+            }
+          ],
+          "deletions": [
+            {
+              "id": "100a5ae2ed1d7eee000030714c86708e",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "835bd0b13a8535b000005535a3575c80",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c0"
+            },
+            {
+              "id": "5e657a449dc56a4000010119dccca0c1",
+              "kind": "head",
+              "number": 1,
+              "subject": "store"
+            }
+          ],
+          "file": {
+            "deletions": [
+              "100a5ae2ed1d7eee000030714c86708e",
+              "5e657a449dc56a4000010119dccca0c1",
+              "835bd0b13a8535b000005535a3575c80"
+            ],
+            "entries": {
+              "100a5a15fbd33195000022d25db098bc": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"id\":\"a8\",\"nonce\":\"3ce79475c16a4bd0e66ae9f82e0a7f2a\",\"storeKey\":\"8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549\",\"v\":\"2\"}",
+                  "KPG.Kind": "authority",
+                  "KPG.Mac": "22d25db098bcca2cd622661974246ce2350ff07640daa98fa09c514f73547019"
+                }
+              },
+              "229364bac544227500001a9e5d31b850": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"doc\":\"const:r\",\"nonce\":\"7b0069e19bde0e63cfb0f8979bb8fc5a\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"v\":\"2\"}",
+                  "KPG.Kind": "version",
+                  "KPG.Mac": "1a9e5d31b8509fa1f7a1ff6d1a87c36f9294e0823e400beea89a15883e0654e3"
+                }
+              },
+              "5e657a449dc56a40000238de1ecf71bf": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"5e657a449dc56a4000010119dccca0c1\",\"height\":\"2\",\"nonce\":\"009ba36b032c29d33d444b9a5bf76f7d\",\"v\":\"2\"}",
+                  "KPG.Kind": "head",
+                  "KPG.Mac": "38de1ecf71bf4d550368ca34d364dacb9529b4d7ec47671dfbaa0bef25b6283d",
+                  "KPG.S.0001": "{\"after\":\"\",\"doc\":\"const:r\",\"id\":\"229364bac544227500001a9e5d31b850\",\"kind\":\"version\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+                  "KPG.S.0002": "{\"authority\":\"a0\",\"kind\":\"retired\"}"
+                }
+              },
+              "a806c93eb3b7471b0000ba0aa6f61f34": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"name\":\"pf\",\"nonce\":\"520382dffdfd83e13ad50c943a907045\",\"v\":\"2\"}",
+                  "KPG.Kind": "profile",
+                  "KPG.Mac": "ba0aa6f61f34c60803b9bf5d77d1621addaa1a8ef75e3af76736b21c2673e263"
+                }
+              },
+              "b2140ee2ed1d7eee000002b8cf9511b3": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"authority\":\"a0\",\"nonce\":\"bdfa4f4811828f4e03583718aeaf6736\",\"v\":\"2\"}",
+                  "KPG.Kind": "retired",
+                  "KPG.Mac": "02b8cf9511b3f4d33ca02c2e8bf3ed75ad96daffec4afae4268a46286521da8f"
+                }
+              }
+            }
+          },
+          "heads": [
+            {
+              "after": 1,
+              "height": 2,
+              "id": "5e657a449dc56a40000238de1ecf71bf",
+              "items": [
+                {
+                  "after": "",
+                  "doc": "const:r",
+                  "id": "229364bac544227500001a9e5d31b850",
+                  "kind": "version",
+                  "object": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "authority": "a0",
+                  "kind": "retired"
+                }
+              ]
+            }
+          ],
+          "keys": [
+            "8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549"
+          ],
+          "played": true,
+          "present": [
+            {
+              "id": "100a5a15fbd33195000022d25db098bc",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a8"
+            },
+            {
+              "id": "5e657a449dc56a40000238de1ecf71bf",
+              "kind": "head",
+              "number": 2,
+              "subject": "store"
+            },
+            {
+              "id": "a806c93eb3b7471b0000ba0aa6f61f34",
+              "kind": "profile",
+              "number": 0,
+              "subject": "profile:pf"
+            },
+            {
+              "id": "b2140ee2ed1d7eee000002b8cf9511b3",
+              "kind": "retired",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "229364bac544227500001a9e5d31b850",
+              "kind": "version",
+              "number": 0,
+              "subject": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "act": [
+            "merge",
+            "kp_sync",
+            0,
+            1
+          ],
+          "answer": {
+            "adm": {},
+            "auths": [
+              "a5",
+              "a8"
+            ],
+            "names": [
+              "pf"
+            ],
+            "refusals": [
+              [
+                "retired",
+                "a0"
+              ]
+            ],
+            "served": null,
+            "status": "ok",
+            "valid": {}
+          },
+          "command": "Synchronize",
+          "copy": 0,
+          "deleted": [],
+          "deletions": [
+            {
+              "id": "100a5ae2ed1d7eee000030714c86708e",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "835bd0b13a8535b000005535a3575c80",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c0"
+            },
+            {
+              "id": "5e657a449dc56a4000010119dccca0c1",
+              "kind": "head",
+              "number": 1,
+              "subject": "store"
+            }
+          ],
+          "file": {
+            "deletions": [
+              "100a5ae2ed1d7eee000030714c86708e",
+              "5e657a449dc56a4000010119dccca0c1",
+              "835bd0b13a8535b000005535a3575c80"
+            ],
+            "entries": {
+              "100a5a15fbd33195000022d25db098bc": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"id\":\"a8\",\"nonce\":\"3ce79475c16a4bd0e66ae9f82e0a7f2a\",\"storeKey\":\"8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549\",\"v\":\"2\"}",
+                  "KPG.Kind": "authority",
+                  "KPG.Mac": "22d25db098bcca2cd622661974246ce2350ff07640daa98fa09c514f73547019"
+                }
+              },
+              "100a5a69f3c95e700000e9164bb85c60": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"id\":\"a5\",\"nonce\":\"f89b151a1d7cff1e658b5502a6654c3c\",\"storeKey\":\"8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549\",\"v\":\"2\"}",
+                  "KPG.Kind": "authority",
+                  "KPG.Mac": "e9164bb85c60e974b14fda9c937588c3e69c06427a09916049b50318bed635ae"
+                }
+              },
+              "229364bac544227500001a9e5d31b850": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"doc\":\"const:r\",\"nonce\":\"7b0069e19bde0e63cfb0f8979bb8fc5a\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"v\":\"2\"}",
+                  "KPG.Kind": "version",
+                  "KPG.Mac": "1a9e5d31b8509fa1f7a1ff6d1a87c36f9294e0823e400beea89a15883e0654e3"
+                }
+              },
+              "5e657a449dc56a40000238de1ecf71bf": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"5e657a449dc56a4000010119dccca0c1\",\"height\":\"2\",\"nonce\":\"009ba36b032c29d33d444b9a5bf76f7d\",\"v\":\"2\"}",
+                  "KPG.Kind": "head",
+                  "KPG.Mac": "38de1ecf71bf4d550368ca34d364dacb9529b4d7ec47671dfbaa0bef25b6283d",
+                  "KPG.S.0001": "{\"after\":\"\",\"doc\":\"const:r\",\"id\":\"229364bac544227500001a9e5d31b850\",\"kind\":\"version\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+                  "KPG.S.0002": "{\"authority\":\"a0\",\"kind\":\"retired\"}"
+                }
+              },
+              "5e657a449dc56a40000271510700c383": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"5e657a449dc56a4000010119dccca0c1\",\"height\":\"2\",\"nonce\":\"0d8dfe85097212d97a0d28da9ac02e5e\",\"v\":\"2\"}",
+                  "KPG.Kind": "head",
+                  "KPG.Mac": "71510700c383df2f31993cdc3f0f56f25a63a68e9414313212fa28972d22876a",
+                  "KPG.S.0001": "{\"after\":\"\",\"doc\":\"const:r\",\"id\":\"229364bac544227500001a9e5d31b850\",\"kind\":\"version\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+                  "KPG.S.0002": "{\"authority\":\"a0\",\"kind\":\"retired\"}"
+                }
+              },
+              "a806c93eb3b7471b0000ba0aa6f61f34": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"name\":\"pf\",\"nonce\":\"520382dffdfd83e13ad50c943a907045\",\"v\":\"2\"}",
+                  "KPG.Kind": "profile",
+                  "KPG.Mac": "ba0aa6f61f34c60803b9bf5d77d1621addaa1a8ef75e3af76736b21c2673e263"
+                }
+              },
+              "b2140ee2ed1d7eee000002b8cf9511b3": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"authority\":\"a0\",\"nonce\":\"bdfa4f4811828f4e03583718aeaf6736\",\"v\":\"2\"}",
+                  "KPG.Kind": "retired",
+                  "KPG.Mac": "02b8cf9511b3f4d33ca02c2e8bf3ed75ad96daffec4afae4268a46286521da8f"
+                }
+              },
+              "b2140ee2ed1d7eee0000510a582b68a6": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"authority\":\"a0\",\"nonce\":\"595f774c905a401d69e56578f89e9887\",\"v\":\"2\"}",
+                  "KPG.Kind": "retired",
+                  "KPG.Mac": "510a582b68a6b0a915644fb25d7c538e12edb43cd309a16cba7849fdc4304002"
+                }
+              }
+            }
+          },
+          "heads": [
+            {
+              "after": 1,
+              "height": 2,
+              "id": "5e657a449dc56a40000238de1ecf71bf",
+              "items": [
+                {
+                  "after": "",
+                  "doc": "const:r",
+                  "id": "229364bac544227500001a9e5d31b850",
+                  "kind": "version",
+                  "object": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "authority": "a0",
+                  "kind": "retired"
+                }
+              ]
+            },
+            {
+              "after": 1,
+              "height": 2,
+              "id": "5e657a449dc56a40000271510700c383",
+              "items": [
+                {
+                  "after": "",
+                  "doc": "const:r",
+                  "id": "229364bac544227500001a9e5d31b850",
+                  "kind": "version",
+                  "object": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "authority": "a0",
+                  "kind": "retired"
+                }
+              ]
+            }
+          ],
+          "keys": [
+            "8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549"
+          ],
+          "played": true,
+          "present": [
+            {
+              "id": "100a5a69f3c95e700000e9164bb85c60",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a5"
+            },
+            {
+              "id": "100a5a15fbd33195000022d25db098bc",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a8"
+            },
+            {
+              "id": "5e657a449dc56a40000238de1ecf71bf",
+              "kind": "head",
+              "number": 2,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a40000271510700c383",
+              "kind": "head",
+              "number": 2,
+              "subject": "store"
+            },
+            {
+              "id": "a806c93eb3b7471b0000ba0aa6f61f34",
+              "kind": "profile",
+              "number": 0,
+              "subject": "profile:pf"
+            },
+            {
+              "id": "b2140ee2ed1d7eee000002b8cf9511b3",
+              "kind": "retired",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "b2140ee2ed1d7eee0000510a582b68a6",
+              "kind": "retired",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "229364bac544227500001a9e5d31b850",
+              "kind": "version",
+              "number": 0,
+              "subject": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "act": [
+            "keep",
+            0
+          ],
+          "answer": {
+            "adm": {},
+            "auths": [
+              "a5"
+            ],
+            "names": [
+              "pf"
+            ],
+            "refusals": [
+              [
+                "retired",
+                "a0"
+              ],
+              [
+                "retired",
+                "a8"
+              ]
+            ],
+            "served": "a5",
+            "status": "ok",
+            "valid": {}
+          },
+          "command": "Keep",
+          "copy": 0,
+          "deleted": [
+            {
+              "id": "100a5a15fbd33195000022d25db098bc",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a8"
+            },
+            {
+              "id": "5e657a449dc56a40000238de1ecf71bf",
+              "kind": "head",
+              "number": 2,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a40000271510700c383",
+              "kind": "head",
+              "number": 2,
+              "subject": "store"
+            }
+          ],
+          "deletions": [
+            {
+              "id": "100a5ae2ed1d7eee000030714c86708e",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "100a5a15fbd33195000022d25db098bc",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a8"
+            },
+            {
+              "id": "835bd0b13a8535b000005535a3575c80",
+              "kind": "client",
+              "number": 0,
+              "subject": "client:c0"
+            },
+            {
+              "id": "5e657a449dc56a4000010119dccca0c1",
+              "kind": "head",
+              "number": 1,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a40000238de1ecf71bf",
+              "kind": "head",
+              "number": 2,
+              "subject": "store"
+            },
+            {
+              "id": "5e657a449dc56a40000271510700c383",
+              "kind": "head",
+              "number": 2,
+              "subject": "store"
+            }
+          ],
+          "file": {
+            "deletions": [
+              "100a5a15fbd33195000022d25db098bc",
+              "100a5ae2ed1d7eee000030714c86708e",
+              "5e657a449dc56a4000010119dccca0c1",
+              "5e657a449dc56a40000238de1ecf71bf",
+              "5e657a449dc56a40000271510700c383",
+              "835bd0b13a8535b000005535a3575c80"
+            ],
+            "entries": {
+              "100a5a69f3c95e700000e9164bb85c60": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"id\":\"a5\",\"nonce\":\"f89b151a1d7cff1e658b5502a6654c3c\",\"storeKey\":\"8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549\",\"v\":\"2\"}",
+                  "KPG.Kind": "authority",
+                  "KPG.Mac": "e9164bb85c60e974b14fda9c937588c3e69c06427a09916049b50318bed635ae"
+                }
+              },
+              "229364bac544227500001a9e5d31b850": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"doc\":\"const:r\",\"nonce\":\"7b0069e19bde0e63cfb0f8979bb8fc5a\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"v\":\"2\"}",
+                  "KPG.Kind": "version",
+                  "KPG.Mac": "1a9e5d31b8509fa1f7a1ff6d1a87c36f9294e0823e400beea89a15883e0654e3"
+                }
+              },
+              "5e657a449dc56a400003a1cd309c844b": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"5e657a449dc56a4000010119dccca0c1 5e657a449dc56a40000238de1ecf71bf 5e657a449dc56a40000271510700c383\",\"height\":\"3\",\"nonce\":\"03505839598905d1ee523e738cf30f27\",\"v\":\"2\"}",
+                  "KPG.Kind": "head",
+                  "KPG.Mac": "a1cd309c844b70f6e7da5ce8966dc79a8732797587b12d15126db8acec13a943",
+                  "KPG.S.0001": "{\"after\":\"\",\"doc\":\"const:r\",\"id\":\"229364bac544227500001a9e5d31b850\",\"kind\":\"version\",\"object\":\"rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+                  "KPG.S.0002": "{\"authority\":\"a0\",\"kind\":\"retired\"}",
+                  "KPG.S.0003": "{\"authority\":\"a8\",\"kind\":\"retired\"}"
+                }
+              },
+              "a806c93eb3b7471b0000ba0aa6f61f34": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"after\":\"\",\"name\":\"pf\",\"nonce\":\"520382dffdfd83e13ad50c943a907045\",\"v\":\"2\"}",
+                  "KPG.Kind": "profile",
+                  "KPG.Mac": "ba0aa6f61f34c60803b9bf5d77d1621addaa1a8ef75e3af76736b21c2673e263"
+                }
+              },
+              "b2140e15fbd331950000e6dd5c905723": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"authority\":\"a8\",\"nonce\":\"9cf8c8ac9853beb5b3378d44615c6834\",\"v\":\"2\"}",
+                  "KPG.Kind": "retired",
+                  "KPG.Mac": "e6dd5c905723eed5980affeff5fba87134befa06a03a90173829312454b4558e"
+                }
+              },
+              "b2140ee2ed1d7eee000002b8cf9511b3": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"authority\":\"a0\",\"nonce\":\"bdfa4f4811828f4e03583718aeaf6736\",\"v\":\"2\"}",
+                  "KPG.Kind": "retired",
+                  "KPG.Mac": "02b8cf9511b3f4d33ca02c2e8bf3ed75ad96daffec4afae4268a46286521da8f"
+                }
+              },
+              "b2140ee2ed1d7eee0000510a582b68a6": {
+                "history": [],
+                "strings": {
+                  "KPG.Data": "{\"authority\":\"a0\",\"nonce\":\"595f774c905a401d69e56578f89e9887\",\"v\":\"2\"}",
+                  "KPG.Kind": "retired",
+                  "KPG.Mac": "510a582b68a6b0a915644fb25d7c538e12edb43cd309a16cba7849fdc4304002"
+                }
+              }
+            }
+          },
+          "heads": [
+            {
+              "after": 3,
+              "height": 3,
+              "id": "5e657a449dc56a400003a1cd309c844b",
+              "items": [
+                {
+                  "after": "",
+                  "doc": "const:r",
+                  "id": "229364bac544227500001a9e5d31b850",
+                  "kind": "version",
+                  "object": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "authority": "a0",
+                  "kind": "retired"
+                },
+                {
+                  "authority": "a8",
+                  "kind": "retired"
+                }
+              ]
+            }
+          ],
+          "keys": [
+            "8b45aba191b5917bd273f889c2a0b015e45c7a259ae017348cedcdeaca4a6549"
+          ],
+          "played": true,
+          "present": [
+            {
+              "id": "100a5a69f3c95e700000e9164bb85c60",
+              "kind": "authority",
+              "number": 0,
+              "subject": "authority:a5"
+            },
+            {
+              "id": "5e657a449dc56a400003a1cd309c844b",
+              "kind": "head",
+              "number": 3,
+              "subject": "store"
+            },
+            {
+              "id": "a806c93eb3b7471b0000ba0aa6f61f34",
+              "kind": "profile",
+              "number": 0,
+              "subject": "profile:pf"
+            },
+            {
+              "id": "b2140ee2ed1d7eee000002b8cf9511b3",
+              "kind": "retired",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "b2140ee2ed1d7eee0000510a582b68a6",
+              "kind": "retired",
+              "number": 0,
+              "subject": "authority:a0"
+            },
+            {
+              "id": "b2140e15fbd331950000e6dd5c905723",
+              "kind": "retired",
+              "number": 0,
+              "subject": "authority:a8"
+            },
+            {
+              "id": "229364bac544227500001a9e5d31b850",
+              "kind": "version",
+              "number": 0,
+              "subject": "rule:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

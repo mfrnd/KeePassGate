@@ -256,9 +256,6 @@ Both ask first, and both state how many clients are about to be cut off, because
 number nobody can work out unaided. Both retire the old authority rather than only removing it, so
 a copy of the file from before, synchronized in later, cannot put it back into service.
 
-An authority made by a development build older than this layout is not read at all: the page states
-the database has no authority yet. Create a new authority, and pair every program again.
-
 ## When a database holds more than one authority
 
 Copies of one database that each created or recreated an authority, and were then synchronized, hold
@@ -336,26 +333,26 @@ later at most. Windows has locked the screen by then, so this happens behind it.
 
 **Delete each database's authority first, while the plugin is still there.** Taking the plugin out
 takes nothing out of a database, so a database whose authority stays keeps the authority's private
-key, the host's and the gate key inside it, where KeePass keeps them without knowing what they are
-and an XML export writes them out in the clear. **Delete authority**, followed by OK and a save,
-takes them out, with every admission record, revocation and standing answer to a renewal. Then
-close KeePass and delete `plugins\KeePassGate`.
+key, the host's and the gate key inside it, in an entry of the plugin's group, which an XML export
+writes out in the clear. **Delete authority**, followed by OK and a save, takes them out, with
+every admission record, revocation and standing answer to a renewal. Then close KeePass and
+delete `plugins\KeePassGate`.
 
-**What stays in the database grants nothing and holds no key**, and KeePass's own dialogs remove
-it once the plugin is gone:
+**What stays in the database grants nothing and holds no private key**, and KeePass's own dialogs
+remove it once the plugin is gone:
 
 | | |
 | --- | --- |
-| **The retirements** | `KPG.RetiredAuthority.` and a fingerprint, a key for each authority the database has held, which Delete authority writes on purpose: they are what keeps a copy of the file from before, synchronized in later, from putting the old authority back into service, so remove them only once the plugin is not coming back. |
+| **The plugin's group** | `KeePassGate`, holding a retirement for each authority the database has held, which Delete authority writes on purpose, and the entries that keep the group's own account of what is in it. The retirements are what keeps a copy of the file from before, synchronized in later, from putting the old authority back into service, so delete the group only once the plugin is not coming back. |
 | **The profiles** | `KPG.Profiles`, the names the Profiles page kept. |
 | **The rules** | `KPG`, in the custom data of each group and entry that has a rule. |
 
-The first two are on the **Plugin Data** tab under **Tools**, **Database Tools**, **Database
-Maintenance**, the tab to leave alone while the plugin is in use, as [Revoking](clients.md#revoking)
-explains. A group's rules are
-on the **Plugin Data** tab of **Edit Group**, and an entry's under **Plugin data** on the
-**Properties** tab of **Edit Entry**; the versions an entry keeps in its history keep the rules they
-had. Then save the database.
+The group is deleted as any group is, into the recycle bin where the database keeps a recycle bin
+enabled, to be emptied from there. The profiles are on the **Plugin Data** tab under **Tools**,
+**Database Tools**, **Database Maintenance**, the tab to leave alone while the plugin is in use, as
+[Revoking](clients.md#revoking) explains. A group's rules are on the **Plugin Data** tab of
+**Edit Group**, and an entry's under **Plugin data** on the **Properties** tab of **Edit Entry**;
+the versions an entry keeps in its history keep the rules they had. Then save the database.
 
 **Outside the databases** are the plugin's files, its port and what the programs it let in were
 handed:

@@ -151,7 +151,7 @@ namespace KeePassGate.Gate
             get { return Reason; }
         }
 
-        public AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition, Action audit)
+        public AdmissionWrite Admit(AdmissionRecord record, Func<IWriteGround, string> condition, Action audit)
         {
             // Busy rather than failed: unlocking is all it takes, and the invitee should try again
             // rather than be told to start over.

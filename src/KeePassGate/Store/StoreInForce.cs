@@ -45,8 +45,35 @@ namespace KeePassGate.Store
         /// </summary>
         private readonly HashSet<(string Name, string Id)> _removals = new HashSet<(string Name, string Id)>();
 
+        /// <summary>The versions a summary entry carries, by identifier, each with its item's members.</summary>
+        private readonly Dictionary<string, IReadOnlyDictionary<string, string>> _versions =
+            new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal);
+
+        /// <summary>The keep records a summary entry carries, by identifier, each with its item's members.</summary>
+        private readonly Dictionary<string, IReadOnlyDictionary<string, string>> _kept =
+            new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal);
+
+        private HashSet<string> _after = new HashSet<string>(StringComparer.Ordinal);
+
         private StoreInForce()
         {
+        }
+
+        /// <summary>
+        /// The store key, as the form that gave it holds it: what a write composes its records
+        /// under. Overwritten when the forms kept are let go, so it is read inside the hold or the
+        /// turn the reading was made in.
+        /// </summary>
+        public FoundKey Key { get; private set; }
+
+        /// <summary>
+        /// What a summary entry written now names in `after`, `STORE.md` §611: every summary
+        /// entry present, everything those name, and every summary entry a deletion record tells
+        /// of.
+        /// </summary>
+        public IReadOnlyCollection<string> After
+        {
+            get { return _after; }
         }
 
         /// <summary>
@@ -178,13 +205,17 @@ namespace KeePassGate.Store
         /// lowercase hexadecimal.
         /// </param>
         /// <param name="keptByDeletion">
-        /// The deletion records that tell of a keep record under this key, `STORE.md` §623 step 7:
-        /// what a summary entry carries on for them, since none of them is a record present.
+        /// The deletion records that tell of a keep record under this key, each with the name of
+        /// the key it sets aside, `STORE.md` §623 step 7: what a summary entry carries on for
+        /// them, since none of them is a record present.
         /// </param>
         public static StoreInForce Of(
-            FoundKey key, IReadOnlyList<FoundRecord> records, ISet<string> deleted, IReadOnlyCollection<string> keptByDeletion)
+            FoundKey key,
+            IReadOnlyList<FoundRecord> records,
+            ISet<string> deleted,
+            IReadOnlyCollection<KeyValuePair<string, string>> keptByDeletion)
         {
-            var made = new StoreInForce { Records = records };
+            var made = new StoreInForce { Key = key, Records = records };
             made.Heads = records.Where(record => record.Is(StoreKinds.Head)).ToList();
             made.HeadsInForce = made.Heads.Where(head => head.InForce).ToList();
             made.Items = made.Heads.SelectMany(head => head.Form.Items).ToList();
@@ -202,7 +233,7 @@ namespace KeePassGate.Store
                 .OrderBy(record => record.Hex, StringComparer.Ordinal)
                 .ToList();
 
-            made.Room = made.Measured(keptByDeletion ?? Array.Empty<string>());
+            made.Room = made.Measured(keptByDeletion ?? Array.Empty<KeyValuePair<string, string>>());
             return made;
         }
 
@@ -275,7 +306,7 @@ namespace KeePassGate.Store
             foreach (var record in Records.Where(record => record.Is(StoreKinds.Format)))
             {
                 Format = Math.Max(Format, record.Form.Number);
-                Plugin = Higher(Plugin, record.Form.Member("plugin"));
+                Plugin = Higher(Plugin, record.Form.Member(StoreKinds.PluginMember));
             }
 
             foreach (var item in Items.Where(item => item.Kind == StoreKinds.Format))
@@ -283,7 +314,7 @@ namespace KeePassGate.Store
                 var number = StoreChecked.NumberOf(item.Member(StoreKinds.FormatMember));
                 ItemFormat = Math.Max(ItemFormat, number);
                 Format = Math.Max(Format, number);
-                Plugin = Higher(Plugin, item.Member("plugin"));
+                Plugin = Higher(Plugin, item.Member(StoreKinds.PluginMember));
             }
 
             foreach (var identifier in byKind[StoreKinds.Format])
@@ -421,12 +452,12 @@ namespace KeePassGate.Store
             ReplacedVersions = new HashSet<string>(StringComparer.Ordinal);
             foreach (var record in Records.Where(record => record.Is(StoreKinds.Version) && record.InForce))
             {
-                ReplacedVersions.UnionWith(After(record.Form.Member(StoreKinds.After)));
+                ReplacedVersions.UnionWith(Listed(record.Form.Member(StoreKinds.After)));
             }
 
             foreach (var item in HeadsInForce.SelectMany(head => head.Form.Items).Where(item => item.Kind == StoreKinds.Version))
             {
-                ReplacedVersions.UnionWith(After(item.Member(StoreKinds.After)));
+                ReplacedVersions.UnionWith(Listed(item.Member(StoreKinds.After)));
             }
         }
 
@@ -443,16 +474,17 @@ namespace KeePassGate.Store
         /// present and by its deletion record, `STORE.md` §649, so each of those is carried,
         /// and no relation that sets a key aside is dropped by a write.
         /// </remarks>
-        private StoreRoom Measured(IReadOnlyCollection<string> keptByDeletion)
+        private StoreRoom Measured(IReadOnlyCollection<KeyValuePair<string, string>> keptByDeletion)
         {
             // Every summary entry's list is read once, for what the next names and for what the
             // summary entries in force replace.
             var named = new HashSet<string>(Told, StringComparer.Ordinal);
+            _after = named;
             var replaced = new HashSet<string>(StringComparer.Ordinal);
             var height = Told.Select(NumberOf).DefaultIfEmpty(0).Max();
             foreach (var head in Heads)
             {
-                var after = After(head.Form.Member(StoreKinds.After));
+                var after = Listed(head.Form.Member(StoreKinds.After));
                 named.Add(head.Hex);
                 named.UnionWith(after);
                 height = Math.Max(height, head.Form.Number);
@@ -473,22 +505,122 @@ namespace KeePassGate.Store
 
             items += _removals.Count;
 
-            var versions = new HashSet<string>(
-                HeadsInForce.SelectMany(head => head.Form.Items).Where(item => item.Kind == StoreKinds.Version).Select(item => item.Member(StoreKinds.Id)),
-                StringComparer.Ordinal);
-            versions.UnionWith(Records
-                .Where(record => record.Is(StoreKinds.Version) && record.InForce && !ReplacedVersions.Contains(record.Hex))
-                .Select(record => record.Hex));
-            items += versions.Count;
+            // A version and a keep record are carried whole, each by its identifier, with the
+            // members its item holds: from an item where a summary entry holds an item, and from its
+            // record where none does.
+            foreach (var item in HeadsInForce.SelectMany(head => head.Form.Items).Where(item => item.Kind == StoreKinds.Version))
+            {
+                Carry(_versions, item.Member(StoreKinds.Id), item.Members);
+            }
 
-            var kept = new HashSet<string>(
-                Items.Where(item => item.Kind == StoreKinds.Kept).Select(item => item.Member(StoreKinds.Id)),
-                StringComparer.Ordinal);
-            kept.UnionWith(Records.Where(record => record.Is(StoreKinds.Kept)).Select(record => record.Hex));
-            kept.UnionWith(keptByDeletion);
-            items += kept.Count;
+            foreach (var record in Records
+                         .Where(record => record.Is(StoreKinds.Version) && record.InForce && !ReplacedVersions.Contains(record.Hex)))
+            {
+                Carry(_versions, record.Hex, record.Form.Members);
+            }
+
+            items += _versions.Count;
+
+            foreach (var item in Items.Where(item => item.Kind == StoreKinds.Kept))
+            {
+                Carry(_kept, item.Member(StoreKinds.Id), item.Members);
+            }
+
+            foreach (var record in Records.Where(record => record.Is(StoreKinds.Kept)))
+            {
+                Carry(_kept, record.Hex, record.Form.Members);
+            }
+
+            foreach (var told in keptByDeletion)
+            {
+                Carry(_kept, told.Key, new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    { StoreKinds.Key, told.Value },
+                    { StoreKinds.After, string.Empty },
+                });
+            }
+
+            items += _kept.Count;
 
             return new StoreRoom(named.Count, Math.Min(StoreFormat.MaxNumber, height + 1), items);
+        }
+
+        /// <summary>
+        /// The items a summary entry written now restates, `STORE.md` §611: the item `format`
+        /// with the highest format number and plugin version the store states, an item for each
+        /// value taken away, and an item for each version and each keep record carried. The very
+        /// sets <see cref="Room"/> counts, so what a write restates and the room it was judged to
+        /// have cannot disagree.
+        /// </summary>
+        /// <remarks>
+        /// Made when it is asked for, by a write, and not at every reading: the sets are worked
+        /// out with the reading, and nothing here hashes or reads a string.
+        /// </remarks>
+        public IReadOnlyList<StoreItem> Restated()
+        {
+            var items = new List<StoreItem>();
+            if (Format > 0 && Plugin != null)
+            {
+                items.Add(Item(StoreKinds.Format, new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    { StoreKinds.FormatMember, Format.ToString(CultureInfo.InvariantCulture) },
+                    { StoreKinds.PluginMember, Plugin },
+                }));
+            }
+
+            foreach (var row in StoreKinds.All.Where(row => row.Restated == StoreRestated.BySameMember && row.Name != StoreKinds.Removed))
+            {
+                foreach (var value in _taken[row.Name])
+                {
+                    items.Add(Item(row.Name, new Dictionary<string, string>(StringComparer.Ordinal) { { row.RestatedBy, value } }));
+                }
+            }
+
+            foreach (var removal in _removals)
+            {
+                items.Add(Item(StoreKinds.Removed, new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    { StoreKinds.NameMember, removal.Name },
+                    { StoreKinds.Id, removal.Id },
+                }));
+            }
+
+            items.AddRange(_versions.Select(version => Item(StoreKinds.Version, version.Value)));
+            items.AddRange(_kept.Select(kept => Item(StoreKinds.Kept, kept.Value)));
+            return items;
+        }
+
+        /// <summary>
+        /// Whether a plugin version is above another, each three whole numbers joined by
+        /// periods, compared as numbers; nothing is above a version not stated.
+        /// </summary>
+        internal static bool Above(string version, string held)
+        {
+            return version != null && (held == null || Order(version) > Order(held));
+        }
+
+        private static StoreItem Item(string kind, IReadOnlyDictionary<string, string> members)
+        {
+            return new StoreItem(kind, members);
+        }
+
+        /// <summary>An item carried by its identifier, with the item's members and that identifier.</summary>
+        private static void Carry(
+            Dictionary<string, IReadOnlyDictionary<string, string>> carried, string id, IReadOnlyDictionary<string, string> members)
+        {
+            if (id == null || carried.ContainsKey(id))
+            {
+                return;
+            }
+
+            var item = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var member in members)
+            {
+                item[member.Key] = member.Value;
+            }
+
+            item[StoreKinds.Id] = id;
+            carried[id] = item;
         }
 
         /// <summary>The higher of two plugin versions, each three whole numbers joined by periods, either may be null.</summary>
@@ -525,7 +657,7 @@ namespace KeePassGate.Store
                 CultureInfo.InvariantCulture);
         }
 
-        private static IReadOnlyList<string> After(string list)
+        private static IReadOnlyList<string> Listed(string list)
         {
             return StoreFormat.Identifiers(list) ?? Array.Empty<string>();
         }

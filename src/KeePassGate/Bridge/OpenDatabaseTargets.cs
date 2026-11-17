@@ -10,6 +10,7 @@ using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Vault;
 using KeePassGate.Gate;
+using KeePassGate.Store;
 using KeePassGate.Ui;
 
 namespace KeePassGate.Bridge
@@ -73,6 +74,10 @@ namespace KeePassGate.Bridge
 
         /// <summary>How two paths are told to be one database, taken as the plugin starts.</summary>
         private readonly KeePassPaths _paths = new KeePassPaths();
+
+        // The readings of each open database's store, kept for as long as it is open, whatever is
+        // served from it: STORE.md §620.
+        private readonly Dictionary<PwDatabase, HeldReadings> _readings = new Dictionary<PwDatabase, HeldReadings>();
 
         public OpenDatabaseTargets(Func<IEnumerable<PwDatabase>> openDatabases, IGateLog log)
             : this(openDatabases, null, log)
@@ -222,6 +227,7 @@ namespace KeePassGate.Bridge
                 }
 
                 _cache.Clear();
+                LetGoReadings((database, held) => true);
 
                 foreach (var locked in _locked.Values)
                 {
@@ -284,6 +290,9 @@ namespace KeePassGate.Bridge
                         break;
                     }
                 }
+
+                // What the store's readings keep goes at the lock, whatever was served.
+                LetGoReadings((database, held) => database == found || _paths.Equals(held.Path, path));
 
                 if (cached == null)
                 {
@@ -654,6 +663,7 @@ namespace KeePassGate.Bridge
                 // private key, and the only other reaper is `DropClosed`, which runs inside
                 // `Current` and so never runs again for a database nobody will ask about.
                 held.AddRange(DropCached(path));
+                LetGoReadings((database, readings) => _paths.Equals(readings.Path, path));
 
                 // And whatever was kept in case this turned out to be a lock. This is the event
                 // that says it was not. It counts all the same, because it is kept only for a
@@ -756,6 +766,8 @@ namespace KeePassGate.Bridge
                 _cache.Remove(database);
                 _log.Info("stopped serving a database that is no longer open");
             }
+
+            LetGoReadings((database, held) => !open.Contains(database));
         }
 
         /// <summary>
@@ -796,25 +808,19 @@ namespace KeePassGate.Bridge
                 return null;
             }
 
-            string stored;
-            try
-            {
-                // The database's own custom data, not the root group's: that is where everything
-                // of this plugin's that belongs to the database lives. Every authority and every
-                // retirement, because which authority is served is decided by all of them.
-                stored = new AuthorityStore(new CustomDataStore(database), _log).Stored();
-            }
-            catch (Exception error) when (Expected.OfCustomData(error))
-            {
-                _log.Error("a database's authority could not be reached", error);
-                return null;
-            }
+            // The plugin's store, read in the hold `Current` runs in, through the readings this
+            // database keeps for as long as it is open, `STORE.md` §620: which authorities stand
+            // under the key that stands decides what is served, and the entry is held to that and
+            // to the state, by the very objects of each standing authority's version.
+            var readings = ReadingsOf(database);
+            var reading = readings.Now(database, root);
+            var signature = new Signature(reading);
 
             CachedTarget cached;
             string served = null;
             if (_cache.TryGetValue(database, out cached))
             {
-                if (cached.Matches(stored))
+                if (cached.Matches(signature))
                 {
                     cached.Follow(PathOf(database));
                     return cached;
@@ -827,42 +833,42 @@ namespace KeePassGate.Bridge
                 _cache.Remove(database);
             }
 
-            // codeql[cs/missed-using-statement] disposed only when it is not kept, which no `using` can do
-            var reading = new AuthorityStore(new CustomDataStore(database), _log).Read();
-            if (reading.Presence == AuthorityPresence.Undecided)
+            var standing = reading.Answering;
+            if (standing.Count > 1)
             {
-                return Undecided(database, stored, reading);
+                return Undecided(database, signature, standing, readings);
+            }
+
+            // The document is parsed here, once for each change of what stands, and never at a
+            // connection: a connection is held to the standing authority's entry and version.
+            var problems = new List<string>();
+            var material = standing.Count == 0 ? null : StoreAuthorities.Material(standing[0], problems);
+            if (material == null)
+            {
+                // No authority, or an authority that cannot be read, and nothing to serve either way. The
+                // tab is where an operator is told why, and a database that was never served is
+                // left at that. A database served until this reading is reported here too,
+                // once, because every client of it is about to be dropped and the log is where an
+                // operator looks for why.
+                if (served != null)
+                {
+                    _log.Warn("stopped serving " + served + ": " + Unserved(reading, problems));
+                }
+
+                return null;
             }
 
             // The target takes the reading, and the cache takes the target, which lets go of it
-            // with its last holder. Every other way out lets go of whichever holds it here, a throw
-            // from the log, from making the target or from minting its responder among them, and in
-            // a `finally` rather than a `catch` for the reason `Current` gives. Up to the cache
-            // rather than up to the target, because what runs between the two is a mint from stored
-            // bytes, and a throw there used to leave the gate key and the host's stored bytes
-            // not wiped on every connection that read the database again.
+            // with its last holder. Every other way out lets go of whichever holds it here, in a
+            // `finally` rather than a `catch` for the reason `Current` gives.
             // codeql[cs/missed-using-statement] disposed only when it is not cached, which no `using` can do
+            var authority = AuthorityReading.Whole(material, 0, true);
+            // codeql[cs/missed-using-statement] let go by the cached entry, or disposed below when it is not cached
             MaterialTarget target = null;
             var kept = false;
             try
             {
-                if (!reading.IsPresent)
-                {
-                    // No authority, or one that cannot be read, and nothing to serve either way. The
-                    // tab is where an operator is told why, and a database that was never served is
-                    // left at that. One that was being served until this reading is reported here too,
-                    // once, because every client of it is about to be dropped and the log is where an
-                    // operator looks for why: a synchronize that brought an authority this cannot read,
-                    // or somebody else's edit of the key.
-                    if (served != null)
-                    {
-                        _log.Warn("stopped serving " + served + ": " + Unserved(reading));
-                    }
-
-                    return null;
-                }
-
-                target = new MaterialTarget(database, reading, _writer, _hold, _log);
+                target = new MaterialTarget(database, authority, _writer, _hold, _log, readings, standing[0]);
 
                 var path = PathOf(database);
 
@@ -871,7 +877,7 @@ namespace KeePassGate.Bridge
                 // key held until KeePass exits.
                 Discard(path);
 
-                var entry = new CachedTarget(stored, path, Responder(reading), target, null, null);
+                var entry = new CachedTarget(signature, path, Responder(authority), target, null);
                 _cache[database] = entry;
                 kept = true;
 
@@ -888,87 +894,83 @@ namespace KeePassGate.Bridge
                     }
                     else
                     {
-                        reading.Dispose();
+                        authority.Dispose();
                     }
                 }
             }
         }
 
         /// <summary>Why a database with nothing to serve has nothing, in the words the log gives.</summary>
-        private static string Unserved(AuthorityReading reading)
+        private static string Unserved(StoreReading reading, IReadOnlyList<string> problems)
         {
-            if (reading.Presence != AuthorityPresence.None)
+            if (problems.Count > 0)
             {
-                return "its authority cannot be read now, " + string.Join("; ", reading.Problems);
+                return "its authority cannot be read now, " + string.Join("; ", problems);
             }
 
-            return reading.IsRetired ? "every authority it held is retired now" : "it holds no authority now";
+            if (reading.State == StoreState.None)
+            {
+                return "it holds no store key now";
+            }
+
+            return reading.InForce != null && reading.InForce.Taken(StoreKinds.Retired).Count > 0
+                ? "every authority it held is retired now"
+                : "it holds no authority now";
         }
 
         /// <summary>
         /// A database holding several authorities and no decision between them: nothing is served,
         /// no responder is minted, and each candidate that reads answers `503 undecided` under its
-        /// own gate key and host certificate. Called with the lock held; takes the reading.
+        /// own gate key and host certificate. Called with the lock held.
         /// </summary>
         /// <remarks>
         /// **Cached like any other state**, so the log line and the parsing happen once per change
         /// rather than once per connection, and so that the chooser can ask which databases are in
-        /// this state without reading any of them again.
+        /// this state without reading any of them again. Each candidate asks the database's
+        /// readings for the store's word first, `STORE.md` §656.
         /// </remarks>
-        private CachedTarget Undecided(PwDatabase database, string stored, AuthorityReading reading)
+        private CachedTarget Undecided(PwDatabase database, Signature signature, IReadOnlyList<FoundRecord> standing, StoreReadings readings)
         {
             var targets = new List<UndecidedTarget>();
-
-            // The store is asked before which authority is served, `STORE.md` §656, once for all
-            // the candidates. The cached entry makes it keep nothing as it goes, since a
-            // connection may still hold a candidate and ask it.
-            // codeql[cs/missed-using-statement] let go by the cached entry, or disposed below when it is not cached
-            var store = new StoreReadings(database, _hold, _log);
-            Func<string> word = () => store.Word;
+            Func<string> word = () => readings.Word;
 
             // Each candidate holds a copy of its gate key until it is disposed, and nothing owns
-            // them before the cache does, so a throw on the way there gives back every one built,
-            // as `TargetFor` gives back its reading.
+            // them before the cache does, so a throw on the way there gives back every target built.
             var kept = false;
             try
             {
-                using (reading)
+                var shorts = new List<string>();
+                foreach (var record in standing)
                 {
-                    foreach (var candidate in reading.Candidates)
+                    var id = record.Form.Member(StoreKinds.Id);
+                    shorts.Add(AuthorityKeys.Shown(id));
+                    using (var material = StoreAuthorities.Material(record, new List<string>()))
                     {
-                        if (!candidate.IsWhole)
+                        if (material == null)
                         {
                             continue;
                         }
 
-                        var host = candidate.Material.HostKey;
-
                         // Into a local and zeroed afterwards, for the reason `Answering` gives.
-                        var gateKey = candidate.Material.SniKey;
+                        var gateKey = material.SniKey;
                         try
                         {
-                            targets.Add(new UndecidedTarget(candidate.Fingerprint, gateKey, host, word));
+                            targets.Add(new UndecidedTarget(id, gateKey, material.HostKey, word));
                         }
                         finally
                         {
                             Array.Clear(gateKey, 0, gateKey.Length);
                         }
                     }
-
-                    var shorts = new List<string>();
-                    foreach (var candidate in reading.Candidates)
-                    {
-                        shorts.Add(AuthorityKeys.Shown(candidate.Fingerprint));
-                    }
-
-                    _log.Warn("not serving a database that holds " + reading.Candidates.Count +
-                              " authorities until the operator keeps one: " + string.Join(", ", shorts));
                 }
+
+                _log.Warn("not serving a database that holds " + standing.Count +
+                          " authorities until the operator keeps one: " + string.Join(", ", shorts));
 
                 var path = PathOf(database);
                 Discard(path);
 
-                var entry = new CachedTarget(stored, path, null, null, targets, store);
+                var entry = new CachedTarget(signature, path, null, null, targets);
                 _cache[database] = entry;
                 kept = true;
                 return entry;
@@ -982,9 +984,99 @@ namespace KeePassGate.Bridge
                     {
                         target.Dispose();
                     }
-
-                    store.Dispose();
                 }
+            }
+        }
+
+        /// <summary>
+        /// The readings of this database's store, kept for as long as it is open, so that the
+        /// checked forms outlast a change of what is served. Called with the lock held.
+        /// </summary>
+        private StoreReadings ReadingsOf(PwDatabase database)
+        {
+            HeldReadings held;
+            if (!_readings.TryGetValue(database, out held))
+            {
+                held = new HeldReadings(new StoreReadings(database, _hold, _log));
+                _readings[database] = held;
+            }
+
+            var path = PathOf(database);
+            if (!string.IsNullOrEmpty(path))
+            {
+                held.Path = path;
+            }
+
+            return held.Readings;
+        }
+
+        /// <summary>
+        /// Lets go of the readings of every database that matches, their keys overwritten: at a
+        /// lock, a close, and a database no longer open. Called with the lock held.
+        /// </summary>
+        /// <remarks>
+        /// A connection still holding a target of such a database reads afresh from then on, and
+        /// is answered as a database that shut.
+        /// </remarks>
+        private void LetGoReadings(Func<PwDatabase, HeldReadings, bool> which)
+        {
+            foreach (var pair in _readings.Where(pair => which(pair.Key, pair.Value)).ToList())
+            {
+                pair.Value.Readings.Forget();
+                pair.Value.Readings.Dispose();
+                _readings.Remove(pair.Key);
+            }
+        }
+
+        /// <summary>A database's readings, with the path it was last read at, which is how a lock finds them.</summary>
+        private sealed class HeldReadings
+        {
+            public HeldReadings(StoreReadings readings)
+            {
+                Readings = readings;
+            }
+
+            public StoreReadings Readings { get; private set; }
+
+            public string Path { get; set; }
+        }
+
+        /// <summary>
+        /// What a cached entry is held to, `STORE.md` §620: the store's state, and each standing
+        /// authority by its entry and by the very objects of its version.
+        /// </summary>
+        /// <remarks>
+        /// The same objects are the same text, so an entry whose authorities and state are the
+        /// same is handed out as it is, with nothing parsed; any other is made again.
+        /// </remarks>
+        private sealed class Signature
+        {
+            private readonly StoreState _state;
+            private readonly List<KeyValuePair<string, StoreVersion>> _standing;
+
+            public Signature(StoreReading reading)
+            {
+                _state = reading.State;
+                _standing = reading.Answering.Select(record => new KeyValuePair<string, StoreVersion>(record.Hex, record.Form.Version)).ToList();
+            }
+
+            public bool Same(Signature other)
+            {
+                if (other == null || other._state != _state || other._standing.Count != _standing.Count)
+                {
+                    return false;
+                }
+
+                for (var index = 0; index < _standing.Count; index++)
+                {
+                    if (!string.Equals(_standing[index].Key, other._standing[index].Key, StringComparison.Ordinal)
+                        || !_standing[index].Value.Same(other._standing[index].Value))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
             }
         }
 
@@ -1017,7 +1109,7 @@ namespace KeePassGate.Bridge
             {
                 // `OfIssuance`, the list every site that mints from a stored authority shares, and
                 // `InvalidOperationException` among it: that is what issuance raises for an
-                // authority whose own dates have passed, and `AuthorityStore.Read` ignores expiry,
+                // authority whose own dates have passed, and `AuthorityRecord.Read` ignores expiry,
                 // so one reaches here. Escaping left the target half built and made the resolver
                 // answer nothing for every open database, not only the expired one. What a missing
                 // responder costs is the caller's to log: a lock answers with the responder it holds
@@ -1035,32 +1127,25 @@ namespace KeePassGate.Bridge
 
         private sealed class CachedTarget : IDisposable
         {
-            private readonly string _stored;
+            private readonly Signature _signature;
             private string _path;
             private readonly CertifiedKey _responder;
             private readonly MaterialTarget _target;
             private readonly List<UndecidedTarget> _undecided;
-            private readonly StoreReadings _store;
 
             /// <summary>What a database answers with, as it was read now.</summary>
-            /// <param name="store">
-            /// The store the undecided candidates ask, which this lets go of with them, or null
-            /// where a served target owns its own.
-            /// </param>
             public CachedTarget(
-                string stored,
+                Signature signature,
                 string path,
                 CertifiedKey responder,
                 MaterialTarget target,
-                List<UndecidedTarget> undecided,
-                StoreReadings store)
+                List<UndecidedTarget> undecided)
             {
-                _stored = stored;
+                _signature = signature;
                 _path = path;
                 _responder = responder;
                 _target = target;
                 _undecided = undecided ?? new List<UndecidedTarget>();
-                _store = store;
             }
 
             /// <summary>What is served, or null while the database holds several authorities.</summary>
@@ -1157,34 +1242,27 @@ namespace KeePassGate.Bridge
                 get { return _responder; }
             }
 
-            public bool Matches(string stored)
+            /// <summary>Whether the store still stands as this was made for.</summary>
+            public bool Matches(Signature signature)
             {
-                return string.Equals(_stored, stored, StringComparison.Ordinal);
+                return _signature.Same(signature);
             }
 
             /// <summary>Lets go of everything this database was served with, as the cache drops it.</summary>
             /// <remarks>
-            /// **What the store's readings keep goes now**, at the lock, the close or the change of
-            /// what is served that lets go of this, whoever still holds a target: a connection can
-            /// hold one for as long as a pairing's budget, and the readings go on for it reading
-            /// afresh and keeping nothing.
+            /// The store's readings are the database's and not this entry's: they outlast a change
+            /// of what is served, and go at the lock or the close that lets go of the database.
             /// </remarks>
             public void Dispose()
             {
                 if (_target != null)
                 {
-                    _target.ForgetStore();
                     _target.Dispose();
                 }
 
                 foreach (var candidate in _undecided)
                 {
                     candidate.Dispose();
-                }
-
-                if (_store != null)
-                {
-                    _store.Forget();
                 }
             }
         }
@@ -1201,17 +1279,26 @@ namespace KeePassGate.Bridge
             private readonly KdbxVault _vault;
             private readonly NodeTags _tags;
             private readonly StoreReadings _store;
+            private readonly string _servedEntry;
+            private readonly StoreVersion _servedVersion;
 
             // The cache holds the first of these; `Current` takes one more per caller.
             private int _holders = 1;
 
+            /// <summary>A target serving this authority's material for this database.</summary>
+            /// <param name="readings">The readings of the database's store, which the cache keeps and lets go.</param>
+            /// <param name="served">The authority's record this serves, by its entry and its version.</param>
             public MaterialTarget(
                 PwDatabase database,
                 AuthorityReading reading,
                 DatabaseWriter writer,
                 IReadHold hold,
-                IGateLog log)
+                IGateLog log,
+                StoreReadings readings,
+                FoundRecord served)
             {
+                _servedEntry = served.Hex;
+                _servedVersion = served.Form.Version;
                 _database = database;
                 _reading = reading;
                 _hold = hold;
@@ -1236,7 +1323,7 @@ namespace KeePassGate.Bridge
 
                 // The plugin's store, read once for each hold, by the vault's lookups as by
                 // whatever else asks it in that hold.
-                _store = new StoreReadings(database, hold, log);
+                _store = readings;
                 _vault = new KdbxVault(database, writer, _tags, hold, log, _store);
             }
 
@@ -1417,14 +1504,6 @@ namespace KeePassGate.Bridge
                 get { return _reading.Material.AuthorityKey; }
             }
 
-            /// <summary>
-            /// Lets go of what the store's readings keep, while whoever still holds this goes on
-            /// reading afresh.
-            /// </summary>
-            public void ForgetStore()
-            {
-                _store.Forget();
-            }
 
             /// <summary>Takes a reference, for a caller about to use this outside the cache lock.</summary>
             public void Retain()
@@ -1563,7 +1642,7 @@ namespace KeePassGate.Bridge
                 return _writer.RefuseRenewal(_database, admissionKey, refusal);
             }
 
-            public AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition, Action audit)
+            public AdmissionWrite Admit(AdmissionRecord record, Func<IWriteGround, string> condition, Action audit)
             {
                 if (_writer == null)
                 {
@@ -1616,7 +1695,6 @@ namespace KeePassGate.Bridge
                     _database = null;
                     _reading.Dispose();
                     _tags.Clear();
-                    _store.Dispose();
                 }
             }
 
@@ -1670,11 +1748,12 @@ namespace KeePassGate.Bridge
                     throw new DatabaseShut("the database closed under this connection");
                 }
 
-                var store = new CustomDataStore(database);
-                if (!Served(store))
+                if (!Served(_store.Now(database, database.RootGroup)))
                 {
                     return null;
                 }
+
+                var store = new CustomDataStore(database);
 
                 // A listing that failed is not an answer, because the one it would give is that
                 // this client was never admitted. KeePass's thread changing the dictionary
@@ -1691,12 +1770,20 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>
-            /// True while the database still holds this target's authority and has not retired it.
+            /// True while the store, as this hold read it, serves this target's authority: whole,
+            /// with this authority standing alone, in the very entry and version it was built from.
             /// </summary>
-            private bool Served(IKeyValueStore store)
+            /// <remarks>
+            /// No document is parsed here, at every connection: a record whose version is another
+            /// object, retired, beside a deletion record, or beside another authority answers no,
+            /// and the next `Current` builds what the store holds then.
+            /// </remarks>
+            private bool Served(StoreReading reading)
             {
-                return !string.IsNullOrEmpty(store.Get(AuthorityKeys.AuthorityKey(_databaseId)))
-                       && store.Get(AuthorityKeys.RetirementKey(_databaseId)) == null;
+                return reading.State == StoreState.Whole
+                       && reading.Answering.Count == 1
+                       && string.Equals(reading.Answering[0].Hex, _servedEntry, StringComparison.Ordinal)
+                       && reading.Answering[0].Form.Version.Same(_servedVersion);
             }
         }
     }

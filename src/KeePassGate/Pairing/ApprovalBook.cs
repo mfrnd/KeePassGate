@@ -113,15 +113,15 @@ namespace KeePassGate.Pairing
         /// landed after the operator answered, or after the handler last read it, is what this
         /// catches, under the same lock the revocation is written under.
         /// </remarks>
-        public HeldStaleness Stale(IKeyValueStore store, string admissionKey)
+        public HeldStaleness Stale(IWriteGround ground, string admissionKey)
         {
+            var store = ground == null ? null : ground.Names;
             if (store == null)
             {
                 return HeldStaleness.Unpaired;
             }
 
-            if (string.IsNullOrEmpty(store.Get(AuthorityKeys.AuthorityKey(DatabaseId)))
-                || store.Get(AuthorityKeys.RetirementKey(DatabaseId)) != null)
+            if (!string.Equals(ground.Served, DatabaseId, StringComparison.Ordinal))
             {
                 return HeldStaleness.Authority;
             }

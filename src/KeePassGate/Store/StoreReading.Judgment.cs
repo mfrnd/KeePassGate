@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace KeePassGate.Store
 {
-    internal sealed partial class StoreReading
+    public sealed partial class StoreReading
     {
         /// <summary>
         /// The state of the store, worked out from the checked forms and the deletion records:
@@ -121,7 +121,7 @@ namespace KeePassGate.Store
                         {
                             if (forms[at][index].Passes(keys[key], candidate.Identifier))
                             {
-                                records[key].Add(new FoundRecord(candidate.Hex, forms[at][index], index > 0, deleted.Contains(candidate.Hex)));
+                                records[key].Add(new FoundRecord(candidate.Hex, forms[at][index], index, deleted.Contains(candidate.Hex)));
                                 any = true;
                                 break;
                             }
@@ -165,13 +165,15 @@ namespace KeePassGate.Store
                     {
                         Passed = passed,
                         Answering = standing
-                            .SelectMany(key => StoreInForce.Of(keys[key], records[key], deleted, Array.Empty<string>()).Authorities)
+                            .SelectMany(key => StoreInForce.Of(keys[key], records[key], deleted, Array.Empty<KeyValuePair<string, string>>()).Authorities)
                             .ToList(),
                     };
                 }
 
                 var store = standing[0];
-                var keptByDeletion = told.Where(relation => relation.Source == store).Select(relation => relation.Id).ToList();
+                var keptByDeletion = told.Where(relation => relation.Source == store)
+                    .Select(relation => new KeyValuePair<string, string>(relation.Id, keys[relation.Target].Name))
+                    .ToList();
                 var judged = Store(keys[store], records[store], damage[store], deleted, keptByDeletion);
                 judged.Damage = damage[store].Count;
                 judged.Passed = passed;
@@ -184,7 +186,11 @@ namespace KeePassGate.Store
             /// whole, and whether it has room, `STORE.md` §651, §623, §624 and §627.
             /// </summary>
             private static Judgment Store(
-                FoundKey key, IReadOnlyList<FoundRecord> records, IReadOnlyList<string> damage, ISet<string> deleted, IReadOnlyCollection<string> keptByDeletion)
+                FoundKey key,
+                IReadOnlyList<FoundRecord> records,
+                IReadOnlyList<string> damage,
+                ISet<string> deleted,
+                IReadOnlyCollection<KeyValuePair<string, string>> keptByDeletion)
             {
                 var inForce = StoreInForce.Of(key, records, deleted, keptByDeletion);
 

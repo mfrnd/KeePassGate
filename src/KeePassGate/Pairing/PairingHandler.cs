@@ -794,7 +794,7 @@ namespace KeePassGate.Pairing
                 // before this, so a `503` never follows a spent invitation.
                 string refused = null;
                 var spent = false;
-                Func<IKeyValueStore, string> condition = store =>
+                Func<IWriteGround, string> condition = ground =>
                 {
                     if (!_held.Take(held))
                     {
@@ -802,7 +802,7 @@ namespace KeePassGate.Pairing
                         return "the approval is no longer held";
                     }
 
-                    var stale = held.Stale(store, null);
+                    var stale = held.Stale(ground, null);
                     if (stale == HeldStaleness.Authority)
                     {
                         refused = "no invitation";

@@ -185,7 +185,7 @@ namespace KeePassGate.Ui
         /// </remarks>
         private List<AdmissionRecord> GettingIn()
         {
-            using (var reading = new AuthorityService(_database.PluginCustomData, _log).Read())
+            using (var reading = new AuthorityService(_database.Store, _database.PluginCustomData, _log).Read())
             {
                 var authority = reading.IsPresent ? reading.Material.Authority : null;
                 var now = DateTimeOffset.UtcNow;

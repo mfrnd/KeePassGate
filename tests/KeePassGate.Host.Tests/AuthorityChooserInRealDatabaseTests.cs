@@ -10,6 +10,8 @@ using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
+using KeePassGate.Store;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -89,15 +91,18 @@ namespace KeePassGate.Host.Tests
         {
             _answer = _candidates[0];
             _database.Database.Modified = false;
+            var loser = EntryOf(_candidates[1]);
 
             _chooser.AskAll();
 
             Assert.That(_asked, Is.EqualTo(1));
             Assert.That(_saves, Is.Zero, "the operator saves, as they would any other change");
             Assert.That(_database.Database.Modified, Is.True, "and KeePass knows there is something to save");
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.True);
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.AuthorityKey(_candidates[1])), Is.False,
-                "the loser's document is pruned in the same write");
+            Assert.That(Retired(_candidates[1]), Is.True);
+            Assert.That(_database.RootGroup.FindEntry(loser, true), Is.Null,
+                "the entry of the authority not kept is deleted in the same write");
+            Assert.That(_database.Database.DeletedObjects.Any(deleted => deleted.Uuid.Equals(loser)), Is.True,
+                "with a deletion record");
 
             using (var served = _targets.Current().Single())
             {
@@ -122,7 +127,7 @@ namespace KeePassGate.Host.Tests
             using (chooser)
             {
                 Assume.That(
-                    new AuthorityService(new CustomDataStore(_database.Database), NullGateLog.Instance)
+                    DatabaseAuthority.Of(_database.Database, NullGateLog.Instance)
                         .Keep(_candidates[0], _candidates).Succeeded,
                     Is.True);
 
@@ -148,7 +153,7 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(_chooser.Ask(_database.Database), Is.Null);
             Assert.That(_asked, Is.EqualTo(1));
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.False,
+            Assert.That(Retired(_candidates[1]), Is.False,
                 "nothing was kept");
             Assert.That(_prompt.Told, Is.Null);
 
@@ -224,9 +229,9 @@ namespace KeePassGate.Host.Tests
             _chooser.AskAll();
 
             Assert.That(listed.Count, Is.EqualTo(1), "nothing is asked on top of the question standing");
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(third)), Is.False,
+            Assert.That(Retired(third), Is.False,
                 "the authority nobody was shown is not retired");
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(second)), Is.False,
+            Assert.That(Retired(second), Is.False,
                 "and nothing else is, since the answer was about a database that is no longer there");
             Assert.That(_prompt.Told, Is.Null, "the operator is asked again rather than sent to the tab");
 
@@ -235,8 +240,8 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(listed.Count, Is.EqualTo(2), "the authorities the database holds now are asked about");
             Assert.That(listed[1], Is.EquivalentTo(new[] { first, second, third }));
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(second)), Is.True);
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(third)), Is.True,
+            Assert.That(Retired(second), Is.True);
+            Assert.That(Retired(third), Is.True,
                 "and an answer about all of them retires the rest");
 
             using (var served = _targets.Current().Single())
@@ -284,8 +289,7 @@ namespace KeePassGate.Host.Tests
                 listed.Add(choice.Options.Select(o => o.Fingerprint).ToArray());
                 if (listed.Count == 1)
                 {
-                    new CustomDataStore(_database.Database).Set(
-                        AuthorityKeys.RetirementKey(third), AuthorityKeys.RetiredValue);
+                    StoreSeeds.Retire(Store(), third);
                     _chooser.AskAll();
                 }
 
@@ -294,7 +298,7 @@ namespace KeePassGate.Host.Tests
 
             _chooser.AskAll();
 
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(second)), Is.False);
+            Assert.That(Retired(second), Is.False);
             Assert.That(_prompt.Told, Is.Null);
 
             _chooser.AskAll();
@@ -347,8 +351,8 @@ namespace KeePassGate.Host.Tests
                 chooser.AskAll();
 
                 Assert.That(third, Is.Not.Null, "the first try was refused");
-                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(third)), Is.False);
-                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(second)), Is.False);
+                Assert.That(Retired(third), Is.False);
+                Assert.That(Retired(second), Is.False);
                 Assert.That(_prompt.Told, Is.Null);
 
                 chooser.AskAll();
@@ -376,8 +380,7 @@ namespace KeePassGate.Host.Tests
                 },
                 AskWhichToKeep = (choice, name) =>
                 {
-                    new CustomDataStore(_database.Database).Set(
-                        AuthorityKeys.RetirementKey(_candidates[0]), AuthorityKeys.RetiredValue);
+                    StoreSeeds.Retire(Store(), _candidates[0]);
                     return _candidates[0];
                 }
             };
@@ -411,8 +414,7 @@ namespace KeePassGate.Host.Tests
             };
             _chooser.AskWhichToKeep = (choice, name) =>
             {
-                new CustomDataStore(_database.Database).Set(
-                    AuthorityKeys.RetirementKey(_candidates[1]), AuthorityKeys.RetiredValue);
+                StoreSeeds.Retire(Store(), _candidates[1]);
                 return _candidates[0];
             };
 
@@ -474,10 +476,10 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void Database_Maintenance_open_refuses_the_choice_and_the_prune_and_says_why()
+        public void Database_Maintenance_open_refuses_the_choice_and_the_operator_is_told()
         {
-            // Its write-back is conditional on a key count, so a pick with a prune beside it is
-            // exactly what it undoes. Refused, the operator is told, and nothing is written.
+            // The writer refuses every write of the operator's while that dialog stands. Refused,
+            // the operator is told, and nothing is written.
             _answer = _candidates[0];
 
             using (var form = new DatabaseOperationsForm())
@@ -497,8 +499,8 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(_asked, Is.EqualTo(1));
             Assert.That(_prompt.Told, Is.Not.Null.And.Contains("was not kept"));
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.False);
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.AuthorityKey(_candidates[1])), Is.True);
+            Assert.That(Retired(_candidates[1]), Is.False);
+            Assert.That(_database.RootGroup.FindEntry(EntryOf(_candidates[1]), true), Is.Not.Null, "and no entry is deleted");
         }
 
         [Test]
@@ -535,7 +537,7 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(_asked, Is.EqualTo(1));
             Assert.That(_prompt.Told, Is.Null, "the operator is not told about a refusal that cleared");
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.True);
+            Assert.That(Retired(_candidates[1]), Is.True);
         }
 
         [Test]
@@ -584,7 +586,7 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(_prompt.Told, Is.Not.Null.And.Contains("was not kept"));
             Assert.That(toldWhileBusy, Is.False, "the message stood inside an operation of KeePass's own");
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.False,
+            Assert.That(Retired(_candidates[1]), Is.False,
                 "and the answer given up when the bound passed is not written afterwards");
         }
 
@@ -695,7 +697,7 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(_asked, Is.EqualTo(1));
             Assert.That(_prompt.Told, Is.Null);
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.True);
+            Assert.That(Retired(_candidates[1]), Is.True);
         }
 
         [Test]
@@ -713,13 +715,13 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(rounds, Is.GreaterThan(0), "the merge came back to its logger, where it pumps");
             Assert.That(_asked, Is.Zero, "nobody is asked inside a merge");
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.False);
+            Assert.That(Retired(_candidates[1]), Is.False);
 
             // The round a moment later, with the merge over.
             _chooser.AskAll();
 
             Assert.That(_asked, Is.EqualTo(1));
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.True);
+            Assert.That(Retired(_candidates[1]), Is.True);
         }
 
         [Test]
@@ -736,7 +738,7 @@ namespace KeePassGate.Host.Tests
             Assert.That(answers, Is.Not.Empty);
             Assert.That(answers.Select(kept => kept.Succeeded), Has.All.False);
             Assert.That(answers.Select(kept => kept.Message), Has.All.Contains("merging"));
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.False);
+            Assert.That(Retired(_candidates[1]), Is.False);
 
             Assert.That(_writer.Keep(_database.Database, _candidates[0], _candidates).Succeeded, Is.True,
                 "and takes the same answer once the merge is over");
@@ -753,7 +755,7 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(kept.Succeeded, Is.False);
             Assert.That(kept.Message, Does.Contain("importing"));
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.False);
+            Assert.That(Retired(_candidates[1]), Is.False);
         }
 
         [Test]
@@ -845,7 +847,7 @@ namespace KeePassGate.Host.Tests
                 }
 
                 Assert.That(_prompt.Told, Is.Null, "the operator is not sent back to choose again");
-                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(_candidates[1])), Is.True,
+                Assert.That(Retired(_candidates[1]), Is.True,
                     "and the choice is kept");
             }
             finally
@@ -905,19 +907,8 @@ namespace KeePassGate.Host.Tests
         /// </summary>
         private static string[] Undecided(TemporaryDatabase database)
         {
-            var store = new CustomDataStore(database.Database);
-            var service = new AuthorityService(store, NullGateLog.Instance);
-
-            Assume.That(service.Create().Succeeded, Is.True);
-            var first = store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null);
-            var document = store.Get(first);
-            store.Remove(first);
-
-            Assume.That(service.Create().Succeeded, Is.True);
-            var second = store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null);
-            store.Set(first, document);
-
-            return new[] { AuthorityKeys.FingerprintInAuthority(first), AuthorityKeys.FingerprintInAuthority(second) };
+            return StoreSeeds.Undecided(
+                new KdbxStore(database.Database, GateVersion.Current, null), new CustomDataStore(database.Database));
         }
 
         /// <summary>
@@ -926,25 +917,34 @@ namespace KeePassGate.Host.Tests
         /// </summary>
         private string Third()
         {
-            var store = new CustomDataStore(_database.Database);
-            var service = new AuthorityService(store, NullGateLog.Instance);
-            var held = store.Keys.Where(k => AuthorityKeys.FingerprintInAuthority(k) != null)
-                            .ToDictionary(k => k, k => store.Get(k));
-            foreach (var key in held.Keys)
-            {
-                store.Remove(key);
-            }
-
-            Assume.That(service.Create().Succeeded, Is.True);
-            var third = AuthorityKeys.FingerprintInAuthority(
-                store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null));
-            foreach (var pair in held)
-            {
-                store.Set(pair.Key, pair.Value);
-            }
-
+            var third = StoreSeeds.Beside(Store());
             _candidates = _candidates.Concat(new[] { third }).ToArray();
             return third;
+        }
+
+        /// <summary>The database's store, read and written directly.</summary>
+        private KdbxStore Store()
+        {
+            return new KdbxStore(_database.Database, GateVersion.Current, null);
+        }
+
+        /// <summary>Whether the database's store holds a retirement of this authority.</summary>
+        private bool Retired(string id)
+        {
+            using (var reading = Store().Read())
+            {
+                return reading.InForce.Taken(StoreKinds.Retired).Contains(id);
+            }
+        }
+
+        /// <summary>The identifier of the entry holding this authority's record.</summary>
+        private KeePassLib.PwUuid EntryOf(string id)
+        {
+            using (var reading = Store().Read())
+            {
+                var record = reading.InForce.Authorities.Single(found => found.Form.Member(StoreKinds.Id) == id);
+                return new KeePassLib.PwUuid(KeePassGate.Testing.StoreComposer.BytesOf(record.Hex));
+            }
         }
 
         /// <summary>

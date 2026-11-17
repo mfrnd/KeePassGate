@@ -222,8 +222,18 @@ namespace KeePassGate.Ui
                             {
                                 Log().Info("what the " + GateName.Product + " tab held was put into "
                                     + "the database, which KeePass now says has changes to save");
-                                Revoked(database, clients ?? new Dictionary<string, string>(StringComparer.Ordinal));
+                                Revoked(live, database, clients ?? new Dictionary<string, string>(StringComparer.Ordinal));
                                 Lifted(database);
+                            }
+
+                            // Refused by the questions every write asks, which a dialog's close
+                            // meets only where KeePass is part way through something of its own:
+                            // a state the design holds for unreachable here, so it is counted.
+                            if (database.StoreRefusal != null)
+                            {
+                                _incidents.Record(
+                                    "what the " + GateName.Product + " tab held for the plugin's store was not written: "
+                                    + database.StoreRefusal, null);
                             }
                         }
 
@@ -279,6 +289,31 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
+        /// The authority the database is served with, from a reading let go at once, or null where
+        /// none is or the store could not be read: the audit then names no database.
+        /// </summary>
+        private string Served(IGateDatabase live)
+        {
+            if (live == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                using (var reading = live.Store.Read())
+                {
+                    return StoreAuthorities.Served(reading);
+                }
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                Log().Warn("the plugin's store could not be read for the database the revocations name: " + error.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Writes down every revocation the dialog's OK just put into the database, one line each.
         /// </summary>
         /// <remarks>
@@ -299,7 +334,7 @@ namespace KeePassGate.Ui
         /// <see cref="ClientKeys"/> read. A revoked certificate missing from it is named with no
         /// client key.
         /// </param>
-        private void Revoked(PendingDatabase database, IDictionary<string, string> clients)
+        private void Revoked(IGateDatabase live, PendingDatabase database, IDictionary<string, string> clients)
         {
             var revoked = new List<string>();
             foreach (var key in database.Stored.Where(AuthorityKeys.IsRevocation))
@@ -312,11 +347,7 @@ namespace KeePassGate.Ui
                 return;
             }
 
-            string databaseId;
-            using (var reading = new AuthorityService(database.PluginCustomData, Log()).Read())
-            {
-                databaseId = reading.IsPresent ? reading.Material.AuthorityDigest : null;
-            }
+            var databaseId = Served(live);
 
             foreach (var key in revoked)
             {

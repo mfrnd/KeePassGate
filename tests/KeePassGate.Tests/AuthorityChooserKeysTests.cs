@@ -82,14 +82,9 @@ namespace KeePassGate.Tests
         private static AuthorityChooserForm Shown()
         {
             var values = new InMemoryKeyValueStore();
-            var service = new AuthorityService(values, null);
-
-            Assume.That(service.Create().Succeeded, Is.True);
-            var first = values.Keys.Single(key => AuthorityKeys.FingerprintInAuthority(key) != null);
-            var document = values.Get(first);
-            values.Remove(first);
-            Assume.That(service.Create().Succeeded, Is.True);
-            values.Plant(first, document);
+            var records = new MemoryStore();
+            var service = new AuthorityService(records, values, null);
+            StoreSeeds.Undecided(records, values);
 
             AuthorityChoice choice;
             using (var reading = service.Read())

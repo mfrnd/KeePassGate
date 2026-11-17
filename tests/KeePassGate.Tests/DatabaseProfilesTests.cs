@@ -38,9 +38,8 @@ namespace KeePassGate.Tests
         /// </remarks>
         private static CertifiedKey _authority;
 
-        private static string _authorityKey;
-
-        private static string _authorityDocument;
+        /// <summary>A store holding the fixture's authority and nothing else.</summary>
+        private static MemoryStore _authorityStore;
 
         private static readonly Dictionary<string, X509Certificate2> Issued =
             new Dictionary<string, X509Certificate2>(StringComparer.Ordinal);
@@ -48,18 +47,15 @@ namespace KeePassGate.Tests
         [OneTimeSetUp]
         public static void Issue()
         {
-            var store = new InMemoryKeyValueStore();
-            Assume.That(new AuthorityService(store, null).Create().Succeeded, Is.True);
-
-            _authorityKey = store.Keys.Single(key => AuthorityKeys.FingerprintInAuthority(key) != null);
-            _authorityDocument = store.Get(_authorityKey);
-            _authority = CertificateBlob.Load(AuthorityDocument.Read(_authorityDocument, null).Authority);
+            _authorityStore = new MemoryStore();
+            var id = StoreSeeds.Authority(_authorityStore, new InMemoryKeyValueStore());
+            _authority = StoreSeeds.KeyOf(_authorityStore, id);
         }
 
         /// <summary>The database, serving the fixture's authority.</summary>
         private static FakeGateDatabase Serving(FakeGateDatabase database)
         {
-            database.Store.Plant(_authorityKey, _authorityDocument);
+            database.Records.Synchronize(_authorityStore);
             return database;
         }
 
@@ -208,7 +204,7 @@ namespace KeePassGate.Tests
         {
             // The page does not scroll, and the other two pages cut a foreign message the same way.
             var database = new FakeGateDatabase();
-            database.Store.ThrowOnWrite = new InvalidOperationException(new string('m', 5000));
+            database.Values.ThrowOnWrite = new InvalidOperationException(new string('m', 5000));
 
             var refused = new DatabaseProfiles(database, null).Add("ops");
 
@@ -222,13 +218,13 @@ namespace KeePassGate.Tests
             // Read as naming nothing, the page took an Add or a Remove and wrote the result over
             // the damaged list at OK, which pairing, renewal and the writer all refuse to do.
             var database = new FakeGateDatabase();
-            database.Store.Plant(ProfileNames.CustomDataKey, "{not json");
+            database.Values.Plant(ProfileNames.CustomDataKey, "{not json");
             var profiles = new DatabaseProfiles(database, null);
 
             Assert.That(profiles.Unreadable, Is.True);
             Assert.That(profiles.Add("agent"), Is.EqualTo(DatabaseProfiles.UnreadableRefusal));
             Assert.That(profiles.Remove("reader"), Is.EqualTo(DatabaseProfiles.UnreadableRefusal));
-            Assert.That(database.Store.Get(ProfileNames.CustomDataKey), Is.EqualTo("{not json"), "nothing replaced it by accident");
+            Assert.That(database.Values.Get(ProfileNames.CustomDataKey), Is.EqualTo("{not json"), "nothing replaced it by accident");
 
             Assert.That(profiles.StartNew(), Is.Null);
 

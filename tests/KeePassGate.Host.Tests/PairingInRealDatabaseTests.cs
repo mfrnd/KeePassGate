@@ -60,7 +60,7 @@ namespace KeePassGate.Host.Tests
 
             _writer = new DatabaseWriter(CurrentThread.Instance, Save, null, _dialogs, _log);
 
-            var created = new AuthorityService(new CustomDataStore(_database.Database), null).Create();
+            var created = DatabaseAuthority.Of(_database.Database, null).Create();
             Assume.That(created.Succeeded, Is.True, created.Message);
         }
 
@@ -356,40 +356,6 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_pairing_takes_away_the_documents_of_retired_authorities()
-        {
-            // The prune rides on a write this plugin makes anyway, and this is one.
-            var retired = PlantRetiredDocument();
-
-            using (var certificate = IssueClient())
-            {
-                var result = _writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
-
-                Assert.That(result.Ok, Is.True, result.Reason);
-                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.AuthorityKey(retired)), Is.False);
-                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(retired)), Is.True,
-                    "the retirement is never removed");
-            }
-        }
-
-        [Test]
-        public void A_pairing_that_does_not_land_puts_what_it_pruned_back()
-        {
-            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, _log);
-            var retired = PlantRetiredDocument();
-            _database.Database.Modified = false;
-
-            using (var certificate = IssueClient())
-            {
-                Assume.That(writer.WriteAdmission(_database.Database, Record(certificate, "ops")).Ok, Is.False);
-
-                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.AuthorityKey(retired)), Is.True,
-                    "memory has to go on agreeing with the file the write never reached");
-                Assert.That(_database.Database.Modified, Is.False);
-            }
-        }
-
-        [Test]
         public void A_pairing_takes_away_a_record_that_came_back_beside_its_revocation()
         {
             // Reading the database, which is all the gate does when that client connects, changes
@@ -474,31 +440,6 @@ namespace KeePassGate.Host.Tests
                 Assert.That(_database.Database.CustomData.Get(AuthorityKeys.ClientRecordKey(expired)), Is.EqualTo(stored),
                     "memory has to go on agreeing with the file the write never reached");
                 Assert.That(_database.Database.Modified, Is.False);
-            }
-        }
-
-        [Test]
-        public void The_maintenance_dialog_open_on_the_database_refuses_the_prune_with_the_write()
-        {
-            // Database Maintenance writes its copy back when the key count differs, so a prune
-            // made under it comes undone, and so does a retirement written beside it.
-            var retired = PlantRetiredDocument();
-
-            using (var certificate = IssueClient())
-            using (var form = MaintenanceDialog())
-            {
-                GlobalWindowManager.AddWindow(form);
-
-                try
-                {
-                    Assume.That(_writer.WriteAdmission(_database.Database, Record(certificate, "ops")).Ok, Is.False);
-
-                    Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.AuthorityKey(retired)), Is.True);
-                }
-                finally
-                {
-                    GlobalWindowManager.RemoveWindow(form);
-                }
             }
         }
 
@@ -1262,7 +1203,7 @@ namespace KeePassGate.Host.Tests
 
         private X509Certificate2 IssueClient()
         {
-            using (var reading = new AuthorityService(new CustomDataStore(_database.Database), null).Read())
+            using (var reading = DatabaseAuthority.Of(_database.Database, null).Read())
             {
                 return new AuthorityIssuer().IssueClient(
                     reading.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read();
@@ -1279,18 +1220,6 @@ namespace KeePassGate.Host.Tests
             var form = new GroupForm();
             form.InitEx(_database.RootGroup, false, null, _database.Database);
             return form;
-        }
-
-        /// <summary>
-        /// A retired authority's document back beside its retirement, which is what a stale copy
-        /// merged in leaves, answering with its digest.
-        /// </summary>
-        private string PlantRetiredDocument()
-        {
-            var retired = new string('e', 64);
-            _database.Database.CustomData.Set(AuthorityKeys.AuthorityKey(retired), "a document from a stale copy");
-            _database.Database.CustomData.Set(AuthorityKeys.RetirementKey(retired), AuthorityKeys.RetiredValue);
-            return retired;
         }
 
         /// <summary>
@@ -1381,7 +1310,7 @@ namespace KeePassGate.Host.Tests
 
         private X509Certificate2 Issue(string name, params string[] profiles)
         {
-            using (var reading = new AuthorityService(new CustomDataStore(_database.Database), null).Read())
+            using (var reading = DatabaseAuthority.Of(_database.Database, null).Read())
             {
                 return new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, name, profiles).Read();
             }

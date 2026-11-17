@@ -168,7 +168,7 @@ namespace KeePassGate.Host.Tests
         private TemporaryDatabase Served()
         {
             var database = TemporaryDatabase.New();
-            var created = new AuthorityService(new CustomDataStore(database.Database), _log).Create();
+            var created = DatabaseAuthority.Of(database.Database, _log).Create();
             Assert.That(created.Succeeded, Is.True, created.Message);
             database.Save();
             return database;

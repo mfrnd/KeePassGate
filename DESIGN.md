@@ -628,11 +628,12 @@ concession beside the code.
 **A certificate proves who a client is. It grants nothing.** [`CA.md`](CA.md) is the reference;
 this is what the rest of the design depends on.
 
-- **Every database is its own certificate authority**, stored inside itself under `KPG` keys in the
-  database's own `CustomData`. That is what makes a malicious kdbx harmless: it vouches only for
-  itself, and a certificate it issued opens exactly one door, its own. CA.md §204 says why that
-  dictionary and not a group's. Release 0.3.0 keeps the authority and everything beside it in
-  entries of a group of the plugin's own, which is decided and not yet built: `STORE.md` §601.
+- **Every database is its own certificate authority**, stored inside itself as a record of the
+  plugin's store, an entry in a group of the plugin's own, `STORE.md` §614. That is what makes a
+  malicious kdbx harmless: it vouches only for itself, and a certificate it issued opens exactly
+  one door, its own. What else the plugin keeps is still under `KPG` keys in the database's own
+  `CustomData`, and CA.md §204 has why that dictionary and not a group's; release 0.3.0 moves it
+  into the same store, which is decided and built for the authority alone: `STORE.md` §601.
 - **The issuer generates the key pair and builds every extension.** It never accepts a signing
   request, because a request can carry extensions and an issuer that copies them lets the client
   choose its own claims.
@@ -700,8 +701,9 @@ against the host that issued its invitation.
 **One hazard that is KeePass's, not ours.** Two KeePass instances writing one replicated kdbx is the
 ordinary multi-writer problem, and this design does not solve it. Admission records are one key per
 certificate in the database's own `CustomData` precisely so a merge is per certificate rather than
-last-writer-wins, and a revocation or a retired authority is a key of its own that is only ever
-added, because a KeePass merge never removes a key and never reads a value; see CA.md §204. That
+last-writer-wins, and a revocation is a key of its own that is only ever added, because a KeePass
+merge never removes a key and never reads a value, while a retired authority is a record of the
+plugin's store beside the authority it retires; see CA.md §204. That
 replaced a revocation written as an empty record, which a merge carried only while the file kept its
 times. The safe arrangement is still one writer and any number of readers.
 

@@ -97,9 +97,13 @@ words:
   # give the operator a command line that can do nothing more
   - capsys
 
-  # the word the measured reading of the store answers for a file with no store, quoted in the
-  # vectors it printed
+  # the word the measured reading of the store answers for a file with no store, and the names
+  # of the measured code's own functions and acts, quoted in the vectors it printed
   - nostore
+  - keybytes
+  - crdt
+  - maxclients
+  - delauth
 
   # own the transport, because the name rotates
   - REUSEADDR

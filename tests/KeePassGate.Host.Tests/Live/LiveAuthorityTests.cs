@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Windows.Automation;
+using KeePassGate.Store;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -9,7 +10,8 @@ namespace KeePassGate.Host.Tests.Live
 {
     /// <summary>
     /// The end to end test of the authority's storage: an authority created from the KPG tab of a
-    /// real KeePass, saved, and still there when KeePass is started again.
+    /// real KeePass, saved as an entry of the plugin's store, and still there when KeePass is
+    /// started again, `STORE.md` §614.
     /// </summary>
     /// <remarks>
     /// This is the "believe it only after reopening" discipline as a test. Everything else in the
@@ -37,6 +39,8 @@ namespace KeePassGate.Host.Tests.Live
         private string _statusAfterRestarting;
         private string _fingerprintAfterRestarting;
         private string _textOnTheTab;
+        private int _authorityEntries;
+        private bool _authorityProtected;
         private bool _firstRunExited;
         private bool _secondRunExited;
         private string _pluginLog;
@@ -93,6 +97,13 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         [Test]
+        public void The_file_holds_the_authority_as_an_entry_with_its_content_protected()
+        {
+            Assert.That(_authorityEntries, Is.EqualTo(1));
+            Assert.That(_authorityProtected, Is.True);
+        }
+
+        [Test]
         public void Both_KeePass_sessions_shut_down_cleanly()
         {
             Assert.That(_firstRunExited, Is.True, "The first KeePass did not exit cleanly.");
@@ -132,6 +143,12 @@ namespace KeePassGate.Host.Tests.Live
 
             keePass.Save();
             _firstRunExited = keePass.ShutDown();
+
+            var authorities = _session.KeePass.ReadEntries()
+                .Where(entry => entry.Strings.ReadSafe(StoreFormat.KindField) == StoreKinds.Authority)
+                .ToList();
+            _authorityEntries = authorities.Count;
+            _authorityProtected = authorities.All(entry => entry.Strings.Get(StoreFormat.DataField).IsProtected);
         }
 
         private void ReadItBackAfterRestarting()

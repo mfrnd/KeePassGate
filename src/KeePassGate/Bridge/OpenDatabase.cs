@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Windows.Forms;
 using KeePassLib;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
+using KeePassGate.Store;
 using KeePassGate.Ui;
 
 namespace KeePassGate.Bridge
@@ -13,6 +15,8 @@ namespace KeePassGate.Bridge
     {
         private readonly PwDatabase _database;
         private readonly Action _changed;
+        private readonly DatabaseWriter _writer;
+        private readonly IGateLog _log;
 
         public OpenDatabase(PwDatabase database)
             : this(database, null)
@@ -27,6 +31,16 @@ namespace KeePassGate.Bridge
         /// everything above this interface is testable without a window to repaint.
         /// </param>
         public OpenDatabase(PwDatabase database, Action changed)
+            : this(database, changed, null, null)
+        {
+        }
+
+        /// <summary>The same, and able to write into the plugin's store through the writer.</summary>
+        /// <param name="writer">
+        /// What every write into the store goes through, or null for a database the plugin only
+        /// reads: a write is then refused.
+        /// </param>
+        public OpenDatabase(PwDatabase database, Action changed, DatabaseWriter writer, IGateLog log)
         {
             if (database == null)
             {
@@ -35,6 +49,21 @@ namespace KeePassGate.Bridge
 
             _database = database;
             _changed = changed;
+            _writer = writer;
+            _log = log ?? NullGateLog.Instance;
+        }
+
+        /// <summary>
+        /// The plugin's store in this database, read afresh and written through the writer's
+        /// questions, `STORE.md` §627, and refused where this was given no writer.
+        /// </summary>
+        /// <remarks>
+        /// Built on each read rather than remembered, as the custom data store is, so a database
+        /// locked and opened again is read as it is now.
+        /// </remarks>
+        public IGateStore Store
+        {
+            get { return new Through(_database, new KdbxStore(_database, GateVersion.Current, _log), _writer); }
         }
 
         public bool IsOpen
@@ -107,6 +136,36 @@ namespace KeePassGate.Bridge
     }
 
     /// <summary>
+    /// A database's store, read as it stands and written only through the writer, which asks
+    /// first what every write asks, `STORE.md` §627.
+    /// </summary>
+    internal sealed class Through : IGateStore
+    {
+        private readonly PwDatabase _database;
+        private readonly KdbxStore _store;
+        private readonly DatabaseWriter _writer;
+
+        public Through(PwDatabase database, KdbxStore store, DatabaseWriter writer)
+        {
+            _database = database;
+            _store = store;
+            _writer = writer;
+        }
+
+        public StoreReading Read()
+        {
+            return _store.Read();
+        }
+
+        public StoreWritten Write(IReadOnlyList<StoreAct> acts)
+        {
+            return _writer == null
+                ? StoreWritten.Refused("this database is open without a way to write to it")
+                : _writer.ByOperator(_database, () => _store.Write(acts));
+        }
+    }
+
+    /// <summary>
     /// Finds the database behind KeePass's database settings dialog.
     /// </summary>
     /// <remarks>
@@ -118,20 +177,24 @@ namespace KeePassGate.Bridge
     {
         private readonly IGateLog _log;
         private readonly Action _changed;
+        private readonly DatabaseWriter _writer;
 
         public DialogDatabases(IGateLog log)
-            : this(log, null)
+            : this(log, null, null)
         {
         }
 
         /// <summary>
-        /// The same, and finding databases able to tell the host that they have changed.
+        /// The same, and finding databases able to tell the host that they have changed, and to
+        /// write into their stores through the writer.
         /// </summary>
         /// <param name="changed">Handed to every database found, so a change shows on screen.</param>
-        public DialogDatabases(IGateLog log, Action changed)
+        /// <param name="writer">What every write into a database's store goes through, or null.</param>
+        public DialogDatabases(IGateLog log, Action changed, DatabaseWriter writer)
         {
             _log = log ?? NullGateLog.Instance;
             _changed = changed;
+            _writer = writer;
         }
 
         public IGateDatabase ForDialog(Form dialog)
@@ -161,7 +224,7 @@ namespace KeePassGate.Bridge
                     return null;
                 }
 
-                return new OpenDatabase(database, _changed);
+                return new OpenDatabase(database, _changed, _writer, _log);
             }
             catch (Exception error) when (Expected.OfReflection(error))
             {

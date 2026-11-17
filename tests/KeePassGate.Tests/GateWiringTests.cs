@@ -152,7 +152,7 @@ namespace KeePassGate.Tests
             // failure there, in the same step as applying what the tab held, dropped every
             // revocation the clients page had already shown gone.
             var incidents = new GateIncidents(_log);
-            Assume.That(new AuthorityService(_database.PluginCustomData, _log).Create().Succeeded, Is.True);
+            Assume.That(new AuthorityService(_database.Store, _database.PluginCustomData, _log).Create().Succeeded, Is.True);
 
             using (var issuer = TestAuthority.New())
             using (var client = issuer.IssueClient("agent-fictitious", "reader"))
@@ -196,10 +196,10 @@ namespace KeePassGate.Tests
             // The moment it takes effect, which is OK: until then it waits in the dialog's buffer
             // with everything else on the tab, and Cancel takes it away with nothing written.
             var audit = new RecordingAudit();
-            Assume.That(new AuthorityService(_database.PluginCustomData, _log).Create().Succeeded, Is.True);
+            Assume.That(new AuthorityService(_database.Store, _database.PluginCustomData, _log).Create().Succeeded, Is.True);
 
             string databaseId;
-            using (var reading = new AuthorityService(_database.PluginCustomData, _log).Read())
+            using (var reading = new AuthorityService(_database.Store, _database.PluginCustomData, _log).Read())
             {
                 databaseId = reading.Material.AuthorityDigest;
             }

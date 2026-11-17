@@ -154,7 +154,20 @@ states by the script's `STATES` table. `tests/Shared/StoreMeaningVectors.json`, 
 what the measured reading found in force in each, is the same script's output with `--meanings`,
 byte for byte, at its commit `30a595a7`, which reads the same two files. It keeps the measured
 reading's own words for a store's status, and `StoreInForceTests` names the state it holds each
-to.
+to. `tests/Shared/StoreRecordVectors.json`, records composed by the measured code, and
+`tests/Shared/StoreWriteVectors.json`, the file after each act of sequences the measured model
+played, are the same script's output with `--records` and `--writes`, byte for byte, at the
+same commit. `StoreRecordTests` composes every record of the first through the product and holds
+the content, the check, the identifier and every string to it; `StoreWriteShapeTests` holds the
+product's writes to the second by shape, since its records hold stand-ins the product does not
+compose.
+
+**It writes the store into real databases.** `StoreWritesInRealDatabaseTests` writes through the
+product's own commands into a real tree and holds the entries KeePass keeps, the group a write
+goes into, the deletions with their records, a record set back under the database's history
+limit, a save and a reload, and copies brought together by `PwDatabase.MergeIn`; and it takes
+each part of a write's application back by its own undo, and every part in the order a write
+takes them, and holds the database to what it was before.
 
 `StoreReadingCostTests` is explicit, as `Headroom_at_one_room_size` is: it times what reading the
 store holds KeePass's thread for through the real router and vault, and is run by name and read.

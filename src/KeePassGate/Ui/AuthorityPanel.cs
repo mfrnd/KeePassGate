@@ -9,6 +9,7 @@ using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Pairing;
+using KeePassGate.Store;
 using KeePassGate.Pipeline;
 
 namespace KeePassGate.Ui
@@ -234,7 +235,7 @@ namespace KeePassGate.Ui
 
             _service = database == null || !database.IsOpen
                 ? null
-                : new AuthorityService(database.PluginCustomData, _log);
+                : new AuthorityService(database.Store, database.PluginCustomData, _log);
 
             Name = GateTab.PanelControlName;
             AccessibleName = GateTab.PanelAccessibleLabel;
@@ -764,12 +765,21 @@ namespace KeePassGate.Ui
             // the records twice, and a chain was built for every record, which with two hundred
             // clients was about 0.4 seconds on KeePass's own thread for every page switch, every
             // button and every pairing that landed.
-            using (var reading = Read())
+            // The store once, for the authority and for whether it holds the gate back, and let
+            // go once the page is drawn. A store that could not be read is a damaged authority.
+            StoreReading stored = null;
+            using (var reading = _service == null || !_database.IsOpen ? null : _service.Read(out stored))
+            using (stored)
             {
-                var admitted = AdmittedClients();
+                // A store that could not be read leaves nobody to list: which authority stands is
+                // what tells a record that reaches from a record that does not, and the safe answer to
+                // who can reach the database is nobody, as the listing that could not be made.
+                var admitted = reading != null && stored == null
+                    ? new AdmissionListing(Array.Empty<AdmissionRecord>(), false)
+                    : AdmittedClients();
                 var reaches = Reaches(admitted, reading, DateTimeOffset.UtcNow);
 
-                DescribeAuthority(reading, admitted, reaches);
+                DescribeAuthority(reading, stored, admitted, reaches);
                 DescribeClients(admitted, reaches);
             }
         }
@@ -791,12 +801,13 @@ namespace KeePassGate.Ui
         /// <summary>The first page, the invitation band and the buttons, from one reading.</summary>
         private void DescribeAuthority(
             AuthorityReading reading,
+            StoreReading stored,
             AdmissionListing admitted,
             IDictionary<string, ClientReach> reaches)
         {
             try
             {
-                var description = DescribeNow(reading, admitted, reaches);
+                var description = DescribeNow(reading, admitted, reaches).Under(stored);
                 _status.Text = description.Headline;
 
                 Draw(description.Facts);
@@ -1003,7 +1014,7 @@ namespace KeePassGate.Ui
                     return false;
                 }
 
-                return pending.WaitingOn(AuthorityKeys.IsAuthorityState);
+                return pending.StoreWaiting;
             }
         }
 
@@ -2231,7 +2242,8 @@ namespace KeePassGate.Ui
 
             try
             {
-                var store = new AdmissionStore(_database.PluginCustomData, _log);
+                // Beside the plugin's store, which names the authority that issued the certificate.
+                var store = new AdmissionStore(_database.PluginCustomData, _database.Store, _log);
 
                 // **The answer is not thrown away.** `AdmissionStore.Remove` reads the key back
                 // before it says yes, precisely because telling somebody a client is revoked when

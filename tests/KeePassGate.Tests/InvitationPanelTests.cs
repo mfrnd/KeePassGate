@@ -5,6 +5,7 @@ using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Authority;
 using KeePassGate.Pairing;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -148,13 +149,15 @@ namespace KeePassGate.Tests
             {
                 panel.CreateAuthority();
                 var before = _database.MarkedModifiedCount;
-                var keys = System.Linq.Enumerable.Count(_database.Store.Keys);
+                var keys = System.Linq.Enumerable.Count(_database.Values.Keys);
+                var writes = _database.Records.Writes;
 
                 panel.InviteClient();
 
                 Assert.That(_database.MarkedModifiedCount, Is.EqualTo(before),
                     "an invitation is not a change to the file");
-                Assert.That(System.Linq.Enumerable.Count(_database.Store.Keys), Is.EqualTo(keys));
+                Assert.That(System.Linq.Enumerable.Count(_database.Values.Keys), Is.EqualTo(keys));
+                Assert.That(_database.Records.Writes, Is.EqualTo(writes), "nor to the plugin's store");
             }
         }
 
@@ -254,7 +257,7 @@ namespace KeePassGate.Tests
             // The same question as the one above, and it used to be answered by asking whether the
             // authority could be recreated. Recreating is exactly what damage wants, so the button
             // was alive over an authority the page was already describing as unusable.
-            _database.Store.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
+            StoreSeeds.Damaged(_database.Store);
 
             using (var panel = NewPanel())
             {
@@ -626,7 +629,7 @@ namespace KeePassGate.Tests
 
         private string Digest()
         {
-            using (var reading = new AuthorityService(_database.Store, null).Read())
+            using (var reading = new AuthorityService(_database.Store, _database.Values, null).Read())
             {
                 return reading.IsPresent ? reading.Material.AuthorityDigest : null;
             }

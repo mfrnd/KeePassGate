@@ -4,7 +4,9 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using KeePassGate.Authority;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
+using KeePassGate.Store;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -26,13 +28,15 @@ namespace KeePassGate.Tests
         private static readonly DateTimeOffset Now = new DateTimeOffset(2026, 3, 4, 0, 0, 0, TimeSpan.Zero);
 
         private InMemoryKeyValueStore _values;
+        private MemoryStore _records;
         private AuthorityService _service;
 
         [SetUp]
         public void SetUp()
         {
             _values = new InMemoryKeyValueStore();
-            _service = new AuthorityService(_values, null);
+            _records = new MemoryStore();
+            _service = new AuthorityService(_records, _values, null);
         }
 
         [Test]
@@ -97,7 +101,8 @@ namespace KeePassGate.Tests
         [Test]
         public void Records_left_beside_retired_authorities_are_called_inert_under_the_retirement()
         {
-            _values.Plant(AuthorityKeys.RetirementKey(new string('a', 64)), AuthorityKeys.RetiredValue);
+            _service.Create();
+            _service.Delete();
             _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
 
             using (var reading = _service.Read())
@@ -226,7 +231,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Damage_is_shown_with_what_is_wrong_and_what_it_costs()
         {
-            _values.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
+            StoreSeeds.Damaged(_records);
             _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
 
             using (var reading = _service.Read())
@@ -248,17 +253,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Several_authorities_say_that_nothing_is_served_and_offer_no_creation()
         {
-            _service.Create();
-            string first;
-            using (var reading = _service.Read())
-            {
-                first = AuthorityKeys.AuthorityKey(reading.Material.AuthorityDigest);
-            }
-
-            var document = _values.Get(first);
-            _values.Remove(first);
-            _service.Create();
-            _values.Plant(first, document);
+            StoreSeeds.Undecided(_records, _values);
 
             using (var reading = _service.Read())
             {
@@ -623,12 +618,15 @@ namespace KeePassGate.Tests
                 AuthorityDescription.PresentHeadline,
                 AuthorityDescription.UndecidedHeadline,
                 AuthorityDescription.AbsentHeadline,
-                AuthorityDescription.RetiredHeadline
+                AuthorityDescription.RetiredHeadline,
+                AuthorityDescription.HeldBackHeadline(StoreWords.Outdated),
+                AuthorityDescription.HeldBackHeadline(StoreWords.Stopped),
+                AuthorityDescription.HeldBackHeadline(StoreWords.Split)
             }), "every headline, since which is tallest is not something to assume");
 
             var damaged = longest.Single(description => description.Headline == AuthorityDescription.DamagedHeadline);
             var lines = damaged.DetailText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
-            var problems = AuthorityStore.LongestProblems(string.Empty);
+            var problems = AuthorityRecord.LongestProblems(string.Empty);
 
             Assert.That(lines.Length, Is.EqualTo(problems.Count + 2), "every problem, then the two lines under them");
             Assert.That(lines[0], Is.EqualTo(problems[0]));
@@ -639,7 +637,8 @@ namespace KeePassGate.Tests
             Assert.That(lines[4], Is.EqualTo("9999 admission records would be removed with it."));
 
             var whole = longest.Single(description => description.Headline == AuthorityDescription.PresentHeadline);
-            Assert.That(whole.Details.Count, Is.EqualTo(1), "the warnings are one line, as they are drawn");
+            Assert.That(whole.Details.Count, Is.EqualTo(2), "the warnings on a line, as they are drawn, and the store past half its room");
+            Assert.That(whole.Details[1], Is.EqualTo(AuthorityDescription.HalfLine(StoreFormat.MaxItems)));
             Assert.That(whole.DetailText, Does.Contain("clients have expired"));
             Assert.That(whole.DetailText, Does.Not.Contain("Authority"),
                 "the authority and its host certificate are not warned about, CA.md §219");

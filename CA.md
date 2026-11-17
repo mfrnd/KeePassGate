@@ -101,24 +101,35 @@ pin compares bytes, §214.
 
 ## 4. What the database holds §204
 
-All of it under `KPG` keys in the **database's own** `CustomData`, which is the one dictionary
-KeePass stamps key by key and merges the same way. A node's access rule is the exception and lives
-on that node, where it belongs and travels. Everything requires KDBX 4, and this requires KDBX 4.1,
-because a per-key modification time is a 4.1 field: a database that has been paired with is a 4.1
-file. That is a format and not a gate: other programs open the file, and the paragraph on them
-below has what saving and merging in them was measured to do. Nothing that has to survive a merge
-turns on the times any more, which is what the revocation paragraph below is about.
+**The authority is a record in the plugin's store**: an entry in a group of the plugin's own,
+written once, under a check keyed by the store's key, with a retirement written beside it as a
+further record once it is recreated, deleted or not kept. [`STORE.md`](STORE.md) §614 holds the
+record and §627 the writes, and the paragraphs on the authority below hold of it there.
 
-**This store is decided to be replaced in 0.3.0, and is the store 0.2.0 ships.** What other
-programs do to custom data, in the paragraphs on them below, is what reopened it: the plugin's
-data is to move into entries in a group of the plugin's own, with no custom data anywhere.
-[`STORE.md`](STORE.md) §601 holds that store and §604 lists what of this section it reverses.
-None of it is built, so this section remains the account of what the plugin does.
+Everything else under `KPG` keys in the **database's own** `CustomData`, which is the one
+dictionary KeePass stamps key by key and merges the same way. A node's access rule is the
+exception and lives on that node, where it belongs and travels. Everything requires KDBX 4, and
+this requires KDBX 4.1, because a per-key modification time is a 4.1 field: a database that has
+been paired with is a 4.1 file. That is a format and not a gate: other programs open the file, and
+the paragraph on them below has what saving and merging in them was measured to do. Nothing that
+has to survive a merge turns on the times any more, which is what the revocation paragraph below
+is about.
+
+**The authority alone no longer takes the file to 4.1**, and that reverses a rule this section
+held while the authority was a key of the dictionary: its record is entries of the plugin's
+store, which need nothing above 4.0, so a database with an authority and nothing paired is a 4.0
+file, measured by `AdmissionInRealDatabaseTests`, and the first admission record is what takes it
+to 4.1.
+
+**The rest of this store is decided to be replaced in 0.3.0 as the authority's part was.** What
+other programs do to custom data, in the paragraphs on them below, is what reopened it: the
+plugin's data is to move into entries in a group of the plugin's own, with no custom data
+anywhere. [`STORE.md`](STORE.md) §601 holds that store and §604 lists what of this section it
+reverses. The admissions, the revocations, the standing answers and the profile names are not
+moved yet, so for them this section remains the account of what the plugin does.
 
 | Key | Contents | Written |
 | --- | --- | --- |
-| `KPG.Authority.<sha256>` | one authority, filed under the digest of its certificate: the authority, the host certificate and the gate key, all three in one document | once, at creation and on recreation, and never rewritten |
-| `KPG.RetiredAuthority.<sha256>` | the constant `retired`, for an authority recreated, deleted or not kept | once, and never changed or removed |
 | `KPG.Client.<sha256>` | one admission record per certificate admitted, naming the client it belongs to by its client key, §223 | at every pairing and every renewal, and written empty when the certificate is revoked; removed once its certificate has expired, and an emptied one with its revocation, unless that revocation is empty |
 | `KPG.Revoked.<sha256>` | the revoked certificate's `notAfter` and, after a space, the digest of the authority that issued it; the date alone where no authority the database holds issued it, and nothing for a record that would not read and so gave no date | once, when the client is revoked, and never changed; removed once that moment has passed or the authority it names is retired or gone, and an empty one never |
 | `KPG.RenewalRefused.<sha256>` | the operator's standing answer to renewing one certificate: `forever`, or the moment renewals are asked about again | when the operator refuses a renewal forever or until a date, and again when a later answer replaces it, which the dialog takes only once an until-date has passed, or a merge brings in; removed once no record admits that certificate, or when the operator allows renewal on the clients page and accepts the dialog |
@@ -234,34 +245,41 @@ on the page again, and the operator lifts it again. **A refusal in this session 
 the plugin holds it in memory, per certificate, until KeePass exits, because an answer about one
 session written into the file would outlast that session in every copy of it, `PAIRING.md` §312.
 
-**Each authority is one key, and that is the same argument the other way.** A merge that took its
-parts separately could take the certificate from one replica and the private key from another, and
-the host certificate would no longer chain to the authority beside it: the store reads that as
-damaged, the gate serves nothing, and the only remedy revokes every client. Inside one key there is
-nothing to take apart. `AuthorityDocument` is the shape, one flat object of strings, which is what
-`JsonBody` already reads.
+**Each authority is one record, and that is the same argument the other way.** A merge that took
+its parts separately could take the certificate from one replica and the private key from another,
+and the host certificate would no longer chain to the authority beside it: the store reads that as
+damaged, the gate serves nothing, and the only remedy revokes every client. Inside one record
+there is nothing to take apart. `AuthorityRecord` is the shape, one flat object of strings, which
+is what `JsonBody` already reads, and its content is protected in memory as a password is.
 
-**One key per authority, filed under its digest, rather than one key for the only authority**, and
-that reverses the single `KPG.Authority` key for the reason the revocations moved: a recreation
-written over the old key lost to any copy whose time for that key was later, so a stale copy merged
-in could put back the authority the operator had replaced. A document is now written once and never
-rewritten in place. What replaces it is a retirement, `KPG.RetiredAuthority.<sha256>`, added beside
-it and never changed or removed: recreating retires the old authority, deletes its document and
-writes the new authority, and deleting retires it and deletes its document. Anything that later
-wants to renew a part, the host certificate for instance, needs a key of its own that is also
-written once. The single key is not read or migrated: a database that holds that key reads as having
-no authority, and is given a new authority and paired again.
+**One record per authority, filed under its digest, written once and never rewritten in place.**
+What takes an authority out of service is a retirement, a record of its own added beside it and
+never changed or removed: recreating retires the old authority, deletes its entry and writes the
+new authority, and deleting retires it and deletes its entry. Anything that later wants to renew a
+part, the host certificate for instance, needs a record of its own that is also written once.
 
-**Which authority a database has is decided by the retirements, never by counting documents.** The
-authorities are the documents with no retirement beside them, so a retired document that a merge
-brings back serves nothing, and is taken away again the next time the plugin keeps, recreates or
-deletes an authority or admits a client, at a pairing or a renewal; a revocation leaves it. **More
-than one authority with no retirement serves nothing**: that is copies that each created or
-recreated an authority, meeting in a synchronize, and choosing between them is the operator's
-decision rather than this plugin's. A key that names no proper digest, a bare `KPG.Authority.` among
-them, is a document too, filed under a digest not its own: beside another authority it is one more
-candidate, which can be retired and never kept, and it holds up that database alone, since **what
-one database holds stops no other being served**.
+**This reverses keeping the authority in the database's custom data**, one key per authority with
+a retirement key beside each, and the argument for that is kept because the merge it was written
+for still holds: a key added once and never changed survives every KeePass merge. What reversed it
+is what other programs do to custom data, in the paragraphs on them below: a KeePassXC merge from
+a copy that lacked the authority took it away in every merge measured, and a merge from an older
+copy puts back the authority that copy held with every retirement written since gone, while
+nothing in the file tells that it happened. An entry written once arrived in every merge that was
+run, and the store's summary entry names what is present, so a removal another program makes is
+read as a removal, `STORE.md` §603 and §604. Those keys are not read or migrated: a database that
+holds them reads as having no authority, and is given a new authority and paired again,
+`STORE.md` §645.
+
+**Which authority a database has is decided by the retirements, never by counting authorities.**
+The authorities are the records with no retirement beside them and no deletion record naming them,
+so a retired authority that a merge brings back serves nothing, and its entry is taken away again
+at the plugin's next write of its own. **More than one authority with no retirement serves
+nothing**: that is copies that each created or recreated an authority, meeting in a synchronize,
+and choosing between them is the operator's decision rather than this plugin's. A record that
+passes its check and will not read whole, filed under a digest not its own for instance, is an
+authority too: alone it is damaged, beside another authority it is one more candidate, which can
+be retired and never kept, and it holds up that database alone, since **what one database holds
+stops no other being served**.
 
 **So the plugin asks, and answers `503 undecided` until somebody has.** A connection to such a
 database is answered before a request is read, with each authority's own host certificate and no
@@ -344,13 +362,13 @@ the database, and what they do to it was measured on `spikes/revocation-merge`, 
 to 2.8.0 and KeePass 2.47. **Saving in any of them keeps every key and its value, and usually not
 the times**: the file goes back to an older format, 4.0 or even 3.1, unless something else in it is
 4.1 as well, such as the previous parent a KeePass delete or move records, and only KeePassXC 2.7.0
-or later keeps the times even then. A revocation and a retirement survive that, being keys only
-ever added, while the profile list and a standing answer to a renewal go to whichever copy still
+or later keeps the times even then. A revocation survives that, being a key only ever added,
+while the profile list and a standing answer to a renewal go to whichever copy still
 carries a time at the next synchronize in KeePass. **A KeePassXC merge, from 2.4.2, replaces the
 custom data of the database it merges into with the other copy's, whole**, whenever the other copy
 was read in a later second, which a copy chosen to merge from nearly always is. Merging an older
-copy into the paired database therefore takes away every key written since, revocations,
-retirements and records alike, and puts back the older value of every key changed since, the
+copy into the paired database therefore takes away every key written since, revocations and
+records alike, and puts back the older value of every key changed since, the
 profile list among them, stamped, where the file keeps times, with the time of the merge, which a
 later synchronize in KeePass takes as the newest. A group both copies hold keeps the rules of the
 database merged into, however the other copy changed them, and takes the newer of the two times,
@@ -360,7 +378,7 @@ paired database into an older copy, gives that copy the paired database's keys.
 **Android programs that open KDBX 4 files were measured on the same branch**, in an emulator of
 Android 11: Keepass2Android 1.15-r6 and 1.08d-r5, KeePassDX 4.5.8, 3.2.0 and 3.3.0, and
 KeePassDroid 2.7. No save and no merge in any of them removed a key from the database's custom
-data, so a revocation and a retirement hold there. **A save in KeePassDroid 2.7 deletes the rules
+data, so a revocation holds there. **A save in KeePassDroid 2.7 deletes the rules
 on every group and entry, and a save in KeePassDX 3.2.0 or 3.3.0 the rules on every group**,
 without moving the modification time of the group or entry, so nothing on the node shows that its
 rules went. A save in KeePassDX 4.5.8 keeps the rules and the times, and a save in Keepass2Android
@@ -383,10 +401,10 @@ and deletes any of them on request.** None of that is a way to manage what this 
 Deleting an emptied record there changes nothing, since the revocation beside it still refuses the
 certificate. Deleting a revocation leaves the client refused only by its emptied record, which a
 stale copy merged in afterwards can beat, the way a dropped time, a slow clock or an import beat it
-before revocations had keys of their own. Deleting a retirement lets a stale copy's old authority
-back in beside the authority in use, and the save that ends that synchronize asks the operator to
-choose between them again. Revoking, recreating and deleting are done on the KPG tab, which writes
-each of them the way this section describes.
+before revocations had keys of their own. The authority and its retirements are not among these
+keys: they are entries of the plugin's store, and what deleting or editing such an entry in
+KeePass does is `STORE.md` §628 and §642. Revoking, recreating and deleting are done on the KPG
+tab, which writes each of them the way this section describes.
 
 ### How each value is written §222
 
@@ -429,12 +447,13 @@ and `ManagedTlsProbe.cs` are the two halves of the measurement.
 So all three secrets live in the database and in memory, and nowhere else the plugin puts them: the
 authority that can mint identities, the host key that authenticates a server, and the gate key.
 
-**KeePass can put them somewhere else.** Its own File, Export, KeePass XML (2.x) writes the
-database's custom data in the clear with everything else, so an exported file holds the authority's
-private key, the host key, the gate key and every admission record, and KeePass announces an export
-to no plugin. Such a file is the unlocked database: it is kept as one, and if it leaves the
-operator's hands the answer is recreating the authority, which [`PAIRING.md`](PAIRING.md) §301
-names as the recovery from a leaked authority key.
+**KeePass can put them somewhere else.** Its own File, Export, KeePass XML (2.x) writes every
+entry's protected strings and the database's custom data in the clear with everything else, so an
+exported file holds the authority's private key, the host key, the gate key, the store's key and
+every admission record, and KeePass announces an export to no plugin. Such a file is the unlocked
+database: it is kept as the database is, and if it leaves the operator's hands the answer is
+recreating the authority, which [`PAIRING.md`](PAIRING.md) §301 names as the recovery from a
+leaked authority key.
 
 **Reading is total and fails closed.** Anything that will not decode leaves the authority *damaged*
 rather than absent, and the two are never conflated: an absent authority is created, a damaged one
@@ -474,11 +493,13 @@ it: only its OK puts the copy back.
 
 **The dialog this plugin puts its tab on carries no such snapshot**, which the same tests assert
 against the real type. So the buttons on the KPG tab are safe from their own dialog, and the hazard
-belongs to whatever writes while somebody has a *group* open. Nothing this store holds is in a
-group, since §204 keeps all of it in the database's own dictionary, so what a group dialog can
-destroy is a node's rule. The dialog that copies this store is Database Maintenance, which writes
-the database's dictionary back the same way, and [`PAIRING.md`](PAIRING.md) §307 is where pairing
-answers that one.
+belongs to whatever writes while somebody has a *group* open. Nothing in the custom data this
+store holds is in a group, since §204 keeps it in the database's own dictionary, so what a group
+dialog can destroy is a node's rule. The dialog that copies that dictionary is Database
+Maintenance, which writes it back the same way, and [`PAIRING.md`](PAIRING.md) §307 is where
+pairing answers that dialog. The authority is in a group, as entries of the plugin's store, and no
+group dialog copies an entry: an entry edited in KeePass's entry dialog is set back at the
+plugin's next write of its own, `STORE.md` §628.
 
 Here the consequence is worse than a lost setting, so the design does not merely try to prevent it:
 
@@ -566,13 +587,17 @@ plugin memory. While locked it is the only identity available and it can do noth
   goes and the collector reuses the memory when it gets to it. Read as erasure that would be a claim
   this design cannot keep. It is the bound §220 concedes anyway: a dump taken at the wrong moment
   finds it, and what the drop takes away is the key being reachable for as long as the database
-  stays locked. The same bound covers what no plugin can overwrite: the base64 KeePass keeps in the
-  database's custom data, an immutable string; the plugin's own copy of that text, every stored
-  authority document in one string, which the cache compares against and which holds the authority's
-  key, the host's and the gate key; and whatever Bouncy Castle parsed the bytes into. The key a
-  node's tag is made with, derived from the host's PKCS#12, is an array of the plugin's own, and it
-  is overwritten with the rest, as the array it was derived into is. The gate key itself is not let
-  go at all: a copy of it is kept for the responder, as the bullet below has it.
+  stays locked. The same bound covers what no plugin can overwrite: the text of the authority's
+  record, which KeePass keeps protected in memory and hands out as an immutable string each time
+  it is read; the members the plugin's reading of the store parses out of that text, which hold
+  the authority's key, the host's and the gate key, and which go with the reading at the lock;
+  and whatever Bouncy Castle parsed the bytes into. The key a node's tag is made with, derived
+  from the host's PKCS#12, is an array of the plugin's own, and it is overwritten with the rest,
+  as the array it was derived into is. So are the bytes of the store's key every reading of the
+  store finds: the gate's when it lets go of a database's readings, at the lock and at a close,
+  and those the tab, the chooser and the writer read as soon as each is done with its reading. The
+  gate key itself is not let go at all: a copy of it is kept for the responder, as the bullet below
+  has it.
 - **The responder must be distinguishable by what it carries**, not by convention, so a client can
   refuse to send real requests over it. It is a `kpg://host/responder` URI in the subject
   alternative name rather than an extension of its own: the UUID arc `2.25` does not survive
@@ -1026,6 +1051,7 @@ Recorded because a reader seeing only this version will not know which parts wer
 | SAN read loosely | ASN.1 tags, reject rather than repair | measured three ways to smuggle a claim past a renderer |
 | A revocation written as an empty record | a revocation key of its own beside the emptied record, only ever added | measured: a KeePass merge never removes a key and never reads a value, while the empty record lost to a dropped time, a slow clock and an import |
 | One `KPG.Authority` key for the only authority | one key per authority, filed under its digest, with a retirement beside every one replaced | a recreation written over the old key lost to a later time, so a stale copy could put a replaced authority back |
+| One key of the database's custom data per authority, with a retirement key beside it | a record of the plugin's store per authority, with a retirement record beside it, each an entry written once under a check keyed by the store's key | a KeePassXC merge replaces the whole of the custom data with the other copy's, which took the authority away or put a retired authority back, measured; an entry written once arrived in every merge that was run, `STORE.md` §603 |
 | Recreating emptied the records | recreating and deleting remove them, and the revocations | the retirement refuses every old certificate, so the emptied records refused nothing more |
 | Ten years for the authority and five for its host, each warned about ninety days ahead and refused at pairing once past | a hundred years for both, issued together, warned about and refused at no point | no expiry was asked for, and `X509Certificate2.NotAfter` misreads `99991231235959Z` ahead of UTC, measured; a shorter host life protects nothing, since its key cannot leak without the authority's |
 | A client warned about thirty days before its end, whatever its life | in the last third of its life, and thirty days at most | a client may ask for a week, which a fixed thirty days warned about from the day it was issued |

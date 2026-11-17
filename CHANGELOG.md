@@ -11,6 +11,20 @@ none, since it releases both.
 
 ## 0.3.0, unreleased
 
+- **Breaking: no authority that 0.2 made is served, so a database is given an authority again and
+  every program paired again.** The authority, its host certificate and the gate key are now a
+  record in the plugin's store: an entry in a group of the plugin's own named `KeePassGate`, its
+  content protected in memory as a password is, under a check keyed by the store's own key.
+  Create, Recreate and Delete on the KPG tab write it there at the settings dialog's OK, and so
+  does keeping an authority where copies of the database each made their own. 0.2 kept the
+  authority in the database's custom data, and that is reversed rather than migrated: 0.3 reads
+  nothing there about the authority and changes nothing there, so a database 0.2 paired shows no
+  authority on the tab and is served nothing until **Create authority**, OK and a save, after
+  which each program pairs again. The admission records 0.2 wrote stay where they were and admit
+  nobody, since each certificate they admit chains to the authority 0.2 made. A database whose
+  store holds no key is served nothing. An entry of the store edited in KeePass is put back at
+  the plugin's next write of its own, with the edit kept in the entry's history. `STORE.md`
+  §614, §627, §628 and §645.
 - **Breaking: a field whose name begins `KPG.` is out of every program's reach, on whichever
   entry it is.** A program that made fields of its own whose names begin with `KPG.` renames them
   before the upgrade, in KeePass or through the API under 0.2, since 0.3 neither serves nor

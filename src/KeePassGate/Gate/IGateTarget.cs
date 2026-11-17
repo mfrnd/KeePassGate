@@ -151,7 +151,7 @@ namespace KeePassGate.Gate
         /// on KeePass's own thread, where it must not wait; never when the record did not land, so
         /// the caller writes no line of its own about it. Null for no line.
         /// </param>
-        AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition, Action audit);
+        AdmissionWrite Admit(AdmissionRecord record, Func<IWriteGround, string> condition, Action audit);
 
         /// <summary>
         /// Revokes the client holding this admission key, at that client's own request, and makes

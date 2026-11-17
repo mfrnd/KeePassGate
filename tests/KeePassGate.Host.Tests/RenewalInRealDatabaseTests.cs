@@ -333,7 +333,7 @@ namespace KeePassGate.Host.Tests
             using (var renewal = new RealRenewal(this))
             {
                 renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
-                var authority = new AuthorityService(new CustomDataStore(_database.Database), null);
+                var authority = DatabaseAuthority.Of(_database.Database, null);
                 var retired = recreate ? authority.Recreate() : authority.Delete();
                 Assume.That(retired.Succeeded, Is.True, retired.Message);
 
@@ -564,7 +564,7 @@ namespace KeePassGate.Host.Tests
             {
                 _test = test;
                 var database = test._database.Database;
-                var created = new AuthorityService(new CustomDataStore(database), null).Create();
+                var created = DatabaseAuthority.Of(database, null).Create();
                 Assume.That(created.Succeeded, Is.True, created.Message);
 
                 var writer = new DatabaseWriter(

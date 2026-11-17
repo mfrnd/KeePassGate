@@ -5,6 +5,8 @@ using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Authority;
 using KeePassGate.Pairing;
+using KeePassGate.Store;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -88,17 +90,33 @@ namespace KeePassGate.Tests.Gallery
             // every authority retired, two of them here, and the records of each left behind,
             // admitting nobody. The tallest the page gets with no authority on it.
             Shoot("authority-08-retired-with-records-left", Gallery.SettingsPage, Authority, () => Retired(3), panel => { });
+
+            // A store that holds the gate back, by each word: the state and what it costs, and
+            // every command off.
+            Shoot("authority-09-store-split", Gallery.SettingsPage, Authority, () => HeldBack.Database(StoreWords.Split), panel => { });
+            Shoot("authority-10-store-outdated", Gallery.SettingsPage, Authority, () => HeldBack.Database(StoreWords.Outdated), panel => { });
+            Shoot("authority-11-store-stopped", Gallery.SettingsPage, Authority, () => HeldBack.Database(StoreWords.Stopped), panel => { });
+
+            // A store past half its room: the line under the facts, the commands as they were.
+            Shoot("authority-12-store-half-full", Gallery.SettingsPage, Authority, () => HeldBack.Database(HeldBack.Half), panel => { });
         }
 
         /// <summary>A database whose every authority is retired, with records left behind.</summary>
         private static IGateDatabase Retired(int records)
         {
             var database = new FakeGateDatabase();
-            database.Store.Plant(AuthorityKeys.RetirementKey(new string('a', 64)), AuthorityKeys.RetiredValue);
-            database.Store.Plant(AuthorityKeys.RetirementKey(new string('b', 64)), AuthorityKeys.RetiredValue);
+            var candidates = StoreSeeds.Undecided(database.Store, database.Values);
+
+            // Each copy keeps the authority the other retires, and synchronizing them leaves both
+            // retirements standing.
+            var other = database.Records.Copy();
+            new AuthorityService(database.Store, database.Values, null).Keep(candidates[0], candidates);
+            new AuthorityService(other, new InMemoryKeyValueStore(), null).Keep(candidates[1], candidates);
+            database.Records.Synchronize(other);
+
             for (var i = 0; i < records; i++)
             {
-                database.Store.Plant(AuthorityKeys.ClientRecordKey(new string((char)('c' + i), 64)), "record");
+                database.Values.Plant(AuthorityKeys.ClientRecordKey(new string((char)('c' + i), 64)), "record");
             }
 
             return database;

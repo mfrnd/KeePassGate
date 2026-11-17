@@ -41,7 +41,7 @@ namespace KeePassGate.Host.Tests
             _database = TemporaryDatabase.New();
             _log = new RecordingLog();
 
-            var created = new AuthorityService(new CustomDataStore(_database.Database), _log).Create();
+            var created = DatabaseAuthority.Of(_database.Database, _log).Create();
             Assert.That(created.Succeeded, Is.True, created.Message);
             _database.Save();
 
@@ -334,7 +334,7 @@ namespace KeePassGate.Host.Tests
             // responder to be promoted from.
             using (var later = TemporaryDatabase.New())
             {
-                var created = new AuthorityService(new CustomDataStore(later.Database), _log).Create();
+                var created = DatabaseAuthority.Of(later.Database, _log).Create();
                 Assert.That(created.Succeeded, Is.True, created.Message);
                 _open.Add(later.Database);
 
@@ -432,11 +432,11 @@ namespace KeePassGate.Host.Tests
             {
                 using (var other = TemporaryDatabase.New())
                 {
-                    var created = new AuthorityService(new CustomDataStore(other.Database), _log).Create();
+                    var created = DatabaseAuthority.Of(other.Database, _log).Create();
                     Assert.That(created.Succeeded, Is.True, created.Message);
 
                     string locked;
-                    using (var reading = new AuthorityService(new CustomDataStore(_database.Database), _log).Read())
+                    using (var reading = DatabaseAuthority.Of(_database.Database, _log).Read())
                     {
                         locked = reading.Material.AuthorityDigest;
                     }
@@ -551,7 +551,7 @@ namespace KeePassGate.Host.Tests
                 _open.Add(later.Database);
                 _targets.Unlock(later.Path);
 
-                var created = new AuthorityService(new CustomDataStore(later.Database), _log).Create();
+                var created = DatabaseAuthority.Of(later.Database, _log).Create();
                 Assert.That(created.Succeeded, Is.True, created.Message);
 
                 _targets.Refresh();
@@ -571,7 +571,7 @@ namespace KeePassGate.Host.Tests
             // name of an authority the operator had deleted.
             _targets.Current();
 
-            var deleted = new AuthorityService(new CustomDataStore(_database.Database), _log).Delete();
+            var deleted = DatabaseAuthority.Of(_database.Database, _log).Delete();
             Assert.That(deleted.Succeeded, Is.True, deleted.Message);
 
             _targets.Refresh();
@@ -614,7 +614,7 @@ namespace KeePassGate.Host.Tests
             _open.Clear();
             _open.Add(_database.Database);
 
-            using (var reading = new AuthorityStore(new CustomDataStore(_database.Database), NullGateLog.Instance).Read())
+            using (var reading = DatabaseAuthority.Of(_database.Database, NullGateLog.Instance).Read())
             {
                 Assert.That(reading.IsPresent, Is.True,
                     "the file this unlock reopened has no authority in it: " + string.Join("; ", reading.Problems));
@@ -625,7 +625,7 @@ namespace KeePassGate.Host.Tests
 
         private System.Security.Cryptography.X509Certificates.X509Certificate2 IssueAndAdmit()
         {
-            using (var reading = new AuthorityService(new CustomDataStore(_database.Database), _log).Read())
+            using (var reading = DatabaseAuthority.Of(_database.Database, _log).Read())
             {
                 var certificate = new AuthorityIssuer().IssueClient(
                     reading.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read();

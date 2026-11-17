@@ -635,7 +635,7 @@ namespace KeePassGate.Tests
         public void Nothing_that_belongs_to_somebody_else_is_read_as_a_record()
         {
             _values.Plant("AnotherPlugin.Something", "not ours");
-            _values.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "ours but not a record");
+            _values.Plant(KeePassGate.Acl.ProfileNames.CustomDataKey, "ours but not a record");
 
             Assert.That(_store.All().Records, Is.Empty);
             Assert.That(_store.Count(out _), Is.Zero);

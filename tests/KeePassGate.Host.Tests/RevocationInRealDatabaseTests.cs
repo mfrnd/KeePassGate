@@ -34,7 +34,7 @@ namespace KeePassGate.Host.Tests
         {
             _database = TemporaryDatabase.New();
 
-            var created = new AuthorityService(new CustomDataStore(_database.Database), null).Create();
+            var created = DatabaseAuthority.Of(_database.Database, null).Create();
             Assume.That(created.Succeeded, Is.True, created.Message);
         }
 
@@ -105,7 +105,7 @@ namespace KeePassGate.Host.Tests
 
         private X509Certificate2 IssueClient()
         {
-            using (var reading = new AuthorityService(new CustomDataStore(_database.Database), null).Read())
+            using (var reading = DatabaseAuthority.Of(_database.Database, null).Read())
             {
                 return new AuthorityIssuer().IssueClient(
                     reading.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read();

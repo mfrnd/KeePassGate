@@ -187,21 +187,6 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_database_whose_authorities_will_not_read_leaves_every_other_one_served()
-        {
-            // A key naming an authority by no digest at all, beside the database's own, made
-            // reading that database throw, and the throw left `Current` for every database at once:
-            // the healthy one went unserved with it, and every connection to it was dropped as one
-            // naming nothing.
-            CreateAuthorityIn(_first);
-            CreateAuthorityIn(_second);
-            var own = _second.Database.CustomData.Get(AuthorityKeys.AuthorityKey(DigestOf(_second)));
-            _second.Database.CustomData.Set(AuthorityKeys.AuthorityPrefix, own);
-
-            Assert.That(_targets.Current().Select(target => target.DatabaseId), Does.Contain(DigestOf(_first)));
-        }
-
-        [Test]
         public void Recreating_the_authority_gives_a_new_target()
         {
             CreateAuthorityIn(_first);
@@ -293,9 +278,12 @@ namespace KeePassGate.Host.Tests
             var second = CertificateDigest.Shorten(DigestOf(_second));
             Assume.That(_targets.Current(), Has.Count.EqualTo(2));
 
-            // One the way a synchronize can bring it, a value under the key this cannot read, and
-            // one the way the tab takes it away.
-            _first.Database.CustomData.Set(AuthorityKeys.AuthorityKey(DigestOf(_first)), "rubbish");
+            // The first database the way synchronizes can leave it: retired by another copy's
+            // answer, with an authority this cannot read standing in its place. The second the way
+            // the tab takes it away.
+            var store = new KdbxStore(_first.Database, GateVersion.Current, null);
+            StoreSeeds.Retire(store, DigestOf(_first));
+            StoreSeeds.Damaged(store);
             ServiceFor(_second).Delete();
 
             Assert.That(_targets.Current(), Is.Empty);
@@ -325,7 +313,7 @@ namespace KeePassGate.Host.Tests
         public void A_damaged_authority_is_not_served_and_does_not_stop_the_others()
         {
             CreateAuthorityIn(_first);
-            _second.Database.CustomData.Set(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
+            StoreSeeds.Damaged(new KdbxStore(_second.Database, GateVersion.Current, null));
 
             var targets = _targets.Current();
 
@@ -351,10 +339,11 @@ namespace KeePassGate.Host.Tests
                 .SelfSigned();
             var host = Minted.Named("CN=KeePassGate host").ForUsage(AuthorityIssuer.ServerAuthOid).IssuedBy(authority);
             var crafted = CertificateDigest.Of(authority.CertificateDer);
-            var sniKey = Convert.ToBase64String(Enumerable.Range(1, AuthorityMaterial.SniKeyLength).Select(i => (byte)i).ToArray());
-            _second.Database.CustomData.Set(
-                AuthorityKeys.AuthorityKey(crafted),
-                AuthorityDocument.Save(CertificateBlob.Save(authority), CertificateBlob.Save(host), sniKey));
+            var sniKey = Enumerable.Range(1, AuthorityMaterial.SniKeyLength).Select(i => (byte)i).ToArray();
+            using (var material = new AuthorityMaterial(authority, host, sniKey))
+            {
+                StoreSeeds.AuthorityOf(new KdbxStore(_second.Database, GateVersion.Current, null), material);
+            }
 
             var targets = _targets.Current();
 
@@ -588,7 +577,7 @@ namespace KeePassGate.Host.Tests
 
         private static AuthorityService ServiceFor(TemporaryDatabase database)
         {
-            return new AuthorityService(new CustomDataStore(database.Database), NullGateLog.Instance);
+            return DatabaseAuthority.Of(database.Database, NullGateLog.Instance);
         }
 
         private static string DigestOf(TemporaryDatabase database)

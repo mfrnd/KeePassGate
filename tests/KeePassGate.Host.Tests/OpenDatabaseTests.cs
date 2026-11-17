@@ -154,15 +154,18 @@ namespace KeePassGate.Host.Tests
         /// </remarks>
         private AuthorityPanel NewPanel(out PendingDatabase pending)
         {
+            // With the writer the plugin hands it, which a write into the plugin's store at OK
+            // goes through.
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, null, NullGateLog.Instance);
             pending = new PendingDatabase(
-                new OpenDatabase(_database.Database, delegate { }), NullGateLog.Instance);
+                new OpenDatabase(_database.Database, delegate { }, writer, NullGateLog.Instance), NullGateLog.Instance);
 
             return new AuthorityPanel(pending, new NeverAsked(), NullGateLog.Instance);
         }
 
         private bool Authority()
         {
-            using (var reading = new AuthorityService(new CustomDataStore(_database.Database), null).Read())
+            using (var reading = DatabaseAuthority.Of(_database.Database, null).Read())
             {
                 return reading.IsPresent;
             }

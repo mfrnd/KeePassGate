@@ -979,7 +979,7 @@ namespace KeePassGate.Host.Tests
         {
             _damaged?.Dispose();
             _damaged = TemporaryDatabase.New();
-            new CustomDataStore(_damaged.Database).Set(AuthorityKeys.AuthorityKey(new string('d', 64)), "not an authority");
+            StoreSeeds.Damaged(new KdbxStore(_damaged.Database, GateVersion.Current, null));
 
             var panel = new AuthorityPanel(new OpenDatabase(_damaged.Database), null, NullGateLog.Instance);
             Assert.That(ControlTree.FindByName<Label>(panel, GateTab.StatusLabelName).Text,
@@ -999,15 +999,8 @@ namespace KeePassGate.Host.Tests
             // every state once per text size, and its panels are gone by then.
             _several?.Dispose();
             _several = TemporaryDatabase.New();
-            var store = new CustomDataStore(_several.Database);
-            var service = new AuthorityService(store, NullGateLog.Instance);
-
-            Assert.That(service.Create().Succeeded, Is.True);
-            var first = store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null);
-            var document = store.Get(first);
-            store.Remove(first);
-            Assert.That(service.Create().Succeeded, Is.True);
-            store.Set(first, document);
+            StoreSeeds.Undecided(
+                new KdbxStore(_several.Database, GateVersion.Current, null), new CustomDataStore(_several.Database));
 
             var panel = new AuthorityPanel(new OpenDatabase(_several.Database), null, NullGateLog.Instance);
             Set(panel, GateTab.ResultLabelName, AuthorityPanel.LongestResult());
@@ -1165,12 +1158,11 @@ namespace KeePassGate.Host.Tests
 
         private AuthorityPanel NewPanel(bool withAuthority, bool withInvitation)
         {
-            var store = new CustomDataStore(_database.Database);
             var book = new InvitationBook(NullGateLog.Instance);
 
             if (withAuthority)
             {
-                var service = new AuthorityService(store, NullGateLog.Instance);
+                var service = DatabaseAuthority.Of(_database.Database, NullGateLog.Instance);
                 using (var reading = service.Read())
                 {
                     if (!reading.IsPresent)

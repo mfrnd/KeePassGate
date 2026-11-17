@@ -189,6 +189,15 @@ namespace KeePassGate.Store
         /// <summary>The member of a version record, and of its item, holding the format number.</summary>
         public const string FormatMember = "format";
 
+        /// <summary>The member of a version record, and of its item, holding the plugin's version.</summary>
+        public const string PluginMember = "plugin";
+
+        /// <summary>The member of a retirement, and of its item, naming the authority it retires.</summary>
+        public const string AuthorityMember = "authority";
+
+        /// <summary>The member of a profile addition and of a removal, and of its item, holding the name.</summary>
+        public const string NameMember = "name";
+
         /// <summary>The subject of a summary entry, `STORE.md` §609.</summary>
         public const string StoreSubject = "store";
 

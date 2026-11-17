@@ -158,13 +158,14 @@ namespace KeePassGate.Host.Tests
             using (var merged = TemporaryDatabase.New())
             {
                 var store = new CustomDataStore(merged.Database);
-                Write(store, SeededCopies.ThisCopyAuthority, SeededCopies.ThisCopyHost, SeededCopies.ThisCopySniKey);
-                Write(store, SeededCopies.OtherCopyAuthority, SeededCopies.OtherCopyHost, SeededCopies.OtherCopySniKey);
+                var records = new KdbxStore(merged.Database, GateVersion.Current, null);
+                StoreSeeds.WrittenDown(records, SeededCopies.ThisCopyAuthority, SeededCopies.ThisCopyHost, SeededCopies.ThisCopySniKey);
+                StoreSeeds.WrittenDown(records, SeededCopies.OtherCopyAuthority, SeededCopies.OtherCopyHost, SeededCopies.OtherCopySniKey);
                 store.Set(SeededCopies.AgentKey, SeededCopies.AgentRecord);
                 store.Set(SeededCopies.BackupKey, SeededCopies.BackupRecord);
                 store.Set(SeededCopies.OtherAgentKey, SeededCopies.OtherAgentRecord);
 
-                using (var reading = new AuthorityStore(store, NullGateLog.Instance).Read())
+                using (var reading = new AuthorityService(records, store, NullGateLog.Instance).Read())
                 {
                     var choice = AuthorityChoice.From(
                         reading, new AdmissionStore(store, NullGateLog.Instance).All(), null, NullGateLog.Instance);
@@ -176,13 +177,6 @@ namespace KeePassGate.Host.Tests
                     Assert.That(offered, Is.EquivalentTo(new[] { "backup-invented, agent-invented", "agent-fictitious" }));
                 }
             }
-        }
-
-        private static void Write(CustomDataStore store, string authority, string host, string sniKey)
-        {
-            store.Set(
-                AuthorityKeys.AuthorityKey(CertificateDigest.Of(CertificateBlob.Load(authority).CertificateDer)),
-                AuthorityDocument.Save(authority, host, sniKey));
         }
     }
 }

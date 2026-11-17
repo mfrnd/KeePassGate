@@ -168,7 +168,7 @@ namespace KeePassGate.Tests
             Assert.That(
                 reading.InForce.Authorities.Select(record => record.Hex),
                 Is.EquivalentTo(new[] { store.Authority.Hex, other.Hex }),
-                "the deletion record names another entry of that authority, and not this one");
+                "the deletion record names another entry of that authority, and not the entry present");
         }
 
         [Test]

@@ -5,6 +5,7 @@ using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Pairing;
+using KeePassGate.Store;
 
 namespace KeePassGate.Ui
 {
@@ -27,9 +28,12 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// Whether any key of a kind is waiting, for a subject kept under more than one key: the
-        /// authorities and their retirements are one per authority.
+        /// revocations and the standing answers are one per certificate.
         /// </summary>
         bool WaitingOn(Func<string, bool> kind);
+
+        /// <summary>Whether an act on the plugin's store is waiting: an authority made, replaced or deleted.</summary>
+        bool StoreWaiting { get; }
     }
 
     /// <summary>
@@ -78,8 +82,8 @@ namespace KeePassGate.Ui
     {
         private readonly IGateDatabase _database;
         private readonly PendingStore _store;
+        private readonly PendingRecords _records;
         private readonly IGateLog _log;
-
 
         public PendingDatabase(IGateDatabase database, IGateLog log)
         {
@@ -97,6 +101,10 @@ namespace KeePassGate.Ui
             // reading and writing the group that was replaced. `OpenDatabaseTargets` rebuilds its
             // own per read for the same reason.
             _store = new PendingStore(() => database.PluginCustomData);
+
+            // And the plugin's store, whose acts are held the same way, asked for on every access
+            // for the same reason.
+            _records = new PendingRecords(() => database.Store);
 
             // **The key with a second writer whose two versions have to be merged.** A record
             // the tab touches can also be written while the dialog is up, by a client revoking
@@ -226,6 +234,18 @@ namespace KeePassGate.Ui
             get { return _store; }
         }
 
+        /// <summary>The plugin's store with the acts pressed on the dialog beside it.</summary>
+        public IGateStore Store
+        {
+            get { return _records; }
+        }
+
+        /// <summary>
+        /// Why the writer's guard refused what the tab held for the plugin's store at the last
+        /// <see cref="Apply"/>, or null where it did not.
+        /// </summary>
+        public string StoreRefusal { get; private set; }
+
         /// <summary>The live tree, read through: nothing on the tab writes to it.</summary>
         public IRuledNodes Nodes
         {
@@ -235,7 +255,7 @@ namespace KeePassGate.Ui
         /// <summary>Whether anything is waiting for the dialog's OK.</summary>
         public bool Waiting
         {
-            get { return _store != null && _store.Waiting; }
+            get { return (_store != null && _store.Waiting) || _records.Waiting; }
         }
 
         /// <summary>Whether one key in particular is waiting.</summary>
@@ -265,6 +285,12 @@ namespace KeePassGate.Ui
         public bool WaitingOn(Func<string, bool> kind)
         {
             return _store != null && _store.WaitingOn(kind);
+        }
+
+        /// <summary>Whether an act on the plugin's store is waiting.</summary>
+        public bool StoreWaiting
+        {
+            get { return _records.Waiting; }
         }
 
         /// <summary>
@@ -300,24 +326,44 @@ namespace KeePassGate.Ui
 
             var changed = false;
 
-            if (_store != null)
+            // The plugin's store first, through the writer, `STORE.md` §627: each act held to the
+            // store as it stands now, and the rest of the buffer after it, as a Recreate takes the
+            // admissions away once its authority is retired.
+            StoreRefusal = null;
+            if (_records.Waiting)
             {
-                // An authority made and then retired on this one dialog, by a create and a delete
-                // or by two recreates, never reached the database. Its retirement would: a key the
-                // file keeps for good, naming an authority it never held, and reading as a
-                // database that retired every authority it had.
-                var underneath = _database.PluginCustomData;
-                if (underneath != null)
+                var written = _database.Store.Write(_records.Acts);
+                if (written.Taken)
                 {
-                    _store.Withdraw(key =>
+                    changed = true;
+                    foreach (var left in written.LeftOut)
                     {
-                        var fingerprint = AuthorityKeys.FingerprintInRetirement(key);
-                        return fingerprint != null
-                               && underneath.Get(AuthorityKeys.AuthorityKey(fingerprint)) == null
-                               && underneath.Get(key) == null;
-                    });
+                        _log.Warn("an act pressed on the " + GateName.Product + " tab was left out at OK: " + left);
+                    }
+                }
+                else
+                {
+                    // The guard's refusal is what a dialog's close is not meant to meet, and is
+                    // kept for the factory to count. The store's own follows from what a merge or
+                    // another dialog did underneath this dialog, and is the log's to name.
+                    var why = "what the " + GateName.Product + " tab held for the plugin's store was not written: "
+                              + written.Reason + (written.LeftOut.Count == 0 ? string.Empty : "; " + string.Join("; ", written.LeftOut));
+                    if (written.Guarded)
+                    {
+                        StoreRefusal = written.Reason;
+                        _log.Error(why, null);
+                    }
+                    else
+                    {
+                        _log.Warn(why);
+                    }
                 }
 
+                _records.Discard();
+            }
+
+            if (_store != null)
+            {
                 changed |= _store.Apply();
             }
 
@@ -363,6 +409,7 @@ namespace KeePassGate.Ui
         public void Discard()
         {
             _leftOut.Clear();
+            _records.Discard();
             if (_store != null)
             {
                 _store.Discard();

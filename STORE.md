@@ -16,16 +16,19 @@ the writer and the rules, [`PAIRING.md`](PAIRING.md) the flow that writes an adm
 of the plugin's own, written once, under a check keyed by a secret the database holds, and whatever
 takes access away is a further entry, never an entry deleted or changed.
 
-> **Decided, and not built.** This document is the contract for the store of release 0.3.0. Release
-> 0.2.0 ships the store `CA.md` §204 describes: the database's own custom data, and a `KPG` key in
-> the custom data of groups and entries. Nothing below describes what the plugin does today, with
-> two exceptions: the API's guard of §633 is built, with what tells a node of the store by its
-> identifier, and the reading of §620 to §624 is built, with what is in force under the store key,
-> the room a store has for its next write (§627, §643), and the words `split`, `outdated` and
-> `stopped` of §656; §620, §633, §643 and §656 state which parts those are. Each pull request that
-> builds a part of this store brings `CA.md`, `DESIGN.md`, `PAIRING.md`, `API.md` and `docs/`
-> into line with the code it adds. Until then those documents hold for 0.2.0, and this document
-> holds for what replaces its store.
+> **Decided, and built in part.** This document is the contract for the store of release 0.3.0.
+> Release 0.2.0 ships a store in the database's own custom data, with a `KPG` key in the custom
+> data of groups and entries, and what of it this build still keeps is in `CA.md` §204. What is
+> built of this store: the API's guard of §633, with what tells a node of the store by its
+> identifier; the reading of §620 to §624, with what is in force under the store key, the room a
+> store has for its next write (§627, §643), and the words `split`, `outdated` and `stopped` of
+> §656; and the authority and its retirements of §614, written by the plugin's own writes of
+> §627 with the records set back of §628, and served from what stands. §614, §620, §627, §628,
+> §633, §643 and §656 state which parts those are, and nothing else below describes what the
+> plugin does today. Each pull request that builds a part of this store brings `CA.md`,
+> `DESIGN.md`, `PAIRING.md`, `API.md` and `docs/` into line with the code it adds. Until then
+> those documents hold for 0.2.0 where they describe a part not built, and this document holds
+> for what replaces its store.
 
 **How to read it.**
 
@@ -675,7 +678,7 @@ The document is read from the version's own content where a gate builds what it 
 and is kept nowhere as text between two holds (§632). *Held by* `StoreAuthoritiesTests`: an
 authority whose `id` is not the digest of its certificate, whose host does not chain, whose key
 is not its certificate's, or which lacks a member, is damaged, gives its key, is not served,
-and is retired by Recreate; and by `StoreWriteTests` against the measured code for the
+and is retired by Recreate; and by `StoreRecordTests` against the measured code for the
 content's text, its check and its identifier.
 
 **A retirement** is a record of kind `retired` with the member `authority`, the `id` of the
@@ -721,8 +724,9 @@ the file would then hold no store key, which is a store started again, with ever
 and revocation to enter again (§632), where today such copies lose their clients and nothing
 else. With the key in each retirement the store stays whole, no authority stands, and Create
 makes an authority under the same key. Nothing is deleted in order to take anything away:
-what is deleted is retired in the same write (§627). *Held by* `StoreWriteTests`: keeping an
-authority among several retires each of the others, each retirement holding the key; and by
+what is deleted is retired in the same write (§627). *Held by* `AuthorityCommandsInStoreTests`:
+keeping an authority among several retires each of the others, each retirement holding the key;
+and by
 `StoreWritesInRealDatabaseTests`: copies that keep different authorities, synchronized, hold
 the store key, serve nothing, and take a Create under that key.
 
@@ -732,6 +736,22 @@ the gate until the operator keeps a store (§649). The measured code counted a r
 any key it held, which let a file from outside retire the database's authority by naming its
 `id`, and that `id` is public where it is the digest of the authority's certificate (read from
 the measured code, not run).
+
+**What is built.** The authority's record and the retirement as this section has them, the
+commands' writes, and which authority is served. `AuthorityRecord` composes and reads the
+content, `StoreAuthorities` works out the authorities that stand and the authority served, and
+`AuthorityService` writes Create, Recreate, Delete and keeping an authority as acts of §627,
+each act held to the authorities that stood when it was composed. The admissions and the
+revocations are still kept where `CA.md` §204 keeps them, and are handed the authorities that
+stand: a client is judged by the anchor pin against the authority served before any record is
+asked, so a record of a certificate another authority issued admits nobody, and a revocation
+names the standing authority that issued its certificate. Recreate and Delete take every
+admission away as the custom data the tab buffers, beside the act on the store, so a Recreate
+left out at the tab's OK, for a ground that went under the dialog, still takes them away:
+nobody is admitted who was not before, and the admissions' move into the store (§615) makes
+their removal part of the act. *Held by* `StoreAuthoritiesTests`,
+`AuthorityCommandsInStoreTests`, `AuthorityServiceTests` and `StoreAuthorityServedTests`, and
+in a real KeePass by `LiveAuthorityTests` and `LiveAuthorityChooserTests`.
 
 ### Admission and revocation §615
 
@@ -1321,14 +1341,16 @@ by record, by item and by deletion record (steps 1, 2, 4 and 7), the highest for
 plugin version (step 6), the authorities that stand, and the room of §627. The authorities
 that stand under each key that stands are worked out for every state but no key, as a word is
 answered under them (§656). What each kind means for access beyond that (steps 3 and 5) is
-built by the pull requests that bring each kind's meaning. In this build the authority a
-database is served with is still the one `CA.md` §204 describes: the store is asked for a
-database the gate serves or holds several authorities of, a database with no store key is
-served as before, and no released plugin writes a store, so a store reaches a database only in
-a file that already holds one. *Held by* `StoreReadingTests`, `StoreReadingStatesTests`,
-`StoreReadingKeysTests`, `StoreReadingFormatTests`, `StoreReadingWholeTests`,
-`StoreInForceTests`, `StoreRoomTests`, `StoreInRealDatabaseTests` and
-`StoreStatesInRealDatabaseTests`, and in a real KeePass by `LiveStoreTests`.
+built by the pull requests that bring each kind's meaning, the authority's among them (§614).
+The authority a database is served with is the single authority that stands in a store that is
+whole, read from the version that passed, and every admission holds the target it is made on to
+what the store then reads: the authority's entry, the version of it that passed, and that it
+still stands alone, so a retirement written under a target already handed out refuses from that
+target's next admission on. A database whose store holds no key is served nothing. *Held by*
+`StoreReadingTests`, `StoreReadingStatesTests`, `StoreReadingKeysTests`,
+`StoreReadingFormatTests`, `StoreReadingWholeTests`, `StoreInForceTests`, `StoreRoomTests`,
+`StoreInRealDatabaseTests`, `StoreStatesInRealDatabaseTests`, `StoreAuthoritiesTests` and
+`StoreAuthorityServedTests`, and in a real KeePass by `LiveStoreTests` and `LiveAuthorityTests`.
 
 ### Which entries are records §621
 
@@ -1910,6 +1932,20 @@ revocation pressed beside a Recreate whose authority was retired underneath the 
 written, and the Recreate is not; a Create and a Delete on the same dialog write nothing; and
 a page reads a revoked client as gone before OK.
 
+**What is built.** The writes of the authority's commands (§614): Create, Recreate and Delete
+at the settings dialog's OK, buffered by `PendingRecords` beside the keys the tab buffers in
+custom data and written before them, and keeping an authority. Each is planned by `StoreWrite`
+against the store read in the writer's turn, steps 1 to 5 with the room held at the plan as at
+the reading, so that a write the room allows is never refused for a ceiling, and applied to the
+database's entries by `StoreEntries` on KeePass's thread through the writer's guard, which marks
+the database as changed and saves nothing. A write the application cannot finish is taken back
+out at once; taking back a write that was saved and did not land comes with the writes that
+save, a pairing's and a renewal's. A revocation is not an act yet, so the buffer holds the
+authority's acts alone. *Held by* `StoreRecordTests` and `StoreWriteTests`, against the
+records and the writes of the measured code (`tests/Shared/StoreRecordVectors.json` and
+`StoreWriteVectors.json`), `StoreWriteShapeTests`, `PendingRecordsTests` and
+`StoreWritesInRealDatabaseTests`.
+
 ### A record written again §628
 
 **An edited record is written again at the plugin's next own write** (decision 18). Whenever the
@@ -1943,6 +1979,12 @@ it rules out a write made for this alone, which would be a write at a read. Not 
 `StoreWritesInRealDatabaseTests`: an authority's content with its protection taken off is
 protected again after the plugin's next write, passes as before, and holds the unprotected
 version in its history.
+
+**What is built.** Both: every record that counts only by its history is set back, and every
+record holding the store key has its content protected again, at every write of the plugin's
+own and at no other moment. *Held by* `StoreWriteTests` and `StoreWritesInRealDatabaseTests`,
+under a database that keeps ten versions and under a database that keeps a single version, and in a
+real KeePass by `LiveStoreSetBackTests`.
 
 **What was measured** (`measured-two-readings` 2), on real files on top of the store as decided:
 
@@ -2727,12 +2769,11 @@ answers `lost` after the key carrier is deleted under it, and nothing after a lo
 **What is built.** `split`, `outdated` and `stopped`, the last also for a store that has no room
 for its next write (§643), answered before a route is chosen by the target of a database the
 gate serves, and, ahead of `undecided`, by each target of a database that holds several
-authorities, under the host certificate of the authority `CA.md` §204 has it served with or of
-each of those authorities. The reading works out the authorities that stand under each key that
-stands, which the targets answer under once the authority a database is served with is the
-store's own (§614). A database with no store key, and a database with no authority, are
-answered as they are today. `lost`, and the memory of what a gate last served with, come with
-the authority's record (§632); `frozen` comes with the release that first moves the format
+authorities, under the host certificate of the authority that stands or of each of those
+authorities, worked out under each key that stands (§614). A database whose store holds no key
+resolves no name, and a database whose store holds no authority that stands is served nothing.
+`lost`, and the memory of what a gate last served with (§632), are not built; `frozen` comes
+with the release that first moves the format
 number (§652), and the routing document declares it and the reference client knows it already.
 *Held by* `StoreWordsTests`, `StoreHeldBackGateTests`, `UndecidedGateTests`,
 `UnavailableWordsTests` and `StoreInForceTests`, the order of the words by
@@ -3500,8 +3541,10 @@ that finds a measurement against a decision reports it and does not design aroun
    phone or an emulator; with KeePassXC releases other than 2.8.0; with the slow key derivation;
    with a history limit other than 10 items and none; and in the searches of the design's
    model. Writing a record again as a new entry beside the edited entry was not run either, and
-   is not the form decided. Owed by the pull request that builds §628. *Could overturn*:
-   decisions 18 and 24.
+   is not the form decided. The build of §628 brings the case in KeePass's window, a record's
+   content deleted in the entry dialog and set back by the next OK on the KPG tab, as
+   `LiveStoreSetBackTests`; every other case above stays owed. *Could overturn*: decisions 18
+   and 24.
 4. **The guard as product code in KeePass's window**, with its setting: a change made in the
    group dialog of the plugin's group; a delete or a duplicate of a group above the store; "Yes"
    at the save question of the dialog for several entries; a click on OK itself; paste between
