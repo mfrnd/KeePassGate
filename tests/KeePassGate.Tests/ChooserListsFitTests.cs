@@ -172,7 +172,7 @@ namespace KeePassGate.Tests
             {
                 Name = name,
                 Rows = rows,
-                Scrolls = (User32.GetWindowLong(list.Handle, StyleIndex) & VerticalScrollBar) != 0,
+                Scrolls = (TestNativeMethods.GetWindowLong(list.Handle, StyleIndex) & VerticalScrollBar) != 0,
                 LastRowBottom = rows == 0 ? 0 : list.GetItemRect(rows - 1).Bottom,
                 ClientHeight = list.ClientSize.Height
             };

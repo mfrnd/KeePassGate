@@ -454,8 +454,8 @@ namespace KeePassGate.Tests
         /// <summary>Puts a key on the queue for the list, and lets the loop deliver it.</summary>
         private static void Press(Control control, Keys key)
         {
-            User32.PostMessage(control.Handle, WmKeyDown, (IntPtr)(int)key, IntPtr.Zero);
-            User32.PostMessage(control.Handle, WmKeyUp, (IntPtr)(int)key, IntPtr.Zero);
+            TestNativeMethods.PostMessage(control.Handle, WmKeyDown, (IntPtr)(int)key, IntPtr.Zero);
+            TestNativeMethods.PostMessage(control.Handle, WmKeyUp, (IntPtr)(int)key, IntPtr.Zero);
             OffScreenForm.Pump();
         }
 
@@ -509,7 +509,7 @@ namespace KeePassGate.Tests
             {
                 var window = Windowed(dialog);
 
-                User32.SendMessage(window, message, (IntPtr)command, IntPtr.Zero);
+                TestNativeMethods.SendMessage(window, message, (IntPtr)command, IntPtr.Zero);
 
                 Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.Refused),
                     "somebody was at the screen, and what they did with " + how + " was say no");
@@ -1617,12 +1617,12 @@ namespace KeePassGate.Tests
                 var enabledAfterKeePass = true;
                 OffScreenRenewal(prompt, () =>
                 {
-                    disabledUnderIt = !User32.IsWindowEnabled(main.Handle);
+                    disabledUnderIt = !TestNativeMethods.IsWindowEnabled(main.Handle);
 
                     // `UIBlockInteraction(true)` and then `UIBlockInteraction(false)`.
                     main.Enabled = false;
                     main.Enabled = true;
-                    enabledAfterKeePass = User32.IsWindowEnabled(main.Handle);
+                    enabledAfterKeePass = TestNativeMethods.IsWindowEnabled(main.Handle);
                 });
 
                 prompt.Ask(Renewal(), Timeout, Ample);
@@ -1630,7 +1630,7 @@ namespace KeePassGate.Tests
                 Assert.That(disabledUnderIt, Is.True, "the dialog's modal loop disabled the main window");
                 Assert.That(enabledAfterKeePass, Is.False,
                     "KeePass's unblock enabled the main window behind a request still standing");
-                Assert.That(User32.IsWindowEnabled(main.Handle), Is.True, "and the window is back once it closes");
+                Assert.That(TestNativeMethods.IsWindowEnabled(main.Handle), Is.True, "and the window is back once it closes");
             }
         }
 

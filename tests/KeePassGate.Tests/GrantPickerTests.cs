@@ -942,7 +942,7 @@ namespace KeePassGate.Tests
                 Assert.That(grid.Rows[grid.Rows.Count - 1].Displayed, Is.False,
                     "the window is not short enough for this to be about anything");
 
-                User32.PostMessage(grid.Handle, WheelMessage, (IntPtr)(-120 << 16), IntPtr.Zero);
+                TestNativeMethods.PostMessage(grid.Handle, WheelMessage, (IntPtr)(-120 << 16), IntPtr.Zero);
                 OffScreenForm.Pump();
 
                 Assert.That(grid.FirstDisplayedScrollingRowIndex, Is.GreaterThan(0),
@@ -1178,8 +1178,8 @@ namespace KeePassGate.Tests
         /// </remarks>
         private static void PressKey(Control control, Keys key)
         {
-            User32.PostMessage(control.Handle, KeyDownMessage, (IntPtr)(int)key, IntPtr.Zero);
-            User32.PostMessage(control.Handle, KeyUpMessage, (IntPtr)(int)key, IntPtr.Zero);
+            TestNativeMethods.PostMessage(control.Handle, KeyDownMessage, (IntPtr)(int)key, IntPtr.Zero);
+            TestNativeMethods.PostMessage(control.Handle, KeyUpMessage, (IntPtr)(int)key, IntPtr.Zero);
             OffScreenForm.Pump();
         }
 
@@ -1190,8 +1190,8 @@ namespace KeePassGate.Tests
         private static void PressAt(Control control, Rectangle area)
         {
             var where = (IntPtr)(((area.Top + (area.Height / 2)) << 16) | ((area.Left + (area.Width / 2)) & 0xFFFF));
-            User32.PostMessage(control.Handle, ButtonDownMessage, (IntPtr)1, where);
-            User32.PostMessage(control.Handle, ButtonUpMessage, IntPtr.Zero, where);
+            TestNativeMethods.PostMessage(control.Handle, ButtonDownMessage, (IntPtr)1, where);
+            TestNativeMethods.PostMessage(control.Handle, ButtonUpMessage, IntPtr.Zero, where);
             OffScreenForm.Pump();
         }
 

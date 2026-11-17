@@ -39,22 +39,22 @@ namespace KeePassGate.Tests.Fakes
             }
 
             var keys = new byte[256];
-            Assert.That(User32.GetKeyboardState(keys), Is.True, "the thread's keys could not be read");
+            Assert.That(TestNativeMethods.GetKeyboardState(keys), Is.True, "the thread's keys could not be read");
 
             var held = (byte[])keys.Clone();
             held[(int)Keys.Menu] |= Down;
             held[(int)Keys.LMenu] |= Down;
-            Assert.That(User32.SetKeyboardState(held), Is.True, "Alt could not be held");
+            Assert.That(TestNativeMethods.SetKeyboardState(held), Is.True, "Alt could not be held");
 
             try
             {
-                User32.PostMessage(control.Handle, SystemKeyDownMessage, (IntPtr)(int)Keys.Down, (IntPtr)AltHeld);
-                User32.PostMessage(control.Handle, SystemKeyUpMessage, (IntPtr)(int)Keys.Down, (IntPtr)AltReleased);
+                TestNativeMethods.PostMessage(control.Handle, SystemKeyDownMessage, (IntPtr)(int)Keys.Down, (IntPtr)AltHeld);
+                TestNativeMethods.PostMessage(control.Handle, SystemKeyUpMessage, (IntPtr)(int)Keys.Down, (IntPtr)AltReleased);
                 OffScreenForm.Pump();
             }
             finally
             {
-                User32.SetKeyboardState(keys);
+                TestNativeMethods.SetKeyboardState(keys);
             }
         }
     }

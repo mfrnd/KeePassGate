@@ -974,7 +974,7 @@ namespace KeePassGate.Host.Tests.Live
         private static bool WaitUntilGone(IntPtr window)
         {
             var deadline = DateTime.UtcNow + DialogCloseTimeout;
-            while (window != IntPtr.Zero && User32.IsWindowVisible(window))
+            while (window != IntPtr.Zero && TestNativeMethods.IsWindowVisible(window))
             {
                 if (DateTime.UtcNow >= deadline)
                 {

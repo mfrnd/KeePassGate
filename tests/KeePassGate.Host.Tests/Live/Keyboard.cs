@@ -95,27 +95,27 @@ namespace KeePassGate.Host.Tests.Live
                 return false;
             }
 
-            User32.ShowWindow(handle, RestoreWindow);
+            TestNativeMethods.ShowWindow(handle, RestoreWindow);
 
-            var foreground = User32.GetWindowThreadProcessId(User32.GetForegroundWindow(), out _);
-            var target = User32.GetWindowThreadProcessId(handle, out _);
-            var attached = foreground != target && User32.AttachThreadInput(foreground, target, true);
+            var foreground = TestNativeMethods.GetWindowThreadProcessId(TestNativeMethods.GetForegroundWindow(), out _);
+            var target = TestNativeMethods.GetWindowThreadProcessId(handle, out _);
+            var attached = foreground != target && TestNativeMethods.AttachThreadInput(foreground, target, true);
 
             try
             {
-                User32.BringWindowToTop(handle);
-                User32.SetForegroundWindow(handle);
+                TestNativeMethods.BringWindowToTop(handle);
+                TestNativeMethods.SetForegroundWindow(handle);
             }
             finally
             {
                 if (attached)
                 {
-                    User32.AttachThreadInput(foreground, target, false);
+                    TestNativeMethods.AttachThreadInput(foreground, target, false);
                 }
             }
 
             Thread.Sleep(300);
-            return User32.GetForegroundWindow() == handle;
+            return TestNativeMethods.GetForegroundWindow() == handle;
         }
 
         /// <summary>
@@ -144,7 +144,7 @@ namespace KeePassGate.Host.Tests.Live
             }
 
             Assert.Fail("'" + NameOf(window) + "' could not be brought to the front, so nothing was typed. " +
-                        "In front instead: '" + TitleOf(User32.GetForegroundWindow()) + "'.");
+                        "In front instead: '" + TitleOf(TestNativeMethods.GetForegroundWindow()) + "'.");
         }
 
         private static string NameOf(AutomationElement window)
@@ -162,7 +162,7 @@ namespace KeePassGate.Host.Tests.Live
         private static string TitleOf(IntPtr window)
         {
             var text = new StringBuilder(512);
-            return window == IntPtr.Zero || User32.GetWindowText(window, text, text.Capacity) <= 0
+            return window == IntPtr.Zero || TestNativeMethods.GetWindowText(window, text, text.Capacity) <= 0
                 ? string.Empty
                 : text.ToString();
         }
@@ -173,15 +173,15 @@ namespace KeePassGate.Host.Tests.Live
 
             if (stroke.WithAlt)
             {
-                User32.keybd_event(AltKey, 0, 0, UIntPtr.Zero);
+                TestNativeMethods.keybd_event(AltKey, 0, 0, UIntPtr.Zero);
             }
 
-            User32.keybd_event(key, 0, 0, UIntPtr.Zero);
-            User32.keybd_event(key, 0, KeyUp, UIntPtr.Zero);
+            TestNativeMethods.keybd_event(key, 0, 0, UIntPtr.Zero);
+            TestNativeMethods.keybd_event(key, 0, KeyUp, UIntPtr.Zero);
 
             if (stroke.WithAlt)
             {
-                User32.keybd_event(AltKey, 0, KeyUp, UIntPtr.Zero);
+                TestNativeMethods.keybd_event(AltKey, 0, KeyUp, UIntPtr.Zero);
             }
 
             Thread.Sleep(400);
@@ -192,10 +192,10 @@ namespace KeePassGate.Host.Tests.Live
         {
             var code = (byte)char.ToUpperInvariant(key);
 
-            User32.keybd_event(ControlKey, 0, 0, UIntPtr.Zero);
-            User32.keybd_event(code, 0, 0, UIntPtr.Zero);
-            User32.keybd_event(code, 0, KeyUp, UIntPtr.Zero);
-            User32.keybd_event(ControlKey, 0, KeyUp, UIntPtr.Zero);
+            TestNativeMethods.keybd_event(ControlKey, 0, 0, UIntPtr.Zero);
+            TestNativeMethods.keybd_event(code, 0, 0, UIntPtr.Zero);
+            TestNativeMethods.keybd_event(code, 0, KeyUp, UIntPtr.Zero);
+            TestNativeMethods.keybd_event(ControlKey, 0, KeyUp, UIntPtr.Zero);
             Thread.Sleep(400);
         }
 
@@ -204,17 +204,17 @@ namespace KeePassGate.Host.Tests.Live
         /// </summary>
         public static void SendShiftF10()
         {
-            User32.keybd_event(ShiftKey, 0, 0, UIntPtr.Zero);
-            User32.keybd_event(F10Key, 0, 0, UIntPtr.Zero);
-            User32.keybd_event(F10Key, 0, KeyUp, UIntPtr.Zero);
-            User32.keybd_event(ShiftKey, 0, KeyUp, UIntPtr.Zero);
+            TestNativeMethods.keybd_event(ShiftKey, 0, 0, UIntPtr.Zero);
+            TestNativeMethods.keybd_event(F10Key, 0, 0, UIntPtr.Zero);
+            TestNativeMethods.keybd_event(F10Key, 0, KeyUp, UIntPtr.Zero);
+            TestNativeMethods.keybd_event(ShiftKey, 0, KeyUp, UIntPtr.Zero);
             Thread.Sleep(400);
         }
 
         public static void SendEscape()
         {
-            User32.keybd_event(EscapeKey, 0, 0, UIntPtr.Zero);
-            User32.keybd_event(EscapeKey, 0, KeyUp, UIntPtr.Zero);
+            TestNativeMethods.keybd_event(EscapeKey, 0, 0, UIntPtr.Zero);
+            TestNativeMethods.keybd_event(EscapeKey, 0, KeyUp, UIntPtr.Zero);
             Thread.Sleep(400);
         }
 
@@ -230,8 +230,8 @@ namespace KeePassGate.Host.Tests.Live
         /// </remarks>
         public static void SendEnter()
         {
-            User32.keybd_event(EnterKey, 0, 0, UIntPtr.Zero);
-            User32.keybd_event(EnterKey, 0, KeyUp, UIntPtr.Zero);
+            TestNativeMethods.keybd_event(EnterKey, 0, 0, UIntPtr.Zero);
+            TestNativeMethods.keybd_event(EnterKey, 0, KeyUp, UIntPtr.Zero);
             Thread.Sleep(400);
         }
     }

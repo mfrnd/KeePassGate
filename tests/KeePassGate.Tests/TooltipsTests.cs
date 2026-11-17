@@ -167,13 +167,13 @@ namespace KeePassGate.Tests
                 .GetProperty("Handle", BindingFlags.Instance | BindingFlags.NonPublic)
                 .GetValue(tips, null);
 
-            Assert.That((int)User32.SendMessage(handle, GetToolCount, IntPtr.Zero, IntPtr.Zero), Is.EqualTo(1));
+            Assert.That((int)TestNativeMethods.SendMessage(handle, GetToolCount, IntPtr.Zero, IntPtr.Zero), Is.EqualTo(1));
 
             var text = Marshal.AllocHGlobal(8192);
             try
             {
-                var tool = new User32.ToolInfo { Size = Marshal.SizeOf<User32.ToolInfo>(), Text = text };
-                Assert.That(User32.SendMessage(handle, EnumerateTools, IntPtr.Zero, ref tool), Is.Not.EqualTo(IntPtr.Zero));
+                var tool = new TestNativeMethods.ToolInfo { Size = Marshal.SizeOf<TestNativeMethods.ToolInfo>(), Text = text };
+                Assert.That(TestNativeMethods.SendMessage(handle, EnumerateTools, IntPtr.Zero, ref tool), Is.Not.EqualTo(IntPtr.Zero));
 
                 return (tool.Flags & RightToLeftReadingFlag) != 0;
             }

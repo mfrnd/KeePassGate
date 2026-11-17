@@ -49,7 +49,7 @@ namespace KeePassGate.Tests
                 var handle = dialog.Handle;
 
                 uint read;
-                Assert.That(User32.GetWindowDisplayAffinity(handle, out read), Is.True);
+                Assert.That(TestNativeMethods.GetWindowDisplayAffinity(handle, out read), Is.True);
                 Assert.That(read, Is.EqualTo(affinity));
             }
         }
@@ -64,7 +64,7 @@ namespace KeePassGate.Tests
                 window.CreateControl();
 
                 uint read;
-                Assert.That(User32.GetWindowDisplayAffinity(window.Handle, out read), Is.True);
+                Assert.That(TestNativeMethods.GetWindowDisplayAffinity(window.Handle, out read), Is.True);
                 Assert.That(read, Is.EqualTo(MonitorOnly));
             }
         }

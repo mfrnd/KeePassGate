@@ -712,7 +712,7 @@ namespace KeePassGate.Tests
             {
                 dialog.CreateControl();
 
-                User32.SendMessage(dialog.Handle, 0x0010, IntPtr.Zero, IntPtr.Zero);
+                TestNativeMethods.SendMessage(dialog.Handle, 0x0010, IntPtr.Zero, IntPtr.Zero);
 
                 Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.Refused));
                 Assert.That(dialog.Answer().Standing, Is.Null);
@@ -957,16 +957,16 @@ namespace KeePassGate.Tests
         private static void Click(Control control)
         {
             var where = (IntPtr)(((control.Height / 2) << 16) | ((control.Width / 2) & 0xFFFF));
-            User32.PostMessage(control.Handle, 0x0201, (IntPtr)1, where);
+            TestNativeMethods.PostMessage(control.Handle, 0x0201, (IntPtr)1, where);
             OffScreenForm.Pump();
-            User32.PostMessage(control.Handle, 0x0202, IntPtr.Zero, where);
+            TestNativeMethods.PostMessage(control.Handle, 0x0202, IntPtr.Zero, where);
             OffScreenForm.Pump();
         }
 
         private static void Press(Control control, Keys key)
         {
-            User32.PostMessage(control.Handle, 0x0100, (IntPtr)(int)key, IntPtr.Zero);
-            User32.PostMessage(control.Handle, 0x0101, (IntPtr)(int)key, IntPtr.Zero);
+            TestNativeMethods.PostMessage(control.Handle, 0x0100, (IntPtr)(int)key, IntPtr.Zero);
+            TestNativeMethods.PostMessage(control.Handle, 0x0101, (IntPtr)(int)key, IntPtr.Zero);
             OffScreenForm.Pump();
         }
     }

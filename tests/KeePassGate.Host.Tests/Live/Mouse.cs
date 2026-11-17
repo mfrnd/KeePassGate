@@ -43,12 +43,12 @@ namespace KeePassGate.Host.Tests.Live
                     "The element occupies nothing on screen, so there is nowhere to press it.");
             }
 
-            User32.SetPhysicalCursorPos((int)(box.Left + (box.Width / 2)), (int)(box.Top + (box.Height / 2)));
+            TestNativeMethods.SetPhysicalCursorPos((int)(box.Left + (box.Width / 2)), (int)(box.Top + (box.Height / 2)));
             Thread.Sleep(150);
 
-            User32.mouse_event(RightDown, 0, 0, 0, UIntPtr.Zero);
+            TestNativeMethods.mouse_event(RightDown, 0, 0, 0, UIntPtr.Zero);
             Thread.Sleep(60);
-            User32.mouse_event(RightUp, 0, 0, 0, UIntPtr.Zero);
+            TestNativeMethods.mouse_event(RightUp, 0, 0, 0, UIntPtr.Zero);
             Thread.Sleep(300);
         }
 
@@ -95,16 +95,16 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>A press at a point in physical pixels, as the accessibility tree gives them.</summary>
         public static void Click(int x, int y)
         {
-            User32.SetPhysicalCursorPos(x, y);
+            TestNativeMethods.SetPhysicalCursorPos(x, y);
 
             // The pause is not politeness. A window that has just been moved to the front is still
             // settling, and a press that lands in the same message as the move is a press some
             // controls never see.
             Thread.Sleep(150);
 
-            User32.mouse_event(LeftDown, 0, 0, 0, UIntPtr.Zero);
+            TestNativeMethods.mouse_event(LeftDown, 0, 0, 0, UIntPtr.Zero);
             Thread.Sleep(60);
-            User32.mouse_event(LeftUp, 0, 0, 0, UIntPtr.Zero);
+            TestNativeMethods.mouse_event(LeftUp, 0, 0, 0, UIntPtr.Zero);
             Thread.Sleep(300);
         }
     }

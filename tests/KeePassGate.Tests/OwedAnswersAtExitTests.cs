@@ -126,11 +126,11 @@ namespace KeePassGate.Tests
                 window.CreateControl();
                 notice.Watch(window);
 
-                User32.SendMessage(window.Handle, QueryEndSession, IntPtr.Zero, IntPtr.Zero);
+                TestNativeMethods.SendMessage(window.Handle, QueryEndSession, IntPtr.Zero, IntPtr.Zero);
 
                 Assert.That(notice.SessionEnding, Is.True);
 
-                User32.SendMessage(window.Handle, EndSession, (IntPtr)1, IntPtr.Zero);
+                TestNativeMethods.SendMessage(window.Handle, EndSession, (IntPtr)1, IntPtr.Zero);
             }
         }
 
@@ -145,7 +145,7 @@ namespace KeePassGate.Tests
                     notice.Watch(window);
                     notice.Dispose();
 
-                    User32.SendMessage(window.Handle, QueryEndSession, IntPtr.Zero, IntPtr.Zero);
+                    TestNativeMethods.SendMessage(window.Handle, QueryEndSession, IntPtr.Zero, IntPtr.Zero);
 
                     Assert.That(notice.SessionEnding, Is.False);
                 }

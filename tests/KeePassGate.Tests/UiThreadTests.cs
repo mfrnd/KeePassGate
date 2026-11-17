@@ -387,7 +387,7 @@ namespace KeePassGate.Tests
                 });
 
                 // WM_CLOSE, which answers a message box with only an OK as its OK.
-                User32.PostMessage(box, 0x0010, IntPtr.Zero, IntPtr.Zero);
+                TestNativeMethods.PostMessage(box, 0x0010, IntPtr.Zero, IntPtr.Zero);
                 var cleared = Eventually(() => ui.Value.Stalled == null);
 
                 Assert.That(reported, Is.True, "a message box open on KeePass's thread is reported");

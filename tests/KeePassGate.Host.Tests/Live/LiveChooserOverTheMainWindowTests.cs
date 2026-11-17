@@ -85,13 +85,13 @@ namespace KeePassGate.Host.Tests.Live
                 NativeWindows.Titles(keePass.Process) + Environment.NewLine + driver.Diagnostics +
                 Environment.NewLine + keePass.ReadPluginLog());
 
-            _disabledWhenItCameUp = !User32.IsWindowEnabled(main);
+            _disabledWhenItCameUp = !TestNativeMethods.IsWindowEnabled(main);
 
             var deadline = DateTime.UtcNow + SynchronizeTimeout;
             DateTime? saved = null;
             while (DateTime.UtcNow < deadline && (saved == null || DateTime.UtcNow < saved + AfterTheSave))
             {
-                if (User32.IsWindowEnabled(main))
+                if (TestNativeMethods.IsWindowEnabled(main))
                 {
                     _seenEnabledUnderIt++;
                 }
@@ -111,12 +111,12 @@ namespace KeePassGate.Host.Tests.Live
                 "The chooser was still open after Cancel. " + driver.Diagnostics);
 
             var back = DateTime.UtcNow + DialogTimeout;
-            while (!User32.IsWindowEnabled(main) && DateTime.UtcNow < back)
+            while (!TestNativeMethods.IsWindowEnabled(main) && DateTime.UtcNow < back)
             {
                 Thread.Sleep(Poll);
             }
 
-            _enabledOnceItClosed = User32.IsWindowEnabled(main);
+            _enabledOnceItClosed = TestNativeMethods.IsWindowEnabled(main);
 
             _exited = driver.ShutDown();
             TestContext.Out.WriteLine(driver.Diagnostics);

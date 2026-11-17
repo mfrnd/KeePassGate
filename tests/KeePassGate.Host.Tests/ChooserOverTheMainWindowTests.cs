@@ -76,12 +76,12 @@ namespace KeePassGate.Host.Tests
 
                             timer.Stop();
                             seen = true;
-                            disabledUnderIt = !User32.IsWindowEnabled(main.Handle);
+                            disabledUnderIt = !TestNativeMethods.IsWindowEnabled(main.Handle);
 
                             // `UIBlockInteraction(true)` and then `UIBlockInteraction(false)`.
                             main.Enabled = false;
                             main.Enabled = true;
-                            enabledAfterKeePass = User32.IsWindowEnabled(main.Handle);
+                            enabledAfterKeePass = TestNativeMethods.IsWindowEnabled(main.Handle);
 
                             standing.Close();
                         };
@@ -94,7 +94,7 @@ namespace KeePassGate.Host.Tests
                     Assert.That(disabledUnderIt, Is.True, "the chooser's modal loop disabled the main window");
                     Assert.That(enabledAfterKeePass, Is.False,
                         "KeePass's unblock enabled the main window behind a question still standing");
-                    Assert.That(User32.IsWindowEnabled(main.Handle), Is.True, "and the window is back once it closes");
+                    Assert.That(TestNativeMethods.IsWindowEnabled(main.Handle), Is.True, "and the window is back once it closes");
                     Assert.That(main.Enabled, Is.True);
                 }
             }

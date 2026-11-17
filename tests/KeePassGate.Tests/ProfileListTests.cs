@@ -481,8 +481,8 @@ namespace KeePassGate.Tests
             /// </remarks>
             public void Press(Keys key)
             {
-                User32.PostMessage(_box.Handle, KeyDown, (IntPtr)(int)key, IntPtr.Zero);
-                User32.PostMessage(_box.Handle, KeyUp, (IntPtr)(int)key, IntPtr.Zero);
+                TestNativeMethods.PostMessage(_box.Handle, KeyDown, (IntPtr)(int)key, IntPtr.Zero);
+                TestNativeMethods.PostMessage(_box.Handle, KeyUp, (IntPtr)(int)key, IntPtr.Zero);
                 OffScreenForm.Pump();
             }
 

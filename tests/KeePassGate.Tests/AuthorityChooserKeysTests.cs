@@ -38,7 +38,7 @@ namespace KeePassGate.Tests
             {
                 var button = Focus(ControlTree.FindByName<Button>(dialog, name));
 
-                User32.PostMessage(button.Handle, WmChar, (IntPtr)'k', IntPtr.Zero);
+                TestNativeMethods.PostMessage(button.Handle, WmChar, (IntPtr)'k', IntPtr.Zero);
                 OffScreenForm.Pump();
 
                 Assert.That(dialog.Chosen, Is.Null, "a K on " + name + " kept");
@@ -53,8 +53,8 @@ namespace KeePassGate.Tests
                 var keep = Focus(ControlTree.FindByName<Button>(dialog, GateTab.KeepButtonName));
                 Assume.That(keep.Enabled, Is.True);
 
-                User32.PostMessage(keep.Handle, WmKeyDown, (IntPtr)(int)Keys.Enter, IntPtr.Zero);
-                User32.PostMessage(keep.Handle, WmKeyUp, (IntPtr)(int)Keys.Enter, IntPtr.Zero);
+                TestNativeMethods.PostMessage(keep.Handle, WmKeyDown, (IntPtr)(int)Keys.Enter, IntPtr.Zero);
+                TestNativeMethods.PostMessage(keep.Handle, WmKeyUp, (IntPtr)(int)Keys.Enter, IntPtr.Zero);
                 OffScreenForm.Pump();
 
                 Assert.That(dialog.Chosen, Is.Null);
@@ -70,8 +70,8 @@ namespace KeePassGate.Tests
             {
                 var keep = Focus(ControlTree.FindByName<Button>(dialog, GateTab.KeepButtonName));
 
-                User32.PostMessage(keep.Handle, WmKeyDown, (IntPtr)(int)Keys.Space, IntPtr.Zero);
-                User32.PostMessage(keep.Handle, WmKeyUp, (IntPtr)(int)Keys.Space, IntPtr.Zero);
+                TestNativeMethods.PostMessage(keep.Handle, WmKeyDown, (IntPtr)(int)Keys.Space, IntPtr.Zero);
+                TestNativeMethods.PostMessage(keep.Handle, WmKeyUp, (IntPtr)(int)Keys.Space, IntPtr.Zero);
                 OffScreenForm.Pump();
 
                 Assert.That(dialog.Chosen, Is.Not.Null);

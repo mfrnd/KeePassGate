@@ -51,20 +51,20 @@ namespace KeePassGate.Host.Tests.Live
             var found = new List<Window>();
             var wanted = (uint)process.Id;
 
-            User32.EnumWindows((window, parameter) =>
+            TestNativeMethods.EnumWindows((window, parameter) =>
             {
                 uint owner;
 
                 // A window that went away between being enumerated and being asked about answers
                 // with a thread of zero, and belongs to nobody rather than to us.
-                if (User32.GetWindowThreadProcessId(window, out owner) == 0 ||
-                    owner != wanted || !User32.IsWindowVisible(window))
+                if (TestNativeMethods.GetWindowThreadProcessId(window, out owner) == 0 ||
+                    owner != wanted || !TestNativeMethods.IsWindowVisible(window))
                 {
                     return true;
                 }
 
                 var text = new StringBuilder(512);
-                var length = User32.GetWindowText(window, text, text.Capacity);
+                var length = TestNativeMethods.GetWindowText(window, text, text.Capacity);
                 var title = length <= 0 ? string.Empty : text.ToString();
                 if (untitled || title.Length > 0)
                 {
@@ -109,16 +109,16 @@ namespace KeePassGate.Host.Tests.Live
             var found = IntPtr.Zero;
             var wanted = (uint)process.Id;
 
-            User32.EnumWindows((window, parameter) =>
+            TestNativeMethods.EnumWindows((window, parameter) =>
             {
                 uint owner;
-                if (User32.GetWindowThreadProcessId(window, out owner) == 0 || owner != wanted)
+                if (TestNativeMethods.GetWindowThreadProcessId(window, out owner) == 0 || owner != wanted)
                 {
                     return true;
                 }
 
                 var text = new StringBuilder(512);
-                User32.GetWindowText(window, text, text.Capacity);
+                TestNativeMethods.GetWindowText(window, text, text.Capacity);
                 if (!text.ToString().StartsWith(".NET-BroadcastEventWindow", StringComparison.Ordinal))
                 {
                     return true;

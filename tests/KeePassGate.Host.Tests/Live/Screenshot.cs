@@ -292,7 +292,7 @@ namespace KeePassGate.Host.Tests.Live
             }
 
             var wanted = new IntPtr((KeyboardCues << 16) | SetUiState);
-            User32.SendMessage(handle, ChangeUiState, wanted, IntPtr.Zero);
+            TestNativeMethods.SendMessage(handle, ChangeUiState, wanted, IntPtr.Zero);
         }
 
         /// <summary>
@@ -458,7 +458,7 @@ namespace KeePassGate.Host.Tests.Live
                     Show();
                 }
 
-                User32.SetWindowPos(Handle, window, 0, 0, 0, 0, NoMove | NoSize | NoActivate);
+                TestNativeMethods.SetWindowPos(Handle, window, 0, 0, 0, 0, NoMove | NoSize | NoActivate);
                 Refresh();
                 Application.DoEvents();
                 Thread.Sleep(Repaint);
@@ -471,7 +471,7 @@ namespace KeePassGate.Host.Tests.Live
 
                 // Behind it again, which costs almost nothing. Nothing should have come between the
                 // two of them, and a picture of whatever did would be worth less than this call.
-                User32.SetWindowPos(Handle, window, 0, 0, 0, 0, NoMove | NoSize | NoActivate);
+                TestNativeMethods.SetWindowPos(Handle, window, 0, 0, 0, 0, NoMove | NoSize | NoActivate);
 
                 Refresh();
                 Application.DoEvents();
