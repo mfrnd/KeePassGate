@@ -31,7 +31,10 @@ takes access away is a further entry, never an entry deleted or changed.
   decision taken on 2026-11-17 after that table was written is not in it, and is cited as **a
   later decision** where it applies: on a second store key (§649), on a single certificate taken
   away (§648), on the guard's switch (§635), on the plugin's version and the store's format
-  (§647), and on the move from 0.2 (§645, §654).
+  (§647), on the move from 0.2 (§645, §654), and on what §646 had put to the project: the words
+  a client is answered with (§656), a record stripped of its strings (§621), a store started
+  again (§632), where a rule waits (§629), the grant editor (§657), what an expired certificate
+  left (§643), and the recycle bin (§619).
 - **Measured** names a fact that was run, with where: a report is named by its file name under
   `papers/ground/` on that branch, without `.md`, and its section, as `measured-decided-store` 3.5.
   The reports hold the counts and the reproduction of each run; this document quotes a count only
@@ -158,7 +161,7 @@ there is the argument, and `RESULTS.md` there records every measurement with its
 | A revocation names a certificate and is pruned once that certificate has expired | a revocation names the client's key and is never pruned | a renewal at a gate not yet told escaped a revocation by certificate, §615 |
 | A revocation, a retirement and an authority are keys only ever added, which a KeePass merge never removes | entries written once, which every merge that was run brings together | the same argument, in the carrier that also comes through KeePassXC and the Android programs in scope |
 | Nothing in the store is authenticated beyond the file | every record carries a check under the store key | a foreign file merged in could otherwise add a rule, a record or a retirement, §608 |
-| A record that has expired is removed by the plugin's next write | what a record replaces is deleted at the plugin's next write, and nothing is removed for its age | no time decides anything, and nothing in the file tells which copies have seen a record, §643. S19 is the single place where removal for age is asked about again, as a departure from this row |
+| A record that has expired is removed by the plugin's next write | what a record replaces is deleted at the plugin's next write, and nothing is removed for its age | no time decides anything, and nothing in the file tells which copies have seen a record, §643. What an expired certificate left stays until the compaction, by a later decision |
 | A database holds the keys it holds, and a file merged in can only add an authority of its own | records under more than a single store key stop the gate until the operator keeps a store | a key that vouches for itself is not thereby the database's own, §649 |
 | A client's own revocation and the operator's write the same key | the operator's revocation names the client's key, and a single certificate, given up by its client or taken away by the operator, gets a record of its own | a revocation by key would refuse the certificate a renewal just issued, §648 |
 
@@ -669,8 +672,10 @@ the rule. A newer version names every version its writer had read, whatever it h
 operator changing a rule, and it may widen. No standing version and no trace of any is a node with
 no rule, which is read by where it sits, as today.
 
-**Two versions made apart give what both allow**, until the operator settles the rule in the
-grant editor with a version that names both (evaluation 6, row 22). For a single profile a rule
+**Versions made apart give what all of them allow**, until the operator has removed versions in
+the grant editor and a single version is left (§657; evaluation 6, row 22). Several gates are
+supported, so more than two versions of a rule can stand, and they are combined in any order
+with the same result (§610). For a single profile a rule
 document is either a grant, which answers with its own verbs whatever arrives from above, or a
 limit, which answers with what arrives from above cut to a set of verbs; a document that does not
 name the profile and inherits is the limit that cuts nothing, and a document that does not name it
@@ -679,7 +684,7 @@ and a limit, or two limits, meet as the limit to the verbs both hold (the design
 rule narrowed in a copy and taken away in another gives what the group above gives, and no more
 than the narrowed rule. This was measured with the two verbs the measured code holds, read and
 write, and with rules for at most two profiles (`measured-store-as-a-whole` 2.4, 3.1). Over the
-eight letters and `default` it is the design paper's (S9).
+eight letters and `default` the form of what all allow is the design paper's (S9).
 
 **An object refuses** where the file shows that a version existed and holds its text nowhere: a
 deletion record tells of a version of the object that no standing version names as replaced and
@@ -710,10 +715,19 @@ the text of each answer and the answer until a date are S7.
 
 ### The recycle bin §619
 
-The store holds a version that names the group that is or was the recycle bin, written when the
-plugin sees a recycle bin at a write of its own (evaluation 4.2). It is there for a former bin
-that a merge turns into an ordinary group (evaluation 6, row 14). The measured code holds no such
-record, and nothing of it was run on the store. Its format and its reading are S10.
+**Release 0.3.0 keeps no record of the recycle bin** (a later decision). The evaluation's design
+has a version that names the group that is or was the recycle bin, written when the plugin sees
+a recycle bin at a write of its own (evaluation 4.2), for a former bin that a merge turns into
+an ordinary group. That kind is not part of 0.3.0: the measured code holds no such record, and
+nothing of it was run on the store.
+
+**So a former recycle bin that becomes an ordinary group stays as it is today** (§639, row 14):
+the plugin remembers no group as having been a bin, and after a synchronize or an import the
+operator checks which group Database Settings names as the bin, `DESIGN.md` §138.
+
+**The store makes such a record possible later.** It would be a version of an object of its
+own, as a rule is, restated by the summary entry, and as a new kind of record it would move the
+format number (§650).
 
 ---
 
@@ -736,16 +750,16 @@ costs on KeePass's thread was not measured (S20).
 its current version or in an item of its history. Its **versions** are its current strings and
 then the items of its history, newest first.
 
-**An entry with no `KPG.` string in any version is no candidate**, also where its identifier is
-an identifier of the store (as measured). Such an entry is a record stripped of every string in
-a database that keeps no history, or by a program that writes none. It reads as a record deleted
-with no deletion record: what took access away is still restated by the summary entry, a
-stripped summary entry leaves none in force and stops the store, and a stripped carrier of the
-store key leaves no key (reasoning). Decision 7 has an entry of the store with no passing version
-stop the database, and read by its words a stripped entry would. The other reading has a cost:
-it takes an entry for the store's by the three bytes of a tag alone, which an ordinary entry's
-random identifier meets about once in 17 million entries for each kind and key (reasoning).
-Which reading is built is S25.
+**An entry of the plugin's that was stripped of all its fields is treated as a deleted record,
+and not as damage** (a later decision; as measured). An entry with no `KPG.` string in any
+version is no candidate, also where its identifier is an identifier of the store. Such an entry
+is a record stripped of every string in a database that keeps no history, or by a program that
+writes none. It reads as a record deleted with no deletion record: what took access away is
+still restated by the summary entry, a stripped summary entry leaves none in force and stops
+the store, and a stripped carrier of the store key leaves no key (reasoning). The other reading,
+under which every entry whose identifier begins with a tag of the store is a candidate, would
+take an ordinary entry for damage by the three bytes of a tag alone, which a random identifier
+meets about once in 17 million entries for each kind and key (reasoning).
 
 **An entry counts wherever it sits.** The reading takes every candidate of the whole tree: in the
 plugin's group, in any other group, and in the recycle bin. So a record that a person moves, or
@@ -859,7 +873,7 @@ main window, as it asks about two authorities, `CA.md` §204, and never from a c
 KPG tab asks again. For each key that stands the dialog shows what lets the store under it be
 recognized: its authority with its fingerprint and when it was made, the clients it admits, its
 profile names and how many rules it holds. Until the operator has answered, a connection is
-answered as S16 has it.
+answered as §656 has it.
 
 **What keeping a store writes** (proposed; the record's kind, its content and its item are
 S23). A single write under the key kept, through the writer: a keep record, and the summary
@@ -893,7 +907,8 @@ chooser does, `CA.md` §204.
 authority before they meet. Or a store is started again after its key was lost, and a stale copy
 then brings the entry that carried the lost key back, since an entry that a merge brings back
 gives its key again (§632). The operator then chooses between the store started again and the
-store that was lost.
+store that was lost. A store started again by the command of §632 comes about with nobody being
+asked: the command sets every other key aside in the write that makes the new key.
 
 **What it costs.**
 
@@ -1055,7 +1070,7 @@ for any failing entry where the history rule now stands.
 is whole states its format.
 
 **A stopped store serves nothing**: no client is admitted and no rule is read, in that copy and
-in every copy the deletion or the edit reaches. What a connection is answered is S16.
+in every copy the deletion or the edit reaches. What a connection is answered is §656.
 
 **A stopped store is written to by no command but the press that seals it again, and Create is
 no exception** (this document's own). The measured code differs: its Create asks only whether an
@@ -1129,7 +1144,8 @@ question was not measured, and §644 names it as an obligation (reasoning, from 
 **When.** After an OK on the KPG settings tab; at a pairing or a renewal that the operator
 approved; at an answer to a renewal that the operator gave to stand (S7); when a certificate is
 taken away (§648); when the operator keeps a store (§649); and when the operator raises the
-store (§652). The plugin writes at no other moment but the save of §629.
+store (§652). A rule set in a node's dialog is added at that dialog's OK, in memory, and the
+operator's next save writes it (§629). The plugin writes at no other moment.
 
 **The steps**, in a single turn of the writer, as measured in `model/crdt_model.py` but where a
 step names another source:
@@ -1139,8 +1155,9 @@ step names another source:
    know (§651, §621), and the store is whole (§624). Each of these writes is the way out of a
    single state: the press of §625 on a stopped store; keeping a store where several keys
    stand, which is held to the format of the store kept; raising a store whose format number is
-   below the plugin's own (§652); and Create where no key stands (§632). The measured code's
-   Create also wrote on a stopped store, which §624 rules out.
+   below the plugin's own (§652); Create where no key stands; and the command that starts the
+   store again, wherever a key is found (§632). The measured code's Create also wrote on a
+   stopped store, which §624 rules out.
 2. **The records of the act are added** to the plugin's group, and with them a version record
    where §650 has the write carry it (proposed).
 3. **What a record present replaces is deleted, with a deletion record**: every version that a
@@ -1216,24 +1233,31 @@ between them and nothing older.
 
 ### A rule set in a dialog §629
 
-**A rule set in a group's or an entry's dialog waits for the next save** (decision 11). It is in
-force from the dialog's OK, the plugin starts no save for it, and that person's next save of the
-database writes it. A rule that is not changed writes nothing, and Cancel discards the change
-(the design paper 10).
+**A rule set in a group's or an entry's dialog waits for the next save** (decision 11), **in the
+database, in memory** (a later decision). The plugin adds it at the dialog's OK, as any edit
+made in that dialog is in the database from its OK, and nothing is hooked into saving. It is in
+force from the OK, the plugin starts no save for it, and the operator's next save of the
+database writes it with everything else that is unsaved. A rule that is not changed adds
+nothing, and Cancel discards the change (the design paper 10).
+
+**What is added at the OK** is a version of the node's rule and a summary entry, which is what
+the model ran. What else goes with it, and how it meets the writer's refusals, is S15.
 
 **What it costs.** A rule is lost if KeePass ends, or the database is closed, before a save, as
 any unsaved edit is (§642).
 
+**Considered and not taken: holding the rule in the plugin's memory and adding it at the event
+that precedes a save.** A plugin's addition at that event reached the file in every run that
+tried it. The event is also raised inside the save that ends a synchronize, with the merged
+database in memory (`measured-desktop-windows` 6.2), so a version made there is made after a
+merge, beside versions of another gate that the operator never saw.
+
 **What was measured.** A rule waiting in memory was run in the model only
-(`measured-store-as-a-whole` 1). An addition a plugin makes at the event that precedes a save
-reached the file in every run that tried it, for the save that ends a synchronize and for a save
-over a changed file (`measured-desktop-windows` 6.2). Where the rule waits between the OK and the
-save, and what that save writes with it, is S15.
+(`measured-store-as-a-whole` 1). On files and in KeePass's window it was not run (§644).
 
 **The editor no longer writes into the dialog's copy of custom data.** The grant editor keeps its
 change in a buffer of its own and applies it when the node's dialog closes with OK (the design
-paper 10). What the editor shows beyond today's table, for a rule that two copies changed apart,
-is S9.
+paper 10). What the editor shows for a rule that stands in several versions is §657.
 
 ### What the plugin never does §630
 
@@ -1268,8 +1292,8 @@ copy, and every gate writes.
 
 - **A gate that has not yet taken the file in still admits a client revoked at another gate**,
   until its KeePass takes the file in (§639).
-- **Two gates' versions of the same rule give what both allow** until the operator settles it
-  (§617).
+- **Several gates' versions of the same rule give what all of them allow** until the operator
+  has removed versions (§617).
 - **A name removed at a gate stays removed** against an addition that had not seen the removal
   (§616).
 - **Two gates that each create an authority leave two authorities standing**, and nothing is
@@ -1341,10 +1365,38 @@ further dialog. The entry that carries the key is marked as not to be deleted (S
 reports a missing authority (§636), and the operator's documentation describes the loss as what
 it is: a store to be entered again in full, its narrowing rules included.
 
-**No command starts a store again while a store key stands.** Delete keeps the key in the
-retirement and Recreate carries it, so both keep everything written under it. A store is started
-again only where no key stands: after the loss above, or after the operator has deleted the
-plugin's group for good in every copy (§652). Whether the tab gets a command for it is S28.
+**A command on the KPG tab starts the store again** (a later decision). After a warning that
+names what has to be entered again, it makes a store under a new key and sets every other key
+aside, and the earlier store coming back by a merge counts for nothing. Delete and Recreate do
+not start a store again: Delete keeps the key in the retirement and Recreate carries it, so both
+keep everything written under it.
+
+- **What it writes** (proposed). A single write through the writer, applied at the settings
+  dialog's OK like everything on that tab: a new store key; an authority that holds it, with its
+  host certificate and its gate key; a version record with the plugin's version and format
+  number (§650); a keep record under the new key that names every other key found, and names in
+  `after` every keep record its writer had read (§649); and the summary entry that restates
+  them. It deletes nothing. The entries of the earlier store stay in the file, passed over and
+  shown (S30).
+- **What its warning names** (proposed). Every client has to be paired again. Every profile
+  name, every rule, every revocation, every certificate taken away and every standing answer to
+  a renewal has to be entered again, the rules that narrow among them. The change reaches every
+  copy that takes the file in, and no command takes it back.
+- **Who can use it.** A plugin that the store's format holds back, or that does not read the
+  store's form, can use it, since it writes in the plugin's own form and reads nothing of the
+  earlier store but its key. Nothing of the earlier store is converted.
+- **The earlier store coming back by a merge counts for nothing**, and does not hold the plugin
+  back again: its key is set aside wherever the keep record is, and the store's format number
+  and the rule on a kind the plugin does not know are asked of the records under the store key
+  alone (§651, §621).
+- **A key the plugin cannot find, it cannot name.** Where the earlier store's key is in a form
+  the plugin does not read, that store is no store to this plugin, and a plugin that finds both
+  keys asks which store to keep (§649, reasoning).
+
+**The path by hand remains possible.** With the guard switched off, the operator deletes the
+plugin's group for good, synchronizes that deletion into every copy, and creates an authority.
+It is the operator's own act on the file, and it sets nothing aside: an earlier store that a
+merge brings back is then a second key, and the operator is asked which store to keep (§649).
 
 **A lost key that comes back beside a new key is a second key.** Where a store was started again
 and a merge then brings the entry that carried the lost key back, as a merge that carries no
@@ -1475,7 +1527,7 @@ The plugin compares its own format number with the highest format number the sto
 | the store's | reads, serves and writes |
 | below the store's: an older plugin on a store that was raised | serves nothing for that database, and writes nothing |
 | above the store's, and the plugin reads the older form | reads the store as it is and serves. It writes nothing into the store until the operator raises it |
-| above the store's, and the plugin does not read the older form | serves nothing and writes nothing. The operator starts the store again |
+| above the store's, and the plugin does not read the older form | serves nothing and writes nothing. The operator starts the store again (§632) |
 
 The rule on a record of a kind the plugin does not know stands beside this table and does not
 depend on it (§621).
@@ -1500,22 +1552,18 @@ giving a certificate up among them, held every earlier gate back with nobody hav
   plugin that raised it, beside the plugin's own, and that the plugin has to be updated. The log
   has a line when the plugin first sees the state: when the database is opened or unlocked, and
   at the save that ends a synchronize. A connection is answered with a word of its own, in the
-  manner of `503 undecided` (S16).
-- **It writes nothing**, and no command of the tab is an exception: not Create, not sealing the
-  store again, not keeping a store that was raised above it (§649).
+  manner of `503 undecided` (§656).
+- **It writes nothing**, and no command of the tab is an exception but the command that starts
+  the store again: not Create, not sealing the store again, not keeping a store that was raised
+  above it (§649).
 - **There is no way back but a store started again.** The highest format number never comes
   down, and nothing a plugin writes lowers it. Deleting the version record that raised the store
   is no way back: the deletion record tells of it and counts as it did, and a merge from a copy
   that was not cleaned brings the record itself back (§623).
-- **How a store is started again from there** (reasoning, not run). No command starts a store
-  again while a store key stands: Delete keeps the key in the retirement, and Recreate carries
-  it (§632). What starts a store again with the design as it stands is the operator's own act
-  on the file: with the guard switched off, the plugin's group is deleted for good, and that
-  deletion is synchronized into every copy. The file then holds no key, and Create starts a
-  store in the older plugin's own format. Where a merge that carries no deletion record brings
-  the earlier store back, two keys stand, and the operator keeps the store just made, which the
-  older plugin may write; the earlier store is then set aside and no longer holds the plugin
-  back (§649). Whether the tab gets a command for this is S28.
+- **The store is started again with the command on the tab** (§632), which the older plugin can
+  use: it makes a store in that plugin's own format under a new key and sets the raised store's
+  key aside, so the raised store no longer holds the plugin back, also where a merge brings it
+  back.
 - **A gate on a stale copy does not know yet.** A gate with an older plugin, on a copy that the
   raising record has not reached, serves and writes as before. What it writes was made apart
   from the newer plugin's writes and comes together with them as the writes of any two gates
@@ -1536,7 +1584,7 @@ the rule of §645.
   record and no summary entry, sets no edited record back (§628), and writes no rule from a
   node's dialog (§629). A pairing, a renewal, a certificate given up or taken away, a
   revocation, a profile name, a rule and every command for the authority are refused, to a
-  client with a word of its own (S16) and on the tab with the reason. A client's change to the
+  client with a word of its own (§656) and on the tab with the reason. A client's change to the
   operator's own entries is served, since it writes nothing into the store (reasoning).
 - **The operator raises the store with a button on the KPG tab.** Like everything on that tab it
   is applied at the settings dialog's OK. Before it, a warning names what stops: every KeePass
@@ -1643,11 +1691,12 @@ and write throughout the week, the upgraded machine and the other alike.
 
 **A release that does not read the earlier form.** After the install the plugin serves nothing
 for the database, and the tab states that the store has to be started again. The operator
-starts it again (§652), pairs every client again and enters every rule again.
+starts it again with the command on the tab, past its warning (§632), pairs every client again
+and enters every rule again.
 
 **A plugin put back to an earlier release.** Where the store was not raised, the earlier plugin
 works as it did. Where it was raised, the earlier plugin serves nothing, and nothing brings it
-back but the later release, or a store started again.
+back but the later release, or the store started again with the command on the tab (§632).
 
 ---
 
@@ -1698,6 +1747,51 @@ database: the entry view shows a protected string masked, the entry dialog lists
 its Edit and Delete buttons enabled, and KeePass's XML export writes protected strings in clear
 (`measured-desktop-windows` 4.3). That is the person at the desk, whom the threat model concedes,
 `CA.md` §220.
+
+### What a client is answered while the gate holds back §656
+
+**Each state in which the gate holds back answers a client with a word of its own** (a later
+decision): a word for each reason. The words are part of the contract.
+
+| The state | The word, proposed | Answered to |
+| --- | --- | --- |
+| The store is stopped (§624) | `stopped` | every request, until the store is sealed again |
+| Several store keys stand (§649) | `split` | every request, until the operator keeps a store |
+| The store was raised above the plugin, or holds a record of a kind the plugin does not know (§652, §621) | `outdated` | every request, until the plugin is updated or the store is started again |
+| The file holds no store key (§632) | `lost` | every request that the gate can still answer (below) |
+| The store waits to be raised (§652) | `frozen` | a request that needs a write into the store, and no other |
+
+**The words are proposed, and only that each reason has its own is decided.** They are made as
+today's are: `locked`, `undecided` and `busy` each name, in a single word, the state that
+refuses. Like those, each is sent under `503`, in the body's `error` and in `KPG-Unavailable`,
+and is described in the `Unavailable` answer of the routing document. `undecided` stays what it
+is, several authorities under a single store key (§614).
+
+**A store raised above the plugin and a record of a kind the plugin does not know are a single
+reason** (proposed). To a client the two are the same state with the same remedy, and the
+remedy is not the client's: the plugin on that machine is older than what wrote the store, and
+has to be updated. The rule on a kind the plugin does not know is a second safeguard for the
+very case the format number covers (§621), so two words would name a single cause twice. The
+tab and the log tell the two apart for the operator, who is the person who can act on the
+difference.
+
+**`frozen` is the only word that not every request gets.** A gate with a newer plugin on a
+store that was not raised serves, and refuses what needs a write into the store: a pairing, a
+renewal and a certificate given up (§652). A read is served, and so is a change to the
+operator's own entries.
+
+**Where the words become part of the contract.** In the routing document, in the pull request
+that makes the gate answer them. `API.md` §411 counts a status and its word on the wire as the
+contract, and a word a client may rely on moves the minor version, which is 0.3.0. The reference
+client gets a class for each word in the same pull request, as it has for each word today. A
+0.2 client takes each for the gate being unavailable (§645).
+
+**Whether every word can be sent is not settled** (S33). An answer takes a host certificate and
+a gate key, and both are in the authority's record. A database with no store key holds no
+authority the plugin reads, so its name resolves to nothing and the connection is dropped with
+no answer, as for a database with no authority today, `DESIGN.md` §112 (reasoning). `lost` can
+then be sent only where the gate still holds the gate key from before the store key was lost.
+The same holds for `outdated` where the newer form changed the authority's record itself.
 
 ---
 
@@ -1789,6 +1883,7 @@ guard as product code, with its setting, was not run (§644).
 - **It shows the store's size** (decision 21), since the store grows without pruning (§643).
 - **It reports a missing authority**, which is how a lost store key appears (§632).
 - **It holds "Seal again"** for a stopped store, with the page of §625.
+- **It holds the command that starts the store again**, with its warning (§632).
 - **It asks which store to keep** where several store keys stand (§649), as it asks about
   several authorities today, and it shows what passes under a key that was set aside.
 - **It states the store's format and the version that wrote it beside the plugin's own**, where
@@ -1798,6 +1893,47 @@ guard as product code, with its setting, was not run (§644).
   revokes nothing, which the notes of every record state (§607).
 
 Nothing of the tab was run.
+
+### The grant editor §657
+
+**A rule that stands in several versions shows as that many rows, bound together** (a later
+decision, taken from pictures of a prototype in KeePass's own group and entry dialogs). What
+the operator sees is decided. How it is drawn is proposed, and belongs to the pull request that
+builds it.
+
+**What the operator sees.**
+
+- **A row for each version**, with the profile's name on every row.
+- **A bracket in front of the rows that binds them**: closed at the first and at the last row of
+  the group, and open where the table's scrolling cuts the group.
+- **A light red background** behind the rows of the group.
+- **In bold, the letters of the mask in which the versions do not all agree.**
+- **An X on each row, as on every row, which removes that version.**
+- **The rows of a group in the order of their masks**, which is the same in every copy. No time
+  orders them.
+- **A tooltip on every row of the group**, which states how many versions there are and what the
+  gate grants until a single version is left: what all of them allow.
+- **More than two rows where more than two versions stand**, since several gates are supported.
+
+**No message box, and no dialog held at OK.** The group dialog and the entry dialog close at OK
+with the versions left as they are, and the gate goes on granting what all versions allow until
+the operator removes versions. Nothing reaches ahead of the group dialog's OK, and the entry
+dialog's event that precedes a save is not used for this.
+
+**How it is drawn** (proposed, from the prototype). The bracket is two pixels wide, in the
+cell's text color, in a left padding of the profile's cell. The red is the window's color moved
+a sixth of the way toward red. The letters that differ are bold in the system's highlight
+color. What the prototype left weak is part of S9: a bold dot is faint, the bold letters have
+less contrast on the red, the table shows four rows, so a further version pushes the line for
+adding a profile out of sight, and a high contrast setting was not looked at.
+
+**What a row is in the store, and what the editor writes, is not settled** (S32). A version in
+the store is a version of a node's whole rule, for every profile (§617), and a row is a single
+profile's rule. So what removing a row writes, and what the dialog's OK writes where the
+operator changed another profile's rule while a group of rows still stands, follows from no
+decision yet.
+
+Nothing of the editor was run on the store.
 
 ---
 
@@ -2011,16 +2147,18 @@ which is the condition of §633. **Not measured**: no route was run against any 
 
 **A former recycle bin becomes an ordinary group** (row 14). *Who:* KeePass's Synchronize deciding
 the bin by a time, or a KeePassXC merge bringing the source's bin in as a group. *What happens:*
-clients reach what was deleted. *What covers it:* the store's record of the bin (§619), for a bin
-the plugin has seen at a write of its own. *Measured:* on another option's records and on generic
-carriers. On the store it was not measured.
+clients reach what was deleted. *What covers it:* in 0.3.0 nothing in the store, which keeps no
+record of the bin (§619). The cover is today's: after a synchronize or an import the operator
+checks which group Database Settings names as the bin, `DESIGN.md` §138. *Measured:* on another
+option's records and on generic carriers. On the store it was not measured.
 
 **A rule is narrowed while a save runs** (row 15). *Who:* KeePass, where the plugin's group is
 written before the node in the file. *What happens:* the file holds the older rule while memory
 holds the narrower. *What covers it:* the plugin's group written last, and a node dialog that
-does not close with OK while KeePass saves (evaluation 6). *Measured:* on another option's
-records, in a console process. With a rule that waits for the next save it was not measured
-(S15).
+does not close with OK while KeePass saves (evaluation 6). A rule is in the database from the
+dialog's OK, like any edit made there (§629), so a save that begins after the OK writes it.
+*Measured:* on another option's records, in a console process. With a rule that waits in the
+database for the next save it was not measured (§644).
 
 **Two files that hold the same entries of the store answer differently** (row 16). *Who:* every
 fault but an overwrite, in a second model of the design. *What happens:* 3 pairs in 1,500
@@ -2097,6 +2235,13 @@ narrower reading after Create, on real files (`measured-decided-store` 3.5;
 files (`measured-store-as-a-whole` 5). The group's deletion was run in the window, and its
 reading is reasoning.
 
+**The operator starts the store again with the command.** *Who:* the operator, on the KPG tab,
+past the warning (§632). *What happens:* what the loss of the key does, by a decision and at
+once: every client pairs again, and every rule, profile name and revocation is entered again,
+so what entering again can leave out applies as above. The earlier store stays in the file and
+counts for nothing, and no command takes the press back. *What covers it:* the warning, which
+names what has to be entered again. *Measured:* not run.
+
 ### Refusing, narrower, or a decision lost §642
 
 **The whole database stops** (row 17). *Who:* the newest summary entry is deleted for good, or
@@ -2128,7 +2273,8 @@ edit is. *What covers it:* saving. Accepted (decision 11). *Measured:* in the mo
 (`measured-store-as-a-whole` 2.5, 5).
 
 **Two gates change the same rule apart** (row 22). *What happens:* after any merge the node gives
-what both allow, until the operator settles it in the grant editor. Narrower. *Measured:* on real
+what all versions allow, until the operator has removed versions in the grant editor (§657).
+Narrower. *Measured:* on real
 files (`measured-store-as-a-whole` 3.1).
 
 **A profile name is added in a copy and removed in another** (row 23). *What happens:* after every
@@ -2197,18 +2343,19 @@ store in which nothing was written again:
 summary entry it replaces; by an item for every revocation, since none is pruned; and by the list
 each standing version keeps of what it replaces. The deletion records grow by a record for every
 replaced entry. An edited record grows by the history KeePass keeps, up to its limit, and a
-record that the plugin set back holds its rewrites there as well (§628). An admission whose
-certificate has expired stays, since nothing in the measured code deletes it (S19).
+record that the plugin set back holds its rewrites there as well (§628). **What an expired
+certificate left stays until the compaction, and nothing is removed by a clock** (a later
+decision): its admission, and the record that took it away.
 
 **What the kinds that were not measured add** (reasoning; in no measured size). A certificate
 taken away leaves a record and an item in every later summary entry (§648). The reference client
 gives the old certificate up after every renewal, so every renewal adds an item, for good. A
 summary entry has names for 9,999 items (S13): fifty clients that renew every week add 2,600
 items a year and reach that in under four years, and a single client that renews every day adds
-365 a year. Nothing in 0.3.0 limits it. What limits it is the compaction deferred below, or the
-answer to S19. A keep record leaves a record and an item for each answer (§649). A version
-record is left for each format and for each release that stated itself, and the summary entry
-states a single pair (§650).
+365 a year. Nothing in 0.3.0 limits it. What limits it is the compaction deferred below. A keep
+record leaves a record and an item for each answer (§649). A version record is left for each
+format and for each release that stated itself, and the summary entry states a single pair
+(§650).
 
 **How long a string a program keeps.** The longest string at 1,000 writes is 13 times the longest
 string any run on an emulator carried. Keepass2Android and KeePassDX, each as its own code
@@ -2326,6 +2473,18 @@ that finds a measurement against a decision reports it and does not design aroun
 20. **The move from 0.2** (§645, §654), which was read from the source of 0.2.0 and not run. The
     steps, and the path through KeePass's windows for clearing what 0.2 left, are run in a real
     KeePass by the pull request that writes the warning.
+21. **The command that starts the store again** (§632), of which nothing was run: pressed on a
+    whole store, by a plugin that the store's format holds back, and by a plugin that does not
+    read the store's form; then the earlier store brought back by each merge, and a second gate
+    that still serves the earlier store. Owed by the pull request that builds the command.
+22. **The words of §656**, of which nothing was run: each state answered with its word, to a
+    request before a route is chosen and to a `head`; `frozen` to a write and to no read; and
+    whether `lost` and `outdated` can be sent at all (S33). Owed by the pull request that makes
+    the gate answer them.
+23. **The grant editor's rows for a rule in several versions** (§657). The pictures the decision
+    was taken from are of a prototype with rows that were made up, and not of a store: two and
+    three versions, scrolled, under a high contrast setting, and with what removing a row and
+    the dialog's OK write (S32). Owed by the pull request that builds the editor on the store.
 
 ---
 
@@ -2371,7 +2530,7 @@ written by the pull request that makes the break real.
 
 **No client program has to change for 0.3.0**, which is why it is a minor release. `API.md` §411
 has a change break a client when a program that worked before has to change. Pairing again is
-the operator's act and the client's ordinary command. A word that S16 adds is answered under
+the operator's act and the client's ordinary command. A word that §656 adds is answered under
 `503`, and a 0.2 client takes a word it does not know for the gate being unavailable (read from
 the client). So a 0.2 client works with a 0.3 gate, as §411 has it. §411 also counts what a
 certificate or an admission record carries: the admission changes where it is stored and what
@@ -2394,15 +2553,17 @@ by the pull request that replaces it.
 
 ## 15. To settle in the implementing pull request §646
 
-Nothing in this section is decided. Each item is a format, a text or a behavior that no decision,
-no measured code and no sentence of the design paper fixes, or on which those sources differ. An
-option is a proposal, and what follows "has to satisfy" is the constraint the decisions put on
-any answer. An item keeps its number for good, so that a reference to it still leads somewhere.
+Nothing in the three groups of this section is decided. Each item is a format, a text or a
+behavior that no decision, no measured code and no sentence of the design paper fixes, or on
+which those sources differ. An option is a proposal, and what follows "has to satisfy" is the
+constraint the decisions put on any answer. An item keeps its number for good, so that a
+reference to it still leads somewhere.
 
 The items are in three groups: what the first pull request that builds the store has to settle,
 because a record's form is final from 0.3.0 on; what a later pull request has to settle; and
-what is the project's to decide and no pull request's. A fourth list names what was settled
-since.
+what is the project's to decide and no pull request's. A list before them names what was
+settled since, and where an item was settled in part, what is left of it stands in its group
+under the same number.
 
 **Settled, and where the answer is.**
 
@@ -2410,13 +2571,25 @@ since.
   group's identifier are drawn from the generator the product draws the gate key from today
   (read from the product).
 - **S6. A certificate given up by its own client.** A record of a kind of its own, §648.
+- **S9, in part. How the grant editor shows a rule in several versions.** As rows bound
+  together, with no message box and no dialog held at OK, §657. What is left is below.
+- **S10. A record of the recycle bin.** Not in 0.3.0, §619.
+- **S15, in part. Where a rule waits between the dialog's OK and the save.** In the database, in
+  memory, added at the OK, §629. What is left is below.
+- **S16, in part. Which word a client gets while the gate holds back.** A word for each reason,
+  §656. The words themselves are below.
 - **S17. Where the guard's setting lives.** The plugin's window under Tools, §635.
+- **S19. What an expired certificate left.** It stays until the compaction, and nothing is
+  removed by a clock, §643.
 - **S22. What the operator's documentation advises for what 0.2 left in the file.** The steps
   of §645, in the release notes and in `docs/`.
+- **S25. An entry of the plugin's stripped of all its fields.** A deleted record, and not
+  damage, §621.
 - **S27. A 0.2 plugin on a database that holds the store.** A warning and no code, §654.
+- **S28, in part. A command that starts the store again.** A command on the tab, §632. What is
+  left is below.
 
-**What the first pull request that builds the store settles.** S16 and S25, in the third group,
-have to be answered before it as well.
+**What the first pull request that builds the store settles.**
 
 - **S1. The marker `v`.** The measured code wrote `2` in every record and read it nowhere. With
   the format number of §650, a marker in every record has nothing left to decide. Options: no
@@ -2437,6 +2610,13 @@ have to be answered before it as well.
   compaction of §643 exists, or the operator is told well before it would; and a record beyond a
   ceiling is damage, never read in part, since a list cut short would leave out what it names as
   replaced or restates as refused.
+- **S16. The words of §656.** Decided: a word for each reason. Proposed: `stopped`, `split`,
+  `outdated`, `lost` and `frozen`, and a single word for a store raised above the plugin and for
+  a record of a kind the plugin does not know. Not fixed: the words themselves, and which
+  requests `frozen` is answered to beyond a pairing, a renewal and a certificate given up. Has
+  to satisfy: a client can tell each state from a locked database and from several authorities;
+  a 0.2 client still reads the answer as the gate being unavailable (§645); and the words are
+  fixed in the routing document with 0.3.0, `API.md` §411.
 - **S20. What the reading costs, and what may be kept between requests.** The reading takes
   every entry of the database with its history. The design paper keeps the checked form of an
   unchanged entry and never an answer that grants. Has to satisfy: a revocation still holds at
@@ -2469,6 +2649,14 @@ have to be answered before it as well.
   identifier's sixteen bytes also hold. Has to satisfy: a deletion record still tells the kind
   and the subject of what it names; and the answer is given before 0.3.0, since an identifier's
   layout cannot change without a new format number.
+- **S33. Whether every word of §656 can be sent.** An answer takes the authority's host
+  certificate and the gate key. Not fixed: whether the gate still holds a gate key where the
+  file holds no store key, so that `lost` reaches anybody; what an older plugin answers with
+  where the newer form changed the authority's record, so that it can read no host certificate;
+  and which authority's host certificate answers `split`, where `undecided` answers with each
+  authority's own. Has to satisfy: a name that resolves to nothing is dropped with no answer, as
+  today, `DESIGN.md` §112; and a word that turns out never to reach a client is put to the
+  project, since the decision gave each reason a word.
 
 **What a later pull request settles.**
 
@@ -2521,6 +2709,16 @@ have to be answered before it as well.
   fixed: the text of a version that takes a rule off a node, so that the node inherits. Has to
   satisfy: it reads as no rule for every profile, and it is told apart from an empty rule, which
   grants nothing.
+- **S9. What versions made apart give over the eight letters and `default`, and how the rows
+  are drawn.** Decided: what all of them allow (§617), and what the operator sees (§657).
+  Measured: with two verbs and at most two profiles. The design paper 4.3 gives a grant and a
+  limit for each profile, has `default` deny when any standing version denies, and has the
+  resolver carry a limit up its walk. Not fixed: the two switches under that combination; the
+  resolver's change; and the drawing where the prototype left it weak: a bold dot that is faint,
+  bold letters with less contrast on the red, a table of four rows, and a high contrast
+  setting. Has to satisfy: the result is never wider than any of the versions, for every
+  profile and every letter; a switch without a verb still grants nothing; and what tells the
+  rows apart does not rest on color alone.
 - **S11. Several groups, and keeping an authority.** What several store keys do is §649. Not
   fixed: what keeping an authority writes among several authorities under the same key, which
   the measured code did with a retirement for each authority not kept, in code that no search
@@ -2532,6 +2730,13 @@ have to be answered before it as well.
   deleted. The measured title and notes are in §606 and §607. Has to satisfy: no text is covered
   by the check or read by the plugin; the mark is in place on the retirement that holds the key
   as on the authority's entry.
+- **S15. What is added at a node dialog's OK, beside the rule's version** (§629). In the model a
+  summary entry is added with it. Not fixed: whether the addition sets edited records back, as
+  a write of the plugin's own does (§628); and how it meets the writer's refusals, since it is
+  made while KeePass closes the node's own dialog. Has to satisfy: in force from the OK; no save
+  started by the plugin and nothing hooked into saving; Cancel discards; and a rule narrowed
+  while a save runs does not leave the file with the older rule (row 15 of §639, whose cover
+  names the plugin's group written last in the file).
 - **S18. Whether a string is protected.** The check covers a string's text and not its
   protection, so an edit that only takes the protection off the authority's content passes (read
   from the measured code, not run). KeePass's entry view then shows the authority's private key
@@ -2540,72 +2745,30 @@ have to be answered before it as well.
 - **S21. A ceiling on profile names.** Today the list holds at most 32 names, which is
   `JsonBody`'s ceiling for an array. With an entry for each addition the format has no such
   ceiling. Has to satisfy: a rule document still holds at most 31 profiles, `DESIGN.md` §136.
+- **S28. The command that starts the store again, in its texts and its place** (§632). Decided:
+  the command, its warning, a store under a new key, every other key set aside. Proposed: what
+  it writes. Not fixed: its caption, the words of its warning, and on which page of the tab and
+  in which states it is offered. Has to satisfy: a plugin that the store's format holds back, or
+  that does not read the store's form, can use it; nothing of the earlier store is converted;
+  and the earlier store coming back by a merge does not hold the plugin back again.
 - **S30. The entries under a store key that was not kept** (§649). They stay in the file, passed
   over and shown, an authority's private key among them. Not fixed: whether anything ever
   removes them. Has to satisfy: no write removes them that a different answer in another copy
   would turn into the loss of both stores, as a deletion with deletion records does under
   Synchronize.
 
-**Decisions for the project.** Each is a question with its answers. None is a pull request's to
-take, and S16 and S25 are needed before the first pull request that builds the store.
+**Decisions for the project.** The questions this group held are answered, and the list above
+names where. What stands here is what those answers newly opened.
 
-- **S9. How does the grant editor show a rule that two copies changed apart?** What such a rule
-  gives is decided: what both allow (§617). Answers: the editor shows both versions and a command
-  that settles them; the editor shows the combined rule alone, and the next change the operator
-  makes there settles it. With either goes the form of the combination over the eight letters
-  and `default`, which the design paper 4.3 gives and which was measured with two verbs and at
-  most two profiles: a grant and a limit for each profile, `default` deny when any standing
-  version denies, and a resolver that carries a limit up its walk. Has to satisfy: the result is
-  never wider than either version, for every profile and every letter; a switch without a verb
-  still grants nothing.
-- **S10. Does 0.3.0 keep a record of which group is or was the recycle bin** (§619)? Answers: it
-  does, as a kind that is designed and run before 0.3.0; it does not, and after a merge the
-  operator checks which group is the bin, as `DESIGN.md` §138 has it today. Nothing of such a
-  record is in the measured code. Has to satisfy, where it is kept: a group once recorded as the
-  bin stays recorded until a version that names that record lifts it, and the summary entry
-  restates it as it restates a version.
-- **S15. Where does a rule wait between the dialog's OK and the save** (§629)? Answers: in the
-  database in memory, as a version and a summary entry added at the OK, which is what the model
-  ran; in the plugin's memory, added at the event that precedes a save, which was measured to
-  reach the file. Has to satisfy: in force from the OK; no save started by the plugin; Cancel
-  discards; a rule narrowed while a save runs does not leave the file with the older rule (row
-  15 of §639, whose cover names the plugin's group written last in the file); and a version
-  written between the OK and the save names as replaced only what the dialog showed. The event
-  that precedes a save is also raised inside the save of a synchronize, with the merged database
-  in memory (`measured-desktop-windows` 6.2): a version made there that names everything then
-  present would name another gate's versions, which the operator never saw, as replaced, and
-  would end wider than what both allow (§617). Setting an edited record back there would be a
-  write after a merge, which §628 rules out.
-- **S16. Which word does a client get in each state in which the gate holds back?** The states:
-  the store is stopped (§624); several store keys stand (§649); the store was raised above the
-  plugin, or holds a record of a kind the plugin does not know (§652, §621); the store waits to
-  be raised, in which only a write is refused (§652); and the file holds no store key. Answers:
-  a word for each state; a single word for all of them, with the reason on the tab and in the
-  log alone. The design paper answers a stopped store like `503 undecided`, under a word of its
-  own. A database with no key holds no gate key either, so its name resolves to nothing, as a
-  database with no authority today (reasoning). Has to satisfy: a client can tell each of these
-  from a locked database and from two authorities; a 0.2 client still reads the answer as the
-  gate being unavailable (§645); and the words are part of the contract of 0.3.0, `API.md` §411.
-- **S19. May the plugin delete what an expired certificate left?** The gate refuses an expired
-  certificate on its dates, as today. Nothing in the measured code deletes its admission, or the
-  record that took it away, so a client that renews weekly leaves both for every week (§643).
-  Answers: no, both stay until the compaction of §643, which is what §604 and decision 21 have;
-  yes, at a write of the plugin's own, with a deletion record, which removes something for its
-  age by this machine's clock and so departs from §604. Has to satisfy: the reading decides
-  nothing by a clock, and a deletion takes nothing away.
-- **S25. Is an entry under an identifier of the store that holds no `KPG.` string in any version
-  damage** (§621)? Answers: no, as measured: it is no candidate and reads as a record deleted
-  with no deletion record; yes, by the words of decision 7: every entry whose identifier begins
-  with a tag of the store is a candidate, and with no version that passes it stops the database.
-  Has to satisfy: stripping a record never ends wider than deleting it does; and an ordinary
-  entry of the operator's is not taken for damage by the three bytes of a tag, which a random
-  identifier meets about once in 17 million entries for each kind (reasoning).
-- **S28. Is there a command that starts a store again while a store key stands** (§652)? No
-  command does today: Delete keeps the key and Recreate carries it. Answers: no command, and the
-  operator deletes the plugin's group for good in every copy, with the guard off, and then
-  creates an authority; a command on the tab that makes a store under a new key and writes a
-  keep record naming every other key, after a warning that names everything that is entered
-  again. Has to satisfy: a plugin that the store's format holds back, or that does not read the
-  store's form, can use it, since it writes in the plugin's own form; nothing of the earlier
-  store is converted; and the earlier store coming back by a merge does not hold the plugin back
-  again.
+- **S32. What does the grant editor write while a rule still shows several rows** (§657)? A
+  version in the store is a version of a node's whole rule, for every profile, and a row is a
+  single profile's rule. So it is open what removing a row writes where the versions also
+  differ for another profile, and what the dialog's OK writes where the operator changed
+  another profile's rule and left a group of rows standing. Answers: a rule's object is a node
+  and a profile, so each profile's versions stand and are replaced apart, which changes the
+  object the measured code wrote; the object stays the node, and the editor writes a successor
+  for each version that still stands, each carrying the change; the object stays the node, and
+  while a group of rows stands the editor takes no change at that node but the removal of
+  versions. Has to satisfy: no question at OK and no dialog held; the versions the operator did
+  not remove are left as they are; and what the gate grants is never wider than what all
+  standing versions allow.
