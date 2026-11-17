@@ -716,7 +716,8 @@ paths:
         Anchored at the root, so a client that may not list there is told nothing. The root is the
         one group whose parent is null, which is how a client that was given no identifiers finds
         the top of the tree. The recycle bin and every group inside it are left out, as they are
-        out of reach on every route.
+        out of reach on every route, and so is the plugin's own group with everything inside it,
+        as `Unreachable` describes.
       x-kpg-verb: list
       responses:
         "200":
@@ -862,7 +863,8 @@ paths:
         answers the same `404` as any node the rules do not reach rather than a conflict: a removal
         is asked of the group a node is leaving, and the root is leaving nothing. A group holding the
         recycle bin cannot be removed either, although no listing shows the bin in it, since
-        removing the group would take the bin with it.
+        removing the group would take the bin with it, and neither can a group holding anything of
+        the plugin's own store, for the same reason.
       x-kpg-verb: delete
       parameters:
         - $ref: "#/components/parameters/GroupUuid"
@@ -1106,8 +1108,9 @@ paths:
       description: |
         Anchored at the root and recursive, for a flat sweep. The entries route on a group is the
         other question: one group, one level. An entry in the recycle bin is left out, as it is out
-        of reach on every route. The entries come group by group in the order `listGroups` answers,
-        each group's own in KeePass's order.
+        of reach on every route, and so is every entry of the plugin's own store, wherever it sits,
+        as `Unreachable` describes. The entries come group by group in the order `listGroups`
+        answers, each group's own in KeePass's order.
       x-kpg-verb: list
       parameters:
         - $ref: "#/components/parameters/IncludeExpired"
@@ -1380,7 +1383,8 @@ paths:
                     not run past the 2048 characters of a target the transport reads. A name the
                     entry carries, or a name the database cannot tell from a name it carries, is
                     `409`. Looking like another name in any other way, by a letter of another
-                    script or a space at its end, is not refused.
+                    script or a space at its end, is not refused. A name beginning `KPG.` is
+                    `404`, whether or not the entry carries it, as `Unreachable` describes.
                 value:
                   type: string
                   maxLength: 65536
@@ -2602,6 +2606,12 @@ components:
         A node that goes while the request is answered, in a database that stays open, is this as
         well, and so is a listing of a group or an entry that has gone: never `200` with an empty
         list, which would say the node is there and holds nothing.
+
+        **What the plugin keeps for itself is a node that is not there**, on every route, as the
+        recycle bin is: its own group with everything inside it, every entry of its store wherever
+        it sits, and on any other entry each string whose name begins `KPG.`. None is in a listing,
+        a sweep, an answer or a tag, and a request naming any of them, to read it, change it, add
+        to it or remove it, is this answer.
       content:
         application/json:
           schema:
@@ -2855,7 +2865,8 @@ components:
         A name is matched against the entry's own names byte for byte, and a name not among them is
         a name the entry does not carry, which is `404`, even where the database could not keep it
         apart from a name the entry does carry. That is `409` only for a name a body brings, as
-        `createField`, `createAttachment` and `EntryFields` state.
+        `createField`, `createAttachment` and `EntryFields` state. A name beginning `KPG.` is a
+        name no entry carries, as `Unreachable` describes.
       schema:
         type: string
         minLength: 1

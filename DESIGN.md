@@ -1136,6 +1136,13 @@ operation declaring `none`, since a selector nothing consults reads as authoriza
 happening and is not. So a route that reads or changes the database arrives with no machinery of
 its own: a verb in the document, a node beside the handler, and the router does the rest.
 
+**What no route serves is left out before the router asks anything.** The node a route names is
+found by the vault, and its lookups and listings leave out the recycle bin, §138, and the plugin's
+own store, `STORE.md` §633, as nodes that are not there. So the router's first question about either
+is the question about an absent node, the rules are never asked about them, and no handler is
+handed either: a route added later reaches neither without code of its own, which
+`StoreOnEveryRouteTests` holds for every route the document declares.
+
 **It asks where the database stands still**, §119, which reverses asking once before any handler
 ran: a rule taken away between that answer and the handler's read was served regardless. A
 request that changes nothing is asked about inside the hold its handler reads in. A change is

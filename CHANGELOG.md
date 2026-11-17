@@ -9,6 +9,24 @@ Newest first. A version is written here before it is released, under its own hea
 it releases, as `0.1.1, the plugin and the client, unreleased` would, and a minor version names
 none, since it releases both.
 
+## 0.3.0, unreleased
+
+- **Breaking: a field whose name begins `KPG.` is out of every program's reach, on whichever
+  entry it is.** A program that made fields of its own whose names begin with `KPG.` renames them
+  before the upgrade, in KeePass or through the API under 0.2, since 0.3 neither serves nor
+  changes them. Such a field was served, listed and written like any other custom field. It is
+  now in no read, no listing of fields and no `ETag`; reading, changing or stripping such a field
+  is answered `404`, as a field the entry does not hold is, and `createField` answers a name with
+  that prefix `404` whether or not the entry holds it. The prefix is the plugin's own: the store
+  this release keeps a database's records in writes them as entries whose fields carry it, an
+  authority's private key and the store's key among them, so a route that served such a field
+  could hand a client what makes a record pass for the plugin's. The plugin's own group with
+  everything in it, and every entry of that store wherever it sits, are left out of every route
+  as the recycle bin is, and a group holding such an entry cannot be removed. An entry of the
+  operator's is taken for such an entry only where its identifier begins with a tag the store's
+  key gives, which a random identifier meets about once in two million entries. Nothing else
+  changes for a program, and a 0.2 client works with a 0.3 gate, `API.md` §411. `STORE.md` §633.
+
 ## 0.2.0, 2026-11-17
 
 0.2 breaks programs written for 0.1, the single time the rule of `API.md` §411 is set aside, so what

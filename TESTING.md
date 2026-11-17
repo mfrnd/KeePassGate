@@ -124,6 +124,14 @@ a real tree, to see them hold on what KeePass hands back rather than to settle w
 nearest wins, a seal, a tree with no rule granting nothing, the rules surviving a save and a
 reopen, a decision naming its node by identifier, and a walk taken while the rules move.
 
+**It holds the plugin's store out of every route.** `StoreOnEveryRouteTests` is generated from the
+routing document: each operation it declares is a case, a case is held to the operation's own
+shape, and an operation with no case fails, so a route cannot be added without stating how it
+names a node. Each case drives the real router over the real vault, against a store composed in a
+real tree, and holds every answer byte for byte to the answer about a node that is not there.
+`STORE.md` §633 lists what it drives, and what tells a node of the store is held to the code the
+store was measured with by `StoreFormatTests`, in the unit tier.
+
 **It is also where KeePass's own compiler is asked.** `ReferenceVectorsTests` builds a database in
 memory holding the entries `tests/Shared/ReferenceVectors.json` writes down, compiles every value
 in it with KeePass's `SprEngine`, as a copy of the field compiles one less what acts, and holds the
