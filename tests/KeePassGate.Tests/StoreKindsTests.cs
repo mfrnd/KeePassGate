@@ -32,6 +32,8 @@ namespace KeePassGate.Tests
             "ceiling: a string of the store, 1048576 characters",
             "ceiling: a content or an item, 32 members",
             "ceiling: an item's name, KPG.S. and 4 digits",
+            "ceiling: a string of the store the plugin writes, 262144 characters",
+            "ceiling: the items of a summary entry the plugin writes, 9999",
             "kind authority: subject authority: and id; number none; members id text, storeKey hex; beside a deletion record out of force; restated not",
             "kind retired: subject authority: and authority; number none; members authority text, storeKey hex where present; beside a deletion record counts; restated by an item with the same authority; item authority text",
             "kind client: subject client: and client; number none; members client text; beside a deletion record out of force; restated not",
@@ -74,6 +76,8 @@ namespace KeePassGate.Tests
             yield return "ceiling: a string of the store, " + StoreFormat.MaxStringLength + " characters";
             yield return "ceiling: a content or an item, " + KeePassGate.Transport.JsonBody.MaxMembers + " members";
             yield return "ceiling: an item's name, " + StoreFormat.ItemPrefix + " and " + StoreFormat.ItemDigits + " digits";
+            yield return "ceiling: a string of the store the plugin writes, " + StoreFormat.MaxWritten + " characters";
+            yield return "ceiling: the items of a summary entry the plugin writes, " + StoreFormat.MaxItems;
 
             foreach (var kind in StoreKinds.All)
             {

@@ -101,6 +101,24 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        [Test]
+        public void What_a_hold_costs_at_the_plugin_s_ceilings()
+        {
+            // The same database beside a store near both of the plugin's ceilings: what is in
+            // force and the room are worked out at every hold, over every item and every
+            // deletion record of the store, `STORE.md` §623 and §627.
+            using (var database = TemporaryDatabase.New())
+            {
+                Fill(database.Database, 0);
+                AtTheCeilings(database.Database);
+
+                var hold = new Timed();
+                var store = new StoreReadings(database.Database, hold, null);
+                Assert.That(hold.Hold(() => store.Now()).Room.HasRoom, Is.True);
+                Report("the store's word at the plugin's ceilings", hold, () => hold.Hold(() => store.Word));
+            }
+        }
+
         /// <summary>KeePass's own thread: no stamp, every question its own reading, each counted.</summary>
         private sealed class OnKeePassThread : IReadHold
         {
@@ -218,6 +236,52 @@ namespace KeePassGate.Host.Tests
                 key, "head", "store",
                 StoreComposer.Content(("after", string.Join(" ", after)), ("height", "1")),
                 1,
+                items)), true);
+        }
+
+        /// <summary>
+        /// An authority, and a summary entry that names nearly as many summary entries as a
+        /// string the plugin writes holds, each of them deleted with a deletion record, and that
+        /// restates nearly as many revocations as a summary entry has item names, a tenth of them
+        /// with a deletion record of its own besides, `StoreFormat.MaxWritten` and
+        /// `StoreFormat.MaxItems`.
+        /// </summary>
+        private static void AtTheCeilings(PwDatabase database)
+        {
+            const int Named = 7900;
+            const int Revoked = 9000;
+            var key = StoreComposer.Key("ceilings");
+            var group = new PwGroup(true, true, "KeePassGate", PwIcon.TerminalEncrypted);
+            database.RootGroup.AddGroup(group, true);
+            group.AddEntry(StoreEntries.Of(StoreComposer.Record(
+                key, "authority", "authority:" + new string('a', 64),
+                StoreComposer.Content(("id", new string('a', 64)), ("storeKey", StoreComposer.HexOf(key))))), true);
+
+            var after = new List<string>();
+            for (var height = 1; height <= Named; height++)
+            {
+                var replaced = StoreComposer.IdentifierOf(key, "head", "store", height, height.ToString("x64", CultureInfo.InvariantCulture));
+                database.DeletedObjects.Add(new PwDeletedObject(new PwUuid(replaced), DateTime.UtcNow));
+                after.Add(StoreComposer.HexOf(replaced));
+            }
+
+            var items = new List<string> { StoreComposer.Item(("format", "1"), ("kind", "format"), ("plugin", "0.3.0")) };
+            for (var index = 0; index < Revoked; index++)
+            {
+                var client = index.ToString("x64", CultureInfo.InvariantCulture);
+                items.Add(StoreComposer.Item(("client", client), ("kind", "revoked")));
+                if (index % 10 == 0)
+                {
+                    var revocation = StoreComposer.IdentifierOf(key, "revoked", "client:" + client, 0, new string('5', 64));
+                    database.DeletedObjects.Add(new PwDeletedObject(new PwUuid(revocation), DateTime.UtcNow));
+                }
+            }
+
+            after.Sort(StringComparer.Ordinal);
+            group.AddEntry(StoreEntries.Of(StoreComposer.Record(
+                key, "head", "store",
+                StoreComposer.Content(("after", string.Join(" ", after)), ("height", (Named + 1).ToString(CultureInfo.InvariantCulture))),
+                Named + 1,
                 items)), true);
         }
 

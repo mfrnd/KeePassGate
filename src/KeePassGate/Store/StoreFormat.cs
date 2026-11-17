@@ -73,6 +73,12 @@ namespace KeePassGate.Store
         public const int ItemDigits = 4;
 
         /// <summary>
+        /// The random bytes of a record's nonce, written as twice as many lowercase hexadecimal
+        /// characters, `STORE.md` §607.
+        /// </summary>
+        public const int NonceLength = 16;
+
+        /// <summary>
         /// The format number of the store this plugin reads, `STORE.md` §650: the form of every
         /// record, every item, the check and the identifier, as `StoreKinds` and this class hold
         /// them.
@@ -96,6 +102,24 @@ namespace KeePassGate.Store
         /// reader the wire's bodies are read with, which is the reader of a content.
         /// </summary>
         public const int MaxStringLength = JsonBody.MaxStringLength;
+
+        /// <summary>
+        /// The longest string of the store the plugin writes, `STORE.md` §643: the longest that was
+        /// measured to come through the programs a database is shared with, below what its reader
+        /// takes.
+        /// </summary>
+        /// <remarks>
+        /// The distance between the two is what keeps growth from ever reading as damage: records
+        /// that each fit this are each read, however many a merge brings together, and only the
+        /// next write, which names them all, has to fit again.
+        /// </remarks>
+        public const int MaxWritten = 262144;
+
+        /// <summary>
+        /// The most items a summary entry the plugin writes holds, `STORE.md` §611 and §643: every
+        /// item name, `KPG.S.` and four digits, from `KPG.S.0001`.
+        /// </summary>
+        public const int MaxItems = 9999;
 
         /// <summary>
         /// The most store keys a reading works under, `STORE.md` §649: past it the store is split,

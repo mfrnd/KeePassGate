@@ -127,9 +127,10 @@ designing around them.
   measurements with the evaluation they were decided from. **Do not build anything new on custom
   data, and do not re-propose what those decisions closed**, which §612, §630 and §634 list with
   the measurement behind each. **Two parts of it are built**: the API's guard, §633, and the
-  store's reading, §620 to §624, read once for each hold and answered `503 split`, `outdated` or
-  `stopped` before a route is chosen, §656. Nothing writes the store yet, and the authority is
-  still served from where `CA.md` §204 keeps it.
+  store's reading, §620 to §624, with what is in force and the room a store has for its next
+  write, read once for each hold and answered `503 split`, `outdated` or `stopped` before a route
+  is chosen, §656, a store with no room among the stopped, §643. Nothing writes the store yet, and
+  the authority is still served from where `CA.md` §204 keeps it.
 - **The admission record is load bearing.** A certificate that chains, passes its EKU check and has
   no record in the database is refused, and so is one whose record has a revocation beside it. The
   permitted profiles are read from the **record**, less any name the database's list of profiles no

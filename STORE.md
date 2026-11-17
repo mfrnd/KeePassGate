@@ -20,8 +20,9 @@ takes access away is a further entry, never an entry deleted or changed.
 > 0.2.0 ships the store `CA.md` §204 describes: the database's own custom data, and a `KPG` key in
 > the custom data of groups and entries. Nothing below describes what the plugin does today, with
 > two exceptions: the API's guard of §633 is built, with what tells a node of the store by its
-> identifier, and the reading of §620 to §624 is built, with the words `split`, `outdated` and
-> `stopped` of §656; §620, §633 and §656 state which parts those are. Each pull request that
+> identifier, and the reading of §620 to §624 is built, with what is in force under the store key,
+> the room a store has for its next write (§627, §643), and the words `split`, `outdated` and
+> `stopped` of §656; §620, §633, §643 and §656 state which parts those are. Each pull request that
 > builds a part of this store brings `CA.md`, `DESIGN.md`, `PAIRING.md`, `API.md` and `docs/`
 > into line with the code it adds. Until then those documents hold for 0.2.0, and this document
 > holds for what replaces its store.
@@ -1293,9 +1294,15 @@ read the store. A change's turn on KeePass's thread reads it once: 2.6 ms, and 5
 entry holds ten history items, where it read it at each question and took 6.3 and 120 ms. A
 file that brings a store key of its own for each of its entries costs what any file of its size
 costs (§649): 2 ms for a second reading of 300 such entries and 1 ms for 1,000, where the work
-under each key took 0.7 and 19 seconds. So the estimate holds in its shape, the walk somewhat
-dearer in the product, and reading every entry at every request stays well within the five
-seconds a hold is let run, with a full history on every entry the case that shows. *Held by*
+under each key took 0.7 and 19 seconds. With what is in force and the room worked out at every
+reading as well (§623, §627), the same holds measured 2.4, 2.7 and 48 ms, and 59, 57 and 101 ms
+where every entry holds ten history items, which is the earlier run within what two runs on one
+machine differ by; and a store at both of the plugin's own ceilings (§643), a summary entry
+naming 7,900 summary entries each with its deletion record and restating 9,000 revocations, 900
+of them with a deletion record besides, held the thread for 21 ms. So the estimate holds in its
+shape, the walk somewhat dearer in the product, and reading every entry at every request stays
+well within the five seconds a hold is let run, with a full history on every entry the case
+that shows. *Held by*
 `StoreReadingBoundTests`, `StoreReadingTests` and
 `StoreInRealDatabaseTests`: a string replaced by an object of another text is read at the next
 hold with the entry's times left as they were; a second question inside a hold walks nothing;
@@ -1306,15 +1313,22 @@ whole as far as it decides whether a store may be served: `StoreReading` over th
 and the deletion records `StoreSource` walks, read once for each hold through
 `IReadHold.Stamp`, with the checked forms kept in `StoreKept` and let go, their keys overwritten,
 with the target at a lock and a close. It answers the state of §656 and the guard's keys and
-tags (§633). What is in force by meaning (§623, steps 1 to 5) is worked out only as far as
-wholeness needs it, and the pull requests that bring each kind's meaning build the rest. In this
-build the authority a database is served with is still the one `CA.md` §204 describes: the store
-is asked for a database the gate serves or holds several authorities of, a database with no
-store key is served as before, and no released plugin writes a store, so a store reaches a
-database only in a file that already holds one. *Held by* `StoreReadingTests`,
-`StoreReadingStatesTests`, `StoreReadingKeysTests`, `StoreReadingFormatTests`,
-`StoreReadingWholeTests`, `StoreInRealDatabaseTests` and `StoreStatesInRealDatabaseTests`, and in
-a real KeePass by `LiveStoreTests`.
+tags (§633). What is in force (§623) is `StoreInForce`, worked out for a store that is whole or
+stopped: every record under the store key with whether a deletion record names it and whether
+it counts by its history, the summary entries present, in force and told of by deletion records,
+what the retirements, the revocations, the removals and the certificates taken away take away
+by record, by item and by deletion record (steps 1, 2, 4 and 7), the highest format number and
+plugin version (step 6), the authorities that stand, and the room of §627. The authorities
+that stand under each key that stands are worked out for every state but no key, as a word is
+answered under them (§656). What each kind means for access beyond that (steps 3 and 5) is
+built by the pull requests that bring each kind's meaning. In this build the authority a
+database is served with is still the one `CA.md` §204 describes: the store is asked for a
+database the gate serves or holds several authorities of, a database with no store key is
+served as before, and no released plugin writes a store, so a store reaches a database only in
+a file that already holds one. *Held by* `StoreReadingTests`, `StoreReadingStatesTests`,
+`StoreReadingKeysTests`, `StoreReadingFormatTests`, `StoreReadingWholeTests`,
+`StoreInForceTests`, `StoreRoomTests`, `StoreInRealDatabaseTests` and
+`StoreStatesInRealDatabaseTests`, and in a real KeePass by `LiveStoreTests`.
 
 ### Which entries are records §621
 
@@ -1716,8 +1730,10 @@ raised above it or by a record of a kind it does not know (§652, §621).
 **A store with no room for its next write is answered as a stopped store, and the press does
 not lift it** (a later decision, §643). The gate serves nothing for that database and answers
 `stopped`, until the store is started again (§632). It is no condition of the list above: such
-a store can be whole, and what it lacks is room. It comes with the first write onto the store
-and is not built.
+a store can be whole, and what it lacks is room. The reading judges it at every hold, after
+every condition above, so a store that is stopped for another reason as well is named for that
+reason, and the log gives the room as the stop's reason (§643). *Held by* `StoreRoomTests` and
+`StoreInRealDatabaseTests`.
 
 **What lifts it** is sealing the store again (§625). No merge lifted a stop in the measured
 cells. A merge with an unedited copy lifted a stop by an edit in no cell past the history limit.
@@ -1843,18 +1859,23 @@ log names what was not written and why.
 **Whether the store has room** is a property of the file, which the reading judges where the
 store is whole. It works out the summary entry that a write adding nothing would write: its
 `after`, which names every summary entry present, everything those name and every summary
-entry that a deletion record tells of, and its items, which restate what is in force. The
-store has **no room** where that `after` is longer than the plugin's ceiling for a string, or
-where those items leave no item name for a further item (§643). So a store that has room
-takes every write a client can ask for, each of which adds a single item at most, and no
-store serves while it refuses its clients' writes. What the gate does with a store that has no
-room is the project's answer to S35 (§643). A write whose own records or items do not fit what
-is left is refused whole, before anything is added, also where the store has room: that is an
-OK on the tab that carries more than fits, and the log names how much fits. From half of
-either ceiling the reading states how far the store has grown, for the log at every write and
-for the tab (§643). *Held by* `StoreRoomTests`: a store at each ceiling has no room, the same
-store a summary entry or an item short of it has room, and two stores that each have room,
-synchronized, are judged by what the next write would name.
+entry that a deletion record tells of, and its items, which restate what is in force: the item
+`format`, an item for each value that a record, an item or a deletion record takes away, and an
+item for each version and each keep record that a summary entry carries (§611, §623). The
+store has **no room** where the content that holds that `after`, beside the summary entry's
+height and nonce, is longer than the plugin's ceiling for a string, or where those items leave
+no item name for a further item (§643). The content is held to the ceiling, and not the `after`
+alone (this document's own), since a store whose `after` fitted and whose content did not would
+be served while every write into it was refused. So a store that has room takes every write a
+client can ask for, each of which adds a single item at most, and no store serves while it
+refuses its clients' writes. What the gate does with a store that has no room is the project's
+answer to S35 (§643). A write whose own records or items do not fit what is left is refused
+whole, before anything is added, also where the store has room: that is an OK on the tab that
+carries more than fits, and the log names how much fits. From half of either ceiling the
+reading states how far the store has grown, for the log where a reading first finds a store it
+serves there and at every write, and for the tab (§643). *Held by* `StoreRoomTests`: a store at
+each ceiling has no room, the same store a summary entry or an item short of it has room, and
+two stores that each have room, synchronized, are judged by what the next write would name.
 
 **A write that does not land is taken back out**, as today: the entries it added are removed
 with no deletion record (the design paper 10), and the entries it deleted are put back with
@@ -2703,17 +2724,19 @@ with the standing authority's host certificate, to a request before a route is c
 `head`; a database opened with no store key resolves no name; and a gate that was serving
 answers `lost` after the key carrier is deleted under it, and nothing after a lock.
 
-**What is built.** `split`, `outdated` and `stopped`, answered before a route is chosen by the
-target of a database the gate serves, and, ahead of `undecided`, by each target of a database
-that holds several authorities, under the host certificate of the authority `CA.md` §204 has it
-served with or of each of those authorities. A database with no store key, and a database with
-no authority, are answered as they are today. `lost`, and the memory of what a gate last served
-with, come with the authority's record (§632); `stopped` for a store that has no room for its
-next write comes with the first write onto the store (§643); `frozen` comes with the release
-that first moves the format number (§652), and the routing document declares it and the
-reference client knows it already. *Held by* `StoreWordsTests`, `StoreHeldBackGateTests`,
-`UndecidedGateTests` and `UnavailableWordsTests`, the order of the words by
-`StoreReadingStatesTests`, and in a real KeePass by `LiveStoreTests`.
+**What is built.** `split`, `outdated` and `stopped`, the last also for a store that has no room
+for its next write (§643), answered before a route is chosen by the target of a database the
+gate serves, and, ahead of `undecided`, by each target of a database that holds several
+authorities, under the host certificate of the authority `CA.md` §204 has it served with or of
+each of those authorities. The reading works out the authorities that stand under each key that
+stands, which the targets answer under once the authority a database is served with is the
+store's own (§614). A database with no store key, and a database with no authority, are
+answered as they are today. `lost`, and the memory of what a gate last served with, come with
+the authority's record (§632); `frozen` comes with the release that first moves the format
+number (§652), and the routing document declares it and the reference client knows it already.
+*Held by* `StoreWordsTests`, `StoreHeldBackGateTests`, `UndecidedGateTests`,
+`UnavailableWordsTests` and `StoreInForceTests`, the order of the words by
+`StoreReadingStatesTests` and `StoreRoomTests`, and in a real KeePass by `LiveStoreTests`.
 
 ---
 
@@ -3391,24 +3414,25 @@ programs, and no item past `KPG.S.9999`. Its reader takes a string of up to 1,04
 characters (§607). The distance between the two is what keeps growth from ever reading as
 damage: records that each fit the first ceiling are each read, however many a merge brings
 together, and only the next write, which names them all, has to fit again. A summary entry's
-`after` holds 33
-characters for each summary entry it names, so it reaches 262,144 characters at 7,943 summary
-entries named, which is about that many writes of the plugin's own into a store, and the
-reader's ceiling at 31,775.
+`after` holds 33 characters for each summary entry it names, so it reaches 262,144 characters at
+7,943 summary entries named and the reader's ceiling at 31,775. The content that holds it,
+beside a height of four digits and a nonce, passes the plugin's ceiling at 7,942 named (§627),
+which is about that many writes of the plugin's own into a store.
 
 **The operator is told from half of either ceiling.** From a summary entry whose `after` holds
 131,072 characters, which is about 3,970 writes, or which holds 5,000 items, the log states at
-every write how far the store has grown and what it has room for, and the KPG tab states it
-beside the store's size (§636). That is the condition S13 set: the store does not reach a
-ceiling before the operator has been told for as many writes again.
+every write how far the store has grown and what it has room for, and when a reading first finds
+a store it serves there, and the KPG tab states it beside the store's size (§636). That is the
+condition S13 set: the store does not reach a ceiling before the operator has been told for as
+many writes again.
 
 **A write that would pass a ceiling is refused whole, before anything is added**, since no
 listed program was measured with a longer string, and a record beyond the reader's ceiling
 would be damage in every copy it reached. It is judged where the write is built, so the pull
 request that moves the first write onto the store builds it. *Held by* `StoreWriteTests`, with
 that write: a write that fits is written; the same write a character or an item beyond is
-refused and leaves the database as it was; and two stores that each fit, synchronized, read as
-whole.
+refused and leaves the database as it was; and two stores that each fit, synchronized, are
+judged by what the next write would name (§627).
 
 **A store that has no room for its next write is served nothing for** (a later decision). The
 gate answers every request for that database `stopped` (§656), and serves nothing until the
@@ -3416,13 +3440,14 @@ store is started again (§632). The press that seals a store again does not lift
 press is a write and needs the room that is missing (reasoning, §625). The command that starts
 the store again still works there, since what it writes is under a new key and names nothing
 of the earlier store's summary entries (reasoning, §632). This was the provisional form while
-S35 stood open, the most restrictive of the answers that item held.
+S35 stood open, the most restrictive of the answers that item held. The reading judges the room
+at every hold, after every condition of §624, and the log gives it as the stop's reason; the
+refusal of a write that would pass a ceiling comes with the pull request that moves the first
+write onto the store. *Held by* `StoreRoomTests` and `StoreInRealDatabaseTests`.
 **Considered and not taken:** a gate that keeps serving and refuses every further write into
 that store, so that nobody is paired, renewed or revoked there until the store is started
 again; and the same with a part of the room kept for writes that only take access away, so
-that a revocation still fits when a pairing no longer does. Like the refusal of the write, it
-comes with the pull request that moves the first write onto the store, and nothing of it is
-built.
+that a revocation still fits when a pairing no longer does.
 
 **That answer is looked at again once a compaction exists** (the same decision). Until then a
 store started again is the only way back to room, and with a compaction there is a second,

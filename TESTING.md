@@ -150,7 +150,11 @@ regenerated there and never from this side, offline, by
 `uv run --no-project python -I -X utf8 spikes/storage/probes/store-as-a-whole/vectors.py`, and the
 JSON file is that command's output with `--readings`, byte for byte, so a reader checks it with
 the one command. The three words of the measured reading's status are written as the product's
-states by the script's `STATES` table.
+states by the script's `STATES` table. `tests/Shared/StoreMeaningVectors.json`, small stores and
+what the measured reading found in force in each, is the same script's output with `--meanings`,
+byte for byte, at its commit `30a595a7`, which reads the same two files. It keeps the measured
+reading's own words for a store's status, and `StoreInForceTests` names the state it holds each
+to.
 
 `StoreReadingCostTests` is explicit, as `Headroom_at_one_room_size` is: it times what reading the
 store holds KeePass's thread for through the real router and vault, and is run by name and read.

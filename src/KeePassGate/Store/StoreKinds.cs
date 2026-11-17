@@ -171,6 +171,12 @@ namespace KeePassGate.Store
         /// <summary>The member of a summary entry's content that holds its height.</summary>
         public const string Height = "height";
 
+        /// <summary>
+        /// The member every content holds beside its own, `StoreFormat.NonceLength` random bytes
+        /// as hexadecimal, `STORE.md` §607.
+        /// </summary>
+        public const string Nonce = "nonce";
+
         /// <summary>The member of an item that names the record it restates by identifier.</summary>
         public const string Id = "id";
 

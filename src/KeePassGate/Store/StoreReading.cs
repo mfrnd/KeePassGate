@@ -19,7 +19,8 @@ namespace KeePassGate.Store
     ///
     /// **It keeps no key.** The keys found are the checked forms' own, held by the forms that
     /// gave them; what it answers with are the tags they give and the entries that pass under
-    /// them, which is what the API's guard asks, `STORE.md` §633.
+    /// them, which is what the API's guard asks, `STORE.md` §633, and the records it found, each
+    /// with the form that passes, whose key is overwritten when the forms kept are let go.
     ///
     /// **Its work is bounded in the keys found**, by `StoreFormat.MaxKeys`: each version is asked
     /// about its own key while keys are found, and past the ceiling about no other, so a file that
@@ -40,6 +41,8 @@ namespace KeePassGate.Store
             Passed = judged.Passed;
             ByHistory = judged.ByHistory;
             Judged = judged.Judged;
+            InForce = judged.InForce;
+            Answering = judged.Answering;
         }
 
         /// <summary>
@@ -65,6 +68,30 @@ namespace KeePassGate.Store
 
         /// <summary>How many records count by a version from their history, `STORE.md` §622.</summary>
         public int ByHistory { get; private set; }
+
+        /// <summary>
+        /// What is in force under the store key, `STORE.md` §623, for a store that is whole or
+        /// stopped: null for a database with no store key, a store under several keys, and a
+        /// store of a form the plugin does not read.
+        /// </summary>
+        public StoreInForce InForce { get; private set; }
+
+        /// <summary>
+        /// The authorities a word is answered under, `STORE.md` §656: each that stands under each
+        /// key that stands, in force and retired by nothing under its own key, whatever the
+        /// store's state; none for a database with no store key, and none past
+        /// `StoreFormat.MaxKeys`, where no key is judged.
+        /// </summary>
+        public IReadOnlyList<FoundRecord> Answering { get; private set; }
+
+        /// <summary>
+        /// The room the store has for its next write, `STORE.md` §627, or null where nothing is in
+        /// force: a store whole but for its room reads as stopped.
+        /// </summary>
+        public StoreRoom Room
+        {
+            get { return InForce == null ? null : InForce.Room; }
+        }
 
         /// <summary>
         /// Reads the store from these candidates, keeping in <paramref name="next"/> the checked

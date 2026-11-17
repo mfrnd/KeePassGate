@@ -97,6 +97,10 @@ words:
   # give the operator a command line that can do nothing more
   - capsys
 
+  # the word the measured reading of the store answers for a file with no store, quoted in the
+  # vectors it printed
+  - nostore
+
   # own the transport, because the name rotates
   - REUSEADDR
   - cafile

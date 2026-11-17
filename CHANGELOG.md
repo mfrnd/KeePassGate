@@ -33,7 +33,9 @@ none, since it releases both.
   made a store of its own leaves after a synchronize, until the operator keeps one; `outdated`
   is a store a later release raised, or that holds a record of a kind this release does not know,
   until the plugin is updated; `stopped` is a store that is not whole, as a record of the
-  plugin's deleted or edited by hand leaves it, until the operator seals it again. Each is
+  plugin's deleted or edited by hand leaves it, until the operator seals it again, and a store
+  that has no room left for its next write, which the plugin's log warns of once the store has
+  grown past half its room, `STORE.md` §643. Each is
   answered before a route is chosen, in the body and in `KPG-Unavailable`, as `locked` and
   `undecided` are, and ahead of `undecided`. None is waited out, since each ends by an act of
   the operator's. The routing document declares `frozen` beside them, which a later gate sends

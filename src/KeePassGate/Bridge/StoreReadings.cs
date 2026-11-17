@@ -57,9 +57,11 @@ namespace KeePassGate.Bridge
         private int _turnDepth;
         private StoreReading _turnReading;
 
-        // The state the log last named, so that a state lasting over many requests is named once.
-        // It answers nothing: every request is judged by the reading of its own hold.
+        // The state the log last named, and whether it last named the store past half its room,
+        // so that a state lasting over many requests is named once. Neither answers anything:
+        // every request is judged by the reading of its own hold.
         private StoreState _logged = StoreState.None;
+        private bool _loggedHalf;
 
         public StoreReadings(PwDatabase database, IReadHold hold, IGateLog log)
         {
@@ -98,11 +100,23 @@ namespace KeePassGate.Bridge
             var reading = Now();
             var word = StoreWords.Of(reading.State);
 
+            // A store served past half its room: the operator is told from there on, `STORE.md`
+            // §643, once for as long as it stays there, as a state is.
+            var half = word == null && reading.Room != null && reading.Room.PastHalf;
+
             StoreState was;
+            bool wasHalf;
             lock (_gate)
             {
                 was = _logged;
                 _logged = reading.State;
+                wasHalf = _loggedHalf;
+                _loggedHalf = half;
+            }
+
+            if (half && !wasHalf)
+            {
+                _log.Warn("serving a database whose store is past half its room: " + reading.Room.Grown);
             }
 
             if (was == reading.State)

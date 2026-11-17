@@ -1,0 +1,650 @@
+{
+  "about": "What probe/read.py of spikes/storage/probes/store-as-a-whole on spikes/storage-survival answers with its history rule on for small stores composed by vectors.py beside the probe with store.py's functions, and never from this side: status, served, auths, adm, valid, refusals and names, each as read.py names it. status is read.py's own word: ok, the state the product names Whole; incomplete, which it names Stopped; nostore, which it names None. served is the single authority standing in a store that is ok, or null; auths every authority standing; adm each certificate admitted under the authority served, with its profiles; valid each certificate whose record is in force, not revoked and not under a retired issuer, whatever is served; refusals each revocation and retirement in force, as a kind and a subject; names the profile names on the list. Every record is in the form STORE.md 614 and 615 fix and holds no v, and every summary entry holds the item format of STORE.md 611; read.py reads of each only the members it knows. Where read.py does not read what STORE.md fixes, the answer is read.py's: it judges no authority whole (STORE.md 614), and every authority here holds the invented ca, host and sniKey of the records file, so a reading that judges an authority would find each damaged and serve none; it holds no der to its certificate, as each der here is; and it asks no summary entry for its item format. The first authority, the admission of the client that paired, the retirement and the revocation are the records of the records file, under the same identifiers; the second authority is made as the first is. The admission names the profiles reader and writer, and a profile record puts reader on the list. Every entry's history is empty.",
+  "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+  "meanings": {
+    "a retirement by deletion record": {
+      "adm": {},
+      "auths": [
+        "163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a"
+      ],
+      "deletions": [
+        "bcf0164e39546fa900000ffba18098bb"
+      ],
+      "entries": {
+        "b8f37c2bec53105b0000e15c6911eee9": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"YwYcqyr55ySTbNYaAoOI+83sbaib29uJdixvmX7hO9QchBenb+pxptS0o6hsBi9jlnOrMhzdlIofbvnsh8kZQ03EJl08u2Y3MxrHbdAPVVjhIfWERCeYDLkEVqLBiGoH\",\"host\":\"3xb3BM8YXk885I+6nmcYmwwFAgxwWLnKhYDxD5VnQPF5R28LvWrqbB10bqa8eWusZZcj819Zjycr4akQccKeFuM5Y5Lmezji7pHPEO2s13ektCovTT3n1Zj8mThdtpRk\",\"id\":\"163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"X/l19CniUTH+3pQGFyPolavMehGand2UMIvYbOhAIYM=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "e15c6911eee961ced789e3e66f24e3675f97713353fb2e3044ecdd32b3342bc4"
+          }
+        },
+        "b8f37c4e39546fa900000e2272624eaf": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"IUay300GlJerl1JIHzM8G/RB+IRaGuA94M2RKPU0lHIZVY3xoIASqcdqM5Ha0YuNWNVjo2j1tPLCeAyt5byK14R623GmpXI50NAeGxOrq4LZKxVknWf6yUm2F1RiQEaa\",\"host\":\"701HDxKjheXNszMc6fmCDn9CdU5P8PUmVbVfR2tehKC/PWc8FnN9N44LDe6zUE25vBI1YVta3J4GtWayNh3ZL/6RKORCtG4PCg9gMubpEhElYG6NO4OSLYUN6blCGMVR\",\"id\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"ko5baVMTuDMOQ22vdS/83iU9Fg6qJX+kGzRDNG+jx9k=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "0e2272624eafcbac155bd8fccc24788b04afcc3167dff6f69545c881cad034c3"
+          }
+        },
+        "e34b4d9d4d36de78000193e143624c3a": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "93e143624c3aa814fb10eecde57aa3f9158118670455fc322b6792324530e082",
+            "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
+          }
+        }
+      },
+      "names": [],
+      "refusals": [
+        [
+          "retired",
+          "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4"
+        ]
+      ],
+      "served": "163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a",
+      "status": "ok",
+      "valid": {}
+    },
+    "a retirement by item": {
+      "adm": {},
+      "auths": [
+        "163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a"
+      ],
+      "deletions": [],
+      "entries": {
+        "b8f37c2bec53105b0000e15c6911eee9": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"YwYcqyr55ySTbNYaAoOI+83sbaib29uJdixvmX7hO9QchBenb+pxptS0o6hsBi9jlnOrMhzdlIofbvnsh8kZQ03EJl08u2Y3MxrHbdAPVVjhIfWERCeYDLkEVqLBiGoH\",\"host\":\"3xb3BM8YXk885I+6nmcYmwwFAgxwWLnKhYDxD5VnQPF5R28LvWrqbB10bqa8eWusZZcj819Zjycr4akQccKeFuM5Y5Lmezji7pHPEO2s13ektCovTT3n1Zj8mThdtpRk\",\"id\":\"163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"X/l19CniUTH+3pQGFyPolavMehGand2UMIvYbOhAIYM=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "e15c6911eee961ced789e3e66f24e3675f97713353fb2e3044ecdd32b3342bc4"
+          }
+        },
+        "b8f37c4e39546fa900000e2272624eaf": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"IUay300GlJerl1JIHzM8G/RB+IRaGuA94M2RKPU0lHIZVY3xoIASqcdqM5Ha0YuNWNVjo2j1tPLCeAyt5byK14R623GmpXI50NAeGxOrq4LZKxVknWf6yUm2F1RiQEaa\",\"host\":\"701HDxKjheXNszMc6fmCDn9CdU5P8PUmVbVfR2tehKC/PWc8FnN9N44LDe6zUE25vBI1YVta3J4GtWayNh3ZL/6RKORCtG4PCg9gMubpEhElYG6NO4OSLYUN6blCGMVR\",\"id\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"ko5baVMTuDMOQ22vdS/83iU9Fg6qJX+kGzRDNG+jx9k=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "0e2272624eafcbac155bd8fccc24788b04afcc3167dff6f69545c881cad034c3"
+          }
+        },
+        "e34b4d9d4d36de7800013407f3135ac7": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "3407f3135ac745554bb997609e5c90de3abc5f4b4e0823b50cba50588b82c62d",
+            "KPG.S.0001": "{\"authority\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"kind\":\"retired\"}",
+            "KPG.S.0002": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
+          }
+        }
+      },
+      "names": [],
+      "refusals": [
+        [
+          "retired",
+          "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4"
+        ]
+      ],
+      "served": "163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a",
+      "status": "ok",
+      "valid": {}
+    },
+    "a retirement by record": {
+      "adm": {},
+      "auths": [
+        "163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a"
+      ],
+      "deletions": [],
+      "entries": {
+        "b8f37c2bec53105b0000e15c6911eee9": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"YwYcqyr55ySTbNYaAoOI+83sbaib29uJdixvmX7hO9QchBenb+pxptS0o6hsBi9jlnOrMhzdlIofbvnsh8kZQ03EJl08u2Y3MxrHbdAPVVjhIfWERCeYDLkEVqLBiGoH\",\"host\":\"3xb3BM8YXk885I+6nmcYmwwFAgxwWLnKhYDxD5VnQPF5R28LvWrqbB10bqa8eWusZZcj819Zjycr4akQccKeFuM5Y5Lmezji7pHPEO2s13ektCovTT3n1Zj8mThdtpRk\",\"id\":\"163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"X/l19CniUTH+3pQGFyPolavMehGand2UMIvYbOhAIYM=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "e15c6911eee961ced789e3e66f24e3675f97713353fb2e3044ecdd32b3342bc4"
+          }
+        },
+        "b8f37c4e39546fa900000e2272624eaf": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"IUay300GlJerl1JIHzM8G/RB+IRaGuA94M2RKPU0lHIZVY3xoIASqcdqM5Ha0YuNWNVjo2j1tPLCeAyt5byK14R623GmpXI50NAeGxOrq4LZKxVknWf6yUm2F1RiQEaa\",\"host\":\"701HDxKjheXNszMc6fmCDn9CdU5P8PUmVbVfR2tehKC/PWc8FnN9N44LDe6zUE25vBI1YVta3J4GtWayNh3ZL/6RKORCtG4PCg9gMubpEhElYG6NO4OSLYUN6blCGMVR\",\"id\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"ko5baVMTuDMOQ22vdS/83iU9Fg6qJX+kGzRDNG+jx9k=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "0e2272624eafcbac155bd8fccc24788b04afcc3167dff6f69545c881cad034c3"
+          }
+        },
+        "bcf0164e39546fa900000ffba18098bb": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"authority\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "retired",
+            "KPG.Mac": "0ffba18098bb6aba05cabfd09340503cea96f94509139a644931219348859fba"
+          }
+        },
+        "e34b4d9d4d36de7800013407f3135ac7": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "3407f3135ac745554bb997609e5c90de3abc5f4b4e0823b50cba50588b82c62d",
+            "KPG.S.0001": "{\"authority\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"kind\":\"retired\"}",
+            "KPG.S.0002": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
+          }
+        }
+      },
+      "names": [],
+      "refusals": [
+        [
+          "retired",
+          "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4"
+        ]
+      ],
+      "served": "163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a",
+      "status": "ok",
+      "valid": {}
+    },
+    "a revocation by deletion record": {
+      "adm": {},
+      "auths": [
+        "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4"
+      ],
+      "deletions": [
+        "92330090a6cf5fe40000565a34549bda"
+      ],
+      "entries": {
+        "64017cf2b5a1afa0000060e90dedbbbc": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"name\":\"reader\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "profile",
+            "KPG.Mac": "60e90dedbbbc82b4c4927104a8c3fb3e6ef65bc958765d0de8e1d9822911f2c4"
+          }
+        },
+        "acf03290a6cf5fe40000196fbca0c79a": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"admitted\":\"2026-08-15T09:14:22Z\",\"certificate\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"client\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"der\":\"MIHeMIHEoAMCAQICAQEwCgYIKoZIzj0EAwIwFjEUMBIGA1UEAwwLS2VlUGFzc0dhdGUwHhcNMjYwODE1MDkxNDIyWhcNMjcwODE1MDkxNDIyWjAbMRkwFwYDVQQDDBBhZ2VudC1maWN0aXRpb3VzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaxfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpZP40Li/hp/m47n60p8D54WK84zV2sxXs7LtkBoN79R9TAKBggqhkjOPQQDAgMJADAGAgEBAgEB\",\"issuer\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"profiles\":\"reader writer\",\"subject\":\"CN=agent-fictitious\"}",
+            "KPG.Kind": "client",
+            "KPG.Mac": "196fbca0c79aa80f75814236d4a660406ce2a57e636bcbba3022aa2e4ca4745a"
+          }
+        },
+        "b8f37c4e39546fa900000e2272624eaf": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"IUay300GlJerl1JIHzM8G/RB+IRaGuA94M2RKPU0lHIZVY3xoIASqcdqM5Ha0YuNWNVjo2j1tPLCeAyt5byK14R623GmpXI50NAeGxOrq4LZKxVknWf6yUm2F1RiQEaa\",\"host\":\"701HDxKjheXNszMc6fmCDn9CdU5P8PUmVbVfR2tehKC/PWc8FnN9N44LDe6zUE25vBI1YVta3J4GtWayNh3ZL/6RKORCtG4PCg9gMubpEhElYG6NO4OSLYUN6blCGMVR\",\"id\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"ko5baVMTuDMOQ22vdS/83iU9Fg6qJX+kGzRDNG+jx9k=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "0e2272624eafcbac155bd8fccc24788b04afcc3167dff6f69545c881cad034c3"
+          }
+        },
+        "e34b4d9d4d36de78000193e143624c3a": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "93e143624c3aa814fb10eecde57aa3f9158118670455fc322b6792324530e082",
+            "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
+          }
+        }
+      },
+      "names": [
+        "reader"
+      ],
+      "refusals": [
+        [
+          "revoked",
+          "1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+        ]
+      ],
+      "served": "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4",
+      "status": "ok",
+      "valid": {}
+    },
+    "a revocation by item": {
+      "adm": {},
+      "auths": [
+        "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4"
+      ],
+      "deletions": [],
+      "entries": {
+        "64017cf2b5a1afa0000060e90dedbbbc": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"name\":\"reader\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "profile",
+            "KPG.Mac": "60e90dedbbbc82b4c4927104a8c3fb3e6ef65bc958765d0de8e1d9822911f2c4"
+          }
+        },
+        "acf03290a6cf5fe40000196fbca0c79a": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"admitted\":\"2026-08-15T09:14:22Z\",\"certificate\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"client\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"der\":\"MIHeMIHEoAMCAQICAQEwCgYIKoZIzj0EAwIwFjEUMBIGA1UEAwwLS2VlUGFzc0dhdGUwHhcNMjYwODE1MDkxNDIyWhcNMjcwODE1MDkxNDIyWjAbMRkwFwYDVQQDDBBhZ2VudC1maWN0aXRpb3VzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaxfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpZP40Li/hp/m47n60p8D54WK84zV2sxXs7LtkBoN79R9TAKBggqhkjOPQQDAgMJADAGAgEBAgEB\",\"issuer\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"profiles\":\"reader writer\",\"subject\":\"CN=agent-fictitious\"}",
+            "KPG.Kind": "client",
+            "KPG.Mac": "196fbca0c79aa80f75814236d4a660406ce2a57e636bcbba3022aa2e4ca4745a"
+          }
+        },
+        "b8f37c4e39546fa900000e2272624eaf": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"IUay300GlJerl1JIHzM8G/RB+IRaGuA94M2RKPU0lHIZVY3xoIASqcdqM5Ha0YuNWNVjo2j1tPLCeAyt5byK14R623GmpXI50NAeGxOrq4LZKxVknWf6yUm2F1RiQEaa\",\"host\":\"701HDxKjheXNszMc6fmCDn9CdU5P8PUmVbVfR2tehKC/PWc8FnN9N44LDe6zUE25vBI1YVta3J4GtWayNh3ZL/6RKORCtG4PCg9gMubpEhElYG6NO4OSLYUN6blCGMVR\",\"id\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"ko5baVMTuDMOQ22vdS/83iU9Fg6qJX+kGzRDNG+jx9k=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "0e2272624eafcbac155bd8fccc24788b04afcc3167dff6f69545c881cad034c3"
+          }
+        },
+        "e34b4d9d4d36de7800014c4b39da376c": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "4c4b39da376ca3fb1f8b6e47bc804c68e3bae732a5a1f83e5d5b3e8cf4da2b75",
+            "KPG.S.0001": "{\"client\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"kind\":\"revoked\"}",
+            "KPG.S.0002": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
+          }
+        }
+      },
+      "names": [
+        "reader"
+      ],
+      "refusals": [
+        [
+          "revoked",
+          "1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+        ]
+      ],
+      "served": "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4",
+      "status": "ok",
+      "valid": {}
+    },
+    "a revocation by record": {
+      "adm": {},
+      "auths": [
+        "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4"
+      ],
+      "deletions": [],
+      "entries": {
+        "64017cf2b5a1afa0000060e90dedbbbc": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"name\":\"reader\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "profile",
+            "KPG.Mac": "60e90dedbbbc82b4c4927104a8c3fb3e6ef65bc958765d0de8e1d9822911f2c4"
+          }
+        },
+        "92330090a6cf5fe40000565a34549bda": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"client\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "revoked",
+            "KPG.Mac": "565a34549bda07a5927f4547b56f57a2530818812c0ff7faefa7e3b874fd7221"
+          }
+        },
+        "acf03290a6cf5fe40000196fbca0c79a": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"admitted\":\"2026-08-15T09:14:22Z\",\"certificate\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"client\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"der\":\"MIHeMIHEoAMCAQICAQEwCgYIKoZIzj0EAwIwFjEUMBIGA1UEAwwLS2VlUGFzc0dhdGUwHhcNMjYwODE1MDkxNDIyWhcNMjcwODE1MDkxNDIyWjAbMRkwFwYDVQQDDBBhZ2VudC1maWN0aXRpb3VzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaxfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpZP40Li/hp/m47n60p8D54WK84zV2sxXs7LtkBoN79R9TAKBggqhkjOPQQDAgMJADAGAgEBAgEB\",\"issuer\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"profiles\":\"reader writer\",\"subject\":\"CN=agent-fictitious\"}",
+            "KPG.Kind": "client",
+            "KPG.Mac": "196fbca0c79aa80f75814236d4a660406ce2a57e636bcbba3022aa2e4ca4745a"
+          }
+        },
+        "b8f37c4e39546fa900000e2272624eaf": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"IUay300GlJerl1JIHzM8G/RB+IRaGuA94M2RKPU0lHIZVY3xoIASqcdqM5Ha0YuNWNVjo2j1tPLCeAyt5byK14R623GmpXI50NAeGxOrq4LZKxVknWf6yUm2F1RiQEaa\",\"host\":\"701HDxKjheXNszMc6fmCDn9CdU5P8PUmVbVfR2tehKC/PWc8FnN9N44LDe6zUE25vBI1YVta3J4GtWayNh3ZL/6RKORCtG4PCg9gMubpEhElYG6NO4OSLYUN6blCGMVR\",\"id\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"ko5baVMTuDMOQ22vdS/83iU9Fg6qJX+kGzRDNG+jx9k=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "0e2272624eafcbac155bd8fccc24788b04afcc3167dff6f69545c881cad034c3"
+          }
+        },
+        "e34b4d9d4d36de7800014c4b39da376c": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "4c4b39da376ca3fb1f8b6e47bc804c68e3bae732a5a1f83e5d5b3e8cf4da2b75",
+            "KPG.S.0001": "{\"client\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"kind\":\"revoked\"}",
+            "KPG.S.0002": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
+          }
+        }
+      },
+      "names": [
+        "reader"
+      ],
+      "refusals": [
+        [
+          "revoked",
+          "1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+        ]
+      ],
+      "served": "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4",
+      "status": "ok",
+      "valid": {}
+    },
+    "an admission": {
+      "adm": {
+        "1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840": [
+          "reader"
+        ]
+      },
+      "auths": [
+        "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4"
+      ],
+      "deletions": [],
+      "entries": {
+        "64017cf2b5a1afa0000060e90dedbbbc": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"name\":\"reader\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "profile",
+            "KPG.Mac": "60e90dedbbbc82b4c4927104a8c3fb3e6ef65bc958765d0de8e1d9822911f2c4"
+          }
+        },
+        "acf03290a6cf5fe40000196fbca0c79a": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"admitted\":\"2026-08-15T09:14:22Z\",\"certificate\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"client\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"der\":\"MIHeMIHEoAMCAQICAQEwCgYIKoZIzj0EAwIwFjEUMBIGA1UEAwwLS2VlUGFzc0dhdGUwHhcNMjYwODE1MDkxNDIyWhcNMjcwODE1MDkxNDIyWjAbMRkwFwYDVQQDDBBhZ2VudC1maWN0aXRpb3VzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaxfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpZP40Li/hp/m47n60p8D54WK84zV2sxXs7LtkBoN79R9TAKBggqhkjOPQQDAgMJADAGAgEBAgEB\",\"issuer\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"profiles\":\"reader writer\",\"subject\":\"CN=agent-fictitious\"}",
+            "KPG.Kind": "client",
+            "KPG.Mac": "196fbca0c79aa80f75814236d4a660406ce2a57e636bcbba3022aa2e4ca4745a"
+          }
+        },
+        "b8f37c4e39546fa900000e2272624eaf": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"IUay300GlJerl1JIHzM8G/RB+IRaGuA94M2RKPU0lHIZVY3xoIASqcdqM5Ha0YuNWNVjo2j1tPLCeAyt5byK14R623GmpXI50NAeGxOrq4LZKxVknWf6yUm2F1RiQEaa\",\"host\":\"701HDxKjheXNszMc6fmCDn9CdU5P8PUmVbVfR2tehKC/PWc8FnN9N44LDe6zUE25vBI1YVta3J4GtWayNh3ZL/6RKORCtG4PCg9gMubpEhElYG6NO4OSLYUN6blCGMVR\",\"id\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"ko5baVMTuDMOQ22vdS/83iU9Fg6qJX+kGzRDNG+jx9k=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "0e2272624eafcbac155bd8fccc24788b04afcc3167dff6f69545c881cad034c3"
+          }
+        },
+        "e34b4d9d4d36de78000193e143624c3a": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "93e143624c3aa814fb10eecde57aa3f9158118670455fc322b6792324530e082",
+            "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
+          }
+        }
+      },
+      "names": [
+        "reader"
+      ],
+      "refusals": [],
+      "served": "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4",
+      "status": "ok",
+      "valid": {
+        "1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840": [
+          "reader"
+        ]
+      }
+    },
+    "an admission beside a deletion record naming it": {
+      "adm": {},
+      "auths": [
+        "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4"
+      ],
+      "deletions": [
+        "acf03290a6cf5fe40000196fbca0c79a"
+      ],
+      "entries": {
+        "64017cf2b5a1afa0000060e90dedbbbc": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"name\":\"reader\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "profile",
+            "KPG.Mac": "60e90dedbbbc82b4c4927104a8c3fb3e6ef65bc958765d0de8e1d9822911f2c4"
+          }
+        },
+        "acf03290a6cf5fe40000196fbca0c79a": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"admitted\":\"2026-08-15T09:14:22Z\",\"certificate\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"client\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"der\":\"MIHeMIHEoAMCAQICAQEwCgYIKoZIzj0EAwIwFjEUMBIGA1UEAwwLS2VlUGFzc0dhdGUwHhcNMjYwODE1MDkxNDIyWhcNMjcwODE1MDkxNDIyWjAbMRkwFwYDVQQDDBBhZ2VudC1maWN0aXRpb3VzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaxfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpZP40Li/hp/m47n60p8D54WK84zV2sxXs7LtkBoN79R9TAKBggqhkjOPQQDAgMJADAGAgEBAgEB\",\"issuer\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"profiles\":\"reader writer\",\"subject\":\"CN=agent-fictitious\"}",
+            "KPG.Kind": "client",
+            "KPG.Mac": "196fbca0c79aa80f75814236d4a660406ce2a57e636bcbba3022aa2e4ca4745a"
+          }
+        },
+        "b8f37c4e39546fa900000e2272624eaf": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"IUay300GlJerl1JIHzM8G/RB+IRaGuA94M2RKPU0lHIZVY3xoIASqcdqM5Ha0YuNWNVjo2j1tPLCeAyt5byK14R623GmpXI50NAeGxOrq4LZKxVknWf6yUm2F1RiQEaa\",\"host\":\"701HDxKjheXNszMc6fmCDn9CdU5P8PUmVbVfR2tehKC/PWc8FnN9N44LDe6zUE25vBI1YVta3J4GtWayNh3ZL/6RKORCtG4PCg9gMubpEhElYG6NO4OSLYUN6blCGMVR\",\"id\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"ko5baVMTuDMOQ22vdS/83iU9Fg6qJX+kGzRDNG+jx9k=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "0e2272624eafcbac155bd8fccc24788b04afcc3167dff6f69545c881cad034c3"
+          }
+        },
+        "e34b4d9d4d36de78000193e143624c3a": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "93e143624c3aa814fb10eecde57aa3f9158118670455fc322b6792324530e082",
+            "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
+          }
+        }
+      },
+      "names": [
+        "reader"
+      ],
+      "refusals": [],
+      "served": "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4",
+      "status": "ok",
+      "valid": {}
+    },
+    "an admission under a retired issuer": {
+      "adm": {},
+      "auths": [
+        "163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a"
+      ],
+      "deletions": [],
+      "entries": {
+        "64017cf2b5a1afa0000060e90dedbbbc": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"name\":\"reader\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "profile",
+            "KPG.Mac": "60e90dedbbbc82b4c4927104a8c3fb3e6ef65bc958765d0de8e1d9822911f2c4"
+          }
+        },
+        "acf03290a6cf5fe40000196fbca0c79a": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"admitted\":\"2026-08-15T09:14:22Z\",\"certificate\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"client\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"der\":\"MIHeMIHEoAMCAQICAQEwCgYIKoZIzj0EAwIwFjEUMBIGA1UEAwwLS2VlUGFzc0dhdGUwHhcNMjYwODE1MDkxNDIyWhcNMjcwODE1MDkxNDIyWjAbMRkwFwYDVQQDDBBhZ2VudC1maWN0aXRpb3VzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaxfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpZP40Li/hp/m47n60p8D54WK84zV2sxXs7LtkBoN79R9TAKBggqhkjOPQQDAgMJADAGAgEBAgEB\",\"issuer\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"profiles\":\"reader writer\",\"subject\":\"CN=agent-fictitious\"}",
+            "KPG.Kind": "client",
+            "KPG.Mac": "196fbca0c79aa80f75814236d4a660406ce2a57e636bcbba3022aa2e4ca4745a"
+          }
+        },
+        "b8f37c2bec53105b0000e15c6911eee9": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"YwYcqyr55ySTbNYaAoOI+83sbaib29uJdixvmX7hO9QchBenb+pxptS0o6hsBi9jlnOrMhzdlIofbvnsh8kZQ03EJl08u2Y3MxrHbdAPVVjhIfWERCeYDLkEVqLBiGoH\",\"host\":\"3xb3BM8YXk885I+6nmcYmwwFAgxwWLnKhYDxD5VnQPF5R28LvWrqbB10bqa8eWusZZcj819Zjycr4akQccKeFuM5Y5Lmezji7pHPEO2s13ektCovTT3n1Zj8mThdtpRk\",\"id\":\"163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"X/l19CniUTH+3pQGFyPolavMehGand2UMIvYbOhAIYM=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "e15c6911eee961ced789e3e66f24e3675f97713353fb2e3044ecdd32b3342bc4"
+          }
+        },
+        "bcf0164e39546fa900000ffba18098bb": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"authority\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "retired",
+            "KPG.Mac": "0ffba18098bb6aba05cabfd09340503cea96f94509139a644931219348859fba"
+          }
+        },
+        "e34b4d9d4d36de7800013407f3135ac7": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "3407f3135ac745554bb997609e5c90de3abc5f4b4e0823b50cba50588b82c62d",
+            "KPG.S.0001": "{\"authority\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"kind\":\"retired\"}",
+            "KPG.S.0002": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
+          }
+        }
+      },
+      "names": [
+        "reader"
+      ],
+      "refusals": [
+        [
+          "retired",
+          "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4"
+        ]
+      ],
+      "served": "163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a",
+      "status": "ok",
+      "valid": {}
+    },
+    "an admission under an authority that is not served": {
+      "adm": {},
+      "auths": [
+        "163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a"
+      ],
+      "deletions": [],
+      "entries": {
+        "64017cf2b5a1afa0000060e90dedbbbc": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"name\":\"reader\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "profile",
+            "KPG.Mac": "60e90dedbbbc82b4c4927104a8c3fb3e6ef65bc958765d0de8e1d9822911f2c4"
+          }
+        },
+        "acf03290a6cf5fe40000196fbca0c79a": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"admitted\":\"2026-08-15T09:14:22Z\",\"certificate\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"client\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"der\":\"MIHeMIHEoAMCAQICAQEwCgYIKoZIzj0EAwIwFjEUMBIGA1UEAwwLS2VlUGFzc0dhdGUwHhcNMjYwODE1MDkxNDIyWhcNMjcwODE1MDkxNDIyWjAbMRkwFwYDVQQDDBBhZ2VudC1maWN0aXRpb3VzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaxfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpZP40Li/hp/m47n60p8D54WK84zV2sxXs7LtkBoN79R9TAKBggqhkjOPQQDAgMJADAGAgEBAgEB\",\"issuer\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"profiles\":\"reader writer\",\"subject\":\"CN=agent-fictitious\"}",
+            "KPG.Kind": "client",
+            "KPG.Mac": "196fbca0c79aa80f75814236d4a660406ce2a57e636bcbba3022aa2e4ca4745a"
+          }
+        },
+        "b8f37c2bec53105b0000e15c6911eee9": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"YwYcqyr55ySTbNYaAoOI+83sbaib29uJdixvmX7hO9QchBenb+pxptS0o6hsBi9jlnOrMhzdlIofbvnsh8kZQ03EJl08u2Y3MxrHbdAPVVjhIfWERCeYDLkEVqLBiGoH\",\"host\":\"3xb3BM8YXk885I+6nmcYmwwFAgxwWLnKhYDxD5VnQPF5R28LvWrqbB10bqa8eWusZZcj819Zjycr4akQccKeFuM5Y5Lmezji7pHPEO2s13ektCovTT3n1Zj8mThdtpRk\",\"id\":\"163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"X/l19CniUTH+3pQGFyPolavMehGand2UMIvYbOhAIYM=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "e15c6911eee961ced789e3e66f24e3675f97713353fb2e3044ecdd32b3342bc4"
+          }
+        },
+        "e34b4d9d4d36de78000193e143624c3a": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "93e143624c3aa814fb10eecde57aa3f9158118670455fc322b6792324530e082",
+            "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
+          }
+        }
+      },
+      "names": [
+        "reader"
+      ],
+      "refusals": [],
+      "served": "163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a",
+      "status": "ok",
+      "valid": {
+        "1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840": [
+          "reader"
+        ]
+      }
+    },
+    "an authority alone": {
+      "adm": {},
+      "auths": [
+        "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4"
+      ],
+      "deletions": [],
+      "entries": {
+        "b8f37c4e39546fa900000e2272624eaf": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"IUay300GlJerl1JIHzM8G/RB+IRaGuA94M2RKPU0lHIZVY3xoIASqcdqM5Ha0YuNWNVjo2j1tPLCeAyt5byK14R623GmpXI50NAeGxOrq4LZKxVknWf6yUm2F1RiQEaa\",\"host\":\"701HDxKjheXNszMc6fmCDn9CdU5P8PUmVbVfR2tehKC/PWc8FnN9N44LDe6zUE25vBI1YVta3J4GtWayNh3ZL/6RKORCtG4PCg9gMubpEhElYG6NO4OSLYUN6blCGMVR\",\"id\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"ko5baVMTuDMOQ22vdS/83iU9Fg6qJX+kGzRDNG+jx9k=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "0e2272624eafcbac155bd8fccc24788b04afcc3167dff6f69545c881cad034c3"
+          }
+        },
+        "e34b4d9d4d36de78000193e143624c3a": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "93e143624c3aa814fb10eecde57aa3f9158118670455fc322b6792324530e082",
+            "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
+          }
+        }
+      },
+      "names": [],
+      "refusals": [],
+      "served": "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4",
+      "status": "ok",
+      "valid": {}
+    },
+    "an authority beside a deletion record naming it": {
+      "adm": {},
+      "auths": [],
+      "deletions": [
+        "b8f37c4e39546fa900000e2272624eaf"
+      ],
+      "entries": {
+        "b8f37c4e39546fa900000e2272624eaf": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"IUay300GlJerl1JIHzM8G/RB+IRaGuA94M2RKPU0lHIZVY3xoIASqcdqM5Ha0YuNWNVjo2j1tPLCeAyt5byK14R623GmpXI50NAeGxOrq4LZKxVknWf6yUm2F1RiQEaa\",\"host\":\"701HDxKjheXNszMc6fmCDn9CdU5P8PUmVbVfR2tehKC/PWc8FnN9N44LDe6zUE25vBI1YVta3J4GtWayNh3ZL/6RKORCtG4PCg9gMubpEhElYG6NO4OSLYUN6blCGMVR\",\"id\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"ko5baVMTuDMOQ22vdS/83iU9Fg6qJX+kGzRDNG+jx9k=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "0e2272624eafcbac155bd8fccc24788b04afcc3167dff6f69545c881cad034c3"
+          }
+        },
+        "e34b4d9d4d36de78000193e143624c3a": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "93e143624c3aa814fb10eecde57aa3f9158118670455fc322b6792324530e082",
+            "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
+          }
+        }
+      },
+      "names": [],
+      "refusals": [],
+      "served": null,
+      "status": "ok",
+      "valid": {}
+    },
+    "two authorities": {
+      "adm": {},
+      "auths": [
+        "163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a",
+        "4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4"
+      ],
+      "deletions": [],
+      "entries": {
+        "b8f37c2bec53105b0000e15c6911eee9": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"YwYcqyr55ySTbNYaAoOI+83sbaib29uJdixvmX7hO9QchBenb+pxptS0o6hsBi9jlnOrMhzdlIofbvnsh8kZQ03EJl08u2Y3MxrHbdAPVVjhIfWERCeYDLkEVqLBiGoH\",\"host\":\"3xb3BM8YXk885I+6nmcYmwwFAgxwWLnKhYDxD5VnQPF5R28LvWrqbB10bqa8eWusZZcj819Zjycr4akQccKeFuM5Y5Lmezji7pHPEO2s13ektCovTT3n1Zj8mThdtpRk\",\"id\":\"163b47713028cffdfe093a9ddeca4d636abdae6c9e8bea806a49650ebb82c55a\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"X/l19CniUTH+3pQGFyPolavMehGand2UMIvYbOhAIYM=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "e15c6911eee961ced789e3e66f24e3675f97713353fb2e3044ecdd32b3342bc4"
+          }
+        },
+        "b8f37c4e39546fa900000e2272624eaf": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"ca\":\"IUay300GlJerl1JIHzM8G/RB+IRaGuA94M2RKPU0lHIZVY3xoIASqcdqM5Ha0YuNWNVjo2j1tPLCeAyt5byK14R623GmpXI50NAeGxOrq4LZKxVknWf6yUm2F1RiQEaa\",\"host\":\"701HDxKjheXNszMc6fmCDn9CdU5P8PUmVbVfR2tehKC/PWc8FnN9N44LDe6zUE25vBI1YVta3J4GtWayNh3ZL/6RKORCtG4PCg9gMubpEhElYG6NO4OSLYUN6blCGMVR\",\"id\":\"4cbc721e473acb0959938023e56a98247578ab54269ffbecb73a8f2a907747b4\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"sniKey\":\"ko5baVMTuDMOQ22vdS/83iU9Fg6qJX+kGzRDNG+jx9k=\",\"storeKey\":\"849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8\"}",
+            "KPG.Kind": "authority",
+            "KPG.Mac": "0e2272624eafcbac155bd8fccc24788b04afcc3167dff6f69545c881cad034c3"
+          }
+        },
+        "e34b4d9d4d36de78000193e143624c3a": {
+          "history": [],
+          "strings": {
+            "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+            "KPG.Kind": "head",
+            "KPG.Mac": "93e143624c3aa814fb10eecde57aa3f9158118670455fc322b6792324530e082",
+            "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
+          }
+        }
+      },
+      "names": [],
+      "refusals": [],
+      "served": null,
+      "status": "ok",
+      "valid": {}
+    }
+  }
+}
