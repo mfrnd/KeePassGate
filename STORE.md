@@ -962,8 +962,17 @@ summary entry at the plugin's own ceilings (§643) 6.8 ms. Holding 2,008 deletio
 tags took 0.02 ms. The hold `DESIGN.md` §119 allows is five seconds, and a listing of 10,000
 entries holds the thread 22 to 26 ms today. So the reading stays within what a request already
 holds the thread for, and a database in which every entry carries a full history is where it
-shows. This estimate parsed no content and went through no router: the pull request that builds
-the reading measures it through the product (§644). *Held by* `StoreReadingTests` and
+shows. This estimate parsed no content and went through no router.
+
+**What it costs through the product** (measured by `StoreReadingCostTests`, explicit, through the
+real router and vault, in Release, the median of 21 runs; `FINDINGS.md` section 22). Over 10,000
+entries in a hundred groups beside a store of 282 entries: the hold a connection is judged in,
+which reads the store and nothing else, 3.5 ms; a read of an entry 3.5 ms; a listing of every
+entry 39 ms. Where every entry holds ten history items, 60, 59 and 100 ms, and the worst run 143
+ms. The first reading, with nothing kept, adds about 40 ms once. A request takes two holds that
+read the store. So the estimate holds in its shape, the walk somewhat dearer in the product, and
+reading every entry at every request stays well within the five seconds a hold is let run, with
+a full history on every entry the case that shows. *Held by* `StoreReadingTests` and
 `StoreInRealDatabaseTests`: a string replaced by an object of another text is read at the next
 hold with the entry's times left as they were; a second question inside a hold walks nothing;
 and nothing kept outlasts a lock.
@@ -2923,15 +2932,10 @@ that finds a measurement against a decision reports it and does not design aroun
 11. **The sequences of §639 that were not replayed on the store**: a node's place decided by a
     merge, a merge that makes another group the recycle bin, a rule narrowed while a save runs,
     the differing files of row 16, and a deleting device whose clock is behind, on real files.
-12. **The reading on KeePass's thread.** The only timing in a report is of a reading written in
-    Python: 14 to 16 ms after 1,000 writes (`measured-store-as-a-whole` 3.8). §620 holds an
-    estimate of the walk and of the check in KeePassLib's own objects, which no report holds
-    and which went through no router. Owed by the pull request that builds the reading: the
-    hold of a request through the real router and vault, over a database of 10,000 entries
-    without history and with a full history on each, beside a store as the growth run left
-    it, recorded where `DESIGN.md` §119 records what a request holds the thread for. *Could
-    overturn*: reading every entry of the database at every request, and with it what §620
-    lets a gate keep.
+12. **The reading on KeePass's thread.** Measured by the pull request that builds the reading,
+    through the real router and vault, and recorded in §620, in `DESIGN.md` §119 and in
+    `FINDINGS.md` section 22: it overturns nothing. What stays owed is the same run on a
+    machine that is not a developer's, and a database of more entries than 10,000.
 13. **The page that seals the store again**: what it shows after each kind of loss. Nothing of it
     was run as a page.
 14. **Which of KeePass's windows takes back or takes away an entry of the plugin's group** while

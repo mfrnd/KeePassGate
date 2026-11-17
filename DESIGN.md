@@ -1284,6 +1284,37 @@ So the rules here:
   ask the rules and copy its lists, and no longer for what the entry holds. `FINDINGS.md` has the
   table, under "Reading while KeePass changes the tree".
 
+  **The plugin's store is read once for each hold**, `STORE.md` §620, and that reading is part of
+  what a request holds the thread for. Every entry of the database is walked with its history,
+  the recycle bin included, since a record counts wherever it sits, and every question of the hold
+  is answered from that one reading: whether the store holds the gate back, and which entries the
+  API's guard leaves out. `IReadHold.Stamp` names the hold, so a second question inside it reads
+  nothing, and on KeePass's own thread, where the tree can move between two questions of a turn,
+  every question reads afresh. Between two holds the plugin keeps the checked form of each
+  version of the store, by the very string objects it holds, and nothing else: a version nothing
+  changed is not read or decrypted again, and a string beyond the reader's ceiling is asked its
+  length and never read. A request takes two holds that read the store, the one its connection
+  is judged in and the one it is decided in. A change of the API's reads it once in its turn on
+  KeePass's thread, from the lookup of its node to the change it hands the writer, however many
+  questions that turn asks. No thread waits on a reading: a reading takes what is kept without
+  waiting, and one beside a lapsed hold reads with nothing kept, so a lock never waits for a
+  reading to end. And the work under each store key a file brings is bounded, `STORE.md` §649:
+  past thirty-two keys nothing is judged and the store is split.
+
+  **Measured through the real router and vault**, over ten thousand entries in a hundred groups
+  beside a store of 282 entries, in Release, the median of twenty-one runs: without history, the
+  hold a connection is judged in 3.5 milliseconds, a read of an entry 3.5 and a listing of every
+  entry 39; where every entry holds ten history items, KeePass's default limit, 60, 59 and 100.
+  The first reading, with nothing kept, adds about forty milliseconds once. A change's turn reads
+  the store once: 2.6 milliseconds, and 58 with full histories, where each of its two questions
+  read it and it took 6.3 and 120. A file whose 1,000 entries each bring a key of their own is
+  read again in a millisecond, where each key was asked of every version and it took nineteen
+  seconds, which every hold would have outlasted. So the walk is what
+  grows with the database, as `STORE.md` §620 estimated, and a database in which every entry
+  carries a full history is where it shows: about a sixth of a second of KeePass's thread for a
+  listing, against the five seconds a hold is let run. `FINDINGS.md` has the figures beside the
+  table above.
+
   **Nothing that waits runs inside a hold**, since the operator's window waits with it: not the
   writer, which waits on that thread itself and is refused as a defect, not the audit's pacing or
   its file, not a dialog and not the network. So the answer is kept inside the hold and written
