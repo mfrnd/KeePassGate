@@ -225,6 +225,10 @@ KeePass made under the root, the root's. After a synchronize or an import, check
 **File**, **Database Settings**, **Recycle Bin** names as the recycle bin, and empty or delete every
 other group that was a bin.
 
+**A field whose name begins `KPG.` is the plugin's own**, on whichever entry it is, and is out of a
+program's reach as the bin is: no read and no listing shows it, and a program can neither add such
+a field nor change or remove it. A field meant for programs needs another name.
+
 **`A` and `P` are switches, not verbs.** Neither means "may read attachments" or "may read
 passwords". Each means "and those too", for whatever else the same rule grants, so a rule holding
 switches and no verb grants nothing at all.

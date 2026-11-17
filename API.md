@@ -113,6 +113,15 @@ KeePass's own window, and an entry keeps only as many revisions as Database Sett
 client that changes it more often than that has pushed out every revision from before it started, as
 `docs/access-control.md` warns the operator.
 
+**What the plugin keeps for itself.** The plugin's own group, with everything in it, every entry
+of its store wherever it sits, the recycle bin included, and on every other entry each string whose
+name begins `KPG.`, are out of reach as the recycle bin is: in no listing and no sweep, not
+readable, in no tag, not offered by the routes that answer what a client may do at a node, and
+answered like a node that is not there, §401. Creating, changing or stripping such a string is
+answered the same way. A group that holds an entry of the store is refused its removal as any group
+that holds something is, which tells a client that something it cannot see is there, as the bin
+does. Which nodes those are, and why no route may serve such a node, is `STORE.md` §633.
+
 **Tags are not here yet, and nothing refuses them.** An entry's tags and a group's are neither
 served nor accepted, and nothing in the rules stands against serving them, or filtering a listing on
 them, since each is a field of a node the rules already answer for, §401. Of what a program reading
@@ -461,3 +470,11 @@ had no users, so the operator ruled on 2026-11-08 that the changes of 0.2 that b
 reads an answer under a `Content-Length` and nothing else, so against a 0.2 gate it raises
 `ProtocolError` for every answer written as it is sent, §412: each listing and each read of an
 entry, of a field or of an attachment.
+
+**0.3 narrows what a program may name, and stays 0.3.** From 0.3.0 on a field whose name begins
+`KPG.` is the plugin's own and out of every route, `STORE.md` §633, so a program that named
+fields of its own with that prefix has to rename them, and the release notes mark that as
+breaking. Nothing else changes for a program: the client is not changed by it, and a 0.2 client
+works with a 0.3 gate as the rule above has it. It stays in 0.3 by the operator's ruling of
+2026-11-15, that a 0.x release may break an earlier 0.x release and that earlier versions count
+from 1.0 on.

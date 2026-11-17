@@ -18,10 +18,12 @@ takes access away is a further entry, never an entry deleted or changed.
 
 > **Decided, and not built.** This document is the contract for the store of release 0.3.0. Release
 > 0.2.0 ships the store `CA.md` §204 describes: the database's own custom data, and a `KPG` key in
-> the custom data of groups and entries. Nothing below describes what the plugin does today. Each
-> pull request that builds a part of this store brings `CA.md`, `DESIGN.md`, `PAIRING.md`, `API.md`
-> and `docs/` into line with the code it adds. Until then those documents hold for 0.2.0, and this
-> document holds for what replaces its store.
+> the custom data of groups and entries. Nothing below describes what the plugin does today, with a
+> single exception: the API's guard of §633 is built, with what tells a node of the store by its
+> identifier, and §633 states which part that is. Each pull request that builds a part of this
+> store brings `CA.md`, `DESIGN.md`, `PAIRING.md`, `API.md` and `docs/` into line with the code it
+> adds. Until then those documents hold for 0.2.0, and this document holds for what replaces its
+> store.
 
 **How to read it.**
 
@@ -1780,13 +1782,83 @@ cannot see is there.
 
 **The authority's private key in an ordinary entry is conditional** (decision 8). It is allowed
 only if a test of every route shows that the store cannot be reached through the API. **That
-test does not exist, and nothing of this section was run**: no route was tested against any
-store. The first pull request that implements the store's guard in the API brings the test, and
-by that condition no pull request puts the authority into an entry before it. The test runs
-every route of the product, with every right a rule can give, against a database that holds a
-composed store, with the plugin's group, records in the recycle bin and in other groups, copies
-of records under other identifiers, and the reference client following references. Until that
-test passes, the condition is not shown to hold, and a failure of it reopens the decision.
+test is `StoreOnEveryRouteTests`**, in the host tier, and a failure of it reopens the decision.
+
+**What is built.** The guard sits where the recycle bin's absence is decided, in the vault's own
+lookups and listings, `DESIGN.md` §118 and §138, so the router finds no node for a node of the
+store and asks the rules nothing about it, and no handler is handed such a node. What the vault
+leaves out:
+
+- **A group whose identifier begins with the prefix of §606**, with everything inside it,
+  wherever it sits. Every such group, since which of several is written into is S11.
+- **An entry that is a record by its identifier**: its first three bytes are the tag of a kind
+  §607 names, under any store key the file holds. A key is found as §621 finds it, in a version of
+  an authority or a retirement, current or in the history, that passes under the key it holds and
+  sits under the identifier its content gives, anywhere in the tree, the recycle bin included. For
+  the API a key is every key found, as the paragraph above has it. Nothing else of the entry is
+  asked, so a record that the reading passes over, damaged, stripped of its strings, or under a key
+  the operator did not keep, is absent all the same.
+- **An entry with a version that passes its check under any key found**, whatever its
+  identifier: a copy, and a record of a kind the plugin does not know, which no tag tells.
+- **On every other entry, every string whose name begins `KPG.`**, compared byte for byte and as
+  the entry's own dictionary compares names, so a spelling that collates to such a name is such
+  a name as well. Such a string is in no view, so in no answer and no tag; changing or stripping
+  such a string is answered as a string the entry does not hold is, and creating such a string is
+  answered `404`, whether or not the entry holds it.
+
+**What follows from telling a record by its tag.** An ordinary entry of the operator's whose
+identifier begins with a tag is absent too: a random identifier meets a given tag about once in 17
+million entries (§621), so with the eight kinds and a single store key about once in two million.
+Where the file holds no key, nothing outside the plugin's groups is told as the store's, and a
+record there reads as an entry holding a title and notes, every string of the store left out.
+
+**Hiding asks nothing of what the reading makes of a record.** A record stripped of all its
+strings, which the reading treats as a deleted record (§621), is absent by its tag for as long as
+the key it was written under is found. A record of a kind the plugin does not know, which stops
+the gate (§621, §652), is absent by its content passing the check, whether or not the gate has
+stopped: the stop belongs to the reading, and hiding does not wait for it.
+
+**The formats it takes as stated, and where each is open.** The prefix's eight bytes, as measured
+(§606). The kinds, as measured, and none of §648, §649 and §650, whose names are S23. Six bytes of
+the check in an identifier, S31, which only the identifier of an entry that carries a key is
+composed with, and the height in two bytes, S12, zero there. The members `id`, `authority` and
+`storeKey`, the key as 64 hexadecimal characters, S3. The reader of `JsonBody` for a content, with
+its ceilings, S13. Each is written once in the code, so settling it is a change in a single place.
+
+**The cases the test drives** are the ways a route names a node, and each operation the routing
+document declares has a case, read off the document: no node, for the gate itself, the caller's
+certificate and pairing; the whole tree, for the two listings anchored at the root; a group, by
+the identifier in the path; an entry, by the identifier in the path; a string, by its name in the
+path or in a body; and an attachment, by its name in the path. No body names a group or an
+entry and no query names anything on any route today, and the test refuses an operation with no
+case, and a body member or a query name it does not know, as the router refuses an operation
+with no handler, so a route added later is held here before it ships. Each way is driven with
+every node of a composed store: the plugin's group, a group inside it and a second group with the
+prefix elsewhere, records inside the group, in an ordinary group, in the recycle bin and under a
+second key, a damaged record, a stripped record, a copy of the authority's entry under another
+identifier, a record of a kind the plugin does not know, and strings of the store on an ordinary
+entry; with and without `If-Match`, and with and without each query name declared; by a client
+whose rule at the root holds every verb and both switches. Each answer is held, byte for byte
+with its headers, to the same request about a node that is not there, every answer about an
+ordinary node and every listing to its answer before the store was added, and the store to its
+state before the request.
+
+**A group that holds an entry of the store is refused its removal** as a group holding anything is,
+which the vault already answered, since it refuses a group that is not empty.
+
+**The recycle bin named as the plugin's group is unsupported** (§637). A node a client removes is
+then moved into the plugin's group, as a removal moves it into the bin, and is absent for every
+client from then on, as a node in the bin is. No record is touched. The operator is advised not
+to name the plugin's group, or a group inside it, as the recycle bin. `StoreOnEveryRouteTests`
+holds the removal of an entry in that arrangement.
+
+**What the test does not show.** A lookup of a node of the store takes the time a lookup of a
+node that is there takes, and not the time of an identifier nothing holds, as for a node in the
+recycle bin and a node the rules refuse: the API answers those alike in what it sends and not in
+when, `API.md` §401, and this guard closes nothing more. No end to end run carries a store, and
+the records are composed by the test in the form the store was measured with, not written by the
+plugin. The reference client follows a field reference only through `readEntry`, which the test
+holds, so it cannot reach what that route does not serve (reasoning).
 
 **What the API cannot rule out is its own defect.** A single route that forgets the guard serves
 the authority's private key and the store key to a client, which can then make a record for
@@ -2034,8 +2106,9 @@ entry from a new entry, and such a copy is served as the root's rule gives (§63
 - **Named as unsupported on a KeePassGate database**: Delete Duplicate Entries after such an
   import or after a duplicate of the plugin's entries; Database Maintenance, both its
   deleted-objects page and its history page; XML Replace; deleting, editing, moving or copying
-  the plugin's entries by hand; and emptying the recycle bin while it holds an entry of the
-  plugin's.
+  the plugin's entries by hand; emptying the recycle bin while it holds an entry of the
+  plugin's; and naming the plugin's group, or a group inside it, as the recycle bin, which moves
+  what a client removes into the plugin's group, where every client finds it absent (§633).
 - **Named as a condition**: a database whose settings keep little or no history.
 
 **A file synchronizer** between two writers was not measured. Whatever replaces the file with an
@@ -2197,7 +2270,9 @@ holds. The notes of every record state it. *Measured:* on real files
 defect in the product on a single route, and a client holding ordinary rights there. *What
 happens:* the client reads the authority's private key and the store key and makes a record that
 passes, or plants or removes a refusal (reasoning). *What covers it:* the test of every route,
-which is the condition of §633. **Not measured**: no route was run against any store.
+which is the condition of §633. *Measured:* `StoreOnEveryRouteTests` runs every route declared
+against a composed store, in process and not over TLS; a route added later is covered once it has
+its case, which the test refuses to run without.
 
 **A former recycle bin becomes an ordinary group** (row 14). *Who:* KeePass's Synchronize deciding
 the bin by a time, or a KeePassXC merge bringing the source's bin in as a group. *What happens:*
@@ -2464,8 +2539,10 @@ that finds a measurement against a decision reports it and does not design aroun
 1. **The API against a composed store**, which is the condition of §633: every route, with every
    right a rule can give, against a database that holds the store, with entries in the bin and in
    other groups, copies under other identifiers, and the reference client following references.
-   Owed by the first pull request that implements the guard in the API, before any authority is
-   written into an entry. *Could overturn*: the authority's key in an entry.
+   Run by `StoreOnEveryRouteTests`, over records the test composes, and holding on every route
+   declared; §633 states what it does not show. Owed again by every pull request that adds a route
+   or a kind of record, whose case it has to bring. *Could overturn*: the authority's key in an
+   entry.
 2. **What the run of the store as decided left out** (`measured-decided-store` 8): sealing the
    store again after a stop by an edited entry; on a store with summary entries, an edit in both
    copies, an edit by pykeepass, a history item changed by a script, Database Maintenance's
@@ -2578,6 +2655,10 @@ that finds a measurement against a decision reports it and does not design aroun
     rows changed apart add up to more than either copy's table gave (§639). Owed before the
     pull request that builds the rules. *Could overturn*: the form of S8, and whether S34 can
     stay accepted.
+25. **What the Profiles page counts** (§636). Its count of the groups and entries holding a rule
+    for a profile, `DatabaseNodes`, leaves the recycle bin out and not the plugin's store, which
+    the API leaves out beside it (§633). Owed by the pull request that brings the tab's listing
+    of the store.
 
 ---
 
@@ -2621,8 +2702,11 @@ store's group by the rule of the root, and with no rule at the root it serves no
 `docs/`, as a short section "Moving from 0.2" on the getting-started page (§654). Both are
 written by the pull request that makes the break real.
 
-**No client program has to change for 0.3.0**, which is why it is a minor release. `API.md` §411
-has a change break a client when a program that worked before has to change. Pairing again is
+**No client program has to change for 0.3.0 but a program that named fields of its own with the
+prefix `KPG.`**, which is why it is a minor release. Such a field is out of every route from
+0.3.0 on (§633), so such a program renames those fields before the upgrade, and the release
+notes mark that as breaking, as `API.md` §411 records. `API.md` §411 has a change break a client
+when a program that worked before has to change. Pairing again is
 the operator's act and the client's ordinary command. A word that §656 adds is answered under
 `503`, and a 0.2 client takes a word it does not know for the gate being unavailable (read from
 the client). So a 0.2 client works with a 0.3 gate, as §411 has it. §411 also counts what a
