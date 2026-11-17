@@ -38,7 +38,9 @@ takes access away is a further entry, never an entry deleted or changed.
   a client is answered with (§656), a record stripped of its strings (§621), a store started
   again (§632), where a rule waits (§629), the grant editor (§657), what an expired certificate
   left (§643), and the recycle bin (§619). Two further decisions followed: the words of §656
-  stand, and a rule is stored as a record for each node and profile (§617).
+  stand, and a rule is stored as a record for each node and profile (§617). Two more answered
+  what §646 then put to the project: what removing a row writes under a switch that refuses
+  (§617), and what the gate does with a store that has no room for its next write (§643).
 - **Measured** names a fact that was run, with where: a report is named by its file name under
   `papers/ground/` on that branch, without `.md`, and its section, as `measured-decided-store` 3.5.
   The reports hold the counts and the reproduction of each run; this document quotes a count only
@@ -864,9 +866,23 @@ for it is S9.
 versions allow). For a profile the node does not name, a switch that refuses allows nothing and
 a switch that inherits allows what arrives from above, and what both allow is nothing.
 
-**Rows changed apart can add up to more than either copy's table gave.** A profile's rule and
-the node's switch are objects of their own, so a change to each, made apart, holds in full. The
-case is in §639, and whether anything answers it is S34.
+**Under a switch that refuses, removing a row writes an empty rule** (a later decision). Where
+the gate reads the node's switch as refusing any profile the node does not name, removing a
+profile's row is stored as a version that grants nothing, and not as the rule taken off. While
+the switch refuses, the two read the same at that node: the profile gets nothing. They differ
+once another copy, apart, turns the switch off. A rule taken off would then let through what
+arrives from above, which neither copy's table gave, and an empty rule still grants nothing,
+which is what both tables allowed (§639). The row shows as an empty rule until the operator
+removes it again (§657). Where the switch lets the walk go on, removing a row takes the rule
+off. **Considered and not taken:** accepting the sequence as the cost of rows that do not
+meet; and a version that takes a rule off stating the switch it was made under, with the
+reading refusing the profile where the switch has changed since.
+
+**Rows changed apart can still add up to more than either copy's table gave, across nodes.** A
+profile's rule, a node's switch and the rules of another node are objects of their own, so a
+change to each, made apart, holds in full. The decision above answers the case at a single
+node under a switch that refuses, which S34 put to the project. The case it does not reach is
+in §639, and S34 holds what is left of the question.
 
 **An object refuses** where the file shows that a version existed and holds its text nowhere: a
 deletion record tells of a version of the object that no standing version names as replaced and
@@ -1409,6 +1425,12 @@ starts a store (§632). This rule was not run (§644).
 **Other states serve nothing and are not this stop**, and the press does not apply to them: no
 store key found (§632), several store keys (§649), and a plugin that is held back, by a store
 raised above it or by a record of a kind it does not know (§652, §621).
+
+**A store with no room for its next write is answered as a stopped store, and the press does
+not lift it** (a later decision, §643). The gate serves nothing for that database and answers
+`stopped`, until the store is started again (§632). It is no condition of the list above: such
+a store can be whole, and what it lacks is room. It comes with the first write onto the store
+and is not built.
 
 **What lifts it** is sealing the store again (§625). No merge lifted a stop in the measured
 cells. A merge with an unedited copy lifted a stop by an edit in no cell past the history limit.
@@ -2215,7 +2237,7 @@ decision), and they are part of the contract.
 
 | The state | The word | Answered to |
 | --- | --- | --- |
-| The store is stopped (§624) | `stopped` | every request, until the store is sealed again |
+| The store is stopped (§624), or has no room for its next write (§643) | `stopped` | every request, until the store is sealed again or, where it has no room, started again |
 | Several store keys stand (§649) | `split` | every request, until the operator keeps a store |
 | The store was raised above the plugin, or holds a record of a kind the plugin does not know (§652, §621) | `outdated` | every request, until the plugin is updated or the store is started again |
 | The file holds no store key (§632) | `lost` | every request that the gate can still answer (below) |
@@ -2312,11 +2334,12 @@ target of a database the gate serves, and, ahead of `undecided`, by each target 
 that holds several authorities, under the host certificate of the authority `CA.md` §204 has it
 served with or of each of those authorities. A database with no store key, and a database with
 no authority, are answered as they are today. `lost`, and the memory of what a gate last served
-with, come with the authority's record (§632); `frozen` comes with the release that first moves
-the format number (§652), and the routing document declares it and the reference client knows
-it already. *Held by* `StoreWordsTests`, `StoreHeldBackGateTests`, `UndecidedGateTests` and
-`UnavailableWordsTests`, the order of the words by `StoreReadingStatesTests`, and in a real
-KeePass by `LiveStoreTests`.
+with, come with the authority's record (§632); `stopped` for a store that has no room for its
+next write comes with the first write onto the store (§643); `frozen` comes with the release
+that first moves the format number (§652), and the routing document declares it and the
+reference client knows it already. *Held by* `StoreWordsTests`, `StoreHeldBackGateTests`,
+`UndecidedGateTests` and `UnavailableWordsTests`, the order of the words by
+`StoreReadingStatesTests`, and in a real KeePass by `LiveStoreTests`.
 
 ---
 
@@ -2460,6 +2483,12 @@ single row, whatever else the copies changed at the node. **Nothing else at the 
 back**: while a group of rows stands, the other profiles' rows and the switch are changed as
 ever, and the dialog's OK writes a version for each row that was changed and leaves the group
 as it is. What removing a row of a group writes is S9.
+
+**A row removed under a switch that refuses stays in the table, as an empty rule** (a later
+decision, §617). Where the node's switch refuses any profile not named, the X on a profile's
+row writes a version that grants nothing, so the row stays, shows the mask with no letter, and
+is there until the operator removes it again. Where the switch lets the walk go on, the X takes
+the rule off and the row goes.
 
 Nothing of the editor was run on the store.
 
@@ -2697,18 +2726,30 @@ histories; the pair printed admits a client in a file and refuses it in the othe
 it:* nothing found. *Measured:* in that model, before the decisions of 2026-11-16, and not
 replayed on the store as decided.
 
-**Rows changed apart add up to more than either copy's table gave.** *Who:* nobody has to make
-a mistake. At a node whose switch refuses every profile it does not name, a copy takes a
-profile's rule off, so that the switch refuses that profile. Another copy, apart, turns the
-switch off, at a time when that profile's rule there was narrow. Each table closed the node to
-the profile, or kept it narrow. *What happens:* once the copies meet, the profile's rule is
-taken off and the switch inherits, since each is an object of its own with a single standing
-version. The profile gets at that node what arrives from above, which neither table gave. In the
-whole-rule form the two versions of the node's rule met, and the profile got nothing. *What
-covers it:* nothing in the store, which reads each row by itself (§617). It is the cost of rows
-that do not meet, and the same holds across nodes in either form, where a copy takes a narrow
-rule off a node while another widens the rule above it. S34 puts it to the project. *Measured:*
-not run.
+**Rules changed apart at two nodes add up to more than either copy's table gave.** *Who:*
+nobody has to make a mistake. A copy takes a narrow rule off a node, so that the profile gets
+there what arrives from above. Another copy, apart, widens the rule above that node, at a time
+when the narrow rule still stood there. Each table kept the node narrow for the profile.
+*What happens:* once the copies meet, the narrow rule is taken off and the rule above is the
+wider rule, since each is an object of its own with a single standing version. The profile
+gets at the node what the wider rule gives, which neither table gave. The same holds in the
+whole-rule form, since the rules of two nodes never met in either form. *What covers it:*
+nothing in the store, which reads each node's rule by itself (§617). It is the cost of rows
+and of nodes that do not meet, and what is left of S34. *Measured:* not run.
+
+**Closed by a later decision: rows changed apart at a single node, under a switch that
+refuses.** It is kept among these because it ended wider while removing a row there took the
+rule off, which is what that decision changed. *Who:* nobody has to make a mistake. At a node
+whose switch refuses every profile it does not name, a copy removes a profile's row. Another
+copy, apart, turns the switch off, at a time when that profile's rule there was narrow. Each
+table closed the node to the profile, or kept it narrow. *What happened with the rule taken
+off:* once the copies met, the profile's rule was taken off and the switch inherited, since
+each is an object of its own with a single standing version, and the profile got at that node
+what arrives from above, which neither table gave. In the whole-rule form the two versions of
+the node's rule met, and the profile got nothing. *What closes it:* under a switch that
+refuses, removing a row writes an empty rule (§617). Once the copies meet, the empty rule
+stands beside the switch that inherits, and the profile gets nothing, which is what both
+tables allowed. *Measured:* not run.
 
 **A 0.2 plugin serves a database that holds the store.** *Who:* a machine that still runs 0.2 on
 the same synchronized file, or a plugin put back to 0.2, with a client that 0.2 still admits
@@ -2938,13 +2979,33 @@ ceiling before the operator has been told for as many writes again.
 
 **A write that would pass a ceiling is refused whole, before anything is added**, since no
 listed program was measured with a longer string, and a record beyond the reader's ceiling
-would be damage in every copy it reached. **What the gate does with a store that has no room
-for its next write is S35**, a decision of the project. Its provisional form is the most
-restrictive: such a store is stopped, and serves nothing until the store is started again
-(§632) or, once a compaction exists, compacted. It is judged where the write is built, so the
-pull request that builds the first write builds it. *Held by* `StoreWriteTests`, with that
-write: a write that fits is written; the same write a character or an item beyond is refused
-and leaves the database as it was; and two stores that each fit, synchronized, read as whole.
+would be damage in every copy it reached. It is judged where the write is built, so the pull
+request that moves the first write onto the store builds it. *Held by* `StoreWriteTests`, with
+that write: a write that fits is written; the same write a character or an item beyond is
+refused and leaves the database as it was; and two stores that each fit, synchronized, read as
+whole.
+
+**A store that has no room for its next write is served nothing for** (a later decision). The
+gate answers every request for that database `stopped` (§656), and serves nothing until the
+store is started again (§632). The press that seals a store again does not lift it, since the
+press is a write and needs the room that is missing (reasoning, §625). The command that starts
+the store again still works there, since what it writes is under a new key and names nothing
+of the earlier store's summary entries (reasoning, §632). This was the provisional form while
+S35 stood open, the most restrictive of the answers that item held.
+**Considered and not taken:** a gate that keeps serving and refuses every further write into
+that store, so that nobody is paired, renewed or revoked there until the store is started
+again; and the same with a part of the room kept for writes that only take access away, so
+that a revocation still fits when a pairing no longer does. Like the refusal of the write, it
+comes with the pull request that moves the first write onto the store, and nothing of it is
+built.
+
+**That answer is looked at again once a compaction exists** (the same decision). Until then a
+store started again is the only way back to room, and with a compaction there is a second,
+which may change what the gate does with a store that is full. How soon a store gets there
+turns on how often the plugin writes (reasoning): a renewal is two writes where the client
+gives the old certificate up after it (§648), so ten clients that renew every week make 1,040
+writes a year and reach 7,943 in over seven years, and fifty such clients make 5,200 and reach
+it in about a year and a half. A database that busy needs the compaction before then.
 
 **Deferred to after 0.3.0: a compaction by hand when the store is sealed again.** The press would
 then also write the store fresh and drop the lists, and a copy that is behind would refuse until
@@ -3095,9 +3156,10 @@ that finds a measurement against a decision reports it and does not design aroun
     what all versions allow, for two versions and for more; a rule taken off and an empty rule
     staying apart through every merge and every loss; the switch in versions made apart
     refusing; a deletion record still telling which row's version was deleted; and how often
-    rows changed apart add up to more than either copy's table gave (§639). Owed before the
-    pull request that builds the rules. *Could overturn*: the form of S8, and whether S34 can
-    stay accepted.
+    rows changed apart add up to more than either copy's table gave (§639), with a row removed
+    under a switch that refuses written as an empty rule beside a copy that turns the switch
+    off (§617). Owed before the pull request that builds the rules. *Could overturn*: the form
+    of S8, the answer to S34, and whether what is left of S34 can stay accepted.
 25. **What the Profiles page counts** (§636). Its count of the groups and entries holding a rule
     for a profile, `DatabaseNodes`, leaves the recycle bin out and not the plugin's store, which
     the API leaves out beside it (§633). Owed by the pull request that brings the tab's listing
@@ -3215,7 +3277,7 @@ project; its section has the reason, what it rules out and the test that holds i
   height would be higher writes 65,535; no write is refused for it, §609.
 - **S13, in part. The reader's ceilings against the store's growth.** Fixed for the core: what
   a reader refuses of a version, whole, §607; the plugin's own ceilings below the reader's, and
-  the operator told from half of either, §643. What is left is S35, below.
+  the operator told from half of either, §643. What was left is S35, in this list.
 - **S15, in part. Where a rule waits between the dialog's OK and the save.** In the database, in
   memory, added at the OK, §629. What is left is below.
 - **S16. Which word a client gets while the gate holds back, and to which requests.** A word for
@@ -3255,6 +3317,12 @@ project; its section has the reason, what it rules out and the test that holds i
   what the gate held when it last served the database; and otherwise the connection is
   dropped, §656. Every word can reach a client, and `lost` only from a gate that was serving
   when the key went.
+- **S34, in part. Rows changed apart at a single node, under a switch that refuses.** Removing
+  a row there writes an empty rule, and the row shows as an empty rule until the operator
+  removes it again, §617 and §657; the sequence it closes is in §639. What is left is below.
+- **S35. A store that has no room for its next write.** The gate serves nothing for that
+  database, answered `stopped`, until the store is started again, and the answer is looked at
+  again once a compaction exists, §643.
 
 **What the first pull request that builds the store settles.** Every item of this group is
 fixed, and the list above names where: S1, S12, S13, S16, S20, S23, S26, S31 and S33.
@@ -3370,26 +3438,15 @@ fixed, and the list above names where: S1, S12, S13, S16, S20, S23, S26, S31 and
   Synchronize.
 
 **Decisions for the project.** The questions this group held are answered, and the list above
-names where. What stands here is what those answers newly opened.
+names where. What stands here is what those answers left open.
 
-- **S34. Is it accepted that rows changed apart can add up to more than either copy's table
-  gave** (§617, §639)? A profile's rule and the node's switch are objects of their own, so a
-  copy that takes a profile's rule off under a switch that refuses, and a copy that turns the
-  switch off while that rule was narrow, end with the profile getting what arrives from above.
-  Answers: it is accepted, as the cost of rows that do not meet, and the owed run counts how
-  often it occurs (§644); a version that takes a rule off states the switch it was made under,
-  and the reading refuses the profile where the switch has changed since; taking a rule off
-  under a switch that refuses is written as an empty rule. Has to satisfy: two copies that
-  change different profiles at a node still do not meet; and an empty rule and a rule taken off
-  stay apart for the operator.
-- **S35. What does the gate do with a store that has no room for its next write** (§643)? The
-  plugin writes no string longer than 262,144 characters and no item past the 9,999th, so a
-  store takes about 7,900 writes of the plugin's own, and the operator is told from half of
-  that. A write that would pass a ceiling is refused. Answers: the gate keeps serving and
-  refuses every further write into that store, so that nobody is paired, renewed or revoked
-  there until the store is started again; the same, with a part of the room kept for writes
-  that only take access away, so that a revocation still fits when a pairing no longer does;
-  the gate serves nothing for that database until the store is started again. Provisional,
-  until the project answers: the last, as the most restrictive, answered `stopped`. Has to
-  satisfy: no record beyond a ceiling is ever written; the operator has been told well before;
-  and whatever the answer, the command that starts the store again still works (§632).
+- **S34. Is it accepted that rules changed apart at two nodes can add up to more than either
+  copy's table gave** (§617, §639)? The rules of two nodes are objects of their own, so a copy
+  that takes a narrow rule off a node, and a copy that widens the rule above it while the
+  narrow rule stood, end with the profile getting at that node what the wider rule gives. The
+  answer given to the same question at a single node does not reach it, since nothing is
+  removed there under a switch that refuses. The pull request that builds the rules puts it
+  before the project. The answer named so far is that it is accepted, as the cost of rows and
+  of nodes that do not meet, and the owed run counts how often it occurs (§644). Has to
+  satisfy: two copies that change different profiles at a node still do not meet; and an empty
+  rule and a rule taken off stay apart for the operator.
