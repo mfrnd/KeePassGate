@@ -1,0 +1,45 @@
+== Wider reading (nothing, held): three kinds read from a copy, each switched off and on over the
+   same file. An answer that gives more than the file's own records give is marked.
+## a retirement that settles which authority is served
+   Both gates recreate the authority apart, so two stand in both copies and nothing is served.
+   Gate 0 keeps its own and pairs a client; copy 2 is taken then; gate 0 recreates again.
+   history: recreate 0 ; pair 0 ; recreate 1 ; merge kp_sync 0 1 ; merge kp_sync 1 0 ; keep 0 ; merge kp_sync 2 0 ; recreate 0
+   copy 2, taken after the keeping, imported into copy 1 with Create new IDs:
+      the retirement settling, not counted                       refuses: the whole database (store incomplete) {the store as decided: refuses: nothing served (2 authorities stand)} [store incomplete, from copies 1]
+      the retirement settling, counted                           refuses: the whole database (store incomplete) {the store as decided: refuses: nothing served (2 authorities stand)} [store incomplete, from copies 1]
+   copy 0, the newest, imported into copy 1 with Create new IDs:
+      the retirement settling, not counted                       refuses: the whole database (store incomplete) {the store as decided: refuses: nothing served (2 authorities stand)} [store incomplete, from copies 2]
+      the retirement settling, counted                           refuses: the whole database (store incomplete) {the store as decided: refuses: nothing served (2 authorities stand)} [store incomplete, from copies 2]
+## a summary entry's items
+   At copy 0 a record that takes access away is deleted by hand with no deletion record, so
+   that only the summary entry restates it; then copy 1, which never held it, imports copy 0
+   with Create new IDs.
+   a revocation (c0): copy 0 as decided [store ok, from copies 0]
+      copy 1, the items of a copied summary entry, not counted   WIDER: client c0 admitted [store ok, from copies 0]
+      copy 1, the items of a copied summary entry, counted       refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 admitted} [store incomplete, from copies 1]
+   a rule of nothing at N: copy 0 as decided [store ok, from copies 0]
+      copy 1, the items of a copied summary entry, not counted   WIDER: node N grants r [store ok, from copies 0]
+      copy 1, the items of a copied summary entry, counted       refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants r} [store incomplete, from copies 2]
+   a rule at N for one profile, below a wider root: copy 0 as decided [store ok, from copies 0]
+      copy 1, the items of a copied summary entry, not counted   WIDER: node N grants rw [store ok, from copies 0]
+      copy 1, the items of a copied summary entry, counted       WIDER: node N grants rw [store ok, from copies 1]
+   a profile removal (pf): copy 0 as decided [store ok, from copies 0]
+      copy 1, the items of a copied summary entry, not counted   WIDER: client c0 holds ['pf'] [store ok, from copies 0]
+      copy 1, the items of a copied summary entry, counted       refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 holds ['pf']} [store incomplete, from copies 1]
+   An older summary entry copied (Duplicate Entry), then a later decision that widens, at copy 0:
+      a rule of nothing at N, then read and write, not counted   as decided [store ok, from copies 0]
+      a rule of nothing at N, then read and write, counted       as decided [store ok, from copies 1]
+      renewals refused forever, then allowed, not counted        as decided [store ok, from copies 0]
+      renewals refused forever, then allowed, counted            as decided [store ok, from copies 1]
+      a name removed, then added again, not counted              as decided [store ok, from copies 0]
+      a name removed, then added again, counted                  as decided [store ok, from copies 1]
+## a store key taken from a copy
+   The authority's entry is duplicated, the original deleted for good with a record, and
+   the store started again with Create and a name added. No rule is written under the new key.
+      after the deletion, the key from the copy, not counted     refuses: the whole database (store nostore) [store nostore, from copies 0]
+      after the deletion, the key from the copy, counted         refuses: nothing served (0 authorities stand) {the store as decided: refuses: the whole database (store nostore)} [store ok, from copies 0]
+      after the store is started again, the key from the copy, not counted as decided [store ok, from copies 0]
+      after the store is started again, the key from the copy, counted as decided {MORE THAN THE FILE'S OWN RECORDS GIVE: a node grants more} [store ok, from copies 0]
+      not counted: keys held 1, served a8, names ['pf'], the root gives nothing, N gives nothing
+      counted: keys held 2, served a8, names ['pf', 'pg'], the root gives r, N gives rw
+== 4 s

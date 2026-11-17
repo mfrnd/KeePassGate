@@ -37,20 +37,77 @@ IDENT = cap(ALL)
 REFUSE = const('')
 
 
+# ADDED (copies extended): rules per profile. A document may name each profile with its own words
+# and leave a profile unnamed, which then inherits. Such a document is ('pp', C, P): C the letters
+# it grants whatever is above, P the letters it passes on from above, each letter a profile, a dot
+# and a word ('pf.r'); every other letter it refuses. A document of the two forms above reads, where
+# it meets a document of this form, as naming every profile of PROFS alike. PP is set by the
+# configurations that write such documents; with it off none exists and nothing here differs.
+PP = False
+PROFS = ('pf', 'pg')
+
+
+def lift(x):
+    """A set of words as the same words for every profile; letters of a profile stay."""
+    return frozenset(p + '.' + v for v in x if len(v) == 1 for p in PROFS) | frozenset(v for v in x if len(v) > 1)
+
+
+def gen(f):
+    if f[0] == 'pp':
+        return f
+    s = lift(f[1])
+    return ('pp', s, frozenset()) if f[0] == 'const' else ('pp', frozenset(), s)
+
+
 def meet(f, g):
+    if f[0] == 'pp' or g[0] == 'pp':    # ADDED (copies extended): letter by letter
+        f, g = gen(f), gen(g)
+        c = f[1] & g[1]
+        return ('pp', c, ((f[1] | f[2]) & (g[1] | g[2])) - c)
     kind = 'const' if f[0] == 'const' and g[0] == 'const' else 'cap'
     return (kind, f[1] & g[1])
 
 
 def limit(f):
+    if f[0] == 'pp':                    # ADDED (copies extended)
+        return ('pp', frozenset(), f[1] | f[2])
     return ('cap', f[1])
 
 
 def app(f, x):
+    if f[0] == 'pp' or any(len(v) > 1 for v in x):     # ADDED (copies extended)
+        f = gen(f)
+        return f[1] | (f[2] & lift(x))
     return f[1] if f[0] == 'const' else f[1] & x
 
 
 DOCS = {'rw': const('rw'), 'r': const('r'), 'none': const(''), 'inherit': IDENT}
+
+
+# ADDED (copies extended): a rule act's document: a name of DOCS, or 'pf=rw,pg=' naming each profile
+# with its words, a profile left out inheriting
+def doc_of(spec):
+    if spec in DOCS:
+        return DOCS[spec]
+    named = {}
+    for part in spec.split(','):
+        p, w = part.split('=')
+        if p not in PROFS or not set(w) <= ALL:
+            raise ValueError(spec)
+        named[p] = w
+    return ('pp', frozenset(p + '.' + v for p, w in named.items() for v in w),
+            frozenset(p + '.' + v for p in PROFS if p not in named for v in ALL))
+
+
+# ADDED (copies extended): words as text. The same words for every profile print as they did
+# before there were profiles; else each profile with its words, '-' for none.
+def words_text(w):
+    if not any(len(v) > 1 for v in w):
+        return ''.join(sorted(w))
+    per = {p: ''.join(sorted(v[-1] for v in w if v.startswith(p + '.'))) for p in PROFS}
+    if len(set(per.values())) == 1:
+        return per[PROFS[0]]
+    return ' '.join('%s:%s' % (p, per[p] or '-') for p in PROFS)
 
 
 # -------------------------------------------------------------------- elements
@@ -147,7 +204,8 @@ IDEAL = Flags(revkey=True, idealkeys=True)
 STORE = Flags(T=False, witness=False, mark=False, revkey=True, keyretire=True, pending=True,
               repair=True, gates=0, newacts=True)
 GATE_ACTS = ('pair', 'revoke', 'recreate', 'padd', 'prem', 'rule', 'renew', 'adopt', 'save', 'reseal',
-             'renewcert', 'delauth', 'create')   # ADDED (store-as-a-whole): the last three
+             'renewcert', 'delauth', 'create',   # ADDED (store-as-a-whole): the last three
+             'keep')                             # ADDED (copies extended): no alphabet holds it
 
 
 class World:
@@ -391,6 +449,8 @@ class World:
             funcs[n] = f
             up = app(fnode('root'), frozenset()) if n != 'root' else frozenset()
             words_raw[n] = app(f, up)
+            if PP:      # ADDED (copies extended): every word as a profile's letter
+                words_raw[n] = lift(words_raw[n])
             words[n] = words_raw[n] if status == 'ok' and served else frozenset()
         renew = {}
         for c in self.clients:
@@ -462,6 +522,11 @@ class World:
         h = self.mk('head', 'store', after=anc, height=1 + max(hs + [0]),
                     data={'ref': frozenset(v['refusals']), 'prem': frozenset(v['prem']),
                           'regs': frozenset(regs)})
+        # ADDED (copies extended): the copies a Seal again acknowledged are carried by every later
+        # summary entry; no item where there is none, so that every other head is as it was
+        ack = frozenset(x for o in old_heads for x in o.data.get('ack', ()))
+        if ack:
+            h.data['ack'] = ack
         rep.entries[h.id] = [h.id, t, True]
         return h.id
 
@@ -576,9 +641,16 @@ class World:
                 return False
             gens = [e.height for e in v['ents'].values() if e.kind == 'padd' and e.obj == n]
             new.append(self.mk('prem', n, height=max(gens + [0])))
+        # ADDED (copies extended): where several authorities stand and none is served, the operator
+        # keeps the first of them: a retirement for each of the others
+        elif kind == 'keep':
+            if v['served'] or len(v['auths']) < 2:
+                return False
+            for a in sorted(v['auths'], key=lambda x: (int(x[1:]) if x[1:].isdigit() else 0, x))[1:]:
+                new.append(self.mk('ref', a, data=('retired', a)))
         elif kind in ('rule', 'renew', 'adopt'):
             if kind == 'rule':
-                obj, doc, node = 'rule:' + op[2], DOCS[op[3]], op[2]
+                obj, doc, node = 'rule:' + op[2], doc_of(op[3]), op[2]     # ADDED (copies extended): doc_of
             elif kind == 'adopt':
                 if not self.flags.mark:     # ADDED (store-as-a-whole): Adopt goes with the mark
                     return False
@@ -912,7 +984,7 @@ def narrower(A, I, nodes):
             return 'client %s holds %s' % (c, sorted(profs - I['valid'][c]))
     for n in nodes:
         if n in A['words'] and not A['words'][n] <= I['words_raw'].get(n, frozenset()):
-            return 'node %s grants %s' % (n, ''.join(sorted(A['words'][n])))
+            return 'node %s grants %s' % (n, words_text(A['words'][n]))      # ADDED (copies extended): words_text
     for c, a in A['renew'].items():
         if a == 'ask' and I['renew'].get(c) == 'forever' and A['status'] == 'ok' and A['served']:
             return 'renewal of %s asked' % c
@@ -942,7 +1014,7 @@ def narrower_than(A, I, nodes):
     for n in nodes:
         mine = A['words'].get(n, frozenset())
         if not I['words_raw'].get(n, frozenset()) <= mine:
-            return 'node %s lacks %s' % (n, ''.join(sorted(I['words_raw'][n] - mine)))
+            return 'node %s lacks %s' % (n, words_text(I['words_raw'][n] - mine))    # ADDED (copies extended): words_text
     for c, a in A['renew'].items():
         if a == 'forever' and I['renew'].get(c) == 'ask':
             return 'renewal of %s refused' % c

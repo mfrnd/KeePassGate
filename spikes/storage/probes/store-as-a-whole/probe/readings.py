@@ -24,6 +24,18 @@ of store entry that are not an import, and the reading of copies combined with w
 record again under the identifier its content gives. The model holds no reading of copies, so its
 disagreements with the file are not listed in this part.
 
+ADDED (copies extended): `readings.py --reading LEVEL VARIANT PART`, the wider readings of a copy
+(bridge.extended, read.py's `ext`). Parts:
+
+  copies     the part above under the wider reading, with a rule per profile among its kinds; a
+             replaced narrowing and what clears a limit a copy sets; and the reading combined with
+             the decided rewrite, the plugin writing nothing from a copy, with Seal again after a
+             stop that a copy caused, and the copies then deleted by hand. The combination that
+             writes a copied record under its own identifier follows as the control.
+  kinds      the three kinds whose reading from a copy is switched on and off on the same file: a
+             retirement that settles which authority is served, a summary entry's items, and a
+             store key taken from a copy
+
 Every cell's file is read by read.py under the configuration's rule and held to every decision any
 gate made, as in cases.py. Letters in the sequences: A as decided, n narrower, R the whole database
 refuses with the store key held, K the whole database refuses with no store key held, x nothing
@@ -387,6 +399,14 @@ COPY_KINDS = [
 ]
 WIDEN = {('ver', 'rule:N', 'new'): ('rule', 0, 'N', 'rw'), ('ver', 'renew:c1', 'new'): ('renew', 0, 'c1', 'allowed')}
 ROW6 = ('H2', 'H3', 'H5', 'H6', 'H7', 'H8', 'H9', 'H10', 'H12', 'H13')
+# ADDED (copies extended): a kind with a rule per profile, on a base of its own, and the histories
+# with rules per profile whose import into copy 1 ends wider in the store as decided
+PP_BASE = C.HIST_BASE[:-1] + [('rule', 0, 'root', 'pf=rw,pg=rw'), ('rule', 0, 'N', 'pf=r,pg=rw'),
+                              ('merge', 'kp_sync', 1, 0)]
+PP_KIND = ('a rule version (N, read for pf, read and write for pg, below a root that gives both)',
+           ('ver', 'rule:N', 'new'))
+PP_WIDEN = ('rule', 0, 'N', 'pf=rw,pg=rw')
+ROW6_PP = ('H14', 'H16', 'H17', 'H19', 'H20', 'H21')
 
 
 def brief(b, i):
@@ -400,9 +420,16 @@ def part_copies(host):
     print('   Duplicate with no suffix (the same strings, a new identifier, the time of the copy).')
     print('   KeePass\'s copy and paste is stood in for by a duplicate moved to another group; the')
     print('   window\'s own paste was not run.')
+    if B.EXT:       # ADDED (copies extended)
+        print('   The wider reading: a copied rule version limits by "%s"%s.' % (
+            B.EXT['rules'], ', and the items of a copied summary entry count' if B.EXT['heads'] else ''))
     base = C.HIST_BASE
     print('   base: ' + ' ; '.join(' '.join(map(str, op)) for op in base))
-    for kind_name, sel in COPY_KINDS:
+    kinds = [(k, sel, C.HIST_BASE, WIDEN.get(sel)) for k, sel in COPY_KINDS]
+    if B.EXT:       # ADDED (copies extended)
+        print('   base of the kind with a rule per profile: ' + ' ; '.join(' '.join(map(str, op)) for op in PP_BASE))
+        kinds.insert(5, (PP_KIND[0], PP_KIND[1], PP_BASE, PP_WIDEN))
+    for kind_name, sel, base, widen in kinds:
         print('## %s' % kind_name)
         rows = []
         # the copy as it sits, in another group, in the recycle bin
@@ -458,12 +485,12 @@ def part_copies(host):
                 'Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0', o1, o0))
             rows.append('   %-59s %s' % ('then %s into 0 (%s)' % (label, where), brief(b, 0)))
         # a copy whose original the plugin later replaced
-        if sel in WIDEN:
+        if widen:
             b = build(host, base, 'r2c')
             b.step(20, ('dupel', 0, sel))
             b.step(21, ('merge', 'kp_sync', 1, 0))
-            b.step(22, WIDEN[sel])
-            rows.append('%-62s %s' % ('Duplicate Entry, Synchronize into 1, then %s at 0' % ' '.join(map(str, WIDEN[sel])),
+            b.step(22, widen)
+            rows.append('%-62s %s' % ('Duplicate Entry, Synchronize into 1, then %s at 0' % ' '.join(map(str, widen)),
                                       brief(b, 0)))
             snap = Snap(b, 'c')
             for prog in ('Synchronize', 'CreateNewUuids', '2.8.0'):
@@ -472,8 +499,21 @@ def part_copies(host):
                     b.step(23, C.merge_op(prog, d, s))
                     rows.append('   %-59s %s' % ('then %s into %d' % (prog if prog != '2.8.0' else 'KeePassXC 2.8.0', d),
                                                  brief(b, d)))
+        if B.EXT:       # ADDED (copies extended): the gate's own write beside a copy
+            b = build(host, base, 'r2c')
+            b.step(20, ('dupel', 0, sel))
+            n0 = len(b.dump(0)['entries'])
+            ok = b.step(21, ('padd', 0, 'ph'))
+            d = b.dump(0)
+            rows.append('%-62s %s; the copy %s; entries %d, then %d' % (
+                'Duplicate Entry, then the gate writes (a profile name added)', brief(b, 0),
+                'present' if ('cd%030x' % b.ncopy) in d['entries'] else 'gone', n0, len(d['entries'])))
         for x in rows:
             print('   ' + x)
+    if B.EXT:       # ADDED (copies extended)
+        replaced(host)
+        combine_never(host)
+        print('== The control: what the rule above forbids.')
     # the reading of copies combined with writing such a record again under its own identifier
     print('== Combined with writing again: the histories whose import with Create new IDs into the copy')
     print('   that lacks the decisions ends wider in the store as decided (row 6). After the import: the')
@@ -482,8 +522,8 @@ def part_copies(host):
     print('   file holds neither an entry nor a deletion record under it, and a summary entry restating')
     print('   them (the model\'s Seal again stands for the summary entry such a write carries). Then')
     print('   Synchronize with copy 0 both ways.')
-    for hid, what, hist in C.HISTORIES:
-        if hid not in ROW6:
+    for hid, what, hist in C.HISTORIES + (C.PROFILE_HISTORIES if B.EXT else []):
+        if hid not in ROW6 + (ROW6_PP if B.EXT else ()):     # ADDED (copies extended): ROW6_PP
             continue
         b = C.run_cell(host, hist, 'CreateNewUuids', 1, 0, 'r2x')
         rows = ['after the import: %s' % brief(b, 1)]
@@ -503,14 +543,206 @@ def part_copies(host):
             print('   ' + x.strip())
 
 
+# ------------------------------------------------------------------ ADDED (copies extended)
+class Toggle:
+    """read.py's `ext` with some switches set otherwise, for the reads inside the block."""
+
+    def __init__(self, **kw):
+        self.kw = kw
+
+    def __enter__(self):
+        self.old = dict(B.EXT)
+        B.EXT.update(self.kw)
+
+    def __exit__(self, *a):
+        B.EXT.clear()
+        B.EXT.update(self.old)
+
+
+def copy_ids(b, i):
+    """The entries of file i that hold a record's strings under another identifier."""
+    ents = b.real(i)[0]
+    return sorted(u[2:] for u in ents if u.startswith('X:'))
+
+
+def replaced(host):
+    print('== A replaced narrowing, and what clears a limit that a copy sets. Copy 0 holds the root')
+    print('   giving read and write to both profiles. Each row: copy 1 against every decision.')
+    wide = ('rule', 0, 'root', 'pf=rw,pg=rw')
+    imp = ('merge', 'cni', 1, 0)
+    sync = ('merge', 'kp_sync', 1, 0)
+    rows = []
+    # the narrowing arrives as a copy, then its widening arrives as a copy
+    b = build(host, [wide, sync, ('rule', 0, 'N', 'pf=r,pg=r'), imp], 'r2r')
+    rows.append('N narrowed at 0, imported into 1 with Create new IDs: %s' % brief(b, 1))
+    b.step(10, ('rule', 0, 'N', 'pf=rw,pg=rw'))
+    b.step(11, imp)
+    rows.append('   N widened again at 0, imported into 1 again: %s' % brief(b, 1))
+    with Toggle(among=False):
+        rows.append('   the same file, a copy that another copy names as replaced still limiting: %s' % brief(b, 1))
+    b.step(12, sync)
+    rows.append('   then Synchronize into 1: %s' % brief(b, 1))
+    # a narrowing made apart arrives as a copy; then it is replaced where it was made
+    for names in (True, False):
+        with Toggle(names=names):
+            b = build(host, [wide, sync, ('rule', 0, 'N', 'pf=r,pg=r'), ('rule', 1, 'N', 'pf=rw,pg=rw'), imp], 'r2r')
+            rows.append('N narrowed at 0 and widened at 1, apart; 0 imported into 1 (%s): %s' % (
+                'a version the gate writes names the copies it read' if names else 'a version the gate writes names no copy',
+                brief(b, 1)))
+            b.step(10, ('rule', 0, 'N', 'pf=rw,pg=rw'))
+            rows.append('   N widened at 0, which copy 1 has not received: %s' % brief(b, 1))
+            snap = Snap(b, 'r')
+            ok = b.step(11, ('padd', 1, 'ph'))
+            rows.append('   the gate at 1 writes (a profile name added)%s: %s' % ('' if ok else ', refused', brief(b, 1)))
+            snap.restore()
+            ok = b.step(11, ('rule', 1, 'N', 'pf=rw,pg=rw'))
+            rows.append('   the rule of N set again at 1%s: %s' % ('' if ok else ', refused', brief(b, 1)))
+            snap.restore()
+            n = b.seal_copies(1, 11)
+            rows.append('   Seal again at 1 (acknowledging %d): %s' % (n, brief(b, 1)))
+            ok = b.step(12, ('rule', 1, 'N', 'pf=rw,pg=rw'))
+            rows.append('      then the rule of N set again at 1%s: %s' % ('' if ok else ', refused', brief(b, 1)))
+            snap.restore()
+            b.step(11, imp)
+            rows.append('   0 imported into 1 again: %s' % brief(b, 1))
+            snap.restore()
+            b.step(11, sync)
+            rows.append('   Synchronize into 1: %s' % brief(b, 1))
+            snap.restore()
+            for u in copy_ids(b, 1):
+                host.run('delrec', b.files[1], u, b.W.now())
+            b.sync_file(1)
+            rows.append('   the copies deleted by hand at 1: %s' % brief(b, 1))
+    for x in rows:
+        print('   ' + x)
+
+
+def combine_never(host):
+    print('== Combined with the decided rewrite, the plugin writing nothing from a copy: the histories')
+    print('   whose import with Create new IDs into copy 1 ends wider in the store as decided. After the')
+    print('   import: Seal again where the reading stops the store (a summary entry over the file\'s own')
+    print('   records that names the copies it acknowledges); the authority\'s entry edited in the entry')
+    print('   dialog at copy 1, so that it counts by its history; the gate\'s write (a profile name')
+    print('   added), which writes again what counts only by its history and nothing that counts only')
+    print('   from a copy. Then, each from that state: Synchronize both ways; and every copy deleted by hand.')
+    for hid, what, hist in C.HISTORIES + C.PROFILE_HISTORIES:
+        if hid not in ROW6 + ROW6_PP:
+            continue
+        b = C.run_cell(host, hist, 'CreateNewUuids', 1, 0, 'r2n')
+        rows = ['after the import: %s' % brief(b, 1)]
+        if B.rd(b.dump(1), True)['status'] != 'ok':
+            n = b.seal_copies(1, 29)
+            rows.append('Seal again, acknowledging %d copies: %s' % (n, brief(b, 1)))
+        u = b.uid(b.W.pick(b.W.reps[1], ('auth',)))
+        edit(b, host, 1, u, ['char'], 'id')
+        r = B.rd(b.dump(1), True)
+        rows.append('the authority\'s entry edited at 1: %s; counts by history %d, keys held %d' % (
+            brief(b, 1), r['counts']['byhistory'], r['counts']['keys']))
+        B.REWRITE = 'backup'
+        n0 = len(b.rewrites)
+        ok = b.step(30, ('padd', 1, 'ph'))
+        B.REWRITE = None
+        d = b.dump(1)
+        r = B.rd(d, True)
+        rows.append('the gate writes: %s, written again %d; %s; keys held %d, the authority\'s entry %s, copies %d' % (
+            'writes' if ok else 'cannot write', len(b.rewrites) - n0, brief(b, 1), r['counts']['keys'],
+            'present' if u in d['entries'] else 'GONE', len(copy_ids(b, 1))))
+        snap = Snap(b, 'n')
+        for d_, s_ in ((0, 1), (1, 0)):
+            snap.restore()
+            b.step(40, ('merge', 'kp_sync', d_, s_))
+            rows.append('then Synchronize into %d: %s' % (d_, brief(b, d_)))
+        snap.restore()
+        for c in copy_ids(b, 1):
+            host.run('delrec', b.files[1], c, b.W.now())
+        b.sync_file(1)
+        rows.append('then every copy deleted by hand at 1: %s' % brief(b, 1))
+        print('## %s: %s' % (hid, what))
+        for x in rows:
+            print('   ' + x.strip())
+
+
+def twice(b, i, label, **kw):
+    """File i read with the switches of `kw` off and on."""
+    out = []
+    for on in (False, True):
+        with Toggle(**{k: on for k in kw}):
+            out.append('   %-58s %s' % ('%s, %s' % (label, 'counted' if on else 'not counted'), brief(b, i)))
+    return out
+
+
+def part_kinds(host):
+    print('== Wider reading (%s%s, %s): three kinds read from a copy, each switched off and on over the' % (
+        B.EXT['rules'], ' with the items of a copied summary entry' if B.EXT['heads'] else '', B.COPIES))
+    print('   same file. An answer that gives more than the file\'s own records give is marked.')
+    print('## a retirement that settles which authority is served')
+    print('   Both gates recreate the authority apart, so two stand in both copies and nothing is served.')
+    print('   Gate 0 keeps its own and pairs a client; copy 2 is taken then; gate 0 recreates again.')
+    ops = [('recreate', 0), ('pair', 0), ('recreate', 1), ('merge', 'kp_sync', 0, 1), ('merge', 'kp_sync', 1, 0),
+           ('keep', 0), ('merge', 'kp_sync', 2, 0), ('recreate', 0)]
+    print('   history: ' + ' ; '.join(' '.join(map(str, op)) for op in ops))
+    for src, what in ((2, 'copy 2, taken after the keeping'), (0, 'copy 0, the newest')):
+        b = C.run_ops(host, 3, 'k1', ops + [('merge', 'cni', 1, src)])
+        print('   %s, imported into copy 1 with Create new IDs:' % what)
+        for x in twice(b, 1, 'the retirement settling', settle=True):
+            print('   ' + x)
+        for x in b.log:
+            if 'does not apply' in x:
+                print('      ' + x.strip())
+    print('## a summary entry\'s items')
+    print('   At copy 0 a record that takes access away is deleted by hand with no deletion record, so')
+    print('   that only the summary entry restates it; then copy 1, which never held it, imports copy 0')
+    print('   with Create new IDs.')
+    for what, ops in (
+            ('a revocation (c0)', [('revoke', 0, 'c0'), ('del', 0, ('ref', 'revoked'), 0)]),
+            ('a rule of nothing at N', [('rule', 0, 'N', 'none'), ('del', 0, ('ver', 'rule:N', 'new'), 0)]),
+            ('a rule at N for one profile, below a wider root',
+             [('rule', 0, 'root', 'pf=rw,pg=rw'), ('merge', 'kp_sync', 1, 0), ('rule', 0, 'N', 'pf=r'),
+              ('del', 0, ('ver', 'rule:N', 'new'), 0)]),
+            ('a profile removal (pf)', [('prem', 0, 'pf'), ('del', 0, ('prem',), 0)])):
+        b = C.run_ops(host, 2, 'k2', ops + [('merge', 'cni', 1, 0)])
+        print('   %s: copy 0 %s' % (what, brief(b, 0)))
+        for x in twice(b, 1, 'copy 1, the items of a copied summary entry', heads=True):
+            print('   ' + x)
+    print('   An older summary entry copied (Duplicate Entry), then a later decision that widens, at copy 0:')
+    for what, ops in (
+            ('a rule of nothing at N, then read and write', [('rule', 0, 'N', 'none'), ('dupel', 0, ('head', 'new')), ('rule', 0, 'N', 'rw')]),
+            ('renewals refused forever, then allowed', [('renew', 0, 'c0', 'forever'), ('dupel', 0, ('head', 'new')), ('renew', 0, 'c0', 'allowed')]),
+            ('a name removed, then added again', [('prem', 0, 'pf'), ('dupel', 0, ('head', 'new')), ('padd', 0, 'pf')])):
+        b = C.run_ops(host, 2, 'k2', ops)
+        for x in twice(b, 0, what, heads=True):
+            print('   ' + x)
+    print('## a store key taken from a copy')
+    print('   The authority\'s entry is duplicated, the original deleted for good with a record, and')
+    print('   the store started again with Create and a name added. No rule is written under the new key.')
+    ops = [('padd', 0, 'pg'), ('rule', 0, 'N', 'rw'), ('dupel', 0, ('auth',)), ('del', 0, ('auth',), 1)]
+    b = C.run_ops(host, 2, 'k3', ops)
+    for x in twice(b, 0, 'after the deletion, the key from the copy', key=True):
+        print('   ' + x)
+    for k, op in enumerate([('create', 0), ('padd', 0, 'pf')]):
+        if not b.step(10 + k, op):
+            print('      %s (does not apply)' % ' '.join(map(str, op)))
+    for x in twice(b, 0, 'after the store is started again, the key from the copy', key=True):
+        print('   ' + x)
+    r0 = B.RD.read(b.dump(0), history=True, copies=B.COPIES, ext=dict(B.EXT, key=False))
+    r1 = B.RD.read(b.dump(0), history=True, copies=B.COPIES, ext=dict(B.EXT, key=True))
+    for label, r in (('not counted', r0), ('counted', r1)):
+        print('      %s: keys held %d, served %s, names %s, the root gives %s, N gives %s' % (
+            label, r['counts']['keys'], r['served'], r['names'], C.words_text(r['words'][b.ids['root']]) or 'nothing',
+            C.words_text(r['words'][b.ids['N']]) or 'nothing'))
+
+
 def main():
     rewriting = sys.argv[1] == '--rewrite'
     if rewriting:
         B.rewrite(sys.argv[2])
     elif sys.argv[1] == '--copies':
         B.copies(sys.argv[2])
+    elif sys.argv[1] == '--reading':    # ADDED (copies extended)
+        B.extended(sys.argv[2], sys.argv[3])
+        del sys.argv[1]
     else:
-        raise SystemExit('--rewrite FORM or --copies VARIANT first')
+        raise SystemExit('--rewrite FORM, --copies VARIANT or --reading LEVEL VARIANT first')
     part = sys.argv[3]
     sys.stdout.reconfigure(line_buffering=True)
     host = kp.Host()
@@ -526,10 +758,15 @@ def main():
             part_prune(host)
         elif part == 'copies' and B.COPIES:
             part_copies(host)
+        elif part == 'kinds' and B.EXT:     # ADDED (copies extended)
+            part_kinds(host)
         else:
             raise SystemExit('unknown part ' + part)
     finally:
         host.close()
+    if part != 'kinds':
+        for x in B.moved():     # ADDED (copies extended)
+            print(x)
     print('== %.0f s' % (time.time() - t0))
 
 

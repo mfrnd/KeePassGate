@@ -65,6 +65,25 @@
       the same names ending in -exempt
                            the same with --copies exempt
 
+    With -Reading <level> (ADDED, copies extended), the store as decided read with a wider reading
+    of a copy, rules per profile switched on: `nothing`, `profile`, `verb` or `cap`, which is how
+    far a copied rule version limits the object it names (read.py's `ext`), or `cap-items`, which
+    is `cap` with the items of a copied summary entry counted as well. Each is held to the
+    completeness check and, in the parts ending in `-exempt`, exempt from it. Output in
+    `out\reading-<level>\`, compared with `recorded-reading-<level>\`; databases in
+    `work\x<first letter of the level>h-*` and `work\x<first letter of the level>e-*`, the
+    letter `i` for `cap-items`:
+
+      b-merges, b-dedupe, b-deletions, b-clear, b-dupes, b-repair, b-random
+                           cases.py --reading <level> held: the parts of the store as decided,
+                           `b-merges` with nine further histories, eight of them with rules per
+                           profile
+      copies               readings.py --reading <level> held copies
+      kinds                readings.py --reading <level> held kinds: a retirement that settles, a
+                           summary entry's items and a store key, each read from a copy or not
+      the same names ending in -exempt
+                           the same with exempt
+
 .PARAMETER Parts
     Which parts to run; every part by default.
 
@@ -80,15 +99,20 @@
 .PARAMETER Copies
     Runs reading 2 of the store as decided: a record that takes access away read from a copy.
 
+.PARAMETER Reading
+    Runs a wider reading of a copy on the store as decided: nothing, profile, verb, cap or
+    cap-items.
+
 .EXAMPLE
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1
 
 .EXAMPLE
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1 -Decided
 #>
-param([string[]] $Parts = @(), [int] $Parallel = 6, [switch] $Decided, [switch] $Rewrite, [switch] $Copies)
-if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent | Where-Object { $_ }).Count -gt 1) {
-    throw 'One of -Decided, -Rewrite, -Copies.'     # ADDED (two readings)
+param([string[]] $Parts = @(), [int] $Parallel = 6, [switch] $Decided, [switch] $Rewrite, [switch] $Copies,
+    [ValidateSet('', 'nothing', 'profile', 'verb', 'cap', 'cap-items')] [string] $Reading = '')
+if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent, ($Reading -ne '') | Where-Object { $_ }).Count -gt 1) {
+    throw 'One of -Decided, -Rewrite, -Copies, -Reading.'     # ADDED (two readings); -Reading (copies extended)
 }
 
 $ErrorActionPreference = 'Stop'
@@ -162,6 +186,20 @@ if ($Copies) {
         $all["copies$suffix"] = @("$probe\readings.py", '--copies', $variant, 'copies')
     }
 }
+# ADDED (copies extended): a wider reading of a copy, a configuration of its own for each level
+if ($Reading) {
+    $config = "reading-$Reading"
+    $all = [ordered]@{}
+    foreach ($variant in 'held', 'exempt') {
+        $suffix = if ($variant -eq 'held') { '' } else { '-exempt' }
+        foreach ($p in 'merges', 'dedupe', 'deletions', 'clear', 'dupes', 'repair') {
+            $all["b-$p$suffix"] = @("$probe\cases.py", '--reading', $Reading, $variant, $p)
+        }
+        $all["b-random$suffix"] = @("$probe\cases.py", '--reading', $Reading, $variant, 'random', '300', '7')
+        $all["copies$suffix"] = @("$probe\readings.py", '--reading', $Reading, $variant, 'copies')
+        $all["kinds$suffix"] = @("$probe\readings.py", '--reading', $Reading, $variant, 'kinds')
+    }
+}
 # Through -File a list arrives as one string, so commas are split here.
 $Parts = @($Parts | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 if ($Parts.Count -eq 0) { $Parts = @($all.Keys) }
@@ -175,7 +213,10 @@ if ($Parts.Count -eq $all.Count) {
     if ($config) {
         # ADDED (two readings): the configuration's own output and databases only
         if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
-        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } else { 'ch-*', 'ce-*' }
+        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } else {
+            $letter = if ($Reading -eq 'cap-items') { 'i' } else { $Reading[0] }     # ADDED (copies extended)
+            "x${letter}h-*", "x${letter}e-*"
+        }
         if (Test-Path -LiteralPath $work) {
             foreach ($f in $prefixes) { Get-ChildItem -LiteralPath $work -Directory -Filter $f | Remove-Item -Recurse -Force }
         }

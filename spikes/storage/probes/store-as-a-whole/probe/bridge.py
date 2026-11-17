@@ -30,6 +30,15 @@ read.py's reading of a copy under another identifier ('held' or 'exempt'), and a
 where that reading stops the store while the model, which holds no such reading, would write.
 `recanon(i)` writes a record counted from a copy under the identifier its content gives. Their
 databases go to `work\\w<form>-<tag>` and `work\\c<variant>-<tag>`.
+
+ADDED (copies extended): `extended(level, variant, ...)`, the store as decided read with read.py's
+wider readings of a copy (its `ext`), with rules per profile switched on in the model and in
+read.py. Under it `outcome` also reads the same file as the store as decided does and counts, in
+TRANS, how the answer moved, and in MONO every answer that grants what the file's own records do
+not. A gate act is refused where the reading serves no authority and the act needs an authority.
+`seal_copies(i)` is Seal again after a stop that a copy caused: a summary entry over the file's own
+records that names the copies it acknowledges, and writes nothing from them. The databases go to
+`work\\x<level><variant>-<tag>`.
 """
 import os
 import sys
@@ -54,6 +63,9 @@ DECIDED = False     # ADDED (decided store): set by decide()
 REWRITE = None      # ADDED (two readings): 'backup' or 'cleared', set by rewrite()
 COPIES = None       # ADDED (two readings): 'held' or 'exempt', set by copies()
 PREFIX = ''         # ADDED (two readings): the configuration's directories under work
+EXT = None          # ADDED (copies extended): read.py's `ext`, set by extended()
+TRANS = {}          # ADDED (copies extended): (the store as decided, the reading) -> files
+MONO = []           # ADDED (copies extended): answers wider than the file's own records give
 
 
 def decide():
@@ -81,9 +93,46 @@ def copies(variant):
     COPIES, PREFIX = variant, 'c%s-' % variant[0]
 
 
+def extended(level, variant, **toggles):
+    """ADDED (copies extended): the store as decided, read with a wider reading of a copy."""
+    global COPIES, EXT, PREFIX
+    decide()
+    COPIES = variant
+    tag = level[0]
+    if level.endswith('-items'):    # 'cap-items': the items of a copied summary entry count as well
+        level, tag = level[:-6], 'i'
+        toggles = dict(toggles, heads=True)
+    EXT = dict(rules=level, settle=False, heads=False, key=False)
+    EXT.update(toggles)
+    PREFIX = 'x%s%s-' % (tag, variant[0])
+    M.PP = True
+    RD.PP = True
+
+
+def cat(o):
+    """ADDED (copies extended): an outcome's class, with what `outcome` puts in braces left out."""
+    return o.split(' {')[0].split(':')[0]
+
+
+def moved():
+    """ADDED (copies extended): the lines a part ends with under extended()."""
+    if not EXT:
+        return []
+    same = sum(n for (a, b), n in TRANS.items() if a == b)
+    out = ['== the same file read as the store as decided reads it, and under this reading: %d answers, '
+           '%d of the same class' % (sum(TRANS.values()), same)]
+    for (a, b), n in sorted(TRANS.items()):
+        if a != b:
+            out.append('   %s -> %s: %d' % (a, b, n))
+    out.append('== answers that give more than the file\'s own records give: %d' % len(MONO))
+    for w in sorted(set(MONO)):
+        out.append('   %s: %d' % (w, MONO.count(w)))
+    return out
+
+
 def rd(dump, history):
     """ADDED (two readings): read.py's read in the configuration."""
-    return RD.read(dump, history=history, copies=COPIES)
+    return RD.read(dump, history=history, copies=COPIES, ext=EXT)     # ADDED (copies extended): ext
 
 
 def versions(e):
@@ -234,10 +283,10 @@ class Bridge:
         v = self.W.fold(self.W.reps[i])
         r = self.as_model(rd(d, DECIDED))     # ADDED (two readings): rd
         mine = (v['status'], v['served'], sorted((c, sorted(p)) for c, p in v['adm'].items()),
-                sorted((n, ''.join(sorted(w))) for n, w in v['words'].items() if n in ('N', 'root')),
+                sorted((n, M.words_text(w)) for n, w in v['words'].items() if n in ('N', 'root')),     # ADDED (copies extended): words_text
                 sorted(c for c, a in v['renew'].items() if a == 'forever'), sorted(v['names']))
         theirs = (r['status'], r['served'], sorted((c, sorted(p)) for c, p in r['adm'].items()),
-                  sorted((n, ''.join(sorted(w))) for n, w in r['words'].items()),
+                  sorted((n, M.words_text(w)) for n, w in r['words'].items()),     # ADDED (copies extended): words_text
                   sorted(c for c, a in r['renew'].items() if a == 'forever'), sorted(r['names']))
         if mine != theirs:
             self.readdiff.append((step, i, 'model %r; read.py %r' % (mine, theirs)))
@@ -264,6 +313,29 @@ class Bridge:
             notes.append('   the gate wrote again at %d: %s, from history item %d (%s)' % (i, u[:8], idx, out))
         return self.sync_file(i), notes
 
+    def seal_copies(self, i, k=0):
+        """ADDED (copies extended): Seal again after a stop that a copy caused. The plugin writes a
+        summary entry over the file's own records, as any write of its own does, and names in it
+        the identifier each counted copy's content gives; it writes nothing from a copy. Answers
+        how many copies it acknowledged, 0 when nothing was written."""
+        r = rd(self.dump(i), True)
+        ids = sorted(r['fromcopy'])
+        if not ids:
+            return 0
+        W = self.W
+        rep = W.reps[i]
+        before = rep.clone()
+        W.now()
+        hid = W.write_head(rep, set())
+        W.EL[hid].data['ack'] = frozenset(ids) | frozenset(W.EL[hid].data.get('ack', ()))
+        W.K[i].add(hid)
+        W.Kever[i] |= W.K[i]
+        W.flush(i)
+        d = self.gate_write(i, before)
+        self.readcheck(i, d, k)
+        self.log.append('%2d Seal again at %d, acknowledging %d copies' % (k, i, len(ids)))
+        return len(ids)
+
     def recanon(self, i):
         """A record counted from a copy written again under the identifier its content gives, where
         the file holds neither an entry nor a deletion record under it. Lines for the log."""
@@ -274,6 +346,9 @@ class Bridge:
             if u in d['entries'] or u in d['dels']:
                 notes.append('   %s, counted from a copy: not written, the file holds %s' % (
                     u[:8], 'its entry' if u in d['entries'] else 'its deletion record'))
+                continue
+            # ADDED (copies extended): a copy of a summary entry is left out of this control
+            if any(x.get('KPG.Kind') == 'head' for x in versions(d['entries'][c])):
                 continue
             out = self.h.run('recanon', self.files[i], c, u, self.W.t)
             # the copy's own identifier is drawn at random by the import, so it is not printed
@@ -297,12 +372,30 @@ class Bridge:
             i = op[1]
             # ADDED (two readings): the plugin is stopped where the reading of copies stops the store
             if COPIES and kind != 'create' and op[1] < len(W.reps) and W.fold(W.reps[i])['status'] == 'ok':
-                if rd(self.dump(i), DECIDED)['status'] != 'ok':
+                rr = rd(self.dump(i), DECIDED)
+                if rr['status'] != 'ok':
                     self.copy_stops += 1
                     return False
+                # ADDED (copies extended): no authority served under the reading, which the act needs
+                if EXT and kind in ('pair', 'renewcert', 'revoke', 'recreate', 'delauth') \
+                        and not rr['served'] and W.fold(W.reps[i])['served']:
+                    self.copy_stops += 1
+                    return False
+            # ADDED (copies extended): the copies of this object's versions the file reads
+            xl = {}
+            if EXT and EXT.get('names', True) and kind in ('rule', 'renew'):
+                xl = rd(self.dump(i), DECIDED)['live_copies']
             before = W.reps[i].clone()
             if not W.step(op):
                 return False
+            # ADDED (copies extended): the version the gate writes names them as replaced
+            for u in W.reps[i].entries:
+                e = W.EL.get(u)
+                if xl and u not in before.entries and e is not None and e.kind == 'ver':
+                    seen = [self.enc.eid[c] for c in xl.get(self.enc.obj(e.obj), ()) if c in self.enc.eid]
+                    e.after = frozenset(e.after | set(seen))
+                    for m in seen:
+                        W.reps[i].dels.setdefault(m, W.t)
             d = self.gate_write(i, before)
             notes = []
             if REWRITE:     # ADDED (two readings): what counts only by its history, written again
@@ -552,28 +645,51 @@ def global_ideal(W, i):
 def outcome(b, i, history=None, dump=None):
     """The file's answer by read.py, held to every decision any gate made (the oracle). ADDED
     (decided store): read by the configuration's rule unless `history` names a rule. ADDED (two
-    readings): `dump`, a dump of file i already made, read instead of a new one."""
+    readings): `dump`, a dump of file i already made, read instead of a new one. ADDED (copies
+    extended): under extended(), the same file is also read as the store as decided reads it; the
+    pair of answers is counted in TRANS, an answer that differs carries the other in braces, and
+    an answer wider than the file's own records give is noted in MONO and marked."""
+    if EXT and history is None:
+        d = dump if dump is not None else b.dump(i)
+        r = b.as_model(rd(d, DECIDED))
+        r0 = b.as_model(RD.read(d, history=DECIDED))
+        o, o0 = judge(b, i, r), judge(b, i, r0)
+        key = (cat(o0), cat(o))
+        TRANS[key] = TRANS.get(key, 0) + 1
+        w = RD.wider_than(r, r0)
+        if w:
+            MONO.append(w)
+            o += ' {MORE THAN THE FILE\'S OWN RECORDS GIVE: %s}' % w
+        if o0 != o.split(' {')[0]:
+            o += ' {the store as decided: %s}' % o0
+        return o, r
     if dump is None:
         r = b.as_model(b.read(i, history))
     else:
         r = b.as_model(rd(dump, DECIDED if history is None else history))
+    return judge(b, i, r), r
+
+
+def judge(b, i, r):
+    """ADDED (copies extended): an answer held to every decision any gate made, taken out of
+    `outcome` unchanged."""
     I = global_ideal(b.W, i)
     nodes = ('root', 'N')
     w = M.narrower(r, I, nodes)
     if w:
-        return 'WIDER: ' + w, r
+        return 'WIDER: ' + w
     if I['status'] == 'ok' and I['served'] and r['status'] != 'ok':
-        return 'refuses: the whole database (store %s)' % r['status'], r
+        return 'refuses: the whole database (store %s)' % r['status']
     if I['served'] and not r['served']:
-        return 'refuses: nothing served (%d authorities stand)' % len(r['auths']), r
+        return 'refuses: nothing served (%d authorities stand)' % len(r['auths'])
     t = M.narrower_than(r, I, nodes)
-    return ('narrower: ' + t if t else 'as decided'), r
+    return 'narrower: ' + t if t else 'as decided'
 
 
 def view(r):
     return '%s, served %s, admitted %s, words %s, refused renewals %s, names %s' % (
         r['status'], r['served'], {c: ' '.join(sorted(p)) for c, p in sorted(r['adm'].items())},
-        {n: ''.join(sorted(w)) for n, w in sorted(r['words'].items())},
+        {n: M.words_text(w) for n, w in sorted(r['words'].items())},     # ADDED (copies extended): words_text
         sorted(c for c, a in r['renew'].items() if a == 'forever'), r['names'])
 
 

@@ -1,0 +1,446 @@
+== Reading 2 (held): copies of store entries under another identifier that are not an import.
+   Copy 0 holds the base and copy 1 is synchronized from it. Duplicate Entry is KeePass's
+   Duplicate with no suffix (the same strings, a new identifier, the time of the copy).
+   KeePass's copy and paste is stood in for by a duplicate moved to another group; the
+   window's own paste was not run.
+   The wider reading: a copied rule version limits by "verb".
+   base: revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0
+   base of the kind with a rule per profile: revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; rule 0 root pf=rw,pg=rw ; rule 0 N pf=r,pg=rw ; merge kp_sync 1 0
+## a revocation (c0)
+   Duplicate Entry                                                as decided [store ok, from copies 0]
+   Duplicate Entry, moved to the group General                    as decided [store ok, from copies 0]
+   Duplicate Entry, deleted to the recycle bin                    as decided [store ok, from copies 0]
+   Duplicate Entry, then Delete Duplicate Entries                 as decided [store ok, from copies 1]
+      KeePassLib: Delete Duplicate Entries ok 1
+   Duplicate Entry, the original deleted for good with a record   as decided [store ok, from copies 1]
+   Duplicate Entry, the original deleted for good with no record  as decided [store ok, from copies 1]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 as decided [store ok, from copies 1]; copy 0 as decided [store ok, from copies 0]
+      then KeePassXC 2.8.0 into 0 (the copy back beside its record) as decided [store ok, from copies 1]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 as decided [store ok, from copies 1]; copy 0 as decided [store ok, from copies 0]
+      then Synchronize into 0 (the copy gone)                     as decided [store ok, from copies 0]
+   Duplicate Entry, then the gate writes (a profile name added)   as decided [store ok, from copies 0]; the copy present; entries 12, then 13
+## a retirement (from Recreate)
+   Duplicate Entry                                                as decided [store ok, from copies 0]
+   Duplicate Entry, moved to the group General                    as decided [store ok, from copies 0]
+   Duplicate Entry, deleted to the recycle bin                    as decided [store ok, from copies 0]
+   Duplicate Entry, then Delete Duplicate Entries                 as decided [store ok, from copies 1]
+      KeePassLib: Delete Duplicate Entries ok 1
+   Duplicate Entry, the original deleted for good with a record   as decided [store ok, from copies 1]
+   Duplicate Entry, the original deleted for good with no record  as decided [store ok, from copies 1]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 as decided [store ok, from copies 1]; copy 0 as decided [store ok, from copies 0]
+      then KeePassXC 2.8.0 into 0 (the copy back beside its record) as decided [store ok, from copies 1]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 as decided [store ok, from copies 1]; copy 0 as decided [store ok, from copies 0]
+      then Synchronize into 0 (the copy gone)                     as decided [store ok, from copies 0]
+   Duplicate Entry, then the gate writes (a profile name added)   as decided [store ok, from copies 0]; the copy present; entries 12, then 13
+## a profile removal (pf)
+   Duplicate Entry                                                as decided [store ok, from copies 0]
+   Duplicate Entry, moved to the group General                    as decided [store ok, from copies 0]
+   Duplicate Entry, deleted to the recycle bin                    as decided [store ok, from copies 0]
+   Duplicate Entry, then Delete Duplicate Entries                 as decided [store ok, from copies 1]
+      KeePassLib: Delete Duplicate Entries ok 1
+   Duplicate Entry, the original deleted for good with a record   as decided [store ok, from copies 1]
+   Duplicate Entry, the original deleted for good with no record  as decided [store ok, from copies 1]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 as decided [store ok, from copies 1]; copy 0 as decided [store ok, from copies 0]
+      then KeePassXC 2.8.0 into 0 (the copy back beside its record) as decided [store ok, from copies 1]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 as decided [store ok, from copies 1]; copy 0 as decided [store ok, from copies 0]
+      then Synchronize into 0 (the copy gone)                     as decided [store ok, from copies 0]
+   Duplicate Entry, then the gate writes (a profile name added)   as decided [store ok, from copies 0]; the copy present; entries 12, then 13
+## a rule version (N, nothing)
+   Duplicate Entry                                                as decided [store ok, from copies 0]
+   Duplicate Entry, moved to the group General                    as decided [store ok, from copies 0]
+   Duplicate Entry, deleted to the recycle bin                    as decided [store ok, from copies 0]
+   Duplicate Entry, then Delete Duplicate Entries                 as decided [store ok, from copies 0]
+      KeePassLib: Delete Duplicate Entries ok 1
+   Duplicate Entry, the original deleted for good with a record   as decided [store ok, from copies 0]
+   Duplicate Entry, the original deleted for good with no record  as decided [store ok, from copies 0]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 as decided [store ok, from copies 0]; copy 0 as decided [store ok, from copies 0]
+      then KeePassXC 2.8.0 into 0 (the copy back beside its record) as decided [store ok, from copies 0]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 as decided [store ok, from copies 0]; copy 0 as decided [store ok, from copies 0]
+      then Synchronize into 0 (the copy gone)                     as decided [store ok, from copies 0]
+   Duplicate Entry, Synchronize into 1, then rule 0 N rw at 0     as decided [store ok, from copies 0]
+      then Synchronize into 1                                     as decided [store ok, from copies 0]
+      then Synchronize into 0                                     as decided [store ok, from copies 0]
+      then CreateNewUuids into 1                                  narrower: node N lacks rw [store ok, from copies 0]
+      then CreateNewUuids into 0                                  as decided [store ok, from copies 0]
+      then KeePassXC 2.8.0 into 1                                 as decided [store ok, from copies 0]
+      then KeePassXC 2.8.0 into 0                                 as decided [store ok, from copies 0]
+   Duplicate Entry, then the gate writes (a profile name added)   as decided [store ok, from copies 0]; the copy present; entries 12, then 13
+## a renewal answer (c1, forever)
+   Duplicate Entry                                                as decided [store ok, from copies 0]
+   Duplicate Entry, moved to the group General                    as decided [store ok, from copies 0]
+   Duplicate Entry, deleted to the recycle bin                    as decided [store ok, from copies 0]
+   Duplicate Entry, then Delete Duplicate Entries                 as decided [store ok, from copies 0]
+      KeePassLib: Delete Duplicate Entries ok 1
+   Duplicate Entry, the original deleted for good with a record   as decided [store ok, from copies 0]
+   Duplicate Entry, the original deleted for good with no record  as decided [store ok, from copies 0]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 as decided [store ok, from copies 0]; copy 0 as decided [store ok, from copies 0]
+      then KeePassXC 2.8.0 into 0 (the copy back beside its record) as decided [store ok, from copies 0]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 as decided [store ok, from copies 0]; copy 0 as decided [store ok, from copies 0]
+      then Synchronize into 0 (the copy gone)                     as decided [store ok, from copies 0]
+   Duplicate Entry, Synchronize into 1, then renew 0 c1 allowed at 0 as decided [store ok, from copies 0]
+      then Synchronize into 1                                     as decided [store ok, from copies 0]
+      then Synchronize into 0                                     as decided [store ok, from copies 0]
+      then CreateNewUuids into 1                                  narrower: renewal of c1 refused [store ok, from copies 0]
+      then CreateNewUuids into 0                                  as decided [store ok, from copies 0]
+      then KeePassXC 2.8.0 into 1                                 as decided [store ok, from copies 0]
+      then KeePassXC 2.8.0 into 0                                 as decided [store ok, from copies 0]
+   Duplicate Entry, then the gate writes (a profile name added)   as decided [store ok, from copies 0]; the copy present; entries 12, then 13
+## a rule version (N, read for pf, read and write for pg, below a root that gives both)
+   Duplicate Entry                                                as decided [store ok, from copies 0]
+   Duplicate Entry, moved to the group General                    as decided [store ok, from copies 0]
+   Duplicate Entry, deleted to the recycle bin                    as decided [store ok, from copies 0]
+   Duplicate Entry, then Delete Duplicate Entries                 as decided [store ok, from copies 0]
+      KeePassLib: Delete Duplicate Entries ok 1
+   Duplicate Entry, the original deleted for good with a record   as decided [store ok, from copies 0]
+   Duplicate Entry, the original deleted for good with no record  as decided [store ok, from copies 0]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 as decided [store ok, from copies 0]; copy 0 as decided [store ok, from copies 0]
+      then KeePassXC 2.8.0 into 0 (the copy back beside its record) as decided [store ok, from copies 0]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 as decided [store ok, from copies 0]; copy 0 as decided [store ok, from copies 0]
+      then Synchronize into 0 (the copy gone)                     as decided [store ok, from copies 0]
+   Duplicate Entry, Synchronize into 1, then rule 0 N pf=rw,pg=rw at 0 as decided [store ok, from copies 0]
+      then Synchronize into 1                                     as decided [store ok, from copies 0]
+      then Synchronize into 0                                     as decided [store ok, from copies 0]
+      then CreateNewUuids into 1                                  narrower: node N lacks pf:w pg:- [store ok, from copies 0]
+      then CreateNewUuids into 0                                  as decided [store ok, from copies 0]
+      then KeePassXC 2.8.0 into 1                                 as decided [store ok, from copies 0]
+      then KeePassXC 2.8.0 into 0                                 as decided [store ok, from copies 0]
+   Duplicate Entry, then the gate writes (a profile name added)   as decided [store ok, from copies 0]; the copy present; entries 12, then 13
+## an admission record (c1), which never counts from a copy
+   Duplicate Entry                                                as decided [store ok, from copies 0]
+   Duplicate Entry, moved to the group General                    as decided [store ok, from copies 0]
+   Duplicate Entry, deleted to the recycle bin                    as decided [store ok, from copies 0]
+   Duplicate Entry, then Delete Duplicate Entries                 narrower: client c1 refused [store ok, from copies 0]
+      KeePassLib: Delete Duplicate Entries ok 1
+   Duplicate Entry, the original deleted for good with a record   narrower: client c1 refused [store ok, from copies 0]
+   Duplicate Entry, the original deleted for good with no record  narrower: client c1 refused [store ok, from copies 0]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 narrower: client c1 refused [store ok, from copies 0]; copy 0 narrower: client c1 refused [store ok, from copies 0]
+      then KeePassXC 2.8.0 into 0 (the copy back beside its record) narrower: client c1 refused [store ok, from copies 0]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 narrower: client c1 refused [store ok, from copies 0]; copy 0 narrower: client c1 refused [store ok, from copies 0]
+      then Synchronize into 0 (the copy gone)                     narrower: client c1 refused [store ok, from copies 0]
+   Duplicate Entry, then the gate writes (a profile name added)   as decided [store ok, from copies 0]; the copy present; entries 12, then 13
+## a profile addition (pg), which never counts from a copy
+   Duplicate Entry                                                as decided [store ok, from copies 0]
+   Duplicate Entry, moved to the group General                    as decided [store ok, from copies 0]
+   Duplicate Entry, deleted to the recycle bin                    as decided [store ok, from copies 0]
+   Duplicate Entry, then Delete Duplicate Entries                 narrower: client c1 lacks ['pg'] [store ok, from copies 0]
+      KeePassLib: Delete Duplicate Entries ok 1
+   Duplicate Entry, the original deleted for good with a record   narrower: client c1 lacks ['pg'] [store ok, from copies 0]
+   Duplicate Entry, the original deleted for good with no record  narrower: client c1 lacks ['pg'] [store ok, from copies 0]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 narrower: client c1 lacks ['pg'] [store ok, from copies 0]; copy 0 narrower: client c1 lacks ['pg'] [store ok, from copies 0]
+      then KeePassXC 2.8.0 into 0 (the copy back beside its record) narrower: client c1 lacks ['pg'] [store ok, from copies 0]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 narrower: client c1 lacks ['pg'] [store ok, from copies 0]; copy 0 narrower: client c1 lacks ['pg'] [store ok, from copies 0]
+      then Synchronize into 0 (the copy gone)                     narrower: client c1 lacks ['pg'] [store ok, from copies 0]
+   Duplicate Entry, then the gate writes (a profile name added)   as decided [store ok, from copies 0]; the copy present; entries 12, then 13
+## the authority, which never counts from a copy
+   Duplicate Entry                                                as decided [store ok, from copies 0]
+   Duplicate Entry, moved to the group General                    as decided [store ok, from copies 0]
+   Duplicate Entry, deleted to the recycle bin                    as decided [store ok, from copies 0]
+   Duplicate Entry, then Delete Duplicate Entries                 refuses: the whole database (store nostore) [store nostore, from copies 0]
+      KeePassLib: Delete Duplicate Entries ok 1
+   Duplicate Entry, the original deleted for good with a record   refuses: the whole database (store nostore) [store nostore, from copies 0]
+   Duplicate Entry, the original deleted for good with no record  refuses: the whole database (store nostore) [store nostore, from copies 0]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 refuses: the whole database (store nostore) [store nostore, from copies 0]; copy 0 refuses: the whole database (store nostore) [store nostore, from copies 0]
+      then KeePassXC 2.8.0 into 0 (the copy back beside its record) refuses: the whole database (store nostore) [store nostore, from copies 0]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 refuses: the whole database (store nostore) [store nostore, from copies 0]; copy 0 refuses: the whole database (store nostore) [store nostore, from copies 0]
+      then Synchronize into 0 (the copy gone)                     refuses: the whole database (store nostore) [store nostore, from copies 0]
+   Duplicate Entry, then the gate writes (a profile name added)   as decided [store ok, from copies 0]; the copy present; entries 12, then 13
+## the summary entry, which never counts from a copy
+   Duplicate Entry                                                as decided [store ok, from copies 0]
+   Duplicate Entry, moved to the group General                    as decided [store ok, from copies 0]
+   Duplicate Entry, deleted to the recycle bin                    as decided [store ok, from copies 0]
+   Duplicate Entry, then Delete Duplicate Entries                 refuses: the whole database (store incomplete) [store incomplete, from copies 0]
+      KeePassLib: Delete Duplicate Entries ok 1
+   Duplicate Entry, the original deleted for good with a record   refuses: the whole database (store incomplete) [store incomplete, from copies 0]
+   Duplicate Entry, the original deleted for good with no record  refuses: the whole database (store incomplete) [store incomplete, from copies 0]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 refuses: the whole database (store incomplete) [store incomplete, from copies 0]; copy 0 refuses: the whole database (store incomplete) [store incomplete, from copies 0]
+      then KeePassXC 2.8.0 into 0 (the copy back beside its record) refuses: the whole database (store incomplete) [store incomplete, from copies 0]
+   Duplicate Entry, the original deleted with a record, Synchronize into 1, the copy deleted at 0 copy 1 refuses: the whole database (store incomplete) [store incomplete, from copies 0]; copy 0 refuses: the whole database (store incomplete) [store incomplete, from copies 0]
+      then Synchronize into 0 (the copy gone)                     refuses: the whole database (store incomplete) [store incomplete, from copies 0]
+   Duplicate Entry, then the gate writes (a profile name added)   as decided [store ok, from copies 0]; the copy present; entries 12, then 13
+== A replaced narrowing, and what clears a limit that a copy sets. Copy 0 holds the root
+   giving read and write to both profiles. Each row: copy 1 against every decision.
+   N narrowed at 0, imported into 1 with Create new IDs: refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+      N widened again at 0, imported into 1 again: as decided [store ok, from copies 0]
+      the same file, a copy that another copy names as replaced still limiting: refuses: the whole database (store incomplete) {the store as decided: as decided} [store incomplete, from copies 1]
+      then Synchronize into 1: as decided [store ok, from copies 0]
+   N narrowed at 0 and widened at 1, apart; 0 imported into 1 (a version the gate writes names the copies it read): refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+      N widened at 0, which copy 1 has not received: refuses: the whole database (store incomplete) {the store as decided: as decided} [store incomplete, from copies 1]
+      the gate at 1 writes (a profile name added), refused: refuses: the whole database (store incomplete) {the store as decided: as decided} [store incomplete, from copies 1]
+      the rule of N set again at 1, refused: refuses: the whole database (store incomplete) {the store as decided: as decided} [store incomplete, from copies 1]
+      Seal again at 1 (acknowledging 1): narrower: node N lacks w {the store as decided: as decided} [store ok, from copies 1]
+         then the rule of N set again at 1: as decided [store ok, from copies 0]
+      0 imported into 1 again: as decided [store ok, from copies 0]
+      Synchronize into 1: as decided [store ok, from copies 0]
+      the copies deleted by hand at 1: as decided [store ok, from copies 0]
+   N narrowed at 0 and widened at 1, apart; 0 imported into 1 (a version the gate writes names no copy): refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+      N widened at 0, which copy 1 has not received: refuses: the whole database (store incomplete) {the store as decided: as decided} [store incomplete, from copies 1]
+      the gate at 1 writes (a profile name added), refused: refuses: the whole database (store incomplete) {the store as decided: as decided} [store incomplete, from copies 1]
+      the rule of N set again at 1, refused: refuses: the whole database (store incomplete) {the store as decided: as decided} [store incomplete, from copies 1]
+      Seal again at 1 (acknowledging 1): narrower: node N lacks w {the store as decided: as decided} [store ok, from copies 1]
+         then the rule of N set again at 1: narrower: node N lacks w {the store as decided: as decided} [store ok, from copies 1]
+      0 imported into 1 again: as decided [store ok, from copies 0]
+      Synchronize into 1: as decided [store ok, from copies 0]
+      the copies deleted by hand at 1: as decided [store ok, from copies 0]
+== Combined with the decided rewrite, the plugin writing nothing from a copy: the histories
+   whose import with Create new IDs into copy 1 ends wider in the store as decided. After the
+   import: Seal again where the reading stops the store (a summary entry over the file's own
+   records that names the copies it acknowledges); the authority's entry edited in the entry
+   dialog at copy 1, so that it counts by its history; the gate's write (a profile name
+   added), which writes again what counts only by its history and nothing that counts only
+   from a copy. Then, each from that state: Synchronize both ways; and every copy deleted by hand.
+## H2: a revocation by key at copy 0
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 admitted} [store incomplete, from copies 1]
+   Seal again, acknowledging 1 copies: as decided {the store as decided: WIDER: client c0 admitted} [store ok, from copies 1]
+   the authority's entry edited at 1: as decided {the store as decided: WIDER: client c0 admitted} [store ok, from copies 1]; counts by history 1, keys held 1
+   the gate writes: writes, written again 1; as decided {the store as decided: WIDER: client c0 admitted} [store ok, from copies 1]; keys held 1, the authority's entry present, copies 5
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+   then every copy deleted by hand at 1: WIDER: client c0 admitted [store ok, from copies 0]
+## H3: a revocation at gate 0; at gate 1, which has not seen it, the revoked key renewed
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 admitted} [store incomplete, from copies 1]
+   Seal again, acknowledging 1 copies: as decided {the store as decided: WIDER: client c0 admitted} [store ok, from copies 1]
+   the authority's entry edited at 1: as decided {the store as decided: WIDER: client c0 admitted} [store ok, from copies 1]; counts by history 1, keys held 1
+   the gate writes: writes, written again 1; as decided {the store as decided: WIDER: client c0 admitted} [store ok, from copies 1]; keys held 1, the authority's entry present, copies 5
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+   then every copy deleted by hand at 1: WIDER: client c0 admitted [store ok, from copies 0]
+## H5: a name removed at copy 0; copy 1 holds it
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 holds ['pf']} [store incomplete, from copies 1]
+   Seal again, acknowledging 1 copies: as decided {the store as decided: WIDER: client c0 holds ['pf']} [store ok, from copies 1]
+   the authority's entry edited at 1: as decided {the store as decided: WIDER: client c0 holds ['pf']} [store ok, from copies 1]; counts by history 1, keys held 1
+   the gate writes: writes, written again 1; as decided {the store as decided: WIDER: client c0 holds ['pf']} [store ok, from copies 1]; keys held 1, the authority's entry present, copies 5
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+   then every copy deleted by hand at 1: WIDER: client c0 holds ['pf'] [store ok, from copies 0]
+## H6: at copy 0 the authority recreated (key carried), deleted with none after, created again, a client paired
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 admitted} [store incomplete, from copies 2]
+   Seal again, acknowledging 2 copies: refuses: nothing served (0 authorities stand) {the store as decided: WIDER: client c0 admitted} [store ok, from copies 2]
+   the authority's entry edited at 1: refuses: nothing served (0 authorities stand) {the store as decided: WIDER: client c0 admitted} [store ok, from copies 2]; counts by history 1, keys held 1
+   the gate writes: writes, written again 1; refuses: nothing served (0 authorities stand) {the store as decided: WIDER: client c0 admitted} [store ok, from copies 2]; keys held 1, the authority's entry present, copies 8
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+   then every copy deleted by hand at 1: WIDER: client c0 admitted [store ok, from copies 0]
+## H7: at copy 0 a rule set, widened, narrowed and emptied at N, and set, narrowed at the root; copy 1 holds the first
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node root grants rw} [store incomplete, from copies 2]
+   Seal again, acknowledging 2 copies: as decided {the store as decided: WIDER: node root grants rw} [store ok, from copies 2]
+   the authority's entry edited at 1: as decided {the store as decided: WIDER: node root grants rw} [store ok, from copies 2]; counts by history 1, keys held 1
+   the gate writes: writes, written again 1; as decided {the store as decided: WIDER: node root grants rw} [store ok, from copies 2]; keys held 1, the authority's entry present, copies 6
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+   then every copy deleted by hand at 1: WIDER: node root grants rw [store ok, from copies 0]
+## H8: at copy 0 a rule at N set and then removed, the root emptied; copy 1 holds the rule at N
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node root grants r} [store incomplete, from copies 1]
+   Seal again, acknowledging 1 copies: WIDER: node N grants r {the store as decided: WIDER: node root grants r} [store ok, from copies 1]
+   the authority's entry edited at 1: WIDER: node N grants r {the store as decided: WIDER: node root grants r} [store ok, from copies 1]; counts by history 1, keys held 1
+   the gate writes: writes, written again 1; WIDER: node N grants r {the store as decided: WIDER: node root grants r} [store ok, from copies 1]; keys held 1, the authority's entry present, copies 6
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+   then every copy deleted by hand at 1: WIDER: node root grants r [store ok, from copies 0]
+## H9: the same rule changed apart: read at copy 0, read and write at copy 1
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+   Seal again, acknowledging 1 copies: as decided {the store as decided: WIDER: node N grants rw} [store ok, from copies 1]
+   the authority's entry edited at 1: as decided {the store as decided: WIDER: node N grants rw} [store ok, from copies 1]; counts by history 1, keys held 1
+   the gate writes: writes, written again 1; as decided {the store as decided: WIDER: node N grants rw} [store ok, from copies 1]; keys held 1, the authority's entry present, copies 6
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+   then every copy deleted by hand at 1: WIDER: node N grants rw [store ok, from copies 0]
+## H10: a rule narrowed at gate 0 and widened at gate 1, apart
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+   Seal again, acknowledging 1 copies: as decided {the store as decided: WIDER: node N grants rw} [store ok, from copies 1]
+   the authority's entry edited at 1: as decided {the store as decided: WIDER: node N grants rw} [store ok, from copies 1]; counts by history 1, keys held 1
+   the gate writes: writes, written again 1; as decided {the store as decided: WIDER: node N grants rw} [store ok, from copies 1]; keys held 1, the authority's entry present, copies 6
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+   then every copy deleted by hand at 1: WIDER: node N grants rw [store ok, from copies 0]
+## H12: a renewal refused forever at copy 0
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: renewal of c0 asked} [store incomplete, from copies 1]
+   Seal again, acknowledging 1 copies: as decided {the store as decided: WIDER: renewal of c0 asked} [store ok, from copies 1]
+   the authority's entry edited at 1: as decided {the store as decided: WIDER: renewal of c0 asked} [store ok, from copies 1]; counts by history 1, keys held 1
+   the gate writes: writes, written again 1; as decided {the store as decided: WIDER: renewal of c0 asked} [store ok, from copies 1]; keys held 1, the authority's entry present, copies 6
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+   then every copy deleted by hand at 1: WIDER: renewal of c0 asked [store ok, from copies 0]
+## H13: B.3: a copy from before a Recreate (copy 1) and a copy after it (copy 0)
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 admitted} [store incomplete, from copies 1]
+   Seal again, acknowledging 1 copies: refuses: nothing served (0 authorities stand) {the store as decided: WIDER: client c0 admitted} [store ok, from copies 1]
+   the authority's entry edited at 1: refuses: nothing served (0 authorities stand) {the store as decided: WIDER: client c0 admitted} [store ok, from copies 1]; counts by history 1, keys held 1
+   the gate writes: writes, written again 1; refuses: nothing served (0 authorities stand) {the store as decided: WIDER: client c0 admitted} [store ok, from copies 1]; keys held 1, the authority's entry present, copies 7
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+   then every copy deleted by hand at 1: WIDER: client c0 admitted [store ok, from copies 0]
+## H14: a version that narrows one profile and widens the other at copy 0; copy 1 holds the version before
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants pf:rw pg:r} [store incomplete, from copies 1]
+   Seal again, acknowledging 1 copies: narrower: node N lacks pf:- pg:w {the store as decided: WIDER: node N grants pf:rw pg:r} [store ok, from copies 1]
+   the authority's entry edited at 1: narrower: node N lacks pf:- pg:w {the store as decided: WIDER: node N grants pf:rw pg:r} [store ok, from copies 1]; counts by history 1, keys held 1
+   the gate writes: writes, written again 1; narrower: node N lacks pf:- pg:w {the store as decided: WIDER: node N grants pf:rw pg:r} [store ok, from copies 1]; keys held 1, the authority's entry present, copies 6
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+   then every copy deleted by hand at 1: WIDER: node N grants pf:rw pg:r [store ok, from copies 0]
+## H16: a narrowing set at copy 0 on a node below a wider rule; copy 1 holds no rule of the node
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+   Seal again, acknowledging 1 copies: as decided {the store as decided: WIDER: node N grants rw} [store ok, from copies 1]
+   the authority's entry edited at 1: as decided {the store as decided: WIDER: node N grants rw} [store ok, from copies 1]; counts by history 1, keys held 1
+   the gate writes: writes, written again 1; as decided {the store as decided: WIDER: node N grants rw} [store ok, from copies 1]; keys held 1, the authority's entry present, copies 6
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+   then every copy deleted by hand at 1: WIDER: node N grants rw [store ok, from copies 0]
+## H17: a rule removed at copy 0 where the node above gives less; copy 1 holds the rule
+   after the import: WIDER: node N grants rw [store ok, from copies 0]
+   the authority's entry edited at 1: WIDER: node N grants rw [store ok, from copies 0]; counts by history 1, keys held 1
+   the gate writes: writes, written again 1; WIDER: node N grants rw [store ok, from copies 0]; keys held 1, the authority's entry present, copies 6
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+   then every copy deleted by hand at 1: WIDER: node N grants rw [store ok, from copies 0]
+## H19: a rule changed at copy 0 to other words, neither within the other; copy 1 holds the first
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants pf:w pg:rw} [store incomplete, from copies 1]
+   Seal again, acknowledging 1 copies: narrower: node N lacks pf:r pg:- {the store as decided: WIDER: node N grants pf:w pg:rw} [store ok, from copies 1]
+   the authority's entry edited at 1: narrower: node N lacks pf:r pg:- {the store as decided: WIDER: node N grants pf:w pg:rw} [store ok, from copies 1]; counts by history 1, keys held 1
+   the gate writes: writes, written again 1; narrower: node N lacks pf:r pg:- {the store as decided: WIDER: node N grants pf:w pg:rw} [store ok, from copies 1]; keys held 1, the authority's entry present, copies 6
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+   then every copy deleted by hand at 1: WIDER: node N grants pf:w pg:rw [store ok, from copies 0]
+## H20: a rule narrowed for one profile at gate 0 and widened for the other at gate 1, apart
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+   Seal again, acknowledging 1 copies: as decided {the store as decided: WIDER: node N grants rw} [store ok, from copies 1]
+   the authority's entry edited at 1: as decided {the store as decided: WIDER: node N grants rw} [store ok, from copies 1]; counts by history 1, keys held 1
+   the gate writes: writes, written again 1; as decided {the store as decided: WIDER: node N grants rw} [store ok, from copies 1]; keys held 1, the authority's entry present, copies 6
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+   then every copy deleted by hand at 1: WIDER: node N grants rw [store ok, from copies 0]
+## H21: at copy 0 a rule that names one profile less, which inherits again below a narrower rule, and empties the other; copy 1 holds the rule
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+   Seal again, acknowledging 1 copies: WIDER: node N grants pf:rw pg:- {the store as decided: WIDER: node N grants rw} [store ok, from copies 1]
+   the authority's entry edited at 1: WIDER: node N grants pf:rw pg:- {the store as decided: WIDER: node N grants rw} [store ok, from copies 1]; counts by history 1, keys held 1
+   the gate writes: writes, written again 1; WIDER: node N grants pf:rw pg:- {the store as decided: WIDER: node N grants rw} [store ok, from copies 1]; keys held 1, the authority's entry present, copies 6
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+   then every copy deleted by hand at 1: WIDER: node N grants rw [store ok, from copies 0]
+== The control: what the rule above forbids.
+== Combined with writing again: the histories whose import with Create new IDs into the copy
+   that lacks the decisions ends wider in the store as decided (row 6). After the import: the
+   gate's write (a profile name added; refused where the reading stops the store); then each
+   record counted only from a copy written under the identifier its content gives, where the
+   file holds neither an entry nor a deletion record under it, and a summary entry restating
+   them (the model's Seal again stands for the summary entry such a write carries). Then
+   Synchronize with copy 0 both ways.
+## H2: a revocation by key at copy 0
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 admitted} [store incomplete, from copies 1]
+   the gate writes: cannot write (the store is stopped); refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 admitted} [store incomplete, from copies 1]
+   5b6f75b1, counted from a copy: written under its own identifier (ok)
+   a summary entry restating them (the model's Seal again): written; as decided [store ok, from copies 0]
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+## H3: a revocation at gate 0; at gate 1, which has not seen it, the revoked key renewed
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 admitted} [store incomplete, from copies 1]
+   the gate writes: cannot write (the store is stopped); refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 admitted} [store incomplete, from copies 1]
+   5b6f75b1, counted from a copy: written under its own identifier (ok)
+   a summary entry restating them (the model's Seal again): written; as decided [store ok, from copies 0]
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+## H5: a name removed at copy 0; copy 1 holds it
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 holds ['pf']} [store incomplete, from copies 1]
+   the gate writes: cannot write (the store is stopped); refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 holds ['pf']} [store incomplete, from copies 1]
+   f2296c3e, counted from a copy: written under its own identifier (ok)
+   a summary entry restating them (the model's Seal again): written; as decided [store ok, from copies 0]
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+## H6: at copy 0 the authority recreated (key carried), deleted with none after, created again, a client paired
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 admitted} [store incomplete, from copies 2]
+   the gate writes: cannot write (the store is stopped); refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 admitted} [store incomplete, from copies 2]
+   b2140e15, counted from a copy: written under its own identifier (ok)
+   b2140ee2, counted from a copy: written under its own identifier (ok)
+   a summary entry restating them (the model's Seal again): written; refuses: nothing served (0 authorities stand) [store ok, from copies 0]
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+## H7: at copy 0 a rule set, widened, narrowed and emptied at N, and set, narrowed at the root; copy 1 holds the first
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node root grants rw} [store incomplete, from copies 2]
+   the gate writes: cannot write (the store is stopped); refuses: the whole database (store incomplete) {the store as decided: WIDER: node root grants rw} [store incomplete, from copies 2]
+   2293649f, counted from a copy: written under its own identifier (ok)
+   229364bb, counted from a copy: written under its own identifier (ok)
+   a summary entry restating them (the model's Seal again): written; as decided [store ok, from copies 0]
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+## H8: at copy 0 a rule at N set and then removed, the root emptied; copy 1 holds the rule at N
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node root grants r} [store incomplete, from copies 1]
+   the gate writes: cannot write (the store is stopped); refuses: the whole database (store incomplete) {the store as decided: WIDER: node root grants r} [store incomplete, from copies 1]
+   2293649f, counted from a copy: written under its own identifier (ok)
+   a summary entry restating them (the model's Seal again): written; WIDER: node N grants r [store ok, from copies 0]
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+## H9: the same rule changed apart: read at copy 0, read and write at copy 1
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+   the gate writes: cannot write (the store is stopped); refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+   229364bb, counted from a copy: written under its own identifier (ok)
+   a summary entry restating them (the model's Seal again): written; as decided [store ok, from copies 0]
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+## H10: a rule narrowed at gate 0 and widened at gate 1, apart
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+   the gate writes: cannot write (the store is stopped); refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+   229364bb, counted from a copy: written under its own identifier (ok)
+   a summary entry restating them (the model's Seal again): written; as decided [store ok, from copies 0]
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+## H12: a renewal refused forever at copy 0
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: renewal of c0 asked} [store incomplete, from copies 1]
+   the gate writes: cannot write (the store is stopped); refuses: the whole database (store incomplete) {the store as decided: WIDER: renewal of c0 asked} [store incomplete, from copies 1]
+   2293641e, counted from a copy: written under its own identifier (ok)
+   a summary entry restating them (the model's Seal again): written; as decided [store ok, from copies 0]
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+## H13: B.3: a copy from before a Recreate (copy 1) and a copy after it (copy 0)
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 admitted} [store incomplete, from copies 1]
+   the gate writes: cannot write (the store is stopped); refuses: the whole database (store incomplete) {the store as decided: WIDER: client c0 admitted} [store incomplete, from copies 1]
+   b2140ee2, counted from a copy: written under its own identifier (ok)
+   a summary entry restating them (the model's Seal again): written; refuses: the whole database (store nostore) [store nostore, from copies 0]
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+## H14: a version that narrows one profile and widens the other at copy 0; copy 1 holds the version before
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants pf:rw pg:r} [store incomplete, from copies 1]
+   the gate writes: cannot write (the store is stopped); refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants pf:rw pg:r} [store incomplete, from copies 1]
+   229364bb, counted from a copy: written under its own identifier (ok)
+   a summary entry restating them (the model's Seal again): written; as decided [store ok, from copies 0]
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+## H16: a narrowing set at copy 0 on a node below a wider rule; copy 1 holds no rule of the node
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+   the gate writes: cannot write (the store is stopped); refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+   229364bb, counted from a copy: written under its own identifier (ok)
+   a summary entry restating them (the model's Seal again): written; as decided [store ok, from copies 0]
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+## H17: a rule removed at copy 0 where the node above gives less; copy 1 holds the rule
+   after the import: WIDER: node N grants rw [store ok, from copies 0]
+   the gate writes: writes; WIDER: node N grants rw [store ok, from copies 0]
+   a summary entry restating them (the model's Seal again): not written; WIDER: node N grants rw [store ok, from copies 0]
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+## H19: a rule changed at copy 0 to other words, neither within the other; copy 1 holds the first
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants pf:w pg:rw} [store incomplete, from copies 1]
+   the gate writes: cannot write (the store is stopped); refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants pf:w pg:rw} [store incomplete, from copies 1]
+   229364bb, counted from a copy: written under its own identifier (ok)
+   a summary entry restating them (the model's Seal again): written; as decided [store ok, from copies 0]
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+## H20: a rule narrowed for one profile at gate 0 and widened for the other at gate 1, apart
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+   the gate writes: cannot write (the store is stopped); refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+   229364bb, counted from a copy: written under its own identifier (ok)
+   a summary entry restating them (the model's Seal again): written; as decided [store ok, from copies 0]
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+## H21: at copy 0 a rule that names one profile less, which inherits again below a narrower rule, and empties the other; copy 1 holds the rule
+   after the import: refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+   the gate writes: cannot write (the store is stopped); refuses: the whole database (store incomplete) {the store as decided: WIDER: node N grants rw} [store incomplete, from copies 1]
+   229364bb, counted from a copy: written under its own identifier (ok)
+   a summary entry restating them (the model's Seal again): written; as decided [store ok, from copies 0]
+   then Synchronize into 0: as decided [store ok, from copies 0]
+   then Synchronize into 1: as decided [store ok, from copies 0]
+== the same file read as the store as decided reads it, and under this reading: 364 answers, 267 of the same class
+   WIDER -> as decided: 27
+   WIDER -> narrower: 6
+   WIDER -> refuses: 54
+   as decided -> narrower: 3
+   as decided -> refuses: 7
+== answers that give more than the file's own records give: 0
+== 74 s

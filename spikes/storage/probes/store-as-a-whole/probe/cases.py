@@ -20,6 +20,12 @@ ADDED (two readings): `cases.py --rewrite FORM PART` and `cases.py --copies VARI
 under the two further configurations of bridge.py (`rewrite`, `copies`); `random` then also counts
 the records written again, or the gate acts the reading of copies refused. Their own parts are in
 readings.py.
+
+ADDED (copies extended): `cases.py --reading LEVEL VARIANT PART` runs a part under bridge.extended:
+the store as decided read with a wider reading of a copy (read.py's `ext`), rules per profile
+switched on. `merges` then also runs the histories of PROFILE_HISTORIES, `random` also draws rules
+per profile and the act `keep`, and every part ends with how each file's answer moved against the
+store as decided on the same file, and how many answers gave more than the file's own records.
 """
 import os
 import random
@@ -31,6 +37,7 @@ sys.path.insert(0, HERE)
 import bridge as B  # noqa: E402
 import kp  # noqa: E402
 import read as RD  # noqa: E402
+from crdt_model import words_text  # noqa: E402     ADDED (copies extended)
 
 PROGRAMS = ([('KeePass ' + m, m) for m in B.METHODS] + [('KeePassXC ' + v, v) for v in B.RELEASES])
 
@@ -77,6 +84,33 @@ HISTORIES = [
       ('rule', 0, 'N', 'r')]),
 ]
 
+# ADDED (copies extended): histories with rules per profile, and two authorities standing. Run under
+# --reading only, after the thirteen above. A rule is written 'pf=rw,pg=r': each profile it names
+# with its words; a profile left out inherits.
+WIDE = ('rule', 0, 'root', 'pf=rw,pg=rw')
+SYNC = ('merge', 'kp_sync', 1, 0)
+PROFILE_HISTORIES = [
+    ('H14', 'a version that narrows one profile and widens the other at copy 0; copy 1 holds the version before',
+     [WIDE, ('rule', 0, 'N', 'pf=rw,pg=r'), SYNC, ('rule', 0, 'N', 'pf=r,pg=rw')]),
+    ('H15', 'a rule that grants nothing, then widened for one profile at copy 0; copy 1 holds the empty rule',
+     [WIDE, ('rule', 0, 'N', 'pf=,pg='), SYNC, ('rule', 0, 'N', 'pf=rw,pg=')]),
+    ('H16', 'a narrowing set at copy 0 on a node below a wider rule; copy 1 holds no rule of the node',
+     [WIDE, SYNC, ('rule', 0, 'N', 'pf=r')]),
+    ('H17', 'a rule removed at copy 0 where the node above gives less; copy 1 holds the rule',
+     [('rule', 0, 'root', 'pf=r,pg=r'), ('rule', 0, 'N', 'pf=rw,pg=rw'), SYNC, ('rule', 0, 'N', 'inherit')]),
+    ('H18', 'a rule removed at copy 0 where the node above gives more; copy 1 holds the rule',
+     [WIDE, ('rule', 0, 'N', 'pf=r,pg='), SYNC, ('rule', 0, 'N', 'inherit')]),
+    ('H19', 'a rule changed at copy 0 to other words, neither within the other; copy 1 holds the first',
+     [WIDE, ('rule', 0, 'N', 'pf=w,pg=rw'), SYNC, ('rule', 0, 'N', 'pf=r,pg=rw')]),
+    ('H20', 'a rule narrowed for one profile at gate 0 and widened for the other at gate 1, apart',
+     [WIDE, ('rule', 0, 'N', 'pf=rw,pg=r'), SYNC, ('rule', 0, 'N', 'pf=r,pg=r'), ('rule', 1, 'N', 'pf=rw,pg=rw')]),
+    ('H21', 'at copy 0 a rule that names one profile less, which inherits again below a narrower rule, and empties the other; copy 1 holds the rule',
+     [('rule', 0, 'root', 'pf=r,pg=r'), ('rule', 0, 'N', 'pf=rw,pg=rw'), SYNC, ('rule', 0, 'N', 'pg=')]),
+    ('H22', 'both gates recreate the authority apart, so two stand; gate 0 keeps its own; copy 1 holds both standing',
+     [('recreate', 0), ('recreate', 1), ('merge', 'kp_sync', 0, 1), SYNC, ('keep', 0)]),
+]
+PP_SPECS = ('pf=r,pg=rw', 'pf=rw,pg=', 'pf=', 'pg=r', 'pf=w,pg=w')
+
 # H14: a user node under a rule, moved, copied, deleted and restored (real files only).
 TREE = [
     ('T1', 'N moved to the group Other in copy 1', [('move', 1, 'Other')]),
@@ -121,7 +155,8 @@ def part_merges(host, speed='fast', only_xc=False):
     if only_xc:
         print('   Only the KeePassXC cells, of the histories %s and %s.' % (', '.join(SLOW), ', '.join(SLOW_TREE)))
     tally = {}
-    for hid, what, hist in HISTORIES:
+    # ADDED (copies extended): the histories with rules per profile, under --reading only
+    for hid, what, hist in HISTORIES + (PROFILE_HISTORIES if B.EXT else []):
         if only_xc and hid not in SLOW:
             continue
         print('## %s: %s' % (hid, what))
@@ -134,7 +169,7 @@ def part_merges(host, speed='fast', only_xc=False):
                 b = run_cell(host, hist, prog, d, s, 'm-' + speed, speed)
                 o, r = B.outcome(b, d)
                 cells.append('into %d: %s [%s]' % (d, o, c_note(b)))
-                tally[o.split(':')[0]] = tally.get(o.split(':')[0], 0) + 1
+                tally[B.cat(o)] = tally.get(B.cat(o), 0) + 1     # ADDED (copies extended): cat
                 for x in b.disagree:
                     cells.append('   C entries, step %d, file %d: %s' % (x[0], x[1], '; '.join(x[2])))
                 for x in b.readdiff:
@@ -171,7 +206,7 @@ def tree_view(b, i):
         if e['title'] == 'N':
             where = 'the bin' if e['place'].startswith('B') else dump['groups'].get(e['parent'], {}).get('name', 'Root')
             out.append('%s in %s gives %s' % ('N' if u == nid else 'a copy of N', where,
-                                               ''.join(sorted(r['words'].get(u, frozenset()))) or 'nothing'))
+                                               words_text(r['words'].get(u, frozenset())) or 'nothing'))
     if not any(e['title'] == 'N' for e in dump['entries'].values()):
         out.append('N gone')
     # sorted by what it reads, since a copy's identifier is drawn at random
@@ -469,6 +504,9 @@ def alphabet(nrep):
                 merges.append(('merge', 'kp_sync', d, s))
                 merges += [('merge', 'kp_other', d, s, m) for m in ('OverwriteIfNewer', 'OverwriteExisting', 'KeepExisting')]
                 merges += [('merge', 'xc', d, s, v) for v in B.RELEASES]
+    if B.EXT:       # ADDED (copies extended): rules per profile, and keeping a single authority of several
+        for r in R:
+            acts += [('rule', r, n, d) for n in ('root', 'N') for d in PP_SPECS] + [('keep', r)]
     faults = []
     for r in R:
         faults += [('del', r, s, k) for s in X.SELS for k in (0, 1, 2)]
@@ -508,7 +546,7 @@ def part_random(host, count, seed):
                 break
         for i in range(nrep):
             o, r = B.outcome(b, i)
-            outs[o.split(':')[0]] = outs.get(o.split(':')[0], 0) + 1
+            outs[B.cat(o)] = outs.get(B.cat(o), 0) + 1       # ADDED (copies extended): cat
         nrewrites, nstops = nrewrites + len(b.rewrites), nstops + b.copy_stops     # ADDED (two readings)
         if b.disagree or b.readdiff or fails:
             lines.append('## history %d (%d files)' % (h, nrep))
@@ -700,6 +738,10 @@ def main():
     elif sys.argv[1] == '--copies':
         B.copies(sys.argv[2])
         del sys.argv[1:3]
+    # ADDED (copies extended): --reading LEVEL VARIANT
+    elif sys.argv[1] == '--reading':
+        B.extended(sys.argv[2], sys.argv[3])
+        del sys.argv[1:4]
     part = sys.argv[1]
     sys.stdout.reconfigure(line_buffering=True)
     host = kp.Host()
@@ -727,6 +769,8 @@ def main():
             raise SystemExit('unknown part ' + part)
     finally:
         host.close()
+    for x in B.moved():     # ADDED (copies extended)
+        print(x)
     print('== %.0f s' % (time.time() - t0))
 
 

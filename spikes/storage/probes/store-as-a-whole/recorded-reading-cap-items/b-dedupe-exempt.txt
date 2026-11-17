@@ -1,0 +1,32 @@
+== B.2: Create new IDs, then Delete Duplicate Entries, both orders; then a third copy
+   synchronized with the result. Copy 0 holds the newer decisions, copy 1 is stale.
+## import into copy 0 from copy 1, then Delete Duplicate Entries there
+    0 rule 0 N none
+    1 revoke 0 c0
+    2 pair 0
+    3 merge cni 0 1 [CreateNewUuids]
+    4 dedupe 0
+    5 merge kp_sync 2 0
+   file 0: refuses: the whole database (store nostore) | nostore, served None, admitted {}, words {'root': ''}, refused renewals [], names [] | {'elements': 0, 'passed': 9, 'damage': 0, 'heads': 0, 'heads_live': 0, 'records': 8, 'keys': 0, 'byhistory': 0, 'fromcopy': 0, 'limited': 0, 'copied_keys': 0}
+   file 2: refuses: the whole database (store nostore) | nostore, served None, admitted {}, words {'root': ''}, refused renewals [], names [] | {'elements': 0, 'passed': 9, 'damage': 0, 'heads': 0, 'heads_live': 0, 'records': 8, 'keys': 0, 'byhistory': 0, 'fromcopy': 0, 'limited': 0, 'copied_keys': 0}
+   C: entries 1, read 2
+   C entries, step 4, file 0: record auth:a0: model 50, file 27667048; record padd:pf#1: model 50, file 27667048; record ver:rule:root#2: model 50, file 27667048
+   C read, step 4, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('root', '')], [], [])
+   C read, step 5, file 2: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('root', '')], [], [])
+## import into copy 1 from copy 0, then Delete Duplicate Entries there
+    0 rule 0 N none
+    1 revoke 0 c0
+    2 pair 0
+    3 merge cni 1 0 [CreateNewUuids]
+    4 dedupe 1
+    5 merge kp_sync 2 1
+   file 1: refuses: the whole database (store nostore) | nostore, served None, admitted {}, words {'root': ''}, refused renewals [], names [] | {'elements': 0, 'passed': 9, 'damage': 0, 'heads': 0, 'heads_live': 0, 'records': 4, 'keys': 0, 'byhistory': 0, 'fromcopy': 0, 'limited': 0, 'copied_keys': 0}
+   file 2: refuses: the whole database (store nostore) | nostore, served None, admitted {}, words {'root': ''}, refused renewals [], names [] | {'elements': 0, 'passed': 9, 'damage': 0, 'heads': 0, 'heads_live': 0, 'records': 4, 'keys': 0, 'byhistory': 0, 'fromcopy': 0, 'limited': 0, 'copied_keys': 0}
+   C: entries 1, read 3
+   C entries, step 4, file 1: record auth:a0: model 50, file 27667049; record padd:pf#1: model 50, file 27667049; record ver:rule:root#2: model 50, file 27667049
+   C read, step 3, file 1: model ('ok', 'a0', [('c0', ['pf'])], [('N', 'r'), ('root', 'r')], [], ['pf']); read.py ('ok', 'a0', [], [('N', ''), ('root', 'r')], [], ['pf'])
+   C read, step 4, file 1: model ('nostore', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('root', '')], [], [])
+   C read, step 5, file 2: model ('nostore', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('root', '')], [], [])
+== the same file read as the store as decided reads it, and under this reading: 4 answers, 4 of the same class
+== answers that give more than the file's own records give: 0
+== 2 s

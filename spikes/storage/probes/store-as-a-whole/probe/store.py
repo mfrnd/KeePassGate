@@ -65,12 +65,25 @@ def subject_of(kind, d):
     raise ValueError(kind)
 
 
+PROFS = ('pf', 'pg')    # ADDED (copies extended): the profiles a rule may name
+
+
 def doc(f):
+    if f[0] == 'pp':    # ADDED (copies extended): 'pp:pf=rw,pg=', a profile left out inheriting
+        named = [p for p in PROFS if not any(x.startswith(p + '.') for x in f[2])]
+        return 'pp:' + ','.join('%s=%s' % (p, ''.join(sorted(x[-1] for x in f[1] if x.startswith(p + '.'))))
+                                for p in named)
     return '%s:%s' % (f[0], ''.join(sorted(f[1])))
 
 
 def undoc(s):
     k, w = s.split(':', 1)
+    if k == 'pp':       # ADDED (copies extended)
+        named = dict(part.split('=') for part in w.split(',')) if w else {}
+        if not set(named) <= set(PROFS) or not all(set(x) <= set('rw') for x in named.values()):
+            raise ValueError(s)
+        return ('pp', frozenset(p + '.' + v for p, x in named.items() for v in x),
+                frozenset(p + '.' + v for p in PROFS if p not in named for v in 'rw'))
     if k not in ('const', 'cap') or not set(w) <= set('rw'):
         raise ValueError(s)
     return (k, frozenset(w))
@@ -140,6 +153,10 @@ class Encoder:
                 v = W.EL[vid]
                 items.append({'kind': 'version', 'id': self.u(vid), 'object': self.obj(v.obj),
                               'after': ' '.join(sorted(self.u(x) for x in v.after)), 'doc': doc(v.data)})
+            # ADDED (copies extended): the copies a Seal again acknowledged, by the identifier
+            # each copy's content gives
+            for cid in sorted(e.data.get('ack', ())):
+                items.append({'kind': 'copy', 'id': cid})
             for k, it in enumerate(sorted(items, key=dumps)):
                 extra['KPG.S.%04d' % (k + 1)] = dumps(it)
         else:

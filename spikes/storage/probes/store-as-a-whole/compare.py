@@ -13,6 +13,7 @@ spikes/storage/model/recorded/results-full.txt, but for its last line. Exits 0 w
 ADDED (decided store): with --decided, `out/decided` is held to `recorded-decided` the same way.
 ADDED (two readings): with --rewrite or --copies, `out/rewrite` or `out/copies` to `recorded-rewrite`
 or `recorded-copies`.
+ADDED (copies extended): with --reading-LEVEL, `out/reading-LEVEL` to `recorded-reading-LEVEL`.
 """
 import os
 import re
@@ -40,7 +41,10 @@ def lines(path):
 
 def main():
     global OUT, REC
-    if sys.argv[1:] in (['--decided'], ['--rewrite'], ['--copies']):     # ADDED (two readings): the last two
+    # ADDED (two readings): the last two; ADDED (copies extended): --reading-LEVEL
+    if sys.argv[1:] in (['--decided'], ['--rewrite'], ['--copies']) or sys.argv[1:2] in (
+            ['--reading-nothing'], ['--reading-profile'], ['--reading-verb'], ['--reading-cap'],
+            ['--reading-cap-items']):
         name = sys.argv[1][2:]
         OUT, REC = os.path.join(OUT, name), os.path.join(FAMILY, 'recorded-' + name)
     bad = 0

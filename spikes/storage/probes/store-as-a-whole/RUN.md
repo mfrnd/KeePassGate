@@ -21,6 +21,12 @@ written again at the plugin's next own write, with its record in `recorded-rewri
 identifier, with its record in `recorded-copies\`. The section "The two readings" at the end holds
 both.
 
+**Five further configurations, the wider readings of a copy**, were added on 2026-11-17 for the
+report `papers\ground\measured-copies-extended.md`: `run.ps1 -Reading <name>`, the store as decided
+read with a copy of a record applied as far as it can only take access away, with rules per profile
+in the model and in the probe. Each has a record of its own, `recorded-reading-<name>\`. The section
+"The wider readings of a copy" at the end holds them.
+
 | Path | What it is |
 | --- | --- |
 | `model\crdt_model.py` | a copy of `spikes\storage\model\crdt_model.py` with the switches of section "What was added" below; every new switch at its default is the design's model |
@@ -39,6 +45,7 @@ both.
 | `recorded-decided\` | the output of the run of the store as decided, which `measured-decided-store.md` quotes |
 | `probe\readings.py` | the parts of the two readings of the store as decided (section "The two readings") |
 | `recorded-rewrite\`, `recorded-copies\` | the output of the runs of the two readings, which `measured-two-readings.md` quotes |
+| `recorded-reading-nothing\`, `-profile\`, `-verb\`, `-cap\`, `-cap-items\` | the output of the runs of the wider readings of a copy, which `measured-copies-extended.md` quotes |
 
 **Everything ran twice**, on 2026-11-16, on a machine other measurements were sharing. Every
 output of the second run is the same as the record line for line, apart from what `compare.py`
@@ -674,3 +681,205 @@ Reported, not fixed.
   under the rewrite; a merge of copies under KeePassDX's reading.
 - The reading of copies in the model's searches.
 - Everything the store as decided does not run.
+
+## The wider readings of a copy
+
+Added on 2026-11-17 for `papers\ground\measured-copies-extended.md`. The reading of a copy that
+`-Copies` runs counts a rule version only where it refuses everything, and left open what a copy of
+any other version, of a removed rule, of a retirement where several authorities stand, of the key
+carrier and of a summary entry may do. These configurations define that for every kind of record
+and measure each definition: `run.ps1 -Reading <name>`, each the store as decided as well.
+
+### What they run
+
+**What every reading here has in common.** A copy is an entry whose content passes the check under a
+store key the file holds through its own records, under an identifier its content does not give. A
+revocation, a retirement and a profile removal count from a copy as under `-Copies`, with a
+difference: a retirement read from a copy refuses the authority it names and never leaves another
+authority served; which authority is served is decided by the file's own records. A copied rule
+version or renewal answer never joins its object's versions: it replaces no version of the file's
+own and grants nothing. It is applied as a limit, a document combined with the file's own rule of
+the object word by word, each word given only where both give it. It limits unless a version the
+file reads names it as replaced, or another passing copy does, or the file holds the version itself.
+A rule version or renewal answer the gate writes names, as replaced, the copies of that object's
+versions the file reads. A store key is never taken from a copy, and an admission, a profile
+addition, an authority and a summary entry's presence never count from a copy. Held to the
+completeness check, a copy that takes away what no summary entry in force restates stops the store;
+exempt, it does not.
+
+| `-Reading` | How far a copied rule version or renewal answer limits |
+| --- | --- |
+| `nothing` | only a copy that refuses everything: the reading `-Copies` runs, with the retirement as above |
+| `profile` | per profile the copy names: where the file's own rule of the node names the profile and the copy grants within what that rule grants, the profile gets what the copy grants; where the file's own rule does not name the profile, or the file holds no rule of the node, only a copy that grants the profile nothing limits |
+| `verb` | per profile the copy names: every word the copy does not grant is taken away. A profile the copy does not name is left alone |
+| `cap` | the same, and a profile the copy does not name gets at most what arrives from above: the copy combined with the file's own rule as two versions made apart are |
+| `cap-items` | `cap`, and a copy of a summary entry gives its items: a restated revocation, retirement or removal as that refusal, a restated version as a copy of that version; never its presence |
+
+Each reading writes into `out\reading-<name>\` and is held to `recorded-reading-<name>\` by
+`compare.py --reading-<name>`. The parts ending in `-exempt` are the variant exempt from the
+completeness check; the others are held to it.
+
+| Part | What it is |
+| --- | --- |
+| `b-merges` | the 13 histories of the store as decided and nine further histories, each ending in KeePassLib's five merge methods and four `keepassxc-cli` releases, both directions: 396 cells, and the 90 cells of a user node. The further histories: H14 a version that narrows a profile and widens the other; H15 a rule that grants nothing, then widened for a profile; H16 a narrowing on a node below a wider rule, where the stale copy holds no rule of the node; H17 a rule removed where the node above gives less; H18 a rule removed where the node above gives more; H19 a rule changed to other words, neither within the other; H20 a rule narrowed for a profile at a gate and widened for the other profile at the other gate; H21 a rule that names a profile less, which inherits again below a narrower rule; H22 two authorities standing after both gates recreate apart, and gate 0 keeping its own |
+| `b-dedupe`, `b-deletions`, `b-clear`, `b-dupes`, `b-repair` | the parts of the store as decided, the same cells |
+| `b-random` | `cases.py random 300 7`, its alphabet with five rules per profile for the root and for N and the act `keep` added |
+| `copies` | the part of `-Copies`, with a rule per profile among its kinds and the gate's own write beside a copy; a replaced narrowing and what clears a limit a copy sets (a second import, a Synchronize, the rule set again with and without the gate naming the copies it read, Seal again, the copies deleted by hand); the ten histories whose import ends wider in the store as decided and six of the further histories, each import followed by Seal again where the reading stops the store, an edit of the authority's entry, the gate's write with the decided rewrite (`backup`) and nothing written from a copy, then Synchronize both ways and every copy deleted by hand; and, as the control, the combination of `-Copies` that writes a copied record under its own identifier |
+| `kinds` | three kinds read from a copy or not over the same file: a retirement that settles which authority is served (three files: copy 2 taken after gate 0 keeps its authority, then imported into the copy that holds two standing); a summary entry's items, after a refusal's entry was deleted by hand with no record, and an older summary entry copied before a later widening; a store key taken from a copy of the authority's entry after the entry was deleted and the store started again |
+
+**How a rule per profile is written.** A rule act takes `pf=rw,pg=r`: each profile it names with its
+words, a profile left out inheriting. Two profiles, `pf` and `pg`, and two words, read and write.
+The entry's `doc` string is `pp:pf=rw,pg=r`; the documents of the recorded configurations
+(`const:rw`, `cap:rw`) are written as before and read, where rules per profile are on, as naming
+every profile alike. Words print as before where every profile holds the same (`rw`), and
+otherwise per profile (`pf:rw pg:r`, `-` for none).
+
+**What every part prints at its end.** Each file's answer is also read as the store as decided
+reads the same file; the part counts the answers of the same class and each change of class (`WIDER
+-> as decided` and so on), and marks in the cell an answer that differs with the other answer in
+braces. It also holds each answer to the test of the report's section 1.1: an answer that gives
+more than the file's own records give is marked in the cell and counted. `kinds` reads the same
+file with a switch off and on and prints no such tally.
+
+**Seal again after a stop that a copy caused** (`bridge.seal_copies`): a summary entry over the
+file's own records, as any write of the plugin's own writes, with an item of kind `copy` for each
+counted copy, holding the identifier the copy's content gives. A copy named so in a summary entry
+in force is not held to the completeness check, and later summary entries carry the items on.
+Nothing is written from the copy.
+
+### The command
+
+From the branch root, in Windows PowerShell 5.1, for each of `nothing`, `profile`, `verb`, `cap`
+and `cap-items`:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1 -Reading cap -Parallel 8
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\compare.py --reading-cap
+```
+
+A run of every part of a reading empties its own output and databases (`work\x<letter>h-*` and
+`work\x<letter>e-*`, the letter the first of the reading's name, `i` for `cap-items`) and nothing of
+the other configurations'. Both runs here were made under an ordinary user token, eight parts at
+once, the five readings in turn.
+
+**How long**, in seconds; each cell is run 1, held and exempt, then run 2, held and exempt:
+
+| Part, held and exempt | `nothing` | `profile` | `verb` | `cap` | `cap-items` |
+| --- | --- | --- | --- | --- | --- |
+| `b-merges` | 136 and 131; 182 and 181 | 146 and 140; 187 and 181 | 176 and 176; 181 and 181 | 196 and 196; 182 and 181 | 181 and 176; 191 and 176 |
+| `b-clear` | 101 and 90; 126 and 121 | 101 and 100; 131 and 120 | 116 and 120; 126 and 116 | 126 and 125; 126 and 121 | 121 and 116; 131 and 126 |
+| `b-random` | 106 and 80; 131 and 105 | 106 and 90; 131 and 105 | 116 and 115; 126 and 110 | 131 and 125; 126 and 105 | 126 and 105; 136 and 100 |
+| `b-deletions` | 65 and 65; 81 and 85 | 60 and 65; 91 and 85 | 76 and 75; 86 and 80 | 86 and 80; 81 and 80 | 81 and 80; 90 and 85 |
+| `copies` | 65 and 50; 85 and 70 | 60 and 55; 91 and 70 | 75 and 75; 86 and 70 | 91 and 85; 86 and 70 | 85 and 70; 90 and 70 |
+| `b-repair` | 25 and 15; 30 and 30 | 15 and 25; 30 and 30 | 25 and 30; 30 and 30 | 35 and 30; 30 and 30 | 30 and 25; 35 and 30 |
+| `b-dupes` | 10 and 10; 10 and 15 | 10 and 10; 10 and 10 | 10 and 10; 15 and 10 | 15 and 10; 10 and 10 | 10 and 10; 20 and 10 |
+| `b-dedupe` | 5 and 5; 6 and 5 | 5 and 5; 6 and 5 | 5 and 5; 10 and 5 | 5 and 5; 6 and 5 | 5 and 5; 5 and 5 |
+| `kinds` | 5 and 5; 10 and 10 | 5 and 10; 10 and 10 | 5 and 10; 10 and 10 | 10 and 10; 10 and 10 | 10 and 10; 15 and 10 |
+
+**How the two runs were made.** Each reading ran once with every part before the record: the first
+form of `kinds` paired a client after the store was started again under a new key, and the copied
+model writes such an admission under the first key's name, so the cell was changed to read the
+rules and the names instead; the row "then the rule of N set again" after Seal again was added to
+`copies`; and the control of `copies` was changed to leave a copy of a summary entry out, so that it
+writes the same records under every reading. Then run 1 of every reading, kept as the record, and
+run 2 of every reading. After run 2 the description of H22 that `b-merges` prints and some comments
+were reworded, and `b-merges` of every reading, both variants, ran twice more, the five readings
+at once: the first of those runs is the record of `b-merges`, and the second printed it line for
+line. The times of `b-merges` in the table are those of the two whole runs.
+
+**Compared.** Every output of run 2 is the same as its record line for line, with the masks of
+"Running it": 18 files in each of the five records.
+
+| Figure | Recorded | Second run | Reproduced |
+| --- | --- | --- | --- |
+| `b-merges`, the 396 cells, exempt: as decided, narrower, nothing served, wider | `nothing` 379, 5, 3, 9; `profile` 382, 6, 3, 5; `verb` 383, 7, 3, 3; `cap` and `cap-items` 386, 7, 3, 0 | the same | yes |
+| the same cells as the store as decided reads the same files | 374, 5, 1, 16 | the same | yes |
+| `b-merges`, held: as decided, narrower, the whole database refusing, wider | `nothing` 373, 5, 11, 7; `profile` 373, 5, 15, 3; `verb` 373, 5, 17, 1; `cap` and `cap-items` 373, 4, 19, 0 | the same | yes |
+| the ten wider cells, exempt: closed as decided and as nothing served; still wider | `nothing` 5 and 2; H7, H8, H9. `profile` and `verb` 7 and 2; H8. `cap` and `cap-items` 8 and 2; none | the same | yes |
+| the ten wider cells, held | each a refusal of the whole database, but H9 under `nothing`, wider; H4 refuses in every reading | the same | yes |
+| H14 to H21, exempt: wider | `nothing` H14, H16, H17, H19, H20, H21; `profile` H16, H17, H19, H21; `verb` H17, H21; `cap` and `cap-items` none | the same | yes |
+| cells other than Create new IDs into copy 1 that differ from the store as decided | none, in every reading and variant | the same | yes |
+| `b-deletions`, `b-clear`, `b-repair`, `b-dedupe`, `b-dupes`: answers of the same class as the store as decided | 300 of 300, 252 of 252, 96 of 96, 4 of 4, 15 of 15, in every reading and variant | the same | yes |
+| `b-random`, exempt; held | 1,436 steps, 0 failures of `safety`, 720 of 721 answers of the same class, 1 wider file as decided; 1,435 steps, 719 of 721, 1 as decided, 1 refusing, 1 gate act refused; the same in every reading | the same | yes |
+| `copies`: the rows of copies that are not an import | 131, each as in the store as decided, in every reading and variant | the same | yes |
+| `copies`: a limit that outlasts its replacement | as the report's section 4.2 | the same | yes |
+| `copies`: combined with the decided rewrite, nothing written from a copy | 16 histories in every reading and variant: the authority's entry written again, the key held, the entry present; as decided after 32 of 32 Synchronizes; wider after the copies are deleted by hand in 16 | the same | yes |
+| `copies`: the control | H13 holds no store key under every reading and variant; under `cap`, the other 15 as decided or, H6, nothing served | the same | yes |
+| `kinds`: a retirement that settles | not counted, nothing served; counted, wider (client c1 admitted) and more than the file's own records give | the same | yes |
+| `kinds`: a summary entry's items, four records | not counted, wider in 4; counted, as decided in 4 (exempt), the whole database refusing in 4 (held); an older summary entry copied, as decided in 3 either way | the same | yes |
+| `kinds`: a store key from a copy, after the store is started again | not taken: 1 key, the name pf, the root and N give nothing; taken: 2 keys, pf and pg, the root read, N read and write | the same | yes |
+| the test of the report's section 1.1 | 21,399 answers over the five readings and two variants, none giving more than the file's own records | the same | yes |
+
+### What was added for them
+
+Each line added or changed carries "ADDED (copies extended)". With the new switches off, every part
+prints what it printed before: after the addition, `-Copies` and `-Rewrite` were run again whole,
+`-Decided` in the parts `b-history`, `b-merges`, `b-dedupe`, `b-dupes`, `b-repair`, `b-random`,
+`b-growth`, `b-deletions` and `b-clear`, and the first record in the parts `design-full`,
+`b-dedupe`, `b-dupes`, `b-repair`, `b-merges`, `b-growth`, `store-scenarios` and `store-section6`;
+each came out the same as its record line for line, with the masks of "Running it".
+
+- `crdt_model.py`: `PP`, rules per profile on; `PROFS`; a document `('pp', C, P)`, the letters it
+  grants and the letters it passes on from above, each letter a profile, a dot and a word; `lift`
+  and `gen`, a document of the two older forms as naming every profile alike; `meet`, `limit` and
+  `app` letter by letter where a document of the new form takes part, and as before otherwise;
+  `doc_of`, a rule act's document; `words_text`, the words as text; with `PP`, `fold` gives every
+  word as a profile's letter; the act `keep`, which no alphabet of the model holds: where several
+  authorities stand and none is served, a retirement for each but the first created; `write_head`
+  carries the acknowledged copies of earlier summary entries into the next, and adds nothing where
+  there is none.
+- `store.py`: `doc` and `undoc` for `pp:` documents; a summary entry's items of kind `copy`.
+- `read.py`: `read(dump, history, copies, ext)`: with `ext`, the wider reading (`rules`, `settle`,
+  `heads`, `key`, `among`); `limit_of`, what a copied document may take away at each level;
+  `wider_than`, the test of an answer against the file's own records; the answer also names the
+  objects a copy limits (`limited`) and the copies that pass and are not replaced (`live_copies`);
+  with `PP`, every document read in the form with profiles. With `ext` unset it reads as before.
+- `bridge.py`: `extended(level, variant)`; `rd` passes `ext`; `outcome` reads the same file as the
+  store as decided does and counts the pair in `TRANS` and the failures of the test in `MONO`;
+  `judge`, the oracle's verdict taken out of `outcome` unchanged; `cat` and `moved`; a gate act
+  refused where the reading serves no authority and the act needs an authority; a version the gate
+  writes names the copies read, with a deletion record for each identifier named; `seal_copies`;
+  `recanon` leaves a copy of a summary entry out.
+- `cases.py`: `--reading LEVEL VARIANT`; `PROFILE_HISTORIES` and `PP_SPECS`; the tallies at the
+  end of a part. `readings.py`: `--reading LEVEL VARIANT`; `replaced`, `combine_never` and the part
+  `kinds`; the kind with a rule per profile and the row of the gate's own write in `copies`.
+- `run.ps1`: `-Reading`. `compare.py`: `--reading-<name>`.
+
+### Defects and limits of these configurations
+
+Reported, not fixed.
+
+- **The model holds no reading of copies**, as under `-Copies`: its read differs from `read.py`'s
+  wherever a copy counts, and those differences are listed in the parts of the store as decided.
+- **Two profiles and two words.** The switches of a rule (attachments, protected values) are not
+  written; in this form each would be a further word of its profile. A document's `default` is not
+  written either: a sealed document reads here as naming every other profile with nothing.
+- **The oracle compares what a node gives each profile**, not what a client reaches through the
+  profiles it holds: a word more for a profile no admitted client holds is counted as wider.
+- **A document of the older forms names every profile alike** where rules per profile are on, so
+  the 13 histories of the store as decided keep their meaning, and their cells print as before.
+- **The copied model writes an admission under the first key's name** (`El('rec:...')` takes the
+  default key), also after Create has started a new key. Found while building `kinds`; no part of
+  the recorded configurations pairs after a new key, and `kinds` does not either.
+- **`kinds` holds its third cell to the two listings it prints**: the oracle reads under every key
+  of the lineage and holds two authorities there, so it serves nothing and the class of the answer
+  is empty; the marked line and the listings are the measurement.
+- **Held to the check, a gate act is refused where the reading stops the store**, so a file's
+  history can differ from the history the store as decided would have written; the comparison with
+  the store as decided is of the same file read both ways, not of two runs.
+- **Seal again acknowledges every counted copy at once**, and stands for the plugin's own press; no
+  window was run.
+- **KeePass's copy and paste** is stood in for by Duplicate Entry and a move, and **KeePassLib
+  stands for KeePass's window** in every edit, as in the configurations before.
+
+### Not run in these configurations
+
+- Candidate d of the report on its own (a removal counted only where the removed rule granted more
+  than the nearest rule above it): `cap` applies it word by word.
+- A copy of an authority counted as standing without being served, which could only take away: the
+  retirement beside it does that in every cell here.
+- The readings in the model's searches; KeePassXC releases other than 2.8.0 outside `b-merges`; the
+  slow derivation; a merge under KeePassDX's reading.
+- A copy under a store key the file does not hold, which every reading passes over.
+- Create at a file where a copied retirement leaves nothing served; two KeePass instances.
+- Everything the store as decided and the two readings do not run.
