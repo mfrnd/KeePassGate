@@ -388,6 +388,7 @@ namespace KeePassGate.Store
                     return item;
 
                 case StoreRestated.ById:
+                case StoreRestated.ByStatement:
                     var carried = new Dictionary<string, string>(StringComparer.Ordinal)
                     {
                         { StoreKinds.ItemKind, row.Name },

@@ -156,11 +156,11 @@ byte for byte, at its commit `30a595a7`, which reads the same two files. It keep
 reading's own words for a store's status, and `StoreInForceTests` names the state it holds each
 to. `tests/Shared/StoreRecordVectors.json`, records composed by the measured code, and
 `tests/Shared/StoreWriteVectors.json`, the file after each act of sequences the measured model
-played, are the same script's output with `--records` and `--writes`, byte for byte, at the
-same commit. `StoreRecordTests` composes every record of the first through the product and holds
-the content, the check, the identifier and every string to it; `StoreWriteShapeTests` holds the
-product's writes to the second by shape, since its records hold stand-ins the product does not
-compose.
+played, are the same script's output with `--records` and `--writes`, byte for byte, the first
+at `e002013f` and the second at `30a595a7`. `StoreRecordTests` composes every record of the
+first through the product and holds the content, the check, the identifier and every string to
+it; `StoreWriteShapeTests` holds the product's writes to the second by shape, since its records
+hold stand-ins the product does not compose.
 
 **It writes the store into real databases.** `StoreWritesInRealDatabaseTests` writes through the
 product's own commands into a real tree and holds the entries KeePass keeps, the group a write

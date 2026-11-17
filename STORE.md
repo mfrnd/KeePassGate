@@ -519,7 +519,7 @@ summary entry a deletion record in the file names.
 | `{"kind":"retired",...}` | `authority` | a retirement of that authority |
 | `{"kind":"removed",...}` | `name`, `id` | the removal of a profile name, with the identifier of the removal's record |
 | `{"kind":"version",...}` | `id`, `object`, `after`, `doc` | a standing version of a rule, of a node's switch or of an answer to a renewal, whole, with its text. With a rule for each node and profile there is an item for each profile's standing version at each node (§617) |
-| `{"kind":"withdrawn",...}` | `certificate`, `renewed`, and `from` where the record holds it | a certificate taken away, by its admission key, with what its record holds of renewals (§648) |
+| `{"kind":"withdrawn",...}` | `id`, `certificate`, `renewed`, and `from` where the record holds it | a record that took a certificate away, with that record's identifier and what the record holds, member for member (§648) |
 | `{"kind":"kept",...}` | `id`, `key`, `after` | a keep record, with its identifier, the name of the key not kept and the keep records it replaces (§649) |
 | `{"kind":"format",...}` | `format`, `plugin` | the highest format number and the highest plugin version the store states (§650). Every summary entry holds exactly this single item of the kind |
 
@@ -530,10 +530,10 @@ access away, and the reading unites them (§623).
 
 **What the kinds that were not measured add to it** (proposed; the items are those of the table,
 S23). Each of them takes something away or holds a plugin back, so each is restated: a
-certificate taken away, by an item that names the certificate and the renewals its record names
-(§648); a keep record, by an item for each (§649); and the highest format number and the
-highest plugin version the store states (§650). **An item of a kind the table does not hold
-stops the gate**, as a record of such a kind does (§621).
+certificate taken away, by an item for each record that took it away, which holds that record's
+identifier and what the record holds (§648); a keep record, by an item for each (§649); and the
+highest format number and the highest plugin version the store states (§650). **An item of a
+kind the table does not hold stops the gate**, as a record of such a kind does (§621).
 
 Without the summary entry as a second carrier, 20 of 20,000 histories failed the model's check,
 against 2 with it (evaluation 4.1).
@@ -585,7 +585,7 @@ is left to the pull request that brings its meaning, under the item the last col
 | `retired` | `authority:` and `authority` | `authority`, and `storeKey` where it holds the key | counts | an item `retired` with the same `authority` | nothing |
 | `client` | `client:` and `client` | `client` | out of force | nothing | nothing: §615, §648 |
 | `revoked` | `client:` and `client` | `client` | counts | an item `revoked` with the same `client` | nothing: §615 |
-| `withdrawn` | `certificate:` and `certificate` | `certificate` | counts | an item `withdrawn` with the same `certificate` | nothing: §648 |
+| `withdrawn` | `certificate:` and `certificate` | `certificate`, and `renewed` and `from` where it holds them | counts | an item `withdrawn` whose `id` is the record's identifier, with the same `certificate`, `renewed` and `from` | nothing: §648 |
 | `profile` | `profile:` and `name` | `name`, `after` | out of force | nothing | S21 |
 | `removed` | `profile:` and `name` | `name` | counts | an item `removed` with the same `name`, whose `id` is the record's identifier | nothing |
 | `version` | the `object` | `object`, `after`, `doc` | out of force | an item `version` whose `id` is the record's identifier, where no version in force names the record in `after` | S7, S8 |
@@ -593,20 +593,23 @@ is left to the pull request that brings its meaning, under the item the last col
 | `format` | `format:` and `format` | `format`, `plugin` | counts | the item `format` of a summary entry that states a format number at least the record's | nothing |
 | `head` | `store` | `height`, `after`, and every item | out of force | nothing | nothing |
 
-**The forms of the members.** `id`, `authority`, `client`, `name`, `object` and `doc` are texts
-the core compares and does not look into. `storeKey` and `certificate` are 64 lowercase
-hexadecimal characters, and `key` is the name of a store key (§649). `after` is a list of
-identifiers (§607). `format` and `height` are whole numbers from 1 to 65,535 in decimal, with no
-sign and no leading zero, and `plugin` is three such numbers, each from 0, joined by periods.
+**The forms of the members.** `id`, `authority`, `client`, `name`, `object`, `doc`, `renewed`
+and `from` are texts the core compares and does not look into. `storeKey` and `certificate` are
+64 lowercase hexadecimal characters, and `key` is the name of a store key (§649). `after` is a
+list of identifiers (§607). `format` and `height` are whole numbers from 1 to 65,535 in decimal,
+with no sign and no leading zero, and `plugin` is three such numbers, each from 0, joined by
+periods.
 
 **The members a kind's meaning reads** are kept with the checked form as the members above are
 (§620), and none of them decides whether a version reads as its kind. Each is read where it is
 present, and what a content that lacks such a member, or holds it out of form, comes to is
 decided by the kind's meaning and never by a stop. They are, for `client`: `certificate`,
-`der`, `issuer`, `profiles`, `subject`, `admitted` and `from` (§615, §648); and for `withdrawn`
-and its item: `renewed` and `from` (§648). An authority's document is not among them: it holds
-private keys, so it is read from the version's own content where a gate needs it, and is kept
-nowhere as text (§614, §632).
+`der`, `issuer`, `profiles`, `subject`, `admitted` and `from` (§615, §648). The `renewed` and
+the `from` of `withdrawn` and of its item are read by the core where they are present, since an
+item restates a record only with the same of each (§648); a record or an item that lacks
+either still reads as its kind, and what each means is decided there. An authority's document
+is not among them: it holds private keys, so it is read from the version's own content where a
+gate needs it, and is kept nowhere as text (§614, §632).
 
 **A version reads as its kind** where its content holds every member its row names, in these
 forms. A version that passes its check and does not read as its kind fails, as the measured
@@ -869,8 +872,9 @@ certificate the renewal had just issued.
 **What the record holds** (S29). Its kind is `withdrawn` (S23, §658). It names the certificate
 by its admission key, the SHA-256 over the certificate that `CA.md` §217 defines, in the member
 `certificate`. In the member `renewed` it names the renewals made from that certificate that
-its writer had read (below): the admission key of each renewed certificate, separated by
-single spaces, and empty for none. In the member `from` it holds the admission key of the
+its writer had read (below): the admission key of each renewed certificate, each once, in
+ordinal order, separated by single spaces, and empty for none. In the member `from` it holds
+the admission key of the
 certificate that the certificate taken away was itself renewed from, where its admission named
 such a certificate, and it holds no such member otherwise. The subject in its identifier is
 `certificate:` and the admission key of the certificate taken away, so that a deletion record
@@ -898,11 +902,16 @@ admitted. So:
    in `renewed`, the certificate of each such admission in force. Those are the renewals made
    before the certificate was taken away, in the copy where it was taken away, the certificate
    the client has just renewed to among them.
-3. **An admission renewed from a certificate that was taken away counts only where the record
-   that took it away names it.** An admission renewed from an admission that does not count for
+3. **An admission renewed from a certificate that was taken away counts only where every
+   statement that took that certificate away names it** (S29). A statement is a record of this
+   kind present, an item of this kind in any summary entry present, or a deletion record that
+   tells of such a record and is answered for by no record present and by no item (§623).
+   Where several gates took the same certificate away apart, each having read other renewals,
+   a renewal counts only where each of their records names it. A deletion record that stands
+   for a record whose content is nowhere names none, so beside it no admission renewed from
+   that certificate counts. An admission renewed from an admission that does not count for
    this reason does not count either, so a certificate renewed onward from it is refused as
-   well. Where only a deletion record tells that a certificate was taken away, no admission
-   renewed from it counts, since a deletion record names none.
+   well.
 4. **The chain is followed through the records that took certificates away** (S29). Whether an
    admission counts is asked of the certificate it was renewed from, and of the certificate
    that certificate was renewed from in turn. For a certificate whose admission is in force,
@@ -924,6 +933,19 @@ between was itself a renewal that does not count. With `from`, the reading follo
 back to the certificate first taken away, finds the certificate between unnamed there, and
 refuses everything renewed from it.
 
+**Why every statement has to name a renewal, and not any of them** (S29; reasoning, not run).
+A record that names a renewal lets that renewal count, so among records made apart the reading
+takes what all of them allow, as everywhere in the store (§610). Were a single record that
+names it enough, the third rule could be walked round with a step more. A certificate that
+somebody took is taken away at a gate. Its holder renews it at another gate whose copy is from
+before, and then gives the old certificate up at that gate. The record written there names the
+holder's renewal, in good faith, and once the copies meet that renewal would count by it. With
+every statement asked, the record of the first gate does not name that renewal, and it is
+refused. The store cannot tell that sequence from an owner who renews at a gate while the old
+certificate is taken away at another gate that has not read the renewal, so it refuses both,
+and that client pairs again. It rules out the renewals that any of the records names, which
+admits whoever renewed last at a gate whose copy was behind.
+
 **Why an admission whose certificate of origin is nowhere does not count.** Every deletion of
 an admission by the plugin comes with a record that covers what was renewed from it: a
 revocation and a retirement refuse the renewal as well, and a certificate taken away names
@@ -940,22 +962,44 @@ certificate was taken away, in a copy the writer had read, stays admitted, since
 names it. Somebody who took a certificate and renewed it before its owner gave it up holds a
 certificate that works. Only the operator stops that, by taking that certificate away as well or
 by revoking the client. The certificate a client has just renewed to is never refused by the
-old certificate being given up, since the record names it, and no answer turns on the order in
-which entries are read. *Held by* `StoreAdmissionsTests`: a renewal that the record names is
+old certificate being given up at a gate whose copy holds the renewal, since the record
+written there names it. What refuses it is a further statement about the old certificate,
+made at a gate that had not read the renewal, which is the sequence the third rule refuses.
+No answer turns on the order in which entries are read, since what every statement names is
+the same in every order. *Held by* `StoreAdmissionsTests`: a renewal that the record names is
 admitted and a renewal it does not name is not; a renewal onward from a renewal that does not
 count is not admitted, also once the certificate between was given up; a renewal from a
 certificate that only a deletion record tells of is not admitted; an admission whose
 certificate of origin is nowhere is not admitted; records for a certificate that hold
-different certificates of origin admit only where each passes; and a chain that leads back
-into itself admits nobody.
+different certificates of origin admit only where each passes; where several records took a
+certificate away, a renewal that each of them names is admitted and a renewal that any of them
+does not name is not, in every order of entries; a deletion record of a record that an item
+restates changes nothing, and a deletion record that neither a record nor an item answers for
+refuses every renewal from that certificate; and a chain that leads back into itself admits
+nobody.
 
-**What restates it.** The summary entry holds an item for each certificate taken away, which
-names the certificate and holds the same `renewed` and `from` (§611). Where several records or
-items take the same certificate away and differ in what they hold, each is restated by an item
-of its own, so that nothing a writer stated is merged into another writer's statement, and
-those that hold the same are restated once. A certificate that only a deletion record tells of
-is restated by an item with an empty `renewed`. A record of this kind that no summary entry
-present restates stops the store as any decision without its summary does (§624).
+**What restates it** (S29). Each record that takes a certificate away is restated by an item
+of its own (§611), which holds the record's identifier in `id`, the certificate, and the
+record's `renewed` and `from` as the record holds them. A record is restated only by an item
+that holds its identifier and the same `certificate`, `renewed` and `from`, text for text, a
+member that is absent being equal only to a member that is absent. So records that took the
+same certificate away and differ in what they hold are each restated apart, and nothing a
+writer stated is merged into another writer's statement. It rules out an item that restates by
+the certificate alone: beside such an item, a record that names fewer renewals, or holds a
+`from` that the item lacks, could be lost with nothing to show it, and what it refused would
+count again. The identifier is what lets a deletion record of a record that an item restates
+change nothing (§623). A write carries on every item of this kind that a summary entry present
+holds, as it is and once; adds an item for each record present that none restates, the records
+of its own act among them; and writes, for a deletion record that stands for a record whose
+content is nowhere, an item with that deletion record's identifier as `id`, the certificate,
+and an empty `renewed`. An item of this kind that holds no `id` is no item of its kind, and
+the summary entry that holds it does not read as a summary entry (§658). A record of this kind
+that no summary entry present restates stops the store as any decision without its summary
+does (§624). *Held by* `StoreInForceTests`: records that took a certificate away and differ in
+`renewed`, each with its item, leave the store whole, and a record whose item differs from it
+in `renewed`, in `from` or in `id` stops it; and by `StoreWriteTests`: a write carries each
+such item as it is, writes an item with an empty `renewed` for a deletion record that nothing
+answers for, and none for a deletion record of a record that an item restates.
 
 **Beside a revocation by key.** The two are independent. A certificate taken away is that
 certificate refused and nothing more: the client's other certificates keep working, and a
@@ -1336,9 +1380,14 @@ with the target at a lock and a close. It answers the state of §656 and the gua
 tags (§633). What is in force (§623) is `StoreInForce`, worked out for a store that is whole or
 stopped: every record under the store key with whether a deletion record names it and whether
 it counts by its history, the summary entries present, in force and told of by deletion records,
-what the retirements, the revocations, the removals and the certificates taken away take away
-by record, by item and by deletion record (steps 1, 2, 4 and 7), the highest format number and
-plugin version (step 6), the authorities that stand, and the room of §627. The authorities
+what the retirements, the revocations and the removals take away by record, by item and by
+deletion record, and the statements that took certificates away by record, by item and by a
+deletion record of an admission key a record or an item of that kind names (steps 1, 2, 4 and
+7), the highest format number and plugin version (step 6), the authorities that stand, and the
+room of §627. A deletion record tells of a certificate taken away by the admission keys an
+admission names, its `certificate` and its `from`, only once the admissions are read, which
+comes with the pull request that keeps the admissions in the store: until then such a deletion
+record tells of nothing but what a record or an item of that kind names. The authorities
 that stand under each key that stands are worked out for every state but no key, as a word is
 answered under them (§656). What each kind means for access beyond that (steps 3 and 5) is
 built by the pull requests that bring each kind's meaning, the authority's among them (§614).
@@ -1673,9 +1722,16 @@ taken away, a keep record and a version record they are proposed.
    of a revocation, a retirement or a removal when its identifier begins with that kind's tag
    under the store key and carries the subject hash of a client key, an authority or a name the
    file knows (§609). So deleting a revocation for good, in any program that leaves a deletion
-   record, changes nothing. A certificate taken away and a keep record are united the same
-   way, a keep record under the rules of §649. A deletion record that tells of a certificate
-   taken away names no renewal, so no renewal from that certificate counts by it (§648).
+   record, changes nothing. A certificate taken away is united the same way: it is refused where
+   a record, an item of any summary entry present or a deletion record states that it was taken
+   away. A deletion record tells of a certificate taken away when its identifier begins with that
+   kind's tag under the store key and carries the subject hash of `certificate:` and an admission
+   key the file knows. The file knows an admission key from the `certificate` and the `from` of
+   an admission, and from the `certificate`, the `from` and each key in `renewed` of a record or
+   an item that took a certificate away. Such a deletion record whose identifier is that of a
+   record present, or the `id` of an item, adds nothing to what that record or item states. Any
+   other stands for a record whose content is nowhere, and is a statement of its own that names
+   no renewal (§648). A keep record is united under the rules of §649.
 3. **The versions of an object** are the records of kind `version` in force and the versions
    that the summary entries in force restate. Those that no version names stand, and the
    object's value is what all standing versions allow (§617). An object refuses as §617 states.
@@ -1882,8 +1938,10 @@ log names what was not written and why.
 store is whole. It works out the summary entry that a write adding nothing would write: its
 `after`, which names every summary entry present, everything those name and every summary
 entry that a deletion record tells of, and its items, which restate what is in force: the item
-`format`, an item for each value that a record, an item or a deletion record takes away, and an
-item for each version and each keep record that a summary entry carries (§611, §623). The
+`format`; an item for each client key revoked and each authority retired, by a record, an item
+or a deletion record; an item for each removal of a name and for each statement that took a
+certificate away, each by its identifier (§616, §648); and an item for each version and each
+keep record that a summary entry carries (§611, §623). The
 store has **no room** where the content that holds that `after`, beside the summary entry's
 height and nonce, is longer than the plugin's ceiling for a string, or where those items leave
 no item name for a further item (§643). The content is held to the ceiling, and not the `after`
@@ -3433,8 +3491,9 @@ fit. In the whole-rule form a node is a single item whatever its profiles. This 
 sentence that stood here, by which a database with 2,000 ruled nodes of four rows each did not
 fit: it does not fit only where the switch is set at every node.
 
-**What the kinds that were not measured add** (reasoning; in no measured size). A certificate
-taken away leaves a record and an item in every later summary entry (§648). The reference client
+**What the kinds that were not measured add** (reasoning; in no measured size). Each record that
+takes a certificate away leaves an item in every later summary entry (§648), so a certificate
+that several gates took away apart leaves an item for each of them. The reference client
 gives the old certificate up after every renewal, so every renewal adds an item, for good. A
 summary entry has names for 9,999 items (S13): fifty clients that renew every week add 2,600
 items a year and reach that in under four years, and a single client that renews every day adds
@@ -3603,8 +3662,9 @@ that finds a measurement against a decision reports it and does not design aroun
 16. **A single certificate taken away** (§648), of which nothing was run: a renewal and the old
     certificate given up at a gate while another gate holds a copy from before; a renewal made
     from that certificate at the other gate in the meantime, and a renewal onward from that,
-    also once the certificate between was given up at that gate; the operator's single
-    removal; the record deleted and edited by hand; an admission whose parent admission is
+    also once the certificate between was given up at that gate; the same certificate taken
+    away at two gates that had read other renewals; the operator's single removal; the record
+    deleted and edited by hand; an admission whose parent admission is
     lost; a revocation of the same client beside it; and each merge. Owed by the pull request
     that builds §648. *Could overturn*: the rule about renewals (S29).
 17. **Create refused on a stopped store** (§624), which the measured code does not do. Owed by
@@ -3874,9 +3934,10 @@ and the admissions in the store, and is fixed in the same manner.
   where the group of an earlier store is still in the tree, §606 and §632. What is left is
   below.
 - **S29. A renewal from a certificate that was taken away.** Fixed for the first writes: the
-  members `from` and `renewed`, the chain followed through the records that took certificates
-  away, and an admission whose certificate of origin is neither admitted nor taken away not
-  counting, §648.
+  members `from` and `renewed`, an item for each record with that record's identifier, a
+  renewal counting only where every statement that took its certificate of origin away names
+  it, the chain followed through the records that took certificates away, and an admission
+  whose certificate of origin is neither admitted nor taken away not counting, §648.
 - **S31. How many bytes of the check the identifier holds.** Fixed for the core: six, as
   measured, with what that does and does not bind, §609.
 - **S32. What the grant editor writes while a rule still shows several rows.** A rule is a

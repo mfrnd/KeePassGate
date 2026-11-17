@@ -111,6 +111,35 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Each_record_that_took_a_certificate_away_counts_an_item_of_its_own()
+        {
+            // `STORE.md` §627 and §648: two records that took the same certificate away and differ
+            // in what they hold are two items, so this store is at the ceiling.
+            var store = new ComposedStore(One);
+            store.Drop(store.Head);
+            var first = store.Add(StoreComposer.Record(
+                One, "withdrawn", "certificate:" + Hex('d'), StoreComposer.Content(("certificate", Hex('d')), ("renewed", Hex('1')))));
+            var second = store.Add(StoreComposer.Record(
+                One, "withdrawn", "certificate:" + Hex('d'), StoreComposer.Content(("certificate", Hex('d')), ("renewed", string.Empty))));
+            store.Add(Head(
+                One, 1, string.Empty,
+                Enumerable.Range(0, StoreFormat.MaxItems - 3)
+                    .Select(index => StoreComposer.Item(("client", index.ToString("x64", CultureInfo.InvariantCulture)), ("kind", "revoked")))
+                    .Concat(new[]
+                    {
+                        StoreComposer.Item(("certificate", Hex('d')), ("id", first.Hex), ("kind", "withdrawn"), ("renewed", Hex('1'))),
+                        StoreComposer.Item(("certificate", Hex('d')), ("id", second.Hex), ("kind", "withdrawn"), ("renewed", string.Empty)),
+                    })
+                    .ToArray()));
+
+            var reading = store.Read();
+
+            Assert.That(reading.InForce, Is.Not.Null, reading.Reason);
+            Assert.That(reading.InForce.Room.Items, Is.EqualTo(StoreFormat.MaxItems));
+            Assert.That(reading.InForce.Room.HasRoom, Is.False);
+        }
+
+        [Test]
         public void A_store_with_no_room_and_any_other_reason_to_stop_is_stopped_for_the_other()
         {
             var store = new ComposedStore(One);

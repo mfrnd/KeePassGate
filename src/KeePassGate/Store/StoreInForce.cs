@@ -21,7 +21,15 @@ namespace KeePassGate.Store
     /// items of every summary entry present, in force or not, and the deletion records that tell
     /// of a record of a subject the file knows. **A deletion record tells only under its own
     /// kind's tag**, so the deletion record of an authority, which shares a subject with its
-    /// retirement, retires nothing.
+    /// retirement, retires nothing. For a certificate taken away the file knows an admission key
+    /// from the records and the items of that kind alone, their `certificate`, `from` and
+    /// `renewed`: an admission's own `certificate` and `from` are read with the admissions, which
+    /// this build does not read, `STORE.md` §620.
+    ///
+    /// **A certificate taken away is a set of statements**, `STORE.md` §648: each record of the
+    /// kind by its identifier, each item of the kind as it is, and each deletion record of the
+    /// kind that no record present and no item answers for, as a record whose content is
+    /// nowhere, with no renewal. Each statement is restated by an item of its own.
     ///
     /// **No step follows a list**, as in the judgment: `after` is read as the identifiers it
     /// names, and nothing is looked up through them.
@@ -52,6 +60,17 @@ namespace KeePassGate.Store
         /// <summary>The keep records a summary entry carries, by identifier, each with its item's members.</summary>
         private readonly Dictionary<string, IReadOnlyDictionary<string, string>> _kept =
             new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// The statements that took certificates away, each whole, `STORE.md` §648: what the
+        /// room counts and a write restates.
+        /// </summary>
+        private readonly HashSet<(string Id, string Certificate, string Renewed, string From)> _statements =
+            new HashSet<(string Id, string Certificate, string Renewed, string From)>();
+
+        /// <summary>The statements the items of the summary entries present make: what restates a record.</summary>
+        private readonly HashSet<(string Id, string Certificate, string Renewed, string From)> _itemStatements =
+            new HashSet<(string Id, string Certificate, string Renewed, string From)>();
 
         private HashSet<string> _after = new HashSet<string>(StringComparer.Ordinal);
 
@@ -185,6 +204,15 @@ namespace KeePassGate.Store
 
                     case StoreRestated.ByFormat:
                         if (ItemFormat < record.Form.Number)
+                        {
+                            return record;
+                        }
+
+                        break;
+
+                    case StoreRestated.ByStatement:
+                        // Only by an item of its identifier holding the same of every member.
+                        if (!_itemStatements.Contains(StatementOf(record.Hex, record.Form.Members)))
                         {
                             return record;
                         }
@@ -356,7 +384,7 @@ namespace KeePassGate.Store
                     }
                 }
 
-                foreach (var told in ToldValues(key, byKind[row.Name], row))
+                foreach (var told in ToldValues(key, byKind[row.Name], row, () => KnownValues(row)))
                 {
                     values.Add(told.Value);
                     if (removal)
@@ -367,37 +395,125 @@ namespace KeePassGate.Store
 
                 _taken[row.Name] = values;
             }
+
+            TakeStatements(key, byKind);
         }
 
         /// <summary>
-        /// The values that deletion records of a kind tell of, each with the deletion record: by
-        /// the subject hash of every value of its subject that the file knows, from the records
-        /// of every kind about the same subject and from the items that restate them.
+        /// The statements that took certificates away, `STORE.md` §623 step 2 and §648, and the
+        /// certificates they take away.
         /// </summary>
-        private IEnumerable<(string Value, string Identifier)> ToldValues(FoundKey key, IReadOnlyList<string> identifiers, StoreKind row)
+        private void TakeStatements(FoundKey key, IReadOnlyDictionary<string, List<string>> byKind)
         {
-            if (identifiers.Count == 0)
+            var row = StoreKinds.Find(StoreKinds.Withdrawn);
+            var answered = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var item in Items.Where(item => item.Kind == row.Name))
             {
-                yield break;
+                var statement = StatementOf(item.Member(StoreKinds.Id), item.Members);
+                _itemStatements.Add(statement);
+                _statements.Add(statement);
+                answered.Add(statement.Id);
             }
 
-            var known = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var record in Records.Where(record => record.Is(row.Name)))
+            {
+                _statements.Add(StatementOf(record.Hex, record.Form.Members));
+                answered.Add(record.Hex);
+            }
+
+            // A deletion record that no record present and no item answers for stands for a
+            // record whose content is nowhere: a statement of its own, which names no renewal.
+            foreach (var told in ToldValues(key, byKind[row.Name], row, () => KnownAdmissionKeys(row))
+                         .Where(told => !answered.Contains(told.Identifier)))
+            {
+                _statements.Add((told.Identifier, told.Value, string.Empty, null));
+            }
+
+            _taken[row.Name] = new HashSet<string>(_statements.Select(statement => statement.Certificate), StringComparer.Ordinal);
+        }
+
+        /// <summary>A statement of what a record or an item holds, a member absent kept as null.</summary>
+        private static (string Id, string Certificate, string Renewed, string From) StatementOf(
+            string id, IReadOnlyDictionary<string, string> members)
+        {
+            string certificate;
+            string renewed;
+            string from;
+            members.TryGetValue(StoreKinds.Certificate, out certificate);
+            members.TryGetValue(StoreKinds.Renewed, out renewed);
+            members.TryGetValue(StoreKinds.From, out from);
+            return (id, certificate, renewed, from);
+        }
+
+        /// <summary>
+        /// The values of a subject the file knows for a kind restated by a member: from the
+        /// records of every kind about the same subject and from the items that restate them.
+        /// </summary>
+        private IEnumerable<string> KnownValues(StoreKind row)
+        {
             foreach (var about in StoreKinds.All.Where(about => about.SubjectPrefix == row.SubjectPrefix && about.SubjectMember != null))
             {
                 foreach (var record in Records.Where(record => record.Is(about.Name)))
                 {
-                    known.Add(record.Form.Member(about.SubjectMember));
+                    yield return record.Form.Member(about.SubjectMember);
                 }
 
                 if (about.Restated == StoreRestated.BySameMember)
                 {
                     foreach (var item in Items.Where(item => item.Kind == about.Name))
                     {
-                        known.Add(item.Member(about.RestatedBy));
+                        yield return item.Member(about.RestatedBy);
                     }
                 }
             }
+        }
 
+        /// <summary>
+        /// The admission keys the file knows for a certificate taken away, `STORE.md` §623 step
+        /// 2: the `certificate`, the `from` and each key in `renewed` of every record and item of
+        /// the kind, a text that is no admission key adding none.
+        /// </summary>
+        private IEnumerable<string> KnownAdmissionKeys(StoreKind row)
+        {
+            var stated = Records.Where(record => record.Is(row.Name)).Select(record => record.Form.Members)
+                .Concat(Items.Where(item => item.Kind == row.Name).Select(item => item.Members));
+            foreach (var members in stated)
+            {
+                string value;
+                if (members.TryGetValue(StoreKinds.Certificate, out value))
+                {
+                    yield return value;
+                }
+
+                if (members.TryGetValue(StoreKinds.From, out value) && StoreChecked.InForm(value, StoreForm.Hex))
+                {
+                    yield return value;
+                }
+
+                if (members.TryGetValue(StoreKinds.Renewed, out value))
+                {
+                    foreach (var renewal in value.Split(' ').Where(renewal => StoreChecked.InForm(renewal, StoreForm.Hex)))
+                    {
+                        yield return renewal;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// The values that deletion records of a kind tell of, each with the deletion record: by
+        /// the subject hash of every value of its subject that the file knows.
+        /// </summary>
+        /// <param name="knownValues">The values the file knows, asked only where a deletion record carries the tag.</param>
+        private static IEnumerable<(string Value, string Identifier)> ToldValues(
+            FoundKey key, IReadOnlyList<string> identifiers, StoreKind row, Func<IEnumerable<string>> knownValues)
+        {
+            if (identifiers.Count == 0)
+            {
+                yield break;
+            }
+
+            var known = new HashSet<string>(knownValues(), StringComparer.Ordinal);
             var hashes = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             foreach (var value in known)
             {
@@ -504,6 +620,7 @@ namespace KeePassGate.Store
             }
 
             items += _removals.Count;
+            items += _statements.Count;
 
             // A version and a keep record are carried whole, each by its identifier, with the
             // members its item holds: from an item where a summary entry holds an item, and from its
@@ -583,6 +700,27 @@ namespace KeePassGate.Store
                     { StoreKinds.NameMember, removal.Name },
                     { StoreKinds.Id, removal.Id },
                 }));
+            }
+
+            // A statement with every member it holds and none it lacks, `STORE.md` §648.
+            foreach (var statement in _statements)
+            {
+                var members = new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    { StoreKinds.Id, statement.Id },
+                    { StoreKinds.Certificate, statement.Certificate },
+                };
+                if (statement.Renewed != null)
+                {
+                    members[StoreKinds.Renewed] = statement.Renewed;
+                }
+
+                if (statement.From != null)
+                {
+                    members[StoreKinds.From] = statement.From;
+                }
+
+                items.Add(Item(StoreKinds.Withdrawn, members));
             }
 
             items.AddRange(_versions.Select(version => Item(StoreKinds.Version, version.Value)));

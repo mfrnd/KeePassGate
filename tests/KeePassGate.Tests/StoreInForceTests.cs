@@ -227,9 +227,127 @@ namespace KeePassGate.Tests
         {
             var store = new ComposedStore(One);
             store.Decision("withdrawn");
-            store.Restate(StoreComposer.Item(("certificate", Hex('e')), ("kind", "withdrawn")));
+            store.Restate(StoreComposer.Item(("certificate", Hex('e')), ("id", new string('6', 32)), ("kind", "withdrawn"), ("renewed", string.Empty)));
 
             Assert.That(store.Read().InForce.Taken("withdrawn"), Is.EquivalentTo(new[] { Hex('d'), Hex('e') }));
+        }
+
+        [Test]
+        public void Records_that_took_a_certificate_away_and_differ_in_what_they_hold_are_each_restated_apart()
+        {
+            // `STORE.md` §648: each record is restated by an item of its own, with its identifier.
+            var store = new ComposedStore(One);
+            var first = Withdrawal(store, 'd', Hex('1'));
+            var second = Withdrawal(store, 'd', string.Empty);
+            store.RestateAll(new[] { StatementOf(first.Hex, 'd', Hex('1')), StatementOf(second.Hex, 'd', string.Empty) });
+
+            var reading = store.Read();
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(reading.InForce.Taken("withdrawn"), Is.EquivalentTo(new[] { Hex('d') }));
+            Assert.That(reading.InForce.Room.Items, Is.EqualTo(3), "the item format and a statement for each record");
+        }
+
+        [TestCase("renewed")]
+        [TestCase("from")]
+        [TestCase("id")]
+        public void A_record_whose_item_differs_from_it_in_a_member_stops_the_store(string member)
+        {
+            var store = new ComposedStore(One);
+            var record = Withdrawal(store, 'd', Hex('1'), Hex('2'));
+            store.Restate(StatementOf(
+                member == "id" ? new string('6', 32) : record.Hex,
+                'd',
+                member == "renewed" ? string.Empty : Hex('1'),
+                member == "from" ? null : Hex('2')));
+
+            Assert.That(store.Read().State, Is.EqualTo(StoreState.Stopped));
+        }
+
+        [Test]
+        public void A_deletion_record_of_a_record_an_item_restates_adds_no_statement()
+        {
+            var store = new ComposedStore(One);
+            var record = Withdrawal(store, 'd', string.Empty);
+            store.Restate(StatementOf(record.Hex, 'd', string.Empty));
+            store.Drop(record);
+            store.Delete(record);
+
+            var reading = store.Read();
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(reading.InForce.Room.Items, Is.EqualTo(2), "the item format and the item that restates the record");
+        }
+
+        [Test]
+        public void A_deletion_record_of_a_record_whose_content_is_nowhere_is_a_statement_of_its_own_with_no_renewal()
+        {
+            // The admission key is known from the `renewed` of an item of the kind: `STORE.md`
+            // §623 step 2.
+            var store = new ComposedStore(One);
+            store.Restate(StatementOf(new string('6', 32), 'd', Hex('e')));
+            var told = Told(One, "withdrawn", "certificate:" + Hex('e'));
+            store.Deleted.Add(told);
+
+            var reading = store.Read();
+
+            Assert.That(reading.InForce.Taken("withdrawn"), Is.EquivalentTo(new[] { Hex('d'), Hex('e') }));
+            var restated = reading.InForce.Restated().Where(item => item.Kind == "withdrawn").ToList();
+            Assert.That(restated, Has.Count.EqualTo(2));
+            var lost = restated.Single(item => item.Member("certificate") == Hex('e'));
+            Assert.That(lost.Member("id"), Is.EqualTo(KeePassGate.Hex.Of(told)));
+            Assert.That(lost.Member("renewed"), Is.Empty);
+            Assert.That(lost.Members.ContainsKey("from"), Is.False);
+        }
+
+        [Test]
+        public void A_statement_is_restated_with_every_member_it_holds_and_none_it_lacks()
+        {
+            var store = new ComposedStore(One);
+            var record = Withdrawal(store, 'd', Hex('1'), Hex('2'));
+            store.Restate(StatementOf(record.Hex, 'd', Hex('1'), Hex('2')));
+
+            var item = store.Read().InForce.Restated().Single(found => found.Kind == "withdrawn");
+
+            Assert.That(item.Members, Is.EquivalentTo(new Dictionary<string, string>
+            {
+                { "id", record.Hex },
+                { "certificate", Hex('d') },
+                { "renewed", Hex('1') },
+                { "from", Hex('2') },
+            }));
+        }
+
+        [Test]
+        public void An_item_of_a_certificate_taken_away_without_an_id_is_no_item_of_its_kind()
+        {
+            var store = new ComposedStore(One);
+            store.Restate(StoreComposer.Item(("certificate", Hex('d')), ("kind", "withdrawn"), ("renewed", string.Empty)));
+
+            Assert.That(store.Read().State, Is.Not.EqualTo(StoreState.Whole), "the summary entry does not read as its kind");
+        }
+
+        private static StoreComposer.Composed Withdrawal(ComposedStore store, char certificate, string renewed, string from = null)
+        {
+            var members = new List<(string Name, string Value)> { ("certificate", Hex(certificate)), ("renewed", renewed) };
+            if (from != null)
+            {
+                members.Add(("from", from));
+            }
+
+            return store.Add(StoreComposer.Record(
+                One, "withdrawn", "certificate:" + Hex(certificate), StoreComposer.Content(members.ToArray())));
+        }
+
+        private static string StatementOf(string id, char certificate, string renewed, string from = null)
+        {
+            var members = new List<(string Name, string Value)> { ("certificate", Hex(certificate)), ("id", id), ("kind", "withdrawn"), ("renewed", renewed) };
+            if (from != null)
+            {
+                members.Add(("from", from));
+            }
+
+            return StoreComposer.Item(members.ToArray());
         }
 
         [Test]

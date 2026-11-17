@@ -217,7 +217,7 @@ namespace KeePassGate.Tests
                 KeptItem(kept, Three),
                 StoreComposer.Item(("id", removal), ("kind", "removed"), ("name", "reader")),
                 StoreComposer.Item(("client", Hex('c')), ("kind", "revoked")),
-                StoreComposer.Item(("certificate", Hex('d')), ("kind", "withdrawn"))));
+                Statement(new string('6', 32), Hex('d'), Hex('1'), Hex('2'))));
             Assume.That(store.Read().State, Is.EqualTo(StoreState.Whole), store.Read().Reason);
 
             var write = StoreWrite.Plan(store.Read(), new[] { Retire(One, 'a') }, Plugin);
@@ -227,7 +227,45 @@ namespace KeePassGate.Tests
             Assert.That(items, Does.Contain(KeptItem(kept, Three)));
             Assert.That(items, Does.Contain(StoreComposer.Item(("id", removal), ("kind", "removed"), ("name", "reader"))));
             Assert.That(items, Does.Contain(StoreComposer.Item(("client", Hex('c')), ("kind", "revoked"))));
-            Assert.That(items, Does.Contain(StoreComposer.Item(("certificate", Hex('d')), ("kind", "withdrawn"))));
+            Assert.That(items, Does.Contain(Statement(new string('6', 32), Hex('d'), Hex('1'), Hex('2'))), "as it is, every member with it");
+        }
+
+        [Test]
+        public void A_deletion_record_nothing_answers_for_is_restated_with_no_renewal_and_a_record_an_item_restates_is_not_again()
+        {
+            // `STORE.md` §648: an item of the deletion record's identifier for a record whose
+            // content is nowhere, and nothing more for a deletion record of a record restated.
+            var store = new ComposedStore(One);
+            store.Drop(store.Head);
+            var record = store.Add(StoreComposer.Record(
+                One, "withdrawn", "certificate:" + Hex('d'), StoreComposer.Content(("certificate", Hex('d')), ("renewed", Hex('e')))));
+            store.Add(Head(One, 2, string.Empty, Statement(record.Hex, Hex('d'), Hex('e'), null)));
+            store.Drop(record);
+            store.Delete(record);
+            var lost = StoreComposer.IdentifierOf(One, "withdrawn", "certificate:" + Hex('e'), 0, new string('5', 64));
+            store.Deleted.Add(lost);
+            Assume.That(store.Read().State, Is.EqualTo(StoreState.Whole), store.Read().Reason);
+
+            var items = Items(SummaryOf(StoreWrite.Plan(store.Read(), new[] { Retire(One, 'a') }, Plugin)))
+                .Where(item => item.Contains("\"withdrawn\""))
+                .ToList();
+
+            Assert.That(items, Is.EquivalentTo(new[]
+            {
+                Statement(record.Hex, Hex('d'), Hex('e'), null),
+                Statement(KeePassGate.Hex.Of(lost), Hex('e'), string.Empty, null),
+            }));
+        }
+
+        private static string Statement(string id, string certificate, string renewed, string from)
+        {
+            var members = new List<(string Name, string Value)> { ("certificate", certificate), ("id", id), ("kind", "withdrawn"), ("renewed", renewed) };
+            if (from != null)
+            {
+                members.Add(("from", from));
+            }
+
+            return StoreComposer.Item(members.ToArray());
         }
 
         [Test]
