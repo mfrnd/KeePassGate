@@ -1907,7 +1907,12 @@ a place of a kind sees it, or must add no exception of its own:
 taken back in a `finally`, `StoreEntries.Apply`, so what was thrown goes on untouched to the
 writer's own filters, and every write is made inside a place of a kind already listed: the settings
 dialog's OK in the handler of that dialog's close, and keeping an authority in the chooser's
-handlers.
+handlers. **That close handler never runs inside a save of the plugin's own.** A modal dialog's
+close is raised by the dialog's own loop and never by a pump running under it, so an OK pressed
+while a pairing's save pumps under the settings dialog is handled inside the pump, and the close
+comes once the save has returned: the writer's guard against a write inside a save does not
+meet the tab's OK there, `STORE.md` §627, and no place has to catch a refusal of it. Held by
+`ModalDialogCloseTests` and `TabOkBesideOwnSaveTests`.
 
 CodeQL reports each of these places but the places that throw again from inside the catch and
 `WindowHandlers`, which catches through a filter: its query accepts both. Each place it reports

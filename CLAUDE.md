@@ -251,7 +251,10 @@ designing around them.
   knows; `AuthorityPanelFactory` applies on `FormClosed` with `DialogResult.OK` and discards
   otherwise. KeePass's own `FormClosed` handler, subscribed when the dialog was made, has taken the
   page away by then, and that costs nothing: what is applied is the buffer the panel wrote into,
-  which outlives it, and not the panel.
+  which outlives it, and not the panel. **And that close never comes inside a save of the
+  plugin's own**, a pairing's for example, pumping under the dialog: the dialog's own loop raises
+  it once the save has returned, so the writer's guard against a write inside a save does not
+  refuse the tab's OK there. The measured fact is below, and `STORE.md` §627.
 
   **Replayed key by key, never wholesale**, because a snapshot written back would be this plugin
   doing to itself exactly what `GroupForm` does to it: a pairing that lands while the dialog is open
@@ -1016,6 +1019,18 @@ KeePass through UI automation cannot unload. Run them from **Windows PowerShell*
 - **`Button.PerformClick()` does nothing on a form that was never shown**, silently. What a button
   does is public on the form, as it is on the tab, so tests reach the decision rather than the
   control.
+- **A modal dialog's close is raised by the dialog's own loop, never by a pump running under
+  it.** A press on OK that arrives while `Application.DoEvents` pumps under a modal dialog is
+  handled inside that pump, as the button's click, and `FormClosing` and `FormClosed` are raised
+  only once the pump has returned to the dialog's loop. A save of the plugin's own pumps under
+  the settings dialog while a pairing lands, so what the KPG tab does at that dialog's OK always
+  runs after such a save, and the writer's guard against a write inside a save never meets it.
+  Read off the code alone, such an OK looked refused there, with the dialog closing as accepted.
+  `ModalDialogCloseTests.A_modal_dialog_s_close_is_raised_only_once_a_pump_under_it_has_returned`
+  holds the fact over a plain modal form, and
+  `TabOkBesideOwnSaveTests.The_tab_s_OK_pressed_inside_a_pairing_s_save_is_made_once_that_save_has_returned`
+  the sequence over the real writer and a real database, with the tab on a plain modal form,
+  since KeePass's settings dialog cannot be shown outside a running KeePass.
 - **A control made visible before its parent has a window gets a window of its own at once**, and
   when the parent's arrives WinForms moves the control in `Controls` to where its window lands,
   straight after the last sibling that already had one. Docking and flow order read `Controls`, so

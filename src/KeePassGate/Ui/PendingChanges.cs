@@ -306,8 +306,10 @@ namespace KeePassGate.Ui
             // The plugin's store first, through the writer, `STORE.md` §627: each act held to the
             // store as it stands now. An act left out is named by the store's writer, and a write
             // refused is named here with the acts it held, a write the writer's guard refuses
-            // among them: an OK that meets a save of the plugin's own is refused there, and adds
-            // nothing.
+            // among them, and adds nothing. A save of the plugin's own is never what the guard
+            // meets here: an OK pressed while such a save pumps under the dialog is handled inside
+            // that pump, and the dialog's close, which runs this, is raised by the dialog's own
+            // loop once the save has returned.
             var changed = false;
             var wrote = false;
             if (_records.Waiting)

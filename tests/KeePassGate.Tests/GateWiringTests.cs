@@ -151,8 +151,9 @@ namespace KeePassGate.Tests
         [Test]
         public void A_store_write_the_writer_refuses_at_OK_is_logged_and_counts_no_incident()
         {
-            // As an OK pressed while a save of the plugin's own pumps under the dialog is refused:
-            // reachable, so no incident, and the log names what was not written.
+            // As the writer's guard refuses a write where KeePass is part way through something of
+            // its own: an answer and no defect, so no incident, and the log names what was not
+            // written.
             var incidents = new GateIncidents(_log);
             var factory = new AuthorityPanelFactory(
                 new FakeDatabaseSource(_database), new FakePrompt(true), _log, null, null, incidents,

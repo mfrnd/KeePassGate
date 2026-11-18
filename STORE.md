@@ -2420,9 +2420,19 @@ and the single reading by
 today is applied with no question asked. A write is made on KeePass's thread, after the
 questions every write asks there, `DESIGN.md` §119 and §124, and after the store was read in
 that same turn (step 1). A write of the operator's that is refused there adds nothing, and the
-log names what was not written and why. The settings dialog's OK can meet a save of the plugin's
-own, pumping under the dialog while a pairing lands, and is refused there like any other write
-(§644 item 30). Where the dialogs that would take a write back are not watched, which the
+log names what was not written and why. **The settings dialog's OK meets no save of the plugin's
+own** (measured, §644 item 30). A save of the plugin's own can pump under the dialog, as a
+pairing's does, and a press on OK inside that pump is handled there, as the button's click. The
+dialog's close, which is where the tab writes what it held, is raised by the dialog's own modal
+loop and never by a pump running under it, so it comes once the save has returned, and the
+write it makes is made against the store as that save left it. So the guard against a write
+inside a save never refuses the tab's OK for a save of the plugin's own, and it stays for every
+other write. This corrects the sentence that stood here, by which such an OK was refused there
+like any other write. *Held by*
+`ModalDialogCloseTests.A_modal_dialog_s_close_is_raised_only_once_a_pump_under_it_has_returned`
+and, over the real writer and a real database, by
+`TabOkBesideOwnSaveTests.The_tab_s_OK_pressed_inside_a_pairing_s_save_is_made_once_that_save_has_returned`.
+Where the dialogs that would take a write back are not watched, which the
 plugin's load logs, every such write is refused for the session, and the KPG tab offers no
 command on the store and states why, as under a word (§636).
 
@@ -2559,9 +2569,9 @@ beside the authority's acts and written at OK. Every write deletes the records o
 `client` that step 3 names, by the texts §658 keeps, the write's own records counting as present,
 so a revocation, a certificate taken away, a Recreate and a Delete each delete in their own write
 the admissions they refuse. **A client's write is answered the store's word** where the store
-holds the gate back in the writer's turn, above (§644 item 26). **Not built yet**: the tab's OK
-behind a save of the plugin's own (§644 item 30); and the single removal on the clients page
-(§648). *Held by*
+holds the gate back in the writer's turn, above (§644 item 26). **The tab's OK meets no save of
+the plugin's own**, above (§644 item 30), so nothing was built for it. **Not built yet**: the
+single removal on the clients page (§648). *Held by*
 `StoreRecordTests`, against the records of the measured code
 (`tests/Shared/StoreRecordVectors.json`); `StoreWriteShapeTests`, against its writes
 (`StoreWriteVectors.json`): each sequence played through `AuthorityService` and `AdmissionActs`,
@@ -4440,13 +4450,22 @@ that finds a measurement against a decision reports it and does not design aroun
     reproduced with KeePass's types (`StoreWritesUnderDialogsTests`), from which a write is refused
     while an entry dialog holds the entry (§626). KeePass's window and each merge stay owed. *Could
     overturn*: the answer to S18.
-30. **The operator's write behind the plugin's own save.** The settings dialog's OK pressed
-    while a save of the plugin's own pumps under the dialog, as a pairing's does, is refused by
-    the writer's guard, and nothing the tab held for the store is written (§627): the log names
-    it, while the dialog closes as accepted. The write should wait for that save to end and then
-    be made, held to its ground as it stands then. This item is this document's own, read from
-    the code and not run. Owed by the pull request that keeps the admissions in the store,
-    which builds the writes that save.
+30. **The operator's write behind the plugin's own save.** This item held that the settings
+    dialog's OK, pressed while a save of the plugin's own pumps under the dialog, as a
+    pairing's does, is refused by the writer's guard, with nothing the tab held for the store
+    written while the dialog closes as accepted. It was this document's own, read from the code
+    and not run, and the run does not bear it out. Measured: a modal dialog's close is raised
+    by the dialog's own loop and never by a pump running under it; a press on OK inside the
+    pump is handled there, and the close comes once the pump has returned. So the tab's OK
+    meets no save of the plugin's own, the write it makes comes after that save, and nothing
+    has to be built for it (§627). Run over a plain modal form
+    (`ModalDialogCloseTests.A_modal_dialog_s_close_is_raised_only_once_a_pump_under_it_has_returned`)
+    and over the real writer and a real database, with the tab on a plain modal form, since
+    KeePass's settings dialog cannot be shown outside a running KeePass
+    (`TabOkBesideOwnSaveTests.The_tab_s_OK_pressed_inside_a_pairing_s_save_is_made_once_that_save_has_returned`):
+    a pairing's save presses OK and pumps, and the revocation the tab held is written, with its
+    audit line, once that save has returned, beside the pairing's admission. The same in a
+    real KeePass stays owed by the end to end tier.
 31. **The longest item a summary entry carries, against the room.** The room holds the content of
     the summary entry a write would write to the ceiling for a string, and not the items that entry
     carries, each a string of its own, and an item is longer than the record it restates: the item

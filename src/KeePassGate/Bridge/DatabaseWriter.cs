@@ -1259,8 +1259,10 @@ namespace KeePassGate.Bridge
         /// **Refused where KeePass is part way through something of its own**, a merge or a save
         /// among it, a save of this writer's included, or a window holds what the write touches:
         /// the same questions `Keep` asks. Nothing is added then, and the caller names what was not
-        /// written. The settings dialog's OK can meet a save of this writer's, pumping under the
-        /// dialog while a pairing lands, so this is a refusal like any other and no defect.
+        /// written. The settings dialog's OK does not meet a save of this writer's: an OK pressed
+        /// while such a save pumps under the dialog is handled inside that pump, and the dialog's
+        /// close, which makes this write, is raised by the dialog's own loop once the save has
+        /// returned (`ModalDialogCloseTests`, `TabOkBesideOwnSaveTests`).
         /// </remarks>
         /// <param name="write">The write, planned and applied against the store as it stands then.</param>
         public StoreWritten ByOperator(PwDatabase database, Func<StoreWritten> write)

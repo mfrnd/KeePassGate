@@ -206,7 +206,8 @@ namespace KeePassGate.Tests
         [Test]
         public void A_write_refused_at_OK_writes_nothing_and_names_what_was_not_written()
         {
-            // As the writer refuses an OK that meets a save of the plugin's own.
+            // As the writer's guard refuses a write where KeePass is part way through something of
+            // its own.
             var live = new FakeGateDatabase();
             var first = StoreSeeds.Authority(live.Store);
             var client = Revoked(live, first, out _);
