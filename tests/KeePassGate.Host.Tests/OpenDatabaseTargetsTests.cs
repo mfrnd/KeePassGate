@@ -95,6 +95,36 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_same_authorities_in_new_objects_are_not_asked_about_again_and_another_set_is()
+        {
+            // KeePass's Synchronize hands the database the very text of the store in objects of
+            // its own, as each periodic synchronize of a trigger does under the chooser, and the
+            // operator who answered or canceled is not asked again for any synchronize of the
+            // same authorities.
+            var store = new KdbxStore(_first.Database, GateVersion.Current, NullGateLog.Instance);
+            StoreSeeds.Undecided(store, new CustomDataStore(_first.Database));
+
+            Assert.That(_targets.Unasked(), Is.EqualTo(new[] { _first.Database }));
+
+            foreach (var entry in _first.Database.RootGroup.GetEntries(true).Where(entry => entry.Strings.ReadSafe("KPG.Kind") == "authority"))
+            {
+                foreach (var name in entry.Strings.GetKeys().Where(name => name.StartsWith("KPG.", StringComparison.Ordinal)).ToList())
+                {
+                    var value = entry.Strings.Get(name);
+                    entry.Strings.Set(name, new KeePassLib.Security.ProtectedString(value.IsProtected, value.ReadString()));
+                }
+            }
+
+            Assert.That(_targets.Unasked(), Is.Empty, "the same authorities, asked about already");
+            Assert.That(_log.Warnings.Count(line => line.Contains("until the operator keeps an authority")), Is.EqualTo(1),
+                "and the log names them once");
+
+            StoreSeeds.Beside(store);
+
+            Assert.That(_targets.Unasked(), Is.EqualTo(new[] { _first.Database }), "another set is asked about");
+        }
+
+        [Test]
         public void Each_database_is_served_under_its_own_authority()
         {
             CreateAuthorityIn(_first);

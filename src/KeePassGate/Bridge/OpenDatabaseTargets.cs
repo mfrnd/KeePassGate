@@ -818,6 +818,7 @@ namespace KeePassGate.Bridge
             var signature = new Signature(reading);
 
             CachedTarget cached;
+            CachedTarget before = null;
             string served = null;
             if (_cache.TryGetValue(database, out cached))
             {
@@ -830,6 +831,7 @@ namespace KeePassGate.Bridge
                 served = cached.IsUndecided
                     ? "a database that held several authorities"
                     : "the database with authority " + CertificateDigest.Shorten(cached.Target.DatabaseId);
+                before = cached;
                 cached.Dispose();
                 _cache.Remove(database);
             }
@@ -837,7 +839,7 @@ namespace KeePassGate.Bridge
             var standing = reading.Answering;
             if (standing.Count > 1)
             {
-                return Undecided(database, signature, standing, readings, reading.State);
+                return Undecided(database, signature, standing, readings, reading.State, before);
             }
 
             // The document is parsed here, once for each change of what stands, and never at a
@@ -929,11 +931,30 @@ namespace KeePassGate.Bridge
         /// rather than once per connection, and so that the chooser can ask which databases are in
         /// this state without reading any of them again. Each candidate asks the database's
         /// readings for the store's word first, `STORE.md` §656.
+        ///
+        /// **The same authorities, in other objects, are the same question.** The entry is held to
+        /// the very objects KeePass keeps the store's text in, and a synchronize hands KeePass that
+        /// text in objects of its own, as a trigger's does every few seconds under the chooser,
+        /// and an entry rebuilt over the same authorities in the same state keeps whether the
+        /// operator was asked, so an operator who answered or canceled is not asked again for
+        /// it. Which authorities stand is told by their `id`.
         /// </remarks>
         /// <param name="state">The store's state, which the log names where it is not whole.</param>
+        /// <param name="before">
+        /// The entry this database had until now, let go already, or null: where it was about the
+        /// same authorities, the new entry keeps whether the operator was asked, and the log names
+        /// nothing it has named.
+        /// </param>
         private CachedTarget Undecided(
-            PwDatabase database, Signature signature, IReadOnlyList<FoundRecord> standing, StoreReadings readings, StoreState state)
+            PwDatabase database,
+            Signature signature,
+            IReadOnlyList<FoundRecord> standing,
+            StoreReadings readings,
+            StoreState state,
+            CachedTarget before)
         {
+            var ids = new HashSet<string>(standing.Select(record => record.Form.Member(StoreKinds.Id)), StringComparer.Ordinal);
+            var same = before != null && before.IsUndecided && before.Standing.SetEquals(ids) && before.State == state;
             var targets = new List<UndecidedTarget>();
             Func<string> word = () => readings.Word;
 
@@ -970,16 +991,24 @@ namespace KeePassGate.Bridge
                 // Under a single key in a whole store, what ends it is keeping an authority; in a
                 // store that holds the gate back, what ends the store's own state.
                 var heldBack = StoreWords.Of(state);
-                _log.Warn(heldBack == null
-                    ? "not serving a database that holds " + standing.Count + " authorities until the operator keeps an authority: "
-                      + string.Join(", ", shorts)
-                    : "not serving a database whose store is " + heldBack + ", with " + standing.Count + " authorities standing: "
-                      + string.Join(", ", shorts));
+                if (!same)
+                {
+                    _log.Warn(heldBack == null
+                        ? "not serving a database that holds " + standing.Count + " authorities until the operator keeps an authority: "
+                          + string.Join(", ", shorts)
+                        : "not serving a database whose store is " + heldBack + ", with " + standing.Count + " authorities standing: "
+                          + string.Join(", ", shorts));
+                }
 
                 var path = PathOf(database);
                 Discard(path);
 
-                var entry = new CachedTarget(signature, path, null, null, targets);
+                var entry = new CachedTarget(signature, path, null, null, targets)
+                {
+                    Standing = ids,
+                    State = state,
+                    Asked = same && before.Asked,
+                };
                 _cache[database] = entry;
                 kept = true;
                 return entry;
@@ -1191,9 +1220,16 @@ namespace KeePassGate.Bridge
 
             /// <summary>
             /// Whether the operator has been asked about this state already. A new state is a new
-            /// entry, so a different set of authorities is asked about again.
+            /// entry, so a different set of authorities is asked about again, and an entry rebuilt
+            /// over the same authorities keeps the mark of the entry before it.
             /// </summary>
             public bool Asked { get; set; }
+
+            /// <summary>The `id` of every authority standing, for a database holding several; empty otherwise.</summary>
+            public ISet<string> Standing { get; set; } = new HashSet<string>(StringComparer.Ordinal);
+
+            /// <summary>The store's state where the database holds several authorities.</summary>
+            public StoreState State { get; set; }
 
             /// <summary>
             /// Every target this database answers with, each with a reference taken for the caller.
