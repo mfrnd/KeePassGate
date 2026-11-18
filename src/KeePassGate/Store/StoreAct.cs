@@ -22,6 +22,10 @@ namespace KeePassGate.Store
         /// <summary>An act of these records under this key, held to this ground.</summary>
         /// <param name="name">What the log calls the act.</param>
         /// <param name="key">The store key its records are composed under; the act keeps a copy.</param>
+        /// <param name="against">
+        /// The name of the store key that stood where the act was composed, which is the key its
+        /// records are under; null where none stood and the act brings a new key.
+        /// </param>
         /// <param name="records">Its records, in the order they are written.</param>
         /// <param name="ground">
         /// Why the act no longer applies to a store as it stands, or null where it applies; null
@@ -29,7 +33,12 @@ namespace KeePassGate.Store
         /// </param>
         /// <param name="endsAdmissions">Whether every admission goes with the act, as with a Recreate and a Delete.</param>
         internal StoreAct(
-            string name, byte[] key, IReadOnlyList<StoreRecord> records, Func<StoreGround, string> ground, bool endsAdmissions = false)
+            string name,
+            byte[] key,
+            string against,
+            IReadOnlyList<StoreRecord> records,
+            Func<StoreGround, string> ground,
+            bool endsAdmissions = false)
         {
             if (key == null)
             {
@@ -44,6 +53,12 @@ namespace KeePassGate.Store
             Name = name;
             _key = (byte[])key.Clone();
             KeyName = StoreFormat.KeyName(_key);
+            if (against != null && !string.Equals(against, KeyName, StringComparison.Ordinal))
+            {
+                throw new ArgumentException("An act composed against a store key has its records under that key.", nameof(against));
+            }
+
+            Against = against;
             Records = records.ToList();
             _ground = ground;
             EndsAdmissions = endsAdmissions;
@@ -64,6 +79,12 @@ namespace KeePassGate.Store
 
         /// <summary>The name of the key its records are under, `StoreFormat.KeyName`.</summary>
         internal string KeyName { get; private set; }
+
+        /// <summary>
+        /// The name of the store key that stood where the act was composed, or null where none
+        /// stood and the act brings a new key.
+        /// </summary>
+        internal string Against { get; private set; }
 
         /// <summary>A copy of the key its records are under, for a write that starts a store with it.</summary>
         internal byte[] Key()

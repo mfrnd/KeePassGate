@@ -199,14 +199,16 @@ namespace KeePassGate.Testing
         private static void Write(IGateStore store, string name, Func<byte[], IReadOnlyList<StoreRecord>> records)
         {
             byte[] key;
+            string against;
             using (var reading = store.Read())
             {
                 key = reading.InForce == null ? StoreFormat.NewKey() : (byte[])reading.InForce.Key.Bytes.Clone();
+                against = reading.InForce == null ? null : reading.InForce.Key.Name;
             }
 
             try
             {
-                var written = store.Write(new[] { new StoreAct(name, key, records(key), null) });
+                var written = store.Write(new[] { new StoreAct(name, key, against, records(key), null) });
                 if (!written.Taken)
                 {
                     throw new InvalidOperationException(name + " could not be seeded: " + written.Reason);

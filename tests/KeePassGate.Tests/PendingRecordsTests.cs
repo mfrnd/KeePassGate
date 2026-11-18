@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
@@ -44,6 +45,7 @@ namespace KeePassGate.Tests
             Assert.That(Service(pending).Create().Succeeded, Is.True);
             Assert.That(Service(pending).Delete().Succeeded, Is.True);
             Assert.That(StoreAuthorities.Served(pending.Store.Read()), Is.Null);
+            Assert.That(Held(pending), Is.Empty, "the buffer holds what the store would be written with");
 
             Assert.That(pending.Apply(), Is.False, "an OK that wrote nothing is no change");
 
@@ -52,11 +54,11 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_Recreate_and_a_Delete_not_written_at_OK_take_no_revocation_away()
+        public void A_Recreate_and_a_Delete_on_one_dialog_write_what_the_Delete_alone_writes()
         {
             // A client revoked, then Recreate and Delete on one dialog, OK, and a copy
-            // synchronized before the revocation merged in: wherever the authority that issued
-            // the client still stands, the revocation is what keeps the copy's record out.
+            // synchronized before the revocation merged in: the authority that stood is retired,
+            // the retirement holding the store key, and nothing is served for the copy's record.
             var live = new FakeGateDatabase();
             var first = StoreSeeds.Authority(live.Store, live.Values);
             string stale;
@@ -64,13 +66,141 @@ namespace KeePassGate.Tests
             var pending = new PendingDatabase(live, NullGateLog.Instance);
 
             Assert.That(Service(pending).Recreate().Succeeded, Is.True);
-            Service(pending).Delete();
-            pending.Apply();
+            Assert.That(Service(pending).Delete().Succeeded, Is.True);
+            Assert.That(StoreAuthorities.Served(pending.Store.Read()), Is.Null, "the page reads it deleted");
+            Assert.That(Held(pending), Is.EqualTo(new[] { "Delete" }), "the buffer holds the Delete of the authority the database holds");
+            Assert.That(pending.Apply(), Is.True);
             live.Values.Set(AuthorityKeys.ClientRecordKey(client), stale);
 
-            Assert.That(StoreAuthorities.Served(live.Store.Read()), Is.EqualTo(first), "nothing pressed reached the store");
-            Assert.That(live.Values.Get(AuthorityKeys.RevocationKey(client)), Is.Not.Null, "the revocation stays");
-            Assert.That(new AdmissionStore(live.Values, NullGateLog.Instance).Find(client), Is.Null, "and the copy's record admits nobody");
+            var reading = live.Store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(StoreAuthorities.Served(reading), Is.Null);
+            Assert.That(reading.InForce.Taken("retired"), Is.EquivalentTo(new[] { first }), "the authority made between reached no database");
+            Assert.That(
+                reading.InForce.Records.Where(record => record.Is("retired")).Select(record => record.Form.StoreKey != null),
+                Is.EqualTo(new[] { true }),
+                "and the retirement holds the store key");
+        }
+
+        [Test]
+        public void Create_Delete_and_Create_on_one_dialog_write_the_last_Create()
+        {
+            var live = new FakeGateDatabase();
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+
+            Assert.That(Service(pending).Create().Succeeded, Is.True);
+            Assert.That(Service(pending).Delete().Succeeded, Is.True);
+            Assert.That(Service(pending).Create().Succeeded, Is.True);
+            var last = StoreAuthorities.Served(pending.Store.Read());
+            Assert.That(Held(pending), Is.EqualTo(new[] { "Create" }));
+
+            Assert.That(pending.Apply(), Is.True);
+
+            var reading = live.Store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(StoreAuthorities.Served(reading), Is.EqualTo(last));
+            Assert.That(reading.InForce.Taken("retired"), Is.Empty, "the authority made between reached no database");
+            Assert.That(reading.InForce.Records.Count(record => record.Is("authority")), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Recreate_Delete_and_Create_on_one_dialog_retire_the_database_s_authority_and_write_the_new_one()
+        {
+            var live = new FakeGateDatabase();
+            var first = StoreSeeds.Authority(live.Store, live.Values);
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+
+            Assert.That(Service(pending).Recreate().Succeeded, Is.True);
+            Assert.That(Service(pending).Delete().Succeeded, Is.True);
+            Assert.That(Service(pending).Create().Succeeded, Is.True);
+            var last = StoreAuthorities.Served(pending.Store.Read());
+            Assert.That(Held(pending), Is.EqualTo(new[] { "Delete", "Create" }));
+
+            Assert.That(pending.Apply(), Is.True);
+
+            var reading = live.Store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(StoreAuthorities.Served(reading), Is.EqualTo(last));
+            Assert.That(reading.InForce.Taken("retired"), Is.EquivalentTo(new[] { first }));
+            Assert.That(reading.InForce.Records.Count(record => record.Is("authority")), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_Create_and_a_Recreate_on_a_database_with_no_key_are_held_and_written_as_a_Create()
+        {
+            // What is left of the two starts the store under the key the Create made, which is
+            // what a Create writes, and its name is what the log gives for an act left out.
+            var live = new FakeGateDatabase();
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+
+            Assert.That(Service(pending).Create().Succeeded, Is.True);
+            Assert.That(Service(pending).Recreate().Succeeded, Is.True);
+            var last = StoreAuthorities.Served(pending.Store.Read());
+            Assert.That(Held(pending), Is.EqualTo(new[] { "Create" }));
+
+            Assert.That(pending.Apply(), Is.True);
+
+            var reading = live.Store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(StoreAuthorities.Served(reading), Is.EqualTo(last), "written under the key the Create made");
+            Assert.That(reading.InForce.Taken("retired"), Is.Empty, "the authority made between reached no database");
+            Assert.That(reading.InForce.Records.Count(record => record.Is("authority")), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_Recreate_a_synchronize_that_retires_the_authority_and_a_Delete_leave_the_store_under_its_key_at_OK()
+        {
+            // Another copy's answer retiring the database's authority arrives while the dialog
+            // stands, between the Recreate and the Delete: whatever OK writes passes under the
+            // store key the database holds.
+            var live = new FakeGateDatabase();
+            var first = StoreSeeds.Authority(live.Store, live.Values);
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            Assert.That(Service(pending).Recreate().Succeeded, Is.True);
+
+            StoreSeeds.Retire(live.Store, first);
+            string key;
+            using (var before = live.Store.Read())
+            {
+                key = before.InForce.Key.Name;
+            }
+
+            // The Recreate's ground went with the authority it retires, so the page reads the store
+            // as it stands, with no authority standing: the Delete has nothing to retire, folds
+            // into nothing, and OK leaves the Recreate out.
+            Assert.That(Service(pending).Delete().Succeeded, Is.True);
+            Assert.That(Held(pending), Is.EqualTo(new[] { "Recreate" }));
+            var writes = live.Records.Writes;
+
+            pending.Apply();
+
+            Assert.That(live.Records.Writes, Is.EqualTo(writes), "nothing is written");
+            var reading = live.Store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(reading.InForce.Key.Name, Is.EqualTo(key), "every record OK wrote passes under the store key");
+            Assert.That(reading.Damage, Is.Zero);
+            Assert.That(StoreAuthorities.Served(reading), Is.Null);
+        }
+
+        [Test]
+        public void A_press_is_refused_with_nothing_held_where_the_whole_buffer_with_it_would_be_refused()
+        {
+            // An act held, and the store grown under the dialog until it no longer fits with that
+            // act: the page reads the store as it is, where a further act fits by itself, and OK
+            // would write neither of them.
+            var live = new FakeGateDatabase();
+            live.Records.Put(StoreRecords.Authority(StoreRecords.One, 'a'));
+            live.Records.Put(StoreRecords.Head(StoreRecords.One, 1, string.Empty, RetiredItems(0, StoreFormat.MaxItems - 4)));
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            Assert.That(pending.Store.Write(new[] { Retirements('b', 'c') }).Taken, Is.True);
+
+            live.Records.Put(StoreRecords.Head(StoreRecords.One, 1, string.Empty, RetiredItems(StoreFormat.MaxItems, 2)));
+            Assume.That(live.Store.Read().State, Is.EqualTo(StoreState.Whole));
+
+            var press = pending.Store.Write(new[] { Retirements('d') });
+
+            Assert.That(press.Taken, Is.False);
+            Assert.That(((PendingRecords)pending.Store).Acts, Has.Count.EqualTo(1), "nothing more is held");
         }
 
         [Test]
@@ -217,7 +347,7 @@ namespace KeePassGate.Tests
             // Beside the Recreate, an act that holds to no ground, as a revocation is.
             var key = (byte[])live.Store.Read().InForce.Key.Bytes.Clone();
             var name = StoreRecord.Compose(key, "profile", new Dictionary<string, string> { { "after", string.Empty }, { "name", "reader" } });
-            Assert.That(pending.Store.Write(new[] { new StoreAct("a name", key, new[] { name }, null) }).Taken, Is.True);
+            Assert.That(pending.Store.Write(new[] { new StoreAct("a name", key, StoreFormat.KeyName(key), new[] { name }, null) }).Taken, Is.True);
 
             pending.Apply();
 
@@ -274,6 +404,32 @@ namespace KeePassGate.Tests
         private static AuthorityService Service(PendingDatabase pending)
         {
             return new AuthorityService(pending.Store, pending.PluginCustomData, NullGateLog.Instance);
+        }
+
+        /// <summary>The name of each act the buffer holds, in the order it holds them.</summary>
+        private static IEnumerable<string> Held(PendingDatabase pending)
+        {
+            return ((PendingRecords)pending.Store).Acts.Select(act => act.Name);
+        }
+
+        /// <summary>Items retiring authorities no store holds, numbered from a start.</summary>
+        private static string[] RetiredItems(int start, int count)
+        {
+            return Enumerable.Range(start, count)
+                .Select(index => StoreComposer.Item(("authority", index.ToString("x64", CultureInfo.InvariantCulture)), ("kind", "retired")))
+                .ToArray();
+        }
+
+        /// <summary>An act under the store key the tests compose, retiring authorities no store holds.</summary>
+        private static StoreAct Retirements(params char[] ids)
+        {
+            var key = StoreRecords.One;
+            return new StoreAct(
+                "retirements",
+                key,
+                StoreFormat.KeyName(key),
+                ids.Select(id => StoreRecord.Compose(key, "retired", new Dictionary<string, string> { { "authority", StoreRecords.Hex(id) } })).ToList(),
+                null);
         }
 
         /// <summary>A client of this authority admitted in the live database, answering its admission key.</summary>

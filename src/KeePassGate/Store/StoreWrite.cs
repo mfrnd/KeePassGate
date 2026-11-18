@@ -108,10 +108,15 @@ namespace KeePassGate.Store
             var leftOut = new List<string>();
             foreach (var act in acts)
             {
+                // The key the act was composed against, held to the key that stands in both
+                // directions: a Create composed under a key that went since would start the store
+                // again under it, with every record still in the file under that key.
                 var why = act.Why(ground);
-                if (why == null && ground.KeyName != null && !string.Equals(act.KeyName, ground.KeyName, StringComparison.Ordinal))
+                if (why == null && !string.Equals(act.Against, ground.KeyName, StringComparison.Ordinal))
                 {
-                    why = "it was composed under a store key that does not stand";
+                    why = act.Against == null
+                        ? "it was composed where no store key stood, and a key stands now"
+                        : "it was composed under a store key that does not stand";
                 }
 
                 if (why == null && ground.KeyName == null && !act.Records.Any(record => record.Kind == StoreKinds.Authority))
@@ -214,16 +219,33 @@ namespace KeePassGate.Store
                 added.Where(record => record.Kind == StoreKinds.Retired && made.Contains(record.Member(StoreKinds.AuthorityMember)))
                     .Select(record => record.Member(StoreKinds.AuthorityMember)),
                 StringComparer.Ordinal);
+            var keyDropped = added.Any(record => record.Kind == StoreKinds.Retired
+                                                 && unmade.Contains(record.Member(StoreKinds.AuthorityMember))
+                                                 && record.Protected);
             added.RemoveAll(record =>
                 (record.Kind == StoreKinds.Authority && unmade.Contains(record.Member(StoreKinds.Id)))
                 || (record.Kind == StoreKinds.Retired && unmade.Contains(record.Member(StoreKinds.AuthorityMember))));
 
-            // A record is written once: a record the file holds already, a record a deletion
-            // record names, and a record an act before it in this write adds, are not added again.
-            // The identifier is
-            // the record's own, and a second entry under it would be two entries the tree tells
-            // apart by nothing.
-            var once = new HashSet<string>(reading.Candidates.Select(candidate => candidate.Hex), StringComparer.Ordinal);
+            // Where such a retirement held the store key, as a Delete pressed after a Recreate on
+            // the same dialog holds it, the retirements left in the write hold it in its place:
+            // the write is then the Delete of what stood, and never a write that leaves no entry
+            // holding the key.
+            if (keyDropped)
+            {
+                for (var at = 0; at < added.Count; at++)
+                {
+                    if (added[at].Kind == StoreKinds.Retired && !added[at].Protected)
+                    {
+                        added[at] = Holding(key, added[at]);
+                    }
+                }
+            }
+
+            // A record is written once: a record whose identifier an entry of the tree holds, a
+            // record a deletion record names, and a record an act before it in this write adds,
+            // are not added again. The identifier is the record's own, and a second entry under it
+            // would be two entries the tree tells apart by nothing.
+            var once = new HashSet<string>(reading.Present, StringComparer.Ordinal);
             once.UnionWith(reading.Deletions.Select(Hex.Of));
             added.RemoveAll(record => !once.Add(record.Hex));
             if (added.Count == 0)
@@ -277,14 +299,15 @@ namespace KeePassGate.Store
             }
 
             // Step 5, a deletion record for every summary entry named and not in the file, so that
-            // a merge bringing it back finds it out of force.
+            // a merge bringing it back finds it out of force. Not in the file is no entry of the
+            // tree under that identifier, a record or not: an entry with every string of the store
+            // gone stays where it is, and a deletion record for it would have a merge delete it.
             var deletions = new List<string>();
             if (!starts)
             {
-                var present = new HashSet<string>(reading.Candidates.Select(candidate => candidate.Hex), StringComparer.Ordinal);
                 var held = new HashSet<string>(reading.Deletions.Select(Hex.Of), StringComparer.Ordinal);
                 deletions.AddRange(inForce.After
-                    .Where(identifier => !present.Contains(identifier) && !held.Contains(identifier))
+                    .Where(identifier => !reading.Present.Contains(identifier) && !held.Contains(identifier))
                     .OrderBy(identifier => identifier, StringComparer.Ordinal));
             }
 
@@ -408,6 +431,16 @@ namespace KeePassGate.Store
                 default:
                     return null;
             }
+        }
+
+        /// <summary>A retirement composed again with the store key among its members.</summary>
+        internal static StoreRecord Holding(byte[] key, StoreRecord retirement)
+        {
+            var members = retirement.Members
+                .Where(member => member.Key != StoreKinds.Nonce)
+                .ToDictionary(member => member.Key, member => member.Value, StringComparer.Ordinal);
+            members[StoreKinds.StoreKey] = Hex.Of(key);
+            return StoreRecord.Compose(key, StoreKinds.Retired, members);
         }
 
         /// <summary>An item's members as one text, each name and value apart, to tell two items apart.</summary>

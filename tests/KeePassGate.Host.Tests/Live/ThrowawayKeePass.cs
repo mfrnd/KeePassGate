@@ -549,7 +549,8 @@ namespace KeePassGate.Host.Tests.Live
             using (var reading = store.Read())
             {
                 var key = reading.InForce == null ? (byte[])SeededStoreKey.Clone() : (byte[])reading.InForce.Key.Bytes.Clone();
-                var write = StoreWrite.Plan(reading, new[] { new StoreAct("a seed", key, records(key, reading), null) }, GateVersion.Current);
+                var against = reading.InForce == null ? null : reading.InForce.Key.Name;
+                var write = StoreWrite.Plan(reading, new[] { new StoreAct("a seed", key, against, records(key, reading), null) }, GateVersion.Current);
                 if (write.Refused != null || write.Empty || write.SetBack.Count > 0 || write.Deletions.Count > 0)
                 {
                     throw new InvalidOperationException("The seed is not a write it can make: " + (write.Refused ?? "nothing to write"));

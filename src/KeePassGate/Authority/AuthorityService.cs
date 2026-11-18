@@ -352,7 +352,8 @@ namespace KeePassGate.Authority
             {
                 var stood = listed ?? new HashSet<string>(Standing(reading), StringComparer.Ordinal);
                 var records = retired.Select(id => Retirement(key, id, true)).ToList();
-                return new StoreAct(name, key, records, ground => ground.Standing.SetEquals(stood) ? null : Overtaken, endsAdmissions);
+                return new StoreAct(
+                    name, key, reading.InForce.Key.Name, records, ground => ground.Standing.SetEquals(stood) ? null : Overtaken, endsAdmissions);
             }
             finally
             {
@@ -431,6 +432,7 @@ namespace KeePassGate.Authority
                     var act = new StoreAct(
                         verb == "created" ? "Create" : "Recreate",
                         key,
+                        reading.State == StoreState.None ? null : reading.InForce.Key.Name,
                         records,
                         ground => ground.Standing.SetEquals(stood) ? null : Overtaken,
                         verb != "created");

@@ -48,14 +48,20 @@ namespace KeePassGate.Bridge
         /// <exception cref="DatabaseShut">The database has no tree: locked or closed.</exception>
         public StoreReading Read()
         {
+            return Read(false);
+        }
+
+        /// <summary>The same, and with every entry of the tree where a write is planned against it.</summary>
+        private StoreReading Read(bool everyEntry)
+        {
             var root = _database.RootGroup;
             if (root == null)
             {
                 throw new DatabaseShut("the database is not open");
             }
 
-            var walk = StoreSource.Of(_database, root);
-            return StoreReading.Afresh(walk.Candidates, walk.Deletions);
+            var walk = StoreSource.Of(_database, root, everyEntry);
+            return StoreReading.Afresh(walk.Candidates, walk.Deletions, walk.Present);
         }
 
         /// <summary>
@@ -64,7 +70,7 @@ namespace KeePassGate.Bridge
         /// </summary>
         public StoreWritten Write(IReadOnlyList<StoreAct> acts)
         {
-            using (var reading = Read())
+            using (var reading = Read(true))
             {
                 var write = StoreWrite.Plan(reading, acts, _plugin);
                 if (write.Refused != null)

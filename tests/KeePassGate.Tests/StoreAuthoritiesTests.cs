@@ -427,9 +427,10 @@ namespace KeePassGate.Tests
         }
 
 
+        /// <summary>An act starting a store under this key, where none stands.</summary>
         private static StoreAct Act(byte[] key, StoreRecord record)
         {
-            return new StoreAct("an authority of the test's", key, new[] { record }, null);
+            return new StoreAct("an authority of the test's", key, null, new[] { record }, null);
         }
     }
 }

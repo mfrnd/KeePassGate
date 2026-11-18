@@ -194,7 +194,7 @@ namespace KeePassGate.Tests.Fakes
                     return StoreRecord.Compose(key, StoreKinds.Authority, members);
                 }).ToList();
 
-                return new StoreAct(act.Name, key, records, act.Why, act.EndsAdmissions);
+                return new StoreAct(act.Name, key, act.Against, records, act.Why, act.EndsAdmissions);
             }
             finally
             {

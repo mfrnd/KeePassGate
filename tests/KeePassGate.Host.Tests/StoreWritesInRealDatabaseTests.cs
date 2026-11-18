@@ -62,6 +62,30 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void An_entry_with_every_string_of_the_store_gone_stays_where_it_is_and_is_told_of_as_deleted_to_nobody()
+        {
+            // `STORE.md` §627: present is every entry of the tree. A summary entry that a later
+            // summary entry names, back in the tree with every string of the store gone and its
+            // deletion record lost, is neither deleted by the next write nor named by a deletion
+            // record of its own, which a merge would take as the entry deleted.
+            var database = Database();
+            StoreSeeds.Authority(Store(database), Admissions(database));
+            var first = PluginGroup(database).Entries.Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "head").Uuid;
+            Assert.That(NameWritten(database), Is.True);
+
+            var stripped = new PwEntry(false, false) { Uuid = first };
+            PluginGroup(database).AddEntry(stripped, true);
+            var told = database.Database.DeletedObjects.Single(deleted => deleted.Uuid.Equals(first));
+            database.Database.DeletedObjects.Remove(told);
+            Assume.That(Store(database).Read().State, Is.EqualTo(StoreState.Whole));
+
+            Assert.That(NameWritten(database), Is.True);
+
+            Assert.That(database.Database.DeletedObjects.Any(deleted => deleted.Uuid.Equals(first)), Is.False);
+            Assert.That(database.Database.RootGroup.FindEntry(first, true), Is.SameAs(stripped));
+        }
+
+        [Test]
         public void A_second_group_with_the_prefix_that_holds_no_record_is_not_written_into()
         {
             var database = Database();
@@ -253,7 +277,7 @@ namespace KeePassGate.Host.Tests
                     { "authority", ids[1] },
                     { "storeKey", KeePassGate.Hex.Of(key) },
                 });
-                var write = StoreWrite.Plan(reading, new[] { new StoreAct("a keep", key, new[] { retirement }, null) }, GateVersion.Current);
+                var write = StoreWrite.Plan(reading, new[] { new StoreAct("a keep", key, StoreFormat.KeyName(key), new[] { retirement }, null) }, GateVersion.Current);
                 Assume.That(write.Refused, Is.Null);
                 Assume.That(write.Delete, Is.Not.Empty);
                 Assume.That(write.SetBack, Is.Not.Empty);
@@ -395,7 +419,7 @@ namespace KeePassGate.Host.Tests
             var store = Store(database);
             var key = (byte[])store.Read().InForce.Key.Bytes.Clone();
             var name = StoreRecord.Compose(key, "profile", new Dictionary<string, string> { { "after", string.Empty }, { "name", "reader" } });
-            return store.Write(new[] { new StoreAct("a name", key, new[] { name }, null) }).Taken;
+            return store.Write(new[] { new StoreAct("a name", key, StoreFormat.KeyName(key), new[] { name }, null) }).Taken;
         }
     }
 }

@@ -142,7 +142,7 @@ namespace KeePassGate.Tests
                 { "name", "reader" },
                 { "nonce", new string('0', 2 * StoreFormat.NonceLength) },
             });
-            var act = new StoreAct("a name", key, new[] { name }, null);
+            var act = new StoreAct("a name", key, StoreFormat.KeyName(key), new[] { name }, null);
 
             Assert.That(store.Write(new[] { act, act }).Taken, Is.True);
             store.Write(new[] { act });

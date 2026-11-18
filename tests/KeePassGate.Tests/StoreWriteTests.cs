@@ -71,16 +71,91 @@ namespace KeePassGate.Tests
         [Test]
         public void Where_no_key_stands_only_an_act_that_brings_an_authority_is_taken()
         {
-            var write = StoreWrite.Plan(new MemoryStore().Read(), new[] { Retire(One, 'a') }, Plugin);
+            var write = StoreWrite.Plan(new MemoryStore().Read(), new[] { Starting(One, Retirement(One, 'a')) }, Plugin);
 
             Assert.That(write.Refused, Does.Contain("only an authority starts a store"));
+        }
+
+        [Test]
+        public void A_Create_composed_under_a_store_key_is_left_out_where_no_key_stands_and_starts_nothing()
+        {
+            // `STORE.md` §614 and §632: Create starts a store under a new key where no key stands,
+            // and a Create composed under the key that stood at the press, planned once that key
+            // went, would start the store again under it, with every record still in the file.
+            var key = StoreFormat.NewKey();
+            var write = StoreWrite.Plan(new MemoryStore().Read(), new[] { Act(key, AuthorityOf(key, 'a')) }, Plugin);
+
+            Assert.That(write.Refused, Does.Contain("composed under a store key that does not stand"));
+            Assert.That(write.Starts, Is.False);
+        }
+
+        [Test]
+        public void An_act_composed_where_no_key_stood_is_left_out_where_a_key_stands()
+        {
+            var store = Started(out var key, 'a');
+
+            var write = StoreWrite.Plan(store.Read(), new[] { Starting(key, Retirement(key, 'b')) }, Plugin);
+
+            Assert.That(write.Refused, Does.Contain("composed where no store key stood"));
+        }
+
+        [Test]
+        public void A_retirement_dropped_with_the_authority_it_retires_leaves_its_hold_on_the_key_to_the_retirements_left()
+        {
+            // A Recreate and then a Delete on one dialog, `STORE.md` §627: the authority the
+            // Recreate made goes with the Delete's retirement, which held the key, so the
+            // Recreate's retirement holds it in their place and the write is the Delete of what
+            // stood.
+            var store = Started(out var key, 'a');
+            var recreate = new StoreAct(
+                "Recreate", key, StoreFormat.KeyName(key), new[] { WithoutKey(key, 'a'), AuthorityOf(key, 'b') }, null);
+
+            var write = StoreWrite.Plan(store.Read(), new[] { recreate, Retire(key, 'b') }, Plugin);
+
+            Assert.That(write.Refused, Is.Null);
+            var retirements = write.Add.Where(record => record.Kind == "retired").ToList();
+            Assert.That(retirements.Select(record => record.Member("authority")), Is.EqualTo(new[] { Hex('a') }));
+            Assert.That(retirements.Single().Protected, Is.True, "the retirement left holds the key");
+            Assert.That(write.Add.Any(record => record.Kind == "authority"), Is.False);
+        }
+
+        [Test]
+        public void An_entry_still_in_the_tree_gets_no_deletion_record_and_no_second_entry_under_its_identifier()
+        {
+            // `STORE.md` §627: present is every entry of the tree, a record or not. A summary entry
+            // that a later summary entry names, back in the tree with every string of the store
+            // gone and no deletion record, is neither told of as deleted nor written again.
+            var store = Started(out var key, 'a');
+            Assert.That(store.Write(new[] { Retire(key, 'z') }).Taken, Is.True);
+            var first = store.Deletions.Single();
+            var tree = store.Candidates.Select(candidate => candidate.Identifier).Concat(new[] { first }).ToList();
+
+            using (var reading = StoreReading.Afresh(store.Candidates, Array.Empty<byte[]>(), tree))
+            {
+                Assert.That(StoreWrite.Plan(reading, new[] { Retire(key, 'y') }, Plugin).Deletions, Does.Not.Contain(KeePassGate.Hex.Of(first)));
+            }
+
+            using (var reading = StoreReading.Afresh(store.Candidates, Array.Empty<byte[]>()))
+            {
+                Assert.That(
+                    StoreWrite.Plan(reading, new[] { Retire(key, 'y') }, Plugin).Deletions,
+                    Does.Contain(KeePassGate.Hex.Of(first)),
+                    "an entry the tree does not hold is told of");
+            }
+
+            var name = StoreRecord.Compose(key, "profile", new Dictionary<string, string> { { "after", string.Empty }, { "name", "reader" } });
+            using (var reading = StoreReading.Afresh(store.Candidates, store.Deletions, tree.Concat(new[] { name.Identifier })))
+            {
+                Assert.That(StoreWrite.Plan(reading, new[] { Act(key, name) }, Plugin).Empty, Is.True);
+            }
         }
 
         [Test]
         public void An_act_whose_ground_went_is_left_out_and_named_and_a_single_act_is_refused_for_it()
         {
             var store = Started(out var key, 'a');
-            var stale = new StoreAct("a stale act", key, new[] { Retirement(key, 'a') }, ground => ground.Standing.Contains(Hex('z')) ? null : "z does not stand");
+            var stale = new StoreAct(
+                "a stale act", key, StoreFormat.KeyName(key), new[] { Retirement(key, 'a') }, ground => ground.Standing.Contains(Hex('z')) ? null : "z does not stand");
 
             var alone = StoreWrite.Plan(store.Read(), new[] { stale }, Plugin);
             Assert.That(alone.Refused, Is.EqualTo("a stale act: z does not stand"));
@@ -107,7 +182,8 @@ namespace KeePassGate.Tests
             var store = new MemoryStore();
             var key = StoreFormat.NewKey();
             var create = Create(key, 'a');
-            var needsA = new StoreAct("needs a", key, new[] { Retirement(key, 'a') }, ground => ground.Standing.Contains(Hex('a')) ? null : "a does not stand");
+            var needsA = new StoreAct(
+                "needs a", key, StoreFormat.KeyName(key), new[] { Retirement(key, 'a') }, ground => ground.Standing.Contains(Hex('a')) ? null : "a does not stand");
 
             var write = StoreWrite.Plan(store.Read(), new[] { create, needsA }, Plugin);
 
@@ -332,7 +408,7 @@ namespace KeePassGate.Tests
         public void Applied_in_memory_the_plan_leaves_what_the_reading_of_the_file_would()
         {
             var store = Started(out var key, 'a');
-            Assert.That(store.Write(new[] { Retire(key, 'a'), Create(key, 'b') }).Taken, Is.True);
+            Assert.That(store.Write(new[] { Retire(key, 'a'), Made(key, 'b') }).Taken, Is.True);
 
             var reading = store.Read();
 
@@ -379,18 +455,36 @@ namespace KeePassGate.Tests
             return store;
         }
 
+        /// <summary>A Create where no store key stands, bringing this key.</summary>
         private static StoreAct Create(byte[] key, char id)
         {
-            return Act(key, StoreRecord.Compose(key, "authority", new Dictionary<string, string>
+            return Starting(key, AuthorityOf(key, id));
+        }
+
+        /// <summary>An authority added under the store key that stands, as a Recreate adds it.</summary>
+        private static StoreAct Made(byte[] key, char id)
+        {
+            return Act(key, AuthorityOf(key, id));
+        }
+
+        private static StoreRecord AuthorityOf(byte[] key, char id)
+        {
+            return StoreRecord.Compose(key, "authority", new Dictionary<string, string>
             {
                 { "id", Hex(id) },
                 { "storeKey", StoreComposer.HexOf(key) },
-            }));
+            });
         }
 
         private static StoreAct Retire(byte[] key, char id)
         {
             return Act(key, Retirement(key, id));
+        }
+
+        /// <summary>A retirement holding no key, as a Recreate's does, `STORE.md` §614.</summary>
+        private static StoreRecord WithoutKey(byte[] key, char id)
+        {
+            return StoreRecord.Compose(key, "retired", new Dictionary<string, string> { { "authority", Hex(id) } });
         }
 
         /// <summary>A retirement holding the key, as Delete's does, `STORE.md` §614.</summary>
@@ -403,9 +497,16 @@ namespace KeePassGate.Tests
             });
         }
 
+        /// <summary>An act composed against the store key that stands, its records under that key.</summary>
         private static StoreAct Act(byte[] key, StoreRecord record)
         {
-            return new StoreAct("an act of the test's", key, new[] { record }, null);
+            return new StoreAct("an act of the test's", key, StoreFormat.KeyName(key), new[] { record }, null);
+        }
+
+        /// <summary>An act composed where no store key stood, bringing this key.</summary>
+        private static StoreAct Starting(byte[] key, StoreRecord record)
+        {
+            return new StoreAct("an act of the test's", key, null, new[] { record }, null);
         }
 
         private static StoreRecord SummaryOf(StoreWrite write)

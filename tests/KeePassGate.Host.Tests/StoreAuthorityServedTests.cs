@@ -122,7 +122,7 @@ namespace KeePassGate.Host.Tests
                         { "authority", retired },
                         { "storeKey", KeePassGate.Hex.Of(key) },
                     });
-                    Assert.That(store.Write(new[] { new StoreAct("a retirement", key, new[] { retirement }, null) }).Taken, Is.True);
+                    Assert.That(store.Write(new[] { new StoreAct("a retirement", key, StoreFormat.KeyName(key), new[] { retirement }, null) }).Taken, Is.True);
 
                     Assert.That(ClientCredentials.For(client, held, NullGateLog.Instance).IsPaired, Is.False, "a target held across the retirement");
                     Assert.That(targets.Current(), Is.Empty, "nothing stands to serve");

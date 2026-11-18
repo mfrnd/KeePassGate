@@ -103,6 +103,17 @@ namespace KeePassGate.Store
         internal IReadOnlyList<byte[]> Deletions { get; private set; }
 
         /// <summary>
+        /// The identifier of every entry in the tree this was read from, in hexadecimal, records
+        /// or not; the candidates' where it was read from candidates alone.
+        /// </summary>
+        internal ISet<string> Present
+        {
+            get { return _present ?? (_present = new HashSet<string>(Candidates.Select(candidate => candidate.Hex), StringComparer.Ordinal)); }
+        }
+
+        private ISet<string> _present;
+
+        /// <summary>
         /// The room the store has for its next write, `STORE.md` §627, or null where nothing is in
         /// force: a store whole but for its room reads as stopped.
         /// </summary>
@@ -116,7 +127,12 @@ namespace KeePassGate.Store
         /// <see cref="Dispose"/> lets go of.
         /// </summary>
         /// <param name="deletions">The identifiers the database's deletion records name.</param>
-        internal static StoreReading Afresh(IReadOnlyList<StoreCandidate> candidates, IReadOnlyList<byte[]> deletions)
+        /// <param name="present">
+        /// The identifier of every entry in the tree, records or not, where the reading has a tree;
+        /// null where the candidates are all there is.
+        /// </param>
+        internal static StoreReading Afresh(
+            IReadOnlyList<StoreCandidate> candidates, IReadOnlyList<byte[]> deletions, IEnumerable<byte[]> present = null)
         {
             var owned = new StoreKept();
             StoreReading reading = null;
@@ -124,6 +140,11 @@ namespace KeePassGate.Store
             {
                 reading = Of(candidates, deletions, null, owned);
                 reading._owned = owned;
+                if (present != null)
+                {
+                    reading._present = new HashSet<string>(present.Select(Hex.Of), StringComparer.Ordinal);
+                }
+
                 return reading;
             }
             finally

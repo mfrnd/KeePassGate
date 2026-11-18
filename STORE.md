@@ -1920,7 +1920,12 @@ step names another source:
    that is retired; and every summary entry present, with every summary entry those name. A
    deletion record is written as well for a replaced record that this copy does not hold, so
    that the record stays out of force when a merge brings it. An admission whose certificate was
-   taken away goes the same way (proposed, §648).
+   taken away goes the same way (proposed, §648). **What this copy holds is every entry of the
+   tree, by its identifier, a record or not** (this document's own): an entry with every string of
+   the store gone stays where it is, with no deletion record, which a merge would take as the
+   entry deleted, and no record is added under the identifier of an entry the tree holds. The
+   plugin deletes no entry that it cannot read as a record of its store. *Held by*
+   `StoreWriteTests` and `StoreWritesInRealDatabaseTests`.
 4. **A summary entry is added** (§611) over what is then in force.
 5. **Every record that counts only by its history is set back** (§628).
 6. **The database is saved, or marked as changed**, as today for the same act (below). A write
@@ -1996,19 +2001,29 @@ puts them into the buffer: a revocation, a certificate taken away with the renew
 showed, a retirement, an authority with its certificates and its keys. The pages read the
 store with those records beside it, so a page shows what OK would leave. An authority made on
 the dialog and retired on the same dialog leaves the buffer with its retirement and reaches no
-database, as today. At OK the acts are held, in the order they were pressed, to the store as
+database, as today, and where that retirement held the store key the retirements left in the
+write hold it, so a Recreate and then a Delete on one dialog write what the Delete alone writes
+(this document's own). At OK the acts are held, in the order they were pressed, to the store as
 it stands then. An act whose ground went meanwhile, as a Recreate of an authority that no
-longer stands, is left out, and the log names it. Every other act's records are written in a
-single write, with the summary entry over what is then in force. A revocation and a
-certificate taken away have no such ground, and are always written. Cancel drops the buffer,
-and a store key that was made on the dialog goes with it. **What an act takes out of the custom
-data waits with the act** (this document's own): the admissions a Recreate or a Delete takes
-away read as gone on the page while it waits, and leave the custom data at OK only where the
-write took the act (§614). *Held by* `PendingRecordsTests`: a revocation pressed beside a
-Recreate whose authority was retired underneath the dialog is written, and the Recreate is not;
-a Recreate refused or left out at OK takes no revocation away; a Create and a Delete on the
-same dialog write nothing and change nothing; and a page reads a revoked client as gone before
-OK.
+longer stands, is left out, and the log names it, and so is an act composed against a store key
+other than the key that stands then, or composed where no key stood while a key stands then: a
+Create composed under a key that went since never starts the store again under it (§632). A
+press is planned with every act held, against the store as it stands, as OK plans them, and is
+refused with nothing held where OK would refuse them all or leave it out. Every other act's
+records are written in a single write, with the summary entry over what is then in force. A
+revocation and a certificate taken away have no such ground, and are always written. Cancel
+drops the buffer, and a store key that was made on the dialog goes with it. **What an act takes
+out of the custom data waits with the act** (this document's own): the admissions a Recreate or
+a Delete takes away read as gone on the page while it waits, and leave the custom data at OK
+only where the write took the act (§614). *Held by* `PendingRecordsTests`: a revocation pressed
+beside a Recreate whose authority was retired underneath the dialog is written, and the
+Recreate is not; a Recreate refused or left out at OK takes no revocation away; a Recreate and
+then a Delete write what the Delete alone writes; a press that OK would refuse with the acts
+held is refused with nothing held; a Create and a Delete on the same dialog write nothing and
+change nothing; and a page reads a revoked client as gone before OK. And by `StoreWriteTests`:
+an act composed against another key, or where none stood, is left out; a retirement dropped
+with the authority it retires leaves its hold on the key to the retirements left; and an entry
+the tree holds gets no deletion record and no second entry.
 
 **What is built.** The writes of the authority's commands (§614): Create, Recreate and Delete
 at the settings dialog's OK, buffered by `PendingRecords` beside the keys the tab buffers in
