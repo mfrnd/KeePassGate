@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
@@ -28,6 +29,38 @@ namespace KeePassGate.Tests
             Assert.That(reading.InForce.Records.Count(record => record.Is("format")), Is.EqualTo(1));
             Assert.That(reading.InForce.Plugin, Is.EqualTo(store.Plugin));
             Assert.That(reading.InForce.Authorities.Single().Form.StoreKey, Is.Not.Null, "the authority holds the key");
+        }
+
+        [TestCase("written")]
+        [TestCase("refused")]
+        [TestCase("thrown")]
+        public void An_act_handed_to_a_store_that_writes_it_has_its_key_overwritten_whatever_came_of_it(string outcome)
+        {
+            // `CA.md` §208: the store key's bytes are overwritten as each holder is done with them,
+            // the act a command composes among them, once the write was planned and applied,
+            // refused or thrown.
+            var store = new MemoryStore();
+            StoreSeeds.Authority(store, new InMemoryKeyValueStore());
+            store.Offered.Clear();
+            if (outcome == "refused")
+            {
+                store.RefuseWrites = "a write the writer refuses";
+            }
+            else if (outcome == "thrown")
+            {
+                store.ThrowOnWrite = new InvalidOperationException("a database that went");
+            }
+
+            try
+            {
+                Service(store).Delete();
+            }
+            catch (InvalidOperationException) when (outcome == "thrown")
+            {
+                // What a database that went raises reaches the caller as it did.
+            }
+
+            Assert.That(store.Offered.Single().Key(), Is.All.EqualTo((byte)0));
         }
 
         [Test]

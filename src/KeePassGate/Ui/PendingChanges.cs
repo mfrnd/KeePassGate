@@ -346,8 +346,19 @@ namespace KeePassGate.Ui
             var ends = false;
             if (_records.Waiting)
             {
+                // The acts are let go, and the store key each holds overwritten, whatever the
+                // write comes to, a write that throws among it.
                 var acts = _records.Acts;
-                var written = _database.Store.Write(acts);
+                StoreWritten written;
+                try
+                {
+                    written = _database.Store.Write(acts);
+                }
+                finally
+                {
+                    _records.Discard();
+                }
+
                 if (written.Taken)
                 {
                     changed = written.Wrote;
@@ -359,8 +370,6 @@ namespace KeePassGate.Ui
                               + string.Join(", ", acts.Select(act => act.Name)) + "): " + written.Reason
                               + (written.LeftOut.Count == 0 ? string.Empty : "; " + string.Join("; ", written.LeftOut)));
                 }
-
-                _records.Discard();
             }
 
             // What the dialog held for an admission goes with every admission, where an act the

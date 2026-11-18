@@ -373,15 +373,31 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>Writes an act, answering why it was not written, or null where it was.</summary>
+        /// <remarks>
+        /// **The act's copy of the store key is overwritten here** once the store is done with it,
+        /// written, refused or thrown, `CA.md` §208, unless the store holds the act for a dialog's
+        /// OK: that buffer overwrites it when it lets the act go.
+        /// </remarks>
         /// <param name="waits">
         /// Whether the store holds the act for a dialog's OK, where what the act takes out of the
         /// custom data is decided.
         /// </param>
         private string Write(StoreAct act, out bool waits)
         {
-            var written = _store.Write(new[] { act });
-            waits = written.Taken && written.Waits;
-            return written.Taken ? null : written.Reason;
+            waits = false;
+            try
+            {
+                var written = _store.Write(new[] { act });
+                waits = written.Taken && written.Waits;
+                return written.Taken ? null : written.Reason;
+            }
+            finally
+            {
+                if (!waits)
+                {
+                    act.Forget();
+                }
+            }
         }
 
         /// <summary>Takes every admission record away, as the authority that issued them goes.</summary>

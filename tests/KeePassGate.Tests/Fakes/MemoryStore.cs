@@ -59,6 +59,9 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>The acts of every write made, in order.</summary>
         public List<IReadOnlyList<StoreAct>> Written { get; } = new List<IReadOnlyList<StoreAct>>();
 
+        /// <summary>Every act handed to a write, whatever came of it, in order.</summary>
+        public List<StoreAct> Offered { get; } = new List<StoreAct>();
+
         /// <summary>The entries the store holds, each its identifier and its versions.</summary>
         public IReadOnlyList<StoreCandidate> Candidates
         {
@@ -134,6 +137,7 @@ namespace KeePassGate.Tests.Fakes
 
         public StoreWritten Write(IReadOnlyList<StoreAct> acts)
         {
+            Offered.AddRange(acts);
             if (ThrowOnWrite != null)
             {
                 throw ThrowOnWrite;

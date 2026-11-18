@@ -401,6 +401,21 @@ namespace KeePassGate.Tests
             Assert.That(pending.StoreWaiting, Is.False);
         }
 
+        [Test]
+        public void An_OK_whose_write_throws_overwrites_the_keys_of_the_acts_it_held()
+        {
+            var live = new FakeGateDatabase();
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            Assert.That(Service(pending).Create().Succeeded, Is.True);
+            var held = ((PendingRecords)pending.Store).Acts.Single();
+            live.Records.ThrowOnWrite = new InvalidOperationException("a database that went under the dialog");
+
+            Assert.Catch<InvalidOperationException>(() => pending.Apply());
+
+            Assert.That(held.Key(), Is.All.EqualTo((byte)0));
+            Assert.That(pending.StoreWaiting, Is.False);
+        }
+
         private static AuthorityService Service(PendingDatabase pending)
         {
             return new AuthorityService(pending.Store, pending.PluginCustomData, NullGateLog.Instance);

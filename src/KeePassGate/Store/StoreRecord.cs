@@ -166,7 +166,9 @@ namespace KeePassGate.Store
         }
 
         /// <summary>
-        /// Refuses a record the reading would not take for what it was composed as.
+        /// Refuses a record the reading would not take for what it was composed as, and lets go of
+        /// the form it read, overwriting the key that form found in an authority's or a
+        /// retirement's content.
         /// </summary>
         private static void ReadBack(byte[] key, StoreRecord record)
         {
@@ -184,7 +186,7 @@ namespace KeePassGate.Store
             }
             finally
             {
-                form.Done();
+                form.Forget();
                 Array.Clear(copy, 0, copy.Length);
             }
         }
