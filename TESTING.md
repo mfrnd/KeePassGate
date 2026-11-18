@@ -192,8 +192,13 @@ limit are run a second apart and within the second the record was written, since
 compares modification times to the second and the two merge otherwise, `STORE.md` §622.
 
 `StoreReadingCostTests` is explicit, as `Headroom_at_one_room_size` is: it times what reading the
-store holds KeePass's thread for through the real router and vault, and what a write of the
-operator's into it holds the thread for, and is run by name and read.
+store holds KeePass's thread for through the real router and vault, with a connection's admission
+read by meaning through the gate's own target and at the ceiling of statements, and what a write
+of the operator's and a pairing's write with its save hold the thread for, and is run by name
+and read. Each line it prints names the configuration it was built in, since the figures are
+quoted from a Release build, whose command the fixture's remark gives, and it prints a figure
+as the first only for a hold with nothing kept. The filter names the fixture alone: joined
+with another test by `|`, only the other test ran.
 
 **It is also where KeePass's own compiler is asked.** `ReferenceVectorsTests` builds a database in
 memory holding the entries `tests/Shared/ReferenceVectors.json` writes down, compiles every value

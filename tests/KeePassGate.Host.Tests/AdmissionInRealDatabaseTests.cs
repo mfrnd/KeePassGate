@@ -7,6 +7,7 @@ using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
 using KeePassGate.Store;
 using KeePassGate.Testing;
+using KeePassGate.Ui;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests
@@ -129,6 +130,64 @@ namespace KeePassGate.Host.Tests
             _database.Save();
 
             Assert.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040001), "a profile name takes it to 4.1");
+        }
+
+        [Test]
+        public void A_pairing_leaves_the_file_KDBX_4_0_and_a_profile_it_names_or_a_standing_answer_takes_it_to_4_1()
+        {
+            // Measured over the product's own pairing write and KeePass's save, each in a database
+            // of its own: a client paired for no profile; a client paired for a profile, which the
+            // write names in the list of profiles; and a client paired for no profile with a
+            // standing answer to its renewal written beside it. The store's entries need nothing
+            // above 4.0, `STORE.md` §612, and each key of the database's own custom data carries a
+            // modification time, which is a 4.1 field, `CA.md` §204.
+            var none = VersionAfterPairing(Array.Empty<string>(), false);
+            var profile = VersionAfterPairing(new[] { "ops" }, false);
+            var answer = VersionAfterPairing(Array.Empty<string>(), true);
+            TestContext.Out.WriteLine(string.Format(
+                System.Globalization.CultureInfo.InvariantCulture,
+                "paired for no profile {0:x8}, for a profile {1:x8}, for no profile beside a standing answer {2:x8}",
+                none,
+                profile,
+                answer));
+
+            Assert.That(none, Is.EqualTo(0x00040000), "a client paired for no profile leaves a 4.0 file");
+            Assert.That(profile, Is.EqualTo(0x00040001), "a client paired for a profile the list then names, a 4.1 file");
+            Assert.That(answer, Is.EqualTo(0x00040001), "and a standing answer beside a client paired for none, a 4.1 file");
+        }
+
+        /// <summary>
+        /// The KDBX version of a database with an authority once a client is paired for these
+        /// profiles through the product's own write and KeePass's save, and, where asked, once a
+        /// standing answer to its renewal is written beside it and the database saved again.
+        /// </summary>
+        private static int VersionAfterPairing(string[] profiles, bool withAnswer)
+        {
+            using (var database = TemporaryDatabase.New())
+            {
+                var authority = DatabaseAuthority.Of(database.Database, NullGateLog.Instance);
+                Assume.That(authority.Create().Succeeded, Is.True);
+                database.Save();
+
+                AdmissionRecord admission;
+                using (var reading = authority.Read())
+                using (var certificate = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, "agent-fictitious", profiles).Read())
+                {
+                    admission = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles, reading.Material.AuthorityDigest);
+                }
+
+                var written = new DatabaseWriter(CurrentThread.Instance, saved => saved.Save(null), null, null, null)
+                    .WriteAdmission(database.Database, admission);
+                Assert.That(written.Ok, Is.True, "the pairing was written: " + written.Reason);
+
+                if (withAnswer)
+                {
+                    new StoredAdmissions(database.Database).Answers.RefuseRenewal(admission.AdmissionKey, RenewalRefusal.Forever());
+                    database.Save();
+                }
+
+                return FileVersionOf(database.Path);
+            }
         }
 
         /// <summary>The KDBX version out of the file header: two signatures, then minor and major.</summary>

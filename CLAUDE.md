@@ -133,13 +133,14 @@ designing around them.
   and after it "an admission record takes the file to 4.1": the authority and the admissions are
   entries now, which need nothing above 4.0, so a saved database with an authority and an
   admission in the store, and nothing of the plugin's in its custom data, is a 4.0 file, measured,
-  and a profile name beside them takes it to 4.1, measured too, and keeps it there,
-  `AdmissionInRealDatabaseTests`. A pairing that approves a name the list does not hold writes
-  that name, so it still leaves a 4.1 file, for the name. That is a format
-  and not a gate: other programs open it, and what saving and merging in them does to it is measured
-  and stated in CA.md §204. A revocation is no key of that dictionary any more, STORE.md §615, so
-  what a KeePassXC merge can still undo there is the profile list and a standing answer to a
-  renewal.
+  and a profile name or a standing answer to a renewal beside them takes it to 4.1, measured
+  too, and keeps it there, `AdmissionInRealDatabaseTests`. Measured through the pairing's own
+  write as well: a client paired for no profile leaves a 4.0 file, and a pairing that approves a
+  name the list does not hold writes that name, so it leaves a 4.1 file, for the name. That is a
+  format and not a gate: other programs open it, and what saving and merging in them does to it
+  is measured and stated in CA.md §204. A revocation is no key of that dictionary any more,
+  STORE.md §615, so what a KeePassXC merge can still undo there is the profile list and a
+  standing answer to a renewal.
 - **That store is decided to be replaced in 0.3.0, and is what 0.2.0 ships until then.** The entries
   above about `CustomData` and KDBX 4.1 describe the plugin as released, but for the authority, the
   admissions and the revocations. What replaces them is decided and built in part: the plugin's

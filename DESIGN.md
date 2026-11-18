@@ -1673,9 +1673,15 @@ So the rules here:
   did not change, a certificate given up leaves nothing to save, held by
   `GiveUpInRealDatabaseTests.A_certificate_given_up_that_no_save_kept_is_taken_back_out_and_stays_admitted`.
   This reverses a write that set a key of the database's custom data and read that key back. The
-  turn now walks the tree once ahead of its save. What that adds beside the save is not measured
-  for a pairing yet; the store's own write of a Recreate, which walks and plans the same way, is
-  measured, `STORE.md` §627.
+  turn now walks the tree once ahead of its save. **What that adds beside the save is small,
+  and the save is what grows**, measured beside ten thousand entries in Release, the median of
+  twenty-one pairings after a first: the writer's whole turn with a save that writes nothing,
+  from the reading with every entry to the record read back and the file hashed back, took 13
+  milliseconds, and 73 where every entry holds ten history items; with KeePass's own save of
+  the database, 127 milliseconds, and 4.8 seconds, 10.8 at worst, with the histories. That is a
+  figure, on a developer's machine, for the save no sum of this plugin's timeouts bounds, above.
+  `StoreReadingCostTests.What_a_pairing_s_write_holds_the_thread_for`, `STORE.md` §627, and
+  `FINDINGS.md` section 22.
 
   So the deadlock case is **mitigated rather than absent**, and earlier versions of this section
   claimed otherwise twice over: first that it was absent, then that pairing was the only path that

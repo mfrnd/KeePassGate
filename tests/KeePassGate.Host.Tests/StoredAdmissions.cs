@@ -243,15 +243,30 @@ namespace KeePassGate.Host.Tests
         /// </summary>
         public void FillTo(int items)
         {
+            var held = Held();
+            Restated(Enumerable.Range(held, Math.Max(0, items - held))
+                .Select(at => StoreComposer.Item(
+                    ("client", at.ToString("x64", System.Globalization.CultureInfo.InvariantCulture)), ("kind", "revoked"))));
+        }
+
+        /// <summary>How many items the summary entry holds.</summary>
+        private int Held()
+        {
+            return Entries(StoreKinds.Head).Single().Strings.Count(pair => pair.Key.StartsWith("KPG.S.", StringComparison.Ordinal));
+        }
+
+        /// <summary>
+        /// The summary entry restated holding these items beside the items it held, named by the
+        /// entry that replaces it and deleted for good, as a write of the plugin's own does.
+        /// </summary>
+        public void Restated(IEnumerable<string> items)
+        {
             var head = Entries(StoreKinds.Head).Single();
             var held = head.Strings
                 .Where(pair => pair.Key.StartsWith("KPG.S.", StringComparison.Ordinal))
                 .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .Select(pair => pair.Value.ReadString())
                 .ToList();
-            var fillers = Enumerable.Range(held.Count, Math.Max(0, items - held.Count))
-                .Select(at => StoreComposer.Item(
-                    ("client", at.ToString("x64", System.Globalization.CultureInfo.InvariantCulture)), ("kind", "revoked")));
             var content = Newtonsoft.Json.Linq.JObject.Parse(head.Strings.ReadSafe("KPG.Data"));
             var height = (int)content["height"] + 1;
 
@@ -268,14 +283,14 @@ namespace KeePassGate.Host.Tests
                     ("after", string.Join(" ", after)),
                     ("height", height.ToString(System.Globalization.CultureInfo.InvariantCulture))),
                 height,
-                held.Concat(fillers))), true);
+                held.Concat(items))), true);
             DeleteForGood(new[] { head });
         }
 
         /// <summary>
         /// The bytes of the store key that stands, which a record composed under it holds.
         /// </summary>
-        private byte[] KeyInForce()
+        public byte[] KeyInForce()
         {
             using (var reading = Store.Read())
             {

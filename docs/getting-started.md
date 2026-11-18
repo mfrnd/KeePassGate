@@ -208,14 +208,15 @@ for a hundred years, so there is nothing to count down to: see [`clients.md`](cl
 Anything wrong or about to be wrong appears as a sentence under the table: a client in the last
 third of its certificate's life, which is thirty days at most, and anything unreadable.
 
-**Once a profile is named, the saved file is KDBX 4.1.** What the plugin keeps in the database's
-own custom data, the profile names and a standing answer to a renewal, carries the time each
-value was written, and that is a 4.1 field. The authority and the programs let in are entries of
-the plugin's group, which need nothing above 4.0, so a database with an authority and a program
-paired for no profile is still a 4.0 file. A profile is named on the Profiles page, or by
-approving a program for a name the database does not hold yet. KeePass 2.48 or later keeps those
-times. Other programs open the file all the same, and [Revoking](clients.md#revoking) states
-what saving or merging in them costs and what to check afterwards.
+**Once a profile is named, or a renewal is refused forever or until a day, the saved file is
+KDBX 4.1.** What the plugin keeps in the database's own custom data, the profile names and a
+standing answer to a renewal, carries the time each value was written, and that is a 4.1 field.
+The authority and the programs let in are entries of the plugin's group, which need nothing
+above 4.0, so a database with an authority and a program paired for no profile is still a 4.0
+file. A profile is named on the Profiles page, or by approving a program for a name the
+database does not hold yet. KeePass 2.48 or later keeps those times. Other programs open the
+file all the same, and [Revoking](clients.md#revoking) states what saving or merging in them
+costs and what to check afterwards.
 
 ## OK, then save
 

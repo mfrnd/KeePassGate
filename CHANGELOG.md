@@ -52,8 +52,9 @@ none, since it releases both.
   **A paired database is a KDBX 4.0 file until a profile is named.** A saved database that holds
   an authority and a program paired for no profile is a 4.0 file, where the first program paired
   used to make it a 4.1 file. A profile name still takes the file to 4.1, on the Profiles page or
-  by approving a program for a name the database does not hold yet, since the profile names are
-  kept in the database's custom data. `STORE.md` §612, §615, §626, §627 and §648.
+  by approving a program for a name the database does not hold yet, and so does a renewal
+  refused forever or until a day, since the profile names and those answers are kept in the
+  database's custom data. `STORE.md` §612, §615, §626, §627 and §648.
 - **The row of an expired certificate stays on the clients page**, reading `expired`, until its
   client is revoked or the authority is recreated or deleted. It used to go with the plugin's next
   change to the database, on the clock of the computer that made the change. A standing answer to

@@ -573,10 +573,15 @@ against 2 with it (evaluation 4.1).
   is 4.1, `CA.md` §204. **Measured in the product for the parts that are built**: a saved database
   that holds an authority and an admission in the store, and nothing of the plugin's in its
   custom data, is a KDBX 4.0 file, and a profile name beside them takes it to 4.1, since the
-  profile names are still kept in the custom data (§616). So an admission does not move the
-  file's version, and what the plugin still keeps in custom data does, until that has moved into
-  the store as well. *Held by*
-  `AdmissionInRealDatabaseTests.An_admission_leaves_the_file_KDBX_4_0_and_a_profile_name_beside_it_takes_it_to_4_1`.
+  profile names are still kept in the custom data (§616). **And through the pairing's own
+  write**, saved by KeePass, with the version read from the file's header: an authority and a
+  client paired for no profile is a 4.0 file; paired for a profile, which the write names in the
+  list, a 4.1 file; and paired for no profile with a standing answer to its renewal beside it, a
+  4.1 file. So an admission does not move the file's version, and what the plugin still keeps
+  in custom data does, until that has moved into the store as well. *Held by*
+  `AdmissionInRealDatabaseTests.An_admission_leaves_the_file_KDBX_4_0_and_a_profile_name_beside_it_takes_it_to_4_1`
+  and
+  `AdmissionInRealDatabaseTests.A_pairing_leaves_the_file_KDBX_4_0_and_a_profile_it_names_or_a_standing_answer_takes_it_to_4_1`.
 
 ---
 
@@ -1491,16 +1496,17 @@ follows from a row going alone, the menu's first line, and the rows marked `not 
 `listed twice`, each with Revoke where it is the first row of a client it names. The audit's
 lines are built for a certificate that its client gave up, for a certificate that the operator
 took away and for a client that the operator revoked. **The rules about a renewal are built**,
-rules 3 to 5 with the chain of
-rule 4. Whether an admission counts is asked along its chain of origins by iteration, each
-certificate worked out once for a reading, so a long chain costs no depth of calls and a chain
-that leads back into itself ends: `StoreInForce` holds, for each certificate, the statements
-that took it away with their `renewed` and `from`, and the admissions in force that name it,
-worked out as the reading is made. The gate's hold, an approval held for a renewal at its write,
-and a certificate given up all ask the same judgment, so a renewal that does not count is
-answered `401 unpaired` wherever it asks, and the listing marks it for the clients page. **The
-runs over copies merged by KeePass are made**, above; what §644 item 16 still owes is the same
-in KeePassXC, between two KeePass instances and on a device. *Held by* `AdmissionActsTests`,
+rules 3 to 5 with the chain of rule 4. Whether an admission counts is asked along its chain of
+origins by iteration, each certificate worked out once for the question or the listing asked, so
+a long chain costs no depth of calls and a chain that leads back into itself ends: `StoreInForce`
+holds, for each certificate, the statements that took it away with their `renewed` and `from`,
+and the admissions in force that name it, worked out as the reading is made. A chain as long as the
+store can hold statements held KeePass's thread for 27.2 ms at the median (§620). The gate's
+hold, an approval held for a renewal at its write, and a certificate given up all ask the same
+judgment, so a renewal that does not count is answered `401 unpaired` wherever it asks, and the
+listing marks it for the clients page. **The runs over copies merged by KeePass are made**,
+above; what §644 item 16 still owes is the same in KeePassXC, between two KeePass instances and
+on a device. *Held by* `AdmissionActsTests`,
 `StoreAdmissionsTests`, `StoreAdmissionChainTests`, `RevocationOperationTests`,
 `ClientListTests`, `ClientListMenuTests` and `AuthorityPanelTests`, and over real databases by
 `GiveUpInRealDatabaseTests`, the record in the file, the certificate a renewal issued still
@@ -1833,10 +1839,21 @@ reading as well (§623, §627), the same holds measured 2.4, 2.7 and 48 ms, and 
 where every entry holds ten history items, which is the earlier run within what two runs on one
 machine differ by; and a store at both of the plugin's own ceilings (§643), a summary entry
 naming 7,900 summary entries each with its deletion record and restating 9,000 revocations, 900
-of them with a deletion record besides, held the thread for 21 ms. So the estimate holds in its
-shape, the walk somewhat dearer in the product, and reading every entry at every request stays
-well within the five seconds a hold is let run, with a full history on every entry the case
-that shows. *Held by*
+of them with a deletion record besides, held the thread for 21 ms, and 24.6 ms in a later run.
+**With the admission of the certificate read by meaning in that hold** (§615), as a connection
+is judged, asked of the gate's own target for the database: beside the same store, an
+authority the product created and a single admission, the hold measured 2.6 ms, and 2.8 ms
+beside the ten admissions the growth run's gate held (§643); where every entry holds ten
+history items, 57 and 56 ms. The word alone measured 2.6 and 54 ms in the same run, so reading
+the admission adds less than two runs differ by. **At a summary entry restating 9,997
+certificates taken away**, the most that leaves the store room for a write, beside 10,000
+entries without history, the hold measured 16.9 ms for a pairing's admission beside those
+statements, and 27.2 ms for the renewal at the end of a chain of `from` as long as the
+statements, each renewed from the certificate before it and naming the next (§648 rule 4):
+following a chain as long as the store can hold costs about 10 ms over the statements alone.
+So the estimate holds in its shape, the walk somewhat dearer in the product, and reading every
+entry at every request stays well within the five seconds a hold is let run, with a full
+history on every entry the case that shows. *Held by*
 `StoreReadingBoundTests`, `StoreReadingTests` and
 `StoreInRealDatabaseTests`: a string replaced by an object of another text is read at the next
 hold with the entry's times left as they were; a second question inside a hold walks nothing;
@@ -2765,19 +2782,29 @@ added, the records set back and a group made, and with them what the same turn w
 custom data or took out of it: a profile name, and the standing answers to a renewal. A database
 that closed inside the save is taken nothing back from, and no certificate is handed over. A write
 that stands has KeePass's group tree and entry list rebuilt, since it adds and deletes entries of
-the plugin's group, `DESIGN.md` §119. **The operator's revocation is an act**, held by the buffer
-beside the authority's acts and written at OK. Every write deletes the records of kind
-`client` that step 3 names, by the texts §658 keeps, the write's own records counting as present,
-so a revocation, a certificate taken away, a Recreate and a Delete each delete in their own write
-the admissions they refuse. **A client's write is answered the store's word** where the store
-holds the gate back in the writer's turn, above (§644 item 26). **The tab's OK meets no save of
-the plugin's own**, above (§644 item 30), so nothing was built for it. **The single removal on
-the clients page is written as the revocation is**, by the dialog's OK through the writer's
-guard (§648). *Held by* `StoreRecordTests`, against the records of the measured code
-(`tests/Shared/StoreRecordVectors.json`); `StoreWriteShapeTests`, against its writes
-(`StoreWriteVectors.json`): each sequence played through `AuthorityService` and `AdmissionActs`,
-and each step's deletions, deletion records, records present, summary entries, store keys and
-answer compared by kind and by count, the kind `client` among them, with
+the plugin's group, `DESIGN.md` §119. **What a pairing's write holds KeePass's thread for**
+(measured by `StoreReadingCostTests.What_a_pairing_s_write_holds_the_thread_for`, explicit, in
+Release, the median of 21 pairings after a first, each a new client with a profile, beside
+10,000 entries in a hundred groups and an authority the product created, each series on a
+database of its own): the writer's whole turn with a save that writes nothing, which is the
+reading with every entry, the plan, the entries asked about, the application, the record read
+back and the file hashed back, took 13 ms, and 73 ms where every entry holds ten history
+items. With KeePass's own save of the database the turn took 127 ms, and 4.8 seconds, 10.8 at
+worst, where every entry holds ten history items. So the save is what grows, and the store's
+part of a pairing's turn is what its reading costs (§620). **The operator's revocation is an
+act**, held by the buffer beside the authority's acts and written at OK. Every write deletes
+the records of kind `client` that step 3 names, by the texts §658 keeps, the write's own
+records counting as present, so a revocation, a certificate taken away, a Recreate and a Delete
+each delete in their own write the admissions they refuse. **A client's write is answered the
+store's word** where the store holds the gate back in the writer's turn, above (§644 item 26).
+**The tab's OK meets no save of the plugin's own**, above (§644 item 30), so nothing was built
+for it. **The single removal on the clients page is written as the revocation is**, by the
+dialog's OK through the writer's guard (§648). *Held by* `StoreRecordTests`, against the
+records of the measured code (`tests/Shared/StoreRecordVectors.json`); `StoreWriteShapeTests`,
+against its writes (`StoreWriteVectors.json`): each sequence played through `AuthorityService`
+and `AdmissionActs`, and each step's deletions, deletion records, records present, summary
+entries, store keys and answer compared by kind and by count, the kind `client` among them,
+with
 `Two_copies_one_revoking_a_client_the_other_renews_synchronized_admit_nobody_of_that_client`
 holding that both copies end with the same records and the renewed certificate refused in each;
 `StoreWriteTests`, each step of the plan alone, the ceiling at its boundary and a record written
@@ -4513,10 +4540,13 @@ that finds a measurement against a decision reports it and does not design aroun
     merge, a merge that makes another group the recycle bin, a rule narrowed while a save runs,
     the differing files of row 16, and a deleting device whose clock is behind, on real files.
 12. **The reading on KeePass's thread.** Measured, with a change's turn and with a key for each
-    entry of a file, by the pull request that builds the reading,
-    through the real router and vault, and recorded in §620, in `DESIGN.md` §119 and in
-    `FINDINGS.md` section 22: it overturns nothing. What stays owed is the same run on a
-    machine that is not a developer's, and a database of more entries than 10,000.
+    entry of a file, by the pull request that builds the reading, through the real router and
+    vault, and recorded in §620, in `DESIGN.md` §119 and in `FINDINGS.md` section 22: it
+    overturns nothing. Measured as well with the admission of a connection read by meaning, at
+    the ceiling of statements, along a chain of renewals as long as that ceiling, and for a
+    pairing's write with its save (§620, §627): it overturns nothing either. What stays owed is
+    the same run on a machine that is not a developer's, and a database of more entries than
+    10,000.
 13. **The page that seals the store again**: what it shows after each kind of loss. Nothing of it
     was run as a page.
 14. **Which of KeePass's windows takes back or takes away an entry of the plugin's group** while

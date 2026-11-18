@@ -126,12 +126,15 @@ to 4.1, being a key of the dictionary still. An admission is an entry of the sto
 so a saved database that holds an authority and an admission, and nothing of the plugin's in
 its custom data, is a 4.0 file. What takes the file to 4.1 is what the plugin still keeps in
 this dictionary: a profile name, measured beside an authority alone and beside an authority and
-an admission, and by the same stamp a standing answer to a renewal, which was not measured.
-`AdmissionInRealDatabaseTests` holds both measurements, in
-`An_admission_leaves_the_file_KDBX_4_0_and_a_profile_name_beside_it_takes_it_to_4_1` and
-`A_profile_name_takes_the_file_to_KDBX_4_1_before_anything_is_paired`. A pairing that approves a
-profile the list does not hold writes that name in the same write, so such a pairing still
-leaves a 4.1 file, for the name and not for the admission.
+an admission, and a standing answer to a renewal, measured beside an authority and a client
+paired for no profile. `AdmissionInRealDatabaseTests` holds the measurements, in
+`An_admission_leaves_the_file_KDBX_4_0_and_a_profile_name_beside_it_takes_it_to_4_1`,
+`A_profile_name_takes_the_file_to_KDBX_4_1_before_anything_is_paired` and, through the pairing's
+own write and KeePass's save, with the version read from the file's header,
+`A_pairing_leaves_the_file_KDBX_4_0_and_a_profile_it_names_or_a_standing_answer_takes_it_to_4_1`.
+A pairing that approves a profile the list does not hold writes that name in the same write, so
+such a pairing leaves a 4.1 file, for the name and not for the admission, and a client paired
+for no profile leaves a 4.0 file.
 
 **The rest of this store is decided to be replaced in 0.3.0 as those parts were.** What
 other programs do to custom data, in the paragraphs on them below, is what reopened it: the
