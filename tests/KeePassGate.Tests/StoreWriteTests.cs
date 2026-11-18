@@ -223,7 +223,30 @@ namespace KeePassGate.Tests
             var write = StoreWrite.Plan(store.Read(), new[] { Act(key, bare) }, Plugin);
 
             Assert.That(write.Refused, Is.EqualTo("the write would leave no entry holding the store key"));
-            Assert.That(write.Add, Is.Empty);
+        }
+
+        [Test]
+        public void A_record_the_file_holds_or_a_deletion_record_names_is_not_written_again()
+        {
+            // `STORE.md` §627: a record is written once. The identifier is the record's own, so a
+            // second entry under it would be two entries the tree tells apart by nothing, and a
+            // record a deletion record names would be added only to be out of force.
+            var store = Started(out var key, 'a');
+            var name = StoreRecord.Compose(key, "profile", new Dictionary<string, string> { { "after", string.Empty }, { "name", "reader" } });
+            Assert.That(store.Write(new[] { Act(key, name) }).Taken, Is.True);
+
+            var again = StoreWrite.Plan(store.Read(), new[] { Act(key, name) }, Plugin);
+            Assert.That(again.Empty, Is.True, "the record the file holds");
+
+            store.Drop(name.Hex);
+            store.Delete(name.Identifier);
+            var told = StoreWrite.Plan(store.Read(), new[] { Act(key, name) }, Plugin);
+            Assert.That(told.Empty, Is.True, "the record a deletion record names");
+
+            var beside = StoreRecord.Compose(key, "profile", new Dictionary<string, string> { { "after", string.Empty }, { "name", "writer" } });
+            var both = StoreWrite.Plan(store.Read(), new[] { Act(key, name), Act(key, beside), Act(key, beside) }, Plugin);
+            Assert.That(both.Add.Where(record => record.Kind == "profile").Select(record => record.Hex), Is.EqualTo(new[] { beside.Hex }),
+                "and a record an act before it in the same write adds, once");
         }
 
         [Test]
@@ -357,26 +380,32 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_write_whose_strings_pass_the_plugin_s_ceiling_is_refused_with_nothing_planned()
+        public void A_write_whose_strings_pass_the_plugin_s_ceiling_by_a_character_is_refused_and_a_write_at_it_is_not()
         {
+            // `STORE.md` §643: the same write at the ceiling and a character beyond it.
             var store = Started(out var key, 'a');
-            var long_ = StoreRecord.Compose(key, "retired", new Dictionary<string, string>
-            {
-                { "authority", Hex('a') },
-                { "note", new string('x', StoreFormat.MaxWritten) },
-                { "storeKey", StoreComposer.HexOf(key) },
-            });
-            var fits = StoreRecord.Compose(key, "retired", new Dictionary<string, string>
-            {
-                { "authority", Hex('a') },
-                { "note", new string('x', StoreFormat.MaxWritten - 300) },
-                { "storeKey", StoreComposer.HexOf(key) },
-            });
+            var near = Noted(key, StoreFormat.MaxWritten - 300).Content.Length;
+            var at = Noted(key, StoreFormat.MaxWritten - 300 + (StoreFormat.MaxWritten - near));
+            var beyond = Noted(key, StoreFormat.MaxWritten - 300 + (StoreFormat.MaxWritten - near) + 1);
+            Assume.That(at.Content.Length, Is.EqualTo(StoreFormat.MaxWritten));
+            Assume.That(beyond.Content.Length, Is.EqualTo(StoreFormat.MaxWritten + 1));
 
-            Assert.That(StoreWrite.Plan(store.Read(), new[] { Act(key, fits) }, Plugin).Refused, Is.Null);
-            var beyond = StoreWrite.Plan(store.Read(), new[] { Act(key, long_) }, Plugin);
-            Assert.That(beyond.Refused, Does.Contain("262144"));
-            Assert.That(beyond.Add, Is.Empty);
+            Assert.That(StoreWrite.Plan(store.Read(), new[] { Act(key, at) }, Plugin).Refused, Is.Null);
+            var refused = StoreWrite.Plan(store.Read(), new[] { Act(key, beyond) }, Plugin);
+            Assert.That(
+                refused.Refused,
+                Is.EqualTo("the write needs a string of 262145 characters, and the plugin writes none longer than 262144"));
+        }
+
+        /// <summary>A retirement holding the key, with a member nothing reads of this many characters.</summary>
+        private static StoreRecord Noted(byte[] key, int length)
+        {
+            return StoreRecord.Compose(key, "retired", new Dictionary<string, string>
+            {
+                { "authority", Hex('a') },
+                { "note", new string('x', length) },
+                { "storeKey", StoreComposer.HexOf(key) },
+            });
         }
 
         [Test]
@@ -392,7 +421,7 @@ namespace KeePassGate.Tests
             var after = full.Read();
             Assert.That(after.Room.HasRoom, Is.False);
             var refused = StoreWrite.Plan(after, new[] { Retire(One, 'b') }, Plugin);
-            Assert.That(refused.Word, Is.EqualTo("stopped"));
+            Assert.That(refused.Refused, Does.StartWith("the store is stopped"));
 
             // Named summary entries the same way: the last that fits, and none after it.
             var named = Naming(7940);
@@ -401,7 +430,7 @@ namespace KeePassGate.Tests
             Assert.That(named.Read().Room.HasRoom, Is.True);
             Assert.That(named.Write(new[] { Retire(One, 'b') }).Taken, Is.True);
             Assert.That(named.Read().Room.HasRoom, Is.False);
-            Assert.That(StoreWrite.Plan(named.Read(), new[] { Retire(One, 'c') }, Plugin).Word, Is.EqualTo("stopped"));
+            Assert.That(StoreWrite.Plan(named.Read(), new[] { Retire(One, 'c') }, Plugin).Refused, Does.StartWith("the store is stopped"));
         }
 
         [Test]
@@ -421,9 +450,7 @@ namespace KeePassGate.Tests
         private static void AssertRefused(StoreReading reading, StoreAct act, string word)
         {
             var write = StoreWrite.Plan(reading, new[] { act }, Plugin);
-            Assert.That(write.Word, Is.EqualTo(word));
-            Assert.That(write.Refused, Does.StartWith("the store is " + word));
-            Assert.That(write.Add, Is.Empty);
+            Assert.That(write.Refused, Does.StartWith("the store is " + word + ": "));
         }
 
         private static MemoryStore Started(out byte[] key, char authority)

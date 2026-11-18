@@ -2,6 +2,7 @@ using System.Linq;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Store;
 using KeePassLib;
 using NUnit.Framework;
 
@@ -67,6 +68,8 @@ namespace KeePassGate.Host.Tests
                                 method + ": both new ones, and never the one both copies retired");
                             Assert.That(reading.Candidates.Select(c => c.Fingerprint), Does.Not.Contain(original));
                         }
+
+                        AssertServes(first, null, method + ": nothing is served while both stand");
                     }
                 }
             }
@@ -97,6 +100,8 @@ namespace KeePassGate.Host.Tests
                         Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.Undecided));
                         Assert.That(reading.Candidates.Select(c => c.Fingerprint), Is.EquivalentTo(expected));
                     }
+
+                    AssertServes(third, null, "nothing is served while the three stand");
                 }
             }
         }
@@ -138,12 +143,8 @@ namespace KeePassGate.Host.Tests
                                 var expected = method == PwMergeMethod.CreateNewUuids ? Digest(target) : kept;
                                 MergeIn(target, source, method);
 
-                                using (var reading = Authority(target).Read())
-                                {
-                                    var named = method + (intoChooser ? ", into the copy that chose" : ", into a copy that lost");
-                                    Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.Present), named);
-                                    Assert.That(reading.Material.AuthorityDigest, Is.EqualTo(expected), named);
-                                }
+                                var named = method + (intoChooser ? ", into the copy that chose" : ", into a copy that lost");
+                                AssertServes(target, expected, named);
                             }
                         }
                     }
@@ -209,6 +210,8 @@ namespace KeePassGate.Host.Tests
                             Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.None), method.ToString());
                             Assert.That(reading.IsRetired, Is.True, method + ": every authority it held is retired");
                         }
+
+                        AssertServes(first, null, method + ": nothing is served");
                     }
                 }
             }
@@ -242,6 +245,8 @@ namespace KeePassGate.Host.Tests
                                 Assert.That(reading.IsRetired, Is.True,
                                     method + ": and reads as retired, rather than as never having had an authority");
                             }
+
+                            AssertServes(copy, null, method + ": nothing is served");
                         }
 
                         if (method == PwMergeMethod.CreateNewUuids)
@@ -334,14 +339,32 @@ namespace KeePassGate.Host.Tests
             return authority.Keep(fingerprint, offered);
         }
 
-        /// <summary>The one authority a copy serves, which the caller expects there to be.</summary>
+        /// <summary>The authority a copy serves, which the caller expects there to be, from a store that is whole.</summary>
         private static string Digest(TemporaryDatabase database)
         {
-            using (var reading = Authority(database).Read())
+            using (var store = Store(database))
             {
-                Assert.That(reading.IsPresent, Is.True, "expected exactly one authority, and found " + reading.Presence);
-                return reading.Material.AuthorityDigest;
+                Assert.That(store.State, Is.EqualTo(StoreState.Whole), store.Reason);
+                var served = StoreAuthorities.Served(store);
+                Assert.That(served, Is.Not.Null, "expected an authority served");
+                return served;
             }
+        }
+
+        /// <summary>That a copy's store is whole and serves this authority, or nothing where it is null.</summary>
+        private static void AssertServes(TemporaryDatabase database, string expected, string named)
+        {
+            using (var store = Store(database))
+            {
+                Assert.That(store.State, Is.EqualTo(StoreState.Whole), named + ": " + store.Reason);
+                Assert.That(StoreAuthorities.Served(store), Is.EqualTo(expected), named);
+            }
+        }
+
+        /// <summary>A copy's store as it stands, for the caller to let go.</summary>
+        private static StoreReading Store(TemporaryDatabase database)
+        {
+            return new KdbxStore(database.Database, GateVersion.Current, NullGateLog.Instance).Read();
         }
     }
 }

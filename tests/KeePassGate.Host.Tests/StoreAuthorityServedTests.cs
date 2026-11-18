@@ -134,35 +134,36 @@ namespace KeePassGate.Host.Tests
         public void Each_connection_walks_the_store_once_for_its_target_and_its_admission()
         {
             // The listener holds KeePass's thread once for each connection, and `Current` and the
-            // admission each ask inside that hold; ten connections are ten holds.
-            const int Connections = 10;
+            // admission each ask inside that hold. A walk is counted by what it finds: the store is
+            // changed inside a hold once the target is read, which nothing on KeePass's thread can
+            // do while the hold stands, so an admission that walked the store again would find its
+            // authority retired and refuse, and the next connection, in a hold of its own, walks
+            // it again and finds nothing served.
             var store = new KdbxStore(_database.Database, GateVersion.Current, NullGateLog.Instance);
             var admissions = new CustomDataStore(_database.Database);
-            StoreSeeds.Authority(store, admissions);
+            var authority = StoreSeeds.Authority(store, admissions);
 
             var issuer = new AuthorityIssuer();
-            var hold = new Walks();
+            var hold = new Holds();
             using (var served = new AuthorityService(store, admissions, NullGateLog.Instance).Read())
             using (var client = issuer.IssueClient(served.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read())
             using (var targets = new OpenDatabaseTargets(() => new[] { _database.Database }, null, hold, NullGateLog.Instance))
             {
                 new AdmissionStore(admissions, NullGateLog.Instance).Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }));
 
-                for (var connection = 0; connection < Connections; connection++)
+                var paired = hold.Hold(() =>
                 {
-                    var paired = hold.Hold(() =>
+                    using (var target = targets.Current().Single())
                     {
-                        using (var target = targets.Current().Single())
-                        {
-                            return ClientCredentials.For(client, target, NullGateLog.Instance).IsPaired;
-                        }
-                    });
-                    Assume.That(paired, Is.True);
-                }
-            }
+                        StoreSeeds.Retire(store, authority);
+                        return ClientCredentials.For(client, target, NullGateLog.Instance).IsPaired;
+                    }
+                });
 
-            Assert.That(hold.Asked, Is.GreaterThanOrEqualTo(2 * Connections), "the target and the admission each asked the store");
-            Assert.That(hold.Walked, Is.EqualTo(Connections), "and each connection's store was walked once");
+                Assert.That(hold.Asked, Is.GreaterThanOrEqualTo(2), "the target and the admission each asked the store");
+                Assert.That(paired, Is.True, "the admission walked nothing the target had not");
+                Assert.That(hold.Hold(() => targets.Current()), Is.Empty, "and the next connection walked the store again");
+            }
         }
 
         [Test]
@@ -181,34 +182,20 @@ namespace KeePassGate.Host.Tests
             }
         }
 
-        /// <summary>
-        /// A hold that hands each outermost hold a stamp of its own, and counts the walks a
-        /// database's readings make: a reading asks the stamp once for each question, and walks
-        /// where the stamp is none or another than the stamp it last walked under.
-        /// </summary>
-        private sealed class Walks : IReadHold
+        /// <summary>A hold that hands each outermost hold a stamp of its own, and counts how often a reading asked it.</summary>
+        private sealed class Holds : IReadHold
         {
             private long _given;
             private long _stamp;
-            private long _walkedUnder;
 
             /// <summary>How often a reading asked which hold it is in.</summary>
             public int Asked { get; private set; }
-
-            /// <summary>How many of those asks walked the store.</summary>
-            public int Walked { get; private set; }
 
             public long Stamp
             {
                 get
                 {
                     Asked++;
-                    if (_stamp == 0 || _stamp != _walkedUnder)
-                    {
-                        Walked++;
-                        _walkedUnder = _stamp;
-                    }
-
                     return _stamp;
                 }
             }

@@ -687,17 +687,35 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// Takes away every revocation that names an authority the store no longer holds, as a
-        /// revocation write does it: the authorities standing are read here, and where the store
-        /// does not tell which stand, nothing is taken away.
+        /// Takes away what a write of the plugin's own takes away beside what it writes, answering
+        /// with what went: the records that came back beside their revocations, the records of
+        /// expired certificates, the revocations naming an authority the store no longer holds, and
+        /// the standing answers no record is left to ask, in that order, since the last asks what
+        /// the others left.
         /// </summary>
-        private void PruneUnserved()
+        /// <remarks>
+        /// A revocation goes for its authority only where the store this was given reads whole and
+        /// tells which authorities stand; where it does not, the revocation is kept until its
+        /// certificate expires. The writer runs this on every write of its own, and nothing else.
+        /// </remarks>
+        internal IReadOnlyList<KeyValuePair<string, string>> PruneOnWrite(DateTimeOffset now)
+        {
+            var removed = new List<KeyValuePair<string, string>>(PruneCameBack());
+            removed.AddRange(PruneExpired(now));
+            removed.AddRange(PruneUnserved());
+            removed.AddRange(PruneRefusals());
+            return removed;
+        }
+
+        /// <summary>
+        /// Takes away every revocation that names an authority the store no longer holds, as a
+        /// revocation write does it, answering with what went: the authorities standing are read
+        /// here, and where the store does not tell which stand, nothing is taken away.
+        /// </summary>
+        private IReadOnlyList<KeyValuePair<string, string>> PruneUnserved()
         {
             var standing = Standing();
-            if (standing != null)
-            {
-                PruneUnserved(standing.ToList());
-            }
+            return standing == null ? Array.Empty<KeyValuePair<string, string>>() : PruneUnserved(standing.ToList());
         }
 
         /// <summary>
@@ -772,7 +790,7 @@ namespace KeePassGate.Authority
         ///
         /// A failure is logged and answered with what went before it, as every prune here is.
         /// </remarks>
-        internal IReadOnlyList<KeyValuePair<string, string>> PruneUnserved(ICollection<string> standing)
+        private IReadOnlyList<KeyValuePair<string, string>> PruneUnserved(ICollection<string> standing)
         {
             var removed = new List<KeyValuePair<string, string>>();
             if (standing == null)

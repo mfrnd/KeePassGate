@@ -1946,10 +1946,10 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Takes away the documents of retired authorities, the admission records that came back
-        /// beside their revocations, the records of expired certificates and the standing answers
-        /// about certificates no record admits, as part of a write this plugin is making anyway,
-        /// answering with what went.
+        /// Takes away the admission records that came back beside their revocations, the records of
+        /// expired certificates, the revocations of authorities the store no longer holds and the
+        /// standing answers about certificates no record admits, as part of a write this plugin is
+        /// making anyway, answering with what went, `AdmissionStore.PruneOnWrite`.
         /// </summary>
         /// <remarks>
         /// **Here, inside the guarded write, and never at open**, which is operator answer 3a:
@@ -1962,28 +1962,7 @@ namespace KeePassGate.Bridge
         {
             try
             {
-                // Records that came back beside their revocation, records of expired certificates,
-                // revocations naming an authority the store no longer holds, and standing answers
-                // no record is left to ask, in that order: the last asks what the others left.
-                var admissions = new AdmissionStore(store, _log);
-                var removed = new List<KeyValuePair<string, string>>(admissions.PruneCameBack());
-                removed.AddRange(admissions.PruneExpired(DateTimeOffset.UtcNow));
-
-                // Only where the store tells which authorities stand: where it does not, a
-                // revocation is kept until its certificate expires.
-                IReadOnlyCollection<string> standing;
-                using (var reading = new KdbxStore(database, GateVersion.Current, _log).Read())
-                {
-                    standing = StoreAuthorities.Standing(reading);
-                }
-
-                if (standing != null)
-                {
-                    removed.AddRange(admissions.PruneUnserved(standing.ToList()));
-                }
-
-                removed.AddRange(admissions.PruneRefusals());
-                return removed;
+                return new AdmissionStore(store, new KdbxStore(database, GateVersion.Current, _log), _log).PruneOnWrite(DateTimeOffset.UtcNow);
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {

@@ -74,6 +74,27 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_database_whose_store_will_not_read_leaves_every_other_database_served()
+        {
+            // What reading a database's store raises is named, and that database is left unserved:
+            // a throw out of one database left `Current` for every open database at once.
+            CreateAuthorityIn(_first);
+            CreateAuthorityIn(_second);
+
+            using (var targets = new OpenDatabaseTargets(delegate { return _open; }, null, new FirstAskThrows(), _log))
+            {
+                var current = targets.Current();
+                Assert.That(current, Has.Count.EqualTo(1));
+                using (var served = current[0])
+                {
+                    Assert.That(served.DatabaseId, Is.EqualTo(DigestOf(_second)));
+                }
+            }
+
+            Assert.That(_log.Errors, Has.Some.Contains("could not be read, so it is not served"));
+        }
+
+        [Test]
         public void Each_database_is_served_under_its_own_authority()
         {
             CreateAuthorityIn(_first);
@@ -585,6 +606,36 @@ namespace KeePassGate.Host.Tests
             using (var reading = ServiceFor(database).Read())
             {
                 return reading.Material.AuthorityDigest;
+            }
+        }
+
+        /// <summary>
+        /// A hold whose first question about which hold a reading is in throws, as a store read
+        /// that fails raises, and that answers each later question with the hold it is in.
+        /// </summary>
+        private sealed class FirstAskThrows : KeePassGate.Ui.IReadHold
+        {
+            private bool _asked;
+            private long _stamp;
+
+            public long Stamp
+            {
+                get
+                {
+                    if (!_asked)
+                    {
+                        _asked = true;
+                        throw new InvalidOperationException("the store could not be read");
+                    }
+
+                    return _stamp;
+                }
+            }
+
+            public T Hold<T>(Func<T> read)
+            {
+                _stamp++;
+                return read();
             }
         }
 

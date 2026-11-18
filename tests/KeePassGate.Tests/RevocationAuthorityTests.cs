@@ -155,24 +155,10 @@ namespace KeePassGate.Tests
             }
         }
 
-        /// <summary>
-        /// What the writer takes away on every write of its own, in its order, answering with
-        /// what went.
-        /// </summary>
+        /// <summary>What the writer takes away on every write of its own, answering with what went.</summary>
         private IReadOnlyList<KeyValuePair<string, string>> Prune()
         {
-            var removed = new List<KeyValuePair<string, string>>(_admissions.PruneCameBack());
-            removed.AddRange(_admissions.PruneExpired(DateTimeOffset.UtcNow));
-
-            // Only where the store tells which authorities stand, as the writer asks it.
-            var standing = StoreAuthorities.Standing(_records.Read());
-            if (standing != null)
-            {
-                removed.AddRange(_admissions.PruneUnserved(standing.ToList()));
-            }
-
-            removed.AddRange(_admissions.PruneRefusals());
-            return removed;
+            return _admissions.PruneOnWrite(DateTimeOffset.UtcNow);
         }
 
         /// <summary>The digest of the authority the store serves now.</summary>

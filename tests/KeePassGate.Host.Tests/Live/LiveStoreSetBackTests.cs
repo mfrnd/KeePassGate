@@ -163,7 +163,11 @@ namespace KeePassGate.Host.Tests.Live
                 () => Uia.Descendant(strings, ControlType.ListItem, name => name == StoreFormat.DataField)
                       ?? Uia.Descendant(strings, ControlType.DataItem, name => name == StoreFormat.DataField)));
 
-            Assert.That(driver.PressButton(entry, "Delete"), Is.True, driver.Diagnostics);
+            // By its identifier: the entry dialog holds a button captioned Delete for each list on
+            // its pages, and the button meant is the string list's.
+            var delete = Uia.WaitFor("the string list's Delete button", () => Uia.ById(entry, ControlType.Button, "m_btnStrDelete"));
+            ((InvokePattern)delete.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
+            Thread.Sleep(1000);
             Assert.That(driver.AcceptDialog(entry), Is.True, driver.Diagnostics);
         }
 

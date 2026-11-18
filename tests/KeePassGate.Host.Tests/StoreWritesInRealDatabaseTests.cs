@@ -129,6 +129,130 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_record_whose_title_and_notes_were_changed_reads_as_it_did()
+        {
+            // `STORE.md` §607: no text is covered by the check or read by the plugin.
+            var database = Database();
+            var id = StoreSeeds.Authority(Store(database), Admissions(database));
+            var authority = PluginGroup(database).Entries.Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "authority");
+
+            authority.Strings.Set(PwDefs.TitleField, new ProtectedString(false, "renamed by hand"));
+            authority.Strings.Set(PwDefs.NotesField, new ProtectedString(false, "notes of the operator's own"));
+
+            using (var reading = Store(database).Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(reading.ByHistory, Is.EqualTo(0));
+                Assert.That(StoreAuthorities.Served(reading), Is.EqualTo(id));
+            }
+        }
+
+        [TestCase("Delete")]
+        [TestCase("keeping an authority")]
+        public void A_retirement_holding_the_store_key_is_an_entry_with_its_content_protected_and_marked(string command)
+        {
+            // `STORE.md` §607 and §628 (S18): every record whose content holds the store key, a
+            // retirement among them, is protected and marked, and not the authority's alone.
+            var database = Database();
+            if (command == "Delete")
+            {
+                StoreSeeds.Authority(Store(database), Admissions(database));
+                Assert.That(Service(database).Delete().Succeeded, Is.True);
+            }
+            else
+            {
+                var both = StoreSeeds.Undecided(Store(database), Admissions(database));
+                Assert.That(Service(database).Keep(both[0], both).Succeeded, Is.True);
+            }
+
+            var retirement = PluginGroup(database).Entries.Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "retired");
+            Assert.That(retirement.Strings.ReadSafe("KPG.Data"), Does.Contain("\"storeKey\""));
+            Assert.That(retirement.Strings.Get("KPG.Data").IsProtected, Is.True);
+            Assert.That(retirement.Strings.ReadSafe(PwDefs.TitleField), Does.EndWith(" (do not delete)"));
+            Assert.That(retirement.Strings.ReadSafe(PwDefs.NotesField), Does.StartWith("Do not delete this entry."));
+        }
+
+        [TestCase(2, 1)]
+        [TestCase(1, 1)]
+        public void A_write_goes_into_the_group_holding_the_most_records_and_the_lowest_identifier_among_equals(int moved, int left)
+        {
+            // `STORE.md` §606 (S11). Create leaves a version record, an authority and a summary
+            // entry in a group of the plugin's own; some are moved into a second such group, and
+            // the rest stay or go to the root, which no write is put into.
+            var database = Database();
+            StoreSeeds.Authority(Store(database), Admissions(database));
+            var first = PluginGroup(database);
+            var second = new PwGroup(true, true, StoreFormat.GroupName, PwIcon.TerminalEncrypted)
+            {
+                Uuid = new PwUuid(StoreFormat.NewGroupIdentifier()),
+            };
+            database.RootGroup.AddGroup(second, true);
+
+            var entries = first.Entries.OrderBy(entry => entry.Strings.ReadSafe("KPG.Kind"), System.StringComparer.Ordinal).ToList();
+            foreach (var entry in entries.Take(moved))
+            {
+                first.Entries.Remove(entry);
+                second.AddEntry(entry, true);
+            }
+
+            foreach (var entry in entries.Skip(moved + left))
+            {
+                first.Entries.Remove(entry);
+                database.RootGroup.AddEntry(entry, true);
+            }
+
+            var expected = moved > left
+                ? second
+                : string.CompareOrdinal(KeePassGate.Hex.Of(first.Uuid.UuidBytes), KeePassGate.Hex.Of(second.Uuid.UuidBytes)) < 0 ? first : second;
+
+            Assert.That(NameWritten(database), Is.True);
+
+            var name = database.RootGroup.GetEntries(true).Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "profile");
+            Assert.That(name.ParentGroup, Is.SameAs(expected));
+        }
+
+        [Test]
+        public void A_write_applied_to_the_database_reads_as_the_write_applied_in_memory_reads()
+        {
+            // `PendingRecords` shows the page what `StoreWrite.Applied` makes of a write, and OK
+            // writes what `StoreEntries.Apply` makes of it: the two are read alike, a record set
+            // back by its history and a retired authority's entry deleted among them.
+            var database = Database();
+            StoreSeeds.Authority(Store(database), Admissions(database));
+            var format = PluginGroup(database).Entries.Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "format");
+            Edit(database, format, "{\"format\":\"1\"}", false);
+
+            StoreWrite write;
+            KeyValuePair<IReadOnlyList<StoreCandidate>, IReadOnlyList<byte[]>> applied;
+            using (var reading = Store(database).Read())
+            {
+                Assume.That(reading.ByHistory, Is.EqualTo(1));
+                var key = (byte[])reading.InForce.Key.Bytes.Clone();
+                var retirement = StoreRecord.Compose(key, "retired", new Dictionary<string, string>
+                {
+                    { "authority", reading.Answering.Single().Form.Member("id") },
+                    { "storeKey", KeePassGate.Hex.Of(key) },
+                });
+                write = StoreWrite.Plan(reading, new[] { new StoreAct("Delete", key, StoreFormat.KeyName(key), new[] { retirement }, null) }, GateVersion.Current);
+                Assume.That(write.Refused, Is.Null);
+                Assume.That(write.SetBack, Has.Count.EqualTo(1), "the version record set back");
+                applied = write.Applied(reading.Candidates, reading.Deletions);
+                Application.Apply(database.Database, write, reading);
+            }
+
+            using (var inMemory = StoreReading.Afresh(applied.Key, applied.Value))
+            using (var inDatabase = Store(database).Read())
+            {
+                Assert.That(inDatabase.State, Is.EqualTo(inMemory.State));
+                Assert.That(inDatabase.InForce.Records.Select(record => record.Hex), Is.EquivalentTo(inMemory.InForce.Records.Select(record => record.Hex)));
+                Assert.That(inDatabase.Deletions.Select(KeePassGate.Hex.Of), Is.EquivalentTo(inMemory.Deletions.Select(KeePassGate.Hex.Of)));
+                Assert.That(inDatabase.InForce.Taken("retired"), Is.EquivalentTo(inMemory.InForce.Taken("retired")));
+                Assert.That(StoreAuthorities.Served(inDatabase), Is.EqualTo(StoreAuthorities.Served(inMemory)));
+                Assert.That(inDatabase.ByHistory, Is.EqualTo(inMemory.ByHistory));
+            }
+        }
+
+        [Test]
         public void A_retired_authority_s_entry_is_deleted_with_a_deletion_record()
         {
             var database = Database();

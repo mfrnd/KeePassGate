@@ -36,9 +36,6 @@ namespace KeePassGate.Store
         /// <summary>Why nothing is written, or null for a write that is made.</summary>
         public string Refused { get; private set; }
 
-        /// <summary>The word of `STORE.md` §656 where the store's state refused the write, or null.</summary>
-        public string Word { get; private set; }
-
         /// <summary>
         /// Whether the acts taken cancel out, and nothing is left to write: an authority made and
         /// retired again among them. Nothing is applied, and nothing is refused.
@@ -93,11 +90,7 @@ namespace KeePassGate.Store
             if (!starts && (reading.State != StoreState.Whole || inForce == null))
             {
                 var word = StoreWords.Of(reading.State) ?? StoreWords.Stopped;
-                return new StoreWrite
-                {
-                    Refused = "the store is " + word + ": " + reading.Reason,
-                    Word = word,
-                };
+                return Refusal("the store is " + word + ": " + reading.Reason);
             }
 
             // Step 2, the ground of each act, against the store with the acts before it taken.
