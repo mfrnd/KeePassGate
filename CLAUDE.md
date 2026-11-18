@@ -118,29 +118,31 @@ designing around them.
   and STORE.md §614.
 - **What the plugin keeps in custom data takes the file to KDBX 4.1**, because a per-key
   modification time is a 4.1 field. **This reverses "the authority takes the file to KDBX 4.1"**:
-  the authority is entries now, which need nothing above 4.0, so a database with an authority
-  and nothing paired is a 4.0 file, measured, and is a 4.1 file once anything has paired with it,
-  and a record keeps it there. That is a
-  format and not a gate: other programs open it, and what saving and merging in them does to it is
-  measured and stated in CA.md §204. A revocation no longer needs the times, being a key of its
-  own, but a KeePassXC merge can still undo a revocation, which is why a paired database belongs
-  in KeePass 2.48 or later with the plugin.
-- **That store is decided to be replaced in 0.3.0, and is what 0.2.0 ships until then.** The
-  entries above about `CustomData` and KDBX 4.1 describe the plugin as released, but for the
-  authority. What replaces them is decided and built in part: the plugin's data as entries in a
-  group of its own, each written
-  once under a check keyed by a secret the database holds, with no custom data anywhere and
-  nothing on the operator's own entries or groups. [`STORE.md`](STORE.md) §601 is the contract,
+  the authority is entries now, which need nothing above 4.0, so a database with an authority alone
+  is a 4.0 file, measured, and what the plugin keeps in custom data, a profile name on the Profiles
+  page or an admission record, takes it to 4.1, measured too, and keeps it there. That is a format
+  and not a gate: other programs open it, and what saving and merging in them does to it is measured
+  and stated in CA.md §204. A revocation no longer needs the times, being a key of its own, but a
+  KeePassXC merge can still undo a revocation, which is why a paired database belongs in KeePass
+  2.48 or later with the plugin.
+- **That store is decided to be replaced in 0.3.0, and is what 0.2.0 ships until then.** The entries
+  above about `CustomData` and KDBX 4.1 describe the plugin as released, but for the authority. What
+  replaces them is decided and built in part: the plugin's data as entries in a group of its own,
+  each written once under a check keyed by a secret the database holds, with no custom data anywhere
+  and nothing on the operator's own entries or groups. [`STORE.md`](STORE.md) §601 is the contract,
   §604 what it reverses and on which measurements, and `spikes/storage-survival` holds those
   measurements with the evaluation they were decided from. **Do not build anything new on custom
-  data, and do not re-propose what those decisions closed**, which §612, §630 and §634 list with
-  the measurement behind each. **What of it is built**: the API's guard, §633; the
-  store's reading, §620 to §624, with what is in force and the room a store has for its next
-  write, read once for each hold and answered `503 split`, `outdated` or `stopped` before a route
-  is chosen, §656, a store with no room among the stopped, §643; and the authority, §614, read
-  from the store, served from what stands in it and written into it by the KPG tab's commands at
-  the settings dialog's OK and by keeping an authority, §627, with every record edited in KeePass
-  set back at the next write, §628. A database whose store holds no key is served nothing.
+  data, and do not re-propose what those decisions closed**, which §612, §630 and §634 list with the
+  measurement behind each. **What of it is built**: the API's guard, §633; the store's reading, §620
+  to §624, with what is in force and the room a store has for its next write, read once for each
+  hold and answered `503 split`, `outdated` or `stopped` before a route is chosen, §656, a store
+  with no room among the stopped, §643; and the authority, §614, read from the store, served from
+  what stands in it and written into it by the KPG tab's commands at the settings dialog's OK and by
+  keeping an authority, §627, with every record edited in KeePass set back at the next write, §628,
+  and every write refused while an entry dialog holds an entry it deletes, sets back or protects,
+  since that dialog's OK puts its copy back, §626. A database whose store holds no key is served
+  nothing, but by a gate that was serving it when the key went, which answers `503 lost` from what
+  it served with until the database is locked or closed, §656.
 - **The admission record is load bearing.** A certificate that chains, passes its EKU check and has
   no record in the database is refused, and so is one whose record has a revocation beside it. The
   permitted profiles are read from the **record**, less any name the database's list of profiles no

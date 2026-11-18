@@ -17,18 +17,19 @@ of the plugin's own, written once, under a check keyed by a secret the database 
 takes access away is a further entry, never an entry deleted or changed.
 
 > **Decided, and built in part.** This document is the contract for the store of release 0.3.0.
-> Release 0.2.0 ships a store in the database's own custom data, with a `KPG` key in the custom
-> data of groups and entries, and what of it this build still keeps is in `CA.md` §204. What is
-> built of this store: the API's guard of §633, with what tells a node of the store by its
-> identifier; the reading of §620 to §624, with what is in force under the store key, the room a
-> store has for its next write (§627, §643), and the words `split`, `outdated` and `stopped` of
-> §656; and the authority and its retirements of §614, written by the plugin's own writes of
-> §627 with the records set back of §628, and served from what stands. §614, §620, §627, §628,
-> §633, §643 and §656 state which parts those are, and nothing else below describes what the
-> plugin does today. Each pull request that builds a part of this store brings `CA.md`,
-> `DESIGN.md`, `PAIRING.md`, `API.md` and `docs/` into line with the code it adds. Until then
-> those documents hold for 0.2.0 where they describe a part not built, and this document holds
-> for what replaces its store.
+> Release 0.2.0 ships a store in the database's own custom data, with a `KPG` key in the custom data
+> of groups and entries, and what of it this build still keeps is in `CA.md` §204. What is built of
+> this store: the API's guard of §633, with what tells a node of the store by its identifier; the
+> reading of §620 to §624, with what is in force under the store key, the room a store has for its
+> next write (§627, §643), and the words `split`, `outdated` and `stopped` of §656; and the
+> authority and its retirements of §614, written by the plugin's own writes of §627, with the
+> records set back of §628 and what a write asks of KeePass's windows (§626), and served from what
+> stands, with `lost` (§656) answered from what the gate last served with. §614, §620, §626, §627,
+> §628, §633, §643 and §656 state which parts those are, and nothing else below describes what the
+> plugin does today. Each pull request that builds a part of this store brings `CA.md`, `DESIGN.md`,
+> `PAIRING.md`, `API.md` and `docs/` into line with the code it adds. Until then those documents
+> hold for 0.2.0 where they describe a part not built, and this document holds for what replaces its
+> store.
 
 **How to read it.**
 
@@ -1381,35 +1382,35 @@ that shows. *Held by*
 hold with the entry's times left as they were; a second question inside a hold walks nothing;
 and nothing kept outlasts a lock.
 
-**What is built.** The reading of this section, of §621 to §624, of §649 to §651 and of §658,
-whole as far as it decides whether a store may be served: `StoreReading` over the candidates
-and the deletion records `StoreSource` walks, read once for each hold through
-`IReadHold.Stamp`, with the checked forms kept in `StoreKept` and let go, their keys overwritten,
-with the target at a lock and a close. It answers the state of §656 and the guard's keys and
-tags (§633). What is in force (§623) is `StoreInForce`, worked out for a store that is whole or
-stopped: every record under the store key with whether a deletion record names it and whether
-it counts by its history, the summary entries present, in force and told of by deletion records,
-what the retirements, the revocations and the removals take away by record, by item and by
-deletion record, and the statements that took certificates away by record, by item and by a
-deletion record of an admission key a record or an item of that kind names (steps 1, 2, 4 and
-7), the highest format number and plugin version (step 6), the authorities that stand, and the
-room of §627. A deletion record tells of a certificate taken away by the admission keys an
-admission names, its `certificate` and its `from`, only once the admissions are read, which
-comes with the pull request that keeps the admissions in the store: until then such a deletion
-record tells of nothing but what a record or an item of that kind names. The authorities
-that stand under each key that stands are worked out for every state but no key and a store past
-`StoreFormat.MaxKeys`, of which no key is judged, as a word is answered under them (§656). What
-each kind means for access beyond that (steps 3 and 5) is built by the pull requests that bring
-each kind's meaning, the authority's among them (§614).
-The authority a database is served with is the single authority that stands in a store that is
-whole, read from the version that passed, and every admission holds the target it is made on to
-what the store then reads: the authority's entry, the version of it that passed, and that it
-still stands alone, so a retirement written under a target already handed out refuses from that
-target's next admission on. A database whose store holds no key is served nothing. *Held by*
-`StoreReadingTests`, `StoreReadingStatesTests`, `StoreReadingKeysTests`,
-`StoreReadingFormatTests`, `StoreReadingWholeTests`, `StoreInForceTests`, `StoreRoomTests`,
-`StoreInRealDatabaseTests`, `StoreStatesInRealDatabaseTests`, `StoreAuthoritiesTests` and
-`StoreAuthorityServedTests`, and in a real KeePass by `LiveStoreTests` and `LiveAuthorityTests`.
+**What is built.** The reading of this section, of §621 to §624, of §649 to §651 and of §658, whole
+as far as it decides whether a store may be served: `StoreReading` over the candidates and the
+deletion records `StoreSource` walks, read once for each hold through `IReadHold.Stamp`, with the
+checked forms kept in `StoreKept` and let go, their keys overwritten, with the target at a lock and
+a close. It answers the state of §656 and the guard's keys and tags (§633). What is in force (§623)
+is `StoreInForce`, worked out for a store that is whole or stopped: every record under the store key
+with whether a deletion record names it and whether it counts by its history, the summary entries
+present, in force and told of by deletion records, what the retirements, the revocations and the
+removals take away by record, by item and by deletion record, and the statements that took
+certificates away by record, by item and by a deletion record of an admission key a record or an
+item of that kind names (steps 1, 2, 4 and 7), the highest format number and plugin version (step
+6), the authorities that stand, and the room of §627. A deletion record tells of a certificate taken
+away by the admission keys an admission names, its `certificate` and its `from`, only once the
+admissions are read, which comes with the pull request that keeps the admissions in the store: until
+then such a deletion record tells of nothing but what a record or an item of that kind names. The
+authorities that stand under each key that stands are worked out for every state but no key and a
+store past `StoreFormat.MaxKeys`, of which no key is judged, as a word is answered under them
+(§656). What each kind means for access beyond that (steps 3 and 5) is built by the pull requests
+that bring each kind's meaning, the authority's among them (§614). The authority a database is
+served with is the single authority that stands in a store that is whole, read from the version that
+passed, and every admission holds the target it is made on to what the store then reads: the
+authority's entry, the version of it that passed, and that it still stands alone, so a retirement
+written under a target already handed out refuses from that target's next admission on. A database
+whose store holds no key is served nothing, and a gate that was serving it when the key went answers
+`lost` from what it served with (§656). *Held by* `StoreReadingTests`, `StoreReadingStatesTests`,
+`StoreReadingKeysTests`, `StoreReadingFormatTests`, `StoreReadingWholeTests`, `StoreInForceTests`,
+`StoreRoomTests`, `StoreInRealDatabaseTests`, `StoreStatesInRealDatabaseTests`,
+`StoreAuthoritiesTests` and `StoreAuthorityServedTests`, and in a real KeePass by `LiveStoreTests`
+and `LiveAuthorityTests`.
 
 ### Which entries are records §621
 
@@ -2036,22 +2037,28 @@ an act composed against another key, or where none stood, is left out; a retirem
 with the authority it retires leaves its hold on the key to the retirements left; and an entry
 the tree holds gets no deletion record and no second entry.
 
-**What is built.** The writes of the authority's commands (§614): Create, Recreate and Delete
-at the settings dialog's OK, buffered by `PendingRecords` beside the keys the tab buffers in
-custom data and written before them, and keeping an authority. Each is planned by `StoreWrite`
-against the store read in the writer's turn, steps 1 to 5 with the room held at the plan as at
-the reading, so that a write the room allows is never refused for a ceiling, and applied to the
-database's entries by `StoreEntries` on KeePass's thread through the writer's guard, which marks
-the database as changed and saves nothing. A write the application cannot finish is taken back
-out at once; taking back a write that was saved and did not land comes with the writes that
-save, a pairing's and a renewal's. A revocation is not an act yet, so the buffer holds the
-authority's acts alone. *Held by* `StoreRecordTests`, against the records of the measured code
-(`tests/Shared/StoreRecordVectors.json`); `StoreWriteShapeTests`, against its writes
-(`StoreWriteVectors.json`): both sequences played, and each step's deletions, deletion records,
-records present, summary entries, store keys and answer compared by kind and by count;
-`StoreWriteTests`, each step of the plan alone, the ceiling at its boundary and a record written
-once among them; `PendingRecordsTests`; and `StoreWritesInRealDatabaseTests`, the group a write
-goes into and a write applied to a database read as the same write applied in memory among
+**What is built.** The writes of the authority's commands (§614): Create, Recreate and Delete at the
+settings dialog's OK, buffered by `PendingRecords` beside the keys the tab buffers in custom data
+and written before them, and keeping an authority. Each is planned by `StoreWrite` against the store
+read in the writer's turn, steps 1 to 5 with the room held at the plan as at the reading, so that a
+write the room allows is never refused for a ceiling, and applied to the database's entries by
+`StoreEntries` on KeePass's thread through the writer's guard, which marks the database as changed
+and saves nothing. Once the plan exists, every entry it deletes, sets back or protects again is
+asked about, and the write is refused while an entry dialog holds any of them (§626). The store's
+own write of a Recreate, from its reading in the writer's turn through the plan and the entries
+asked about to the entries changed, and without the writer's own questions or the redraw of
+KeePass's window, took 18 ms at the median beside ten thousand entries and a store that starts at
+282 entries and gains an entry with each write, and 74 ms where every entry holds ten history items;
+the first write of a run is slower, as warm-up (`StoreReadingCostTests`, `DESIGN.md` §119). A write
+the application cannot finish is taken back out at once; taking back a write that was saved and did
+not land comes with the writes that save, a pairing's and a renewal's. A revocation is not an act
+yet, so the buffer holds the authority's acts alone. *Held by* `StoreRecordTests`, against the
+records of the measured code (`tests/Shared/StoreRecordVectors.json`); `StoreWriteShapeTests`,
+against its writes (`StoreWriteVectors.json`): both sequences played, and each step's deletions,
+deletion records, records present, summary entries, store keys and answer compared by kind and by
+count; `StoreWriteTests`, each step of the plan alone, the ceiling at its boundary and a record
+written once among them; `PendingRecordsTests`; and `StoreWritesInRealDatabaseTests`, the group a
+write goes into and a write applied to a database read as the same write applied in memory among
 them.
 
 ### A record written again §628
@@ -2878,27 +2885,31 @@ with the standing authority's host certificate, to a request before a route is c
 `head`; a database opened with no store key resolves no name; and a gate that was serving
 answers `lost` after the key carrier is deleted under it, and nothing after a lock.
 
-**What is built.** `split`, `outdated` and `stopped`, the last also for a store that has no room
-for its next write (§643), answered before a route is chosen by the target of a database the
-gate serves, and, ahead of `undecided`, by each target of a database that holds several
-authorities, under the host certificate of the authority that stands or of each of those
-authorities, worked out under each key that stands (§614). `lost`, and the memory of what a gate
-last served with: the host certificate and the gate key of the authority served, copied as the
-target is made, carried by every entry made for the database in its place, and zeroed at the
-lock, at the close, when KeePass ends, and where a store that holds nothing back gives no
-authority to answer with, as where the authority served was deleted on the tab. Where the
-reading gives no authority to answer with and the store holds the gate back, that memory
-answers the store's word, `lost` for a file with no key, under its own gate key, and judges no
-certificate and reaches nothing; a lock lets it go with no responder. A database opened or
-unlocked with no store key, and a database whose store holds no authority that stands, resolve
-no name. *Held by* `HeldBackGateTests`, `StoreHeldBackGateTests`, `StoreWordsTests` and
-`LockInRealDatabaseTests`: a served database whose key carrier is deleted answers `lost` with
-the host certificate and gate key it served with, and nothing after a lock, and a database whose
-authority was deleted answers nothing. `frozen` comes with the release that first moves the
-format number (§652), and the routing document declares it and the reference client knows it
-already. *Held by* `StoreWordsTests`, `StoreHeldBackGateTests`, `HeldBackGateTests`,
-`UnavailableWordsTests` and `StoreInForceTests`, the order of the words by
-`StoreReadingStatesTests` and `StoreRoomTests`, and in a real KeePass by `LiveStoreTests`.
+**What is built.** `split`, `outdated` and `stopped`, the last also for a store that has no room for
+its next write (§643), answered before a route is chosen by the target of a database the gate
+serves, and, ahead of `undecided`, by each target of a database that holds several authorities,
+under the host certificate of the authority that stands or of each of those authorities, worked out
+under each key that stands (§614). `lost`, and the memory of what a gate last served with: the host
+certificate and the gate key of the authority served, copied as the target is made, carried by every
+entry made for the database in its place, and zeroed at the lock, at the close, when KeePass ends,
+and where a store that holds nothing back gives no authority to answer with, as where the authority
+served was deleted on the tab, and where a key that stands retires that authority, held back or not.
+Where the reading gives no authority to answer with and the store holds the gate back, that memory
+answers the store's word, `lost` for a file with no key, under its own gate key, and `busy` once the
+store holds nothing back, to a connection that took it before the reading changed; it judges no
+certificate and reaches nothing, and a lock lets it go with no responder. A database opened or
+unlocked with no store key, and a database whose store holds no authority that stands, resolve no
+name. `frozen` comes with the release that first moves the format number (§652), and the routing
+document declares it and the reference client knows it already. *Held by* `StoreWordsTests`,
+`StoreHeldBackGateTests`, `HeldBackGateTests`, `UnavailableWordsTests` and `StoreInForceTests`, the
+order of the words by `StoreReadingStatesTests` and `StoreRoomTests`, `lost` by
+`LockInRealDatabaseTests` as well, where a served database whose key carrier is deleted answers
+`lost` with the host certificate and gate key it served with, and nothing once locked and unlocked
+or closed and opened again; a database whose authority was deleted answers nothing, also once the
+key goes with the Delete's retirements; an authority retired into a stopped store answers nothing;
+an authority whose record does not read in a stopped store answers `stopped` from the memory; and
+the memory carried through an undecided database answers `lost`. `stopped` is held in a real KeePass
+by `LiveStoreTests`.
 
 ---
 
@@ -3735,22 +3746,26 @@ that finds a measurement against a decision reports it and does not design aroun
     deleted and edited by hand; an admission whose parent admission is
     lost; a revocation of the same client beside it; and each merge. Owed by the pull request
     that builds §648. *Could overturn*: the rule about renewals (S29).
-17. **Create refused on a stopped store** (§624), which the measured code does not do. Owed by
-    the pull request that builds the authority's commands on the store.
+17. **Create refused on a stopped store** (§624), which the measured code does not do. Run by the
+    pull request that keeps the authority in the store, over a composed store
+    (`AuthorityCommandsInStoreTests`): refused, and nothing written. The tab offers no command under
+    a word, so nothing of it is run in KeePass's window.
 18. **A version that has to read a single way** (§607, §608): a string beginning `KPG.S.` that is
     not four digits, a line feed in a part, a member that appears twice. Each fails in
     `StoreReadingTests`, over composed versions; none was run through another program's save.
-19. **The format number, the version record and a kind the plugin does not know** (§647, §621),
-    of which nothing was run: the highest of each after each program's merge; an older plugin
-    on a store that was raised; a newer plugin on an older store, before and after the operator
-    raises it; a write refused in between; a deletion record that tells of a version record; a
-    record and an item of a kind the plugin does not know; a gate on a stale copy; and a store
-    started again from a store that holds the plugin back, with the earlier store coming back
-    by a merge. The pull request that builds the store's core runs, over real databases, a
-    version record of a later format and its deletion record arriving by Synchronize, and a
-    record of a kind the plugin does not know with no version record present; and over
-    composed stores, the item, the deletion record that tells a number and one that does not.
-    The rest is owed by the pull request that builds the writing of §647.
+19. **The format number, the version record and a kind the plugin does not know** (§647, §621), of
+    which nothing was run: the highest of each after each program's merge; an older plugin on a
+    store that was raised; a newer plugin on an older store, before and after the operator raises
+    it; a write refused in between; a deletion record that tells of a version record; a record and
+    an item of a kind the plugin does not know; a gate on a stale copy; and a store started again
+    from a store that holds the plugin back, with the earlier store coming back by a merge. The pull
+    request that builds the store's core runs, over real databases, a version record of a later
+    format and its deletion record arriving by Synchronize, and a record of a kind the plugin does
+    not know with no version record present; and over composed stores, the item, the deletion record
+    that tells a number and one that does not. The pull request that keeps the authority in the
+    store writes the version record at a store's first write and at a write by a later plugin, and
+    at no other (`StoreWriteTests`). The rest is owed by the pull request that builds the operator's
+    raising of the format (§647).
 20. **The move from 0.2** (§645, §654), which was read from the source of 0.2.0 and not run. The
     steps, and the path through KeePass's windows for clearing what 0.2 left, are run in a real
     KeePass by the pull request that writes the warning.
@@ -3827,15 +3842,24 @@ that finds a measurement against a decision reports it and does not design aroun
     is read: the tab states the number of keys found and the number of entries hidden, and that
     the entries that brought the keys are to be deleted first. Owed by the pull request that
     builds the tab's listing of the store.
-28. **Copies that keep different authorities** (§614), of which nothing was run with the store
-    key in each retirement: each copy keeping another authority, then brought together by
-    Synchronize, by each import method that keeps identifiers and by KeePassXC, read before and
-    after a Create. Owed by the pull request that keeps the authority in the store. *Could
-    overturn*: what keeping an authority writes (S11).
+28. **Copies that keep different authorities** (§614), of which nothing was run with the store key
+    in each retirement: each copy keeping another authority, then brought together by Synchronize,
+    by each import method that keeps identifiers and by KeePassXC, read before and after a Create.
+    Run by the pull request that keeps the authority in the store, over real databases brought
+    together by `PwDatabase.MergeIn` under Synchronize, Overwrite if newer, Overwrite existing and
+    Create new IDs (`AuthorityMergeTests`, `StoreWritesInRealDatabaseTests`): every authority
+    retired and read as retired, the store key held by the retirements, nothing served, and a Create
+    taken under that key. KeePassXC stays owed. *Could overturn*: what keeping an authority writes
+    (S11).
 29. **A string's protection taken off and set back** (§628), of which nothing was run: the
-    protection of an authority's content taken off in KeePass's entry dialog, the plugin's
-    next write, and each merge with a copy that still holds the unprotected version. Owed by
-    the pull request that builds the first writes. *Could overturn*: the answer to S18.
+    protection of an authority's content taken off in KeePass's entry dialog, the plugin's next
+    write, and each merge with a copy that still holds the unprotected version. The pull request
+    that keeps the authority in the store runs the content of a real database's authority with its
+    protection taken off, protected again at the next write (`StoreWritesInRealDatabaseTests`), and
+    the entry dialog's copy put back over that write, which takes the protection off again,
+    reproduced with KeePass's types (`StoreWritesUnderDialogsTests`), from which a write is refused
+    while an entry dialog holds the entry (§626). KeePass's window and each merge stay owed. *Could
+    overturn*: the answer to S18.
 30. **The operator's write behind the plugin's own save.** The settings dialog's OK pressed
     while a save of the plugin's own pumps under the dialog, as a pairing's does, is refused by
     the writer's guard, and nothing the tab held for the store is written (§627): the log names
@@ -3844,15 +3868,15 @@ that finds a measurement against a decision reports it and does not design aroun
     the code and not run. Owed by the pull request that keeps the admissions in the store,
     which builds the writes that save.
 31. **The longest item a summary entry carries, against the room.** The room holds the content of
-    the summary entry a write would write to the ceiling for a string, and not the items that
-    entry carries, each a string of its own, and an item is longer than the record it restates:
-    a version's item is 14 characters longer than the version record's content, and a keep's
-    item 11 (this document's own, computed from the members each carries and not run). A version
-    record whose content is 262,131 to 262,144 characters is written, since it fits, and from then
-    on every write is refused for the ceiling while the store is served, against §627. Nothing
-    writes a version record yet. Owed by the pull request that builds the rules: the room holds
-    the longest item it would carry to the ceiling, or a version is composed only where its item
-    fits.
+    the summary entry a write would write to the ceiling for a string, and not the items that entry
+    carries, each a string of its own, and an item is longer than the record it restates: the item
+    of a record of kind `version`, a rule's version, is 14 characters longer than that record's
+    content, and a keep's item 11 (this document's own, computed from the members each carries and
+    not run). A record of kind `version` whose content is 262,131 to 262,144 characters is written,
+    since it fits, and from then on every write is refused for the ceiling while the store is
+    served, against §627. No record of kind `version` is written yet. Owed by the pull request that
+    builds the rules: the room holds the longest item it would carry to the ceiling, or a rule's
+    version is composed only where its item fits.
 
 ---
 

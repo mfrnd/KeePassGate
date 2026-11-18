@@ -106,20 +106,19 @@ written once, under a check keyed by the store's key, with a retirement written 
 further record once it is recreated, deleted or not kept. [`STORE.md`](STORE.md) §614 holds the
 record and §627 the writes, and the paragraphs on the authority below hold of it there.
 
-Everything else under `KPG` keys in the **database's own** `CustomData`, which is the one
-dictionary KeePass stamps key by key and merges the same way. A node's access rule is the
-exception and lives on that node, where it belongs and travels. Everything requires KDBX 4, and
-this requires KDBX 4.1, because a per-key modification time is a 4.1 field: a database that has
-been paired with is a 4.1 file. That is a format and not a gate: other programs open the file, and
-the paragraph on them below has what saving and merging in them was measured to do. Nothing that
-has to survive a merge turns on the times any more, which is what the revocation paragraph below
-is about.
+Everything else under `KPG` keys in the **database's own** `CustomData`, which is the one dictionary
+KeePass stamps key by key and merges the same way. A node's access rule is the exception and lives
+on that node, where it belongs and travels. Everything requires KDBX 4, and this requires KDBX 4.1,
+because a per-key modification time is a 4.1 field: a database with a profile name or an admission
+record in it is a 4.1 file. That is a format and not a gate: other programs open the file, and the
+paragraph on them below has what saving and merging in them was measured to do. Nothing that has to
+survive a merge turns on the times any more, which is what the revocation paragraph below is about.
 
 **The authority alone no longer takes the file to 4.1**, and that reverses a rule this section
 held while the authority was a key of the dictionary: its record is entries of the plugin's
-store, which need nothing above 4.0, so a database with an authority and nothing paired is a 4.0
-file, measured by `AdmissionInRealDatabaseTests`, and the first admission record is what takes it
-to 4.1.
+store, which need nothing above 4.0, so a database with an authority alone is a 4.0 file, and what
+is kept in this dictionary takes it to 4.1: a profile name, which an invitation needs before
+anything pairs, or the first admission record, each measured by `AdmissionInRealDatabaseTests`.
 
 **The rest of this store is decided to be replaced in 0.3.0 as the authority's part was.** What
 other programs do to custom data, in the paragraphs on them below, is what reopened it: the
@@ -590,18 +589,24 @@ plugin memory. While locked it is the only identity available and it can do noth
   this design cannot keep. It is the bound §220 concedes anyway: a dump taken at the wrong moment
   finds it, and what the drop takes away is the key being reachable for as long as the database
   stays locked. The same bound covers what no plugin can overwrite: the text of the authority's
-  record, which KeePass keeps protected in memory and hands out as an immutable string each time
-  it is read; the members parsed out of that text as the authority is read, its certificates and
-  their keys and the gate key as text, which are left to the collector as soon as the authority
-  is read, since a reading of the store keeps of a record no member but its `id` and the store's
-  key, the key as bytes; and whatever Bouncy Castle parsed the bytes into. The key a node's tag is
-  made with, derived from the host's PKCS#12, is an array of the plugin's own, and it is
-  overwritten with the rest, as the array it was derived into is. So are the bytes of the store's
-  key every reading of the store finds: the gate's when it lets go of a database's readings, at
-  the lock and at a close; those the tab, the chooser and the writer read, as soon as each is done
-  with its reading; the copy an act of theirs holds, once its write is done, written, refused or
-  thrown; and the key a composed record is read back with. The gate key itself is not let go at
-  all: a copy of it is kept for the responder, as the bullet below has it.
+  record, which KeePass keeps protected in memory and hands out as an immutable string each time it
+  is read; the members parsed out of that text as the authority is read, its certificates and their
+  keys and the gate key as text, which are left to the collector as soon as the authority is read,
+  since a reading of the store keeps of a record no member but its `id` and the store's key, the key
+  as bytes; and whatever Bouncy Castle parsed the bytes into. The key a node's tag is made with,
+  derived from the host's PKCS#12, is an array of the plugin's own, and it is overwritten with the
+  rest, as the array it was derived into is. So are the bytes of the store's key every reading of
+  the store finds: the gate's when it lets go of a database's readings, at the lock and at a close;
+  those the tab, the chooser and the writer read, as soon as each is done with its reading; the copy
+  an act of theirs holds, once its write is done, written, refused or thrown; and the key a composed
+  record is read back with. The memory a gate keeps of what it served a database with, `STORE.md`
+  §656, goes at the lock and at the close as well: a copy of the gate key, overwritten, and the host
+  certificate with its key, under the same bound as the host's key above. A database whose store key
+  has gone from the file is not served: the memory answers it with the store's word, whichever word
+  that is, `503 lost` for a file with no key, and goes at the lock, at the close, when KeePass ends,
+  where a store that holds nothing back gives no authority to answer with, and where a key that
+  stands retires the authority it was made from. The gate key itself is not let go at all: a copy of
+  it is kept for the responder, as the bullet below has it.
 - **The responder must be distinguishable by what it carries**, not by convention, so a client can
   refuse to send real requests over it. It is a `kpg://host/responder` URI in the subject
   alternative name rather than an extension of its own: the UUID arc `2.25` does not survive

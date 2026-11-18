@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
@@ -87,8 +88,8 @@ namespace KeePassGate.Host.Tests
             // their saves do to the stamps is measured and stated in `CA.md` §204.
             //
             // The authority is entries of the plugin's store, which need nothing above 4.0, so a
-            // database with an authority and nothing paired stays a 4.0 file: the record is what
-            // moves it.
+            // database with an authority alone stays a 4.0 file: what is kept in custom data moves
+            // it, a record here and a profile name in the test below.
             using (var untouched = TemporaryDatabase.New())
             {
                 untouched.Save();
@@ -105,6 +106,23 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040001),
                 "a record takes it to 4.1");
+        }
+
+        [Test]
+        public void A_profile_name_takes_the_file_to_KDBX_4_1_before_anything_is_paired()
+        {
+            // The list of profiles is the database's own custom data too, stamped with a
+            // modification time as a record is, and an invitation names a profile: a database
+            // with an authority and a profile name is a 4.1 file before any program has paired.
+            _database.Save();
+            Assume.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040000), "the authority alone leaves it a 4.0 file");
+
+            var names = ProfileNames.Empty();
+            Assume.That(names.Add("ops"), Is.Null);
+            new CustomDataStore(_database.Database).Set(ProfileNames.CustomDataKey, names.Write());
+            _database.Save();
+
+            Assert.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040001), "a profile name takes it to 4.1");
         }
 
         /// <summary>The KDBX version out of the file header: two signatures, then minor and major.</summary>

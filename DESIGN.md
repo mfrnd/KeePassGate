@@ -1317,6 +1317,18 @@ So the rules here:
   listing, against the five seconds a hold is let run. `FINDINGS.md` has the figures beside the
   table above.
 
+  **A write of the operator's into the store is made on KeePass's thread, in memory**, `STORE.md`
+  §627: the store read in the writer's turn, the plan, every entry the plan touches asked about
+  (§124), and the entries changed, which marks the database as changed and saves nothing, the save
+  being the operator's. Beside the same ten thousand entries and a store that starts at the same
+  size and gains an entry with each write, the store's own write of a Recreate, which is that span
+  and not the writer's own questions or the redraw of KeePass's window, took 18 milliseconds at the
+  median and 74 where every entry holds ten history items; the first write of a run, 83 and 93
+  milliseconds, is warm-up, since every write reads the store afresh and keeps nothing. A write is
+  made at the settings dialog's OK and at keeping an authority, a single press each, and no request
+  of a client's makes a write. `StoreReadingCostTests` measures it, and `FINDINGS.md` has the
+  figures.
+
   **Nothing that waits runs inside a hold**, since the operator's window waits with it: not the
   writer, which waits on that thread itself and is refused as a defect, not the audit's pacing or
   its file, not a dialog and not the network. So the answer is kept inside the hold and written
@@ -1852,6 +1864,12 @@ a place of a kind sees it, or must add no exception of its own:
 - `Unattended.Post`, which catches what its posted work throws as the catch-all of the handler that
   posted it, followed across the post to KeePass's message queue, and what its reporter throws, for
   the reason the log does.
+
+**The plugin's store adds no kind and no such place.** A write the application cannot finish is
+taken back in a `finally`, `StoreEntries.Apply`, so what was thrown goes on untouched to the
+writer's own filters, and every write is made inside a place of a kind already listed: the settings
+dialog's OK in the handler of that dialog's close, and keeping an authority in the chooser's
+handlers.
 
 CodeQL reports each of these places but the places that throw again from inside the catch and
 `WindowHandlers`, which catches through a filter: its query accepts both. Each place it reports

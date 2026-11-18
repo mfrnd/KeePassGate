@@ -208,10 +208,12 @@ for a hundred years, so there is nothing to count down to: see [`clients.md`](cl
 Anything wrong or about to be wrong appears as a sentence under the table: a client in the last
 third of its certificate's life, which is thirty days at most, and anything unreadable.
 
-**Once it is saved, the file is KDBX 4.1.** What the plugin keeps in the database carries the time
-each value was written, and that is a 4.1 field. KeePass 2.48 or later keeps those times. Other
-programs open the file all the same, and [Revoking](clients.md#revoking) states what saving or
-merging in them costs and what to check afterwards.
+**Once a profile is named or a program has paired, the saved file is KDBX 4.1.** What the plugin
+keeps in the database's own custom data, the profile names and what it keeps about the programs it
+lets in, carries the time each value was written, and that is a 4.1 field; the authority alone needs
+nothing above 4.0. KeePass 2.48 or later keeps those times. Other programs open the file all the
+same, and [Revoking](clients.md#revoking) states what saving or merging in them costs and what to
+check afterwards.
 
 ## OK, then save
 
@@ -255,6 +257,25 @@ then shows every authority this database has held as retired.
 Both ask first, and both state how many clients are about to be cut off, because that is the
 number nobody can work out unaided. Both retire the old authority rather than only removing it, so
 a copy of the file from before, synchronized in later, cannot put it back into service.
+
+## The plugin's group
+
+The authority is an entry of the database, in a group of the plugin's own named `KeePassGate`,
+beside the entries that keep the group's own account of what is in it. They are there to be seen
+and left alone. **An edit to what the plugin wrote in an entry of that group is undone at the
+plugin's next write into the group**, with the edit kept in the entry's history; in a database
+that keeps no history, such an edit ends the serving of the database. A title or notes changed on
+such an entry are not put back.
+
+**Deleting entries of that group is no way to stop a program or the gate.** Some deletions change
+nothing that is served, and some end the serving of the database. To stop a program, revoke it on
+the [clients page](clients.md#revoking); to stop serving the database, press **Delete
+authority** and then OK.
+
+**Keep this authority** is refused while an entry's dialog is open on an entry of that group that
+the choice would delete or put back, the entry keeping the group's account among them, since every
+choice replaces that entry, and the dialog's OK would write its own copy back over the choice. The
+operator is told the choice was not kept: close the entry's dialog, and choose again.
 
 ## When a database holds more than one authority
 
