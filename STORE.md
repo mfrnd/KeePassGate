@@ -586,7 +586,7 @@ is left to the pull request that brings its meaning, under the item the last col
 | --- | --- | --- | --- | --- | --- |
 | `authority` | `authority:` and `id` | `id`, `storeKey` | out of force, and its key still found (§621) | nothing | nothing: §614 |
 | `retired` | `authority:` and `authority` | `authority`, and `storeKey` where it holds the key | counts | an item `retired` with the same `authority` | nothing |
-| `client` | `client:` and `client` | `client` | out of force | nothing | nothing: §615, §648 |
+| `client` | `client:` and `client` | `client`, and `certificate`, `der`, `issuer`, `profiles`, `subject`, `admitted` and `from` where it holds them | out of force | nothing | nothing: §615, §648 |
 | `revoked` | `client:` and `client` | `client` | counts | an item `revoked` with the same `client` | nothing: §615 |
 | `withdrawn` | `certificate:` and `certificate` | `certificate`, and `renewed` and `from` where it holds them | counts | an item `withdrawn` whose `id` is the record's identifier, with the same `certificate`, `renewed` and `from` | nothing: §648 |
 | `profile` | `profile:` and `name` | `name`, `after` | out of force | nothing | S21 |
@@ -596,23 +596,39 @@ is left to the pull request that brings its meaning, under the item the last col
 | `format` | `format:` and `format` | `format`, `plugin` | counts | the item `format` of a summary entry that states a format number at least the record's | nothing |
 | `head` | `store` | `height`, `after`, and every item | out of force | nothing | nothing |
 
-**The forms of the members.** `id`, `authority`, `client`, `name`, `object`, `doc`, `renewed`
-and `from` are texts the core compares and does not look into. `storeKey` and `certificate` are
-64 lowercase hexadecimal characters, and `key` is the name of a store key (§649). `after` is a
-list of identifiers (§607). `format` and `height` are whole numbers from 1 to 65,535 in decimal,
-with no sign and no leading zero, and `plugin` is three such numbers, each from 0, joined by
-periods.
+**The forms of the members.** `id`, `authority`, `client`, `name`, `object` and `doc` are texts
+the core compares and does not look into, and so are the `client`, `issuer`, `der`, `profiles`,
+`subject` and `admitted` of `client`. **Where the core takes an admission key from a text, it
+holds the text to that form** and passes over a text out of it, which stops nothing: the
+`certificate` and the `from` of `client`, and the `from` of `withdrawn` and of its item, are an
+admission key only as 64 lowercase hexadecimal characters, and `renewed` is split on single
+spaces into texts held to the same form (§623 step 2). `storeKey`, and the `certificate` of
+`withdrawn` and of its item, are 64 lowercase hexadecimal characters, and `key` is the name of a
+store key (§649). `after` is a list of identifiers (§607). `format` and `height` are whole
+numbers from 1 to 65,535 in decimal, with no sign and no leading zero, and `plugin` is three
+such numbers, each from 0, joined by periods.
 
-**The members a kind's meaning reads** are kept with the checked form as the members above are
-(§620), and none of them decides whether a version reads as its kind. Each is read where it is
-present, and what a content that lacks such a member, or holds it out of form, comes to is
-decided by the kind's meaning and never by a stop. They are, for `client`: `certificate`,
-`der`, `issuer`, `profiles`, `subject`, `admitted` and `from` (§615, §648). The `renewed` and
-the `from` of `withdrawn` and of its item are read by the core where they are present, since an
-item restates a record only with the same of each (§648); a record or an item that lacks
-either still reads as its kind, and what each means is decided there. An authority's document
-is not among them: it holds private keys, so it is read from the version's own content where a
-gate needs it, and is kept nowhere as text (§614, §632).
+**The members a kind's meaning reads** are in its row, each held where it is present and as a
+text, whatever form its meaning gives it, and kept with the checked form as the members above
+are (§620), so none of them decides whether a version reads as its kind. What a content that
+lacks such a member, or holds it out of form, comes to is decided by the kind's meaning and never
+by a stop. They are, for `client`: `certificate`, `der`, `issuer`, `profiles`, `subject`,
+`admitted` and `from` (§615, §648). The core reads them because a deletion record tells of a
+certificate taken away by the admission keys that admissions name (§623 step 2), and a write
+deletes a record of kind `client` by its `client`, its `issuer` and its `certificate` (§627
+step 3), each by comparing texts and reading no certificate (S23). It keeps `der`, `profiles`,
+`subject` and `admitted` with them, as texts between holds, because the reading of an
+admission's meaning (§615) uses each of them at every hold; a member that reading does not use
+is not kept by the core. It rules out a form held by the core, under which an admission with a
+member out of form would be damage and stop the store, where §615 has it admit nobody.
+The `renewed` and the `from` of `withdrawn` and of its item are read by the core where they are
+present, since an item restates a record only with the same of each (§648); a record or an
+item that lacks either still reads as its kind, and what each means is decided there. An
+authority's document is not among them: it holds private keys, so it is read from the version's
+own content where a gate needs it, and is kept nowhere as text (§614, §632). *Held by*
+`StoreKindsTests`, which holds the row, and `StoreReadingTests`: a record of kind `client`
+holding `client` alone, or a member beside it out of the form its meaning gives it, reads as
+its kind and stops nothing.
 
 **A version reads as its kind** where its content holds every member its row names, in these
 forms. A version that passes its check and does not read as its kind fails, as the measured
@@ -632,9 +648,10 @@ format number was lost.
 The text of an object after its type and the text of `doc` are fixed by the pull requests that
 build those kinds. The members of an authority and of an admission beside those named here,
 and the renewals a `withdrawn` record names, are fixed in §614, §615 and §648. A member that a
-kind's meaning adds is passed over by the core (§607). Where the form of a rule's version takes
-bytes 9 and 10 of its identifier (S8), the pull request that builds the rules changes the row
-of `version` here.
+kind's meaning comes to read is named in its row, which changes the row (below); a member that
+no row names is passed over by the core and makes no record damage (§607, §615). Where the
+form of a rule's version takes bytes 9 and 10 of its identifier (S8), the pull request that
+builds the rules changes the row of `version` here.
 
 **How a kind comes to the table.** The table holds every kind of the first format, from the
 pull request that builds the core on, so that no pull request before release 0.3.0 has to add a
@@ -779,22 +796,49 @@ renewal writes, `CA.md` §217.
 | `der` | the certificate itself, base64 of its DER |
 | `client` | the client key, in the form of an admission key |
 | `issuer` | the `id` of the authority that issued the certificate (§614) |
-| `profiles` | the approved names, separated by single spaces, as measured, and empty for none |
+| `profiles` | the approved names, separated by single spaces, and empty for none: written each once and in ordinal order, as measured, and read as a set |
 | `subject` | the subject as issued |
-| `admitted` | the moment of the approval, as today's record writes it. It is shown, and decides nothing |
+| `admitted` | the moment of the approval, as today's record writes it: RFC 3339 in UTC to the second, as `Moments.Wire` writes a moment. It is shown, and a record whose `admitted` does not parse is no admission; beyond that it decides nothing |
 | `from` | on an admission that a renewal writes, the admission key of the certificate it was renewed from (§648). A pairing's admission holds no such member |
 
 A member for each field, and not a single member holding today's text: a content is a flat
 object of strings already, and a text of lines inside a string would be a second grammar for
 the same fields.
 
+**How two of the members are written** (S4). The writer writes each name of `profiles` once and
+in ordinal order, as the measured code writes every list and as the admissions it composed hold
+their names; a reader takes the names as a set, and neither their order nor a name repeated
+decides anything. It rules out the order of approval, which no step reads and under which the
+product could not compose what the measured code composed.
+`admitted` is written in the single form of the table and read in that form alone, which is
+today's form and the measured admissions'. It rules out a second spelling of a moment. *Held
+by* `StoreRecordTests`, against the admissions of the measured code, and `AdmissionRecordTests`.
+
 **An admission reads** where every member but `from` is present and in its form, `from` is in
 its form where it is present, `der` decodes to a bare certificate whose digest is
 `certificate`, and the names in `profiles` are read as today, a name that could not have been
-issued as a claim being dropped, `CA.md` §223. **A record of kind `client` that passes its
-check and does not read admits nobody**, which is the answer for no record at all, and the
-clients page names it by its entry. The reader stays total: nothing a content holds makes it
-throw. **`issuer` is held to the anchor pin.** The gate judges a certificate against the
+issued as a claim being dropped, `CA.md` §223. The forms are those of the table: `certificate`,
+`client`, `issuer` and `from` are 64 lowercase hexadecimal characters each, and `admitted`
+parses in the form it is written in. **A member that the table does not name is passed over**
+(S4), as a reader passes over a member it does not know in every kind (§607). A member that the
+meaning comes to read is named in the row of §658, which changes the row, and a row changed
+from release 0.3.0 on moves the format number (§650). It rules out today's refusal of a field
+the record does not know, and buys no more than that: a member no row names does not make a
+record damage. The reader stays total: nothing a content holds makes it throw. *Held by*
+`AdmissionRecordTests`: an admission read back as it was written; each member absent, each out
+of form, and a `der` whose digest is another certificate's or that holds a PKCS#12, reading as
+no admission; and a member the table does not name passed over.
+
+**A record of kind `client` that passes its check and does not read admits nobody**, which is
+the answer for no record at all, and the clients page names it by its entry. **It is no
+admission anywhere** (S4): it is counted among no admissions of a certificate (below), it is no
+admission of origin that a `from` leads to, and no `renewed` names its certificate (§648). It
+rules out counting such a record by the text of its `certificate`, under which a record that
+does not read would take an admission's access away without being readable as a decision.
+*Held by* `StoreAdmissionsTests`: such a record beside an admission of the same certificate that
+reads leaves that admission admitting, in every order of entries.
+
+**`issuer` is held to the anchor pin.** The gate judges a certificate against the
 authority it serves by the pin, `CA.md` §214, before any record is looked up, and admits it
 only where its record's `issuer` is that authority's `id`, so a record whose `issuer` disagrees
 with the pin admits nobody. Nothing of this changes what a client is sent, `API.md` §411: the
@@ -805,10 +849,11 @@ authority's admits nobody under the authority served; and by `StoreWriteTests` a
 measured code for the content's text, its check and its identifier.
 
 **A certificate is admitted** when its record is not beside a deletion record naming it, no
-revocation names its client key, it was not taken away and was not renewed from a certificate
-taken away (§648), no retirement names its issuer, and its issuer is the authority served. Its
-profiles are the record's, less every name the profile list does not hold, as today. The
-admission record stays load bearing: a certificate with no record is refused.
+other admission in force names the same certificate (below), no revocation names its client
+key, it was not taken away, no rule of §648 refuses it, no retirement names its issuer, and its
+issuer is the authority served. Its profiles are the record's, less every name the profile list
+does not hold, as today. The admission record stays load bearing: a certificate with no record
+is refused.
 
 **Two admissions that name the same certificate** are not what the plugin writes, and whoever
 holds the store key can write them. The measured code let whichever it read last decide the
@@ -816,11 +861,28 @@ profiles, so the answer turned on the order of entries. **A certificate that sev
 in force name is admitted by none of them** (S24). The answer does not turn on the order in
 which entries are read, and it is never more than any single admission of them gives. It rules
 out the profiles all of them hold, under which a record that somebody added beside the
-plugin's own would still leave the certificate admitted. The clients page shows such a
-certificate with every record that names it, and the operator takes the certificate away or
-revokes the client. *Held by* `StoreAdmissionsTests`: several admissions for a certificate,
-read in every order, admit nobody, and the same admissions with a deletion record naming all
-but a single admission admit by that admission.
+plugin's own would still leave the certificate admitted. **An admission that a decision refuses
+is not among them** (S24): an admission whose client is revoked, whose issuer is retired or
+whose certificate was taken away. Such an admission is deleted at the plugin's next write
+(below), and a deletion by the plugin changes no answer (§627), so the answer is the same
+before that write and after it. The clients page shows such a certificate with every record
+that names it, and the operator takes the certificate away or revokes a client that holds it:
+the page then shows the certificate under the client that is left. **A record of kind `client`
+that does not read is not among them either** (S24), being no admission (above). **A renewal
+from such a certificate does not count** (S24): an admission whose `from` names a certificate
+that several admissions in force name, and that was not taken away, is renewed from a
+certificate admitted by none of them, so the fifth rule of §648 finds its origin neither
+admitted nor taken away. Where that certificate was taken away, the rules of §648 decide alone,
+as they do once a write has deleted its admissions. It rules out following the `from` of any of
+those admissions, which would turn on the order of entries. *Held by* `StoreAdmissionsTests`:
+several admissions for a certificate, read in every order, admit nobody, and the same
+admissions with a deletion record naming all but a single admission admit by that admission;
+revoking the client of an admission of a certificate that two admissions name leaves the
+certificate admitted under the other, before the write that deletes the refused admission and
+after it; a record that does not read beside an admission leaves the certificate admitted; a
+renewal from a certificate that several admissions name and that was not taken away is not
+admitted, in every order; and a renewal from such a certificate that was taken away is answered
+as §648 answers it, before the write that deletes its admissions and after it.
 
 **A revocation** is a record of kind `revoked` that names the client's key, in the member
 `client`. It refuses every certificate whose record carries that client key, in whichever copy
@@ -848,8 +910,13 @@ pairing writes the new certificate's own key as the client key (reasoning, from 
 
 **What replaces what.** Nothing replaces an admission. An admission whose client key is revoked,
 whose certificate was taken away, or whose issuer is retired, is deleted with a deletion record
-at the plugin's next write (§627), and admits nobody before that. An admission lost in any way
-fails closed: that client pairs again.
+at the plugin's next write (§627), and admits nobody before that. **Where the issuer is retired
+only by a deletion record**, and no record and no item names that authority, the admission is
+not deleted, since an admission's `issuer` makes no authority known (§623 step 2); nothing
+serves that authority either way. A record of kind `client` that does not read goes the same
+way where its `client`, its `certificate` or its `issuer` names what is revoked, taken away or
+retired, and stays otherwise. An admission lost in any way fails closed: that client pairs
+again.
 
 **A revocation takes a client away whole.** It is the operator's, made on the clients page. A
 single certificate is taken away by a record of another kind, by its own client or by the
@@ -885,6 +952,21 @@ certificate that the certificate taken away was itself renewed from, where its a
 such a certificate, and it holds no such member otherwise. The subject in its identifier is
 `certificate:` and the admission key of the certificate taken away, so that a deletion record
 of it still tells which certificate was taken away (§609).
+
+**Which renewals it names** (S29). `renewed` names the certificate of every admission in force
+that reads and holds the certificate taken away in `from`, whatever else refuses that admission:
+a revocation, an issuer retired or not served, several admissions of its certificate, or a rule
+below. Naming a renewal lets it count only as far as nothing else refuses it. It rules out
+naming only the renewals that are admitted, which would turn on which authority is served at the
+write. A record of kind `client` that does not read is named by none (§615).
+
+**Where several admissions of the certificate taken away hold other origins** (S29). A record
+holds a single `from`. Where several admissions in force that read name the certificate taken
+away and hold other certificates of origin, the act writes a record for each `from` among them,
+an absent `from` among them, each with the same `renewed`, and the reading holds each of those
+records to its own origin (rule 4). It rules out a single record with any of the origins, which
+would drop a statement about the others. *Held by* `StoreAdmissionsTests`, what each act
+composes, and `StoreWriteTests`, what a write that takes such a certificate away holds.
 
 **What it does in the reading** (proposed). A certificate is not admitted while a record of this
 kind names it. Such a record counts as a revocation counts: as an entry wherever it sits, as an
@@ -923,8 +1005,15 @@ admitted. So:
    that certificate was renewed from in turn. For a certificate whose admission is in force,
    that is the `from` of its admission. For a certificate that was taken away, it is the
    `from` that the records and the items which took it away hold, and where they hold several,
-   each of them has to pass. A certificate met a second time along its own chain does not
-   count.
+   each of them has to pass. **For a certificate that was taken away while an admission of it
+   is still in force**, as in a copy that received the record by a merge and has not written
+   since, it is both: each `from` the statements hold and the `from` of each such admission,
+   each of which has to pass (S29). Asking both only refuses, and it rules out asking the
+   admission alone, which would pass over a `from` a statement holds. What the admission adds
+   is narrow: a statement the plugin composes holds the `from` of the admission its writer
+   read, so the two differ only for a record the plugin did not write. That admission is
+   deleted by the copy's next write (§627), and its `from` is asked until then. A certificate
+   met a second time along its own chain does not count.
 5. **An admission whose `from` names a certificate that is neither admitted by a record in
    force nor taken away does not count** (S29).
 
@@ -981,8 +1070,9 @@ different certificates of origin admit only where each passes; where several rec
 certificate away, a renewal that each of them names is admitted and a renewal that any of them
 does not name is not, in every order of entries; a deletion record of a record that an item
 restates changes nothing, and a deletion record that neither a record nor an item answers for
-refuses every renewal from that certificate; and a chain that leads back into itself admits
-nobody.
+refuses every renewal from that certificate; a certificate taken away while its admission is
+still in force is asked of the `from` of both; a chain that leads back into itself admits
+nobody; and a chain as long as the ceiling on items is answered without recursion.
 
 **What restates it** (S29). Each record that takes a certificate away is restated by an item
 of its own (§611), which holds the record's identifier in `id`, the certificate, and the
@@ -1932,20 +2022,42 @@ step names another source:
    that is retired; and every summary entry present, with every summary entry those name. A
    deletion record is written as well for a replaced record that this copy does not hold, so
    that the record stays out of force when a merge brings it. An admission whose certificate was
-   taken away goes the same way (proposed, §648). **What this copy holds is every entry of the
-   tree, by its identifier, a record or not** (this document's own): an entry with every string of
-   the store gone stays where it is, with no deletion record, which a merge would take as the
-   entry deleted, and no record is added under the identifier of an entry the tree holds. The
-   plugin deletes no entry that it cannot read as a record of its store. *Held by*
-   `StoreWriteTests` and `StoreWritesInRealDatabaseTests`.
+   taken away goes the same way (proposed, §648). **The admissions deleted are told by the
+   texts the core keeps** (S5): every record of kind `client` present under the key whose
+   `client` is revoked, whose `issuer` is retired or whose `certificate` was taken away, by a
+   record, an item or a deletion record, in force or not and whether or not it reads as an
+   admission (§615), the records of the write itself counting as present, so a write that
+   revokes, retires or takes a certificate away deletes in that write what it refuses. An
+   issuer is retired here as the file knows the authority (§623 step 2), so an admission whose
+   issuer is retired only by a deletion record, where no record and no item names that
+   authority, is not deleted: an admission's `issuer` makes no authority known, and nothing
+   serves that authority either way (§615). No other record of that kind is deleted: a renewal
+   that does not count (§648), the admissions of a certificate that several admissions name, and
+   a record that does not read and names nothing refused, stay, since this step names none of
+   them. The plan stays pure and reads no
+   certificate. It rules out deleting by what an admission comes to: the plan would read every
+   certificate, and a write would delete admissions that a merge can still let count, as a
+   merge that brings a deletion record of all but a single admission of a certificate lets that
+   admission admit (§615). **What this copy holds is every entry of the tree, by its
+   identifier, a record or not** (this document's own): an entry with every string of the store
+   gone stays where it is, with no deletion record, which a merge would take as the entry
+   deleted, and no record is added under the identifier of an entry the tree holds. The plugin
+   deletes no entry that it cannot read as a record of its store. *Held by* `StoreWriteTests`
+   and `StoreWritesInRealDatabaseTests`.
 4. **A summary entry is added** (§611) over what is then in force.
 5. **Every record that counts only by its history is set back** (§628).
 6. **The database is saved, or marked as changed**, as today for the same act (below). A write
    that is saved is believed as today.
 
-**A deletion by the plugin never takes anything away.** What step 3 deletes is already replaced,
+**A deletion by the plugin changes no answer.** What step 3 deletes is already replaced,
 refused or restated, and the plugin never deletes a record in order to revoke, retire, remove or
-narrow.
+narrow. So what a copy answers before its own next write and after it is the same: a deletion
+record may or may not reach another copy, and two copies that hold the same decisions do not
+differ by which of them has written. That is why an admission that a decision refuses is not
+counted among several admissions of a certificate (§615). **A single exception**, of a record
+the plugin does not write: the `from` of an admission of a certificate taken away, which the
+fourth rule of §648 asks beside the `from` of the statements, is restated by no statement where
+it differs from all of theirs, and is asked until the write that deletes that admission.
 
 **Which writes save** (this document's own, from what each act does today). A pairing, a
 renewal and a certificate that its client gives up answer a client, so each is saved through
@@ -1955,6 +2067,29 @@ KeePass's own window: their records are added in memory, the database is marked 
 and the operator's save writes them, as the tab's changes and a kept authority are written
 today, `CA.md` §204. They are in force in the gate's copy from that moment, and are lost with
 every other unsaved edit where the database is closed without saving.
+
+**How a pairing's and a renewal's write is believed** (S4). Beside the flag and the file of
+§626, it is read back after its save by its own entries: each entry the plan added is in the
+tree under its identifier, with the strings the plan gave it. A certificate given up is believed
+as every change is, on the flag and the file. What a whole reading would add, a decision that
+arrived inside the save, is answered at the client's next request, and a whole reading walks
+every entry on KeePass's thread. It rules out believing an admission on the flag and the file
+alone, and a second walk of the tree in the turn. *Held by* `PairingInRealDatabaseTests` and
+`RenewalInRealDatabaseTests`.
+
+**What an approval held for a renewal is held to** (S4). The admission it renews is compared at
+the write by the identifier of that admission's entry, where today it is compared by a digest of
+the record's stored text, `PAIRING.md` §312: a record is written once, so the same entry under
+the same store key is the same content. It rules out a digest of a stored text, which the store
+does not keep. *Held by* `ApprovalBookTests`.
+
+**A client's write meets the store's word** (§644 item 26). A pairing, a renewal and a
+certificate given up ask the store again in the writer's turn, and a store that holds the gate
+back there is answered with its word under `503`, as a connection is (§656), and nothing is
+written. **An approval held for such a write is let go there** (S4), while an invitation stays
+good: each word ends by an act of the operator's, after which the operator is asked again. It
+rules out an approval kept for a store that serves nothing. *Held by* `PairingHandlerTests` and
+`RenewalHandlerTests`.
 
 **Every write goes through the writer's guard**, the settings dialog's OK among them, which
 today is applied with no question asked. A write is made on KeePass's thread, after the
@@ -3987,10 +4122,14 @@ and the admissions in the store, and is fixed in the same manner.
   and an authority that passes its check and is not whole damaged, never served and retired
   like any other, §614.
 - **S4. The admission's content.** Fixed for the first writes: a member for each field of
-  today's record, `issuer` held to the anchor pin, and a record that does not read admitting
-  nobody, §615.
+  today's record, `profiles` in ordinal order and `admitted` in a single form, `issuer` held to
+  the anchor pin, a member the table does not name passed over, and a record that does not read
+  admitting nobody and counting as no admission anywhere, §615; a pairing's and a renewal's
+  write read back by its own entries, an approval held for a renewal held to the entry of the
+  admission it renews, and an approval let go where its write meets the store's word, §627.
 - **S5. The revocation's content.** Fixed for the first writes: a single revocation, holding
-  the client key alone, §615.
+  the client key alone, §615; and the records of kind `client` a write deletes, told by the
+  texts the core keeps, §627.
 - **S6. A certificate given up by its own client.** A record of a kind of its own, §648.
 - **S9, in part. How the grant editor shows a rule in several versions, and what removing a
   version writes.** As rows bound together, with no message box and no dialog held at OK,
@@ -4029,10 +4168,13 @@ and the admissions in the store, and is fixed in the same manner.
   `withdrawn`, `kept` and `format`, with what the core reads of every kind, §658; the keep
   record, §649; the version record, for good, and the first format number, §650; what a
   deletion record tells of each, §623. A rule and a switch are records of kind `version`, as
-  measured, with an object of a type the core knows, §658. What is left is S8, S7 and S29,
-  below.
+  measured, with an object of a type the core knows, §658. Fixed for the first writes: the
+  members of `client` its meaning reads, held by the core as texts where present, §658. What is
+  left is S8 and S7, below; S29 is fixed for the first writes, in this list.
 - **S24. Two admissions that name the same certificate.** Fixed for the first writes: a
-  certificate that several admissions in force name is admitted by none of them, §615.
+  certificate that several admissions in force name is admitted by none of them, an admission
+  that a decision refuses and a record that does not read counted among none of them, and a
+  renewal from such a certificate not counting where that certificate was not taken away, §615.
 - **S25. An entry of the plugin's stripped of all its fields.** A deleted record, and not
   damage, §621.
 - **S26, in part. What is left of the version record.** Fixed for the core: a version record is
@@ -4049,7 +4191,10 @@ and the admissions in the store, and is fixed in the same manner.
   members `from` and `renewed`, an item for each record with that record's identifier, a
   renewal counting only where every statement that took its certificate of origin away names
   it, the chain followed through the records that took certificates away, and an admission
-  whose certificate of origin is neither admitted nor taken away not counting, §648.
+  whose certificate of origin is neither admitted nor taken away not counting, §648; the
+  renewals a record names, a record for each certificate of origin where several admissions of
+  the certificate taken away hold other origins, and the chain asking both the statements and
+  the admission of a certificate taken away while that admission is still in force, §648.
 - **S31. How many bytes of the check the identifier holds.** Fixed for the core: six, as
   measured, with what that does and does not bind, §609.
 - **S32. What the grant editor writes while a rule still shows several rows.** A rule is a
