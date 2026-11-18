@@ -965,11 +965,12 @@ namespace KeePassGate.Bridge
 
         /// <summary>
         /// Answers a database whose store holds the gate back and gives no authority to answer
-        /// with, from what the gate last served it with, `STORE.md` §656: the store's word, `lost`
-        /// for a file with no store key, and `busy` once the store holds nothing back, to a
-        /// connection that took the target before the reading changed and asks again. Called with
-        /// the lock held; the entry takes what is remembered once it is made, and the caller lets
-        /// go of it otherwise.
+        /// with, from what the gate last served it with, `STORE.md` §656, answering what the store
+        /// is read as now to a connection that took the target before the reading changed and asks
+        /// again: the store's word, `lost` for a file with no store key, `undecided` where the
+        /// store is whole and several authorities stand, the authority it was served with among
+        /// them, and `busy` otherwise, as once that authority went. Called with the lock held; the
+        /// entry takes what is remembered once it is made, and the caller lets go of it otherwise.
         /// </summary>
         /// <remarks>
         /// **No responder**, since minting a responder needs the authority's key, which nothing
@@ -984,7 +985,7 @@ namespace KeePassGate.Bridge
             var kept = false;
             try
             {
-                target = new HeldBackTarget(remembered.DatabaseId, gateKey, remembered.Host, () => readings.Word, HeldBackTarget.Busy);
+                target = new HeldBackTarget(remembered.DatabaseId, gateKey, remembered.Host, () => readings.WordFor(remembered.DatabaseId));
 
                 var path = PathOf(database);
                 Discard(path);
@@ -1035,7 +1036,8 @@ namespace KeePassGate.Bridge
         /// **Cached like any other state**, so the log line and the parsing happen once per change
         /// rather than once per connection, and so that the chooser can ask which databases are in
         /// this state without reading any of them again. Each candidate asks the database's
-        /// readings for the store's word first, `STORE.md` §656.
+        /// readings for the store's word for its own authority first, `STORE.md` §656, and
+        /// answers `busy` where that authority no longer stands among several.
         ///
         /// **The same authorities, in other objects, are the same question.** The entry is held to
         /// the very objects KeePass keeps the store's text in, and a synchronize hands KeePass that
@@ -1061,7 +1063,6 @@ namespace KeePassGate.Bridge
             var ids = new HashSet<string>(standing.Select(record => record.Form.Member(StoreKinds.Id)), StringComparer.Ordinal);
             var same = before != null && before.IsUndecided && before.Standing.SetEquals(ids) && before.State == state;
             var targets = new List<HeldBackTarget>();
-            Func<string> word = () => readings.Word;
 
             // Each candidate holds a copy of its gate key until it is disposed, and nothing owns
             // them before the cache does, so a throw on the way there gives back every target built.
@@ -1084,7 +1085,7 @@ namespace KeePassGate.Bridge
                         var gateKey = material.SniKey;
                         try
                         {
-                            targets.Add(new HeldBackTarget(id, gateKey, material.HostKey, word, HeldBackTarget.Undecided));
+                            targets.Add(new HeldBackTarget(id, gateKey, material.HostKey, () => readings.WordFor(id)));
                         }
                         finally
                         {
@@ -1782,7 +1783,7 @@ namespace KeePassGate.Bridge
                     return VaultWrite.Failed("this database is served without a way to write to it");
                 }
 
-                var written = _writer.GiveUp(_database, admissionKey, audit);
+                var written = _writer.GiveUp(_database, admissionKey, _databaseId, audit);
                 if (written.Ok)
                 {
                     _log.Info("a client gave up its own certificate: " + CertificateDigest.Shorten(admissionKey));
@@ -1858,8 +1859,12 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>
-            /// The word the store holds the gate back with, read now in a hold of KeePass's thread,
-            /// or null while it holds nothing back, `STORE.md` §656.
+            /// The word a connection to the database is answered with, read now in a hold of
+            /// KeePass's thread, `STORE.md` §656, or null while it is served: the store's word, and
+            /// `undecided` where a second authority came to stand after this target was built
+            /// beside this target's, as a connection made now is answered, `StoreReadings.WordOf`.
+            /// Where several stand and this target's authority is not among them there is no word,
+            /// and its admission is found by nobody, as under an authority that went.
             /// </summary>
             /// <remarks>
             /// **Answered under the authority this target serves**, with its host certificate and
@@ -1870,7 +1875,7 @@ namespace KeePassGate.Bridge
             /// </remarks>
             public string Unavailable
             {
-                get { return _store.Word; }
+                get { return _store.WordFor(_databaseId); }
             }
 
             /// <summary>

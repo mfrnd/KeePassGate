@@ -44,16 +44,27 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// True when the authority that issued the certificate is not the authority the store
-        /// serves alone, found by the write's plan before anything was touched or asked: an
-        /// authority retired by a Recreate or a Delete after the operator answered, an
-        /// authority standing beside another, or a store that holds the gate back,
-        /// `PAIRING.md` §311.
+        /// True when the authority that issued the certificate is not served and no decision of
+        /// the operator's can serve it, found before anything was touched or asked: the store is
+        /// whole and serves another authority or none, or several authorities stand and it is not
+        /// among them. The authority the operator answered under was retired since, by a Recreate,
+        /// a Delete or a choice between authorities, here or in a copy merged in, and no retry
+        /// under it can be written, `PAIRING.md` §311. A store holding the gate back, and several
+        /// authorities standing with the issuer among them, are answered <see cref="Word"/>
+        /// instead.
         /// </summary>
         public bool IsUnserved
         {
             get { return _unserved; }
         }
+
+        /// <summary>
+        /// The word the write met the database with, or null: the word the plugin's store holds
+        /// the gate back with, `STORE.md` §656, or `undecided` where several authorities stand,
+        /// the issuer among them, answered under `503` as a connection is, with nothing touched
+        /// or asked.
+        /// </summary>
+        public string Word { get; private set; }
 
         public string Reason
         {
@@ -78,6 +89,15 @@ namespace KeePassGate.Authority
         public static AdmissionWrite Unserved(string reason)
         {
             return new AdmissionWrite(false, false, true, reason);
+        }
+
+        /// <summary>
+        /// The database is answered this word as a connection is, `STORE.md` §656: the store's
+        /// word, or `undecided` where several authorities stand, the issuer among them.
+        /// </summary>
+        public static AdmissionWrite Unavailable(string word)
+        {
+            return new AdmissionWrite(false, false, false, "the database is answered " + word) { Word = word };
         }
     }
 }

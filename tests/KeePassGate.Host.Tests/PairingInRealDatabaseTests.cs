@@ -1136,6 +1136,174 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_summary_entry_deleted_for_good_while_the_dialog_stands_is_answered_stopped_with_nothing_spent()
+        {
+            // The store asked again in the write's own turn, `STORE.md` §627: a store that came to
+            // hold the gate back while the operator read the dialog is answered its word, as a
+            // connection is, with nothing written and the invitation unspent.
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            {
+                var target = targets.Current().Single();
+                var invitation = book.Invite(target.DatabaseId);
+                string before = null;
+                var operatorAt = new AgreeingAfter(() =>
+                {
+                    var store = new StoredAdmissions(_database.Database).Store;
+                    StoreSeeds.Revoke(store, new string('e', 64));
+                    var head = _database.RootGroup.GetEntries(true).Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "head");
+                    head.ParentGroup.Entries.Remove(head);
+                    _database.Database.DeletedObjects.Add(new PwDeletedObject(head.Uuid, DateTime.UtcNow));
+                    before = Snapshot();
+                });
+
+                var context = Pair(book, target, invitation, "agent-fictitious", new[] { "ops" }, operatorAt);
+
+                Assert.That(context.Status, Is.EqualTo(503), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("stopped")));
+                Assert.That(book.Outstanding().Count, Is.EqualTo(1), "the invitation is not spent");
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+                Assert.That(Snapshot(), Is.EqualTo(before));
+            }
+        }
+
+        [TestCase("lost")]
+        [TestCase("split")]
+        [TestCase("outdated")]
+        public void An_admission_over_a_store_that_holds_the_gate_back_is_answered_its_word_before_anything_is_asked(
+            string word)
+        {
+            // The store read in the write's own turn, `STORE.md` §627, and answered as a connection
+            // to the database is answered, `STORE.md` §656: before the plan, the condition and the
+            // save, so an approval and an invitation are spent on nothing.
+            AnsweredBeforeAnythingIsAsked(word);
+        }
+
+        [Test]
+        public void An_admission_while_several_authorities_stand_is_answered_undecided_before_anything_is_asked()
+        {
+            // A second authority standing beside the first serves nothing until the operator keeps
+            // an authority, and is answered as a connection to the database is.
+            AnsweredBeforeAnythingIsAsked(HeldBackTarget.Undecided);
+        }
+
+        /// <summary>
+        /// An admission written once the database is brought to be answered with this word, and
+        /// what came of it.
+        /// </summary>
+        private void AnsweredBeforeAnythingIsAsked(string word)
+        {
+            using (var certificate = IssueClient())
+            {
+                var record = Record(certificate, "ops");
+                var lines = 0;
+                var asked = 0;
+                new StoredAdmissions(_database.Database).HoldBack(word);
+                var before = Snapshot();
+
+                var result = _writer.WriteAdmission(_database.Database, record, () => lines++, ground =>
+                {
+                    asked++;
+                    return null;
+                });
+
+                Assert.That(result.Ok, Is.False);
+                Assert.That(result.Word, Is.EqualTo(word), result.Reason);
+                Assert.That(asked, Is.Zero, "the condition spends nothing");
+                Assert.That(lines, Is.Zero);
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+                Assert.That(Snapshot(), Is.EqualTo(before));
+            }
+        }
+
+        [Test]
+        public void An_admission_whose_authority_was_retired_beside_several_others_is_answered_unserved_before_anything_is_asked()
+        {
+            // Several authorities stand and the authority the invitation was made under is not
+            // among them: no decision of the operator's can serve it, so the plan refuses the write
+            // and it is answered as under an authority that went, with nothing asked or spent.
+            using (var certificate = IssueClient())
+            {
+                var record = Record(certificate, "ops");
+                var lines = 0;
+                var asked = 0;
+                new StoredAdmissions(_database.Database).RetiredBesideOthers();
+                var before = Snapshot();
+
+                var result = _writer.WriteAdmission(_database.Database, record, () => lines++, ground =>
+                {
+                    asked++;
+                    return null;
+                });
+
+                Assert.That(result.Ok, Is.False);
+                Assert.That(result.Word, Is.Null, result.Reason);
+                Assert.That(result.IsUnserved, Is.True, result.Reason);
+                Assert.That(asked, Is.Zero, "the condition spends nothing");
+                Assert.That(lines, Is.Zero);
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+                Assert.That(Snapshot(), Is.EqualTo(before));
+            }
+        }
+
+        [Test]
+        public void An_authority_retired_beside_several_others_while_the_dialog_stands_is_answered_no_invitation_with_nothing_spent()
+        {
+            // Beside the case of a second authority arriving: the authority the invitation was made
+            // under is retired and two others stand, so the pairing is told as an invitation that
+            // went, and the invitation itself is not spent.
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            {
+                var target = targets.Current().Single();
+                var invitation = book.Invite(target.DatabaseId);
+                string before = null;
+                var operatorAt = new AgreeingAfter(() =>
+                {
+                    new StoredAdmissions(_database.Database).RetiredBesideOthers();
+                    before = Snapshot();
+                });
+
+                var context = Pair(book, target, invitation, "agent-fictitious", new[] { "ops" }, operatorAt);
+
+                Assert.That(context.Status, Is.EqualTo(409), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("no invitation")));
+                Assert.That(book.Outstanding().Count, Is.EqualTo(1), "the invitation is not spent");
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+                Assert.That(Snapshot(), Is.EqualTo(before));
+            }
+        }
+
+        [Test]
+        public void A_second_authority_arriving_while_the_dialog_stands_is_answered_undecided_with_nothing_spent()
+        {
+            // A synchronize bringing a copy that made an authority of its own, while the operator
+            // reads the dialog: a connection to the database is answered `undecided` from then on,
+            // and so is the pairing at its write, with its invitation good once the operator keeps
+            // the authority it was made under.
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            {
+                var target = targets.Current().Single();
+                var invitation = book.Invite(target.DatabaseId);
+                string before = null;
+                var operatorAt = new AgreeingAfter(() =>
+                {
+                    new StoredAdmissions(_database.Database).HoldBack(HeldBackTarget.Undecided);
+                    before = Snapshot();
+                });
+
+                var context = Pair(book, target, invitation, "agent-fictitious", new[] { "ops" }, operatorAt);
+
+                Assert.That(context.Status, Is.EqualTo(503), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(HeldBackTarget.Undecided)));
+                Assert.That(book.Outstanding().Count, Is.EqualTo(1), "the invitation is not spent");
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+                Assert.That(Snapshot(), Is.EqualTo(before));
+            }
+        }
+
+        [Test]
         public void The_dialog_is_built_from_the_request_the_handler_made_out_of_the_database()
         {
             // Every other dialog test builds its request by hand, so what the real target answers

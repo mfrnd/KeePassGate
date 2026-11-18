@@ -9,10 +9,11 @@ namespace KeePassGate.Store
     /// write that adds nothing would write, held to the plugin's own ceilings.
     /// </summary>
     /// <remarks>
-    /// **A write adds an item at most beside what is in force**, and names no summary entry that a
-    /// write adding nothing would not name, so a store with room takes every write a client can
-    /// ask for, and a store without it is served nothing until it is started again, `STORE.md`
-    /// §643.
+    /// **Room is measured for a single further item beside what is in force**, and for no summary
+    /// entry named that a write adding nothing would not name, so a store with room takes every
+    /// write that adds a single item, and a store without it is served nothing until it is started
+    /// again, `STORE.md` §643. A certificate given up whose admissions hold more origins than that
+    /// room leaves needs more items than that, and is answered `stopped`.
     ///
     /// **The string held to the ceiling is the summary entry's content**, which holds its `after`
     /// beside its height and its nonce, and not the `after` alone: a store whose `after` fitted

@@ -876,10 +876,16 @@ namespace KeePassGate.Pairing
         /// so the same request asked again before the approval runs out is written without the
         /// dialog. **Anything the write's condition refused uses the approval up**, and what the
         /// client is told is what refused it: a lock or a close, the invitation gone, or the
-        /// database no longer holding what the operator approved, which asks them again. **An
-        /// authority that is no longer served**, which the write's plan finds before the condition
-        /// is asked, uses the approval up as well and is told as an invitation that is gone, since
-        /// the invitation was made under that authority; the invitation itself is not spent.
+        /// database no longer holding what the operator approved, which asks them again. **A store
+        /// that holds the gate back where the write meets it, or holds several authorities with
+        /// the authority the invitation was made under among them**, is answered its word as a
+        /// connection is, `undecided` for the second, and lets the approval go and the invitation
+        /// stay. **An authority retired since the operator answered**, which the write finds
+        /// before the condition is asked, beside a single authority or none in its plan and beside
+        /// several before it plans anything, uses the approval up as well and is told as an
+        /// invitation that is gone, since the invitation was made under that authority and no
+        /// decision of the operator's lets a retry under it be written; the invitation itself is
+        /// not spent.
         /// </remarks>
         private void Unwritten(
             IGateContext context,
@@ -898,6 +904,19 @@ namespace KeePassGate.Pairing
                 }
 
                 Gone(context, invitation, held, what);
+                return;
+            }
+
+            if (written.Word != null)
+            {
+                // The plugin's store holds the gate back where the write met it, or several
+                // authorities stand, the authority the invitation was made under among them,
+                // `STORE.md` §627: answered its word, as a connection is, `STORE.md` §656. The
+                // approval goes and the invitation stays, since each word ends by an act of the
+                // operator's, after which the operator is asked again.
+                _held.Take(held);
+                _log.Warn(what + " was approved and not written, since " + HeldBackTarget.Why(written.Word));
+                context.Respond(503, HttpResponse.ErrorBody(written.Word));
                 return;
             }
 

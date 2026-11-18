@@ -214,9 +214,23 @@ namespace KeePassGate.Pairing
             string approval,
             PairingMoment arrived)
         {
+            var what = "a renewal by " + CertificateDigest.Shorten(key);
+
+            // The word first, as a connection is judged, so a store that came to hold the gate back
+            // since this connection was admitted, or to hold several authorities with this
+            // connection's among them, is told as such and not as a record that went. Several
+            // without this connection's are a record that went, which no decision brings back.
+            string word;
             AdmissionRecord record;
-            if (!Admission(context, target, key, out record))
+            if (!Read(context, target, key, out word, out record))
             {
+                return;
+            }
+
+            if (word != null)
+            {
+                _log.Warn(what + " was not put to the operator, since " + HeldBackTarget.Why(word));
+                context.Respond(503, HttpResponse.ErrorBody(word));
                 return;
             }
 
@@ -228,7 +242,6 @@ namespace KeePassGate.Pairing
                 return;
             }
 
-            var what = "a renewal by " + CertificateDigest.Shorten(key);
             var held = _held.Find(approval, target.DatabaseId);
             if (held != null)
             {
@@ -287,10 +300,21 @@ namespace KeePassGate.Pairing
             // authority recreated or deleted, which the target answers as no record. What it is told
             // is then what every connection with this certificate is told, and nothing is audited,
             // since nothing was admitted. The write asks once more, under the writer's lock, for one
-            // that goes after this.
+            // that goes after this. **A store that came to hold the gate back meanwhile, or to hold
+            // several authorities with this connection's among them**, is answered its word as a
+            // connection made now is and as the write would answer it, `undecided` for the second,
+            // with the approval let go.
             AdmissionRecord still;
-            if (!Admission(context, target, key, out still))
+            if (!Read(context, target, key, out word, out still))
             {
+                return;
+            }
+
+            if (word != null)
+            {
+                _held.Take(held);
+                _log.Warn(what + " was approved and not issued, since " + HeldBackTarget.Why(word));
+                context.Respond(503, HttpResponse.ErrorBody(word));
                 return;
             }
 
@@ -787,10 +811,15 @@ namespace KeePassGate.Pairing
         /// <remarks>
         /// Busy keeps the approval held, as pairing's does. What the write's condition refused uses
         /// it up and is told for what it was: a lock or a close, the record gone, or the list no
-        /// longer what the operator approved against, which asks them again. An authority that is
-        /// no longer served, which the write's plan finds before the condition is asked, uses it up
-        /// as well and is told as a record that went. A write that failed once the approval was
-        /// taken is pairing's `500 not recorded`: the operator's approval is spent, nothing is
+        /// longer what the operator approved against, which asks them again. A store that holds the
+        /// gate back where the write meets it, or holds several authorities with the authority the
+        /// renewal was approved under among them, is answered its word as a connection is,
+        /// `undecided` for the second, and lets the approval go. An authority retired since the
+        /// operator answered, which the write finds before the condition is asked, beside a single
+        /// authority or none in its plan and beside several before it plans anything, uses it up
+        /// as well and is told as a record that went, which it is: no decision of the operator's
+        /// lets a renewal under that authority be written. A write that failed once the approval
+        /// was taken is pairing's `500 not recorded`: the operator's approval is spent, nothing is
         /// handed over that the database does not know about, and the old certificate still works.
         /// </remarks>
         private void Unwritten(
@@ -805,6 +834,17 @@ namespace KeePassGate.Pairing
                 }
 
                 PairingHandler.Gone(context, held, what, _log);
+                return;
+            }
+
+            if (written.Word != null)
+            {
+                // The plugin's store holds the gate back where the write met it, or several
+                // authorities stand, the authority the renewal was approved under among them, as
+                // for a pairing.
+                _held.Take(held);
+                _log.Warn(what + " was approved and not written, since " + HeldBackTarget.Why(written.Word));
+                context.Respond(503, HttpResponse.ErrorBody(written.Word));
                 return;
             }
 
@@ -873,20 +913,44 @@ namespace KeePassGate.Pairing
         }
 
         /// <summary>
-        /// Reads the record, or answers `503 busy` and says false when the records could not be
-        /// listed, which says nothing about whether this one is there.
+        /// The word a connection to the database is answered with under `503` now, or null where
+        /// it is served, `IGateTarget.Unavailable`, and where it is served the record, read in a
+        /// single hold of the database, so that both are of the same store. Answers `503 locked`
+        /// or `503 busy` and returns false when they could not be read, which tells nothing about
+        /// whether the record is there.
         /// </summary>
-        private bool Admission(IGateContext context, IGateTarget target, string key, out AdmissionRecord record)
+        private bool Read(IGateContext context, IGateTarget target, string key, out string word, out AdmissionRecord record)
         {
+            string heldWord = null;
+            AdmissionRecord heldRecord = null;
+            Func<bool> both = () =>
+            {
+                heldWord = target.Unavailable;
+                heldRecord = heldWord == null ? target.Admission(key) : null;
+                return true;
+            };
+
             try
             {
-                record = target.Admission(key);
+                var vault = target.Vault;
+                if (vault == null)
+                {
+                    both();
+                }
+                else
+                {
+                    vault.Held(both);
+                }
+
+                word = heldWord;
+                record = heldRecord;
                 return true;
             }
             catch (DatabaseShut error)
             {
                 _log.Warn("a renewal by " + CertificateDigest.Shorten(key) + " was refused: " + error.Message);
                 context.Respond(503, HttpResponse.ErrorBody(LockedTarget.Error));
+                word = null;
                 record = null;
                 return false;
             }
@@ -894,6 +958,7 @@ namespace KeePassGate.Pairing
             {
                 _log.Warn("a renewal by " + CertificateDigest.Shorten(key) + " was refused for now: " + error.Message);
                 context.Respond(503, HttpResponse.ErrorBody("busy"));
+                word = null;
                 record = null;
                 return false;
             }

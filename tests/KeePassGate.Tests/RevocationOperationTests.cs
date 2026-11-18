@@ -71,11 +71,18 @@ namespace KeePassGate.Tests
         [TestCase("unverified", 500, "not verified")]
         [TestCase("failed", 500, "internal error")]
         [TestCase("missing", 401, "unpaired")]
+        [TestCase("split", 503, "split")]
+        [TestCase("outdated", 503, "outdated")]
+        [TestCase("stopped", 503, "stopped")]
+        [TestCase("lost", 503, "lost")]
+        [TestCase("undecided", 503, "undecided")]
         public void What_the_write_came_to_is_what_the_client_is_told(string outcome, int status, string error)
         {
             // In the vault writes' words. A record that went before the write could make it is the
             // one case of its own: the operator revoked it in between, so the answer is the one
-            // this certificate will get on every connection from now on.
+            // this certificate will get on every connection from now on. A store that holds the
+            // gate back at the write is answered its word, as a connection is, and several
+            // authorities standing are answered `undecided`.
             _authority.GiveUpAnswers = Outcome(outcome);
 
             using (var certificate = _authority.IssueAdmittedClient("reader"))
@@ -303,8 +310,10 @@ namespace KeePassGate.Tests
                     return VaultWrite.Unverified("the file does not hold what was written");
                 case "failed":
                     return VaultWrite.Failed("the database closed");
-                default:
+                case "missing":
                     return VaultWrite.Missing();
+                default:
+                    return VaultWrite.Unavailable(outcome);
             }
         }
     }

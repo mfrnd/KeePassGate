@@ -140,18 +140,49 @@ namespace KeePassGate.Host.Tests
 
             for (var request = 0; request < 10; request++)
             {
-                Assert.That(readings.Word, Is.EqualTo("stopped"), "an authority and no summary entry");
+                Assert.That(readings.WordFor(Hex('a')), Is.EqualTo("stopped"), "an authority and no summary entry");
             }
 
             Add(_group, StoreComposer.Record(
                 One, "head", "store", StoreComposer.Content(("after", string.Empty), ("height", "1")), 1,
                 new[] { StoreComposer.Item(("format", "1"), ("kind", "format"), ("plugin", "0.3.0")) }));
-            Assert.That(readings.Word, Is.Null);
-            Assert.That(readings.Word, Is.Null);
+            Assert.That(readings.WordFor(Hex('a')), Is.Null);
+            Assert.That(readings.WordFor(Hex('a')), Is.Null);
 
             Assert.That(log.Warnings, Has.Count.EqualTo(1));
             Assert.That(log.Warnings[0], Does.Contain("stopped").And.Not.Contain(authority.Strings.ReadSafe(StoreComposer.Data)));
             Assert.That(log.Infos, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public void A_stop_that_ends_with_several_authorities_standing_logs_nothing_as_served()
+        {
+            // Sealed again with a second authority standing beside the first: nothing is served
+            // until the operator keeps an authority, so no line tells of serving.
+            Add(_group, Authority(One, 'a'));
+            Add(_group, Authority(One, 'b'));
+            var log = new Lines();
+            var readings = new StoreReadings(_database.Database, CurrentThread.Instance, log);
+            Assume.That(readings.WordFor(Hex('a')), Is.EqualTo("stopped"), "authorities and no summary entry");
+
+            Add(_group, HeadNaming(0));
+
+            Assert.That(readings.WordFor(Hex('a')), Is.EqualTo("undecided"));
+            Assert.That(log.Infos, Is.Empty);
+        }
+
+        [Test]
+        public void A_store_past_half_its_room_with_several_authorities_standing_logs_nothing_as_served()
+        {
+            Add(_group, Authority(One, 'a'));
+            Add(_group, Authority(One, 'b'));
+            Add(_group, HeadNaming(3971));
+            var log = new Lines();
+            var readings = new StoreReadings(_database.Database, CurrentThread.Instance, log);
+
+            Assert.That(readings.WordFor(Hex('a')), Is.EqualTo("undecided"));
+            Assert.That(log.Warnings, Has.None.Contains("serving"));
+            Assert.That(log.Infos, Is.Empty);
         }
 
         [Test]
@@ -164,7 +195,7 @@ namespace KeePassGate.Host.Tests
 
             for (var request = 0; request < 10; request++)
             {
-                Assert.That(readings.Word, Is.Null, "a store past half its room is served");
+                Assert.That(readings.WordFor(Hex('a')), Is.Null, "a store past half its room is served");
             }
 
             Assert.That(log.Warnings, Has.Count.EqualTo(1));
@@ -174,9 +205,9 @@ namespace KeePassGate.Host.Tests
             // Below half again, then past it again: named again.
             head.ParentGroup.Entries.Remove(head);
             Add(_group, HeadNaming(0));
-            Assert.That(readings.Word, Is.Null);
+            Assert.That(readings.WordFor(Hex('a')), Is.Null);
             Add(_group, HeadNaming(3971));
-            Assert.That(readings.Word, Is.Null);
+            Assert.That(readings.WordFor(Hex('a')), Is.Null);
             Assert.That(log.Warnings, Has.Count.EqualTo(2));
         }
 
@@ -188,7 +219,7 @@ namespace KeePassGate.Host.Tests
             var log = new Lines();
             var readings = new StoreReadings(_database.Database, CurrentThread.Instance, log);
 
-            Assert.That(readings.Word, Is.Null);
+            Assert.That(readings.WordFor(Hex('a')), Is.Null);
             Assert.That(log.Warnings, Is.Empty);
             Assert.That(log.Infos, Is.Empty);
         }
@@ -201,8 +232,8 @@ namespace KeePassGate.Host.Tests
             var log = new Lines();
             var readings = new StoreReadings(_database.Database, CurrentThread.Instance, log);
 
-            Assert.That(readings.Word, Is.EqualTo("stopped"));
-            Assert.That(readings.Word, Is.EqualTo("stopped"));
+            Assert.That(readings.WordFor(Hex('a')), Is.EqualTo("stopped"));
+            Assert.That(readings.WordFor(Hex('a')), Is.EqualTo("stopped"));
 
             Assert.That(log.Warnings, Has.Count.EqualTo(1));
             Assert.That(log.Warnings[0], Does.Contain("stopped").And.Contain("no room").And.Contain("7942"));
@@ -292,7 +323,7 @@ namespace KeePassGate.Host.Tests
             var asking = new KeePassGate.Vault.VaultAsking(
                 found =>
                 {
-                    Assert.That(readings.Word, Is.EqualTo("stopped"));
+                    Assert.That(readings.WordFor(Hex('a')), Is.EqualTo("stopped"));
                     return true;
                 },
                 null,

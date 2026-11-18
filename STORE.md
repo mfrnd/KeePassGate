@@ -2326,8 +2326,9 @@ because the authority that issued the certificate is not the authority the store
 alone**, as where that authority was recreated or deleted since the operator answered: the write
 is answered as an authority that went, a pairing `409 no invitation` and a renewal `401
 unpaired`, with the approval used up by the handler and the invitation unspent, `PAIRING.md`
-§311 and §312. The condition compares no authority, since the plan has held the admission to
-its issuer before the condition is asked.
+§311 and §312. An issuer that still stands beside a second authority is no such case: that write
+is answered `undecided` before anything is planned, below. The condition compares no authority,
+since the plan has held the admission to its issuer before the condition is asked.
 **Or the store already holds the act's own record**, which no write through the writer reaches:
 the act is composed in the writer's turn and every record holds a random nonce, so that case is
 held where the plan is asked alone. *Held by*
@@ -2364,8 +2365,56 @@ certificate given up ask the store again in the writer's turn, and a store that 
 back there is answered with its word under `503`, as a connection is (§656), and nothing is
 written. **An approval held for such a write is let go there** (S4), while an invitation stays
 good: each word ends by an act of the operator's, after which the operator is asked again. It
-rules out an approval kept for a store that serves nothing. *Held by* `PairingHandlerTests` and
-`RenewalHandlerTests`.
+rules out an approval kept for a store that serves nothing. **Built**: the writer reads the
+store afresh in its turn and, where it holds the gate back, answers the word before anything is
+planned, asked or spent, `split`, `outdated`, `stopped`, and `lost` for a file whose store key
+went. The word is in the body and in `KPG-Unavailable`, as on a connection. **Several authorities
+standing where the write is planned are answered `undecided` the same way**, after the store's
+own word and in the order a connection is answered: a store that is whole and holds a second
+authority, as a synchronize brings, takes no admission and no certificate given up until the
+operator has kept an authority, and nothing is planned, asked or spent. **`undecided` is answered
+only where the request's own authority is among the authorities standing**: the issuer of the
+admission a pairing or a renewal writes, and for a certificate given up the authority its
+connection arrived under. Where several stand and that authority is not among them, retired or
+gone, there is no word, and the request is answered as for an authority that went: the plan
+refuses an admission whose issuer does not stand alone, with no window asked and nothing
+spent, saved or changed, and a certificate given up is admitted by nothing there. So that
+answer, above, is for a store that is whole and does not hold the request's authority
+standing, whether it serves another authority, none, or holds several: `409 no invitation` for
+a pairing and `401 unpaired` for a renewal and for a certificate given up. A certificate given
+up is answered `401 unpaired` as well where the store serves its authority and holds no
+admission in force for the certificate. **A renewal asks the word before its write as well**,
+as it arrives and again once its dialog is answered, each time in a single hold with the record
+it renews, so the word and the record are of a single reading, and a store that came to hold
+the gate back while the dialog stood is answered its word and not as a record that went,
+`PAIRING.md` §312. **A certificate given up that the store has no room for is answered
+`stopped`** (this document's own): where the admissions of the certificate hold several origins
+the act needs a statement for each (§648), and a store a single item short of the ceiling has
+room for its next write by §643 and none for that write. The plan refuses it for the plugin's
+own ceilings, and the client is answered as for a store that has no room, with nothing written.
+*Held by*
+`PairingHandlerTests.A_store_holding_the_gate_back_at_the_write_is_answered_its_word_and_lets_the_approval_go`,
+`RenewalHandlerTests.A_store_holding_the_gate_back_at_the_write_is_answered_its_word_and_lets_the_approval_go`
+and `RevocationOperationTests.What_the_write_came_to_is_what_the_client_is_told`, each word,
+`undecided` among them; and through the writer over real databases by
+`PairingInRealDatabaseTests.An_admission_over_a_store_that_holds_the_gate_back_is_answered_its_word_before_anything_is_asked`,
+`PairingInRealDatabaseTests.A_second_authority_arriving_while_the_dialog_stands_is_answered_undecided_with_nothing_spent`,
+`PairingInRealDatabaseTests.A_summary_entry_deleted_for_good_while_the_dialog_stands_is_answered_stopped_with_nothing_spent`,
+`RenewalInRealDatabaseTests.A_renewal_whose_store_stops_before_its_write_is_answered_stopped_with_nothing_written`,
+`RenewalInRealDatabaseTests.A_renewal_whose_database_comes_to_hold_a_second_authority_before_its_write_is_answered_undecided`,
+`RenewalInRealDatabaseTests.A_renewal_whose_store_comes_to_hold_the_gate_back_while_the_dialog_stands_is_answered_its_word`,
+`GiveUpInRealDatabaseTests.A_certificate_given_up_over_a_store_that_holds_the_gate_back_is_answered_its_word_with_nothing_written`
+and
+`GiveUpInRealDatabaseTests.A_certificate_given_up_that_the_store_has_no_room_for_is_answered_stopped_with_nothing_written`.
+An authority that is not among several standing is held by
+`PairingInRealDatabaseTests.An_admission_whose_authority_was_retired_beside_several_others_is_answered_unserved_before_anything_is_asked`,
+`RenewalInRealDatabaseTests.A_renewal_whose_authority_is_retired_beside_several_others_before_its_write_is_answered_unpaired`
+and
+`GiveUpInRealDatabaseTests.A_certificate_given_up_once_its_authority_was_retired_beside_several_others_is_answered_missing_with_nothing_written`;
+the approval let go after a renewal's dialog by
+`RenewalHandlerTests.A_store_that_comes_to_hold_the_gate_back_while_the_dialog_stands_lets_the_approval_go`;
+and the single reading by
+`RenewalInRealDatabaseTests.After_the_dialog_the_word_and_the_record_are_read_from_a_single_reading`.
 
 **Every write goes through the writer's guard**, the settings dialog's OK among them, which
 today is applied with no question asked. A write is made on KeePass's thread, after the
@@ -2509,9 +2558,8 @@ the plugin's group, `DESIGN.md` §119. **The operator's revocation is an act**, 
 beside the authority's acts and written at OK. Every write deletes the records of kind
 `client` that step 3 names, by the texts §658 keeps, the write's own records counting as present,
 so a revocation, a certificate taken away, a Recreate and a Delete each delete in their own write
-the admissions they refuse. **Not built yet**: the store's word answered to a client's write (§644
-item 26), where a pairing and a renewal that meet a store holding the gate back are answered `503
-busy` with the approval let go, and a certificate given up `500 internal error`; the tab's OK
+the admissions they refuse. **A client's write is answered the store's word** where the store
+holds the gate back in the writer's turn, above (§644 item 26). **Not built yet**: the tab's OK
 behind a save of the plugin's own (§644 item 30); and the single removal on the clients page
 (§648). *Held by*
 `StoreRecordTests`, against the records of the measured code
@@ -3385,8 +3433,33 @@ answers the store's word, `lost` for a file with no key, under its own gate key,
 store holds nothing back, to a connection that took it before the reading changed; it judges no
 certificate and reaches nothing, and a lock lets it go with no responder. A database opened or
 unlocked with no store key, and a database whose store holds no authority that stands, resolve no
-name. `frozen` comes with the release that first moves the format number (§652), and the routing
-document declares it and the reference client knows it already. *Held by* `StoreWordsTests`,
+name. **A target handed out while a single authority stood answers `undecided` once a second
+authority stands**, as a connection made then is answered: a request in flight, or waiting its
+turn on KeePass's thread, when the second authority arrives is answered `503 undecided` where
+its caller is judged again, and so is a pairing's, a renewal's and a given up certificate's
+write (§627). **And only while that target's own authority is among the authorities standing**:
+where it went while the others came to stand, a request in flight is answered as a certificate
+with no admission is, and the memory of what was last served answers `busy`. So does a target
+made for an authority that stood among several, once that authority no longer stands among
+several when a connection that took the target asks: retired while others stand, or once the
+operator has kept an authority. Each authority that stands answers `undecided` under its own
+host certificate, so a client of an authority that is gone finds no target on a new
+connection: its handshake is refused, while several authorities stand and after the operator
+has kept an authority. The words are answered to such a write as well, `stopped` also to a
+certificate given up that the store has no room for. A line that a database is served again,
+and the warning from half the room, are logged only where the reading serves, so not while
+several authorities stand. `frozen` comes with the release that first moves the format number
+(§652), and the routing document declares it and the reference client knows it already. *Held
+by*
+`LockInRealDatabaseTests.A_candidate_whose_own_authority_went_while_several_others_stand_is_answered_busy`,
+`HeldBackGateTests.A_candidate_whose_own_authority_no_longer_stands_among_several_is_answered_busy`,
+`OpenDatabaseTargetsTests.A_connection_naming_the_gate_of_an_authority_that_no_longer_stands_finds_no_target`,
+`LockInRealDatabaseTests.A_connection_made_before_a_second_authority_stood_is_told_undecided_as_a_new_connection_is`,
+`LockInRealDatabaseTests.What_a_database_was_served_with_answers_undecided_once_it_holds_several_authorities`,
+`LockInRealDatabaseTests.A_connection_whose_authority_went_while_several_others_came_to_stand_is_answered_as_its_authority_went`,
+`LockInRealDatabaseTests.What_a_database_was_served_with_answers_busy_once_its_authority_went_while_several_others_stand`,
+`StoreInRealDatabaseTests.A_stop_that_ends_with_several_authorities_standing_logs_nothing_as_served`,
+`StoreWordsTests`,
 `StoreHeldBackGateTests`, `HeldBackGateTests`, `UnavailableWordsTests` and `StoreInForceTests`, the
 order of the words by `StoreReadingStatesTests` and `StoreRoomTests`, `lost` by
 `LockInRealDatabaseTests` as well, where a served database whose key carrier is deleted answers
@@ -4337,11 +4410,13 @@ that finds a measurement against a decision reports it and does not design aroun
     none of them, so the router does not ask the store again for them; a request that waits for
     its dialog met a store that came to hold the gate back meanwhile only at its next request. The
     writes that save are built (§627), and each of the three now reads the store again in the
-    turn of its write and writes nothing into a store that holds the gate back there. What it
-    is answered there is not the store's word yet: a pairing and a renewal are answered `503
-    busy`, with the approval let go and the invitation unspent, and a certificate given up `500
-    internal error`. Owed by the pull request that moves the admissions into the store: each of
-    the three answers the store's word there.
+    turn of its write, writes nothing into a store that holds the gate back there, and answers
+    the store's word, with a pairing's or a renewal's approval let go and the invitation
+    unspent, and `undecided` where a second authority stands by then beside its own. Run over
+    stand-ins for each word (`PairingHandlerTests`, `RenewalHandlerTests`,
+    `RevocationOperationTests`) and through the writer over real databases for each word,
+    `undecided` among them (`PairingInRealDatabaseTests`, `RenewalInRealDatabaseTests`,
+    `GiveUpInRealDatabaseTests`). What stays owed is the same in a real KeePass.
 27. **What the tab shows past the ceiling on store keys** (§649). A store past it is split with
     nothing judged, and the dialog that keeps a store has nothing to offer, since no keep record
     is read: the tab states the number of keys found and the number of entries hidden, and that

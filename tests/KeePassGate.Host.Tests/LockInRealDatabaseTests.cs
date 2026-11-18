@@ -298,6 +298,126 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_connection_made_before_a_second_authority_stood_is_told_undecided_as_a_new_connection_is()
+        {
+            // The target was built while a single authority stood, and a connection holds it for
+            // as long as it lasts: a synchronize then brings an authority a copy made, and the
+            // connection is judged, and judged again in its turn, as a connection made now is.
+            using (var certificate = IssueAndAdmit())
+            {
+                var target = _targets.Current().Single();
+                var paired = ClientCredentials.For(certificate, target, _log);
+                Assume.That(paired.IsPaired, Is.True);
+
+                StoreSeeds.Beside(Store());
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(ClientCredentials.For(certificate, target, _log).UnavailableError, Is.EqualTo(HeldBackTarget.Undecided));
+                    Assert.That(ClientCredentials.Again(paired, target, _log).UnavailableError, Is.EqualTo(HeldBackTarget.Undecided));
+                    Assert.That(
+                        _targets.Current().Select(current => current.Unavailable), Is.All.EqualTo(HeldBackTarget.Undecided),
+                        "as a connection made now is told");
+                });
+            }
+        }
+
+        [Test]
+        public void A_candidate_whose_own_authority_went_while_several_others_stand_is_answered_busy()
+        {
+            // A connection that took the candidate of its own authority, while two authorities
+            // stood, and a synchronize then retires that authority and brings a third: no
+            // decision can serve its clients, so it is answered as the target kept from what was
+            // served is once its authority went, and not told to wait for a decision. Beside it
+            // the candidate of an authority still among those standing.
+            var first = StoreSeeds.Served(Store());
+            StoreSeeds.Beside(Store());
+            var candidates = _targets.Current();
+            var own = candidates.Single(candidate => candidate.DatabaseId == first);
+            var other = candidates.Single(candidate => candidate.DatabaseId != first);
+            Assume.That(own.Unavailable, Is.EqualTo(HeldBackTarget.Undecided));
+
+            StoreSeeds.Beside(Store());
+            StoreSeeds.Retire(Store(), first);
+
+            Assert.That(ClientCredentials.For(null, own, _log).UnavailableError, Is.EqualTo(HeldBackTarget.Busy));
+            Assert.That(ClientCredentials.For(null, other, _log).UnavailableError, Is.EqualTo(HeldBackTarget.Undecided));
+        }
+
+        [Test]
+        public void A_connection_whose_authority_went_while_several_others_came_to_stand_is_answered_as_its_authority_went()
+        {
+            // Beside the case above: the authority the connection arrived under is retired and two
+            // others stand, which no decision of the operator's can make serve this certificate.
+            // The connection is answered as a connection whose authority went is, a certificate
+            // with no admission, and not told to wait.
+            using (var certificate = IssueAndAdmit())
+            {
+                var target = _targets.Current().Single();
+                var paired = ClientCredentials.For(certificate, target, _log);
+                Assume.That(paired.IsPaired, Is.True);
+
+                new StoredAdmissions(_database.Database).RetiredBesideOthers();
+
+                var judged = ClientCredentials.For(certificate, target, _log);
+                var again = ClientCredentials.Again(paired, target, _log);
+                Assert.Multiple(() =>
+                {
+                    Assert.That(judged.UnavailableError, Is.Null);
+                    Assert.That(judged.IsPaired, Is.False);
+                    Assert.That(judged.Refusal, Is.Not.Null);
+                    Assert.That(again.UnavailableError, Is.Null);
+                    Assert.That(again.IsPaired, Is.False);
+                });
+            }
+        }
+
+        [Test]
+        public void What_a_database_was_served_with_answers_busy_once_its_authority_went_while_several_others_stand()
+        {
+            // Beside the case below: the authority the target was kept from is retired and two
+            // others stand, and the target answers as it answers once its authority went.
+            var authority = Entry(StoreKinds.Authority);
+            var group = authority.ParentGroup;
+            DeleteForGood(authority);
+            var kept = _targets.Current().Single();
+            Assume.That(kept.Unavailable, Is.EqualTo(StoreWords.Lost));
+            Assume.That(kept.Authority, Is.Null, "the target kept from what was served");
+
+            group.AddEntry(authority, true);
+            _database.Database.DeletedObjects.Remove(
+                _database.Database.DeletedObjects.Single(deleted => deleted.Uuid.Equals(authority.Uuid)));
+            Assume.That(State(Store()), Is.EqualTo(StoreState.Whole));
+            new StoredAdmissions(_database.Database).RetiredBesideOthers();
+
+            Assert.That(kept.Unavailable, Is.EqualTo(HeldBackTarget.Busy));
+        }
+
+        [Test]
+        public void What_a_database_was_served_with_answers_undecided_once_it_holds_several_authorities()
+        {
+            // The target kept from what the gate served answers `lost` while the file holds no
+            // store key; once the store is whole again with a second authority beside the first, a
+            // connection that took it is answered as a connection made now is.
+            var authority = Entry(StoreKinds.Authority);
+            var group = authority.ParentGroup;
+            DeleteForGood(authority);
+            var kept = _targets.Current().Single();
+            Assume.That(kept.Unavailable, Is.EqualTo(StoreWords.Lost));
+            Assume.That(kept.Authority, Is.Null, "the target kept from what was served");
+
+            // The authority's entry back, as a synchronize from a copy that kept it brings it, and
+            // an authority made in another copy beside it.
+            group.AddEntry(authority, true);
+            _database.Database.DeletedObjects.Remove(
+                _database.Database.DeletedObjects.Single(deleted => deleted.Uuid.Equals(authority.Uuid)));
+            Assume.That(State(Store()), Is.EqualTo(StoreState.Whole));
+            StoreSeeds.Beside(Store());
+
+            Assert.That(kept.Unavailable, Is.EqualTo(HeldBackTarget.Undecided));
+        }
+
+        [Test]
         public void A_lock_between_reading_the_record_and_the_profiles_is_answered_as_a_lock()
         {
             // Each read holds KeePass's thread on its own, so a lock can land between the two. The

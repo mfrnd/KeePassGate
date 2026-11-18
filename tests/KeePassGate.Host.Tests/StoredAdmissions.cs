@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
+using KeePassGate.Gate;
 using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassLib;
@@ -169,6 +170,130 @@ namespace KeePassGate.Host.Tests
             group.AddEntry(copy, true);
             var deleted = _database.DeletedObjects.Single(found => found.Uuid.Equals(copy.Uuid));
             _database.DeletedObjects.Remove(deleted);
+        }
+
+        /// <summary>
+        /// The store brought to hold the gate back with this word, as KeePass's own edits and
+        /// merges leave it, `STORE.md` §656: `stopped` by the summary entry deleted for good,
+        /// `lost` by every authority's entry, the store key's carrier, deleted for good,
+        /// `outdated` by a record of a kind the plugin does not know, and `split` by an authority
+        /// under a store key of its own. Or brought to hold several authorities standing, the
+        /// authority served among them, which is answered `undecided`: a second beside the first.
+        /// </summary>
+        public void HoldBack(string word)
+        {
+            switch (word)
+            {
+                case StoreWords.Stopped:
+                    DeleteForGood(Entries(StoreKinds.Head));
+                    break;
+
+                case StoreWords.Lost:
+                    DeleteForGood(Entries(StoreKinds.Authority));
+                    break;
+
+                case StoreWords.Outdated:
+                    Group().AddEntry(StoreEntries.Of(StoreComposer.Record(
+                        KeyInForce(), "future", "x", StoreComposer.Content(("about", "x")))), true);
+                    break;
+
+                case StoreWords.Split:
+                    var other = StoreComposer.Key("another copy");
+                    var id = new string('b', 64);
+                    Group().AddEntry(StoreEntries.Of(StoreComposer.Record(
+                        other,
+                        StoreKinds.Authority,
+                        "authority:" + id,
+                        StoreComposer.Content(("id", id), ("storeKey", StoreComposer.HexOf(other))))), true);
+                    break;
+
+                case HeldBackTarget.Undecided:
+                    StoreSeeds.Beside(Store);
+                    break;
+
+                default:
+                    throw new ArgumentException("No store is composed to hold the gate back with " + word + ".", nameof(word));
+            }
+        }
+
+        /// <summary>
+        /// The authority served retired, with two authorities made in other copies standing
+        /// beside each other, as copies that each made an authority and a copy that retired the
+        /// first leave the store once they are synchronized: several authorities stand, and the
+        /// authority that was served is not among them.
+        /// </summary>
+        public void RetiredBesideOthers()
+        {
+            var served = StoreSeeds.Served(Store);
+            if (served == null)
+            {
+                throw new InvalidOperationException("Only an authority that is served is retired beside others.");
+            }
+
+            StoreSeeds.Beside(Store);
+            StoreSeeds.Beside(Store);
+            StoreSeeds.Retire(Store, served);
+        }
+
+        /// <summary>
+        /// The summary entry restated holding this many items, the items it held and revocations
+        /// of clients nobody admitted beside them, as a long life of revocations leaves it: named
+        /// by the entry that replaces it, and deleted for good, as a write of the plugin's own
+        /// does.
+        /// </summary>
+        public void FillTo(int items)
+        {
+            var head = Entries(StoreKinds.Head).Single();
+            var held = head.Strings
+                .Where(pair => pair.Key.StartsWith("KPG.S.", StringComparison.Ordinal))
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => pair.Value.ReadString())
+                .ToList();
+            var fillers = Enumerable.Range(held.Count, Math.Max(0, items - held.Count))
+                .Select(at => StoreComposer.Item(
+                    ("client", at.ToString("x64", System.Globalization.CultureInfo.InvariantCulture)), ("kind", "revoked")));
+            var content = Newtonsoft.Json.Linq.JObject.Parse(head.Strings.ReadSafe("KPG.Data"));
+            var height = (int)content["height"] + 1;
+
+            // Naming the entry it replaces and every entry that entry named, as a write does.
+            var after = ((string)content["after"] ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                .Concat(new[] { head.Uuid.ToHexString().ToLowerInvariant() })
+                .OrderBy(name => name, StringComparer.Ordinal);
+
+            Group().AddEntry(StoreEntries.Of(StoreComposer.Record(
+                KeyInForce(),
+                StoreKinds.Head,
+                "store",
+                StoreComposer.Content(
+                    ("after", string.Join(" ", after)),
+                    ("height", height.ToString(System.Globalization.CultureInfo.InvariantCulture))),
+                height,
+                held.Concat(fillers))), true);
+            DeleteForGood(new[] { head });
+        }
+
+        /// <summary>
+        /// The bytes of the store key that stands, which a record composed under it holds.
+        /// </summary>
+        private byte[] KeyInForce()
+        {
+            using (var reading = Store.Read())
+            {
+                return (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+        }
+
+        /// <summary>
+        /// Each entry deleted for good, leaving a deletion record, as KeePass's delete without the
+        /// recycle bin does.
+        /// </summary>
+        private void DeleteForGood(IEnumerable<PwEntry> entries)
+        {
+            foreach (var entry in entries.ToList())
+            {
+                entry.ParentGroup.Entries.Remove(entry);
+                _database.DeletedObjects.Add(new PwDeletedObject(entry.Uuid, DateTime.UtcNow));
+            }
         }
 
         private PwGroup Group()

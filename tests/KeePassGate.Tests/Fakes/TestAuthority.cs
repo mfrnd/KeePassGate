@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
+using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Store;
@@ -359,9 +360,11 @@ namespace KeePassGate.Tests.Fakes
                 throw AdmitThrows;
             }
 
-            // Busy is what the writer answers before its condition is asked, so the condition is
-            // not asked; every other answer comes after it, as the writer's do.
-            if (AdmitAnswers != null && AdmitAnswers.IsBusy)
+            // Busy and the store's word are what the writer answers before its condition is
+            // asked, so a canned answer of either is given without asking it, and so is an issuer
+            // the store does not serve, below; every other answer comes after it, as the
+            // writer's do.
+            if (AdmitAnswers != null && (AdmitAnswers.IsBusy || AdmitAnswers.Word != null))
             {
                 return AdmitAnswers;
             }
@@ -373,6 +376,12 @@ namespace KeePassGate.Tests.Fakes
 
             using (var reading = _store.Read())
             {
+                var word = StoreReadings.WordOf(reading, record.Issuer);
+                if (word != null)
+                {
+                    return AdmissionWrite.Unavailable(word);
+                }
+
                 // The writer's plan leaves an admission out, before its condition is asked, where
                 // the authority that issued the certificate is not the authority served alone.
                 if (Retired || !string.Equals(StoreAuthorities.Served(reading), record.Issuer, StringComparison.Ordinal))
@@ -504,6 +513,12 @@ namespace KeePassGate.Tests.Fakes
 
             using (var reading = _store.Read())
             {
+                var word = StoreReadings.WordOf(reading, DatabaseId);
+                if (word != null)
+                {
+                    return KeePassGate.Vault.VaultWrite.Unavailable(word);
+                }
+
                 if (StoreAdmissions.Admitted(reading, admissionKey) == null)
                 {
                     return KeePassGate.Vault.VaultWrite.Missing();

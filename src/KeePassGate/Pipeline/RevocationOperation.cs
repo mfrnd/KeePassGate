@@ -17,13 +17,16 @@ namespace KeePassGate.Pipeline
     /// rather than a dialog's buffer since nobody is going to press OK on it, and answered in the
     /// vault writes' words: `200` once it is saved and the file read back, `503 busy` for
     /// everything that would be different in a minute, Database Maintenance open on the database
-    /// among them, and `500` with what was left behind. The certificate a renewal issued keeps
-    /// working, since the record names it.
+    /// among them, `503` with the store's word where the store holds the gate back or holds
+    /// several authorities, the authority the connection arrived under among them, as a
+    /// connection is answered, and `500` with what was left behind. The certificate a renewal
+    /// issued keeps working, since the record names it.
     ///
     /// **A certificate no longer admitted when the write is made is answered `401 unpaired`**,
     /// which is what this certificate will be told on every connection from now on. That is the
     /// operator revoking its client in the instant between this connection and its write, and
-    /// what the client asked for has happened either way.
+    /// what the client asked for has happened either way. So is a certificate whose authority
+    /// is not among several that stand: no decision of the operator's can serve it.
     ///
     /// **Written to the audit once the record is in the database**: answered `200`, or
     /// `500 not verified`, which keeps it in the database KeePass holds, so the certificate is
@@ -84,6 +87,16 @@ namespace KeePassGate.Pipeline
             {
                 _audit.TakeTurn(clientKey);
                 context.Respond(200, "{\"ok\":true}");
+                return;
+            }
+
+            if (written.Word != null)
+            {
+                // The plugin's store holds the gate back where the write met it, or several
+                // authorities stand, the authority the connection arrived under among them,
+                // `STORE.md` §627: answered its word, as a connection is, `STORE.md` §656, with
+                // nothing written.
+                context.Respond(503, HttpResponse.ErrorBody(written.Word));
                 return;
             }
 

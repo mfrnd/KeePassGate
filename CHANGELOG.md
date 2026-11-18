@@ -98,7 +98,14 @@ none, since it releases both.
   again, and a store that has no room left for its next write, which the plugin's log warns of once
   the store has grown past half its room, `STORE.md` §643. Each is answered before a route is
   chosen, in the body and in `KPG-Unavailable`, as `locked` and `undecided` are, and ahead of
-  `undecided`. None is waited out, since each ends by an act of the operator's. The routing document
+  `undecided`. A pairing, a renewal and a certificate given up are answered the word as well where
+  the store came to hold the gate back by the time of their write, as while the operator read the
+  dialog: nothing is issued or written, an invitation is not spent, and the approval is used up.
+  Where a second authority arrived in the database by then, they are answered `503 undecided` the
+  same way, and a request already under way when it arrived is answered `503 undecided` as well,
+  each only while the request's own authority is among the authorities standing: a request whose
+  authority is gone is answered `409 no invitation` or `401 unpaired`.
+  None is waited out, since each ends by an act of the operator's. The routing document
   declares `frozen` beside them, which a later gate sends and this gate never does, and the client
   raises `StoreFrozen` for it. A 0.2 client takes each for the gate being unavailable, `API.md`
   §411. `STORE.md` §656.

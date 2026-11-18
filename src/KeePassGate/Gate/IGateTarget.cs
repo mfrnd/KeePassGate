@@ -162,8 +162,9 @@ namespace KeePassGate.Gate
         /// <remarks>
         /// A record of kind `withdrawn` written into the plugin's store, marshaled and saved like
         /// <see cref="Admit"/> and answered with what happened to it: done, busy, not saved and
-        /// taken back out, saved and not verified, or failed. A certificate no longer admitted is
-        /// answered as missing, which is an admission that went before the write could be made.
+        /// taken back out, saved and not verified, the store's word, or failed. A certificate no
+        /// longer admitted is answered as missing, which is an admission that went before the
+        /// write could be made.
         /// </remarks>
         /// <param name="audit">
         /// The audit line, written as <see cref="Admit"/> writes an admission's: once, by the write
@@ -218,14 +219,18 @@ namespace KeePassGate.Gate
         bool IsLocked { get; }
 
         /// <summary>
-        /// The one word every connection to this database is answered with under `503`, or null
-        /// when it is served.
+        /// The word a connection to this database under this target's authority is answered
+        /// with under `503`, or null when it is served.
         /// </summary>
         /// <remarks>
-        /// `locked` for a locked database, `undecided` for one holding several authorities while
-        /// the operator has not chosen between them, and a word of <c>StoreWords</c> for one
-        /// whose store holds the gate back, `STORE.md` §656. Each is answered before a request is
-        /// judged at all, because each has the same answer for every path, method and body.
+        /// `locked` for a locked database, `undecided` for a database holding several authorities
+        /// while the operator has not chosen between them, this target's among them, and a word
+        /// of <c>StoreWords</c> for a database whose store holds the gate back, `STORE.md` §656.
+        /// Each is answered before a request is judged at all, because each has the same answer
+        /// for every path, method and body. Where several authorities stand and this target's is
+        /// not among them, no decision can serve its clients: a target that serves an authority
+        /// has no word then, and a request is answered as under an authority that went, while a
+        /// target held back answers `busy`.
         ///
         /// **Asking it may read the database**, with KeePass's thread held, so it throws
         /// `VaultUnsettled` where the thread could not be held and `DatabaseShut` where the

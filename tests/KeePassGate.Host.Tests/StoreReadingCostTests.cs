@@ -67,7 +67,7 @@ namespace KeePassGate.Host.Tests
                 var router = GateOperations.Router("9.9.9", null, new AccessCheck(NullGateAudit.Instance));
                 var entry = entries[entries.Count / 2].Uuid.ToHexString();
 
-                Report("the store's word, the hold a connection is judged in", hold, () => hold.Hold(() => store.Word));
+                Report("the store's word, the hold a connection is judged in", hold, () => hold.Hold(() => store.WordFor(new string('a', 64))));
                 Report("a read of an entry", hold, () => Send(router, vault, "/entries/" + entry));
                 Report("a listing of every entry", hold, () => Send(router, vault, "/entries"));
 
@@ -84,7 +84,7 @@ namespace KeePassGate.Host.Tests
                     null,
                     turnStore);
                 var asking = new KeePassGate.Vault.VaultAsking(
-                    found => turnStore.Word == null, found => KeePassGate.Vault.VaultSight.Least, null, false);
+                    found => turnStore.WordFor(new string('a', 64)) == null, found => KeePassGate.Vault.VaultSight.Least, null, false);
                 var times = new List<double>();
                 for (var run = 0; run <= Runs; run++)
                 {
@@ -119,7 +119,7 @@ namespace KeePassGate.Host.Tests
                 var hold = new Timed();
                 var store = new StoreReadings(database.Database, hold, null);
                 Assert.That(hold.Hold(() => store.Now()).Room.HasRoom, Is.True);
-                Report("the store's word at the plugin's ceilings", hold, () => hold.Hold(() => store.Word));
+                Report("the store's word at the plugin's ceilings", hold, () => hold.Hold(() => store.WordFor(new string('a', 64))));
             }
         }
 

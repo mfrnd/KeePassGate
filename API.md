@@ -507,6 +507,8 @@ act and the client's ordinary command, `STORE.md` §645.
 `lost`, `split`, `outdated` or `stopped` where the database's store holds the gate back, `lost`
 from a gate that was serving the database when its store key went and only until the database
 is locked or closed, and the routing document declares `frozen`, which a later gate sends,
-`STORE.md` §656. Each is a `503`, so a 0.2
-client takes each for the gate being unavailable and works on, and the 0.3 client raises a class
-of its own for each.
+`STORE.md` §656. A pairing, a renewal and a certificate given up are answered the same words
+where the store came to hold the gate back by the time of their write, and `undecided` where a
+second authority came to stand by then beside the request's own, `STORE.md` §627. Each is a
+`503`, so a 0.2 client takes each for the gate being unavailable and works on, and the 0.3
+client raises a class of its own for each.

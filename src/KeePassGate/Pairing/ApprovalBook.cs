@@ -116,8 +116,8 @@ namespace KeePassGate.Pairing
         /// approved against. A revocation or a certificate taken away that landed after the
         /// operator answered, or after the handler last read it, is what this catches, read from
         /// the store in the write's own turn, under the lock every such write is made under. A
-        /// retirement of the authority it was issued under is answered by the write's plan before
-        /// this is asked.
+        /// retirement of the authority it was issued under is answered by the write before this
+        /// is asked, in its plan, or before it plans anything where several authorities stand.
         /// </remarks>
         public HeldStaleness Stale(IWriteGround ground, string admissionKey)
         {

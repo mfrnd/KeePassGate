@@ -883,6 +883,89 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_store_that_comes_to_hold_the_gate_back_while_the_dialog_stands_lets_the_approval_go()
+        {
+            // Answered the store's word once the dialog is answered and before anything is issued.
+            // The word ends by an act of the operator's, after which the operator is asked again,
+            // so the approval is not kept for a retry.
+            var operatorAt = FakeRenewalApproval.Approving();
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                operatorAt.Meanwhile = () => _authority.Unavailable = "stopped";
+
+                var context = Renew(operatorAt, old, "{}");
+
+                Assert.That(context.Status, Is.EqualTo(503), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("stopped")));
+                Assert.That(_held.Count, Is.Zero, "the approval is let go");
+                Assert.That(
+                    _log.Warnings.Select(entry => entry.Message),
+                    Has.Some.Contains("the plugin's store holds the gate back").And.Contains("stopped"));
+            }
+        }
+
+        [Test]
+        public void A_second_authority_arriving_while_the_dialog_stands_lets_the_approval_go()
+        {
+            // The same for several authorities standing, which serve nothing until the operator
+            // keeps an authority, and which the log names as such.
+            var operatorAt = FakeRenewalApproval.Approving();
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                operatorAt.Meanwhile = () => _authority.Unavailable = "undecided";
+
+                var context = Renew(operatorAt, old, "{}");
+
+                Assert.That(context.Status, Is.EqualTo(503), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("undecided")));
+                Assert.That(_held.Count, Is.Zero, "the approval is let go");
+                Assert.That(_log.Warnings.Select(entry => entry.Message), Has.Some.Contains("several authorities stand"));
+                Assert.That(_log.Warnings.Select(entry => entry.Message), Has.None.Contains("holds the gate back"));
+            }
+        }
+
+        [TestCase("split")]
+        [TestCase("outdated")]
+        [TestCase("stopped")]
+        [TestCase("lost")]
+        public void A_store_holding_the_gate_back_at_the_write_is_answered_its_word_and_lets_the_approval_go(string word)
+        {
+            // Asked again in the write's own turn, `STORE.md` §627, as for a pairing.
+            var operatorAt = FakeRenewalApproval.Approving();
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                _authority.AdmitAnswers = AdmissionWrite.Unavailable(word);
+
+                var context = Renew(operatorAt, old, "{}");
+
+                Assert.That(context.Status, Is.EqualTo(503), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(word)));
+                Assert.That(_held.Count, Is.Zero, "the approval is let go");
+            }
+        }
+
+        [Test]
+        public void Several_authorities_standing_at_the_write_are_answered_undecided_and_let_the_approval_go()
+        {
+            var operatorAt = FakeRenewalApproval.Approving();
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                _authority.AdmitAnswers = AdmissionWrite.Unavailable("undecided");
+
+                var context = Renew(operatorAt, old, "{}");
+
+                Assert.That(context.Status, Is.EqualTo(503), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("undecided")));
+                Assert.That(_held.Count, Is.Zero, "the approval is let go");
+                Assert.That(_log.Warnings.Select(entry => entry.Message), Has.Some.Contains("several authorities stand"));
+            }
+        }
+
+        [Test]
         public void An_authority_recreated_under_the_write_is_answered_unpaired_and_lets_the_approval_go()
         {
             // The write's plan leaves the admission out before anything is asked or spent, and the

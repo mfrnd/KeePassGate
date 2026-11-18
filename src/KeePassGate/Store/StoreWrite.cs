@@ -37,6 +37,12 @@ namespace KeePassGate.Store
         public string Refused { get; private set; }
 
         /// <summary>
+        /// Whether the write is refused for the plugin's own ceilings, `STORE.md` §643: the store
+        /// has no room for it, though it may have room for a write that adds less.
+        /// </summary>
+        public bool NoRoom { get; private set; }
+
+        /// <summary>
         /// Whether the acts taken cancel out, and nothing is left to write: an authority made and
         /// retired again among them. Nothing is applied, and nothing is refused.
         /// </summary>
@@ -338,7 +344,7 @@ namespace KeePassGate.Store
             // is added.
             if (items.Count > StoreFormat.MaxItems)
             {
-                return Refusal(string.Format(
+                return Full(string.Format(
                     CultureInfo.InvariantCulture,
                     "the write needs {0} items in its summary entry, and a summary entry the plugin writes has names for {1}",
                     items.Count,
@@ -358,7 +364,7 @@ namespace KeePassGate.Store
             }, items, out unread);
             if (head == null)
             {
-                return Refusal(unread, leftOut);
+                return Full(unread, leftOut);
             }
 
             added.Add(head);
@@ -366,7 +372,7 @@ namespace KeePassGate.Store
             var longest = added.SelectMany(record => record.Strings.Values).Max(value => value.Length);
             if (longest > StoreFormat.MaxWritten)
             {
-                return Refusal(string.Format(
+                return Full(string.Format(
                     CultureInfo.InvariantCulture,
                     "the write needs a string of {0} characters, and the plugin writes none longer than {1}",
                     longest,
@@ -491,6 +497,14 @@ namespace KeePassGate.Store
         private static StoreWrite Refusal(string reason, IReadOnlyList<string> leftOut = null)
         {
             return new StoreWrite { Refused = reason, LeftOut = leftOut ?? Array.Empty<string>() };
+        }
+
+        /// <summary>A refusal for the plugin's own ceilings, `STORE.md` §643.</summary>
+        private static StoreWrite Full(string reason, IReadOnlyList<string> leftOut)
+        {
+            var refused = Refusal(reason, leftOut);
+            refused.NoRoom = true;
+            return refused;
         }
 
         private static byte[] Bytes(string hex)

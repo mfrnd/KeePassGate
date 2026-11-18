@@ -1,7 +1,9 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using KeePassGate.Diagnostics;
+using KeePassGate.Gate;
 using KeePassGate.Store;
 using KeePassGate.Ui;
 using KeePassLib;
@@ -83,8 +85,9 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// The word every connection to this database is answered with under `503` while its store
-        /// holds the gate back, or null, read now in a hold of KeePass's thread, `STORE.md` §656.
+        /// The word a request to this database that belongs to this authority is answered with
+        /// under `503`, or null, read now in a hold of KeePass's thread, `STORE.md` §656:
+        /// <see cref="WordOf"/>.
         /// </summary>
         /// <remarks>
         /// **A reading that could not be made is no answer**, and never a store that is whole:
@@ -92,19 +95,67 @@ namespace KeePassGate.Bridge
         /// <see cref="DatabaseShut"/> where the database has gone, each thrown to the caller,
         /// which answers them `busy` and `locked`.
         /// </remarks>
-        public string Word
+        /// <param name="authority">
+        /// The `id` of the authority the request belongs to: the authority its connection arrived
+        /// under, or the issuer of the admission it writes.
+        /// </param>
+        public string WordFor(string authority)
         {
-            get { return _hold.Hold(WordNow); }
+            return _hold.Hold(() => WordNow(authority));
         }
 
-        private string WordNow()
+        /// <summary>
+        /// The word a request that belongs to this authority is answered with under `503` where
+        /// the store reads so, or null, `STORE.md` §656: the store's own word,
+        /// <see cref="StoreWords.Answered"/>; and `undecided` where the store is whole and several
+        /// authorities stand, this authority among them, which serve nothing until the operator
+        /// keeps an authority.
+        /// </summary>
+        /// <remarks>
+        /// **`undecided` promises a decision that can still serve the request.** Where several
+        /// authorities stand and the request's own authority is not among them, retired or gone,
+        /// no decision can, so there is no word: the request is answered as a request whose
+        /// authority went is, an admission no longer found or an invitation gone.
+        ///
+        /// **Asked by a connection made before the second authority stood as well**: its target
+        /// was built while a single authority stood, and a renewal or a change waiting for its
+        /// turn is answered as a connection made now is. And by a write of a client's in its own
+        /// turn, which is answered so before anything is planned, asked or spent.
+        /// </remarks>
+        /// <param name="authority">The `id` of the authority the request belongs to.</param>
+        public static string WordOf(StoreReading reading, string authority)
+        {
+            if (reading == null)
+            {
+                throw new ArgumentNullException(nameof(reading));
+            }
+
+            var word = StoreWords.Answered(reading.State);
+            if (word != null || reading.Answering.Count < 2)
+            {
+                return word;
+            }
+
+            return reading.Answering.Any(record => string.Equals(record.Form.Member(StoreKinds.Id), authority, StringComparison.Ordinal))
+                ? HeldBackTarget.Undecided
+                : null;
+        }
+
+        private string WordNow(string authority)
         {
             var reading = Now();
             var word = StoreWords.Answered(reading.State);
+            var answer = WordOf(reading, authority);
+
+            // Whether the reading serves an authority: the store holds nothing back and several
+            // authorities do not stand. What is logged is about the database and not about the
+            // request asking, since several authorities standing serve nothing whoever asks.
+            var serves = word == null && reading.Answering.Count < 2;
 
             // A store served past half its room: the operator is told from there on, `STORE.md`
-            // §643, once for as long as it stays there, as a state is.
-            var half = word == null && reading.Room != null && reading.Room.PastHalf;
+            // §643, once for as long as it stays there, as a state is. Several authorities
+            // standing serve nothing, so nothing is told as served while they do.
+            var half = serves && reading.Room != null && reading.Room.PastHalf;
 
             StoreState was;
             bool wasHalf;
@@ -123,7 +174,7 @@ namespace KeePassGate.Bridge
 
             if (was == reading.State)
             {
-                return word;
+                return answer;
             }
 
             // Logged inside the hold, which queues the line, `ControlUiThread.MayNotWait`. What
@@ -138,12 +189,12 @@ namespace KeePassGate.Bridge
             {
                 _log.Warn("not serving a database whose store is " + word + ": " + reading.Reason + counted);
             }
-            else if (StoreWords.Answered(was) != null)
+            else if (serves && StoreWords.Answered(was) != null)
             {
                 _log.Info("serving a database whose store held it back as " + StoreWords.Answered(was) + " again" + counted);
             }
 
-            return word;
+            return answer;
         }
 
         /// <summary>

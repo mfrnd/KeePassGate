@@ -642,10 +642,11 @@ What a refusal says, and deliberately no more:
 | `400 name` / `400 profile` / `400 malformed` | it could never have been issued as asked |
 | `403 refused` | the operator said no, and the invitation is spent |
 | `504 unanswered` | nobody was at the screen. **Nothing is spent** |
-| `503 busy` | a dialog is open that would take the write back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing or a renewal is already in front of the operator, so little of the pairing's time is left once the request reaches the screen that the dialog would stand for under thirty seconds, a save this plugin is making for another client outlasts the wait for the screen, there is no screen to ask, or the database's list of profiles will not read; or the operator approved and KeePass was still busy a moment later, and then the body carries `heldUntil`, the moment the approval stops being held; or the operator approved and, when the write came to it, the list of profiles no longer held a name the answer rested on as the dialog showed it, and then the approval is used up and the next request is put to the operator again; or the operator approved and, when the write came to it, the plugin's store had come to hold the gate back, `STORE.md` §656, and then the approval is used up the same way. **Nothing is spent**, and the client is never told which |
+| `503 busy` | a dialog is open that would take the write back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing or a renewal is already in front of the operator, so little of the pairing's time is left once the request reaches the screen that the dialog would stand for under thirty seconds, a save this plugin is making for another client outlasts the wait for the screen, there is no screen to ask, or the database's list of profiles will not read; or the operator approved and KeePass was still busy a moment later, and then the body carries `heldUntil`, the moment the approval stops being held; or the operator approved and, when the write came to it, the list of profiles no longer held a name the answer rested on as the dialog showed it, and then the approval is used up and the next request is put to the operator again. **Nothing is spent**, and the client is never told which |
 | `500 not recorded` | the operator approved and the record did not reach the disk. **The invitation is spent** |
 | `500 internal error` | the operator approved and no certificate could be issued: the authority's key would not sign, or the authority has outlived its hundred years. **The invitation is not spent**, and the client starts again from a hello |
-| `503 undecided` | the database holds more than one authority and the operator has not yet kept any of them. Answered before the request is read, as `503 locked` is, so **nothing is spent** |
+| `503 undecided` | the database holds more than one authority and the operator has not yet kept any of them. Answered before the request is read, as `503 locked` is; or, where a second authority arrived while the operator was deciding, when the write comes to it, and then the approval is used up. It is answered only while the authority the invitation was made under is among the authorities standing: an invitation whose authority is gone is answered `409 no invitation`, above. **Nothing is spent** either way |
+| `503 lost`, `503 split`, `503 outdated`, `503 stopped` | the plugin's store holds the gate back, `STORE.md` §656. Answered before the request is read; or, where the store came to hold the gate back while the operator was deciding, when the write comes to it, and then the approval is used up and the next request is put to the operator again. **Nothing is spent** |
 
 The `503 busy` row is the one to be careful with. A caller learns that it should try later and nothing
 about what is open on somebody's desk. **An approval KeePass is too busy to write is held rather
@@ -666,8 +667,22 @@ answered, since the write would otherwise put a name back that was taken off in 
 authority is held first, by the plan of the write: an admission is planned only while the
 authority that issued its certificate stands alone in the store, `STORE.md` §627, and a write
 whose plan is refused for it is answered `409 no invitation`, with the approval used up and the
-invitation unspent, since no retry under that authority can be written. The condition that the
-handler hands the write compares no authority: the plan has held it by then. Held by
+invitation unspent, since no retry under that authority can be written. That answer is for an
+authority that is gone, recreated or deleted since the operator answered. An authority that
+still stands, beside a second authority that a synchronize brought meanwhile, is answered `503
+undecided` before anything is planned, as a connection to such a database is: the approval is
+used up, the invitation stays good, and the operator keeps an authority first. **`undecided` is
+for an authority that still stands.** Where several authorities stand and the authority the
+invitation was made under is not among them, retired while the others came, the write is
+answered `409 no invitation` as for any authority that is gone, by the same refusal of the
+plan, with no window asked and nothing spent. A client of that authority cannot connect any
+more: no target answers for an authority that does not stand, so its handshake is refused,
+while several authorities stand and once the operator has kept an authority
+(`OpenDatabaseTargetsTests.A_connection_naming_the_gate_of_an_authority_that_no_longer_stands_finds_no_target`).
+The condition that the handler hands the write compares no authority: the plan has held it by
+then. Held by
+`PairingInRealDatabaseTests.An_authority_retired_beside_several_others_while_the_dialog_stands_is_answered_no_invitation_with_nothing_spent`,
+`PairingInRealDatabaseTests.A_second_authority_arriving_while_the_dialog_stands_is_answered_undecided_with_nothing_spent`,
 `PairingHandlerTests.An_authority_recreated_under_the_write_admits_nobody` and, over a real
 database, by
 `PairingInRealDatabaseTests.A_pairing_whose_authority_is_recreated_before_its_write_is_told_its_invitation_is_gone`.
@@ -823,6 +838,22 @@ written, held by
 `RenewalHandlerTests.An_authority_recreated_under_the_write_is_answered_unpaired_and_lets_the_approval_go`
 and
 `RenewalInRealDatabaseTests.A_renewal_whose_authority_is_recreated_before_its_write_is_answered_unpaired_with_nothing_written`.
+**A store that holds the gate back is answered its word, and never `401 unpaired`.** The handler
+asks the target's word before the dialog and again once the operator has answered, each time
+before it reads the record and from the same reading, inside a single hold, so a word and a
+record are never of two moments; and the write asks it once more: `lost`, `split`, `outdated` or
+`stopped` where the store holds the gate back, `STORE.md` §656, and `undecided` where a second
+authority has come to stand beside the authority the certificate was issued under. Each is
+answered under `503`, with the approval used up after the dialog and nothing issued or written.
+`401 unpaired` is left for a store that is whole and holds no admission in force for the
+certificate under an authority it serves, and for a certificate whose authority is not among
+several that stand, since `undecided` is for an authority that still stands. Held by
+`RenewalInRealDatabaseTests.After_the_dialog_the_word_and_the_record_are_read_from_a_single_reading`,
+`RenewalInRealDatabaseTests.A_renewal_whose_authority_is_retired_beside_several_others_while_the_dialog_stands_is_answered_unpaired`,
+`RenewalInRealDatabaseTests.A_renewal_arriving_over_a_store_that_holds_the_gate_back_is_answered_its_word_before_the_dialog`,
+`RenewalInRealDatabaseTests.A_renewal_whose_store_comes_to_hold_the_gate_back_while_the_dialog_stands_is_answered_its_word`
+and
+`RenewalInRealDatabaseTests.A_renewal_whose_database_comes_to_hold_a_second_authority_before_its_write_is_answered_undecided`.
 A renewal waits its turn for the screen with every pairing, since one raised inside a
 pairing's dialog would gray it out, and its connection is measured against
 `GateOptions.PairingBudget` from the moment its request is off the wire until its record is handed

@@ -74,6 +74,47 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_connection_naming_the_gate_of_an_authority_that_no_longer_stands_finds_no_target()
+        {
+            // While several authorities stand, each of them is answered under its own gate, and the
+            // gate of an authority retired beside them names nothing: the handshake is refused, as
+            // it is once the operator has kept an authority.
+            CreateAuthorityIn(_first);
+            var gone = _targets.Current().Single();
+            Assume.That(Served(gone), Is.EqualTo("ok"));
+
+            new StoredAdmissions(_first.Database).RetiredBesideOthers();
+            var standing = _targets.Current();
+            Assume.That(standing, Has.Count.EqualTo(2), "a candidate for each authority standing");
+
+            NoTargetFor(gone, "while several stand");
+            Assert.That(Served(standing[0]), Is.EqualTo("ok"), "and the gate of a candidate is answered");
+
+            var keep = standing[0].DatabaseId;
+            var offered = standing.Select(candidate => candidate.DatabaseId).ToArray();
+            var service = new AuthorityService(new KdbxStore(_first.Database, GateVersion.Current, null), NullGateLog.Instance);
+            Assume.That(service.Keep(keep, offered).Succeeded, Is.True);
+            Assume.That(_targets.Current().Select(target => target.DatabaseId), Is.EqualTo(new[] { keep }), "the authority kept is served");
+
+            NoTargetFor(gone, "once the operator kept another");
+        }
+
+        /// <summary>
+        /// Asserts that a handshake naming the gate of this target is refused for want of a target,
+        /// by the gate's own line, and that no handshake completed over any certificate.
+        /// </summary>
+        private void NoTargetFor(IGateTarget target, string when)
+        {
+            var log = new RecordingLog();
+            var answer = Served(target, log);
+
+            Assert.That(answer, Does.Not.StartWith("ok").And.Not.StartWith("the gate served"), when + ": no handshake completes");
+            Assert.That(
+                log.Infos, Has.Some.StartWith("dropped a connection: " + GateOutcome.NoMatch.ToString().ToLowerInvariant()),
+                when + ": for want of a target");
+        }
+
+        [Test]
         public void A_database_whose_store_will_not_read_leaves_every_other_database_served()
         {
             // What reading a database's store raises is named, and that database is left unserved:
@@ -528,16 +569,17 @@ namespace KeePassGate.Host.Tests
         private static readonly TimeSpan IdleWindow = TimeSpan.FromMilliseconds(250);
 
         /// <summary>
-        /// A handshake with the gate this plugin serves, its listener over these targets, named
-        /// for the target: "ok" when it completes over that target's host certificate.
+        /// A handshake with the gate this plugin serves, its listener over these targets writing to
+        /// the log given, named for the target: "ok" when it completes over that target's host
+        /// certificate.
         /// </summary>
-        private string Served(IGateTarget target)
+        private string Served(IGateTarget target, IGateLog log = null)
         {
             using (var listener = new GateListener(
                 new GateOptions { Port = 0 },
                 new GateResolver(_targets, NullGateLog.Instance),
                 KeePassGate.Spec.GateOperations.Router("9.9.9"),
-                NullGateLog.Instance))
+                log ?? NullGateLog.Instance))
             {
                 if (!listener.Start())
                 {

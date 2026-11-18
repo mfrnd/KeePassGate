@@ -156,7 +156,7 @@ catches whatever this client raises of its own and nothing the standard library 
 | --- | --- |
 | `DatabaseLocked` | The database is locked. Wait, and try again, or hand `retry_locked_timeout=` to the client and let it wait. Raised before anything is sent when the handshake was answered with the certificate only a locked database has, and as the gate's `503 locked` when the database is locked, or locks while a request is on its way, a read or a write alike: nothing was done. |
 | `GateBusy` | The gate cannot serve this right now: a write under a dialog open on what it would change, under a message box, or while KeePass is busy with something of its own for longer than a write waits, or a read while KeePass could not be held still for it. The same, with `retry_busy_timeout=`. A pairing or a renewal meets it as well while the database's list of profiles will not read, which does not end until the operator repairs the list, and no budget outlasts that. |
-| `AuthorityUndecided` | The database holds more than one certificate authority and the operator has not yet kept any of them, which KeePass asks about on its own screen. The same, with `retry_undecided_timeout=`, and pair again if the authority kept is not this client's. |
+| `AuthorityUndecided` | The database holds more than one certificate authority, this client's among them, and the operator has not yet kept any of them, which KeePass asks about on its own screen. The same, with `retry_undecided_timeout=`, and pair again if the authority kept is not this client's. |
 | `StoreLost` | The database's file holds no store key any more, as the entry that carried it deleted for good leaves it. Only a gate that was serving the database answers it, until the database is locked or closed; it ends when the operator creates an authority again at KeePass, after which this client pairs again. Nothing waits it out. |
 | `StoreSplit` | The database holds the plugin's store under more than one store key, and the operator has not yet kept one at KeePass. Every route answers it until somebody chooses; nothing waits it out, and a client of the store not kept pairs again. |
 | `StoreOutdated` | The plugin serving the database does not read its store, which a later release raised or wrote a record of a kind it does not know into. Every route answers it until that plugin is updated; nothing waits it out. |
@@ -195,6 +195,12 @@ Each carries a `Retry-After` saying when to come back, and each of the three bud
 says for how long to go on doing that. All three are off by default, so a refusal is raised exactly
 where it happened, and a word none of them names is raised at once whatever they say. Nothing else
 is retried, because waiting fixes none of it. `docs/` has the whole of it.
+
+**`pair`, `renew` and `revoke_certificate` can meet `StoreLost`, `StoreSplit`, `StoreOutdated` or
+`StoreStopped` after the gate accepted the request**, where the store came to hold the gate back
+by the time of the write, and `AuthorityUndecided` where a second authority arrived by then.
+Nothing was issued or written, an invitation is not spent, and asking again asks the operator
+again.
 
 **A failed handshake says why.** `certificate has expired` is a database that has stayed locked
 longer than ninety days, which unlocking it in KeePass mends.

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using KeePass.Forms;
@@ -8,6 +9,8 @@ using KeePassLib;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Gate;
+using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -35,6 +38,10 @@ namespace KeePassGate.Host.Tests
         private DatabaseWriter _writer;
         private int _saves;
 
+        // The authority the database served when the fixture made it, which every certificate
+        // given up here arrived under.
+        private string _authority;
+
         [SetUp]
         public void SetUp()
         {
@@ -48,6 +55,7 @@ namespace KeePassGate.Host.Tests
 
             var created = DatabaseAuthority.Of(_database.Database, null).Create();
             Assume.That(created.Succeeded, Is.True, created.Message);
+            _authority = Served();
         }
 
         [TearDown]
@@ -63,7 +71,7 @@ namespace KeePassGate.Host.Tests
         {
             var key = Admitted();
 
-            var result = _writer.GiveUp(_database.Database, key);
+            var result = _writer.GiveUp(_database.Database, key, _authority);
 
             Assert.That(result.Ok, Is.True, result.Reason);
             Assert.That(_saves, Is.EqualTo(1));
@@ -91,7 +99,7 @@ namespace KeePassGate.Host.Tests
                     renewed, DateTimeOffset.UtcNow, new[] { "ops" }, Served(), first.ClientKey, first.AdmissionKey);
                 Assume.That(_writer.WriteAdmission(_database.Database, renewal).Ok, Is.True);
 
-                var result = _writer.GiveUp(_database.Database, first.AdmissionKey);
+                var result = _writer.GiveUp(_database.Database, first.AdmissionKey, _authority);
                 Assert.That(result.Ok, Is.True, result.Reason);
 
                 _database.SaveCloseAndReopen();
@@ -105,6 +113,41 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_client_that_gives_up_the_certificate_between_and_then_the_one_before_it_keeps_its_newest()
+        {
+            // The reference client's order where a give-up was answered busy and tried again after
+            // the next renewal: the certificate between is given up first, then the certificate
+            // before it.
+            // The second statement names the certificate between by the first statement, so the
+            // newest certificate counts.
+            using (var paired = Issue("agent-fictitious"))
+            using (var between = Issue("agent-fictitious"))
+            using (var newest = Issue("agent-fictitious"))
+            {
+                var first = AdmissionRecord.For(paired, DateTimeOffset.UtcNow, new[] { "ops" }, Served());
+                Assume.That(_writer.WriteAdmission(_database.Database, first).Ok, Is.True);
+                var second = AdmissionRecord.For(
+                    between, DateTimeOffset.UtcNow, new[] { "ops" }, Served(), first.ClientKey, first.AdmissionKey);
+                Assume.That(_writer.WriteAdmission(_database.Database, second).Ok, Is.True);
+                var third = AdmissionRecord.For(
+                    newest, DateTimeOffset.UtcNow, new[] { "ops" }, Served(), first.ClientKey, second.AdmissionKey);
+                Assume.That(_writer.WriteAdmission(_database.Database, third).Ok, Is.True);
+
+                var gaveUpBetween = _writer.GiveUp(_database.Database, second.AdmissionKey, _authority);
+                Assert.That(gaveUpBetween.Ok, Is.True, gaveUpBetween.Reason);
+                var gaveUpPaired = _writer.GiveUp(_database.Database, first.AdmissionKey, _authority);
+                Assert.That(gaveUpPaired.Ok, Is.True, gaveUpPaired.Reason);
+
+                _database.SaveCloseAndReopen();
+
+                var admissions = Admissions();
+                Assert.That(admissions.Find(third.AdmissionKey), Is.Not.Null, "the newest certificate counts");
+                Assert.That(admissions.Find(second.AdmissionKey), Is.Null);
+                Assert.That(admissions.Find(first.AdmissionKey), Is.Null);
+            }
+        }
+
+        [Test]
         public void A_certificate_given_up_that_lands_is_announced_and_one_that_does_not_is_not()
         {
             // What the Clients page listens to, so that a client leaving while the page is open
@@ -113,10 +156,10 @@ namespace KeePassGate.Host.Tests
             var landing = new DatabaseWriter(CurrentThread.Instance, Save, null, () => announced++, _dialogs, null);
             var failing = new DatabaseWriter(CurrentThread.Instance, database => { }, null, () => announced++, _dialogs, null);
 
-            Assume.That(failing.GiveUp(_database.Database, Admitted()).Ok, Is.False);
+            Assume.That(failing.GiveUp(_database.Database, Admitted(), _authority).Ok, Is.False);
             Assert.That(announced, Is.Zero, "a certificate given up and taken back out changed nothing a page shows");
 
-            Assert.That(landing.GiveUp(_database.Database, Admitted()).Ok, Is.True);
+            Assert.That(landing.GiveUp(_database.Database, Admitted(), _authority).Ok, Is.True);
             Assert.That(announced, Is.EqualTo(1));
         }
 
@@ -129,7 +172,7 @@ namespace KeePassGate.Host.Tests
             var writer = new DatabaseWriter(
                 CurrentThread.Instance, Save, (database, lists) => rebuilt.Add(lists), _dialogs, null);
 
-            Assert.That(writer.GiveUp(_database.Database, Admitted()).Ok, Is.True);
+            Assert.That(writer.GiveUp(_database.Database, Admitted(), _authority).Ok, Is.True);
             Assert.That(rebuilt, Has.Member(true));
         }
 
@@ -154,7 +197,7 @@ namespace KeePassGate.Host.Tests
                 _dialogs,
                 null);
 
-            Assert.Throws<NullReferenceException>(() => writer.GiveUp(_database.Database, key, () => lines++));
+            Assert.Throws<NullReferenceException>(() => writer.GiveUp(_database.Database, key, _authority, () => lines++));
 
             Assert.That(lines, Is.EqualTo(1));
             Assert.That(linesWhenTold, Is.EqualTo(1), "written before the page was told");
@@ -179,7 +222,7 @@ namespace KeePassGate.Host.Tests
                 _dialogs,
                 null);
 
-            Assert.Throws<NullReferenceException>(() => writer.GiveUp(_database.Database, key, () => lines++));
+            Assert.Throws<NullReferenceException>(() => writer.GiveUp(_database.Database, key, _authority, () => lines++));
 
             Assert.That(lines, Is.EqualTo(1));
 
@@ -207,7 +250,7 @@ namespace KeePassGate.Host.Tests
                 _dialogs,
                 null);
 
-            Assert.Throws<NullReferenceException>(() => writer.GiveUp(_database.Database, key, () => lines++));
+            Assert.Throws<NullReferenceException>(() => writer.GiveUp(_database.Database, key, _authority, () => lines++));
 
             Assert.That(lines, Is.EqualTo(1));
             Assert.That(Admissions().Find(key), Is.Null, "the record the line is about is in force");
@@ -231,7 +274,7 @@ namespace KeePassGate.Host.Tests
                 _dialogs,
                 null);
 
-            Assert.Throws<NullReferenceException>(() => writer.GiveUp(_database.Database, key, () => lines++));
+            Assert.Throws<NullReferenceException>(() => writer.GiveUp(_database.Database, key, _authority, () => lines++));
 
             Assert.That(lines, Is.Zero, "a certificate given up and taken back out took nothing away");
             Assert.That(Admissions().Find(key), Is.Not.Null, "the certificate is still admitted");
@@ -245,13 +288,13 @@ namespace KeePassGate.Host.Tests
             var lines = 0;
             var failing = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, null);
 
-            Assume.That(failing.GiveUp(_database.Database, Admitted(), () => lines++).IsUnsaved, Is.True);
+            Assume.That(failing.GiveUp(_database.Database, Admitted(), _authority, () => lines++).IsUnsaved, Is.True);
             Assert.That(lines, Is.Zero, "a certificate given up and taken back out took nothing away");
 
-            Assume.That(_writer.GiveUp(_database.Database, new string('e', 64), () => lines++).Ok, Is.False);
+            Assume.That(_writer.GiveUp(_database.Database, new string('e', 64), _authority, () => lines++).Ok, Is.False);
             Assert.That(lines, Is.Zero, "nor did a certificate nothing admits");
 
-            Assert.That(_writer.GiveUp(_database.Database, Admitted(), () => lines++).Ok, Is.True);
+            Assert.That(_writer.GiveUp(_database.Database, Admitted(), _authority, () => lines++).Ok, Is.True);
             Assert.That(lines, Is.EqualTo(1));
         }
 
@@ -274,7 +317,7 @@ namespace KeePassGate.Host.Tests
                 _dialogs,
                 null);
 
-            var result = writer.GiveUp(_database.Database, key, () => lines++);
+            var result = writer.GiveUp(_database.Database, key, _authority, () => lines++);
 
             Assert.That(result.IsUnverified, Is.True, result.Reason);
             Assert.That(lines, Is.EqualTo(1));
@@ -303,7 +346,7 @@ namespace KeePassGate.Host.Tests
                 _dialogs,
                 null);
 
-            var result = writer.GiveUp(_database.Database, key);
+            var result = writer.GiveUp(_database.Database, key, _authority);
 
             Assert.That(result.IsUnverified, Is.True, result.Reason);
             Assert.That(announced, Is.EqualTo(1));
@@ -331,7 +374,7 @@ namespace KeePassGate.Host.Tests
                 _dialogs,
                 null);
 
-            var result = writer.GiveUp(_database.Database, key, () => lines++);
+            var result = writer.GiveUp(_database.Database, key, _authority, () => lines++);
 
             Assert.That(result.IsUnverified, Is.True, result.Reason);
             Assert.That(lines, Is.Zero, "nothing holds the record the line would be about");
@@ -361,7 +404,7 @@ namespace KeePassGate.Host.Tests
                 _dialogs,
                 null);
 
-            var result = writer.GiveUp(_database.Database, key, () => lines++);
+            var result = writer.GiveUp(_database.Database, key, _authority, () => lines++);
 
             Assert.That(result.IsUnverified, Is.True, result.Reason);
             Assert.That(lines, Is.EqualTo(1));
@@ -395,7 +438,7 @@ namespace KeePassGate.Host.Tests
                 _dialogs,
                 null);
 
-            var result = writer.GiveUp(_database.Database, key, () => lines++);
+            var result = writer.GiveUp(_database.Database, key, _authority, () => lines++);
 
             Assert.That(result.IsUnverified, Is.True, result.Reason);
             Assert.That(lines, Is.EqualTo(1));
@@ -420,7 +463,7 @@ namespace KeePassGate.Host.Tests
 
                 try
                 {
-                    var result = _writer.GiveUp(_database.Database, key);
+                    var result = _writer.GiveUp(_database.Database, key, _authority);
 
                     Assert.That(result.IsBusy, Is.True, result.Reason);
                     Assert.That(_saves, Is.Zero);
@@ -442,7 +485,7 @@ namespace KeePassGate.Host.Tests
             var before = Admissions().Snapshot();
 
             var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, null);
-            var result = writer.GiveUp(_database.Database, key);
+            var result = writer.GiveUp(_database.Database, key, _authority);
 
             Assert.That(result.IsUnsaved, Is.True, result.Reason);
 
@@ -472,7 +515,7 @@ namespace KeePassGate.Host.Tests
             var before = Admissions().Snapshot();
 
             var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, null);
-            var result = writer.GiveUp(_database.Database, key);
+            var result = writer.GiveUp(_database.Database, key, _authority);
 
             Assert.That(result.IsUnsaved, Is.True, result.Reason);
 
@@ -497,7 +540,7 @@ namespace KeePassGate.Host.Tests
             _database.Database.Modified = false;
 
             var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, null);
-            var result = writer.GiveUp(_database.Database, key);
+            var result = writer.GiveUp(_database.Database, key, _authority);
 
             Assert.That(result.IsUnsaved, Is.True, result.Reason);
 
@@ -531,7 +574,7 @@ namespace KeePassGate.Host.Tests
                 _dialogs,
                 null);
 
-            var result = writer.GiveUp(_database.Database, key);
+            var result = writer.GiveUp(_database.Database, key, _authority);
 
             Assert.That(result.IsUnverified, Is.True, result.Reason);
             Assert.That(Admissions().Find(key), Is.Null,
@@ -547,12 +590,122 @@ namespace KeePassGate.Host.Tests
             _database.Save();
             var saves = _saves;
 
-            var result = _writer.GiveUp(_database.Database, key);
+            var result = _writer.GiveUp(_database.Database, key, _authority);
 
             Assert.That(result.Ok, Is.False);
             Assert.That(result.IsBusy || result.IsFailed || result.IsUnsaved || result.IsUnverified, Is.False,
                 "missing, which the route answers as the refusal this certificate gets from now on");
             Assert.That(_saves, Is.EqualTo(saves), "nothing to write, so nothing to save");
+        }
+
+        [TestCase("stopped")]
+        [TestCase("split")]
+        [TestCase("outdated")]
+        [TestCase("lost")]
+        public void A_certificate_given_up_over_a_store_that_holds_the_gate_back_is_answered_its_word_with_nothing_written(
+            string word)
+        {
+            // The store read in the write's own turn, `STORE.md` §627, and answered as a connection
+            // to the database is answered, `STORE.md` §656: `lost` for a file whose key went, and
+            // the store's own word otherwise.
+            AnsweredWithNothingWritten(word);
+        }
+
+        [Test]
+        public void A_certificate_given_up_while_several_authorities_stand_is_answered_undecided_with_nothing_written()
+        {
+            // A second authority standing beside the first, which serves nothing until the
+            // operator keeps an authority, as a connection to the database is answered.
+            AnsweredWithNothingWritten(HeldBackTarget.Undecided);
+        }
+
+        [Test]
+        public void A_certificate_given_up_once_its_authority_was_retired_beside_several_others_is_answered_missing_with_nothing_written()
+        {
+            // Beside the case of a second authority arriving: the authority the connection arrived
+            // under is retired and two others stand, which no decision of the operator's can make
+            // serve this certificate, so it is answered as a certificate no longer admitted.
+            var key = Admitted();
+            Admissions().RetiredBesideOthers();
+            var before = Admissions().Snapshot();
+
+            var result = _writer.GiveUp(_database.Database, key, _authority);
+
+            Assert.That(result.Ok, Is.False);
+            Assert.That(result.Word, Is.Null, result.Reason);
+            Assert.That(result.IsBusy || result.IsFailed || result.IsUnsaved || result.IsUnverified, Is.False,
+                "missing, which the route answers 401 unpaired");
+            Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+            Assert.That(Admissions().Snapshot(), Is.EqualTo(before));
+        }
+
+        /// <summary>
+        /// A certificate given up once the database is brought to be answered with this word, and
+        /// what came of it.
+        /// </summary>
+        private void AnsweredWithNothingWritten(string word)
+        {
+            var key = Admitted();
+            Admissions().HoldBack(word);
+            var before = Admissions().Snapshot();
+
+            var result = _writer.GiveUp(_database.Database, key, _authority);
+
+            Assert.That(result.Ok, Is.False);
+            Assert.That(result.Word, Is.EqualTo(word), result.Reason);
+            Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+            Assert.That(Admissions().Snapshot(), Is.EqualTo(before));
+        }
+
+        [Test]
+        public void A_certificate_given_up_that_the_store_has_no_room_for_is_answered_stopped_with_nothing_written()
+        {
+            // Taking a certificate away writes a statement for each origin its admissions hold,
+            // and an admission a revocation refuses still holds an origin until a write deletes
+            // it. A store with room for a further item and not for two refuses that write whole,
+            // `STORE.md` §643, and the client is answered as a store with no room for its next
+            // write is answered, `STORE.md` §656.
+            string key;
+            using (var certificate = Issue("agent-fictitious"))
+            {
+                var first = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" }, Served());
+                var written = _writer.WriteAdmission(_database.Database, first);
+                Assume.That(written.Ok, Is.True, written.Reason);
+                key = first.AdmissionKey;
+
+                // A second admission of the certificate, under a client key a revocation names
+                // and renewed from a certificate of its own, back beside its revocation as a merge
+                // from a copy that touched it later leaves it.
+                var second = AdmissionRecord.For(
+                    certificate, DateTimeOffset.UtcNow, new[] { "ops" }, Served(), new string('e', 64), new string('f', 64));
+                StoreSeeds.Client(Admissions().Store, second.Members());
+                var entry = Admissions().Entries(StoreKinds.Client)
+                    .Single(found => found.Strings.ReadSafe("KPG.Data").Contains(second.ClientKey));
+                var group = entry.ParentGroup;
+                var copy = entry.CloneDeep();
+                StoreSeeds.Revoke(Admissions().Store, second.ClientKey);
+                Assume.That(Admissions().Holds(StoreKinds.Client, second.ClientKey), Is.False, "the revocation deleted it");
+                group.AddEntry(copy, true);
+                _database.Database.DeletedObjects.Remove(
+                    _database.Database.DeletedObjects.Single(deleted => deleted.Uuid.Equals(copy.Uuid)));
+            }
+
+            Admissions().FillTo(StoreFormat.MaxItems - 1);
+            using (var reading = Admissions().Store.Read())
+            {
+                Assume.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            }
+
+            Assume.That(Admissions().Find(key), Is.Not.Null, "admitted by its first admission alone");
+            var before = Admissions().Snapshot();
+            _saves = 0;
+
+            var result = _writer.GiveUp(_database.Database, key, _authority);
+
+            Assert.That(result.Ok, Is.False);
+            Assert.That(result.Word, Is.EqualTo(StoreWords.Stopped), result.Reason);
+            Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+            Assert.That(Admissions().Snapshot(), Is.EqualTo(before));
         }
 
         /// <summary>

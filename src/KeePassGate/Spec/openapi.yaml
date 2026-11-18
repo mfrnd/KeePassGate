@@ -366,8 +366,12 @@ paths:
         client holds. A write that does not land is taken back out. It is answered in the words
         every write is: `503 busy` covers an entry dialog open on an entry the write changes, and
         Database Maintenance open on the database, and nothing was written, so asking again is
-        safe. `401 unpaired` is also the answer when the certificate stopped being admitted in the
-        instant between this connection and its write.
+        safe. A plugin's store that came to hold the gate back by the time of the write is
+        answered its word under `503`, as a connection is, and nothing was written; so is a
+        second authority standing by then, as `undecided`, and a store with no room left to
+        record the certificate given up, as `stopped`. `401 unpaired`
+        is also the answer when the certificate stopped being admitted in the instant between this
+        connection and its write.
 
         `x-kpg-verb: none`, because a rule says what a profile may do to groups and entries and
         this is neither: a client the rules let reach nothing may still give up the admission it
@@ -386,9 +390,8 @@ paths:
             as something else: it is kept in the database in memory, which stays marked as
             changed, so the certificate is already refused and asking again is answered `401`, and
             whether the file keeps it is the operator's to settle. `internal error` is a write that
-            could not be attempted at all, the database having closed under the request or the
-            plugin's store holding the gate back, or that went wrong before anything was saved:
-            KeePass answered the attempt with an error.
+            could not be attempted at all, the database having closed under the request, or that
+            went wrong before anything was saved: KeePass answered the attempt with an error.
           content:
             application/json:
               schema:
@@ -424,7 +427,12 @@ paths:
         what `Unavailable` names, another pairing or renewal in front of the operator, a wait for
         the screen that left the dialog under thirty seconds of the pairing budget, a renewal of
         this same certificate still being answered, which is told so at once, no screen to ask
-        on, and a list of profiles in the database that will not read.
+        on, and a list of profiles in the database that will not read. A plugin's store that came
+        to hold the gate back since the connection arrived is answered its word under `503`, as
+        a connection is, before the dialog, once the operator has answered, or when the write
+        comes to it, and a second authority that arrived meanwhile is answered `503 undecided`
+        the same way: nothing is issued or written, and an approval is used up, so asking again
+        raises the dialog again.
       x-kpg-verb: none
       requestBody:
         required: true
@@ -593,7 +601,12 @@ paths:
       description: |
         Slow on purpose: a human reads a dialog. What comes back says what was approved, which is
         not always what was asked for. The record is written and saved before the certificate is
-        handed over, so a certificate the database has no record of is never issued.
+        handed over, so a certificate the database has no record of is never issued. A plugin's
+        store that came to hold the gate back while the operator was deciding is answered its
+        word under `503` when the write comes to it, as a connection is, and a second authority
+        that arrived meanwhile is answered `503 undecided` the same way: nothing is issued or
+        written, the invitation is not spent, and the approval is used up, so the next request
+        raises the dialog again.
       x-kpg-unauthenticated: true
       x-kpg-verb: none
       requestBody:
@@ -2375,15 +2388,23 @@ components:
         operator keeps one of them, which KeePass asks for on its own screen. The clients of the
         authorities not kept are refused from then on and pair again. A request already waiting
         for its turn on KeePass's thread when a second authority arrived is answered `undecided`
-        as well.
+        as well, and so is a pairing, a renewal or a certificate given up whose write finds a
+        second authority standing: nothing is issued or written, an invitation is not spent, and
+        an approval the operator gave is used up. It is answered only to a request whose own
+        authority is among the authorities standing. A request whose authority is gone while
+        several others stand is answered as its authority being gone is: `409 no invitation` to a
+        pairing, `401 unpaired` to a renewal and to a certificate given up.
 
         `split`, `outdated` and `stopped` are about the plugin's store in the database, and each
         is answered before a route is chosen, with the host certificate of the authority the
         database serves, or of each authority where nobody has chosen between them, to every
         request whatever it asks, pairing included. A request that changes or reads a group or an
         entry, already waiting for its turn on KeePass's thread when the store came to hold the
-        gate back, is answered the same word; a pairing, a renewal and a client's revocation of
-        itself are not asked again once they arrived.
+        gate back, is answered the same word. So is a pairing, a renewal and a certificate given
+        up, each where its write comes to the store, and a renewal before and after its dialog as
+        well: nothing is issued or written, an invitation is not spent, and an approval the
+        operator gave is used up, so the next request is put to the operator again. A
+        certificate given up that the store has no room left to record is answered `stopped`.
         Where several hold, the first in this order is answered: `locked`, `lost`, `split`,
         `outdated`, `stopped`, `undecided`.
 
@@ -2481,12 +2502,18 @@ components:
         it different, is written without the dialog, and a pairing's retry starts from a hello as
         every pairing retry does. A request that differs in anything is put to the operator
         again. The approval is used once, by the write that lands, and what it was approved
-        against is compared at that write: the authority served, which of the names the answer
-        rested on the list holds as the dialog showed it, and for a renewal the record being
-        renewed, still there and unrevoked, so a revocation that lands in between is never
-        overtaken. An approval that no longer matches is used up and answered `503 busy` with no
-        `heldUntil`, nothing is spent, and the next request puts the dialog in front of the
-        operator again. A lock and KeePass exiting let go of
+        against is compared at that write: the authority it was approved under, which has to be
+        the single authority the database serves, which of the names the answer rested on the
+        list holds as the dialog showed it, and for a renewal the record being renewed, still
+        admitting its certificate, so a revocation or a certificate given up that lands in
+        between is never overtaken. An approval that no longer matches is used up, and nothing
+        is spent. A list of names that changed is answered `503 busy` with no `heldUntil`, and
+        the next request puts the dialog in front of the operator again. An authority that was
+        recreated or deleted is answered `409 no invitation` to a pairing and `401 unpaired` to
+        a renewal, as a record that went is, also where several other authorities stand by then.
+        A second authority standing beside it is answered `503 undecided`, and a plugin's store
+        that came to hold the gate back its word, as `Unavailable` has them. A lock and KeePass
+        exiting let go of
         every approval held, and a close of a database lets go of that database's, and then the
         next request raises the dialog again too. And a list of profiles in the database that
         will not read is answered `503 busy` before the operator is asked, since what either

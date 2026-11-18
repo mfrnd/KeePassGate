@@ -6,6 +6,7 @@ using KeePassLib;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
+using KeePassGate.Gate;
 using KeePassGate.Store;
 using KeePassGate.Ui;
 using KeePassGate.Vault;
@@ -898,21 +899,25 @@ namespace KeePassGate.Bridge
         /// has KeePass's group tree and entry list rebuilt, as every change that adds an entry
         /// does.
         /// </remarks>
+        /// <param name="authority">
+        /// The `id` of the authority the connection giving the certificate up arrived under, which
+        /// is the issuer of the admission that admitted it.
+        /// </param>
         /// <param name="audit">
         /// The audit line for the certificate given up, written here once it stands.
         /// <see cref="Landed"/> gives when and why here. Null for no line.
         /// </param>
-        public VaultWrite GiveUp(PwDatabase database, string admissionKey, Action audit = null)
+        public VaultWrite GiveUp(PwDatabase database, string admissionKey, string authority, Action audit = null)
         {
             if (string.IsNullOrEmpty(admissionKey))
             {
                 return VaultWrite.Missing();
             }
 
-            return Change(database, () => GiveUpOnTheUiThread(database, admissionKey), true, () => Landed(audit));
+            return Change(database, () => GiveUpOnTheUiThread(database, admissionKey, authority), true, () => Landed(audit));
         }
 
-        private VaultChange GiveUpOnTheUiThread(PwDatabase database, string admissionKey)
+        private VaultChange GiveUpOnTheUiThread(PwDatabase database, string admissionKey, string authority)
         {
             if (_dialogs != null)
             {
@@ -926,16 +931,21 @@ namespace KeePassGate.Bridge
             var kdbx = new KdbxStore(database, GateVersion.Current, _log, Holding);
             using (var reading = kdbx.ForWrite())
             {
-                var word = StoreWords.Of(reading.State);
+                // The store's word where it holds the gate back, and `undecided` where several
+                // authorities stand, the connection's own among them, `STORE.md` §656, as for a
+                // pairing.
+                var word = StoreReadings.WordOf(reading, authority);
                 if (word != null)
                 {
-                    return VaultWrite.Failed("the store is " + word + ": " + reading.Reason);
+                    _log.Warn("a certificate given up was not written, since " + HeldBack(word, reading));
+                    return VaultWrite.Unavailable(word);
                 }
 
                 if (StoreAdmissions.Admitted(reading, admissionKey) == null)
                 {
                     // Gone since the connection was admitted: taken away, its client revoked, or
-                    // its authority retired in between. Nothing is changed, and the certificate is
+                    // its authority retired in between, beside several others standing as well,
+                    // where no authority is served. Nothing is changed, and the certificate is
                     // refused from here on, which is what was asked for.
                     return VaultWrite.Missing();
                 }
@@ -946,8 +956,12 @@ namespace KeePassGate.Bridge
                     var staged = kdbx.Stage(reading, new[] { act });
                     if (staged.Refused != null)
                     {
+                        // A statement for each origin the certificate's admissions hold, so a
+                        // store with room for a further item may have none for this write: the
+                        // word of a store with no room for its next write, `STORE.md` §656, with
+                        // nothing written.
                         _log.Warn("a certificate given up was not written into the plugin's store: " + staged.Refused);
-                        return VaultWrite.Failed(staged.Refused);
+                        return staged.Write.NoRoom ? VaultWrite.Unavailable(StoreWords.Stopped) : VaultWrite.Failed(staged.Refused);
                     }
 
                     if (staged.Held != null)
@@ -1987,6 +2001,16 @@ namespace KeePassGate.Bridge
             return new RenewalAnswers(store, _log).Prune(StoreAdmissions.Named(reading, write));
         }
 
+        /// <summary>
+        /// Why a write meets this word, for the log: several authorities standing, or the store
+        /// holding the gate back with the reading's own reason, which a store that is whole has
+        /// none of.
+        /// </summary>
+        private static string HeldBack(string word, StoreReading reading)
+        {
+            return HeldBackTarget.Why(word) + (reading.Reason == null ? string.Empty : " (" + reading.Reason + ")");
+        }
+
         private AdmissionWrite OnTheUiThread(
             PwDatabase database, AdmissionRecord record, Action audit, Func<IWriteGround, string> condition)
         {
@@ -2014,11 +2038,15 @@ namespace KeePassGate.Bridge
             // end, which overwrites the key, `STORE.md` §627.
             using (var reading = kdbx.ForWrite())
             {
-                var word = StoreWords.Of(reading.State);
+                // The store's word where it holds the gate back, `STORE.md` §656, as a connection
+                // is answered, `lost` among them for a file whose key went while this database was
+                // served, and `undecided` where several authorities stand, the record's issuer
+                // among them: before anything is planned, asked or spent.
+                var word = StoreReadings.WordOf(reading, record.Issuer);
                 if (word != null)
                 {
-                    _log.Warn("an admission was not written, since the plugin's store holds the gate back: " + word);
-                    return AdmissionWrite.Failed("the store is " + word + ": " + reading.Reason);
+                    _log.Warn("an admission was not written, since " + HeldBack(word, reading));
+                    return AdmissionWrite.Unavailable(word);
                 }
 
                 var act = AdmissionActs.Admit(reading, record);
@@ -2049,10 +2077,11 @@ namespace KeePassGate.Bridge
                 {
                     // Refused before the condition spends anything: a write that adds no admission
                     // is never believed, whatever its save then reports. **An act the plan leaves
-                    // out because its issuer is not the authority served alone is told apart**:
-                    // the authority the operator answered under is not served, retired since by a
-                    // Recreate or a Delete, standing beside another, or in a store that holds the
-                    // gate back, `PAIRING.md` §311.
+                    // out because its issuer is not the authority the store serves is told apart**,
+                    // `PAIRING.md` §311: with a store holding the gate back and several authorities
+                    // standing, the issuer among them, answered above, the issuer was retired since
+                    // the operator answered, by a Recreate, a Delete or a copy merged in, and no
+                    // retry under it can be written, whatever stands beside it.
                     var why = staged.Refused ?? "the write adds no admission";
                     _log.Warn("an admission was not written into the plugin's store: " + why);
                     return string.Equals(StoreAuthorities.Served(reading), record.Issuer, StringComparison.Ordinal)
