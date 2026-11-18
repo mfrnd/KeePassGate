@@ -1403,9 +1403,75 @@ The certificate a renewal issued keeps working. A lost answer to a renewal costs
 nothing, `PAIRING.md` §312. Whatever takes a certificate away is restated by the summary entry.
 A revocation by the operator still refuses a certificate renewed at another gate.
 
-**Not run.** No run held this kind or the rule about renewals. A gate that has not taken the
-file in still admits a certificate taken away at another gate, as it admits a client revoked
-there (§639). §644 names the runs owed.
+**Run over copies that are merged.** Two copies of a real database, written apart by the
+product's own acts and saved, are merged each into the other by `PwDatabase.MergeIn`, from the
+other copy's file opened afresh, under Synchronize, Overwrite if newer, Overwrite existing, Keep
+existing and Create new IDs. The copy merged into is asked which certificates it admits, of
+the gate's own target for the merged database, and asked again after its next write of the
+plugin's own, a pairing; where a sequence leaves a store stopped, the state is held as well.
+The operator's single removal is made through the tab's buffer, the press and the OK, and a
+client's giving up through the writer, which over a single database leaves a client its newest
+certificate where it gives up the certificate between and then the certificate before it
+(`GiveUpInRealDatabaseTests.A_client_that_gives_up_the_certificate_between_and_then_the_one_before_it_keeps_its_newest`).
+Some sequences take a certificate away in the copy merged into once the copies have met. What
+the runs came to, in both directions and under each method but Create new IDs:
+
+- A renewal and the old certificate given up in a copy, beside a copy from before: the old
+  certificate is refused and the renewal admitted.
+- A renewal made meanwhile in the other copy, and a renewal onward from it, also once the
+  certificate between was given up there: both are refused, and the first copy's renewal is
+  admitted.
+- The same certificate taken away in both copies, each having read another renewal: both
+  renewals are refused.
+- The operator's single removal in a copy and a renewal in the other: the renewal is refused.
+- The operator's single removal in a copy, and in the other a renewal, a renewal onward from
+  it, and the renewal between given up: the record written in the other copy names what was
+  renewed onward, the first copy's record names none of it, and everything renewed in the
+  other copy is refused in both
+  (`A_renewal_given_up_in_a_copy_after_the_other_took_its_origin_away_refuses_what_was_renewed_onward_from_it`).
+  The same holds where the holder there gives the first certificate up as well, after the
+  renewal between
+  (`The_operator_s_statement_and_the_holder_s_give_ups_in_the_other_copy_refuse_every_certificate_renewed_from_it`).
+- A renewal, a renewal onward from it and the renewal between given up, all in a copy, and the
+  first certificate taken away in the copy merged into once the copies have met: the statement
+  written then names the renewal between by the statement that arrived, and the renewal
+  onward counts
+  (`A_certificate_taken_away_after_a_statement_of_the_other_copy_arrived_names_what_that_statement_was_renewed_from_it`).
+- A renewal taken away in a copy before the other copy renewed from it, renewed onward and
+  gave the renewal between up, and the first certificate taken away in the copy merged into
+  once the copies have met: the statement written then names the renewal the first copy took
+  away, whose statement names nothing of the other copy's, and everything renewed in the
+  other copy stays refused
+  (`A_statement_written_after_a_merge_about_an_origin_still_admitted_leaves_what_the_other_copy_renewed_refused`).
+- The record deleted for good with its summary entry kept: the item still refuses the
+  certificate and names the renewal the record named, and the other copy's renewal is refused.
+- The record edited by hand to name the other copy's renewal: within the history limit the
+  record counts by the version written and that renewal stays refused; past the limit the
+  store stops wherever the edited entry arrives (§622).
+- The record that both copies hold, the copy made after the certificate was taken away, then
+  edited by hand in a copy: within the history limit it counts by the version written wherever
+  the edited entry arrives. Past the limit, a store left with no version of the record that
+  passes stops, and a store that keeps the version written, as its current version or in its
+  history, stays whole and counts by it; which merge leaves which, for edits a second apart
+  and for edits within the second the record was written, is in §622
+  (`A_record_both_copies_hold_edited_in_a_copy_counts_by_the_version_written_or_stops_the_store_past_the_limit`).
+- The record that both copies hold, deleted for good in a copy: the certificate stays refused
+  in both, and the renewal the record named stays admitted
+  (`A_record_both_copies_hold_deleted_for_good_in_a_copy_still_refuses_in_both`).
+- A revocation of the client beside a certificate taken away: every certificate of the client
+  is refused.
+
+Under Create new IDs the copy imported into answers as it did before, in every sequence (§621,
+§640). After the next write of the copy merged into, every answer is the same. No sequence
+ended with a certificate admitted that a statement in the merged file refuses. **Two cases
+leave certificates admitted, and §639 has both**: the record and its summary entry both deleted
+for good where they were made, merged under a method that carries no deletion record (row 2),
+and an admission of origin deleted by hand, merged the same way (row 11). In the first no
+statement about the certificate is left in the file merged into, and in the second the
+certificate of origin is still admitted there, so in neither is a rule of this section passed
+over. A gate that has not taken the file in still admits a certificate taken away at another
+gate, as it admits a client revoked there (§639). KeePassXC, a second KeePass with the plugin
+and a device were not run (§644 item 16). *Held by* `StoreAdmissionMergeTests`.
 
 **What is built.** The record, what composes it, and what it does to the certificate it names.
 `AdmissionActs.TakeAway` composes the records of the act as this section has them: a record for
@@ -1432,13 +1498,14 @@ that leads back into itself ends: `StoreInForce` holds, for each certificate, th
 that took it away with their `renewed` and `from`, and the admissions in force that name it,
 worked out as the reading is made. The gate's hold, an approval held for a renewal at its write,
 and a certificate given up all ask the same judgment, so a renewal that does not count is
-answered `401 unpaired` wherever it asks, and the listing marks it for the clients page. **Not
-run yet**: the runs of §644 item 16. *Held by* `AdmissionActsTests`, `StoreAdmissionsTests`,
-`StoreAdmissionChainTests`, `RevocationOperationTests`, `ClientListTests`,
-`ClientListMenuTests` and `AuthorityPanelTests`, and over real databases by
-`GiveUpInRealDatabaseTests`: the record in the file, the certificate a renewal issued still
+answered `401 unpaired` wherever it asks, and the listing marks it for the clients page. **The
+runs over copies merged by KeePass are made**, above; what §644 item 16 still owes is the same
+in KeePassXC, between two KeePass instances and on a device. *Held by* `AdmissionActsTests`,
+`StoreAdmissionsTests`, `StoreAdmissionChainTests`, `RevocationOperationTests`,
+`ClientListTests`, `ClientListMenuTests` and `AuthorityPanelTests`, and over real databases by
+`GiveUpInRealDatabaseTests`, the record in the file, the certificate a renewal issued still
 admitted once the old certificate is given up, and a write that no save kept taken back out
-with what it deleted put back.
+with what it deleted put back, and by `StoreAdmissionMergeTests`.
 
 ### Profile names §616
 
@@ -2097,9 +2164,28 @@ and never stops for a failing entry ended wider in 798 of 2,160, 42 of 216, 42 o
 - **A program that writes no history.** pykeepass 4.2.0 changed the string, wrote no history item
   and kept the entry's modification time.
 - **A history item changed or removed by a script.**
-- **A merge does not bring the written version back.** On the store as decided, a merge with an
-  unedited copy brought it back in no cell past the limit: KeePassLib trims the merged history to
-  the limit, and KeePassXC 2.8.0 kept the newer entry whole.
+- **A merge with an unedited copy brings the written version back in some cells, and which
+  cells turns on the second the edits were made in.** On the store as decided, a Synchronize
+  with an unedited copy brought it back in no cell past the limit: KeePassLib trims the merged
+  history to the limit, and KeePassXC 2.8.0 kept the newer entry whole. Through the product,
+  with a record of kind `withdrawn` that both copies hold, edited past the limit in a copy, and
+  the copies merged by `PwDatabase.MergeIn`, measured by method and direction
+  (`StoreAdmissionMergeTests.A_record_both_copies_hold_edited_in_a_copy_counts_by_the_version_written_or_stops_the_store_past_the_limit`):
+
+  | Merged into | The edits | Leaves that store whole, the record counting by the version written | Leaves it stopped |
+  | --- | --- | --- | --- |
+  | the copy that edited the record | each a second or more after the version before it | Overwrite existing | Synchronize, Overwrite if newer, Keep existing |
+  | the copy that edited the record | within the second the record was written | Synchronize, Overwrite if newer, Overwrite existing | Keep existing |
+  | the other copy | either | Keep existing | Synchronize, Overwrite if newer, Overwrite existing |
+
+  KeePass compares modification times to the second, in a merge and at the history limit.
+  Edited a second apart, as edits by a person are, only a merge that writes the other copy's
+  entry over the edited entry brings the written version back to the copy that edited it.
+  Edited within the second the record was written, as a program can edit, the two versions
+  compare as neither older nor newer, and Synchronize and Overwrite if newer keep the version
+  written as well. The other copy is stopped by every merge that puts the edited entry in the
+  place of its own. What differs between the cells is which store stops: in each of them every
+  certificate was refused where §648 refuses it.
 
 **The two entries that carry the store key are the exception.** For the authority's entry, and
 for the retirement that holds the store key, no passing version is no stop of this kind: the
@@ -3872,7 +3958,14 @@ then KeePassXC, or an import method of KeePass that carries no deletion record. 
 the other copy is never told, and admits the revoked client or keeps the removed name. *What
 covers it:* a Synchronize, which carries the deletion records and stops the database.
 *Measured:* in the model, replayed, and 3 histories in 24 cells of 20,000
-(`measured-store-as-a-whole` 2.1, 2.4).
+(`measured-store-as-a-whole` 2.1, 2.4); and through the product for a certificate taken away,
+over real databases merged by `PwDatabase.MergeIn`: with the record and the summary entry both
+deleted for good where the certificate was given up, that copy is stopped, Synchronize stops
+the other copy as well, and Overwrite if newer, Overwrite existing and Keep existing leave the
+other copy whole and admitting the certificate, the renewal that arrives and its own renewal
+(`StoreAdmissionMergeTests.A_record_taking_a_certificate_away_deleted_for_good_with_its_summary_entry_reaches_only_what_Synchronize_carries`).
+No statement about the certificate is left in the file merged into, so nothing of §648 is asked
+there.
 
 **A decision is lost a second time, without a trace, in a copy that received it through a merge
 that carries no deletion record** (row 3). *Who:* the decision's record is deleted where it was
@@ -3939,10 +4032,12 @@ the copies meet. A certificate taken away at another gate is admitted in the sam
 then. A renewal made from it at the second gate in the meantime does not count once the copies
 meet, since the record that took the certificate away does not name it. A renewal made from it
 before it was taken away stays admitted: only the operator stops a certificate that somebody
-took and renewed, by taking that certificate away as well or by revoking the client (§648, not
-run). *What covers it:* a Synchronize at every gate. *Measured:* in the model, and on
-real files for the renewal (`measured-store-as-a-whole` 2.4, 3.1). Two KeePass instances with the
-plugin were not run.
+took and renewed, by taking that certificate away as well or by revoking the client (§648).
+*What covers it:* a Synchronize at every gate. *Measured:* in the model, and on real files for
+the renewal (`measured-store-as-a-whole` 2.4, 3.1); and for a certificate taken away through
+the product, two copies of a real database written apart and merged each into the other by
+`PwDatabase.MergeIn` under each method (`StoreAdmissionMergeTests`, §648). Two KeePass
+instances with the plugin were not run.
 
 **A node with no rule of its own comes to sit, or stays, under a grant** (row 9). *Who:* nobody
 has to make a mistake. KeePass's Synchronize takes the later of two moves, and a KeePassXC merge
@@ -3973,7 +4068,12 @@ and a merge with a stale copy brings the entry back where no deletion record rem
 wider against what the person meant, and not against a decision the plugin was given. *What
 covers it:* the KPG tab is the only place that takes anything away, and a revocation made there
 holds. The notes of every record state it. *Measured:* on real files
-(`measured-store-as-a-whole` 3.4).
+(`measured-store-as-a-whole` 3.4); and through the product for an admission that a renewal was
+made from: deleted for good by hand, the renewal is refused in that copy, its certificate of
+origin being nowhere (§648 rule 5), and in the other copy once a Synchronize has carried the
+deletion record, while Overwrite if newer, Overwrite existing and Keep existing leave the other
+copy admitting the certificate of origin and the renewal by it
+(`StoreAdmissionMergeTests.An_admission_whose_admission_of_origin_was_deleted_by_hand_counts_only_where_its_origin_does`).
 
 **A route of the plugin's own API serves or accepts something of the store** (row 13). *Who:* a
 defect in the product on a single route, and a client holding ordinary rights there. *What
@@ -4440,14 +4540,17 @@ that finds a measurement against a decision reports it and does not design aroun
     and the keep records, their items, their deletion records, circles and chains over composed
     ones; KeePassXC, the reading after an answer, and the rest stay owed. *Could overturn*: how
     the decision on a second key is built.
-16. **A single certificate taken away** (§648), of which nothing was run: a renewal and the old
-    certificate given up at a gate while another gate holds a copy from before; a renewal made
-    from that certificate at the other gate in the meantime, and a renewal onward from that,
-    also once the certificate between was given up at that gate; the same certificate taken
-    away at two gates that had read other renewals; the operator's single removal; the record
-    deleted and edited by hand; an admission whose parent admission is
-    lost; a revocation of the same client beside it; and each merge. Owed by the pull request
-    that builds §648. *Could overturn*: the rule about renewals (S29).
+16. **A single certificate taken away** (§648): a renewal and the old certificate given up at a
+    gate while another gate holds a copy from before; a renewal made from that certificate at
+    the other gate in the meantime, and a renewal onward from that, also once the certificate
+    between was given up at that gate; the same certificate taken away at two gates that had
+    read other renewals; the operator's single removal; the record deleted and edited by hand;
+    an admission whose parent admission is lost; a revocation of the same client beside it; and
+    each merge. Run for KeePass's own merge, each of its methods in both directions, over real
+    databases through the product (`StoreAdmissionMergeTests`, §648): it overturns nothing,
+    and it measured which merge brings the written version of an edited record back (§622).
+    What stays owed is the same merged by KeePassXC, between two KeePass instances with the
+    plugin, and on a device. *Could overturn*: the rule about renewals (S29).
 17. **Create refused on a stopped store** (§624), which the measured code does not do. Run by the
     pull request that keeps the authority in the store, over a composed store
     (`AuthorityCommandsInStoreTests`): refused, and nothing written. The tab offers no command under

@@ -162,9 +162,9 @@ first through the product and holds the content, the check, the identifier and e
 it; `StoreWriteShapeTests` holds the product's writes to the second by shape, since its records
 hold stand-ins the product does not compose. It plays each sequence through the product's own
 acts, `AuthorityService` and `AdmissionActs`, with the admissions compared as every other kind
-is; a revocation in a copy and a renewal of the same client in the other, synchronized, is among
-the sequences, and ends with the same records in both copies and the renewed certificate refused
-in each.
+is; the third sequence, a revocation in a copy and a renewal of the same client in the other,
+synchronized, was printed at that commit, `a3c9c828` on `spikes/storage-survival`, and ends
+with the same records in both copies and the renewed certificate refused in each.
 
 **It writes the store into real databases.** `StoreWritesInRealDatabaseTests` writes through the
 product's own commands into a real tree and holds the entries KeePass keeps, the group a write
@@ -180,7 +180,16 @@ an admission, a revocation and a certificate taken away are composed of. In this
 opened again, `PairingInRealDatabaseTests` and `RenewalInRealDatabaseTests` the write that is
 saved before a certificate is handed over, and `MergeInRealDatabaseTests` copies brought together
 by `PwDatabase.MergeIn`: clients paired apart both admitted, a revoked client refused in both,
-and an expired admission that stays and admits nobody.
+and an expired admission that stays and admits nobody. `StoreAdmissionMergeTests` runs a
+certificate taken away over such copies, `STORE.md` §648: two copies written apart by the
+product's own acts, the operator's removal through the tab's buffer, its press and its OK, and
+a client's giving up through the writer, each merged into the other from its file opened
+afresh, under each of KeePass's merge methods, with the copy merged into asked which
+certificates it admits, of the gate's own target for it, and asked again after its next write;
+some sequences take a certificate away in the copy merged into after the merge, and where a
+sequence leaves a store stopped, that state is held. The edits of a record past the history
+limit are run a second apart and within the second the record was written, since KeePass
+compares modification times to the second and the two merge otherwise, `STORE.md` §622.
 
 `StoreReadingCostTests` is explicit, as `Headroom_at_one_room_size` is: it times what reading the
 store holds KeePass's thread for through the real router and vault, and what a write of the

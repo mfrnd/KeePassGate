@@ -163,11 +163,20 @@ has, so the client stays refused whatever the other copy holds and whatever the 
 computers involved show. **It refuses every certificate of that client**, a certificate the client
 renewed to on a copy of the database that had not learned of the revocation among them.
 
+**A certificate taken away stays refused the same way**, whether its program gave it up or it was
+taken away on this page, and so does a certificate renewed from it on a copy that had not
+learned it was taken away. A certificate the program renewed to before the old certificate was
+taken away, on the copy where that happened, keeps working.
+
+**A copy learns of either by a synchronize, or by an import that matches entries.** An import
+with **Create new IDs** changes nothing about which clients the database imported into admits,
+so a copy that still admitted the client goes on admitting it until it is synchronized.
+
 The other copy can still bring the client's certificates back. They admit nobody and are not
 listed: a line under the list states how many removed clients came back in a merge, and that they
 stay refused. The next change the plugin itself makes to the database takes them away and
-the line with them: revoking another client, pairing or renewing a client, a program giving a
-certificate up, or keeping, recreating or deleting the authority.
+the line with them: revoking another client, taking a certificate away, pairing or renewing a
+client, a program giving a certificate up, or keeping, recreating or deleting the authority.
 
 **A revocation has no end.** It stays in the database for good, so a revoked client comes back
 only by [pairing again](#getting-a-client-back), as a new client. The entries of the plugin's group
