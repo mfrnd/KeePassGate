@@ -76,7 +76,7 @@ namespace KeePassGate.Tests
             // In the vault writes' words. A record that went before the write could make it is the
             // one case of its own: the operator revoked it in between, so the answer is the one
             // this certificate will get on every connection from now on.
-            _authority.RevokeAnswers = Outcome(outcome);
+            _authority.GiveUpAnswers = Outcome(outcome);
 
             using (var certificate = _authority.IssueAdmittedClient("reader"))
             {
@@ -129,7 +129,7 @@ namespace KeePassGate.Tests
         {
             // The database KeePass holds refuses the certificate from then on, whatever the file
             // turns out to say, so the revocation took.
-            _authority.RevokeAnswers = Outcome("unverified");
+            _authority.GiveUpAnswers = Outcome("unverified");
 
             using (var certificate = _authority.IssueAdmittedClient("reader"))
             {
@@ -152,7 +152,7 @@ namespace KeePassGate.Tests
             var router = GateOperations.Router("9.9.9", null, check);
             if (outcome != "ok")
             {
-                _authority.RevokeAnswers = Outcome(outcome);
+                _authority.GiveUpAnswers = Outcome(outcome);
             }
 
             using (var certificate = _authority.IssueAdmittedClient("reader"))
@@ -197,7 +197,7 @@ namespace KeePassGate.Tests
         {
             // Taken back out, never made, or made by somebody else first: none of these revoked
             // anything here, and the operator's own revocation is written down where it lands.
-            _authority.RevokeAnswers = Outcome(outcome);
+            _authority.GiveUpAnswers = Outcome(outcome);
 
             using (var certificate = _authority.IssueAdmittedClient("reader"))
             {
@@ -227,7 +227,7 @@ namespace KeePassGate.Tests
             var context = new GateContext(
                 Head("DELETE", 0), string.Empty, ClientIdentity.Stranger(_authority.DatabaseId));
             new ServedDatabase(null, _authority).PutOn(context);
-            _authority.RevokeAnswers = VaultWrite.Failed("nothing should have asked");
+            _authority.GiveUpAnswers = VaultWrite.Failed("nothing should have asked");
 
             _router.Handle(context);
 

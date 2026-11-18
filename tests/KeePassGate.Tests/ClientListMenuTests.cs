@@ -85,8 +85,9 @@ namespace KeePassGate.Tests
                 Assert.That(menu.Visible, Is.True, "Shift and F10 opened nothing");
                 Assert.That(Shown(menu), Is.EqualTo(new[]
                 {
-                    "Renewal refused forever", "-", ClientList.AllowRenewalText, ClientList.RevokeText
+                    FirstLine(list.Rows[0]), "Renewal refused forever", "-", ClientList.RevokeText, ClientList.AllowRenewalText
                 }));
+                Assert.That(Item(menu, ClientList.CertificateItemName).Enabled, Is.False, "the certificate is a statement, grayed out");
 
                 var answer = Item(menu, ClientList.AnswerItemName);
                 Assert.That(answer.Enabled, Is.False, "the answer is a statement, grayed out");
@@ -108,7 +109,10 @@ namespace KeePassGate.Tests
 
                 var menu = list.Menu;
                 Assert.That(menu.Visible, Is.True);
-                Assert.That(Shown(menu), Is.EqualTo(new[] { ClientList.AllowRenewalText, ClientList.RevokeText }));
+                Assert.That(Shown(menu), Is.EqualTo(new[]
+                {
+                    FirstLine(list.Rows[1]), "-", ClientList.RevokeText, ClientList.AllowRenewalText
+                }));
                 Assert.That(Item(menu, ClientList.AllowRenewalItemName).Enabled, Is.False);
                 Assert.That(Item(menu, ClientList.RevokeItemName).Enabled, Is.True);
                 Assert.That(Item(menu, ClientList.RevokeItemName).Selected, Is.True,
@@ -146,6 +150,28 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Where_the_store_takes_no_write_the_menu_offers_no_Revoke_and_sets_Allow_renewal_apart()
+        {
+            // `STORE.md` §636: no command on the store where nothing is written into it in the
+            // session. Allow renewal stays, set apart from the line that states the certificate.
+            Using((list, grid) =>
+            {
+                list.Writable = false;
+                list.Fill(
+                    new AdmissionListing(new[] { _refused, _asked }, true),
+                    null,
+                    null,
+                    new Dictionary<string, RenewalRefusal> { { _refused.AdmissionKey, RenewalRefusal.Forever() } });
+                Pump();
+                Select(grid, 1);
+
+                AskFromTheKeyboard(grid);
+
+                Assert.That(Shown(list.Menu), Is.EqualTo(new[] { FirstLine(list.Rows[1]), "-", ClientList.AllowRenewalText }));
+            });
+        }
+
+        [Test]
         public void Enter_on_Allow_renewal_lifts_the_answer_of_the_row_it_was_opened_on_after_the_menu_closes()
         {
             Using((list, grid) =>
@@ -174,7 +200,7 @@ namespace KeePassGate.Tests
                 Select(grid, 0);
                 AskFromTheKeyboard(grid);
 
-                Key(grid, Keys.Down);
+                Key(grid, Keys.Up);
                 Key(grid, Keys.Enter);
 
                 Assert.That(_revoked, Is.EqualTo(new[] { _refused.AdmissionKey }));
@@ -198,7 +224,7 @@ namespace KeePassGate.Tests
                     Select(grid, 0);
                     AskFromTheKeyboard(grid);
 
-                    Key(grid, Keys.Down);
+                    Key(grid, Keys.Up);
                     Key(grid, Keys.Enter);
 
                     Assert.That(_loop, Is.Empty);
@@ -223,7 +249,7 @@ namespace KeePassGate.Tests
                         Select(grid, 0);
                         AskFromTheKeyboard(grid);
 
-                        Key(grid, Keys.Down);
+                        Key(grid, Keys.Up);
                         Key(grid, Keys.Enter);
 
                         Assert.That(_loop, Is.Empty);
@@ -337,6 +363,17 @@ namespace KeePassGate.Tests
             return new Point(area.Left + (area.Width / 2), area.Top + (area.Height / 2));
         }
 
+        /// <summary>
+        /// The menu's first line for a row's certificate, written out here rather than asked of the
+        /// member that builds it: the first eight characters of the admission key, and the day the
+        /// certificate was admitted.
+        /// </summary>
+        private static string FirstLine(ClientListRow row)
+        {
+            return "Certificate " + row.Record.AdmissionKey.Substring(0, 8) + ", admitted "
+                   + row.Record.Admitted.UtcDateTime.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
         /// <summary>What the menu shows, in order, a separator as a dash.</summary>
         private static string[] Shown(ContextMenuStrip menu)
         {
@@ -363,6 +400,10 @@ namespace KeePassGate.Tests
             _loop.Add(e.Exception);
         }
 
+        private static readonly DateTimeOffset Admitted = new DateTimeOffset(2026, 8, 15, 9, 0, 0, TimeSpan.Zero);
+
+        private static int _made;
+
         private static AdmissionRecord Record(string name)
         {
             using (var certificate = Minted.Named("CN=" + name)
@@ -370,7 +411,10 @@ namespace KeePassGate.Tests
                        .SelfSigned()
                        .Read())
             {
-                return AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" });
+                // Each admitted a minute before the record made just before it, so the page,
+                // which lists the certificate admitted last first, lists them in the order made.
+                _made++;
+                return AdmissionRecord.For(certificate, Admitted.AddMinutes(-_made), new[] { "ops" }, InventedIssuer.Id);
             }
         }
     }

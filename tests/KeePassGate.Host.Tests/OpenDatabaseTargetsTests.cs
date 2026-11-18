@@ -102,7 +102,7 @@ namespace KeePassGate.Host.Tests
             // operator who answered or canceled is not asked again for any synchronize of the
             // same authorities.
             var store = new KdbxStore(_first.Database, GateVersion.Current, NullGateLog.Instance);
-            StoreSeeds.Undecided(store, new CustomDataStore(_first.Database));
+            StoreSeeds.Undecided(store);
 
             Assert.That(_targets.Unasked(), Is.EqualTo(new[] { _first.Database }));
 

@@ -29,11 +29,11 @@ namespace KeePassGate.Tests
 
             Assert.That(StoreAuthorities.Served(pending.Store.Read()), Is.Not.Null, "the page reads the authority");
             Assert.That(live.Records.Candidates, Is.Empty, "the store holds nothing yet");
-            Assert.That(pending.StoreWaiting, Is.True);
+            Assert.That(pending.AuthorityWaiting, Is.True);
 
             Assert.That(pending.Apply(), Is.True);
             Assert.That(StoreAuthorities.Served(live.Store.Read()), Is.Not.Null, "OK writes it");
-            Assert.That(pending.StoreWaiting, Is.False);
+            Assert.That(pending.AuthorityWaiting, Is.False);
         }
 
         [Test]
@@ -60,9 +60,9 @@ namespace KeePassGate.Tests
             // synchronized before the revocation merged in: the authority that stood is retired,
             // the retirement holding the store key, and nothing is served for the copy's record.
             var live = new FakeGateDatabase();
-            var first = StoreSeeds.Authority(live.Store, live.Values);
-            string stale;
-            var client = Revoked(live, first, out stale);
+            var first = StoreSeeds.Authority(live.Store);
+            MemoryStore stale;
+            Revoked(live, first, out stale);
             var pending = new PendingDatabase(live, NullGateLog.Instance);
 
             Assert.That(Service(pending).Recreate().Succeeded, Is.True);
@@ -70,7 +70,7 @@ namespace KeePassGate.Tests
             Assert.That(StoreAuthorities.Served(pending.Store.Read()), Is.Null, "the page reads it deleted");
             Assert.That(Held(pending), Is.EqualTo(new[] { "Delete" }), "the buffer holds the Delete of the authority the database holds");
             Assert.That(pending.Apply(), Is.True);
-            live.Values.Set(AuthorityKeys.ClientRecordKey(client), stale);
+            live.Records.MergeWithoutDeletions(stale);
 
             var reading = live.Store.Read();
             Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
@@ -107,7 +107,7 @@ namespace KeePassGate.Tests
         public void Recreate_Delete_and_Create_on_one_dialog_retire_the_database_s_authority_and_write_the_new_one()
         {
             var live = new FakeGateDatabase();
-            var first = StoreSeeds.Authority(live.Store, live.Values);
+            var first = StoreSeeds.Authority(live.Store);
             var pending = new PendingDatabase(live, NullGateLog.Instance);
 
             Assert.That(Service(pending).Recreate().Succeeded, Is.True);
@@ -154,7 +154,7 @@ namespace KeePassGate.Tests
             // stands, between the Recreate and the Delete: whatever OK writes passes under the
             // store key the database holds.
             var live = new FakeGateDatabase();
-            var first = StoreSeeds.Authority(live.Store, live.Values);
+            var first = StoreSeeds.Authority(live.Store);
             var pending = new PendingDatabase(live, NullGateLog.Instance);
             Assert.That(Service(pending).Recreate().Succeeded, Is.True);
 
@@ -204,13 +204,12 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_write_refused_at_OK_takes_nothing_out_of_the_custom_data_and_names_what_was_not_written()
+        public void A_write_refused_at_OK_writes_nothing_and_names_what_was_not_written()
         {
             // As the writer refuses an OK that meets a save of the plugin's own.
             var live = new FakeGateDatabase();
-            var first = StoreSeeds.Authority(live.Store, live.Values);
-            string stale;
-            var client = Revoked(live, first, out stale);
+            var first = StoreSeeds.Authority(live.Store);
+            var client = Revoked(live, first, out _);
             var log = new RecordingGateLog();
             var pending = new PendingDatabase(live, log);
             Assert.That(Service(pending).Recreate().Succeeded, Is.True);
@@ -219,22 +218,21 @@ namespace KeePassGate.Tests
             Assert.That(pending.Apply(), Is.False);
 
             Assert.That(StoreAuthorities.Served(live.Store.Read()), Is.EqualTo(first));
-            Assert.That(live.Values.Get(AuthorityKeys.RevocationKey(client)), Is.Not.Null);
-            Assert.That(live.Values.Get(AuthorityKeys.ClientRecordKey(client)), Is.Empty, "the emptied record stays as it was");
+            Assert.That(live.Store.Read().InForce.Taken("revoked"), Does.Contain(client), "the revocation stays as it was");
             Assert.That(live.MarkedModifiedCount, Is.EqualTo(0));
             Assert.That(log.Warnings.Single().Message, Does.Contain("Recreate").And.Contain("part way through a save"));
             Assert.That(log.Errors, Is.Empty, "a refusal the operator's OK can meet is no defect");
         }
 
         [Test]
-        public void An_act_left_out_at_OK_takes_nothing_out_of_the_custom_data()
+        public void An_act_left_out_at_OK_leaves_the_revocation_refusing_a_copy_s_admission()
         {
             // Another authority arrives under the dialog, as a synchronize brings it, so the
             // Recreate's ground goes; once the operator keeps the first, the revocation still
-            // refuses the copy's record.
+            // refuses the admission a copy from before it brings back.
             var live = new FakeGateDatabase();
-            var first = StoreSeeds.Authority(live.Store, live.Values);
-            string stale;
+            var first = StoreSeeds.Authority(live.Store);
+            MemoryStore stale;
             var client = Revoked(live, first, out stale);
             var pending = new PendingDatabase(live, NullGateLog.Instance);
             Assert.That(Service(pending).Recreate().Succeeded, Is.True);
@@ -242,41 +240,90 @@ namespace KeePassGate.Tests
 
             pending.Apply();
             Assert.That(
-                new AuthorityService(live.Store, live.Values, NullGateLog.Instance).Keep(first, new[] { first, other }).Succeeded,
+                new AuthorityService(live.Store, NullGateLog.Instance).Keep(first, new[] { first, other }).Succeeded,
                 Is.True);
-            live.Values.Set(AuthorityKeys.ClientRecordKey(client), stale);
+            live.Records.MergeWithoutDeletions(stale);
 
             Assert.That(StoreAuthorities.Served(live.Store.Read()), Is.EqualTo(first));
-            Assert.That(live.Values.Get(AuthorityKeys.RevocationKey(client)), Is.Not.Null);
-            Assert.That(new AdmissionStore(live.Values, NullGateLog.Instance).Find(client), Is.Null);
+            Assert.That(live.Store.Read().InForce.Taken("revoked"), Does.Contain(client));
+            Assert.That(new Admissions(live).Find(client), Is.Null);
         }
 
         [Test]
         public void A_revocation_pressed_before_a_Recreate_left_out_at_OK_still_lands()
         {
             var live = new FakeGateDatabase();
-            var first = StoreSeeds.Authority(live.Store, live.Values);
+            var first = StoreSeeds.Authority(live.Store);
             var client = Admitted(live, first);
             var pending = new PendingDatabase(live, NullGateLog.Instance);
-            Assert.That(new AdmissionStore(pending.PluginCustomData, pending.LiveStore, NullGateLog.Instance).Remove(client), Is.True);
+            Assert.That(new Admissions(pending).Remove(client), Is.True);
             Assert.That(Service(pending).Recreate().Succeeded, Is.True);
             StoreSeeds.Retire(live.Store, first);
 
             pending.Apply();
 
-            Assert.That(live.Values.Get(AuthorityKeys.RevocationKey(client)), Is.Not.Null, "the Recreate was left out, and the revocation is the operator's own");
-            Assert.That(new AdmissionStore(live.Values, NullGateLog.Instance).Find(client), Is.Null);
+            Assert.That(live.Store.Read().InForce.Taken("revoked"), Does.Contain(client), "the Recreate was left out, and the revocation is the operator's own");
+            Assert.That(new Admissions(live).Find(client), Is.Null);
         }
 
         [Test]
-        public void An_act_written_at_OK_takes_every_admission_away_as_the_custom_data_stands_then()
+        public void A_revocation_held_for_OK_is_composed_under_the_key_the_store_holds_at_OK()
+        {
+            // The buffer holds the client to revoke, and the record is composed at OK against the
+            // store as it stands then: here a store started again under another key between the
+            // press and OK, under which the revocation is written.
+            var live = new FakeGateDatabase();
+            var first = StoreSeeds.Authority(live.Store);
+            var client = Admitted(live, first);
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            Assert.That(new Admissions(pending).Remove(client), Is.True);
+
+            foreach (var candidate in live.Records.Candidates.ToList())
+            {
+                live.Records.Drop(candidate.Hex);
+            }
+
+            StoreSeeds.Authority(live.Store);
+
+            Assert.That(pending.Apply(), Is.True);
+            Assert.That(live.Store.Read().InForce.Taken("revoked"), Does.Contain(client));
+        }
+
+        [Test]
+        public void A_revocation_held_while_the_store_lost_its_key_stays_as_pressed_and_writes_nothing()
+        {
+            // Composed at OK over a store that holds no key, the act is the act pressed,
+            // `AdmissionActs.Again`, under a key that no longer stands, and the plan leaves it out
+            // for that: OK writes nothing under it.
+            var live = new FakeGateDatabase();
+            var served = StoreSeeds.Authority(live.Store);
+            var client = Admitted(live, served);
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            Assert.That(new Admissions(pending).Remove(client), Is.True);
+            var pressed = ((PendingRecords)pending.Store).Acts.Single();
+
+            foreach (var candidate in live.Records.Candidates.ToList())
+            {
+                live.Records.Drop(candidate.Hex);
+            }
+
+            var offered = live.Records.Offered.Count;
+            Assert.That(pending.Apply(), Is.False);
+            Assert.That(live.Records.Offered.Skip(offered).Single(), Is.SameAs(pressed), "composed at OK over the store as it stands then");
+            Assert.That(log.Warnings.Single().Message, Does.Contain("composed under a store key that does not stand"));
+            Assert.That(live.Records.Candidates, Is.Empty, "no revocation under a key that no longer stands");
+        }
+
+        [Test]
+        public void An_act_written_at_OK_deletes_every_admission_of_the_authority_it_retires_as_the_store_stands_then()
         {
             var live = new FakeGateDatabase();
-            var first = StoreSeeds.Authority(live.Store, live.Values);
-            Revoked(live, first, out _);
+            var first = StoreSeeds.Authority(live.Store);
+            Admitted(live, first);
             var pending = new PendingDatabase(live, NullGateLog.Instance);
             Assert.That(Service(pending).Recreate().Succeeded, Is.True);
-            Assert.That(new AdmissionStore(pending.PluginCustomData, NullGateLog.Instance).All().Records, Is.Empty, "the page reads them gone");
+            Assert.That(new Admissions(pending).All().Records, Is.Empty, "the page reads them gone");
 
             // A client admitted under the dialog, as a pairing lands while it is open.
             var later = Admitted(live, first);
@@ -284,11 +331,9 @@ namespace KeePassGate.Tests
             Assert.That(pending.Apply(), Is.True);
 
             Assert.That(StoreAuthorities.Served(live.Store.Read()), Is.Not.EqualTo(first));
-            Assert.That(
-                live.Values.Keys.Where(key => AuthorityKeys.IsClientRecord(key) || AuthorityKeys.IsRevocation(key) || AuthorityKeys.IsRenewalRefusal(key)),
-                Is.Empty,
-                "every record, revocation and standing answer went, the record landed under the dialog among them");
-            Assert.That(live.Values.Get(AuthorityKeys.ClientRecordKey(later)), Is.Null);
+            Assert.That(live.Store.Read().InForce.Admissions, Is.Empty,
+                "every admission went, the admission landed under the dialog among them");
+            Assert.That(new Admissions(live).Find(later), Is.Null);
         }
 
         [Test]
@@ -296,9 +341,8 @@ namespace KeePassGate.Tests
         {
             // As where the dialogs that would take a write back are not watched.
             var live = new FakeGateDatabase();
-            var first = StoreSeeds.Authority(live.Store, live.Values);
-            string stale;
-            var client = Revoked(live, first, out stale);
+            var first = StoreSeeds.Authority(live.Store);
+            var client = Revoked(live, first, out _);
             live.Records.Unwritable = "the dialogs that would take a write back could not be watched";
             var pending = new PendingDatabase(live, NullGateLog.Instance);
 
@@ -306,9 +350,9 @@ namespace KeePassGate.Tests
 
             Assert.That(recreated.Succeeded, Is.False);
             Assert.That(recreated.Message, Does.Contain("could not be watched"));
-            Assert.That(pending.StoreWaiting, Is.False, "nothing is held that OK could not write");
+            Assert.That(pending.AuthorityWaiting, Is.False, "nothing is held that OK could not write");
             Assert.That(pending.Apply(), Is.False);
-            Assert.That(live.Values.Get(AuthorityKeys.RevocationKey(client)), Is.Not.Null);
+            Assert.That(live.Store.Read().InForce.Taken("revoked"), Does.Contain(client));
             Assert.That(StoreAuthorities.Served(live.Store.Read()), Is.EqualTo(first));
         }
 
@@ -316,7 +360,7 @@ namespace KeePassGate.Tests
         public void Two_Recreates_on_the_same_dialog_leave_the_last_authority_and_retire_the_first_alone()
         {
             var live = new FakeGateDatabase();
-            var first = StoreSeeds.Authority(live.Store, live.Values);
+            var first = StoreSeeds.Authority(live.Store);
             var pending = new PendingDatabase(live, NullGateLog.Instance);
 
             Assert.That(Service(pending).Recreate().Succeeded, Is.True);
@@ -336,13 +380,13 @@ namespace KeePassGate.Tests
         public void An_act_whose_ground_went_under_the_dialog_is_left_out_at_OK_and_an_act_with_none_is_written()
         {
             var live = new FakeGateDatabase();
-            StoreSeeds.Authority(live.Store, live.Values);
+            StoreSeeds.Authority(live.Store);
             var pending = new PendingDatabase(live, NullGateLog.Instance);
             Assert.That(Service(pending).Recreate().Succeeded, Is.True);
 
             // The authority is deleted underneath the dialog, as another dialog's OK or a
             // synchronize leaves it.
-            Assert.That(new AuthorityService(live.Store, live.Values, NullGateLog.Instance).Delete().Succeeded, Is.True);
+            Assert.That(new AuthorityService(live.Store, NullGateLog.Instance).Delete().Succeeded, Is.True);
 
             // Beside the Recreate, an act that holds to no ground, as a revocation is.
             var key = (byte[])live.Store.Read().InForce.Key.Bytes.Clone();
@@ -360,10 +404,10 @@ namespace KeePassGate.Tests
         public void A_single_act_whose_ground_went_writes_nothing_at_OK_and_is_no_refusal_of_the_guard()
         {
             var live = new FakeGateDatabase();
-            StoreSeeds.Authority(live.Store, live.Values);
+            StoreSeeds.Authority(live.Store);
             var pending = new PendingDatabase(live, NullGateLog.Instance);
             Assert.That(Service(pending).Recreate().Succeeded, Is.True);
-            Assert.That(new AuthorityService(live.Store, live.Values, NullGateLog.Instance).Delete().Succeeded, Is.True);
+            Assert.That(new AuthorityService(live.Store, NullGateLog.Instance).Delete().Succeeded, Is.True);
             var before = live.Records.Writes;
 
             pending.Apply();
@@ -381,7 +425,7 @@ namespace KeePassGate.Tests
 
             pending.Discard();
 
-            Assert.That(pending.StoreWaiting, Is.False);
+            Assert.That(pending.AuthorityWaiting, Is.False);
             Assert.That(pending.Store.Read().State, Is.EqualTo(StoreState.None));
             pending.Apply();
             Assert.That(live.Records.Candidates, Is.Empty);
@@ -398,7 +442,7 @@ namespace KeePassGate.Tests
 
             Assert.That(created.Succeeded, Is.False);
             Assert.That(created.Message, Does.Contain("stopped"));
-            Assert.That(pending.StoreWaiting, Is.False);
+            Assert.That(pending.AuthorityWaiting, Is.False);
         }
 
         [Test]
@@ -413,12 +457,12 @@ namespace KeePassGate.Tests
             Assert.Catch<InvalidOperationException>(() => pending.Apply());
 
             Assert.That(held.Key(), Is.All.EqualTo((byte)0));
-            Assert.That(pending.StoreWaiting, Is.False);
+            Assert.That(pending.AuthorityWaiting, Is.False);
         }
 
         private static AuthorityService Service(PendingDatabase pending)
         {
-            return new AuthorityService(pending.Store, pending.PluginCustomData, NullGateLog.Instance);
+            return new AuthorityService(pending.Store, NullGateLog.Instance);
         }
 
         /// <summary>The name of each act the buffer holds, in the order it holds them.</summary>
@@ -452,21 +496,21 @@ namespace KeePassGate.Tests
         {
             using (var client = new AuthorityIssuer().IssueClient(StoreSeeds.KeyOf(live.Store, authority), "agent-fictitious", new[] { "reader" }).Read())
             {
-                new AdmissionStore(live.Values, NullGateLog.Instance).Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "reader" }));
+                StoreSeeds.Client(live.Store, AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "reader" }, authority).Members());
                 return CertificateDigest.Of(client);
             }
         }
 
         /// <summary>
         /// A client of this authority admitted and revoked in the live database, answering its
-        /// admission key and the record a copy synchronized before the revocation holds.
+        /// admission key and a copy of the store made before the revocation.
         /// </summary>
-        private static string Revoked(FakeGateDatabase live, string authority, out string stale)
+        private static string Revoked(FakeGateDatabase live, string authority, out MemoryStore stale)
         {
             var client = Admitted(live, authority);
-            stale = live.Values.Get(AuthorityKeys.ClientRecordKey(client));
-            Assert.That(new AdmissionStore(live.Values, live.Store, NullGateLog.Instance).Remove(client), Is.True);
-            Assert.That(live.Values.Get(AuthorityKeys.RevocationKey(client)), Is.Not.Null);
+            stale = live.Records.Copy();
+            StoreSeeds.Revoke(live.Store, client);
+            Assert.That(live.Store.Read().InForce.Taken("revoked"), Does.Contain(client));
             return client;
         }
     }

@@ -48,7 +48,7 @@ namespace KeePassGate.Tests
         public static void Issue()
         {
             _authorityStore = new MemoryStore();
-            var id = StoreSeeds.Authority(_authorityStore, new InMemoryKeyValueStore());
+            var id = StoreSeeds.Authority(_authorityStore);
             _authority = StoreSeeds.KeyOf(_authorityStore, id);
         }
 
@@ -242,7 +242,7 @@ namespace KeePassGate.Tests
             // would be wrong about the client the operator approved a moment ago.
             var database = Serving(new FakeGateDatabase());
             var profiles = new DatabaseProfiles(database, null);
-            var store = new AdmissionStore(database.PluginCustomData, null);
+            var store = new Admissions(database);
 
             Assert.That(Counted(profiles.Clients(), "ops"), Is.Zero);
 
@@ -263,14 +263,14 @@ namespace KeePassGate.Tests
             // warning about adding it back that left out only the expired ones.
             var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes() });
             var profiles = new DatabaseProfiles(database, null);
-            var store = new AdmissionStore(database.PluginCustomData, null);
+            var store = new Admissions(database);
 
             using (var elsewhere = TestAuthority.New())
             using (var foreign = elsewhere.IssueClient("agent-elsewhere", "ops"))
             using (var host = new AuthorityIssuer().IssueHost(_authority).Read())
             {
-                store.Write(AdmissionRecord.For(foreign, DateTimeOffset.UtcNow, new[] { "ops" }));
-                store.Write(AdmissionRecord.For(host, DateTimeOffset.UtcNow, new[] { "ops" }));
+                store.Write(AdmissionRecord.For(foreign, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
+                store.Write(AdmissionRecord.For(host, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
             }
 
             Assume.That(store.All().Records, Has.Count.EqualTo(2));
@@ -287,7 +287,7 @@ namespace KeePassGate.Tests
             var database = Serving(new FakeGateDatabase());
             var profiles = new DatabaseProfiles(database, null);
 
-            new AdmissionStore(database.PluginCustomData, null).Write(
+            new Admissions(database).Write(
                 Admitting("agent-one", "ops", "ops"));
 
             Assert.That(Counted(profiles.Clients(), "ops"), Is.EqualTo(1));
@@ -303,7 +303,7 @@ namespace KeePassGate.Tests
                 Nodes = new TestRuledNodes(new TestRuledNode("a group", "{\"ops\":[\"read\"]}"))
             });
             var profiles = new DatabaseProfiles(database, null);
-            var store = new AdmissionStore(database.PluginCustomData, null);
+            var store = new Admissions(database);
 
             profiles.Add("ops");
             var both = Admitting("old-agent", "ops", "reader");
@@ -332,7 +332,7 @@ namespace KeePassGate.Tests
                     new TestRuledNode("an entry", "{\"ops\":[\"list\"]}"))
             });
             var profiles = new DatabaseProfiles(database, null);
-            var store = new AdmissionStore(database.PluginCustomData, null);
+            var store = new Admissions(database);
 
             store.Write(Admitting("ci-runner", "ops"));
             store.Write(Admitting("agent-seven", "ops", "reader"));
@@ -351,7 +351,7 @@ namespace KeePassGate.Tests
             // twice in the warning about adding it back.
             var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes() });
             var profiles = new DatabaseProfiles(database, null);
-            var store = new AdmissionStore(database.PluginCustomData, null);
+            var store = new Admissions(database);
 
             foreach (var record in Renewed("agent-renewing", "ops"))
             {
@@ -373,7 +373,7 @@ namespace KeePassGate.Tests
             // count and two in the warning, each named with the start of its key.
             var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes() });
             var profiles = new DatabaseProfiles(database, null);
-            var store = new AdmissionStore(database.PluginCustomData, null);
+            var store = new Admissions(database);
 
             var first = Admitting("agent", "ops");
             store.Write(first);
@@ -384,7 +384,7 @@ namespace KeePassGate.Tests
                 second = CertificateDigest.Of(der);
                 store.Write(new AdmissionRecord(
                     second, "CN=agent", second, new DateTimeOffset(2026, 8, 16, 9, 0, 0, TimeSpan.Zero),
-                    new[] { "ops" }, der));
+                    new[] { "ops" }, der, InventedIssuer.Id));
             }
 
             var named = new[] { first.ClientKey, second }
@@ -403,7 +403,7 @@ namespace KeePassGate.Tests
             // prunes the record, so naming it said it would regain a name it never could.
             var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes() });
             var profiles = new DatabaseProfiles(database, null);
-            var store = new AdmissionStore(database.PluginCustomData, null);
+            var store = new Admissions(database);
 
             store.Write(Admitting("ci-runner", "ops"));
             store.Write(Expired("agent-gone", "ops"));
@@ -419,7 +419,7 @@ namespace KeePassGate.Tests
             // that client the moment the name is listed.
             var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes() });
             var profiles = new DatabaseProfiles(database, null);
-            new AdmissionStore(database.PluginCustomData, null).Write(Admitting("ci-runner", "ops"));
+            new Admissions(database).Write(Admitting("ci-runner", "ops"));
 
             Assert.That(profiles.Returning("ops"),
                 Is.EqualTo("One client still holds ops from before and will regain it: ci-runner."));
@@ -495,8 +495,8 @@ namespace KeePassGate.Tests
                 {
                     var admitted = new DateTimeOffset(2026, 8, 15 + i, 9, 0, 0, TimeSpan.Zero);
                     records[i] = i == 0
-                        ? AdmissionRecord.For(certificate, admitted, profiles)
-                        : AdmissionRecord.For(certificate, admitted, profiles, records[0].ClientKey);
+                        ? AdmissionRecord.For(certificate, admitted, profiles, InventedIssuer.Id)
+                        : AdmissionRecord.For(certificate, admitted, profiles, InventedIssuer.Id, records[0].ClientKey, records[0].AdmissionKey);
                 }
             }
 
@@ -509,7 +509,7 @@ namespace KeePassGate.Tests
             var now = DateTimeOffset.UtcNow;
             var der = Minted.Named("CN=" + subject).Lasting(now.AddDays(-30), now.AddDays(-1)).SelfSigned().CertificateDer;
             return new AdmissionRecord(
-                CertificateDigest.Of(der), "CN=" + subject, CertificateDigest.Of(der), now.AddDays(-30), profiles, der);
+                CertificateDigest.Of(der), "CN=" + subject, CertificateDigest.Of(der), now.AddDays(-30), profiles, der, InventedIssuer.Id);
         }
 
         private static AdmissionRecord Admitting(string subject, params string[] profiles)
@@ -530,7 +530,8 @@ namespace KeePassGate.Tests
                 CertificateDigest.Of(der),
                 new DateTimeOffset(2026, 8, 15, 9, 0, 0, TimeSpan.Zero),
                 profiles,
-                der);
+                der,
+                InventedIssuer.Id);
         }
     }
 }

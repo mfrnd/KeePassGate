@@ -1,0 +1,179 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using KeePassGate.Authority;
+using KeePassGate.Bridge;
+using KeePassGate.Store;
+using KeePassGate.Testing;
+using KeePassLib;
+
+namespace KeePassGate.Host.Tests
+{
+    /// <summary>
+    /// The admissions of a real database as a test arranges and reads them: written into its
+    /// store by the product's own acts and read as the gate reads them, the entries of the
+    /// plugin's group as KeePass holds them, and the standing answers in its custom data.
+    /// </summary>
+    /// <remarks>
+    /// An admission is written with the authority the store serves as its issuer where the store
+    /// serves an authority, as a pairing writes it, and as a key holder can write it where the
+    /// store serves none.
+    /// </remarks>
+    internal sealed class StoredAdmissions
+    {
+        /// <summary>
+        /// The `id` of an authority nobody holds, for an admission a test composes, which
+        /// <see cref="Write"/> writes under the authority served where the store serves an
+        /// authority.
+        /// </summary>
+        public static readonly string AnyIssuer = new string('a', 64);
+
+        private readonly PwDatabase _database;
+
+        public StoredAdmissions(PwDatabase database)
+        {
+            _database = database;
+        }
+
+        /// <summary>The database's store, read and written in place.</summary>
+        public KdbxStore Store
+        {
+            get { return new KdbxStore(_database, GateVersion.Current, null); }
+        }
+
+        /// <summary>The standing answers to a renewal, in the database's custom data.</summary>
+        public RenewalAnswers Answers
+        {
+            get { return new RenewalAnswers(new CustomDataStore(_database), null); }
+        }
+
+        /// <summary>The admission, under the authority served where the store serves any.</summary>
+        public void Write(AdmissionRecord record)
+        {
+            var served = StoreSeeds.Served(Store);
+            if (served == null)
+            {
+                StoreSeeds.Client(Store, record.Members());
+                return;
+            }
+
+            var members = record.Members().ToDictionary(member => member.Key, member => member.Value, StringComparer.Ordinal);
+            members[StoreKinds.Issuer] = served;
+            StoreSeeds.Admit(Store, AdmissionRecord.Read(null, members));
+        }
+
+        /// <summary>The admission of a certificate as the gate reads it, or null.</summary>
+        public AdmissionRecord Find(string admissionKey)
+        {
+            using (var reading = Store.Read())
+            {
+                return StoreAdmissions.Admitted(reading, admissionKey);
+            }
+        }
+
+        /// <summary>
+        /// Revokes the client a certificate is admitted for, answering whether it was.
+        /// </summary>
+        public bool Remove(string admissionKey)
+        {
+            var admission = Find(admissionKey);
+            if (admission == null)
+            {
+                return false;
+            }
+
+            StoreSeeds.Revoke(Store, admission.ClientKey);
+            return true;
+        }
+
+        /// <summary>The listing a page shows.</summary>
+        public AdmissionListing All()
+        {
+            return StoreSeeds.Listed(Store);
+        }
+
+        /// <summary>The entries of the plugin's group of this kind, in force or not.</summary>
+        public IReadOnlyList<PwEntry> Entries(string kind)
+        {
+            var group = Group();
+            return group == null
+                ? new List<PwEntry>()
+                : group.Entries.Where(entry => entry.Strings.ReadSafe("KPG.Kind") == kind).ToList();
+        }
+
+        /// <summary>
+        /// Whether the tree holds an entry of this kind whose content holds this text.
+        /// </summary>
+        public bool Holds(string kind, string text)
+        {
+            return Entries(kind).Any(entry => entry.Strings.ReadSafe("KPG.Data").Contains(text));
+        }
+
+        /// <summary>
+        /// Whether the tree holds an entry of this kind whose content holds this member with this
+        /// value.
+        /// </summary>
+        public bool Holds(string kind, string member, string value)
+        {
+            return Entries(kind).Any(entry => string.Equals(
+                (string)Newtonsoft.Json.Linq.JObject.Parse(entry.Strings.ReadSafe("KPG.Data"))[member], value, StringComparison.Ordinal));
+        }
+
+        /// <summary>
+        /// The store as the tree holds it: every entry of the plugin's group with the size of its
+        /// history and its strings, and every deletion record, so that a write taken back out can
+        /// be compared whole.
+        /// </summary>
+        public string Snapshot()
+        {
+            var text = new StringBuilder();
+            var group = Group();
+            if (group != null)
+            {
+                foreach (var entry in group.Entries.OrderBy(entry => entry.Uuid.ToHexString(), StringComparer.Ordinal))
+                {
+                    text.Append(entry.Uuid.ToHexString()).Append(' ').Append(entry.History.UCount).AppendLine();
+                    foreach (var pair in entry.Strings.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+                    {
+                        text.Append("  ").Append(pair.Key).Append('=').Append(pair.Value.ReadString()).AppendLine();
+                    }
+                }
+            }
+
+            foreach (var deleted in _database.DeletedObjects.OrderBy(deleted => deleted.Uuid.ToHexString(), StringComparer.Ordinal))
+            {
+                text.Append("deleted ").Append(deleted.Uuid.ToHexString()).AppendLine();
+            }
+
+            return text.ToString();
+        }
+
+        /// <summary>
+        /// This admission written, its client revoked, and the admission put back in the tree
+        /// beside the revocation with no deletion record naming it, as a merge from a copy that
+        /// touched it later leaves it.
+        /// </summary>
+        public void BackBesideItsRevocation(AdmissionRecord record)
+        {
+            Write(record);
+
+            var entry = Entries(StoreKinds.Client).Single(found => found.Strings.ReadSafe("KPG.Data").Contains(record.AdmissionKey));
+            var group = entry.ParentGroup;
+            var copy = entry.CloneDeep();
+            if (!Remove(record.AdmissionKey) || Holds(StoreKinds.Client, record.AdmissionKey))
+            {
+                throw new InvalidOperationException("The revocation did not delete the admission it refuses.");
+            }
+
+            group.AddEntry(copy, true);
+            var deleted = _database.DeletedObjects.Single(found => found.Uuid.Equals(copy.Uuid));
+            _database.DeletedObjects.Remove(deleted);
+        }
+
+        private PwGroup Group()
+        {
+            return _database.RootGroup.Groups.SingleOrDefault(found => StoreFormat.IsGroupIdentifier(found.Uuid.UuidBytes));
+        }
+    }
+}

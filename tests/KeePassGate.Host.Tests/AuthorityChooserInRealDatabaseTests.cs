@@ -937,7 +937,7 @@ namespace KeePassGate.Host.Tests
         private static string[] Undecided(TemporaryDatabase database)
         {
             return StoreSeeds.Undecided(
-                new KdbxStore(database.Database, GateVersion.Current, null), new CustomDataStore(database.Database));
+                new KdbxStore(database.Database, GateVersion.Current, null));
         }
 
         /// <summary>

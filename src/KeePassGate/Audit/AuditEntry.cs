@@ -19,15 +19,16 @@ namespace KeePassGate.Audit
     /// to anybody else.
     ///
     /// **Both keys, under the names `/gate/whoami` answers them by**, so that one word means one
-    /// thing wherever it is read. `admissionKey` is the certificate on the connection, or the one a
-    /// revocation took away, which is what the Clients page revokes and a renewal changes.
-    /// `clientKey` is the client it belongs to, the admission key of the certificate it paired
-    /// with, which every one of its records carries and a renewal keeps, so every line a client
-    /// ever caused is found under one value however often it renewed. Taken from the admission
-    /// record the request already read, never read again for the line; the operator's revocation,
-    /// which no request asked for, takes it from the record the revocation empties, read once as
-    /// the dialog's OK applies it. Null wherever no record stands behind the line: a pairing
-    /// nobody approved, and a certificate refused before or without one.
+    /// thing wherever it is read. `admissionKey` is the certificate on the connection, or a
+    /// certificate the operator's revocation ended, and a renewal changes it. `clientKey` is the
+    /// client it belongs to, the admission key of the certificate it paired with, which every one
+    /// of its admissions carries and a renewal keeps, so every line a client ever caused is found
+    /// under one value however often it renewed. Taken from the admission the request already
+    /// read, never read again for the line; the operator's revocation, which no request asked for,
+    /// names the client key it revokes, beside each certificate of that client the copy admitted,
+    /// read from the store once before the dialog's OK is applied. Null wherever no admission
+    /// stands behind the line: a pairing nobody approved, and a certificate refused before or
+    /// without an admission.
     ///
     /// The reason is a phrase this plugin chose from a fixed set, never text a caller sent. A log
     /// that echoed a request would be a log an attacker could write into.
@@ -198,26 +199,27 @@ namespace KeePassGate.Audit
         public string DatabaseId { get; private set; }
 
         /// <summary>
-        /// Which certificate the line is about, by admission key, so a revoked one stays
-        /// identifiable: the one that asked, or the one revoked. Null on a pairing. Written as
-        /// `admissionKey`.
+        /// Which certificate the line is about, by admission key, so a certificate refused since
+        /// stays identifiable: the certificate that asked, or a certificate the operator's
+        /// revocation ended. Null on a pairing, and on the operator's revocation of a client of
+        /// which the copy admitted no certificate, or whose store could not be read at the OK.
+        /// Written as `admissionKey`.
         /// </summary>
         public string AdmissionKey { get; private set; }
 
         /// <summary>
         /// Which client the line is about, by client key: the admission key of the certificate it
-        /// paired with, which its admission record carries and a renewal keeps. Written as
-        /// `clientKey`.
+        /// paired with, which its admission carries and a renewal keeps. Written as `clientKey`.
         /// </summary>
         /// <remarks>
         /// The issued key on an approved pairing, which is that client's first certificate. Null
-        /// where no admission record stands behind the line: a pairing refused or unanswered,
-        /// which admitted nobody, and a certificate refused for having no record, for not being
-        /// for client authentication or for being outside its dates. The last two are refused
-        /// before the record is read, and a revoked one's record is emptied, so naming a client
-        /// there would cost each such request a read of its own for a certificate that reaches
-        /// nothing. Its admission key is the one the Clients page revoked, which is the name the
-        /// operator has for it.
+        /// where no admission stands behind the line: a pairing refused or unanswered, which
+        /// admitted nobody, and a certificate refused for having no admission, for not being for
+        /// client authentication or for being outside its dates. The last two are refused before
+        /// the admission is read, and the admission of a certificate a decision refuses is deleted
+        /// by the next write, so naming a client there would cost each such request a read of its
+        /// own for a certificate that reaches nothing. Its admission key is the name the operator
+        /// has for it on the Clients page.
         /// </remarks>
         public string ClientKey { get; private set; }
 

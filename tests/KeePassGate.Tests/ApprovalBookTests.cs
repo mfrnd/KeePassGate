@@ -1,6 +1,13 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using KeePassGate.Acl;
+using KeePassGate.Authority;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
+using KeePassGate.Store;
+using KeePassGate.Testing;
+using KeePassGate.Tests.Fakes;
 using NUnit.Framework;
 
 namespace KeePassGate.Tests
@@ -178,6 +185,138 @@ namespace KeePassGate.Tests
             Assert.That(_book.Find("key", "db"), Is.SameAs(later));
         }
 
+        [Test]
+        public void A_renewal_is_written_only_while_the_admission_approved_against_is_in_force_and_reads()
+        {
+            // `STORE.md` §627: the admission a renewal renews is compared at the write by the
+            // identifier of its entry, read from the store in the write's own turn. A revocation
+            // and the certificate taken away are written here by the product's own acts, whose
+            // write deletes that entry; a second admission of the same certificate leaves it where
+            // it is and admits nobody. The test below keeps the entry beside each decision.
+            using (var certificate = Minted.Named("CN=agent-fictitious").SelfSigned().Read())
+            {
+                var key = CertificateDigest.Of(certificate);
+                var ways = new Dictionary<string, Action<MemoryStore, string>>
+                {
+                    { "in force", (store, served) => { } },
+                    { "revoked", (store, served) => StoreSeeds.Revoke(store, key) },
+                    { "taken away", (store, served) => StoreSeeds.TakeAway(store, key) },
+                    {
+                        "named by a second admission",
+                        (store, served) => StoreSeeds.Client(
+                            store, AdmissionRecord.For(certificate, _now, new[] { "ops" }, served).Members())
+                    },
+                };
+
+                foreach (var way in ways)
+                {
+                    var store = new MemoryStore();
+                    var served = StoreSeeds.Authority(store);
+                    var admission = StoreSeeds.Admit(store, certificate, _now, "ops");
+                    string entry;
+                    using (var reading = store.Read())
+                    {
+                        entry = StoreAdmissions.Admitted(reading, admission.AdmissionKey).Entry;
+                    }
+
+                    var held = Renewal(served, entry);
+                    way.Value(store, served);
+
+                    using (var reading = store.Read())
+                    {
+                        Assert.That(
+                            held.Stale(new Ground(reading), key),
+                            Is.EqualTo(way.Key == "in force" ? HeldStaleness.None : HeldStaleness.Unpaired),
+                            way.Key);
+                    }
+                }
+            }
+        }
+
+        [TestCase("revoked")]
+        [TestCase("withdrawn")]
+        public void A_renewal_is_stale_while_a_decision_refuses_the_admission_whose_entry_is_still_there(string kind)
+        {
+            // The admission's entry left in the tree beside a revocation of its client, or beside a
+            // statement taking its certificate away, as a copy that has not written since holds
+            // what a merge brought: present under the identifier approved against, and admitting
+            // nobody. Composed without a write, so that no plan deletes the entry.
+            using (var certificate = Minted.Named("CN=agent-fictitious").SelfSigned().Read())
+            {
+                var key = CertificateDigest.Of(certificate);
+                var store = new ComposedStore(StoreRecords.One);
+                var members = AdmissionRecord.For(certificate, _now, new[] { "ops" }, StoreRecords.Hex('a')).Members();
+                store.Add(StoreComposer.Record(
+                    StoreRecords.One, "client", "client:" + key, StoreComposer.Content(members.Select(member => (member.Key, member.Value)).ToArray())));
+                string entry;
+                using (var reading = store.Read())
+                {
+                    entry = StoreAdmissions.Admitted(reading, key).Entry;
+                }
+
+                var held = Renewal(StoreRecords.Hex('a'), entry);
+                var decision = kind == "revoked"
+                    ? StoreComposer.Record(StoreRecords.One, "revoked", "client:" + key, StoreComposer.Content(("client", key)))
+                    : StoreComposer.Record(
+                        StoreRecords.One, "withdrawn", "certificate:" + key, StoreComposer.Content(("certificate", key), ("renewed", string.Empty)));
+                store.Add(decision);
+                store.Restate(kind == "revoked"
+                    ? StoreComposer.Item(("client", key), ("kind", "revoked"))
+                    : StoreComposer.Item(
+                        ("certificate", key), ("id", KeePassGate.Hex.Of(decision.Identifier)), ("kind", "withdrawn"), ("renewed", string.Empty)));
+
+                using (var reading = store.Read())
+                {
+                    Assume.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                    Assume.That(
+                        reading.InForce.Admissions.Any(record => record.Hex == entry && record.InForce), Is.True,
+                        "the admission's entry is where it was");
+                    Assert.That(held.Stale(new Ground(reading), key), Is.EqualTo(HeldStaleness.Unpaired));
+                }
+            }
+        }
+
+        [Test]
+        public void A_renewal_cannot_be_held_without_the_entry_it_was_approved_against()
+        {
+            // Held without it, a renewal's approval would be compared as a pairing's, with no
+            // admission asked about at the write.
+            Assert.Throws<ArgumentException>(() => Renewal("db", null));
+            Assert.Throws<ArgumentException>(() => Renewal("db", string.Empty));
+            Assert.That(_book.Count, Is.Zero);
+        }
+
+        private HeldApproval Renewal(string databaseId, string entry)
+        {
+            return _book.HoldRenewal(
+                "renewal", databaseId, new[] { "ops" }, TimeSpan.FromDays(30), new[] { "ops" }, entry,
+                PairingClock.For(() => _now).Read().After(TimeSpan.FromMinutes(6)), _book.Mark(), null);
+        }
+
+        /// <summary>
+        /// What a write is held to, read from a store held in memory, with "ops" listed.
+        /// </summary>
+        private sealed class Ground : IWriteGround
+        {
+            private readonly StoreReading _reading;
+
+            public Ground(StoreReading reading)
+            {
+                _reading = reading;
+                var names = ProfileNames.Empty();
+                names.Add("ops");
+                Names = new InMemoryKeyValueStore();
+                Names.Set(ProfileNames.CustomDataKey, names.Write());
+            }
+
+            public IKeyValueStore Names { get; private set; }
+
+            public AdmissionRecord Admission(string admissionKey)
+            {
+                return StoreAdmissions.Admitted(_reading, admissionKey);
+            }
+        }
+
         private HeldApproval Hold(string key, string databaseId = "db")
         {
             return Hold(key, databaseId, _book.Mark());
@@ -186,7 +325,7 @@ namespace KeePassGate.Tests
         private HeldApproval Hold(string key, string databaseId, long mark)
         {
             return _book.Hold(
-                key, databaseId, new[] { "ops" }, TimeSpan.FromDays(30), new[] { "ops" }, null,
+                key, databaseId, new[] { "ops" }, TimeSpan.FromDays(30), new[] { "ops" },
                 PairingClock.For(() => _now).Read().After(TimeSpan.FromMinutes(6)), mark);
         }
     }

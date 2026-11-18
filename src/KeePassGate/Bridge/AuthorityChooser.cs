@@ -375,8 +375,7 @@ namespace KeePassGate.Bridge
             _asking.Remove(database);
 
             string served;
-            using (var reading = new AuthorityService(
-                       new KdbxStore(database, GateVersion.Current, _log), new CustomDataStore(database), _log).Read())
+            using (var reading = new AuthorityService(new KdbxStore(database, GateVersion.Current, _log), _log).Read())
             {
                 if (reading.Presence == AuthorityPresence.Undecided)
                 {
@@ -514,13 +513,11 @@ namespace KeePassGate.Bridge
         private string Choose(PwDatabase database, out IReadOnlyList<string> offered)
         {
             offered = null;
-            var store = new CustomDataStore(database);
             var authorities = new KdbxStore(database, GateVersion.Current, _log);
-
 
             AuthorityChoice choice;
             StoreReading stored;
-            using (var reading = new AuthorityService(authorities, store, _log).Read(out stored))
+            using (var reading = new AuthorityService(authorities, _log).Read(out stored))
             using (stored)
             {
                 // Asked only of a store that is whole: several store keys are a store to keep, and
@@ -531,8 +528,7 @@ namespace KeePassGate.Bridge
                     return null;
                 }
 
-                choice = AuthorityChoice.From(
-                    reading, new AdmissionStore(store, _log).All(), LastSeen, _log);
+                choice = AuthorityChoice.From(reading, StoreAdmissions.Listing(stored), LastSeen, _log);
             }
 
             offered = choice.Offered;

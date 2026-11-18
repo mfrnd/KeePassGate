@@ -21,7 +21,7 @@ namespace KeePassGate.Tests.Fakes
         public static FakeGateDatabase Database(string state)
         {
             var database = new FakeGateDatabase();
-            StoreSeeds.Authority(database.Store, database.Values);
+            StoreSeeds.Authority(database.Store);
 
             byte[] key;
             string head;

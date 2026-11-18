@@ -445,13 +445,13 @@ namespace KeePassGate.Pairing
             // written from the write's read and never from this thread's: a second read here
             // could miss the list as well, and dropped every profile it did not find, with a
             // warning blaming the operator.
-            return _held.Hold(
+            return _held.HoldRenewal(
                 approval,
                 target.DatabaseId,
                 profiles,
                 decision.Lifetime,
                 request.Profiles,
-                ApprovalBook.Digest(record.Save()),
+                record.Entry,
                 arrived.After(_options.ApprovalHeld),
                 mark,
                 request.Profiles.Concat(request.Dropped));
@@ -710,7 +710,7 @@ namespace KeePassGate.Pairing
 
             using (certificate)
             {
-                var record = AdmissionRecord.For(certificate, _clock.Now, profiles, clientKey);
+                var record = AdmissionRecord.For(certificate, _clock.Now, profiles, target.DatabaseId, clientKey, key);
 
                 // Written by the write, as pairing's is, once the new record has landed and before
                 // anything else hears of it. It waits for nothing there, on KeePass's own thread,
@@ -736,7 +736,7 @@ namespace KeePassGate.Pairing
 
                     taken = true;
                     var stale = held.Stale(ground, key);
-                    if (stale == HeldStaleness.Authority || stale == HeldStaleness.Unpaired)
+                    if (stale == HeldStaleness.Unpaired)
                     {
                         refused = "unpaired";
                         return "the record it renews went, or changed, after the operator answered";
@@ -787,10 +787,11 @@ namespace KeePassGate.Pairing
         /// <remarks>
         /// Busy keeps the approval held, as pairing's does. What the write's condition refused uses
         /// it up and is told for what it was: a lock or a close, the record gone, or the list no
-        /// longer what the operator approved against, which asks them again. A write that failed
-        /// once the approval was taken is pairing's `500 not recorded`: the operator's approval is
-        /// spent, nothing is handed over that the database does not know about, and the old
-        /// certificate still works.
+        /// longer what the operator approved against, which asks them again. An authority that is
+        /// no longer served, which the write's plan finds before the condition is asked, uses it up
+        /// as well and is told as a record that went. A write that failed once the approval was
+        /// taken is pairing's `500 not recorded`: the operator's approval is spent, nothing is
+        /// handed over that the database does not know about, and the old certificate still works.
         /// </remarks>
         private void Unwritten(
             IGateContext context, HeldApproval held, AdmissionWrite written, string refused, bool taken, string what)
@@ -804,6 +805,15 @@ namespace KeePassGate.Pairing
                 }
 
                 PairingHandler.Gone(context, held, what, _log);
+                return;
+            }
+
+            if (written.IsUnserved)
+            {
+                _held.Take(held);
+                _log.Warn(what + " was approved under an authority that is no longer the authority served, " +
+                          "so nothing was issued: " + written.Reason);
+                context.Respond(401, HttpResponse.ErrorBody("unpaired"));
                 return;
             }
 

@@ -81,16 +81,15 @@ namespace KeePassGate.Tests
         /// <summary>A chooser over two authorities, shown where nobody sees it.</summary>
         private static AuthorityChooserForm Shown()
         {
-            var values = new InMemoryKeyValueStore();
             var records = new MemoryStore();
-            var service = new AuthorityService(records, values, null);
-            StoreSeeds.Undecided(records, values);
+            var service = new AuthorityService(records, null);
+            StoreSeeds.Undecided(records);
 
             AuthorityChoice choice;
             using (var reading = service.Read())
             {
                 Assume.That(reading.Presence, Is.EqualTo(AuthorityPresence.Undecided));
-                choice = AuthorityChoice.From(reading, new AdmissionStore(values, null).All(), null, null);
+                choice = AuthorityChoice.From(reading, StoreSeeds.Listed(records), null, null);
             }
 
             var dialog = new AuthorityChooserForm(choice, null)

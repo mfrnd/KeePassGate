@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
@@ -101,7 +102,7 @@ namespace KeePassGate.Host.Tests
             _database.SaveCloseAndReopen();
 
             var store = new KdbxStore(_database.Database, GateVersion.Current, null);
-            var afterReopening = new AuthorityService(store, new CustomDataStore(_database.Database), NullGateLog.Instance);
+            var afterReopening = new AuthorityService(store, NullGateLog.Instance);
             using (var reading = afterReopening.Read())
             {
                 Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.None));
@@ -112,29 +113,36 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void Deleting_takes_the_revocations_out_of_the_file()
+        public void Deleting_deletes_the_admissions_of_the_authority_it_retires_from_the_file_and_keeps_every_revocation()
         {
+            // `STORE.md` §615 and §627: the write that retires an authority deletes the admissions
+            // it issued, with deletion records, and a revocation is never taken away.
             _service.Create();
 
-            string admissionKey;
+            var admissions = new StoredAdmissions(_database.Database);
+            var keys = new List<string>();
             using (var reading = _service.Read())
-            using (var client = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read())
             {
-                var admissions = new AdmissionStore(new CustomDataStore(_database.Database), NullGateLog.Instance);
-                var record = AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" });
-                admissions.Write(record);
-                Assume.That(admissions.Remove(record.AdmissionKey), Is.True);
-                admissionKey = record.AdmissionKey;
+                foreach (var name in new[] { "agent-fictitious", "agent-revoked-fictitious" })
+                {
+                    using (var client = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, name, new[] { "ops" }).Read())
+                    {
+                        var record = AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer);
+                        admissions.Write(record);
+                        keys.Add(record.AdmissionKey);
+                    }
+                }
             }
 
+            Assume.That(admissions.Remove(keys[1]), Is.True);
             _database.Save();
-            Assume.That(_database.Database.CustomData.Exists(AuthorityKeys.RevocationKey(admissionKey)), Is.True);
 
             Assume.That(_service.Delete().Succeeded, Is.True);
             _database.SaveCloseAndReopen();
 
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RevocationKey(admissionKey)), Is.False);
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.ClientRecordKey(admissionKey)), Is.False);
+            var afterwards = new StoredAdmissions(_database.Database);
+            Assert.That(keys.Where(key => afterwards.Holds(StoreKinds.Client, key)), Is.Empty);
+            Assert.That(afterwards.Entries(StoreKinds.Revoked), Has.Count.EqualTo(1), "the revocation stays");
         }
 
         [Test]
@@ -142,7 +150,7 @@ namespace KeePassGate.Host.Tests
         {
             _service.Create();
 
-            Assert.That(_database.RootGroup.CustomData.Count(p => AuthorityKeys.IsOurs(p.Key)), Is.Zero,
+            Assert.That(_database.RootGroup.CustomData.Count(p => p.Key.StartsWith("KPG", StringComparison.Ordinal)), Is.Zero,
                 "The group dialog copies that dictionary and writes the copy back over anything put there.");
         }
 

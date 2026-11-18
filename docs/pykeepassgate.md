@@ -240,22 +240,25 @@ argument already written means.
 pykeepassgate revoke
 ```
 
-`revoke` asks the gate to revoke the certificate this client presents, and once the gate states the
-revocation is saved, removes what is stored for it, by pairing or the last renewal: the key, the
-certificate, the gate key and `client.json`, and the directory as well if that empties it. Nothing
-can use them afterwards, since the database refuses the certificate from the next connection on,
-and a private key kept for a certificate nobody accepts protects nothing. Pairing again is the way
-back, into the same place.
+`revoke` asks the gate to take away the certificate this client presents, that certificate and no
+other: a certificate renewed from it stays admitted, which is how `renew` lets go of the
+certificate it renewed from. Once the gate states that this is saved, `revoke` removes what is
+stored for the certificate, by pairing or the last renewal: the key, the certificate, the gate
+key and `client.json`, and the directory as well if that empties it. Nothing can use them
+afterwards, since the database refuses the certificate from the next connection on, and a
+private key kept for a certificate nobody accepts protects nothing. Pairing again is the way
+back, into the same place. Revoking a client on the Clients page is another act, the operator's:
+it refuses every certificate the client holds.
 
-When the gate does not confirm it, nothing is removed. `not saved` means the revocation was taken
+When the gate does not confirm it, nothing is removed. `not saved` means the change was taken
 back out and this client is still admitted, so running `revoke` again is safe. `not verified` means
-KeePass holds the revocation in memory and may not have it in the file, so the certificate is
+KeePass holds the change in memory and may not have it in the file, so the certificate is
 already refused, `status` states so, and what the file keeps is the operator's to settle.
 
 A certificate the gate already refuses counts as given up, since that is what `revoke` asks for:
-one the operator revoked on the Clients page, one an earlier `not verified` left refused, and one
-that has expired, which is not dialed at all. `revoke` then removes the files as well, states the
-gate already refused it, and exits 0.
+a certificate of a client the operator revoked on the Clients page, a certificate an earlier
+`not verified` left refused, and a certificate that has expired, which is not dialed at all.
+`revoke` then removes the files as well, states the gate already refused it, and exits 0.
 
 A file that will not go once the certificate is given up, such as a file held open on Windows,
 leaves the revocation standing: `revoke` prints what it gave up and the admission key all the
@@ -958,8 +961,10 @@ line `interrupted` and exit code 130, as a shell has it, and a reader that stops
 **Ctrl+C ends only this side of that wait.** The request still stands at KeePass, and approving it
 after the client has gone spends the invitation, or grants the renewal, all the same: the
 [clients page](clients.md) then lists a certificate this client never received. Ask the operator
-to refuse it instead, or to revoke that row once it is there; after `renew`, the certificate this
-client already holds goes on working.
+to refuse it instead. A pairing approved that way leaves a client on the list that the operator
+can revoke. After `renew`, the certificate this client already holds goes on working, and the
+certificate it never received is the first row of this client on the list: revoking there
+revokes the client with both.
 
 ## What to catch
 

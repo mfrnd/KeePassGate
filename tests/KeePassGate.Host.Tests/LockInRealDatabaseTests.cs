@@ -808,8 +808,8 @@ namespace KeePassGate.Host.Tests
                 var certificate = new AuthorityIssuer().IssueClient(
                     reading.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read();
 
-                new AdmissionStore(new CustomDataStore(_database.Database), _log)
-                    .Write(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" }));
+                new StoredAdmissions(_database.Database)
+                    .Write(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
 
                 _database.Save();
                 return certificate;

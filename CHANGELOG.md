@@ -20,14 +20,47 @@ none, since it releases both.
   database's custom data, and that is reversed rather than migrated: 0.3 reads nothing there about
   the authority and changes nothing there, so a database 0.2 paired shows no authority on the tab
   and is served nothing until **Create authority** and OK, from which it is served; a save puts the
-  authority in the file. Each program then pairs again. The admission records 0.2 wrote stay where
-  they were and admit nobody, since each certificate they admit chains to the authority 0.2 made. A
+  authority in the file. Each program then pairs again. The admission records and the revocations
+  0.2 wrote stay where they were, are read by nothing, and admit and refuse nobody. A
   database whose store holds no key is served nothing, but for `503 lost` below. An edit to what the
   plugin wrote in an entry of the store is undone at the plugin's next write into the store, with
   the edit kept in the entry's history; in a database that keeps no history such an edit stops the
   store, and a title or notes changed on such an entry are not put back. **Keep this authority** is
   refused while KeePass's entry dialog is open on an entry the choice would delete or put back,
   since that dialog's OK writes its own copy over it. `STORE.md` §614, §626, §627, §628 and §645.
+- **The X on the clients page revokes the client, with every certificate it holds.** The page
+  lists a client's certificates as a group of rows: the certificate admitted last carries the
+  client's name and the X, and each earlier certificate is indented under it as `earlier
+  certificate`, with no X. Pressing the X, or **Revoke** on that row's menu, takes every row of
+  the client away at OK. It used to take away the certificate of the row pressed and leave the
+  client's other certificates working. A revoked client is refused whatever a copy of the database
+  from before the revocation still holds, and wherever and whenever a certificate of that client
+  was issued, a certificate renewed on another machine before it learned of the revocation among
+  them; it pairs again, as a new client. The audit holds a `revoked` line for each certificate of
+  the client that the database held, and a single line with `admissionKey` as `null` where it held
+  none. The row's menu names the certificate of its row on its first line. `STORE.md` §615.
+- **An admission, a revocation and a certificate a program gives up are records in the plugin's
+  store**, entries of the group `KeePassGate`, as the authority is. A pairing and a renewal write
+  the admission there and save the database before the certificate is handed over, as before, and
+  KeePass's group tree and entry list are rebuilt once the write has landed, which puts the selected
+  group's entries in place of search results the operator was looking at. `DELETE
+  /gate/certificate`, `pykeepassgate revoke`, gives up the certificate it is called with and no
+  other, so a program's other certificates keep working, the certificate a renewal issued among
+  them, as before. A pairing, a renewal or a certificate given up is answered `503 busy` while
+  KeePass's entry dialog is open on an entry of the plugin's group that the write would delete or
+  put back, and while Database Maintenance is open, as before. Nothing a program is sent changes.
+  **A paired database is a KDBX 4.0 file until a profile is named.** A saved database that holds
+  an authority and a program paired for no profile is a 4.0 file, where the first program paired
+  used to make it a 4.1 file. A profile name still takes the file to 4.1, on the Profiles page or
+  by approving a program for a name the database does not hold yet, since the profile names are
+  kept in the database's custom data. `STORE.md` §612, §615, §626, §627 and §648.
+- **The row of an expired certificate stays on the clients page**, reading `expired`, until its
+  client is revoked or the authority is recreated or deleted. It used to go with the plugin's next
+  change to the database, on the clock of the computer that made the change. A standing answer to
+  a renewal of such a certificate stays with it. Nothing the plugin keeps about clients is removed
+  for its age, so the plugin's group grows with every pairing and renewal. A record of a client
+  that does not read is listed as `not counted`, and a certificate that more than one record
+  admits as `listed twice` on each of its rows; neither admits anybody. `STORE.md` §615 and §643.
 - **Breaking: a field whose name begins `KPG.` is out of every program's reach, on whichever
   entry it is.** A program that made fields of its own whose names begin with `KPG.` renames them
   before the upgrade, in KeePass or through the API under 0.2, since 0.3 neither serves nor

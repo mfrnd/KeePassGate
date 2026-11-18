@@ -235,7 +235,7 @@ namespace KeePassGate.Ui
 
             _service = database == null || !database.IsOpen
                 ? null
-                : new AuthorityService(database.Store, database.PluginCustomData, _log);
+                : new AuthorityService(database.Store, _log);
 
             Name = GateTab.PanelControlName;
             AccessibleName = GateTab.PanelAccessibleLabel;
@@ -523,32 +523,26 @@ namespace KeePassGate.Ui
             });
         }
 
-        /// <summary>Deletes it, asking first. Nothing happens if the answer is no.</summary>
-        /// <remarks>
-        /// **Asked in the words of what there is to delete.** Delete is offered with no authority
-        /// at all when admission records outlived it, and the question written for a live
-        /// authority then told the operator that deleting stops the database being served and
-        /// that its clients would pair again, beside a page calling those records inert.
-        /// </remarks>
+        /// <summary>
+        /// Deletes it, asking first. Nothing happens if the answer is no, or where no authority
+        /// stands to be deleted, where the page offers no Delete.
+        /// </summary>
         public void DeleteAuthority()
         {
             Act(() =>
             {
-                bool held;
                 using (var reading = _service.Read())
                 {
-                    held = reading.Presence != AuthorityPresence.None;
+                    if (reading.Presence == AuthorityPresence.None)
+                    {
+                        return null;
+                    }
                 }
 
-                var question = held
-                    ? "Deleting the authority stops this database being served at all." +
-                      Environment.NewLine + Environment.NewLine +
-                      Cost(CountRecords()) + Environment.NewLine + Environment.NewLine +
-                      "Delete it?"
-                    : "Deleting takes away the admission records left without an authority. They " +
-                      "admit nobody, and nothing is served now, so nothing else changes." +
-                      Environment.NewLine + Environment.NewLine +
-                      "Delete them?";
+                var question = "Deleting the authority stops this database being served at all." +
+                               Environment.NewLine + Environment.NewLine +
+                               Cost(CountRecords()) + Environment.NewLine + Environment.NewLine +
+                               "Delete it?";
 
                 if (!_prompt.Confirm("Delete the authority", question))
                 {
@@ -589,7 +583,7 @@ namespace KeePassGate.Ui
                     var audit = AuditPath == null ? null : AuditPath();
                     choice = AuthorityChoice.From(
                         reading,
-                        new AdmissionStore(_database.PluginCustomData, _log).All(),
+                        AdmittedClients(),
                         audit == null
                             ? (Func<ICollection<string>, IDictionary<string, DateTimeOffset>>)null
                             : clients => JsonLinesAudit.LastSeen(audit, clients),
@@ -776,7 +770,7 @@ namespace KeePassGate.Ui
                 // who can reach the database is nobody, as the listing that could not be made.
                 var admitted = reading != null && stored == null
                     ? new AdmissionListing(Array.Empty<AdmissionRecord>(), false)
-                    : AdmittedClients();
+                    : stored == null ? AdmittedClients() : StoreAdmissions.Listing(stored);
                 var reaches = Reaches(admitted, reading, DateTimeOffset.UtcNow);
 
                 DescribeAuthority(reading, stored, admitted, reaches);
@@ -878,6 +872,9 @@ namespace KeePassGate.Ui
             // is what it deserves.
             try
             {
+                // No command on the store where nothing is written into it in the session, as the
+                // first page turns its buttons off, `STORE.md` §636.
+                _clients.Writable = _database == null || !_database.IsOpen || _database.Store.Unwritable == null;
                 _clients.Fill(admitted, reaches, NamedProfiles(), StandingAnswers(admitted, DateTimeOffset.UtcNow));
 
                 // The profiles page only while it is the page in front. It counts every rule in the
@@ -1015,7 +1012,7 @@ namespace KeePassGate.Ui
                     return false;
                 }
 
-                return pending.StoreWaiting;
+                return pending.AuthorityWaiting;
             }
         }
 
@@ -1775,16 +1772,16 @@ namespace KeePassGate.Ui
         /// `ClientReaches` as the clients page judges its rows.
         /// </summary>
         /// <remarks>
-        /// A client that renewed holds two records until it gives the older up, and was counted
-        /// as two clients that would have to pair again; two programs that paired under one name
-        /// are two clients, and counted by name were one. A listing that could not be made falls
-        /// back to counting the stored records, which says at least how many keys go.
+        /// A client that renewed holds two admissions until it gives the older certificate up, and
+        /// was counted as two clients that would have to pair again; two programs that paired
+        /// under one name are two clients, and counted by name were a single client. A store that
+        /// cannot be judged lists nobody, and so counts nobody.
         ///
-        /// This reads every record and the whole authority to get one integer, which parses both
-        /// stored PKCS#12 blobs and asks the anchor pin about every record. Caching it from the last `Describe` was tried and reverted: a panel can be
-        /// asked to confirm before it has ever described itself, and the number would then be zero
-        /// in a sentence telling the operator what they are about to lose. A wrong count there is
-        /// worse than a slow one.
+        /// This reads every admission and the whole authority to get one integer, which parses
+        /// both stored PKCS#12 blobs and asks the anchor pin about every admission. Caching it from
+        /// the last `Describe` was tried and reverted: a panel can be asked to confirm before it
+        /// has ever described itself, and the number would then be zero in a sentence telling the
+        /// operator what they are about to lose. A wrong count there is worse than a slow count.
         ///
         /// **It is not cheap, and this remark used to say it was**: a quarter of a millisecond,
         /// counting the two imports alone, while Windows imported the blobs. Measured whole, a
@@ -1800,11 +1797,6 @@ namespace KeePassGate.Ui
 
             using (var reading = _service.Read())
             {
-                if (!admitted.Complete)
-                {
-                    return reading.ClientRecordCount;
-                }
-
                 // The clients that get in, judged as the clients page judges its rows: a record
                 // the gate refuses, of another authority, not for client use, not yet valid or
                 // expired, loses nothing to a recreate, and neither does a record that will not
@@ -1860,12 +1852,12 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// What the list revokes through: the revocation is added, and the tab is read again so the
+        /// What the list revokes through: the revocation is held, and the tab is read again so the
         /// count on the authority page stops naming a client that is no longer admitted.
         /// </summary>
-        private string RevokeAndDescribe(string admissionKey)
+        private string RevokeAndDescribe(string clientKey)
         {
-            var refused = Revoke(admissionKey);
+            var refused = Revoke(clientKey);
             if (refused == null)
             {
                 Describe();
@@ -1915,7 +1907,7 @@ namespace KeePassGate.Ui
 
             try
             {
-                var store = new AdmissionStore(_database.PluginCustomData, NullGateLog.Instance);
+                var store = new RenewalAnswers(_database.PluginCustomData, NullGateLog.Instance);
                 foreach (var record in admitted.Records)
                 {
                     var standing = store.StandingRefusal(record.AdmissionKey);
@@ -1972,7 +1964,7 @@ namespace KeePassGate.Ui
             bool stored;
             try
             {
-                stored = new AdmissionStore(_database.PluginCustomData, _log).LiftRenewalRefusal(admissionKey);
+                stored = new RenewalAnswers(_database.PluginCustomData, _log).LiftRenewalRefusal(admissionKey);
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
@@ -1997,38 +1989,8 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Takes away a value stored under the record prefix with no certificate digest after it,
-        /// which the listing names as an unreadable record with an empty key.
-        /// </summary>
-        /// <remarks>
-        /// Only a file written by hand or by another program holds one. It admits nobody, and the
-        /// clients page lists it with an X like any record that will not read, which promised to
-        /// take it away and could not: there is no certificate to revoke, so the key itself goes,
-        /// with no revocation beside it, since a revocation names a certificate.
-        /// </remarks>
-        private string TakeTheBareRecord()
-        {
-            try
-            {
-                var store = _database.PluginCustomData;
-                if (store.Get(AuthorityKeys.ClientPrefix) == null)
-                {
-                    return "there is no client to revoke";
-                }
-
-                store.Remove(AuthorityKeys.ClientPrefix);
-                _database.MarkModified();
-                return null;
-            }
-            catch (Exception error) when (Expected.OfCustomData(error))
-            {
-                _log.Error("a record with no certificate could not be removed", error);
-                return error.Message;
-            }
-        }
-
-        /// <summary>
-        /// Every client this database has admitted, newest first.
+        /// Every client this database's store admits, newest first, read through what the dialog
+        /// holds, so that a client revoked on the page and waiting for OK is already gone from it.
         /// </summary>
         /// <remarks>
         /// Public, and separate from the list that shows it, because what the operator is shown is
@@ -2045,14 +2007,10 @@ namespace KeePassGate.Ui
 
             try
             {
-                var found = new AdmissionStore(_database.PluginCustomData, _log).All();
-                var ordered = new List<AdmissionRecord>(found.Records);
-                ordered.Sort((left, right) => right.Admitted.CompareTo(left.Admitted));
-
-                // Sorting does not make an incomplete listing complete, so the answer is
-                // carried through rather than re-decided here, and so are the records that will
-                // not read, which the clients page lists after the rest.
-                return new AdmissionListing(ordered, found.Unreadable, found.CameBack, found.Complete);
+                using (var reading = _database.Store.Read())
+                {
+                    return StoreAdmissions.Listing(reading);
+                }
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
@@ -2202,7 +2160,8 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Take a client's admission away, answering with why it could not or null when it did.
+        /// Revoke a client, every certificate it holds, answering with why it could not or null
+        /// when it did, `STORE.md` §615.
         /// </summary>
         /// <remarks>
         /// **This waits the way every other button on this tab waits**, which is to say it goes
@@ -2211,22 +2170,23 @@ namespace KeePassGate.Ui
         /// differently from the rest, and the one that loses a disagreement like that is always the
         /// one somebody assumed.
         ///
-        /// **The cost of that is worth naming.** Revocation was immediate, and immediacy is
-        /// something a security control would rather have: an operator who takes a client's
-        /// admission away and then leaves the dialog open has taken nothing away. What it buys is
-        /// one model for the whole tab, and a Cancel that means Cancel.
+        /// **The cost of that is worth naming.** Immediacy is something a security control would
+        /// rather have: an operator who revokes a client and then leaves the dialog open has taken
+        /// nothing away. What it buys is one model for the whole tab, and a Cancel that means
+        /// Cancel.
         ///
-        /// **Once accepted it takes effect at once, and saving is what keeps it**: a record is
+        /// **An act of the plugin's store**, a record of kind `revoked` holding the client key,
+        /// held by the dialog's buffer and composed again at OK against the store as it stands
+        /// then, `STORE.md` §627. It has no ground, so OK always writes it, and the pages read the
+        /// client's admissions as gone while it waits, since the plan deletes what it refuses.
+        ///
+        /// **Once accepted it takes effect at once, and saving is what keeps it**: the store is
         /// read from the live database on every connection, so the client is refused from the next
         /// request onwards without anything being told.
-        ///
-        /// **By admission key**, which is how every record is stored and the one thing a record
-        /// that will not read still has; the clients page lists those too, and this is how their X
-        /// takes them away.
         /// </remarks>
-        public string Revoke(string admissionKey)
+        public string Revoke(string clientKey)
         {
-            if (admissionKey == null)
+            if (!CertificateDigest.IsDigest(clientKey))
             {
                 return "there is no client to revoke";
             }
@@ -2236,62 +2196,52 @@ namespace KeePassGate.Ui
                 return "the database is not open";
             }
 
-            if (admissionKey.Length == 0)
-            {
-                return TakeTheBareRecord();
-            }
-
+            StoreAct act;
             try
             {
-                // Beside the plugin's store as the database holds it, which names the authority
-                // that issued the certificate and decides which revocations the prune riding on
-                // this takes away: an act waiting for OK may yet be left out there, so a page's
-                // reading of it is no ground for taking a revocation away.
-                var pending = _database as IPendingChanges;
-                var store = new AdmissionStore(
-                    _database.PluginCustomData, pending == null ? _database.Store : pending.LiveStore, _log);
-
-                // **The answer is not thrown away.** `AdmissionStore.Remove` reads the key back
-                // before it says yes, precisely because telling somebody a client is revoked when
-                // the write did not land is the one wrong answer here that nothing notices until
-                // that client connects again. A false can also mean the record was already gone,
-                // which is the operator's intent either way, so the two are told apart by looking.
-                //
-                // **On the tab this is the dialog's buffer**, where the read back finds what was
-                // just written and a write cannot fail, so the press itself is refused only for a
-                // database that has gone from under the dialog. Whether the revocation reached the
-                // database is decided when the dialog is accepted, and said in the log there. The
-                // read back and the catch below are for a panel handed a database of its own.
-                if (!store.Remove(admissionKey) && Holds(store, admissionKey))
+                using (var reading = _database.Store.Read())
                 {
-                    _log.Error("an admission record would not go away", null);
-                    return "the record is still in the database";
+                    act = AdmissionActs.Revoke(reading, clientKey);
                 }
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
-                _log.Error("an admission record could not be removed", error);
+                _log.Error("a revocation could not be composed", error);
                 return error.Message;
+            }
+
+            if (act == null)
+            {
+                return "the database holds no store to write a revocation into";
+            }
+
+            // **On the tab the store is the dialog's buffer**, which holds the act and writes it at
+            // OK; whether it reached the database is stated in the log there. A store that takes no
+            // write of the operator's in this session refuses it here, with nothing held.
+            // The act's copy of the store key is overwritten once the store is done with it, unless
+            // the store holds the act for the dialog's OK, which lets it go itself.
+            StoreWritten written = null;
+            try
+            {
+                written = _database.Store.Write(new[] { act });
+            }
+            finally
+            {
+                if (written == null || !written.Taken || !written.Waits)
+                {
+                    act.Forget();
+                }
+            }
+
+            if (!written.Taken)
+            {
+                return written.Reason;
             }
 
             // Nothing logged here either, for the same reason: `AuthorityPanelFactory` logs and
             // audits the revocation as the dialog's OK lands it.
             _database.MarkModified();
             return null;
-        }
-
-        /// <summary>
-        /// Whether a record is still stored under this key and not revoked, readable or not.
-        /// </summary>
-        /// <remarks>
-        /// Not `Find` alone, which answers null for a record that will not read: a removal of one of
-        /// those that did not land would be reported as one that did, and its row would go while
-        /// the record stayed.
-        /// </remarks>
-        private static bool Holds(AdmissionStore store, string admissionKey)
-        {
-            return store.Find(admissionKey) != null
-                   || store.All().Unreadable.Contains(admissionKey, StringComparer.Ordinal);
         }
 
         private void OnCopy(object sender, EventArgs e)

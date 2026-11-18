@@ -259,10 +259,12 @@ namespace KeePassGate.Pipeline
         /// Never paced: it is recorded from KeePass's own thread, and an operator cannot revoke
         /// faster than they can press a button and accept a dialog.
         /// </remarks>
-        /// <param name="clientKey">
-        /// The client key on the record the revocation empties, read before OK applied it, or null
-        /// when that record was gone or could not be read by then.
+        /// <param name="client">
+        /// The admission key of a certificate of the revoked client that the copy admitted, read
+        /// from the store before OK applied the revocation, or null where it admitted none or the
+        /// store could not be read then.
         /// </param>
+        /// <param name="clientKey">The client key the revocation names.</param>
         public void RevokedByOperator(string databaseId, string client, string clientKey)
         {
             _audit.Record(AuditEntry.Admission(

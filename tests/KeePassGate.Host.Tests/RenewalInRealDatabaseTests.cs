@@ -13,6 +13,7 @@ using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
+using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassGate.Transport;
 using KeePassGate.Ui;
@@ -78,7 +79,7 @@ namespace KeePassGate.Host.Tests
 
             _database.SaveCloseAndReopen();
 
-            var standing = new AdmissionStore(new CustomDataStore(_database.Database), null).StandingRefusal(Key);
+            var standing = new StoredAdmissions(_database.Database).Answers.StandingRefusal(Key);
             Assert.That(standing, Is.Not.Null);
             Assert.That(standing.IsForever, Is.True);
         }
@@ -109,7 +110,7 @@ namespace KeePassGate.Host.Tests
             Assert.That(result.Ok, Is.True, result.Reason);
             _database.SaveCloseAndReopen();
 
-            var standing = new AdmissionStore(new CustomDataStore(_database.Database), null).StandingRefusal(Key);
+            var standing = new StoredAdmissions(_database.Database).Answers.StandingRefusal(Key);
             Assert.That(standing.IsForever, Is.True);
         }
 
@@ -247,7 +248,7 @@ namespace KeePassGate.Host.Tests
             using (var renewal = new RealRenewal(this))
             {
                 renewal.BeforeTheWrite = () => Assume.That(
-                    new AdmissionStore(new CustomDataStore(_database.Database), null).Remove(renewal.Key), Is.True);
+                    new StoredAdmissions(_database.Database).Remove(renewal.Key), Is.True);
 
                 var context = renewal.Ask(RenewalApproval.Approved(new[] { "ops" }), null);
 
@@ -301,7 +302,7 @@ namespace KeePassGate.Host.Tests
 
                 _database.SaveCloseAndReopen();
                 Assert.That(
-                    new AdmissionStore(new CustomDataStore(_database.Database), null).StandingRefusal(renewal.Key),
+                    new StoredAdmissions(_database.Database).Answers.StandingRefusal(renewal.Key),
                     Is.Not.Null, "and it is in the file");
             }
         }
@@ -342,6 +343,72 @@ namespace KeePassGate.Host.Tests
 
                 Assert.That(renewal.Session.Owed(), Is.Empty);
                 Assert.That(renewal.Standing, Is.Null, "and nothing was written for a record that has gone");
+            }
+        }
+
+        [TestCase(StoreState.Stopped, TestName = "an owed answer is written into a stopped store holding the admission of its certificate")]
+        [TestCase(StoreState.Whole, TestName = "an owed answer is written where several authorities stand beside the admission of its certificate")]
+        public void An_owed_answer_is_written_while_a_record_in_force_names_its_certificate(StoreState state)
+        {
+            // Let go unwritten only where no record of kind `client` in force names its
+            // certificate, as the prune takes an answer away: an admission that admits nobody for
+            // now, in a store held back or under several authorities, is still the record the
+            // answer is about.
+            using (var renewal = new RealRenewal(this))
+            {
+                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
+                var store = new StoredAdmissions(_database.Database).Store;
+                if (state == StoreState.Stopped)
+                {
+                    StoreSeeds.Revoke(store, new string('e', 64));
+                    var head = _database.RootGroup.GetEntries(true).Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "head");
+                    head.ParentGroup.Entries.Remove(head);
+                    _database.Database.DeletedObjects.Add(new PwDeletedObject(head.Uuid, DateTime.UtcNow));
+                }
+                else
+                {
+                    StoreSeeds.Beside(store);
+                }
+
+                using (var reading = store.Read())
+                {
+                    Assume.That(reading.State, Is.EqualTo(state), reading.Reason);
+                    Assume.That(StoreAuthorities.Served(reading), Is.Null, "nothing is admitted for now");
+                }
+
+                var written = renewal.Writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
+                Assume.That(written.Ok, Is.True, written.Reason);
+
+                Assert.That(renewal.Standing, Is.Not.Null, "in the custom data after the save");
+                Assert.That(renewal.Standing.Refuses(DateTimeOffset.UtcNow), Is.True);
+                Assert.That(renewal.Session.Owed(), Is.Empty);
+            }
+        }
+
+        [Test]
+        public void A_renewal_whose_authority_is_recreated_before_its_write_is_answered_unpaired_with_nothing_written()
+        {
+            // A Recreate landing between the operator's answer and the write retires the authority
+            // the renewal was approved under. The write's plan leaves the admission out before
+            // anything is asked or spent, and the renewal is answered as a renewal whose record
+            // went: no retry under that authority can be written, so a `503` would invite a retry
+            // that cannot work.
+            using (var renewal = new RealRenewal(this))
+            {
+                string before = null;
+                renewal.BeforeTheWrite = () =>
+                {
+                    var recreated = DatabaseAuthority.Of(_database.Database, null).Recreate();
+                    Assume.That(recreated.Succeeded, Is.True, recreated.Message);
+                    before = new StoredAdmissions(_database.Database).Snapshot();
+                };
+
+                var context = renewal.Ask(RenewalApproval.Approved(new[] { "ops" }), null);
+
+                Assert.That(context.Status, Is.EqualTo(401), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("unpaired")));
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+                Assert.That(new StoredAdmissions(_database.Database).Snapshot(), Is.EqualTo(before));
             }
         }
 
@@ -584,7 +651,7 @@ namespace KeePassGate.Host.Tests
                 _target = _targets.Current().Single();
 
                 _client = new AuthorityIssuer().IssueClient(_target.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read();
-                var record = AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" });
+                var record = AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }, _target.DatabaseId);
                 Assume.That(writer.WriteAdmission(database, record).Ok, Is.True);
                 _key = record.AdmissionKey;
                 test._saves = 0;
@@ -621,12 +688,12 @@ namespace KeePassGate.Host.Tests
 
             public int Records
             {
-                get { return new AdmissionStore(new CustomDataStore(_test._database.Database), null).All().Records.Count; }
+                get { return new StoredAdmissions(_test._database.Database).All().Records.Count; }
             }
 
             public RenewalRefusal Standing
             {
-                get { return new AdmissionStore(new CustomDataStore(_test._database.Database), null).StandingRefusal(_key); }
+                get { return new StoredAdmissions(_test._database.Database).Answers.StandingRefusal(_key); }
             }
 
             public GateContext Ask(RenewalApproval answer, Action meanwhile)

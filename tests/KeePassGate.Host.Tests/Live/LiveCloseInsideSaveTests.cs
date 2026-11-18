@@ -101,7 +101,7 @@ namespace KeePassGate.Host.Tests.Live
 
             _pluginLog = keePass.ReadPluginLog();
             _audit = File.Exists(keePass.AuditPath) ? File.ReadAllText(keePass.AuditPath) : string.Empty;
-            _fileRevokes = keePass.ReadCustomData(AuthorityKeys.RevocationKey(admissionKey)) != null;
+            _fileRevokes = keePass.FileHolds(KeePassGate.Store.StoreKinds.Withdrawn, KeePassGate.Store.StoreKinds.Certificate, admissionKey);
             _fileAdmits = keePass.ReadAdmissions().Any(record => record.AdmissionKey == admissionKey);
 
             TestContext.Out.WriteLine("KeePass asked: " + _asked);

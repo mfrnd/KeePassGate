@@ -151,8 +151,7 @@ namespace KeePassGate.Tests
                            .SelfSigned()
                            .Read())
                 {
-                    record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" });
-                    new AdmissionStore(database.Values, null).Write(record);
+                    record = StoreSeeds.Admit(database.Store, certificate, DateTimeOffset.UtcNow, "ops");
                 }
 
                 panel.Describe();

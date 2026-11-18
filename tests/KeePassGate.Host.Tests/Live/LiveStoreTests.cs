@@ -41,17 +41,20 @@ namespace KeePassGate.Host.Tests.Live
             _session = LiveSession.Begin(true);
             var keePass = _session.KeePass;
 
-            keePass.ChangeTheStore(database =>
-            {
-                var head = database.RootGroup.GetEntries(true)
-                    .Single(entry => entry.Strings.ReadSafe(StoreFormat.KindField) == StoreKinds.Head);
-                head.ParentGroup.Entries.Remove(head);
-                database.DeletedObjects.Add(new PwDeletedObject(head.Uuid, DateTime.UtcNow));
-            });
-
             using (var admitted = keePass.IssueClientCertificate("agent-fictitious"))
             {
+                // Admitted while the store still reads, since an admission is a record of the
+                // store and names the authority served. The summary entry deleted afterwards is
+                // the entry the admission's write left.
                 keePass.Admit(admitted, "ops");
+
+                keePass.ChangeTheStore(database =>
+                {
+                    var head = database.RootGroup.GetEntries(true)
+                        .Single(entry => entry.Strings.ReadSafe(StoreFormat.KindField) == StoreKinds.Head);
+                    head.ParentGroup.Entries.Remove(head);
+                    database.DeletedObjects.Add(new PwDeletedObject(head.Uuid, DateTime.UtcNow));
+                });
 
                 var driver = KeePassDriver.Start(keePass);
                 LivePairingTests.WaitUntilServing(keePass, driver);

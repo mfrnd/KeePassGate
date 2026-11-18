@@ -169,7 +169,7 @@ namespace KeePassGate.Tests
 
                 var shown = operatorAt.LastRequest;
                 Assert.That(shown.Name, Is.EqualTo("agent-fictitious"));
-                Assert.That(shown.Profiles, Is.EqualTo(new[] { "reader", "ops" }));
+                Assert.That(shown.Profiles, Is.EqualTo(new[] { "ops", "reader" }));
                 Assert.That(shown.Dropped, Is.EqualTo(new[] { "retired" }),
                     "a name the database no longer holds is not offered, and the dialog says so");
                 Assert.That(shown.Expires, Is.EqualTo(new DateTimeOffset(old.NotAfter.ToUniversalTime(), TimeSpan.Zero)));
@@ -426,8 +426,8 @@ namespace KeePassGate.Tests
                 Assume.That(Renew(operatorAt, old, "{}").Status, Is.EqualTo(403));
 
                 var page = new FakeGateDatabase();
-                new AdmissionStore(page.PluginCustomData, _log)
-                    .Write(AdmissionRecord.For(old, _now, new[] { "reader" }));
+                StoreSeeds.Authority(page.Store);
+                StoreSeeds.Admit(page.Store, old, _now, "reader");
                 var factory = new KeePassGate.Ui.AuthorityPanelFactory(
                     new FakeDatabaseSource(page), new FakePrompt(true), _log, null, null, null,
                     new AdmissionAudit(NullGateAudit.Instance), _session);
@@ -836,15 +836,16 @@ namespace KeePassGate.Tests
         [TestCase("by the operator")]
         public void A_record_revoked_while_the_operator_was_deciding_is_found_before_anything_is_issued(string by)
         {
-            // The certificate's own revocation on another connection, which the dialog's message
-            // loop runs, or the operator's landing while the renewal waited its turn: the record
-            // the renewal was about is gone, so it is told what every connection will be told.
+            // The certificate given up on another connection, which the dialog's message loop
+            // runs, or the operator's revocation landing while the renewal waited its turn: the
+            // admission the renewal was about is refused, so it is told what every connection will
+            // be told.
             var operatorAt = FakeRenewalApproval.Approving();
 
             using (var old = _authority.IssueAdmittedClient("reader"))
             {
                 operatorAt.Meanwhile = by == "by the client"
-                    ? (Action)(() => Assume.That(_authority.Revoke(CertificateDigest.Of(old), null).Ok, Is.True))
+                    ? (Action)(() => Assume.That(_authority.GiveUp(CertificateDigest.Of(old), null).Ok, Is.True))
                     : () => Assume.That(_authority.Revoke(old), Is.True);
 
                 var before = _authority.Admitted;
@@ -877,6 +878,28 @@ namespace KeePassGate.Tests
                 Assert.That(context.Status, Is.EqualTo(401), context.Json);
                 Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("unpaired")));
                 Assert.That(_authority.Admitted, Is.Null, "nothing was written");
+                Assert.That(_audit.Entries.Where(entry => entry.OperationId == "renewCertificate"), Is.Empty);
+            }
+        }
+
+        [Test]
+        public void An_authority_recreated_under_the_write_is_answered_unpaired_and_lets_the_approval_go()
+        {
+            // The write's plan leaves the admission out before anything is asked or spent, and the
+            // answer is the answer for the authority the approval was given under going: no retry
+            // under it can be written, so a `503` would invite a retry that cannot work.
+            var operatorAt = FakeRenewalApproval.Approving();
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                _authority.BeforeWrite = () => _authority.Retired = true;
+
+                var context = Renew(operatorAt, old, "{}");
+
+                Assert.That(context.Status, Is.EqualTo(401), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("unpaired")));
+                Assert.That(_authority.Admitted, Is.Null, "nothing was written");
+                Assert.That(_held.Count, Is.Zero, "the approval is let go");
                 Assert.That(_audit.Entries.Where(entry => entry.OperationId == "renewCertificate"), Is.Empty);
             }
         }
@@ -1359,13 +1382,14 @@ namespace KeePassGate.Tests
             // a name nothing else accepts: an internal error, before anybody is asked.
             var operatorAt = FakeRenewalApproval.Approving();
 
-            using (var old = _authority.IssueAdmittedClient("reader"))
+            using (var old = _authority.IssueClient("agent-fictitious", "reader"))
             {
-                var key = CertificateDigest.Of(old);
-                var stored = _authority.Admission(key).Save();
-                Assume.That(stored, Does.Contain("subject=CN=agent-fictitious"));
-                var unnamed = stored.Replace("subject=CN=agent-fictitious", "subject=O=somebody");
-                _authority.Admit(AdmissionRecord.Load(key, unnamed), null, null);
+                var named = AdmissionRecord.For(old, _now, new[] { "reader" }, _authority.DatabaseId);
+                Assume.That(named.Subject, Is.EqualTo("CN=agent-fictitious"));
+                var members = named.Members().ToDictionary(member => member.Key, member => member.Value, StringComparer.Ordinal);
+                members["subject"] = "O=somebody";
+                var unnamed = AdmissionRecord.Read(null, members);
+                Assume.That(_authority.Admit(unnamed, null, null).Ok, Is.True);
 
                 var context = Renew(operatorAt, old, "{}");
 
@@ -1541,7 +1565,7 @@ namespace KeePassGate.Tests
             using (var certificate = issued.Read())
             {
                 Assert.That(certificate.Subject, Is.EqualTo("CN=" + name));
-                Assert.That(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "reader" }).Subject,
+                Assert.That(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "reader" }, _authority.DatabaseId).Subject,
                     Is.EqualTo("CN=" + name));
                 Assert.That(RenewalHandler.NameIn(certificate.Subject), Is.EqualTo(name));
             }

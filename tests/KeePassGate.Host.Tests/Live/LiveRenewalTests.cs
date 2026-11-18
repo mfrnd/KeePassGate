@@ -9,6 +9,7 @@ using KeePassGate.Authority;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
+using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassGate.Transport;
 using KeePassGate.Ui;
@@ -22,11 +23,12 @@ namespace KeePassGate.Host.Tests.Live
     /// route on the next connection, and the old one is refused once the client has given it up.
     /// </summary>
     /// <remarks>
-    /// The old record is left valid by the renewal on purpose, so the client revokes it itself,
-    /// as the reference client does, presenting the old certificate. What this establishes that
-    /// nothing smaller does: that the new record reaches KeePass's own save before the answer, that
-    /// the bundle it answers with is one a client can connect with, and that the file holds the new
-    /// record and not the old once KeePass has gone.
+    /// The old admission is left valid by the renewal on purpose, so the client gives the old
+    /// certificate up itself, as the reference client does, presenting it. What this establishes
+    /// that nothing smaller does: that the new admission reaches KeePass's own save before the
+    /// answer, that the bundle it answers with is one a client can connect with, and that once
+    /// KeePass has gone the file holds the new admission, a record of kind withdrawn that takes
+    /// the old certificate away and names the renewal, and no admission of the old certificate.
     ///
     /// **And a refusal chosen from the Refuse button's menu**, in KeePass's own modal loop, which
     /// is where a menu on a dialog either owns its clicks and its keys or does not. The new
@@ -80,8 +82,8 @@ namespace KeePassGate.Host.Tests.Live
                 _renewed = Approve(driver, keePass, old);
                 Assert.That(_renewed.Status, Is.EqualTo(200), _renewed.Failure ?? _renewed.Body);
 
-                // Read now, before the old certificate's revocation saves the whole database again
-                // and would carry a record whose own save was skipped into the file regardless.
+                // Read now, before giving the old certificate up saves the whole database again and
+                // would carry an admission whose own save was skipped into the file regardless.
                 _savedBeforeTheAnswer = keePass.ReadAdmissions().Select(record => record.AdmissionKey).ToArray();
 
                 using (var renewed = Identity(_renewed.Body))
@@ -168,6 +170,14 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(admitted, Has.No.Member(_oldKey));
             Assert.That(_savedBeforeTheAnswer, Has.Member(_newKey),
                 "the renewal's own save put the new record in the file before it answered");
+
+            var keePass = _session.KeePass;
+            Assert.That(keePass.FileHolds(StoreKinds.Withdrawn, StoreKinds.Certificate, _oldKey), Is.True,
+                "the old certificate is taken away by a record of its own");
+            Assert.That(keePass.FileHolds(StoreKinds.Withdrawn, StoreKinds.Renewed, _newKey), Is.True,
+                "which names the renewal the client had read");
+            Assert.That(keePass.FileHolds(StoreKinds.Client, StoreKinds.Certificate, _oldKey), Is.False,
+                "and the write deleted the old certificate's admission");
         }
 
         [Test]
@@ -326,12 +336,12 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>
         /// Lifts the answer standing on the newest row of the program, from the clients page, as an
         /// operator at the keyboard does, and accepts the settings dialog. Answers with what the
-        /// row's menu said.
+        /// row's menu showed.
         /// </summary>
         /// <remarks>
-        /// The newest row, because the list is newest first and the renewed certificate is the one
-        /// refused in this session; the menu's first line, stating that answer, is what proves the
-        /// menu was opened on it.
+        /// The newest row, because the list is newest first and the renewed certificate is the
+        /// certificate refused in this session; the menu's line stating that answer, under the line
+        /// naming the certificate, is what proves the menu was opened on it.
         /// </remarks>
         private static string AllowRenewalOnTheClientsPage(KeePassDriver driver)
         {

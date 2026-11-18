@@ -1181,13 +1181,19 @@ namespace KeePassGate.Tests
         [Test]
         public void An_authority_recreated_under_the_write_admits_nobody()
         {
+            // The write's plan leaves the admission out before anything is asked or spent, and the
+            // answer is the answer for the authority the invitation was made under going: no retry
+            // under it can be written, so a `503` would invite a retry that cannot work.
             _target.BeforeWrite = () => _target.Retired = true;
             Hello(ClientProof());
 
             var context = Request("agent-fictitious", Array.Empty<string>(), Approving());
 
-            Assert.That(context.Status, Is.EqualTo(409));
+            Assert.That(context.Status, Is.EqualTo(409), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("no invitation")));
             Assert.That(_target.Admitted, Is.Null);
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "the invitation is not spent");
+            Assert.That(_held.Count, Is.Zero, "the approval is let go");
         }
 
         [Test]

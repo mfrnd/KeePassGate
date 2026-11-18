@@ -88,7 +88,7 @@ namespace KeePassGate.Tests.Gallery
             // And a listing that could not be made at all, which is the state this page is
             // easiest to get wrong: the same empty grid as a database that has admitted
             // nobody, under a sentence that must not say so.
-            using (var list = new ClientList(key => null))
+            using (var list = new ClientList(key => null, key => null))
             {
                 list.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), false), null, null);
                 Gallery.Shot(list, Gallery.SettingsPage, "clients-09-an-unreadable-listing");
@@ -97,7 +97,7 @@ namespace KeePassGate.Tests.Gallery
             // A record this database's authority did not issue, beside one it did. The column
             // that answers with a date answers with a phrase instead, which is the one place on
             // this page where a cell changes shape rather than value.
-            using (var list = new ClientList(key => null))
+            using (var list = new ClientList(key => null, key => null))
             {
                 var stranger = Client("agent-from-a-replaced-authority", "reader");
 
@@ -112,7 +112,7 @@ namespace KeePassGate.Tests.Gallery
             // A client holding a profile the database has since removed, beside the one it still
             // names. The removed one is marked and dimmed in its line, which is the one cell here
             // drawn a line at a time.
-            using (var list = new ClientList(key => null))
+            using (var list = new ClientList(key => null, key => null))
             {
                 list.Fill(
                     Listing(Client("agent-invented", "reader", "ops"), Client("agent-other", "ops")),
@@ -122,23 +122,23 @@ namespace KeePassGate.Tests.Gallery
                 Gallery.Shot(list, Gallery.SettingsPage, "clients-11-a-removed-profile");
             }
 
-            // Revoked clients a merge brought back, which are not rows: a line of their own under
-            // the list, and the band that makes it, until the next write takes the records away.
-            using (var list = new ClientList(key => null))
+            // Removed clients a merge brought back, which are not rows: a line of their own under
+            // the list, and the band that makes it, until the next write deletes the admissions.
+            using (var list = new ClientList(key => null, key => null))
             {
-                list.Fill(new AdmissionListing(new[] { Client("agent-invented", "reader") }, 2, true), null, null);
+                list.Fill(Listings.Of(new[] { Client("agent-invented", "reader") }, 2, true), null, null);
                 Gallery.Shot(list, Gallery.SettingsPage, "clients-12-revoked-clients-reappeared");
             }
 
             // A stored record that will not read, after the client beside it. It has nothing to
-            // show but the start of its key and why there is no date, and its X is the one way to
-            // take it away that does not make every client pair again.
-            using (var list = new ClientList(key => null))
+            // show but the start of the key of the certificate it names, and that it is not
+            // counted.
+            using (var list = new ClientList(key => null, key => null))
             {
                 var damaged = CertificateDigest.Of(Encoding.ASCII.GetBytes("a record that will not read"));
 
                 list.Fill(
-                    new AdmissionListing(new[] { Client("agent-invented", "reader") }, new[] { damaged }, 0, true),
+                    Listings.Of(new[] { Client("agent-invented", "reader") }, new[] { new UnreadAdmission(new string('e', 32), null, damaged) }, 0, true),
                     null,
                     null);
 
@@ -153,7 +153,7 @@ namespace KeePassGate.Tests.Gallery
             // through puts no sentence under the table, so with the last client gone the line
             // states only that no client has been admitted, which it once stated beside a
             // sentence about the revocation.
-            using (var list = new ClientList(key => null))
+            using (var list = new ClientList(key => null, key => null))
             {
                 list.Fill(Listing(Client("agent-invented", "reader")), null, null);
                 list.Revoke(0);
@@ -164,7 +164,7 @@ namespace KeePassGate.Tests.Gallery
             // And when it did not happen, which on the tab is a database gone from under the dialog.
             // The row stays, because it is still admitted, and the same line has to carry a
             // refusal as well as a result.
-            using (var list = new ClientList(key => "the database is not open"))
+            using (var list = new ClientList(key => "the database is not open", key => null))
             {
                 list.Fill(Listing(Client("agent-invented", "reader"), Client("agent-other", "ops")), null, null);
                 list.Revoke(0);
@@ -175,7 +175,7 @@ namespace KeePassGate.Tests.Gallery
 
         private static void Shoot(string name, Size size, params AdmissionRecord[] records)
         {
-            using (var list = new ClientList(key => null))
+            using (var list = new ClientList(key => null, key => null))
             {
                 list.Fill(Listing(records), null, null);
                 Gallery.Shot(list, size, name);
@@ -221,7 +221,8 @@ namespace KeePassGate.Tests.Gallery
                 CertificateDigest.Of(der),
                 new DateTimeOffset(2026, 8, 15, 9, 0, 0, TimeSpan.Zero),
                 profiles,
-                der);
+                der,
+                InventedIssuer.Id);
         }
 
         /// <summary>Two digits, so the pictures sort the way they are meant to be read.</summary>

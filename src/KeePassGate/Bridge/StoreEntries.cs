@@ -22,12 +22,20 @@ namespace KeePassGate.Bridge
     /// added is taken away, an entry set back is given its strings, its history and its times back,
     /// a group made is removed, and the database's mark is put back as it was. Each step is a part
     /// of its own that pushes its undo, in the order the application takes them.
+    ///
+    /// **A write applied hands its undo back**, every step but the mark, for a writer that saves
+    /// and takes the write back out where the save does not land, `STORE.md` §627: the writer
+    /// decides the mark from the file. An entry put back goes to its place, or to the end of its
+    /// group where the list changed since, so that taking back never throws on a stale place.
     /// </remarks>
     internal static class StoreEntries
     {
-        /// <summary>Applies a write to a database, whole or not at all.</summary>
+        /// <summary>
+        /// Applies a write to a database, whole or not at all, answering the undo of everything it
+        /// did but the database's mark, which runs once.
+        /// </summary>
         /// <param name="reading">The reading the write was planned against, in the same turn.</param>
-        public static void Apply(PwDatabase database, StoreWrite write, StoreReading reading)
+        public static Action Apply(PwDatabase database, StoreWrite write, StoreReading reading)
         {
             if (database == null)
             {
@@ -39,6 +47,7 @@ namespace KeePassGate.Bridge
                 throw new ArgumentException("A write refused, or with nothing left in it, is applied to nothing.", nameof(write));
             }
 
+            var marked = new Stack<Action>();
             var undo = new Stack<Action>();
 
             // Taken back in a `finally` rather than a `catch`, so that whatever was thrown goes on
@@ -46,7 +55,7 @@ namespace KeePassGate.Bridge
             var applied = false;
             try
             {
-                Mark(database, undo);
+                Mark(database, marked);
                 var group = Group(database, write.Starts ? null : reading, undo);
                 Add(group, write.Add, undo);
                 var held = DeletionsHeld(database);
@@ -61,8 +70,44 @@ namespace KeePassGate.Bridge
                 if (!applied)
                 {
                     Undo(undo);
+                    Undo(marked);
                 }
             }
+
+            return () => Undo(undo);
+        }
+
+        /// <summary>
+        /// Whether every record a write added is in the tree under its identifier, with the strings
+        /// it was composed with: what a pairing's or a renewal's write is read back by after its
+        /// save, `STORE.md` §627, without a second walk of the tree.
+        /// </summary>
+        public static bool Holds(PwDatabase database, IEnumerable<StoreRecord> added)
+        {
+            var root = database == null ? null : database.RootGroup;
+            if (root == null)
+            {
+                return false;
+            }
+
+            foreach (var record in added)
+            {
+                var entry = root.FindEntry(new PwUuid(record.Identifier), true);
+                if (entry == null)
+                {
+                    return false;
+                }
+
+                foreach (var pair in record.Strings)
+                {
+                    if (!string.Equals(entry.Strings.ReadSafe(pair.Key), pair.Value, StringComparison.Ordinal))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
 
         /// <summary>Runs every undo pushed, the last first.</summary>
@@ -134,10 +179,26 @@ namespace KeePassGate.Bridge
                     var parent = entry.ParentGroup;
                     var at = parent.Entries.IndexOf(entry);
                     parent.Entries.Remove(entry);
-                    undo.Push(() => parent.Entries.Insert((uint)Math.Max(0, at), entry));
+                    undo.Push(() => PutBack(parent, entry, at));
                 }
 
                 Record(database, hex, held, undo);
+            }
+        }
+
+        /// <summary>
+        /// An entry deleted put back at its place in its group, or at the end where the list no
+        /// longer reaches that place.
+        /// </summary>
+        private static void PutBack(PwGroup parent, PwEntry entry, int at)
+        {
+            if (at >= 0 && (uint)at <= parent.Entries.UCount)
+            {
+                parent.Entries.Insert((uint)at, entry);
+            }
+            else
+            {
+                parent.Entries.Add(entry);
             }
         }
 

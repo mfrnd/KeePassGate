@@ -494,6 +494,15 @@ breaking. Nothing else changes for a program: the client is not changed by it, a
 works with a 0.3 gate as the rule above has it. It stays in 0.3 by the rule for 0.x, which the
 ruling of 2026-11-15 gave.
 
+**0.3 changes where an admission record is kept and what it names, and nothing a client is sent.**
+From 0.3.0 on an admission is a record of the plugin's store, and it names the authority that
+issued its certificate and, where a renewal wrote it, the certificate it was renewed from,
+`STORE.md` §615 and §648. The record is the gate's own and no client reads it: the bundle a
+pairing and a renewal answer with is as it was, a certificate carries the claims it carried, and
+`DELETE /gate/certificate` gives up the certificate on the connection and no other, as it did.
+An admission that 0.2 wrote is not read, so every program pairs again, which is the operator's
+act and the client's ordinary command, `STORE.md` §645.
+
 **0.3 adds words a client may rely on**, which is what moves the minor version. A `503` carries
 `lost`, `split`, `outdated` or `stopped` where the database's store holds the gate back, `lost`
 from a gate that was serving the database when its store key went and only until the database

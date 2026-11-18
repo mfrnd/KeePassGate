@@ -43,7 +43,6 @@ namespace KeePassGate.Authority
         private readonly List<string> _problems;
         private readonly List<AuthorityCandidate> _candidates;
         private readonly int _clientRecordCount;
-        private readonly bool _clientsComplete;
         private readonly bool _retired;
 
         private AuthorityReading(
@@ -52,7 +51,6 @@ namespace KeePassGate.Authority
             IEnumerable<string> problems,
             IEnumerable<AuthorityCandidate> candidates,
             int clientRecordCount,
-            bool clientsComplete,
             bool retired)
         {
             _presence = presence;
@@ -62,7 +60,6 @@ namespace KeePassGate.Authority
                 ? new List<AuthorityCandidate>()
                 : new List<AuthorityCandidate>(candidates);
             _clientRecordCount = clientRecordCount;
-            _clientsComplete = clientsComplete;
             _retired = retired;
         }
 
@@ -92,15 +89,6 @@ namespace KeePassGate.Authority
             get { return _candidates; }
         }
 
-        /// <summary>
-        /// Whether the admission records could be listed at all. False says nothing about how many
-        /// there are, only that `ClientRecordCount` is not an answer to that question.
-        /// </summary>
-        public bool ClientsComplete
-        {
-            get { return _clientsComplete; }
-        }
-
         /// <summary>How many admission records are stored, whatever the state of the authority.</summary>
         public int ClientRecordCount
         {
@@ -123,31 +111,31 @@ namespace KeePassGate.Authority
             get { return _retired; }
         }
 
-        public static AuthorityReading Absent(int clientRecordCount, bool clientsComplete)
+        public static AuthorityReading Absent(int clientRecordCount)
         {
             return new AuthorityReading(
-                AuthorityPresence.None, null, null, null, clientRecordCount, clientsComplete, false);
+                AuthorityPresence.None, null, null, null, clientRecordCount, false);
         }
 
         /// <summary>
         /// No authority, in a database whose every authority is retired: deleted, or retired by
         /// copies that each kept a different authority, once their answers were synchronized.
         /// </summary>
-        public static AuthorityReading Retired(int clientRecordCount, bool clientsComplete)
+        public static AuthorityReading Retired(int clientRecordCount)
         {
             return new AuthorityReading(
-                AuthorityPresence.None, null, null, null, clientRecordCount, clientsComplete, true);
+                AuthorityPresence.None, null, null, null, clientRecordCount, true);
         }
 
         public static AuthorityReading Damaged(
-            IEnumerable<string> problems, int clientRecordCount, bool clientsComplete)
+            IEnumerable<string> problems, int clientRecordCount)
         {
             return new AuthorityReading(
-                AuthorityPresence.Damaged, null, problems, null, clientRecordCount, clientsComplete, false);
+                AuthorityPresence.Damaged, null, problems, null, clientRecordCount, false);
         }
 
         public static AuthorityReading Whole(
-            AuthorityMaterial material, int clientRecordCount, bool clientsComplete)
+            AuthorityMaterial material, int clientRecordCount)
         {
             if (material == null)
             {
@@ -155,7 +143,7 @@ namespace KeePassGate.Authority
             }
 
             return new AuthorityReading(
-                AuthorityPresence.Present, material, null, null, clientRecordCount, clientsComplete, false);
+                AuthorityPresence.Present, material, null, null, clientRecordCount, false);
         }
 
         /// <summary>
@@ -163,7 +151,7 @@ namespace KeePassGate.Authority
         /// disposes them with itself.
         /// </summary>
         public static AuthorityReading Undecided(
-            IEnumerable<AuthorityCandidate> candidates, int clientRecordCount, bool clientsComplete)
+            IEnumerable<AuthorityCandidate> candidates, int clientRecordCount)
         {
             if (candidates == null)
             {
@@ -171,7 +159,7 @@ namespace KeePassGate.Authority
             }
 
             return new AuthorityReading(
-                AuthorityPresence.Undecided, null, null, candidates, clientRecordCount, clientsComplete, false);
+                AuthorityPresence.Undecided, null, null, candidates, clientRecordCount, false);
         }
 
         public void Dispose()

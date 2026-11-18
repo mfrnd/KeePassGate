@@ -258,12 +258,13 @@ namespace KeePassGate.Bridge
 
             if (_dialogs != null)
             {
-                // One dialog, because one dictionary. A record and the profile names it adds go
-                // into the database's own custom data, which only the maintenance dialog copies. No
-                // group dialog is asked, the root group's included: this write touches no group, so
-                // a group dialog's OK puts back nothing it changed. The TAN wizard is asked about
-                // the save rather than the write, since its OK adds entries inside a save of its
-                // database, and this write ends in a save.
+                // One dialog for the custom data: the profile names a pairing adds and the standing
+                // answers to a renewal its write prunes go into the database's own custom data,
+                // which only the maintenance dialog copies. The admission is an entry of the
+                // plugin's group, asked about once the write's plan exists, `STORE.md` §626. No
+                // group dialog is asked: a group dialog's OK puts back no entry. The TAN wizard is
+                // asked about the save rather than the write, since its OK adds entries inside a
+                // save of its database, and this write ends in a save.
                 var open = _dialogs.BlockingRecords(database) ?? _dialogs.BlockingSaves(database);
                 if (open != null)
                 {
@@ -868,47 +869,50 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Revokes one client at its own request: a revocation beside its record and the record
-        /// emptied, saved and verified like every other change.
+        /// Takes a single certificate away at its own client's request, `STORE.md` §648: a record
+        /// of kind `withdrawn` written into the plugin's store, saved and verified like every other
+        /// change.
         /// </summary>
         /// <remarks>
-        /// **The Clients page's write, made here because nobody is going to press OK on it**, which
-        /// is `AdmissionStore.Remove` and the prunes that ride on it. Through
+        /// **Made here because nobody is going to press OK on it.** Through
         /// <see cref="Change(PwDatabase, Func{VaultChange})"/>, so it waits its turn, is refused
         /// inside an operation KeePass is running and before a save that would ask, is taken back
         /// out when the save does not reach the disk, and is left where it is, with the database
         /// marked modified, when the file does not hold what was written.
         ///
+        /// **In the turn**: the store read with every entry, the certificate still admitted, else
+        /// missing, the act of `AdmissionActs.TakeAway`, whose record names the renewals in force
+        /// and the certificate's own origin, and its plan, which deletes the admission and restates
+        /// the record by an item of its own. A second certificate of the same client keeps
+        /// working, and so does the certificate a renewal issued, since the record names it.
+        ///
         /// **And refused while Database Maintenance is open on the database**, which `Change` does
-        /// not ask on its own, because no change to the tree touches what that dialog copies. This
-        /// one does: a revocation adds a key to the database's own custom data, and that dialog
-        /// writes its copy back whenever the number of keys differs, which would put the record
-        /// back without its revocation and admit the client again.
+        /// not ask on its own: the write prunes the standing answers to a renewal no admission
+        /// names any more, which are the database's own custom data, and that dialog writes its
+        /// copy back whenever the number of keys differs.
         ///
-        /// **What is taken back out is everything it touched**, the prunes included, because
-        /// putting back the record alone would leave an undone revocation's prunes for whatever the
-        /// operator saves next. That is three kinds of key: records, revocations, and the standing
-        /// answers to renewals the last prune takes away with the records they were about, the
-        /// revoked client's own among them.
+        /// **What is taken back out is everything it touched**: the entries and their deletion
+        /// records, and the standing answers the prune took away.
         ///
-        /// A revocation that lands is written to the audit and tells the Clients page, as a record
-        /// that lands does.
+        /// A certificate given up that lands is written to the audit, tells the Clients page, and
+        /// has KeePass's group tree and entry list rebuilt, as every change that adds an entry
+        /// does.
         /// </remarks>
         /// <param name="audit">
-        /// The audit line for the revocation, written here once it stands. <see cref="Landed"/>
-        /// says when and why here. Null for no line.
+        /// The audit line for the certificate given up, written here once it stands.
+        /// <see cref="Landed"/> gives when and why here. Null for no line.
         /// </param>
-        public VaultWrite Revoke(PwDatabase database, string admissionKey, Action audit = null)
+        public VaultWrite GiveUp(PwDatabase database, string admissionKey, Action audit = null)
         {
             if (string.IsNullOrEmpty(admissionKey))
             {
                 return VaultWrite.Missing();
             }
 
-            return Change(database, () => RevokeOnTheUiThread(database, admissionKey), false, () => Landed(audit));
+            return Change(database, () => GiveUpOnTheUiThread(database, admissionKey), true, () => Landed(audit));
         }
 
-        private VaultChange RevokeOnTheUiThread(PwDatabase database, string admissionKey)
+        private VaultChange GiveUpOnTheUiThread(PwDatabase database, string admissionKey)
         {
             if (_dialogs != null)
             {
@@ -919,24 +923,59 @@ namespace KeePassGate.Bridge
                 }
             }
 
-            var store = new CustomDataStore(database);
-            var admissions = new AdmissionStore(store, new KdbxStore(database, GateVersion.Current, _log), _log);
-            if (admissions.Find(admissionKey) == null)
+            var kdbx = new KdbxStore(database, GateVersion.Current, _log, Holding);
+            using (var reading = kdbx.ForWrite())
             {
-                // Gone since the connection was admitted: revoked from the Clients page in
-                // between, or by a merge. Nothing is changed, and the certificate is refused from
-                // here on, which is what was asked for.
-                return VaultWrite.Missing();
-            }
+                var word = StoreWords.Of(reading.State);
+                if (word != null)
+                {
+                    return VaultWrite.Failed("the store is " + word + ": " + reading.Reason);
+                }
 
-            var held = Records(store);
-            if (!admissions.Remove(admissionKey))
-            {
-                Restore(store, held);
-                return VaultWrite.Failed("the revocation did not survive being written");
-            }
+                if (StoreAdmissions.Admitted(reading, admissionKey) == null)
+                {
+                    // Gone since the connection was admitted: taken away, its client revoked, or
+                    // its authority retired in between. Nothing is changed, and the certificate is
+                    // refused from here on, which is what was asked for.
+                    return VaultWrite.Missing();
+                }
 
-            return new VaultChange(VaultWrite.Done(), () => Restore(store, held));
+                var act = AdmissionActs.TakeAway(reading, admissionKey);
+                try
+                {
+                    var staged = kdbx.Stage(reading, new[] { act });
+                    if (staged.Refused != null)
+                    {
+                        _log.Warn("a certificate given up was not written into the plugin's store: " + staged.Refused);
+                        return VaultWrite.Failed(staged.Refused);
+                    }
+
+                    if (staged.Held != null)
+                    {
+                        return VaultWrite.Busy(staged.Held);
+                    }
+
+                    var store = new CustomDataStore(database);
+
+                    // The mark is `Change`'s to decide, from what the database held before and
+                    // from the file, as for every change: the application raises it, and it is
+                    // put back here so that a write taken back out over an unchanged file leaves
+                    // nothing to save.
+                    var modified = database.Modified;
+                    var undo = staged.Apply();
+                    database.Modified = modified;
+                    var pruned = new RenewalAnswers(store, _log).Prune(StoreAdmissions.Named(reading, staged.Write));
+                    return new VaultChange(VaultWrite.Done(), () =>
+                    {
+                        PutBackAnswers(store, pruned);
+                        undo();
+                    });
+                }
+                finally
+                {
+                    act.Forget();
+                }
+            }
         }
 
         /// <summary>
@@ -944,12 +983,12 @@ namespace KeePassGate.Bridge
         /// verified like every other change.
         /// </summary>
         /// <remarks>
-        /// Refused while Database Maintenance is open on the database, for the reason a revocation
-        /// is: the key is in the database's own custom data, which that dialog writes back. Taken
-        /// back out, and the answer that was there before put back, when the save does not land.
-        /// The Clients page draws the client's name red from it, so the page is told when it
-        /// lands, as it is when a record does; the tree and the entry list show none of it, so they
-        /// are not rebuilt.
+        /// Refused while Database Maintenance is open on the database: the key is in the
+        /// database's own custom data, which that dialog writes back whenever the number of keys
+        /// differs. Taken back out, and the answer that was there before put back, when the save
+        /// does not land. The Clients page draws the row's name red from it, so the page is told
+        /// when it lands, as it is when an admission does; the tree and the entry list show none
+        /// of it, so they are not rebuilt.
         /// </remarks>
         public VaultWrite RefuseRenewal(PwDatabase database, string admissionKey, RenewalRefusal refusal)
         {
@@ -984,7 +1023,7 @@ namespace KeePassGate.Bridge
             var key = AuthorityKeys.RenewalRefusalKey(admissionKey);
             var before = store.Get(key);
 
-            new AdmissionStore(store, _log).RefuseRenewal(admissionKey, refusal);
+            new RenewalAnswers(store, _log).RefuseRenewal(admissionKey, refusal);
 
             return new VaultChange(VaultWrite.Done(), () =>
             {
@@ -1000,56 +1039,22 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Every admission record, revocation and standing answer to a renewal, with what it holds.
-        /// </summary>
-        private static Dictionary<string, string> Records(CustomDataStore store)
-        {
-            var held = new Dictionary<string, string>(StringComparer.Ordinal);
-
-            foreach (var key in store.Keys.Where(Revocable))
-            {
-                held[key] = store.Get(key);
-            }
-
-            return held;
-        }
-
-        /// <summary>
-        /// Whether a key is one a revocation can change: a record, a revocation, or a standing
-        /// answer to renewing a certificate, which the revocation's prune takes away with its record.
+        /// Puts back the standing answers to a renewal a write's prune took away, where nothing
+        /// holds the key again since.
         /// </summary>
         /// <remarks>
-        /// One test for both halves of the undo, because the snapshot and the sweep disagreeing
-        /// about a kind of key is what lost the standing answers: the prune that takes them came
-        /// after the two were written.
+        /// Each comes back with a modification time of now rather than the one it had, which
+        /// nothing public sets; harmless, since each is about a certificate no admission names, and
+        /// the next write that lands prunes it again.
         /// </remarks>
-        private static bool Revocable(string key)
+        private static void PutBackAnswers(IKeyValueStore store, IEnumerable<KeyValuePair<string, string>> pruned)
         {
-            return AuthorityKeys.IsClientRecord(key)
-                   || AuthorityKeys.IsRevocation(key)
-                   || AuthorityKeys.IsRenewalRefusal(key);
-        }
-
-        /// <summary>
-        /// Puts the records, revocations and standing answers back as <see cref="Records"/> found
-        /// them, touching only what differs.
-        /// </summary>
-        /// <remarks>
-        /// Only what differs, because `StringDictionaryEx.Set` stamps a fresh modification time on
-        /// a value even when it is the one already there, and a time is what a merge decides by.
-        /// What does differ comes back with a time of now rather than the one it had, since nothing
-        /// public sets a time; each is a key this write changed in memory and the file never saw
-        /// changed.
-        /// </remarks>
-        private static void Restore(CustomDataStore store, Dictionary<string, string> held)
-        {
-            foreach (var key in store.Keys.Where(key => Revocable(key) && !held.ContainsKey(key)))
+            if (pruned == null)
             {
-                store.Remove(key);
+                return;
             }
 
-            foreach (var pair in held.Where(
-                pair => !string.Equals(store.Get(pair.Key), pair.Value, StringComparison.Ordinal)))
+            foreach (var pair in pruned.Where(pair => store.Get(pair.Key) == null))
             {
                 store.Set(pair.Key, pair.Value);
             }
@@ -1215,7 +1220,7 @@ namespace KeePassGate.Bridge
             // the keep deletes, sets back or protects, asked of each once the plan exists,
             // `STORE.md` §626.
             var kept = new AuthorityService(
-                new KdbxStore(database, GateVersion.Current, _log, Holding), new CustomDataStore(database), _log).Keep(fingerprint, offered);
+                new KdbxStore(database, GateVersion.Current, _log, Holding), _log).Keep(fingerprint, offered);
             if (kept.Succeeded)
             {
                 // The tree and the list too: a choice writes entries into the plugin's group.
@@ -1424,7 +1429,7 @@ namespace KeePassGate.Bridge
                     // exception no filter here names leaves this method from inside the save. Left
                     // at that, a change the file never received stayed in the database KeePass
                     // holds, in force and kept by the operator's next save, and a change the file
-                    // did receive was never written down: a client's revocation of itself lost its
+                    // did receive was never written down: a certificate its client gave up lost its
                     // audit line either way, and a create answered `500` was made again by the
                     // retry. The modified flag decides, as it does for every other ending, and
                     // nothing here catches the exception, which goes on to the connection thread's
@@ -1789,10 +1794,11 @@ namespace KeePassGate.Bridge
         /// what was there before, so that a write that does not land takes them back out.
         /// </summary>
         /// <remarks>
-        /// **Only where the answer belongs**: the database serving the authority it was given
-        /// under, and while the record it is about is still there. An answer whose record has gone
-        /// is settled without being written, since nothing is left for it to refuse, and so is an
-        /// answer whose authority this database has retired.
+        /// **Only where the answer belongs**: the database in which the authority it was given
+        /// under stands, and while a record of kind `client` in force names the certificate it is
+        /// about, whether or not that admission admits now, as `RenewalAnswers.Prune` keeps an
+        /// answer. An answer no such record names is settled without being written, since nothing
+        /// is left for it to refuse, and so is an answer whose authority this database has retired.
         ///
         /// **And only while it is still the later word**: while the key holds what it held when the
         /// answer was given, `OwedAnswer.Baseline`, and while the answer still refuses. Written
@@ -1812,72 +1818,80 @@ namespace KeePassGate.Bridge
 
             var owing = new Owing(new CustomDataStore(database));
 
-            // Which authorities the store retired and which stand, taken out of a reading that is
-            // let go at once; null for both where the store does not tell.
-            ISet<string> retired = null;
-            ISet<string> standing = null;
+            // Which authorities the store retired and which stand, and which certificates it
+            // admits, from a reading let go at the end of this; no answer is written where the
+            // store does not tell.
             using (var reading = new KdbxStore(database, GateVersion.Current, _log).Read())
             {
+                ISet<string> retired = null;
+                ISet<string> standing = null;
+                var named = StoreAdmissions.Named(reading, null);
                 if (reading.InForce != null)
                 {
                     retired = new HashSet<string>(reading.InForce.Taken(StoreKinds.Retired), StringComparer.Ordinal);
                     standing = new HashSet<string>(
                         reading.InForce.Authorities.Select(record => record.Form.Member(StoreKinds.Id)), StringComparer.Ordinal);
                 }
-            }
 
-            try
-            {
-                var admissions = new AdmissionStore(owing.Store, _log);
-                foreach (var answer in owed)
+                try
                 {
-                    if (retired != null && retired.Contains(answer.DatabaseId))
+                    var answers = new RenewalAnswers(owing.Store, _log);
+                    foreach (var answer in owed)
                     {
-                        // Given under an authority this database has since retired. A recreate or a
-                        // delete takes every record with it, so nothing is left for the answer to
-                        // refuse, and a certificate that authority issued is refused before any
-                        // renewal can ask about it. Skipped, it stayed owed for the session and was
-                        // counted at exit as an answer whose client would be asked about again.
+                        if (retired != null && retired.Contains(answer.DatabaseId))
+                        {
+                            // Given under an authority this database has since retired. A recreate
+                            // or a delete deletes every admission it issued, so nothing is left for
+                            // the answer to refuse, and a certificate that authority issued is
+                            // refused before any renewal can ask about it. Skipped, it stayed owed
+                            // for the session and was counted at exit as an answer whose client
+                            // would be asked about again.
+                            owing.Settled.Add(answer);
+                            continue;
+                        }
+
+                        if (standing == null || !standing.Contains(answer.DatabaseId))
+                        {
+                            // Owed to another database, which never held the authority, or to a
+                            // database whose store does not tell which authorities stand: kept
+                            // owed.
+                            continue;
+                        }
+
+                        if (!named.Contains(answer.AdmissionKey))
+                        {
+                            // No record of kind `client` in force names its certificate, which is
+                            // when the prune takes an answer away: an admission that admits nobody
+                            // for now, in a store held back, under several authorities or beside
+                            // a second admission of its certificate, keeps its answer.
+                            owing.Settled.Add(answer);
+                            continue;
+                        }
+
+                        if (!RenewalRefusal.Same(answers.StandingRefusal(answer.AdmissionKey), answer.Baseline)
+                            || !answer.Refusal.Refuses(DateTimeOffset.UtcNow))
+                        {
+                            owing.Settled.Add(answer);
+                            continue;
+                        }
+
+                        var key = AuthorityKeys.RenewalRefusalKey(answer.AdmissionKey);
+                        if (!owing.Before.ContainsKey(key))
+                        {
+                            owing.Before[key] = owing.Store.Get(key);
+                        }
+
+                        answers.RefuseRenewal(answer.AdmissionKey, answer.Refusal);
                         owing.Settled.Add(answer);
-                        continue;
                     }
-
-                    if (standing == null || !standing.Contains(answer.DatabaseId))
-                    {
-                        // Owed to another database, which never held the authority, or to a database whose
-                        // store does not tell which authorities stand: kept owed.
-                        continue;
-                    }
-
-                    if (admissions.Find(answer.AdmissionKey) == null)
-                    {
-                        owing.Settled.Add(answer);
-                        continue;
-                    }
-
-                    if (!RenewalRefusal.Same(admissions.StandingRefusal(answer.AdmissionKey), answer.Baseline)
-                        || !answer.Refusal.Refuses(DateTimeOffset.UtcNow))
-                    {
-                        owing.Settled.Add(answer);
-                        continue;
-                    }
-
-                    var key = AuthorityKeys.RenewalRefusalKey(answer.AdmissionKey);
-                    if (!owing.Before.ContainsKey(key))
-                    {
-                        owing.Before[key] = owing.Store.Get(key);
-                    }
-
-                    admissions.RefuseRenewal(answer.AdmissionKey, answer.Refusal);
-                    owing.Settled.Add(answer);
                 }
-            }
-            catch (Exception error) when (Expected.OfCustomData(error))
-            {
-                _log.Warn("a standing answer to a renewal owed to this database could not be written " +
-                          "with this change, and is still owed: " + error.Message);
-                TakeBackOwed(owing);
-                return null;
+                catch (Exception error) when (Expected.OfCustomData(error))
+                {
+                    _log.Warn("a standing answer to a renewal owed to this database could not be written " +
+                              "with this change, and is still owed: " + error.Message);
+                    TakeBackOwed(owing);
+                    return null;
+                }
             }
 
             return owing;
@@ -1910,15 +1924,20 @@ namespace KeePassGate.Bridge
         /// <summary>What an admission's write is held to, read in its own turn.</summary>
         private sealed class Ground : IWriteGround
         {
-            public Ground(string served, IKeyValueStore names)
+            private readonly StoreReading _reading;
+
+            public Ground(StoreReading reading, IKeyValueStore names)
             {
-                Served = served;
+                _reading = reading;
                 Names = names;
             }
 
-            public string Served { get; private set; }
-
             public IKeyValueStore Names { get; private set; }
+
+            public AdmissionRecord Admission(string admissionKey)
+            {
+                return StoreAdmissions.Admitted(_reading, admissionKey);
+            }
         }
 
         /// <summary>What one write wrote of the answers owed, and what it wrote over.</summary>
@@ -1953,30 +1972,19 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Takes away the admission records that came back beside their revocations, the records of
-        /// expired certificates, the revocations of authorities the store no longer holds and the
-        /// standing answers about certificates no record admits, as part of a write this plugin is
-        /// making anyway, answering with what went, `AdmissionStore.PruneOnWrite`.
+        /// The certificates the admissions in force name once this write lands, against which the
+        /// standing answers to a renewal are pruned, `RenewalAnswers.Prune`.
         /// </summary>
         /// <remarks>
-        /// **Here, inside the guarded write, and never at open**, which is operator answer 3a:
-        /// opening a database must not mark it modified, and a prune made while Database
-        /// Maintenance is open is undone by that dialog's write-back. Nothing depends on it, since
-        /// the decision reads the retirements and admission reads the revocations, so one that
-        /// fails is a warning and the write goes on.
+        /// **Here, inside the guarded write, and never at open**: opening a database must not mark
+        /// it modified, and a prune made while Database Maintenance is open is undone by that
+        /// dialog's write-back. Nothing depends on it, since no standing answer admits anybody, so
+        /// one that fails is a warning and the write goes on.
         /// </remarks>
-        private IReadOnlyList<KeyValuePair<string, string>> Prune(PwDatabase database, CustomDataStore store)
+        private IReadOnlyList<KeyValuePair<string, string>> PruneAnswers(
+            CustomDataStore store, StoreReading reading, StoreWrite write)
         {
-            try
-            {
-                return new AdmissionStore(store, new KdbxStore(database, GateVersion.Current, _log), _log).PruneOnWrite(DateTimeOffset.UtcNow);
-            }
-            catch (Exception error) when (Expected.OfCustomData(error))
-            {
-                _log.Warn("what retired authorities, revoked clients and expired certificates left behind " +
-                          "could not be taken away: " + error.Message);
-                return Array.Empty<KeyValuePair<string, string>>();
-            }
+            return new RenewalAnswers(store, _log).Prune(StoreAdmissions.Named(reading, write));
         }
 
         private AdmissionWrite OnTheUiThread(
@@ -2000,141 +2008,195 @@ namespace KeePassGate.Bridge
             }
 
             var store = new CustomDataStore(database);
+            var kdbx = new KdbxStore(database, GateVersion.Current, _log, Holding);
 
-            if (condition != null)
+            // The store read afresh with every entry, held for the whole turn and let go at its
+            // end, which overwrites the key, `STORE.md` §627.
+            using (var reading = kdbx.ForWrite())
             {
-                // Last of the questions and first of the changes: everything above can still say
-                // busy, which keeps an approval held, and nothing below can. So what the condition
-                // spends, an approval or an invitation, is spent only on a write that is going
-                // ahead, and what it compares cannot move before the write that relies on it.
-                // The authority served read from the store in this very turn, which nothing can
-                // move before the write that relies on it.
-                string served;
-                using (var reading = new KdbxStore(database, GateVersion.Current, _log).Read())
+                var word = StoreWords.Of(reading.State);
+                if (word != null)
                 {
-                    served = StoreAuthorities.Served(reading);
+                    _log.Warn("an admission was not written, since the plugin's store holds the gate back: " + word);
+                    return AdmissionWrite.Failed("the store is " + word + ": " + reading.Reason);
                 }
 
-                var withdrawn = condition(new Ground(served, store));
-                if (withdrawn != null)
+                var act = AdmissionActs.Admit(reading, record);
+                if (act == null)
                 {
-                    return AdmissionWrite.Withdrawn(withdrawn);
-                }
-            }
-
-            var written = record.Save();
-
-            // What was there before, so a write that never reaches the disk can be taken back out
-            // again. A record left behind by a pairing that failed is a client on the tab that was
-            // never issued anything, and the operator's next save is what would make it permanent.
-            var before = store.Get(record.StorageKey);
-
-            // The name list too. `Name` below writes it *before* the record, so a pairing that
-            // failed after that point left the profile it had just created in a database KeePass
-            // believes has nothing to save. The operator's next unrelated edit then commits a
-            // name no record holds.
-            var namesBefore = store.Get(ProfileNames.CustomDataKey);
-            var wasModified = database.Modified;
-
-            // What the prune below takes away, so a write that does not land puts it back and
-            // the database in memory goes on agreeing with the file.
-            IReadOnlyList<KeyValuePair<string, string>> pruned = null;
-            Owing owing = null;
-
-            try
-            {
-                Name(store, record.Profiles);
-                store.Set(record.StorageKey, written);
-                pruned = Prune(database, store);
-                database.Modified = true;
-            }
-            catch (Exception error) when (Expected.OfCustomData(error))
-            {
-                _log.Error("an admission record could not be put in the database", error);
-                return Undo(store, database, record, before, namesBefore, pruned, owing, wasModified, error.Message);
-            }
-
-            // Everything this write touched, put back as it was, for every ending below that
-            // leaves the record out of the database.
-            // `raised` keeps the flag up whatever the file then reads as, for the one path that
-            // raises it on purpose.
-            Func<string, bool, AdmissionWrite> undo = (reason, raised) => Undo(
-                store, database, record, before, namesBefore, pruned, owing, wasModified || raised, reason);
-
-            // True until the save ends in a way this method expects, as in `ChangeOnTheUiThread`.
-            var escaped = true;
-
-            try
-            {
-                Save(database);
-                escaped = false;
-            }
-            catch (Exception error) when (Expected.OfSaving(error))
-            {
-                escaped = false;
-                owing = _carried;
-
-                // KeePass's own save and every other plugin's handlers around it, which can fail
-                // for every reason a file can and every reason a window can: `Expected.OfSaving`
-                // is that list. What it must not do is take the connection thread with it.
-                //
-                // **Which of those it was is the database's answer rather than the exception's**,
-                // for the reason `ChangeOnTheUiThread` gives: the save clears the modified flag as
-                // the last thing it does, and `MainForm.SaveDatabase` catches everything the save
-                // itself throws, so an exception arriving with nothing unsaved left is something
-                // KeePass runs after its save failing after the record reached the disk. Undoing
-                // there would refuse the client its certificate while the record stays in the
-                // file, which is the client on the clients page that never existed that `Undo`
-                // exists to prevent, arriving by the other road.
-                if (database.Modified)
-                {
-                    _log.Error("the database could not be saved after an admission record was written", error);
-                    return undo(error.Message, false);
+                    return AdmissionWrite.Failed("the database holds no store to write the admission into");
                 }
 
-                _log.Error("the record was saved and something KeePass runs after its save " +
-                           "failed, another plugin's handler, a trigger or KeePass's own window: " +
-                           "the record is on the disk and is being left there", error);
-            }
-            finally
-            {
-                owing = _carried;
-                if (escaped)
+                StagedWrite staged;
+                try
                 {
-                    // A defect in the save, settled as `ChangeOnTheUiThread` settles a defect in
-                    // its own save and for its reason: a record the file never received is taken
-                    // back out, and a record the file did receive is written down before the
-                    // exception goes on, to end the pairing or the renewal with no certificate
-                    // handed over.
-                    _log.Error("the save ended in an exception nothing here expects, so the record " +
-                               "is settled as the database leaves it, and the exception goes on", null);
-                    RecordConcluded(store, database, record, written, owing, audit, undo);
+                    staged = kdbx.Stage(reading, new[] { act });
                 }
-            }
+                finally
+                {
+                    act.Forget();
+                }
 
-            return RecordConcluded(store, database, record, written, owing, audit, undo);
+                if (staged.Held != null)
+                {
+                    // A window holds an entry this write deletes, sets back or protects again,
+                    // `STORE.md` §626, so this is the window's for as long as it stands, and worth
+                    // asking again. A plan that is refused asks no window.
+                    return AdmissionWrite.Busy(staged.Held);
+                }
+
+                if (!AdmissionActs.AddsAdmission(staged.Write))
+                {
+                    // Refused before the condition spends anything: a write that adds no admission
+                    // is never believed, whatever its save then reports. **An act the plan leaves
+                    // out because its issuer is not the authority served alone is told apart**:
+                    // the authority the operator answered under is not served, retired since by a
+                    // Recreate or a Delete, standing beside another, or in a store that holds the
+                    // gate back, `PAIRING.md` §311.
+                    var why = staged.Refused ?? "the write adds no admission";
+                    _log.Warn("an admission was not written into the plugin's store: " + why);
+                    return string.Equals(StoreAuthorities.Served(reading), record.Issuer, StringComparison.Ordinal)
+                        ? AdmissionWrite.Failed(why)
+                        : AdmissionWrite.Unserved(why);
+                }
+
+                if (condition != null)
+                {
+                    // Last of the questions and first of the changes: everything above can still be
+                    // busy, which keeps an approval held, and nothing below can. So what the
+                    // condition spends, an approval or an invitation, is spent only on a write that
+                    // is going ahead, and what it compares, read from the store in this very turn,
+                    // cannot move before the write that relies on it. A refusal is answered as a
+                    // failure, since the caller that gave the condition knows which part refused.
+                    var withdrawn = condition(new Ground(reading, store));
+                    if (withdrawn != null)
+                    {
+                        return AdmissionWrite.Failed(withdrawn);
+                    }
+                }
+
+                // The name list as it was, so a write that never reaches the disk puts it back: a
+                // profile the pairing created in a database KeePass believes has nothing to save is
+                // a name the operator's next unrelated edit commits with no admission holding it.
+                var namesBefore = store.Get(ProfileNames.CustomDataKey);
+                var wasModified = database.Modified;
+
+                // What the application and the prune took, so a write that does not land puts it
+                // back and the database in memory goes on agreeing with the file. The entries
+                // first: an application that throws has taken itself back, so the profile names
+                // are written only beside entries that are there.
+                var undone = staged.Apply();
+                IReadOnlyList<KeyValuePair<string, string>> pruned = null;
+                Owing owing = null;
+
+                try
+                {
+                    Name(store, record.Profiles);
+                    pruned = PruneAnswers(store, reading, staged.Write);
+                    database.Modified = true;
+                }
+                catch (Exception error) when (Expected.OfCustomData(error))
+                {
+                    _log.Error("an admission could not be put in the database", error);
+                    return Undo(store, database, undone, namesBefore, pruned, owing, wasModified, error.Message);
+                }
+
+                // Everything this write touched, put back as it was, for every ending below that
+                // leaves the admission out of the database. `raised` keeps the flag up whatever the
+                // file then reads as, for the one path that raises it on purpose.
+                Func<string, bool, AdmissionWrite> undo = (reason, raised) => Undo(
+                    store, database, undone, namesBefore, pruned, owing, wasModified || raised, reason);
+                var added = staged.Write.Add;
+
+                // True until the save ends in a way this method expects, as in
+                // `ChangeOnTheUiThread`.
+                var escaped = true;
+
+                try
+                {
+                    Save(database);
+                    escaped = false;
+                }
+                catch (Exception error) when (Expected.OfSaving(error))
+                {
+                    escaped = false;
+                    owing = _carried;
+
+                    // KeePass's own save and every other plugin's handlers around it, which can
+                    // fail for every reason a file can and every reason a window can:
+                    // `Expected.OfSaving` is that list. What it must not do is take the connection
+                    // thread with it.
+                    //
+                    // **Which of those it was is the database's answer rather than the
+                    // exception's**, for the reason `ChangeOnTheUiThread` gives: the save clears
+                    // the modified flag as the last thing it does, and `MainForm.SaveDatabase`
+                    // catches everything the save itself throws, so an exception arriving with
+                    // nothing unsaved left is something KeePass runs after its save failing after
+                    // the admission reached the disk. Undoing there would refuse the client its
+                    // certificate while the admission stays in the file, which is the client on the
+                    // clients page that never existed that `Undo` exists to prevent, arriving by
+                    // the other road.
+                    if (database.IsOpen && database.Modified)
+                    {
+                        _log.Error("the database could not be saved after an admission was written", error);
+                        return undo(error.Message, false);
+                    }
+
+                    _log.Error("the admission was saved and something KeePass runs after its save " +
+                               "failed, another plugin's handler, a trigger or KeePass's own window: " +
+                               "the admission is on the disk and is being left there", error);
+                }
+                finally
+                {
+                    owing = _carried;
+                    if (escaped)
+                    {
+                        // A defect in the save, settled as `ChangeOnTheUiThread` settles a defect
+                        // in its own save and for its reason: an admission the file never received
+                        // is taken back out, and an admission the file did receive is written down
+                        // before the exception goes on, to end the pairing or the renewal with no
+                        // certificate handed over.
+                        _log.Error("the save ended in an exception nothing here expects, so the admission " +
+                                   "is settled as the database leaves it, and the exception goes on", null);
+                        RecordConcluded(database, added, owing, audit, undo);
+                    }
+                }
+
+                return RecordConcluded(database, added, owing, audit, undo);
+            }
         }
 
         /// <summary>
-        /// What a record comes to once its save has ended: taken back out unless it is in the
+        /// What an admission comes to once its save has ended: taken back out unless it is in the
         /// database and in the file, and written down when it is.
         /// </summary>
         /// <remarks>
         /// Asked of the database rather than of how the save ended, for the reason `Concluded`
-        /// gives.
+        /// gives. **Read back by its own entries**, `STORE.md` §627: each entry the write added is
+        /// in the tree under its identifier with the strings it was composed with. A whole reading
+        /// would add a decision that arrived inside the save, which the client's next request is
+        /// answered by, and would walk every entry on KeePass's thread a second time.
         /// </remarks>
         private AdmissionWrite RecordConcluded(
-            CustomDataStore store,
             PwDatabase database,
-            AdmissionRecord record,
-            string written,
+            IReadOnlyList<StoreRecord> added,
             Owing owing,
             Action audit,
             Func<string, bool, AdmissionWrite> undo)
         {
-            if (!string.Equals(store.Get(record.StorageKey), written, StringComparison.Ordinal))
+            if (!database.IsOpen)
             {
-                return undo("the record did not survive being written", false);
+                // Closed inside its save: nothing is left in memory to take the admission back out
+                // of, and nothing knows whether the file holds it, so no certificate is handed
+                // over. The standing answers the save carried stay owed.
+                _log.Error("the database closed as its save ended, so whether the file holds the " +
+                           "admission is not known, and no certificate is handed over", null);
+                return AdmissionWrite.Failed("the database closed as its save ended");
+            }
+
+            if (!StoreEntries.Holds(database, added))
+            {
+                return undo("the admission did not survive being written", false);
             }
 
             if (database.Modified)
@@ -2146,21 +2208,18 @@ namespace KeePassGate.Bridge
 
             if (!TheFileHoldsWhatWasWritten(database))
             {
-                // The read-back above is of the store, which is memory. This is the file, and it
-                // is the last thing between the record and a certificate: a record that may not be
-                // on the disk is a credential nobody can see and nobody can revoke, which is the
-                // one thing this whole class exists to prevent. Undone rather than left where the
-                // API's write leaves it, because refusing a pairing costs an invitation and
-                // admitting one that was never stored costs a client nobody can take away.
+                // The read back above is of memory. This is the file, and it is the last thing
+                // between the admission and a certificate: an admission that may not be on the disk
+                // is a credential nobody can see and nobody can revoke, which is the one thing this
+                // whole class exists to prevent. Undone rather than left where the API's write
+                // leaves it, because refusing a pairing costs an invitation and admitting one that
+                // was never stored costs a client nobody can take away.
                 //
                 // The flag goes up whatever it was before, and stays up, which is more than `Undo`
                 // does on its own: a database that arrived with unsaved edits has just had them
                 // written to a file that did not keep them either, so this is the one path where
                 // leaving it clear would be wrong about somebody else's work as well as about this
-                // record. `Undo` would otherwise decide the flag again from a second read of the
-                // file, against the hash this save left, and a file that was unreadable or part
-                // way through a copy at the first read and whole at the second cleared it, over a
-                // record memory no longer holds and the file may.
+                // admission.
                 database.Modified = true;
 
                 return undo("the file on disk does not hold what KeePass wrote to it", true);
@@ -2168,25 +2227,30 @@ namespace KeePassGate.Bridge
 
             Owing.Settle(owing, Owed);
             Landed(audit);
+
+            // Last, as for every change that lands: the admission and its summary entry are
+            // entries of the plugin's group, so the tree and the list are out of date, `DESIGN.md`
+            // §119.
+            Redraw(database, true);
             return AdmissionWrite.Done();
         }
 
         /// <summary>
-        /// Writes the audit line for a record or a revocation that landed, and then says it landed
-        /// to whatever is drawn from the records.
+        /// Writes the audit line for an admission or a certificate given up that landed, and then
+        /// tells whatever is drawn from the store that it landed.
         /// </summary>
         /// <remarks>
         /// **The line first, and here, so that nothing after it can lose it.** An approved
-        /// pairing, an approved renewal and a client's revocation of itself are each written to
-        /// the audit once their change is in force. The operation used to write its line once this
-        /// write had returned, and a defect in a listener below went past every filter on the way
-        /// to the connection thread's catch-all, so a change that was on the disk was never written
-        /// down. Written here, on the path that leaves the change in force and before any listener
-        /// runs, the line is in the audit however the listener ends, and nothing new catches
-        /// everything to keep it there. Before KeePass's window is redrawn too, which raises an
-        /// event to every other plugin, and on the path a defect in the save itself takes, which a
-        /// `finally` settles as the database leaves it: a change the file received is written
-        /// down there, and a change it never received is taken back out.
+        /// pairing, an approved renewal and a certificate its own client gives up are each written
+        /// to the audit once their change is in force. The operation used to write its line once
+        /// this write had returned, and a defect in a listener below went past every filter on the
+        /// way to the connection thread's catch-all, so a change that was on the disk was never
+        /// written down. Written here, on the path that leaves the change in force and before any
+        /// listener runs, the line is in the audit however the listener ends, and nothing new
+        /// catches everything to keep it there. Before KeePass's window is redrawn too, which
+        /// raises an event to every other plugin, and on the path a defect in the save itself
+        /// takes, which a `finally` settles as the database leaves it: a change the file received
+        /// is written down there, and a change it never received is taken back out.
         ///
         /// **Once at most.** Each path that leaves a change in force runs this once, and a path
         /// that took the change back out or never made it does not run it at all, so an operation
@@ -2212,29 +2276,29 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Tells whatever is drawn from the records that a record landed, or a client's revocation
-        /// of itself, or a standing answer to a renewal.
+        /// Tells whatever is drawn from the store that an admission landed, or a certificate its
+        /// own client gave up, or a standing answer to a renewal.
         /// </summary>
         /// <remarks>
         /// Here and nowhere earlier: every path above this either put its change back or is still
-        /// deciding, and a page told about a record that was taken out again would list a client
-        /// the next request refuses. A revocation reaches it from the end of a change, on the two
-        /// paths that leave the change in force: saved and verified, and saved without the file
-        /// being verified, which takes nothing back out.
+        /// deciding, and a page told about an admission that was taken out again would list a
+        /// client the next request refuses. A certificate given up reaches it from the end of a
+        /// change, on the two paths that leave the change in force: saved and verified, and saved
+        /// without the file being verified, which takes nothing back out.
         ///
-        /// **A page that fails to redraw never fails the write.** By the time this runs the record
-        /// is on the disk and the client is about to be handed its certificate, so a page that
-        /// failed to redraw is a page an operator can bring forward again; failing the pairing over
-        /// it would spend the invitation and give nothing back. What is caught is what drawing can
-        /// throw, the list `Expected.OfUserInterface` keeps. Anything else is a defect in the
-        /// listener and is not caught here, because this is no kind of catch-all `DESIGN.md` §141
-        /// lists: it reaches the connection thread's, which counts it, and the pairing ends with
-        /// its record saved and no certificate handed over. A renewal ends the same way, and a
-        /// client's revocation of itself ends in force and answered `500`. In all three the audit
-        /// line is already written, by <see cref="Landed"/> before this ran, so the change on the
-        /// disk is in the audit as well, and the incident the catch-all counts says why its answer
-        /// was a failure. The tab listens only once it is whole, so the one listener there is
-        /// cannot be told about a record half built.
+        /// **A page that fails to redraw never fails the write.** By the time this runs the
+        /// admission is on the disk and the client is about to be handed its certificate, so a
+        /// page that failed to redraw is a page an operator can bring forward again; failing the
+        /// pairing over it would spend the invitation and give nothing back. What is caught is what
+        /// drawing can throw, the list `Expected.OfUserInterface` keeps. Anything else is a defect
+        /// in the listener and is not caught here, because this is no kind of catch-all
+        /// `DESIGN.md` §141 lists: it reaches the connection thread's, which counts it, and the
+        /// pairing ends with its admission saved and no certificate handed over. A renewal ends the
+        /// same way, and a certificate given up ends in force and answered `500`. In all three the
+        /// audit line is already written, by <see cref="Landed"/> before this ran, so the change on
+        /// the disk is in the audit as well, and the incident the catch-all counts records why its
+        /// answer was a failure. The tab listens only once it is whole, so its listener cannot be
+        /// told about a page half built.
         /// </remarks>
         private void Admitted()
         {
@@ -2255,14 +2319,21 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Puts the database's custom data back the way it was, and answers with why the write is
+        /// Takes an admission's write back out of the database, and answers with why the write is
         /// being refused.
         /// </summary>
         /// <remarks>
-        /// The caller is about to be told the record did not land, and the certificate it was for
-        /// is about to be destroyed unsent. Leaving the record in the database anyway would make
-        /// that a lie the operator finds later: a client on the clients page that never existed,
-        /// admitted by a certificate nobody holds, written to disk by whatever they save next.
+        /// The caller is about to be told the admission did not land, and the certificate it was
+        /// for is about to be destroyed unsent. Leaving the admission in the database anyway would
+        /// make that a lie the operator finds later: a client on the clients page that never
+        /// existed, admitted by a certificate nobody holds, written to disk by whatever they save
+        /// next.
+        ///
+        /// **Everything the write applied goes, in this order**: the standing answers owed that the
+        /// save carried; the entries, by the undo the application handed back, which removes what
+        /// it added with no deletion record, puts back what it deleted and removes those deletion
+        /// records, and removes the deletion records it added and a group it made; the profile
+        /// names as they were; and the standing answers the prune took away.
         ///
         /// The modified flag goes back only if this write is what set it. Clearing one that was
         /// already there would tell KeePass it has nothing to save while somebody else's change is
@@ -2275,8 +2346,7 @@ namespace KeePassGate.Bridge
         private AdmissionWrite Undo(
             CustomDataStore store,
             PwDatabase database,
-            AdmissionRecord record,
-            string before,
+            Action undone,
             string namesBefore,
             IReadOnlyList<KeyValuePair<string, string>> pruned,
             Owing owing,
@@ -2287,28 +2357,9 @@ namespace KeePassGate.Bridge
             {
                 TakeBackOwed(owing);
 
-                if (before == null)
+                if (undone != null)
                 {
-                    store.Remove(record.StorageKey);
-                }
-                else
-                {
-                    store.Set(record.StorageKey, before);
-                }
-
-                // What the prune took away: retired documents, records that came back beside
-                // their revocations, records of expired certificates and the standing answers
-                // about certificates no record admits. They serve, admit and refuse nothing either
-                // way, and put back they leave memory agreeing with the file this write never
-                // reached. Each comes back with a modification time of now rather than the one it
-                // had, which nothing public can set; harmless, since each is about something no
-                // record admits, and the next landed write prunes it again.
-                if (pruned != null)
-                {
-                    foreach (var pair in pruned)
-                    {
-                        store.Set(pair.Key, pair.Value);
-                    }
+                    undone();
                 }
 
                 // Only when it actually moved. `StringDictionaryEx.Set` stamps a modification time,
@@ -2324,6 +2375,8 @@ namespace KeePassGate.Bridge
                         store.Set(ProfileNames.CustomDataKey, namesBefore);
                     }
                 }
+
+                PutBackAnswers(store, pruned);
 
                 if (!wasModified)
                 {
@@ -2342,13 +2395,13 @@ namespace KeePassGate.Bridge
 
                     // The title bar and the save button only, from the flag as it now stands, for
                     // the reason `PutBack` gives: a save that failed may have drawn the database
-                    // with the record still in, or not drawn it at all.
+                    // with the admission still in, or not drawn it at all.
                     Redraw(database, false);
                 }
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
-                _log.Error("a record that did not land could not be taken back out again", error);
+                _log.Error("an admission that did not land could not be taken back out again", error);
             }
 
             return AdmissionWrite.Failed(reason);

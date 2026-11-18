@@ -5,17 +5,18 @@ using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Spec;
+using KeePassGate.Store;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests.Live
 {
     /// <summary>
-    /// A client acting on its own admission against a real KeePass: revoking its own certificate.
+    /// A client acting on its own admission against a real KeePass: giving its own certificate up.
     /// </summary>
     /// <remarks>
-    /// What the loopback tests cannot settle: that the revocation goes through KeePass's own save
-    /// on KeePass's own thread, that the very next connection is refused by a KeePass that has
-    /// reloaded nothing, and that the file holds the revocation once KeePass has gone.
+    /// What the loopback tests cannot settle: that the record goes through KeePass's own save on
+    /// KeePass's own thread, that the very next connection is refused by a KeePass that has
+    /// reloaded nothing, and that the file holds the record once KeePass has gone.
     /// </remarks>
     [TestFixture]
     [Category(TestCategories.Live)]
@@ -80,19 +81,19 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         [Test]
-        public void The_revocation_is_in_the_file_afterwards()
+        public void The_certificate_given_up_is_taken_away_in_the_file_afterwards()
         {
             Assert.That(_exited, Is.True, "KeePass did not exit cleanly");
             Assert.That(_session.KeePass.ReadAdmissions().Select(record => record.AdmissionKey),
-                Has.No.Member(_revokedKey), "the record the client gave up admits nobody in the file");
+                Has.No.Member(_revokedKey), "the certificate the client gave up admits nobody in the file");
 
-            // Both halves, because the store lists neither an emptied record nor one with a
-            // revocation beside it, and only the revocation survives a merge.
+            // Both halves, because the store lists neither an admission it deleted nor an
+            // admission a record takes away, and only the record survives a merge.
             var keePass = _session.KeePass;
-            Assert.That(keePass.ReadCustomData(AuthorityKeys.RevocationKey(_revokedKey)), Is.Not.Null,
-                "the revocation is a key of its own in the file");
-            Assert.That(keePass.ReadCustomData(AuthorityKeys.ClientRecordKey(_revokedKey)), Is.Empty,
-                "and the record beside it is emptied");
+            Assert.That(keePass.FileHolds(StoreKinds.Withdrawn, StoreKinds.Certificate, _revokedKey), Is.True,
+                "the record of kind withdrawn is an entry of its own in the file");
+            Assert.That(keePass.FileHolds(StoreKinds.Client, StoreKinds.Certificate, _revokedKey), Is.False,
+                "and the write deleted the admission it refuses");
         }
 
         [Test]
@@ -112,15 +113,16 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         [Test]
-        public void The_plugin_said_which_client_revoked_itself_and_reported_only_the_refusal_after_it()
+        public void The_log_names_the_client_that_gave_its_certificate_up_and_only_the_refusal_after_it()
         {
             var revoked = CertificateDigest.Shorten(_revokedKey);
-            Assert.That(_pluginLog, Does.Contain("a client revoked its own certificate: " + revoked));
+            Assert.That(_pluginLog, Does.Contain("a client gave up its own certificate: " + revoked));
 
-            // The connection after the revocation is refused on purpose, and the gate reports a
-            // refusal at a level an operator looks at, naming the certificate. So that line, once
-            // and for that certificate, and nothing else: filtering the phrase alone would also
-            // pass a session in which the revocation never landed and every request was refused.
+            // The connection after the certificate is given up is refused on purpose, and the gate
+            // reports a refusal at a level an operator looks at, naming the certificate. So that
+            // line, once and for that certificate, and nothing else: filtering the phrase alone
+            // would also pass a session in which the write never landed and every request was
+            // refused.
             var failures = LiveSession.FailuresIn(_pluginLog);
             var refusals = failures
                 .Where(line => line.Contains("refused a certificate with no admission record: " + revoked))

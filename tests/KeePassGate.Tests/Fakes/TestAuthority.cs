@@ -6,13 +6,16 @@ using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
+using KeePassGate.Store;
 using KeePassGate.Testing;
 
 namespace KeePassGate.Tests.Fakes
 {
     /// <summary>
     /// A database as the transport sees it, with a real authority behind it: real certificates,
-    /// really signed, and a real gate key. Nothing here is a stub except the database.
+    /// really signed, and a real gate key. Nothing here is a stub except the database, whose
+    /// store is a `MemoryStore` holding that authority, written and read by the product's own
+    /// acts and readings.
     /// </summary>
     internal sealed class TestAuthority : IGateTarget
     {
@@ -25,8 +28,9 @@ namespace KeePassGate.Tests.Fakes
         private readonly CertifiedKey _hostKey;
         private readonly byte[] _gateKey;
         private readonly List<X509Certificate2> _issued = new List<X509Certificate2>();
-        private readonly InMemoryKeyValueStore _records = new InMemoryKeyValueStore();
-        private readonly AdmissionStore _admissions;
+        private readonly MemoryStore _store = new MemoryStore();
+        private readonly InMemoryKeyValueStore _answers = new InMemoryKeyValueStore();
+        private readonly RenewalAnswers _renewals;
         private readonly List<string> _named = new List<string>();
 
         private TestAuthority(
@@ -37,9 +41,19 @@ namespace KeePassGate.Tests.Fakes
             _host = host.Read();
             _hostKey = host;
             _gateKey = gateKey;
-            _admissions = new AdmissionStore(_records, NullGateLog.Instance);
+            _renewals = new RenewalAnswers(_answers, NullGateLog.Instance);
+            using (var material = new AuthorityMaterial(authority, host, gateKey))
+            {
+                StoreSeeds.AuthorityOf(_store, material);
+            }
 
             DatabaseName = "Invented Vault";
+        }
+
+        /// <summary>The database's store, as the product writes and reads it.</summary>
+        public MemoryStore Store
+        {
+            get { return _store; }
         }
 
         public static TestAuthority New()
@@ -157,7 +171,7 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>Set to make listing the records fail, as a write racing the read does.</summary>
         public Exception AdmissionThrows { get; set; }
 
-        /// <summary>The records this database holds, as the gate reads them.</summary>
+        /// <summary>The admission of a certificate, as the gate reads it from the store.</summary>
         public AdmissionRecord Admission(string admissionKey)
         {
             if (AdmissionThrows != null)
@@ -165,20 +179,22 @@ namespace KeePassGate.Tests.Fakes
                 throw AdmissionThrows;
             }
 
-            return _admissions.Find(admissionKey);
+            using (var reading = _store.Read())
+            {
+                return StoreAdmissions.Admitted(reading, admissionKey);
+            }
         }
 
-        /// <summary>The admitted clients whose records hold a profile.</summary>
+        /// <summary>The admitted clients whose admissions hold a profile.</summary>
         public IReadOnlyList<AdmissionRecord> Holding(string profile)
         {
-            var holding = new List<AdmissionRecord>();
-
-            foreach (var record in _admissions.All().Records.Where(record => record.Profiles.Contains(profile)))
+            using (var reading = _store.Read())
             {
-                holding.Add(record);
+                var listing = StoreAdmissions.Listing(reading);
+                return listing.Records
+                    .Where(record => listing.StandingOf(record) == AdmissionStanding.Admitted && record.Profiles.Contains(profile))
+                    .ToList();
             }
-
-            return holding;
         }
 
         /// <summary>
@@ -247,32 +263,43 @@ namespace KeePassGate.Tests.Fakes
         public Action WhenLanded { get; set; }
 
         /// <summary>
-        /// Run inside the write, where the writer holds its lock, before its condition is asked: a
-        /// test stands a revocation or a change to the list there that landed just before.
+        /// Run inside the write, where the writer holds its lock, before its plan is made and its
+        /// condition asked: a test stands a revocation or a change to the list there that landed
+        /// just before.
         /// </summary>
         public Action BeforeWrite { get; set; }
 
-        /// <summary>Set to say this database has retired its authority, as recreating it does.</summary>
+        /// <summary>
+        /// Set where this database has retired its authority, as recreating it does: the write's
+        /// plan then leaves the admission out.
+        /// </summary>
         public bool Retired { get; set; }
 
         /// <summary>
-        /// What a write's condition is held to: the authority this fake serves, unless it is set
-        /// as retired, and its records and its list of profiles as one database's custom data.
+        /// What a write's condition is held to: the admissions of this fake's store, and its
+        /// standing answers and its list of profiles as one database's custom data.
         /// </summary>
         private sealed class ConditionGround : IWriteGround
         {
-            public ConditionGround(TestAuthority authority)
+            private readonly StoreReading _reading;
+
+            public ConditionGround(TestAuthority authority, StoreReading reading)
             {
-                Served = authority.Retired ? null : authority.DatabaseId;
+                _reading = reading;
                 Names = new ConditionStore(authority);
             }
 
-            public string Served { get; private set; }
-
             public IKeyValueStore Names { get; private set; }
+
+            public AdmissionRecord Admission(string admissionKey)
+            {
+                return StoreAdmissions.Admitted(_reading, admissionKey);
+            }
         }
 
-        /// <summary>This fake's records and its list of profiles as one database's custom data.</summary>
+        /// <summary>
+        /// This fake's standing answers and its list of profiles as one database's custom data.
+        /// </summary>
         private sealed class ConditionStore : IKeyValueStore
         {
             private readonly TestAuthority _authority;
@@ -284,7 +311,7 @@ namespace KeePassGate.Tests.Fakes
 
             public IEnumerable<string> Keys
             {
-                get { return _authority._records.Keys; }
+                get { return _authority._answers.Keys; }
             }
 
             public string Get(string key)
@@ -306,23 +333,24 @@ namespace KeePassGate.Tests.Fakes
                 }
 
 
-                return _authority._records.Get(key);
+                return _authority._answers.Get(key);
             }
 
             public void Set(string key, string value)
             {
-                _authority._records.Set(key, value);
+                _authority._answers.Set(key, value);
             }
 
             public void Remove(string key)
             {
-                _authority._records.Remove(key);
+                _authority._answers.Remove(key);
             }
         }
 
         /// <summary>
-        /// A record, written in this fake's own records, with its audit line written as the writer
-        /// writes it: once, when the record lands, and before anything else hears of it.
+        /// An admission, written into this fake's store by the product's own act, with its audit
+        /// line written as the writer writes it: once, when the admission lands, and before
+        /// anything else hears of it.
         /// </summary>
         public AdmissionWrite Admit(AdmissionRecord record, Func<IWriteGround, string> condition, Action audit)
         {
@@ -343,34 +371,73 @@ namespace KeePassGate.Tests.Fakes
                 BeforeWrite();
             }
 
-            if (condition != null)
+            using (var reading = _store.Read())
             {
-                var withdrawn = condition(new ConditionGround(this));
-                if (withdrawn != null)
+                // The writer's plan leaves an admission out, before its condition is asked, where
+                // the authority that issued the certificate is not the authority served alone.
+                if (Retired || !string.Equals(StoreAuthorities.Served(reading), record.Issuer, StringComparison.Ordinal))
                 {
-                    return AdmissionWrite.Withdrawn(withdrawn);
+                    return AdmissionWrite.Unserved("the authority that issued its certificate does not stand alone");
+                }
+
+                if (condition != null)
+                {
+                    var withdrawn = condition(new ConditionGround(this, reading));
+                    if (withdrawn != null)
+                    {
+                        return AdmissionWrite.Failed(withdrawn);
+                    }
+                }
+
+                if (AdmitAnswers != null)
+                {
+                    if (AdmitAnswers.Ok)
+                    {
+                        Landed(audit);
+                    }
+
+                    return AdmitAnswers;
+                }
+
+                var written = Write(AdmissionActs.Admit(reading, record));
+                if (written != null)
+                {
+                    return AdmissionWrite.Failed(written);
                 }
             }
 
-            if (AdmitAnswers != null)
-            {
-                if (AdmitAnswers.Ok)
-                {
-                    Landed(audit);
-                }
-
-                return AdmitAnswers;
-            }
-
-            _admissions.Write(record);
             Name(record.Profiles);
             Admitted = record;
             Landed(audit);
             return AdmissionWrite.Done();
         }
 
-        /// <summary>Set to answer a client's revocation of itself with something other than doing it.</summary>
-        public KeePassGate.Vault.VaultWrite RevokeAnswers { get; set; }
+        /// <summary>
+        /// Writes an act into this fake's store, answering why it was refused, or null.
+        /// </summary>
+        private string Write(StoreAct act)
+        {
+            if (act == null)
+            {
+                return "the store holds no key";
+            }
+
+            try
+            {
+                var written = _store.Write(new[] { act });
+                return written.Taken ? null : written.Reason;
+            }
+            finally
+            {
+                act.Forget();
+            }
+        }
+
+        /// <summary>
+        /// Set to answer a client's giving up of its own certificate with something other than
+        /// doing it.
+        /// </summary>
+        public KeePassGate.Vault.VaultWrite GiveUpAnswers { get; set; }
 
         /// <summary>Set to make reading a standing answer fail, as a database that will not read does.</summary>
         public Exception StandingRefusalThrows { get; set; }
@@ -383,7 +450,7 @@ namespace KeePassGate.Tests.Fakes
                 throw StandingRefusalThrows;
             }
 
-            return _admissions.StandingRefusal(admissionKey);
+            return _renewals.StandingRefusal(admissionKey);
         }
 
         /// <summary>Set to answer a standing refusal's write with something other than doing it.</summary>
@@ -408,41 +475,45 @@ namespace KeePassGate.Tests.Fakes
                 return RefuseRenewalAnswers;
             }
 
-            _admissions.RefuseRenewal(admissionKey, refusal);
+            _renewals.RefuseRenewal(admissionKey, refusal);
             return KeePassGate.Vault.VaultWrite.Done();
         }
 
         /// <summary>Takes a standing answer away, as the clients page's Allow renewal does at OK.</summary>
         public bool LiftRenewalRefusal(string admissionKey)
         {
-            return _admissions.LiftRenewalRefusal(admissionKey);
+            return _renewals.LiftRenewalRefusal(admissionKey);
         }
 
         /// <summary>
-        /// A client's revocation of itself, made in this fake's own records, with its audit line
-        /// written as the writer writes it: whenever the revocation is left in force, saved and
-        /// verified or not verified, and never otherwise.
+        /// A client's giving up of its own certificate, written into this fake's store by the
+        /// product's own act, with its audit line written as the writer writes it: whenever the
+        /// record is left in force, saved and verified or not verified, and never otherwise.
         /// </summary>
-        public KeePassGate.Vault.VaultWrite Revoke(string admissionKey, Action audit)
+        public KeePassGate.Vault.VaultWrite GiveUp(string admissionKey, Action audit)
         {
-            if (RevokeAnswers != null)
+            if (GiveUpAnswers != null)
             {
-                if (RevokeAnswers.Ok || RevokeAnswers.IsUnverified)
+                if (GiveUpAnswers.Ok || GiveUpAnswers.IsUnverified)
                 {
                     Landed(audit);
                 }
 
-                return RevokeAnswers;
+                return GiveUpAnswers;
             }
 
-            if (_admissions.Find(admissionKey) == null)
+            using (var reading = _store.Read())
             {
-                return KeePassGate.Vault.VaultWrite.Missing();
-            }
+                if (StoreAdmissions.Admitted(reading, admissionKey) == null)
+                {
+                    return KeePassGate.Vault.VaultWrite.Missing();
+                }
 
-            if (!_admissions.Remove(admissionKey))
-            {
-                return KeePassGate.Vault.VaultWrite.Failed("the revocation did not land");
+                var refused = Write(AdmissionActs.TakeAway(reading, admissionKey));
+                if (refused != null)
+                {
+                    return KeePassGate.Vault.VaultWrite.Failed(refused);
+                }
             }
 
             Landed(audit);
@@ -469,17 +540,25 @@ namespace KeePassGate.Tests.Fakes
         /// </summary>
         public void Admit(X509Certificate2 certificate, params string[] profiles)
         {
-            _admissions.Write(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles));
+            StoreSeeds.Admit(_store, AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles, DatabaseId));
             Name(profiles);
         }
 
         /// <summary>
-        /// Revocation: a revocation beside the record, the record emptied, and the certificate
-        /// stops working.
+        /// Revocation of the client this certificate was admitted for, as the clients page writes
+        /// it at OK, and every certificate of that client stops working; false where the
+        /// certificate is not admitted.
         /// </summary>
         public bool Revoke(X509Certificate2 certificate)
         {
-            return _admissions.Remove(CertificateDigest.Of(certificate));
+            var admission = Admission(CertificateDigest.Of(certificate));
+            if (admission == null)
+            {
+                return false;
+            }
+
+            StoreSeeds.Revoke(_store, admission.ClientKey);
+            return true;
         }
 
         /// <summary>A certificate issued by this authority and admitted in one step.</summary>

@@ -486,12 +486,11 @@ namespace KeePassGate.Host.Tests.Live
                 SeededCopies.OtherCopyHost,
                 SeededCopies.OtherCopySniKey);
 
-            keePass.SeedAdmittedClient(keePass.DatabasePath, SeededCopies.AgentKey, SeededCopies.AgentRecord);
-            keePass.SeedAdmittedClient(keePass.DatabasePath, SeededCopies.BackupKey, SeededCopies.BackupRecord);
-            keePass.SeedAdmittedClient(other, SeededCopies.OtherAgentKey, SeededCopies.OtherAgentRecord);
+            keePass.SeedAdmittedClient(keePass.DatabasePath, SeededCopies.Agent());
+            keePass.SeedAdmittedClient(keePass.DatabasePath, SeededCopies.Backup());
+            keePass.SeedAdmittedClient(other, SeededCopies.OtherAgent());
 
-            keePass.SeedLastRequest(
-                AuthorityKeys.AdmissionKeyIn(SeededCopies.AgentKey), ours, SeededCopies.AgentLastRequest);
+            keePass.SeedLastRequest(SeededCopies.Agent().AdmissionKey, ours, SeededCopies.AgentLastRequest);
 
             // Counted before this KeePass starts rather than written down, because how often an
             // earlier session said so is that session's business.

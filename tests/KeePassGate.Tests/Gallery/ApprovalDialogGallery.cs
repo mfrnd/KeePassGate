@@ -83,8 +83,8 @@ namespace KeePassGate.Tests.Gallery
             {
                 var holding = new List<AdmissionRecord>
                 {
-                    AdmissionRecord.For(first, DateTimeOffset.UtcNow, new[] { "retired" }),
-                    AdmissionRecord.For(second, DateTimeOffset.UtcNow, new[] { "retired" })
+                    AdmissionRecord.For(first, DateTimeOffset.UtcNow, new[] { "retired" }, authority.DatabaseId),
+                    AdmissionRecord.For(second, DateTimeOffset.UtcNow, new[] { "retired" }, authority.DatabaseId)
                 };
 
                 Shoot(

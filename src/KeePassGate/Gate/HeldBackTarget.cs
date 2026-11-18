@@ -181,7 +181,7 @@ namespace KeePassGate.Gate
         }
 
         /// <summary>Busy, for the same reason: the operator choosing is all it takes.</summary>
-        public KeePassGate.Vault.VaultWrite Revoke(string admissionKey, Action audit)
+        public KeePassGate.Vault.VaultWrite GiveUp(string admissionKey, Action audit)
         {
             return KeePassGate.Vault.VaultWrite.Busy(Reason);
         }

@@ -200,7 +200,7 @@ The table is the whole state of it:
 | | |
 | --- | --- |
 | **Fingerprint** | which authority this is. Written down somewhere, it is how a replaced authority is noticed: the one in the database is not the one that was made. |
-| **Admission records** | how many records of programs let in the database holds and has not taken back out: one for each program, and two for one that has [renewed](clients.md#expiry) until it gives the old certificate up or the operator revokes it. One whose certificate has expired is counted until the plugin's next change to the database takes it away, and one whose record cannot be read until it is removed: the [clients page](clients.md) lists every one and states which admit nobody. |
+| **Admission records** | how many records of programs let in the database holds and has not taken back out: a record for each certificate, so a record for each program, and two for a program that has [renewed](clients.md#expiry) until it gives the old certificate up. A record whose certificate has expired is counted until its client is revoked or the authority is recreated or deleted. So is a record that cannot be read, and such a record that names no client stays counted, since nothing revokes it: the [clients page](clients.md) lists every record and states which admit nobody. |
 
 No date is in it. The authority and the certificate KeePass answers with are made together and good
 for a hundred years, so there is nothing to count down to: see [`clients.md`](clients.md#expiry).
@@ -208,12 +208,14 @@ for a hundred years, so there is nothing to count down to: see [`clients.md`](cl
 Anything wrong or about to be wrong appears as a sentence under the table: a client in the last
 third of its certificate's life, which is thirty days at most, and anything unreadable.
 
-**Once a profile is named or a program has paired, the saved file is KDBX 4.1.** What the plugin
-keeps in the database's own custom data, the profile names and what it keeps about the programs it
-lets in, carries the time each value was written, and that is a 4.1 field; the authority alone needs
-nothing above 4.0. KeePass 2.48 or later keeps those times. Other programs open the file all the
-same, and [Revoking](clients.md#revoking) states what saving or merging in them costs and what to
-check afterwards.
+**Once a profile is named, the saved file is KDBX 4.1.** What the plugin keeps in the database's
+own custom data, the profile names and a standing answer to a renewal, carries the time each
+value was written, and that is a 4.1 field. The authority and the programs let in are entries of
+the plugin's group, which need nothing above 4.0, so a database with an authority and a program
+paired for no profile is still a 4.0 file. A profile is named on the Profiles page, or by
+approving a program for a name the database does not hold yet. KeePass 2.48 or later keeps those
+times. Other programs open the file all the same, and [Revoking](clients.md#revoking) states
+what saving or merging in them costs and what to check afterwards.
 
 ## OK, then save
 
@@ -356,9 +358,10 @@ later at most. Windows has locked the screen by then, so this happens behind it.
 takes nothing out of a database, so a database whose authority stays keeps the authority's private
 key, the host's and the gate key inside it, in an entry of the plugin's group, which an XML export
 writes out in the clear. **Delete authority**, followed by OK and a save, takes them out, with
-every admission record, revocation and standing answer to a renewal. A copy of the authority's
-entry that an import with Create new IDs brought in is an entry like any other, which the plugin
-neither reads nor deletes: delete it in KeePass. Then close KeePass and delete
+every admission record that authority issued and each standing answer to a renewal about a
+certificate it issued. A copy of the authority's entry that an import with Create new IDs
+brought in is an entry like any other, which the plugin neither reads nor deletes: delete it in
+KeePass. Then close KeePass and delete
 `plugins\KeePassGate`.
 
 **What stays in the database grants nothing and holds no private key**, and KeePass's own dialogs
@@ -366,7 +369,7 @@ remove it once the plugin is gone:
 
 | | |
 | --- | --- |
-| **The plugin's group** | `KeePassGate`, holding a retirement for each authority the database has held, which Delete authority writes on purpose, and the entries that keep the group's own account of what is in it. The retirements are what keeps a copy of the file from before, synchronized in later, from putting the old authority back into service, so delete the group only once the plugin is not coming back. |
+| **The plugin's group** | `KeePassGate`, holding a retirement for each authority the database has held, which Delete authority writes on purpose, a revocation for each client that was revoked and a record for each certificate a program gave up, and the entries that keep the group's own account of what is in it. The retirements are what keeps a copy of the file from before, synchronized in later, from putting the old authority back into service, so delete the group only once the plugin is not coming back. |
 | **The profiles** | `KPG.Profiles`, the names the Profiles page kept. |
 | **The rules** | `KPG`, in the custom data of each group and entry that has a rule. |
 

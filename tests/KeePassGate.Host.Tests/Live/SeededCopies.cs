@@ -1,4 +1,6 @@
 using System;
+using KeePassGate.Authority;
+using KeePassGate.Testing;
 
 namespace KeePassGate.Host.Tests.Live
 {
@@ -68,25 +70,20 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>That authority's gate key.</summary>
         public const string ThisCopySniKey = "diJZIQ7dsm4WpBeSe0TEiv8oM/X7yXRACf3GfSEsPaQ=";
 
-        /// <summary>The admission key of the client this copy paired first.</summary>
-        public const string AgentKey =
-            "KPG.Client.8129125ce624ec1fa79e0f3c03cbd913ba67496a8b2e266752307f3496339623";
+        /// <summary>
+        /// The certificate of the client this copy paired first, base64 of its DER.
+        /// </summary>
+        public const string AgentCertificate =
+            "MIIB4zCCAYigAwIBAgIQYkVUMAfIXHgW4veetbs7LzAKBggqhkjOPQQDAjAgMR4wHAYDVQQDExVLZWVQYXNzR2F0ZSBhdXRob3JpdHkwHhcNMjYwOTA3MDgyNjEyWhcNMjcwOTA3MDgzMTEyWjAZMRcwFQYDVQQDEw5hZ2VudC1pbnZlbnRlZDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABP13Pm9hTffbtRswUP3dXnaGN8d9IFe6NdVoXTjdY2GRIJg++9xTD3RBiq2uLhNc80lt0EpMyLF6IxwM6hJQ1XWjgaowgacwDAYDVR0TAQH/BAIwADAOBgNVHQ8BAf8EBAMCB4AwEwYDVR0lBAwwCgYIKwYBBQUHAwIwHQYDVR0OBBYEFJncuXVTLy/KYfSZMYJjsgl3qC4eMB8GA1UdIwQYMBaAFGDPKwI1j7yNZ1ILumZZTspQhKx9MDIGA1UdEQQrMCmGFGtwZzovL3Byb2ZpbGUvcmVhZGVyhhFrcGc6Ly9wcm9maWxlL29wczAKBggqhkjOPQQDAgNJADBGAiEAyVJR+EXUqmomlJSQ92Pw6S/257X8W6Wgvr8y2XVtIb4CIQCLNrIvtmY+NNMLTVS38bKWJkL+C/jflh8XpIl6BFhFTg==";
 
         /// <summary>
-        /// That client's record: the program the documentation pairs, paired again after the
+        /// That client's admission: the program the documentation pairs, paired again after the
         /// recreate took its first admission away.
         /// </summary>
-        public static readonly string AgentRecord = string.Join(
-            "\n",
-            new[]
-            {
-                "v=1",
-                "subject=CN=agent-invented",
-                "client=8129125ce624ec1fa79e0f3c03cbd913ba67496a8b2e266752307f3496339623",
-                "admitted=2026-09-07T08:31:12Z",
-                "profiles=reader,ops",
-                "certificate=MIIB4zCCAYigAwIBAgIQYkVUMAfIXHgW4veetbs7LzAKBggqhkjOPQQDAjAgMR4wHAYDVQQDExVLZWVQYXNzR2F0ZSBhdXRob3JpdHkwHhcNMjYwOTA3MDgyNjEyWhcNMjcwOTA3MDgzMTEyWjAZMRcwFQYDVQQDEw5hZ2VudC1pbnZlbnRlZDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABP13Pm9hTffbtRswUP3dXnaGN8d9IFe6NdVoXTjdY2GRIJg++9xTD3RBiq2uLhNc80lt0EpMyLF6IxwM6hJQ1XWjgaowgacwDAYDVR0TAQH/BAIwADAOBgNVHQ8BAf8EBAMCB4AwEwYDVR0lBAwwCgYIKwYBBQUHAwIwHQYDVR0OBBYEFJncuXVTLy/KYfSZMYJjsgl3qC4eMB8GA1UdIwQYMBaAFGDPKwI1j7yNZ1ILumZZTspQhKx9MDIGA1UdEQQrMCmGFGtwZzovL3Byb2ZpbGUvcmVhZGVyhhFrcGc6Ly9wcm9maWxlL29wczAKBggqhkjOPQQDAgNJADBGAiEAyVJR+EXUqmomlJSQ92Pw6S/257X8W6Wgvr8y2XVtIb4CIQCLNrIvtmY+NNMLTVS38bKWJkL+C/jflh8XpIl6BFhFTg=="
-            });
+        public static AdmissionRecord Agent()
+        {
+            return SeededAuthority.Admission(AgentCertificate, "CN=agent-invented", "2026-09-07T08:31:12Z", "ops reader", ThisCopyAuthority);
+        }
 
         /// <summary>
         /// When the audit on this machine last wrote that client down, which is what the chooser
@@ -95,25 +92,20 @@ namespace KeePassGate.Host.Tests.Live
         public static readonly DateTimeOffset AgentLastRequest =
             new DateTimeOffset(2026, 9, 25, 16, 42, 10, TimeSpan.Zero);
 
-        /// <summary>The admission key of the second client this copy paired.</summary>
-        public const string BackupKey =
-            "KPG.Client.f760ca956c2988630ea129f5492eb69fb6a4540c0b9776aa2a31c0b5dd73eeb2";
+        /// <summary>
+        /// The certificate of the second client this copy paired, base64 of its DER.
+        /// </summary>
+        public const string BackupCertificate =
+            "MIIB0DCCAXagAwIBAgIQYv4ath7uWTieRljZnECO/zAKBggqhkjOPQQDAjAgMR4wHAYDVQQDExVLZWVQYXNzR2F0ZSBhdXRob3JpdHkwHhcNMjYwOTEwMTEwMDM2WhcNMjcwOTEwMTEwNTM2WjAaMRgwFgYDVQQDEw9iYWNrdXAtaW52ZW50ZWQwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATrtq3muDYz5JYvDtEV5dBFE62wOmwjZcsomV/+SXabCaCbHFmhQCuEKDi94fKQZaG0TM1xudbrTszF7GmsGNKro4GXMIGUMAwGA1UdEwEB/wQCMAAwDgYDVR0PAQH/BAQDAgeAMBMGA1UdJQQMMAoGCCsGAQUFBwMCMB0GA1UdDgQWBBQTCZO32GvSa3qG7N5Z57rWpn8P7zAfBgNVHSMEGDAWgBRgzysCNY+8jWdSC7pmWU7KUISsfTAfBgNVHREEGDAWhhRrcGc6Ly9wcm9maWxlL3JlYWRlcjAKBggqhkjOPQQDAgNIADBFAiA1Toiw8caZRXTkXvtoR8vsjRWeph/EIsWhN4IrsyyH8AIhAPl0IokazMrzt07CTq6GopPLpum5ZusCr3cWbuvQTwe2";
 
         /// <summary>
-        /// That client's record. Nothing in the audit names it, so the chooser says so, which is the
-        /// other answer that column gives.
+        /// That client's admission. Nothing in the audit names it, so the chooser tells it, which
+        /// is the other answer that column gives.
         /// </summary>
-        public static readonly string BackupRecord = string.Join(
-            "\n",
-            new[]
-            {
-                "v=1",
-                "subject=CN=backup-invented",
-                "client=f760ca956c2988630ea129f5492eb69fb6a4540c0b9776aa2a31c0b5dd73eeb2",
-                "admitted=2026-09-10T11:05:36Z",
-                "profiles=reader",
-                "certificate=MIIB0DCCAXagAwIBAgIQYv4ath7uWTieRljZnECO/zAKBggqhkjOPQQDAjAgMR4wHAYDVQQDExVLZWVQYXNzR2F0ZSBhdXRob3JpdHkwHhcNMjYwOTEwMTEwMDM2WhcNMjcwOTEwMTEwNTM2WjAaMRgwFgYDVQQDEw9iYWNrdXAtaW52ZW50ZWQwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATrtq3muDYz5JYvDtEV5dBFE62wOmwjZcsomV/+SXabCaCbHFmhQCuEKDi94fKQZaG0TM1xudbrTszF7GmsGNKro4GXMIGUMAwGA1UdEwEB/wQCMAAwDgYDVR0PAQH/BAQDAgeAMBMGA1UdJQQMMAoGCCsGAQUFBwMCMB0GA1UdDgQWBBQTCZO32GvSa3qG7N5Z57rWpn8P7zAfBgNVHSMEGDAWgBRgzysCNY+8jWdSC7pmWU7KUISsfTAfBgNVHREEGDAWhhRrcGc6Ly9wcm9maWxlL3JlYWRlcjAKBggqhkjOPQQDAgNIADBFAiA1Toiw8caZRXTkXvtoR8vsjRWeph/EIsWhN4IrsyyH8AIhAPl0IokazMrzt07CTq6GopPLpum5ZusCr3cWbuvQTwe2"
-            });
+        public static AdmissionRecord Backup()
+        {
+            return SeededAuthority.Admission(BackupCertificate, "CN=backup-invented", "2026-09-10T11:05:36Z", "reader", ThisCopyAuthority);
+        }
 
         /// <summary>The authority the other copy made when it recreated, a week later.</summary>
         public const string OtherCopyAuthority =
@@ -153,21 +145,16 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>That authority's gate key.</summary>
         public const string OtherCopySniKey = "7xPEr4HWfjm4EXGdllfsDnlr3KtMRkEqUYYMKFzRAKs=";
 
-        /// <summary>The admission key of the one client the other copy paired.</summary>
-        public const string OtherAgentKey =
-            "KPG.Client.37435b34c9abe506c8ccca9259027d1b55f98552fc6937cf1d55c85393bbb07e";
+        /// <summary>
+        /// The certificate of the client the other copy paired, base64 of its DER.
+        /// </summary>
+        public const string OtherAgentCertificate =
+            "MIIBzzCCAXSgAwIBAgIQBdNIxwhHXLghEsILQcNRNzAKBggqhkjOPQQDAjAgMR4wHAYDVQQDExVLZWVQYXNzR2F0ZSBhdXRob3JpdHkwHhcNMjYwOTE0MTY1NzA4WhcNMjcwOTE0MTcwMjA4WjAbMRkwFwYDVQQDExBhZ2VudC1maWN0aXRpb3VzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAELwdOl4+mP1Z06Q9atuXx48xxyLWpOeyUwqc9ZWBEOu/6U1V80YPoRtQa8zT0GvM4ildwSMOPVeQMLxcnqvUJhKOBlDCBkTAMBgNVHRMBAf8EAjAAMA4GA1UdDwEB/wQEAwIHgDATBgNVHSUEDDAKBggrBgEFBQcDAjAdBgNVHQ4EFgQUHUwW77deNuxe3GBlcI2kZzKtVeMwHwYDVR0jBBgwFoAUcFO5qmMisYfL28p69+GMPxlaCvgwHAYDVR0RBBUwE4YRa3BnOi8vcHJvZmlsZS9vcHMwCgYIKoZIzj0EAwIDSQAwRgIhAIYaljJh/uOo2quoPGG0T/Dl7uNUQtkxXQigolWUPatEAiEAk2+4YsK4cZzNMzgH0CdezU0lhVixqdlrX73SSTJDOI8=";
 
-        /// <summary>That client's record.</summary>
-        public static readonly string OtherAgentRecord = string.Join(
-            "\n",
-            new[]
-            {
-                "v=1",
-                "subject=CN=agent-fictitious",
-                "client=37435b34c9abe506c8ccca9259027d1b55f98552fc6937cf1d55c85393bbb07e",
-                "admitted=2026-09-14T17:02:08Z",
-                "profiles=ops",
-                "certificate=MIIBzzCCAXSgAwIBAgIQBdNIxwhHXLghEsILQcNRNzAKBggqhkjOPQQDAjAgMR4wHAYDVQQDExVLZWVQYXNzR2F0ZSBhdXRob3JpdHkwHhcNMjYwOTE0MTY1NzA4WhcNMjcwOTE0MTcwMjA4WjAbMRkwFwYDVQQDExBhZ2VudC1maWN0aXRpb3VzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAELwdOl4+mP1Z06Q9atuXx48xxyLWpOeyUwqc9ZWBEOu/6U1V80YPoRtQa8zT0GvM4ildwSMOPVeQMLxcnqvUJhKOBlDCBkTAMBgNVHRMBAf8EAjAAMA4GA1UdDwEB/wQEAwIHgDATBgNVHSUEDDAKBggrBgEFBQcDAjAdBgNVHQ4EFgQUHUwW77deNuxe3GBlcI2kZzKtVeMwHwYDVR0jBBgwFoAUcFO5qmMisYfL28p69+GMPxlaCvgwHAYDVR0RBBUwE4YRa3BnOi8vcHJvZmlsZS9vcHMwCgYIKoZIzj0EAwIDSQAwRgIhAIYaljJh/uOo2quoPGG0T/Dl7uNUQtkxXQigolWUPatEAiEAk2+4YsK4cZzNMzgH0CdezU0lhVixqdlrX73SSTJDOI8="
-            });
+        /// <summary>That client's admission.</summary>
+        public static AdmissionRecord OtherAgent()
+        {
+            return SeededAuthority.Admission(OtherAgentCertificate, "CN=agent-fictitious", "2026-09-14T17:02:08Z", "ops", OtherCopyAuthority);
+        }
     }
 }

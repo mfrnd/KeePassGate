@@ -60,7 +60,7 @@ can read it.
 | --- | --- |
 | `at` | when it was decided, UTC, to the second |
 | `database` | which database answered: the SHA-256 of its authority's certificate, in hex, whose first sixteen characters are the **Fingerprint** on the Certificate Authority page. Recreating the authority gives the same file a new value here. `null` on the operator's revocation in a database serving no authority once **OK** is through, whatever the reason: its authority will not read, every authority it held is retired, or it holds several authorities that copies of it made separately and none of them has been kept yet |
-| `admissionKey` | which certificate the line is about, by the same admission key the Clients page revokes: the one that asked, or the one a revocation took away. `null` on a pairing, whose program holds no certificate yet |
+| `admissionKey` | which certificate the line is about, by its admission key, the fingerprint the Clients page names as **Certificate** in a row's tooltip: the certificate that asked, or a certificate a revocation ended. `null` on a pairing, whose program holds no certificate yet, and on the operator's revocation of a client of which the database admitted no certificate, or whose certificates could not be read as **OK** was applied |
 | `clientKey` | which client that certificate belongs to, by its **client key**: the admission key of the certificate it paired with, which the KPG tab counts and tells clients apart by and which a renewal keeps. `null` where no admission record stands behind the line, which is a pairing the operator did not approve and a certificate the gate refuses |
 | `operation` | what it asked for, by the name the routing table gives it, or `null` for the operator's own revocation, which no route asked for |
 | `node` | which group or entry it was about, by UUID, or `null` if it never reached one |
@@ -144,10 +144,11 @@ instead, with `removedProfiles` naming them all the same:
 refuses, because its record has been taken away, it has expired, or it is not a client certificate,
 gets a line for every operation it asks for: its key under `admissionKey`, `node` as `null`,
 `refused`, and why. So a revoked program that keeps trying can be seen doing it. Its `clientKey` is
-`null`: a revoked certificate's record has been emptied, one with no record never had one, and one
+`null`: a client is named from a record that admits its certificate, which the record of a
+revoked client does not, a certificate with no record names no client, and a certificate
 that has expired or is not a client certificate is refused before its record is read, so naming
 the client would cost every such request a read of the database of its own. The revocation's own
-line names both keys, so the client a revoked certificate belonged to is found there. A program
+lines name both keys, so the client a revoked certificate belonged to is found there. A program
 with no certificate, or with one from another database, names nobody this database issued and is
 not written down.
 
@@ -180,7 +181,7 @@ act's, so `permitted` goes on meaning only that the rules allowed something, and
 | --- | --- |
 | A pairing | `pairRequest`, with no `admissionKey`, since the program has no certificate yet. `approved`, `refused` or `unanswered`, as the operator answered the dialog or left it to close itself. One more member, `invitation`, names the invitation it arrived on, as the KPG tab and the dialog show it, and an approved one adds `issued`: the admission key of the certificate it admitted, which every later line from that program names under `admissionKey` until it renews. That is its client key for good, so an approved pairing's `clientKey` is the same key; a refused or unanswered one admitted nobody and its `clientKey` is `null` |
 | A renewal | `renewCertificate`, with the certificate that asked under `admissionKey` and its client under `clientKey`, which the renewal does not change. `approved`, with the new certificate's key under `issued`; `refused`, with a reason stating which answer the operator gave, once, in this session, until a later date or forever, or that an answer given before refused it without asking; or `unanswered` |
-| A revocation | `revoked`, with the certificate it took away under `admissionKey` and the client it belonged to under `clientKey`. The operator's, with `operation` as `null`, is written when the settings dialog's **OK** puts it into the database, which is when it takes effect, and never on **Cancel**; its client key is read from the record just before **OK** empties it, and is `null` only if that record was already gone or could not be read. Its `database` is the authority served once **OK** is through, which is the authority kept where the same dialog kept another. A revocation is not written down where the same **OK** writes a Recreate or a Delete, which takes every admission away with the authority. A program's revocation of itself, `revokeCertificate`, is written once the revocation is in the database |
+| A revocation | `revoked`. The operator's revokes a client, so it is a line for each certificate of that client the database admitted until then, each with the certificate under `admissionKey` and the client under `clientKey`, or a single line with `admissionKey` as `null` where the database admitted no certificate of the client. A row the Clients page marks as admitting nobody, `not this authority`, `listed twice` or `not counted`, gets no line of its own, since the revocation ended nothing there. Each has `operation` as `null` and is written when the settings dialog's **OK** puts the revocation into the database, which is when it takes effect, and never on **Cancel**. Its `database` is the authority served once **OK** is through, which is the authority kept where the same dialog kept another. A program giving its own certificate up, `revokeCertificate`, is a single line with that certificate under `admissionKey` and its client under `clientKey`, written once it is in the database |
 
 **`approved` always names a client that was admitted.** An approval whose record did not reach the
 database, or whose invitation had been spent or had run out by the time the operator answered,

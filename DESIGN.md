@@ -699,13 +699,15 @@ itself.
 against the host that issued its invitation.
 
 **One hazard that is KeePass's, not ours.** Two KeePass instances writing one replicated kdbx is the
-ordinary multi-writer problem, and this design does not solve it. Admission records are one key per
-certificate in the database's own `CustomData` precisely so a merge is per certificate rather than
-last-writer-wins, and a revocation is a key of its own that is only ever added, because a KeePass
-merge never removes a key and never reads a value, while a retired authority is a record of the
-plugin's store beside the authority it retires; see CA.md §204. That
-replaced a revocation written as an empty record, which a merge carried only while the file kept its
-times. The safe arrangement is still one writer and any number of readers.
+ordinary multi-writer problem, and this design does not solve it. An admission is a record of the
+plugin's store for each certificate, an entry of its own, precisely so a merge is per certificate
+rather than last-writer-wins, and a revocation and a retirement are further records that are only
+ever added, each restated by the summary entry every write of the plugin's writes; see CA.md §204
+and STORE.md §615. That replaced the admissions and the revocations as keys of the database's own
+`CustomData`, a key for each certificate on the same argument, since a KeePass merge never removes
+a key and never reads a value, which a KeePassXC merge defeats by replacing the whole dictionary.
+And that had replaced a revocation written as an empty record, which a merge carried only while
+the file kept its times. The safe arrangement is still one writer and any number of readers.
 
 **Two copies of one database open at once** share an authority and a `SniKey` and are genuinely
 indistinguishable. The plugin refuses to serve while that is true, rather than guessing, and logs
@@ -939,7 +941,8 @@ somebody has to answer "what may I grant here", and the honest answer was "whate
 spelled exactly as somebody else typed it". A typo made a profile that existed, granted nothing, and
 looked exactly like the one that was meant.
 
-So the set is `ProfileNames`, under `KPG.Profiles` beside the authority and the records, in the
+So the set is `ProfileNames`, under `KPG.Profiles` in the database's own custom data, where the
+authority and the records were kept beside it until each moved into the plugin's store, in the
 same grammar as everything else here:
 
 ```json
@@ -1646,6 +1649,34 @@ So the rules here:
   underneath, and neither tells its caller anything, so what "it worked" is made of is the record
   still being there afterwards and the database no longer saying it has unsaved changes.
 
+  **The record is an entry of the plugin's store, so the write is the store's**, `STORE.md` §627.
+  In the writer's turn the store is read afresh with every entry of the tree, the admission is
+  planned with the summary entry over what is then in force, every entry the plan deletes or sets
+  back is asked about, the approval and the invitation are spent last, the entries are changed,
+  and the database is saved. Afterwards each entry the write added is looked up in the tree with
+  the strings it was written with, beside the flag and the file, and a write that did not land is
+  taken back out by the undo its application handed back: the entries added, the entries deleted
+  with their deletion records, and the profile name and the standing answers the same turn
+  changed. **A write whose plan adds no admission is refused before the approval and the
+  invitation are spent**: looked up by its own entries, a write that added nothing would find
+  nothing missing, and a save of nothing would hand a certificate over with no admission in the
+  file, `AdmissionActs.AddsAdmission`. A plan that leaves the admission out because the
+  authority that issued its certificate is not the authority served alone is told apart, as an
+  authority recreated or deleted since the operator answered: the writer answers it as unserved,
+  and a pairing is answered `409 no invitation` and a renewal `401 unpaired`, with the approval
+  used up and nothing written, `PAIRING.md` §311. Held by
+  `PairingInRealDatabaseTests.A_write_whose_plan_leaves_the_admission_out_is_not_believed_and_spends_nothing`.
+  A certificate its client gives up is written the same way through the writer's change, and
+  believed as a change is. **Its application marks the database, and the mark is put back
+  before the change is handed to the writer**, so the writer decides the mark as for every
+  change, from what the database held before and from the file: taken back out over a file that
+  did not change, a certificate given up leaves nothing to save, held by
+  `GiveUpInRealDatabaseTests.A_certificate_given_up_that_no_save_kept_is_taken_back_out_and_stays_admitted`.
+  This reverses a write that set a key of the database's custom data and read that key back. The
+  turn now walks the tree once ahead of its save. What that adds beside the save is not measured
+  for a pairing yet; the store's own write of a Recreate, which walks and plans the same way, is
+  measured, `STORE.md` §627.
+
   So the deadlock case is **mitigated rather than absent**, and earlier versions of this section
   claimed otherwise twice over: first that it was absent, then that pairing was the only path that
   waited on the UI thread. Neither is true. Every write marshals the same way, through the same
@@ -1772,12 +1803,19 @@ So the rules here:
   it, which is all that is wrong on it. It used to be given the call only when the flag was
   cleared, which left a database marked unsaved showing nothing to save.
 
-  **Not for an admission record.** A record is in the database's own custom data, which the main
-  window has no view of, so a pairing that lands redraws nothing, and one taken back out redraws
-  the title bar and the menus for the reason a change does. **Nor for a client's revocation of
-  itself or a standing answer to a renewal**, which go through the writer as a change does and are
-  kept in the same custom data: either, once it lands, redraws the title bar and the menus,
-  rebuilds neither list, and tells the Clients page, which draws from both.
+  **For an admission record as well, which reverses redrawing nothing for it.** A record was a
+  key of the database's own custom data, which the main window has no view of, so a pairing that
+  landed redrew nothing. It is an entry of the plugin's group now, written with a summary entry in
+  place of the summary entry it deletes, so a pairing or a renewal that lands rebuilds the tree and
+  the list as any change that adds or removes an entry does, and so does a certificate that its
+  client gives up, which deletes its admission: a list left as it was could show an entry that is
+  no longer in the tree. The cost is the rebuild's own, above, an operator's search results. Held
+  by `PairingInRealDatabaseTests.A_pairing_that_lands_rebuilds_the_tree_and_the_entry_list` and
+  `GiveUpInRealDatabaseTests.A_certificate_given_up_that_lands_rebuilds_the_tree_and_the_entry_list`.
+  A write taken back out redraws the title bar and the menus for the reason a change does. **Not for
+  a standing answer to a renewal**, which goes through the writer as a change does and is kept in
+  the custom data: once it lands it redraws the title bar and the menus, rebuilds neither list,
+  and tells the Clients page, which draws from it.
 - **Nothing throws to the transport.** A handler failure becomes `500 internal error` and an
   incident, counted on the plugin's window under Tools and logged at `UNEXPECTED`, because an
   unhandled exception in this process takes KeePass with it. It is not audited, which this bullet
@@ -1911,9 +1949,26 @@ the admission key it issued under `issued`; its asker holds no certificate yet, 
 `admissionKey` is null. A renewal is written against the certificate that asked, with the key
 issued in its place when approved, which of the operator's four answers it got when refused, and
 its own reason when an answer given before refused it without asking anybody. A revocation is
-written as `revoked`, with the key it took away: the operator's when the settings dialog's OK puts
-it into the database, which is when it takes effect, and a client's own once it is in the
-database, answered `200` or `500 not verified`. The operator's word, or the act's, is the decision, so `permitted` keeps
+written as `revoked`. A client's own is of the certificate it gave up, and names that key once
+the record is in the database, answered `200` or `500 not verified`. The operator's is of a
+client, and its record names no certificate, `STORE.md` §615, so when the settings dialog's OK
+puts it into the database, which is when it takes effect, it is written as a line for each
+certificate of that client the OK ended in this copy, and as a single line with the client key
+and no `admissionKey` where the copy admitted none, or where the store could not be read as OK
+was applied. A certificate the OK ended is a certificate this copy admitted before it, so an
+admission under an authority that is not served, a certificate several admissions name and a
+record that does not read get no line. The lines are written once the store's write is taken,
+ahead of the tab's changes to the custom data, so nothing that half comes to loses them, and that
+half runs in a `finally` around them, and so does what the tab does after it, the answers lifted
+for this session and the invitations kept, so a defect in writing the lines loses nothing else
+of the OK and reaches the catch-all of the dialog's close afterwards, §141. This reverses a
+single line for the certificate of the row pressed, which a revocation used to name.
+Held by
+`GateWiringTests.A_revocation_writes_a_line_for_each_certificate_of_the_client_and_the_client_key_alone_where_the_copy_holds_none`,
+`GateWiringTests.A_revocation_writes_lines_only_for_the_certificates_this_copy_admitted`,
+`GateWiringTests.A_revocation_s_lines_are_written_once_the_store_holds_it_whatever_the_custom_data_half_comes_to`
+and `GateWiringTests.A_revocation_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel`.
+The operator's word, or the act's, is the decision, so `permitted` keeps
 meaning only that the rules allowed something; `node` and `decidedAt` are null, and so is
 `operation` on the operator's revocation, which no route asked for. **`approved` always names a key
 that was admitted.** An approval whose record never landed, whose invitation was spent elsewhere or
@@ -1934,11 +1989,13 @@ one value finds every line a client caused however often it renewed; the audit u
 the certificate, under `client`, and the client was found by following each renewal's `issued`
 back to the pairing. The client key comes from the admission record the request already read, so
 it costs no read of its own: an approved pairing's is the key it issued, and the operator's
-revocation reads it from the record just before OK empties it. **Where no record stands behind a
-line it is null**: a pairing nobody approved, which admitted nobody, and a certificate the gate
-refuses, whose record is emptied or absent, or is never read because the certificate was refused
-before it. Reading the database again to name a client there would cost a read per request for a
-certificate that reaches nothing, and the revocation's line already names both keys.
+revocation is of the client key itself, with the certificates it ended read from the store just
+before OK is applied, since the write that revokes deletes their records. **Where no record
+stands behind a line it is null**: a pairing nobody approved, which admitted nobody, and a
+certificate the gate refuses, whose record a decision refuses, or is deleted or absent, or is
+never read because the certificate was refused before it. Reading the database again to name a
+client there would cost a read per request for a certificate that reaches nothing, and the
+revocation's line already names both keys.
 
 **A line about a change that landed is written by the write that landed it.** An approved
 pairing's, an approved renewal's and a client's own revocation's are written by `DatabaseWriter`,
@@ -2044,14 +2101,14 @@ had certificates.
 
 **That shared allowance is apart from every client's own, so a client keeping refused
 certificates is recorded at up to twice the pace, and that is conceded.** Counting a refused
-certificate against its client would need the client named, and nothing names it: a revoked
-record is emptied, an expired record is taken away by the plugin's next write, a certificate refused
-for its usage or its dates is refused before its record is read, and reading the database again
-there would cost a read per request for a certificate that reaches nothing. Twice is the whole of
-it, however many certificates a client kept or however many clients keep them, since every refused
-certificate of a database shares the one allowance; a client flooding on both pushes a decision out
-of both files in about a quarter of an hour rather than half an hour, and every line on the way
-still names the certificate that wrote it.
+certificate against its client would need the client named, and nothing names it: the record of a
+revoked client or of a certificate taken away admits nobody and is deleted by the plugin's next
+write, a certificate refused for its usage or its dates is refused before its record is read,
+and reading the database again there would cost a read per request for a certificate that
+reaches nothing. Twice is the whole of it, however many certificates a client kept or however
+many clients keep them, since every refused certificate of a database shares the one allowance;
+a client flooding on both pushes a decision out of both files in about a quarter of an hour
+rather than half an hour, and every line on the way still names the certificate that wrote it.
 
 **A client's lines about its own admission count against the same allowance.** A renewal an answer
 given before refuses is answered at once and as often as a client asks, so its lines, and the line
@@ -2207,7 +2264,10 @@ lacks any of them starts no watch, and every write and every pairing is refused.
   from inside its OK, which can be handled part way through a save of the plugin's own (§119), so
   nothing is saved to its database while it is open.
 - **Database Maintenance** puts its copy of the database's own custom data back as it closes,
-  whatever the operator did, so no record, revocation or profile is written while it is open.
+  whatever the operator did, so no profile name and no standing answer to a renewal is written
+  while it is open, and neither is a pairing, a renewal or a certificate given up, each of which
+  adds or takes away such a key in the turn that writes its record. The records themselves were
+  keys of that dictionary, and a revocation with them, until they moved into the plugin's store.
 - **Database Settings** puts its recycle bin choice back on OK, so a removal that would make the
   database's first bin is refused.
 - **KeePass's attachment editor** holds an attachment's name and bytes and nothing of the entry,
@@ -2226,7 +2286,10 @@ from entries at the press of a button and puts no copy of an entry back over a w
 refused for it: pressed where a record counts by its history, the removal is the loss `STORE.md`
 §622 describes. Keeping an authority, which writes no custom data and saves nothing, is written
 under it, while the store write of the settings dialog's OK is refused under it and under the TAN
-wizard as a whole; neither window can stand beside that dialog, each being modal.
+wizard as a whole; neither window can stand beside that dialog, each being modal. A pairing's and
+a renewal's admission and a certificate given up are writes into the store as well: each is
+answered `503 busy` while an entry dialog holds an entry its plan deletes or sets back, the
+summary entry among them, with a pairing's or a renewal's approval held.
 
 ### C4. The plugin as its own CA puts the CA key beside the database §125
 

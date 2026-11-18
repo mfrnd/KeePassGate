@@ -104,6 +104,7 @@ words:
   - crdt
   - maxclients
   - delauth
+  - renewcert
 
   # own the transport, because the name rotates
   - REUSEADDR

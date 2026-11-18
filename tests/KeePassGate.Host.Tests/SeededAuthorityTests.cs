@@ -29,28 +29,37 @@ namespace KeePassGate.Host.Tests
     /// bug: it is the fixture asking to be regenerated, along with the pictures that show its
     /// fingerprint.
     ///
-    /// A client's dates are read out of the stored line rather than through `AdmissionRecord`,
-    /// which would put a parser between the assertion and the bytes it is about; the record is read
-    /// through it to ask whether it reads as the client it was paired as. An authority's and a
-    /// host's are in a PKCS#12, which only a parser opens, and they are read through the one the
-    /// plugin loads them with.
+    /// A client's dates are read out of the written down certificate rather than through
+    /// `AdmissionRecord`, which would put a parser between the assertion and the bytes it is
+    /// about; the admission is read through it to ask whether it reads as the client it was paired
+    /// as. An authority's and a host's are in a PKCS#12, which only a parser opens, and they are
+    /// read through the one the plugin loads them with.
     /// </remarks>
     [TestFixture]
     public sealed class SeededAuthorityTests
     {
-        private const string Field = "certificate=";
-
-        private const string Admitted = "admitted=";
-
         private static readonly TimeSpan Warning = TimeSpan.FromDays(90);
 
-        /// <summary>Every written down client record, and the class to regenerate when one expires.</summary>
+        /// <summary>
+        /// Every written down client certificate, and the class to regenerate when one expires.
+        /// </summary>
         private static readonly object[] Seeded =
         {
-            new object[] { nameof(SeededAuthority), SeededAuthority.ClientRecord },
-            new object[] { nameof(SeededCopies), SeededCopies.AgentRecord },
-            new object[] { nameof(SeededCopies), SeededCopies.BackupRecord },
-            new object[] { nameof(SeededCopies), SeededCopies.OtherAgentRecord }
+            new object[] { nameof(SeededAuthority), "agent-invented", SeededAuthority.ClientCertificate },
+            new object[] { nameof(SeededCopies), "agent-invented", SeededCopies.AgentCertificate },
+            new object[] { nameof(SeededCopies), "backup-invented", SeededCopies.BackupCertificate },
+            new object[] { nameof(SeededCopies), "agent-fictitious", SeededCopies.OtherAgentCertificate }
+        };
+
+        /// <summary>
+        /// Every written down admission, with the authority that issued its certificate.
+        /// </summary>
+        private static readonly object[] SeededAdmissions =
+        {
+            new object[] { nameof(SeededAuthority), "agent-invented", SeededAuthority.Client(), SeededAuthority.Authority },
+            new object[] { nameof(SeededCopies), "agent-invented", SeededCopies.Agent(), SeededCopies.ThisCopyAuthority },
+            new object[] { nameof(SeededCopies), "backup-invented", SeededCopies.Backup(), SeededCopies.ThisCopyAuthority },
+            new object[] { nameof(SeededCopies), "agent-fictitious", SeededCopies.OtherAgent(), SeededCopies.OtherCopyAuthority }
         };
 
         /// <summary>Every written down authority and host certificate, as the stored PKCS#12.</summary>
@@ -65,22 +74,16 @@ namespace KeePassGate.Host.Tests
         };
 
         [TestCaseSource(nameof(Seeded))]
-        public void The_seeded_client_certificate_is_not_close_to_expiring(string seededBy, string record)
+        public void The_seeded_client_certificate_is_not_close_to_expiring(string seededBy, string client, string certificate)
         {
-            var line = record
-                .Split('\n')
-                .Single(l => l.StartsWith(Field, StringComparison.Ordinal));
-
-            var der = Convert.FromBase64String(line.Substring(Field.Length));
-
-            using (var certificate = new X509Certificate2(der))
+            using (var parsed = new X509Certificate2(Convert.FromBase64String(certificate)))
             {
-                var expires = certificate.NotAfter.ToUniversalTime();
+                var expires = parsed.NotAfter.ToUniversalTime();
 
                 Assert.That(
                     expires - DateTime.UtcNow,
                     Is.GreaterThan(Warning),
-                    "the seeded certificate expires on " + expires.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) +
+                    "the seeded certificate of " + client + " expires on " + expires.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) +
                     ". Regenerate " + seededBy + ", and the screenshots that show its fingerprint.");
             }
         }
@@ -102,45 +105,41 @@ namespace KeePassGate.Host.Tests
                 ". Regenerate " + seededBy + ", and the screenshots that show its fingerprint.");
         }
 
-        [TestCaseSource(nameof(Seeded))]
-        public void The_seeded_client_was_admitted_while_its_certificate_was_valid(string seededBy, string record)
+        [TestCaseSource(nameof(SeededAdmissions))]
+        public void The_seeded_client_was_admitted_while_its_certificate_was_valid(
+            string seededBy, string client, AdmissionRecord admission, string authority)
         {
-            // Pairing stamps a record as it writes it, after the certificate is issued, and the
-            // clients page shows that moment beside the certificate's end. `SeededAuthority` said
-            // March, five months before its certificate began, which no pairing can produce.
-            var lines = record.Split('\n');
-            var admitted = DateTimeOffset.Parse(
-                lines.Single(l => l.StartsWith(Admitted, StringComparison.Ordinal)).Substring(Admitted.Length),
-                CultureInfo.InvariantCulture).UtcDateTime;
-            var der = Convert.FromBase64String(
-                lines.Single(l => l.StartsWith(Field, StringComparison.Ordinal)).Substring(Field.Length));
-
-            using (var certificate = new X509Certificate2(der))
+            // Pairing stamps an admission as it writes it, after the certificate is issued, and
+            // the clients page shows that moment beside the certificate's end. `SeededAuthority`
+            // held March, five months before its certificate began, which no pairing can produce.
+            using (var certificate = admission.Certificate())
             {
                 Assert.That(
-                    admitted,
+                    admission.Admitted.UtcDateTime,
                     Is.InRange(certificate.NotBefore.ToUniversalTime(), certificate.NotAfter.ToUniversalTime()),
-                    seededBy + " admits a client at a moment its certificate does not cover");
+                    seededBy + " admits " + client + " at a moment its certificate does not cover");
             }
         }
 
         /// <summary>
-        /// The written down client is a record the plugin reads, filed under its key and known by
-        /// the certificate it paired with.
+        /// The written down admission is a record the plugin reads, known by the certificate it
+        /// paired with and issued by the authority written down beside it.
         /// </summary>
         /// <remarks>
         /// Asked here rather than found out from a screenshot run, for the reason the test below
         /// gives: a record the plugin will not read is listed as one that cannot be, and every
         /// picture of the clients page would show that.
         /// </remarks>
-        [Test]
-        public void The_seeded_client_record_reads_as_the_client_it_was_paired_as()
+        [TestCaseSource(nameof(SeededAdmissions))]
+        public void The_seeded_admission_reads_back_as_the_client_it_was_paired_as(
+            string seededBy, string client, AdmissionRecord admission, string authority)
         {
-            var admissionKey = AuthorityKeys.AdmissionKeyIn(SeededAuthority.ClientKey);
-            var record = AdmissionRecord.Load(admissionKey, SeededAuthority.ClientRecord);
+            var read = AdmissionRecord.Read(null, admission.Members());
 
-            Assert.That(record, Is.Not.Null);
-            Assert.That(record.ClientKey, Is.EqualTo(admissionKey));
+            Assert.That(read, Is.Not.Null, seededBy + " writes an admission of " + client + " that does not read");
+            Assert.That(read.ClientKey, Is.EqualTo(read.AdmissionKey), "a client known by the certificate it paired with");
+            Assert.That(read.Issuer, Is.EqualTo(CertificateDigest.Of(CertificateBlob.Load(authority).CertificateDer)));
+            Assert.That(read.Subject, Is.EqualTo("CN=" + client));
         }
 
         /// <summary>
@@ -157,18 +156,16 @@ namespace KeePassGate.Host.Tests
         {
             using (var merged = TemporaryDatabase.New())
             {
-                var store = new CustomDataStore(merged.Database);
                 var records = new KdbxStore(merged.Database, GateVersion.Current, null);
                 StoreSeeds.WrittenDown(records, SeededCopies.ThisCopyAuthority, SeededCopies.ThisCopyHost, SeededCopies.ThisCopySniKey);
                 StoreSeeds.WrittenDown(records, SeededCopies.OtherCopyAuthority, SeededCopies.OtherCopyHost, SeededCopies.OtherCopySniKey);
-                store.Set(SeededCopies.AgentKey, SeededCopies.AgentRecord);
-                store.Set(SeededCopies.BackupKey, SeededCopies.BackupRecord);
-                store.Set(SeededCopies.OtherAgentKey, SeededCopies.OtherAgentRecord);
+                StoreSeeds.Client(records, SeededCopies.Agent().Members());
+                StoreSeeds.Client(records, SeededCopies.Backup().Members());
+                StoreSeeds.Client(records, SeededCopies.OtherAgent().Members());
 
-                using (var reading = new AuthorityService(records, store, NullGateLog.Instance).Read())
+                using (var reading = new AuthorityService(records, NullGateLog.Instance).Read())
                 {
-                    var choice = AuthorityChoice.From(
-                        reading, new AdmissionStore(store, NullGateLog.Instance).All(), null, NullGateLog.Instance);
+                    var choice = AuthorityChoice.From(reading, StoreSeeds.Listed(records), null, NullGateLog.Instance);
 
                     var offered = choice.Options.Select(option => option.CanKeep
                         ? string.Join(", ", option.Clients.Select(client => client.Name))

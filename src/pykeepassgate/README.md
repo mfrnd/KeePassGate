@@ -138,11 +138,13 @@ in a directory ending `.retired`, `renew` says so and exits 1, and `revoke --dir
 directory gives it up. A later `renew` gives it up first itself, and forgets it once the gate takes
 it back, already refuses it or it has expired.
 
-`revoke` asks the gate to revoke the certificate this client presents and, once the gate says the
-revocation is saved, removes what is stored for it. When the gate does not confirm it,
-nothing is removed. A certificate the gate already refuses, revoked or expired, counts as given up,
-and its files are removed as well. From a program, `client.renew()` and `client.revoke_certificate()` ask the
-gate, and `api.forget(directory)` removes the files.
+`revoke` asks the gate to take away the certificate this client presents, that certificate and
+no other, so a certificate renewed from it stays admitted. Once the gate answers that this is
+saved, `revoke` removes what is stored for the certificate. When the gate does not confirm it,
+nothing is removed. A certificate the gate already refuses, taken away, of a client the operator
+revoked, or expired, counts as given up, and its files are removed as well. From a program,
+`client.renew()` and `client.revoke_certificate()` ask the gate, and `api.forget(directory)`
+removes the files.
 
 ## What to catch
 

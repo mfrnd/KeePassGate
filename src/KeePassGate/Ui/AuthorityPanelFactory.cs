@@ -7,6 +7,7 @@ using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
+using KeePassGate.Store;
 
 namespace KeePassGate.Ui
 {
@@ -174,11 +175,11 @@ namespace KeePassGate.Ui
         ///
         /// **What landed is said in the log**, which is the only place left to say it: the dialog
         /// that could have is closing. And each revocation that landed is written to the audit,
-        /// which is the moment it takes effect, naming its client by the client key on the record
-        /// it empties: read from the live database just before OK applies the buffer, since the
-        /// record is gone once it has, and only when a revocation is waiting.
+        /// which is the moment it takes effect, a line for each certificate of the client it
+        /// ended: read from the live store just before OK applies the buffer, since the write that
+        /// revokes deletes the admissions it refuses, and only when a revocation is waiting.
         ///
-        /// **The answers lifted for this session go first, and whatever the buffer does.** They
+        /// **The answers lifted for this session are lifted whatever the buffer does.** They
         /// are the plugin's memory and not the database's, so nothing about the file decides them:
         /// a database that went away under the dialog, or a buffer with nothing else in it, still
         /// leaves the operator having allowed that renewal and pressed OK.
@@ -211,31 +212,44 @@ namespace KeePassGate.Ui
                         // What follows can only fail closed: a lifted answer left standing refuses,
                         // and an invitation made on the dialog is outstanding from the moment it
                         // was made, which accepting the dialog only stops being taken back.
-                        IDictionary<string, string> clients = null;
+                        ILookup<string, string> certificates = null;
                         try
                         {
-                            clients = ClientKeys(live, database);
+                            certificates = Certificates(live, database);
                         }
                         finally
                         {
-                            if (database.Apply())
+                            try
                             {
-                                Log().Info("what the " + GateName.Product + " tab held was put into "
-                                    + "the database, which KeePass now says has changes to save");
-                                Revoked(live, database, clients ?? new Dictionary<string, string>(StringComparer.Ordinal));
-                                Lifted(database);
+                                // The revocations' lines as soon as the store holds them, before
+                                // the custom data half, so that a defect there cannot lose the line
+                                // of a revocation that stands.
+                                if (database.Apply(() => Revoked(live, database, certificates)))
+                                {
+                                    Log().Info("what the " + GateName.Product + " tab held was put into "
+                                        + "the database, which KeePass now says has changes to save");
+                                }
                             }
-                        }
+                            finally
+                            {
+                                // The steps after the buffer, whatever its lines came to, as its
+                                // custom data half runs: the standing answers that half took out of
+                                // the database told in the log, the answers lifted for this session
+                                // and their lines, and the invitations kept. What was thrown above
+                                // reaches the catch-all below once these have run; where a step
+                                // here throws as well, its exception is the incident recorded.
+                                Lifted(database);
+                                foreach (var key in session.Apply())
+                                {
+                                    Log().Info("renewals of " + CertificateDigest.Shorten(key)
+                                        + " are asked about again: the operator lifted the answer for this session");
+                                }
 
-                        foreach (var key in session.Apply())
-                        {
-                            Log().Info("renewals of " + CertificateDigest.Shorten(key)
-                                + " are asked about again: the operator lifted the answer for this session");
-                        }
-
-                        if (invitations != null)
-                        {
-                            invitations.Apply();
+                                if (invitations != null)
+                                {
+                                    invitations.Apply();
+                                }
+                            }
                         }
 
                         return;
@@ -260,9 +274,13 @@ namespace KeePassGate.Ui
                     // A narrow filter left every unpredicted type to do just that: a null
                     // reference, or a `TypeLoadException` after a KeePass upgrade. Counted as an
                     // incident, like every handler of KeePass's events that catches everything, so
-                    // the Tools window shows it and the log has it whole.
+                    // the Tools window shows it and the log has it whole. Its text is true whatever
+                    // of the buffer was written before the throw, and the lines beside it in the
+                    // log tell what landed.
                     _incidents.Record(
-                        "what the " + GateName.Product + " tab was holding could not be written", error);
+                        (dialog.DialogResult == DialogResult.OK ? "the OK" : "the Cancel") + " of the " + GateName.Product
+                        + " tab did not run to its end",
+                        error);
                 }
             };
 
@@ -298,21 +316,21 @@ namespace KeePassGate.Ui
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
-                Log().Warn("the plugin's store could not be read for the database the revocations name: " + error.Message);
+                Log().Warn("the plugin's store could not be read to name the database in the lines of what the tab ended: " + error.Message);
                 return null;
             }
         }
 
         /// <summary>
-        /// Writes down every revocation the dialog's OK just put into the database, one line each.
+        /// Writes down every revocation the dialog's OK just wrote into the plugin's store: a line
+        /// for each certificate of that client the copy admitted, and a single line with the
+        /// client key alone where it admitted none.
         /// </summary>
         /// <remarks>
         /// **When it lands, which is now.** A revocation pressed on the Clients page waits in the
         /// dialog's buffer with everything else on the tab, and Cancel takes it away with nothing
-        /// written anywhere. What is written is what the buffer stored, so a client revoked by
-        /// itself while the dialog was open is not written down a second time, and a revocation
-        /// that a Recreate or a Delete the same OK wrote took away with every admission is not
-        /// written down at all.
+        /// written anywhere. What is written is what the store's write took, so a revocation the
+        /// write refused or left out is not written down at all.
         ///
         /// The database is named by the authority it serves now, as the gate's own lines name it,
         /// or as nothing when it serves none. That is the authority served once OK is through, not
@@ -321,33 +339,39 @@ namespace KeePassGate.Ui
         /// each made an authority it is nothing, as `docs/audit.md` has it beside the `database`
         /// member.
         /// </remarks>
-        /// <param name="clients">
-        /// The client key of every record the live database held before OK, by admission key, which
-        /// <see cref="ClientKeys"/> read. A revoked certificate missing from it is named with no
-        /// client key.
+        /// <param name="certificates">
+        /// The admission keys of every certificate the live store admitted before OK, by client
+        /// key, which <see cref="Certificates"/> read, or null where it could not.
         /// </param>
-        private void Revoked(IGateDatabase live, PendingDatabase database, IDictionary<string, string> clients)
+        private void Revoked(IGateDatabase live, PendingDatabase database, ILookup<string, string> certificates)
         {
-            var revoked = new List<string>();
-            foreach (var key in database.Stored.Where(AuthorityKeys.IsRevocation))
-            {
-                revoked.Add(AuthorityKeys.AdmissionKeyInRevocation(key));
-            }
-
+            var revoked = database.Landed
+                .Where(act => string.Equals(act.Name, AdmissionActs.RevokeName, StringComparison.Ordinal))
+                .SelectMany(act => act.Records)
+                .Where(record => record.Kind == StoreKinds.Revoked)
+                .Select(record => record.Member(StoreKinds.ClientMember))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
             if (revoked.Count == 0)
             {
                 return;
             }
 
             var databaseId = Served(live);
-
-            foreach (var key in revoked)
+            foreach (var clientKey in revoked)
             {
-                // Null when the record was not there to read, which is what a miss leaves it.
-                string clientKey;
-                clients.TryGetValue(key, out clientKey);
-                _audit.RevokedByOperator(databaseId, key, clientKey);
-                Log().Info("the operator's revocation of " + CertificateDigest.Shorten(key) + " reached the database");
+                var held = certificates == null ? new List<string>() : certificates[clientKey].ToList();
+                if (held.Count == 0)
+                {
+                    _audit.RevokedByOperator(databaseId, null, clientKey);
+                }
+
+                foreach (var key in held)
+                {
+                    _audit.RevokedByOperator(databaseId, key, clientKey);
+                }
+
+                Log().Info("the operator's revocation of the client " + CertificateDigest.Shorten(clientKey) + " reached the database");
             }
         }
 
@@ -368,37 +392,44 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// The client key of every record the live database holds, by admission key, read while a
-        /// revocation is still waiting in the buffer, or nothing when none is.
+        /// The admission key of every certificate the live store admits, by client key, read while
+        /// a revocation is still waiting in the buffer, or null when none is or the store could not
+        /// be read.
         /// </summary>
         /// <remarks>
-        /// **Read before OK applies the buffer, because applying it is what empties the record.**
-        /// The revocation's own key holds no client key, and the line about it is the one place
-        /// the operator would look for which client a certificate belonged to. Read once per OK
-        /// that carries a revocation, never per request. A listing that cannot be made says so in
-        /// the log, from `AdmissionStore`, and leaves the lines without a client key rather than
-        /// keeping the revocation from landing.
+        /// **Read before OK applies the buffer, because the write that revokes deletes the
+        /// admissions it refuses**, `STORE.md` §627, and the lines about a revocation are the one
+        /// place the operator would look for which certificates the OK ended. Read once per OK
+        /// that carries a revocation, never per request: every admission the listing has admitting
+        /// before OK. An admission under an authority that is not served, a certificate several
+        /// admissions name and a record that does not read admitted nobody, so the OK ended none of
+        /// them. A store that cannot be read logs it and leaves a single line with the client key
+        /// alone rather than keeping the revocation from landing.
         /// </remarks>
-        private IDictionary<string, string> ClientKeys(IGateDatabase live, PendingDatabase database)
+        private ILookup<string, string> Certificates(IGateDatabase live, PendingDatabase database)
         {
-            var clients = new Dictionary<string, string>(StringComparer.Ordinal);
-            if (live == null || !live.IsOpen || !database.WaitingOn(AuthorityKeys.IsRevocation))
+            if (live == null || !live.IsOpen || !database.ActWaiting(AdmissionActs.RevokeName))
             {
-                return clients;
+                return null;
             }
 
-            var store = live.PluginCustomData;
-            if (store == null)
+            try
             {
-                return clients;
+                using (var reading = live.Store.Read())
+                {
+                    var listing = StoreAdmissions.Listing(reading);
+                    return listing.Records
+                        .Where(record => listing.StandingOf(record) == AdmissionStanding.Admitted)
+                        .Select(record => new KeyValuePair<string, string>(record.ClientKey, record.AdmissionKey))
+                        .Distinct()
+                        .ToLookup(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+                }
             }
-
-            foreach (var record in new AdmissionStore(store, Log()).All().Records)
+            catch (Exception error) when (Expected.OfCustomData(error))
             {
-                clients[record.AdmissionKey] = record.ClientKey;
+                Log().Warn("the plugin's store could not be read for the certificates of the clients revoked: " + error.Message);
+                return null;
             }
-
-            return clients;
         }
 
         private IGateLog Log()

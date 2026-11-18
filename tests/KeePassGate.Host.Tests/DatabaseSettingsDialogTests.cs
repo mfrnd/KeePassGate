@@ -264,8 +264,10 @@ namespace KeePassGate.Host.Tests
         /// <summary>Whether any authority stands in the real database's store.</summary>
         private bool HoldsAnAuthority()
         {
-            var standing = StoreAuthorities.Standing(new KdbxStore(_database.Database, GateVersion.Current, null).Read());
-            return standing != null && standing.Count > 0;
+            using (var reading = new KdbxStore(_database.Database, GateVersion.Current, null).Read())
+            {
+                return reading.Answering.Count > 0;
+            }
         }
 
         private AuthorityPanel Panel()

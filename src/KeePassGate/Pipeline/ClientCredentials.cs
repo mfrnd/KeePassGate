@@ -28,13 +28,13 @@ namespace KeePassGate.Pipeline
     /// **The dates are checked here**, since the anchor pin asks nothing of them, so that the
     /// allowance for a wrong clock is exactly five minutes and only on `notBefore`.
     ///
-    /// **The admission record is looked up, and it is what grants.** A certificate that chains,
-    /// carries the right usage and is inside its dates opens nothing without one. That is what
-    /// makes a record lost to a stale dialog snapshot into a client that must pair again, rather
-    /// than a credential nobody can see and nobody can revoke, and it is what makes revocation take
-    /// effect on the next connection. **A record admits only with no revocation beside it**, which
-    /// `AdmissionStore.Find` asks in the same pass, so a record a stale copy brought back after
-    /// its client was revoked is refused exactly as a missing one is.
+    /// **The admission is looked up, and it is what grants.** A certificate that chains, carries
+    /// the right usage and is inside its dates opens nothing without one. That is what makes a lost
+    /// admission into a client that must pair again, rather than a credential nobody can see and
+    /// nobody can revoke, and it is what makes revocation take effect on the next connection.
+    /// **An admission admits only where no decision refuses it**, which `StoreAdmissions.Admitted`
+    /// asks of the same reading, so an admission a stale copy brought back after its client was
+    /// revoked is refused exactly as a missing one is.
     ///
     /// The profiles come from the record and never from the certificate's claims, and only those
     /// the database's list still names: see <see cref="Effective"/>.
@@ -167,8 +167,9 @@ namespace KeePassGate.Pipeline
             }
             catch (VaultUnsettled error)
             {
-                // The records could not be listed just now, which says nothing about this client.
-                // Busy rather than a stranger, so it is told to ask again rather than to pair again.
+                // KeePass's thread could not be held for the store's reading just now, which tells
+                // nothing about this client. Busy rather than a stranger, so it is told to ask
+                // again rather than to pair again.
                 logger.Warn("a certificate could not be checked against this database for now: " + error.Message);
                 return ClientIdentity.Unavailable(databaseId, "busy");
             }

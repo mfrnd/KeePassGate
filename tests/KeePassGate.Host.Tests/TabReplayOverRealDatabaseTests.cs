@@ -22,9 +22,9 @@ namespace KeePassGate.Host.Tests
     /// </summary>
     /// <remarks>
     /// **The cases `PendingChangesTests` settles over a dictionary, run over KeePass's.** A pairing
-    /// naming a profile while the Profiles page holds an edit, a client revoking itself while its
-    /// row's X waits, and a renewal answered again while Allow renewal waits: each is a second
-    /// writer on a key the tab buffered, and what the operator's OK keeps of each is decided by
+    /// naming a profile while the Profiles page holds an edit, a client giving its certificate up
+    /// while its row's X waits, and a renewal answered again while Allow renewal waits: each is a
+    /// second writer on what the tab holds, and what the operator's OK keeps of each is decided by
     /// the merge `PendingStore.Reconcile` registers. The unit tier lands the second write straight
     /// into its store. Here it lands through `DatabaseWriter`, by the target a connection would
     /// use, saved and read back, onto `CustomDataStore` over a real `PwDatabase`, whose own rules
@@ -41,6 +41,7 @@ namespace KeePassGate.Host.Tests
         private TemporaryDatabase _database;
         private OpenDatabaseTargets _targets;
         private IGateTarget _target;
+        private DatabaseWriter _writer;
 
         [SetUp]
         public void SetUp()
@@ -50,9 +51,9 @@ namespace KeePassGate.Host.Tests
             Assert.That(created.Succeeded, Is.True, created.Message);
             _database.Save();
 
-            var writer = new DatabaseWriter(
+            _writer = new DatabaseWriter(
                 CurrentThread.Instance, database => database.Save(null), null, null, NullGateLog.Instance);
-            _targets = new OpenDatabaseTargets(() => new[] { _database.Database }, writer, NullGateLog.Instance);
+            _targets = new OpenDatabaseTargets(() => new[] { _database.Database }, _writer, NullGateLog.Instance);
             _target = _targets.Current().Single();
         }
 
@@ -79,7 +80,7 @@ namespace KeePassGate.Host.Tests
 
             using (var client = Client("agent-invented", "P3"))
             {
-                var landed = _target.Admit(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "P3" }), null, null);
+                var landed = _target.Admit(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "P3" }, Served()), null, null);
                 Assert.That(landed.Ok, Is.True, "the pairing did not land");
 
                 Assert.That(pending.Apply(), Is.True);
@@ -91,12 +92,15 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_client_s_own_revocation_landing_under_its_waiting_X_is_left_as_it_landed()
+        public void A_certificate_given_up_under_its_client_s_waiting_X_and_the_revocation_both_stand_at_OK()
         {
+            // The client gives its certificate up while the operator's revocation of it waits for
+            // OK. Each is a record of its own, and the revocation has no ground for the other to
+            // take away, so OK writes it beside the record the client's write left.
             using (var client = Client("agent-invented", "ops"))
             {
                 var key = CertificateDigest.Of(client);
-                Assume.That(_target.Admit(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }), null, null).Ok, Is.True);
+                Assume.That(_target.Admit(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }, Served()), null, null).Ok, Is.True);
 
                 var pending = Pending();
                 using (var panel = new AuthorityPanel(pending, new NeverAsked(), NullGateLog.Instance))
@@ -104,16 +108,14 @@ namespace KeePassGate.Host.Tests
                     Assert.That(panel.Revoke(key), Is.Null, "the X was not taken");
                 }
 
-                Assert.That(_target.Revoke(key, null).Ok, Is.True, "the client's own revocation did not land");
-                var landed = Snapshot();
-                _database.Database.Modified = false;
+                Assert.That(_target.GiveUp(key, null).Ok, Is.True, "the client's own certificate given up did not land");
 
                 pending.Apply();
 
-                Assert.That(Snapshot(), Is.EqualTo(landed),
-                    "the operator's revocation, of a client already revoked, changed the keys, their values or their times");
-                Assert.That(_database.Database.Modified, Is.False, "and left nothing to save");
-                Assert.That(_target.Admission(key), Is.Null, "the client is revoked");
+                var admissions = new StoredAdmissions(_database.Database);
+                Assert.That(admissions.Holds("withdrawn", key), Is.True, "the record the client's write left");
+                Assert.That(admissions.Holds("revoked", key), Is.True, "and the operator's revocation beside it");
+                Assert.That(_target.Admission(key), Is.Null, "the client is refused");
             }
         }
 
@@ -123,7 +125,7 @@ namespace KeePassGate.Host.Tests
             using (var client = Client("agent-invented", "ops"))
             {
                 var key = CertificateDigest.Of(client);
-                Assume.That(_target.Admit(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }), null, null).Ok, Is.True);
+                Assume.That(_target.Admit(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }, Served()), null, null).Ok, Is.True);
                 Assume.That(_target.RefuseRenewal(key, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(1))).Ok, Is.True);
 
                 var pending = Pending();
@@ -146,7 +148,7 @@ namespace KeePassGate.Host.Tests
 
         private OpenDatabase Live()
         {
-            return new OpenDatabase(_database.Database, delegate { });
+            return new OpenDatabase(_database.Database, delegate { }, _writer, NullGateLog.Instance);
         }
 
         private PendingDatabase Pending()
@@ -162,6 +164,11 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        private string Served()
+        {
+            return StoreSeeds.Served(new StoredAdmissions(_database.Database).Store);
+        }
+
         private IReadOnlyList<string> Names()
         {
             return ProfileNames.Read(_database.Database.CustomData.Get(ProfileNames.CustomDataKey)).Names;
@@ -169,7 +176,7 @@ namespace KeePassGate.Host.Tests
 
         private IEnumerable<string> Admitted()
         {
-            return new AdmissionStore(new CustomDataStore(_database.Database), NullGateLog.Instance)
+            return new StoredAdmissions(_database.Database)
                 .All().Records.Select(record => record.AdmissionKey);
         }
 

@@ -411,7 +411,7 @@ namespace KeePassGate.Host.Tests
                         // The page in front first, because bringing it forward reads the database
                         // again and fills the list with what is really there.
                         Show(clients);
-                        clients.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), 9999, true), null, null);
+                        clients.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), null, null, 9999, true), null, null);
                         Show(clients, ClientList.ResultLabelName, LongestGesture());
                         clients.PerformLayout();
 
@@ -480,7 +480,7 @@ namespace KeePassGate.Host.Tests
                         Set(panel, GateTab.InvitationLabelName, LongestInvitationLine(panel));
                         Show(panel, GateTab.InviteNoticeName, notice);
                         Set(panel, GateTab.ResultLabelName, AuthorityPanel.LongestResult());
-                        clients.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), 9999, true), null, null);
+                        clients.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), null, null, 9999, true), null, null);
                         Show(clients, ClientList.ResultLabelName, LongestGesture());
 
                         panel.PerformLayout();
@@ -659,12 +659,23 @@ namespace KeePassGate.Host.Tests
             {
                 using (var certificate = ClientCertificate(client.Item1, admitted))
                 {
-                    var record = AdmissionRecord.For(certificate, admitted, client.Item2);
+                    var record = AdmissionRecord.For(certificate, admitted, client.Item2, StoredAdmissions.AnyIssuer);
                     records.Add(record);
                     standing[record.AdmissionKey] = client.Item3;
                 }
 
                 admitted = admitted.AddMinutes(-3);
+            }
+
+            // And the longest client renewed, so its rows are a group: the certificate admitted
+            // last on the client's own row, and the earlier certificate indented under it.
+            using (var renewed = ClientCertificate(longestClient, admitted))
+            {
+                var first = records[records.Count - 1];
+                var renewal = AdmissionRecord.For(
+                    renewed, first.Admitted.AddMinutes(1), first.Profiles, StoredAdmissions.AnyIssuer, first.ClientKey, first.AdmissionKey);
+                records.Add(renewal);
+                standing[renewal.AdmissionKey] = RenewalRefusal.ThisSession();
             }
 
             using (var scaled = scaling > 1.00f ? ScaledDialog(scaling) : null)
@@ -692,7 +703,7 @@ namespace KeePassGate.Host.Tests
 
                             list.Fill(
                                 crowded
-                                    ? new AdmissionListing(records, new[] { new string('f', 64) }, 9999, false)
+                                    ? new AdmissionListing(records, null, new[] { new UnreadAdmission(new string('f', 64), null, null) }, 9999, false)
                                     : new AdmissionListing(records, true),
                                 null,
                                 null,
@@ -1011,7 +1022,7 @@ namespace KeePassGate.Host.Tests
             _several?.Dispose();
             _several = TemporaryDatabase.New();
             StoreSeeds.Undecided(
-                new KdbxStore(_several.Database, GateVersion.Current, null), new CustomDataStore(_several.Database));
+                new KdbxStore(_several.Database, GateVersion.Current, null));
 
             var panel = new AuthorityPanel(Opened(_several), null, NullGateLog.Instance);
             Set(panel, GateTab.ResultLabelName, AuthorityPanel.LongestResult());

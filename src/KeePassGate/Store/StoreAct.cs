@@ -9,10 +9,11 @@ namespace KeePassGate.Store
     /// they are under, the name the log gives it, and its ground, `STORE.md` §627.
     /// </summary>
     /// <remarks>
-    /// **Composed at the press, and held to its ground at the write.** The tab buffers an act
-    /// until its dialog's OK, and the store can change meanwhile: an act whose ground went is left
-    /// out and named, as a Recreate of an authority that no longer stands. A revocation and a
-    /// certificate taken away have no ground and are always written.
+    /// **Composed when it is asked for, and held to its ground at the write.** The tab buffers an
+    /// act until its dialog's OK, and the store can change meanwhile: an act whose ground went is
+    /// left out and named, as a Recreate of an authority that no longer stands. A revocation the
+    /// tab holds is composed again over the store as it stands at each read of the buffer and at
+    /// OK. A revocation and a certificate taken away have no ground and are always written.
     /// </remarks>
     public sealed class StoreAct
     {
@@ -31,14 +32,12 @@ namespace KeePassGate.Store
         /// Why the act no longer applies to a store as it stands, or null where it applies; null
         /// for an act with no ground.
         /// </param>
-        /// <param name="endsAdmissions">Whether every admission goes with the act, as with a Recreate and a Delete.</param>
         internal StoreAct(
             string name,
             byte[] key,
             string against,
             IReadOnlyList<StoreRecord> records,
-            Func<StoreGround, string> ground,
-            bool endsAdmissions = false)
+            Func<StoreGround, string> ground)
         {
             if (key == null)
             {
@@ -61,15 +60,7 @@ namespace KeePassGate.Store
             Against = against;
             Records = records.ToList();
             _ground = ground;
-            EndsAdmissions = endsAdmissions;
         }
-
-        /// <summary>
-        /// Whether every admission kept beside the store goes with this act, as every admission
-        /// goes with a Recreate and a Delete: taken out of the custom data where a write takes the
-        /// act, and nowhere else.
-        /// </summary>
-        internal bool EndsAdmissions { get; private set; }
 
         /// <summary>What the log calls the act.</summary>
         internal string Name { get; private set; }
@@ -167,8 +158,7 @@ namespace KeePassGate.Store
 
         /// <summary>The acts taken, in the order they were given; none where the write was refused.</summary>
         /// <remarks>
-        /// For a writer that holds what an act takes out of the custom data until the act is taken,
-        /// which a Recreate and a Delete do with every admission: an act left out takes nothing.
+        /// What the audit of the KPG tab's OK is written from: an act left out wrote nothing.
         /// </remarks>
         public IReadOnlyList<StoreAct> Acts { get; private set; }
 
@@ -180,7 +170,7 @@ namespace KeePassGate.Store
 
         /// <summary>
         /// Whether the acts taken are held for a dialog's OK rather than written: what comes of
-        /// them, and of what they take out of the custom data, is decided there.
+        /// them is decided there.
         /// </summary>
         public bool Waits { get; private set; }
 

@@ -37,17 +37,16 @@ namespace KeePassGate.Host.Tests
         public void A_record_of_a_certificate_another_authority_issued_admits_nobody()
         {
             var store = new KdbxStore(_database.Database, GateVersion.Current, NullGateLog.Instance);
-            var admissions = new CustomDataStore(_database.Database);
-            StoreSeeds.Authority(store, admissions);
+            var admissions = new StoredAdmissions(_database.Database);
+            StoreSeeds.Authority(store);
 
             var issuer = new AuthorityIssuer();
-            using (var served = new AuthorityService(store, admissions, NullGateLog.Instance).Read())
+            using (var served = new AuthorityService(store, NullGateLog.Instance).Read())
             using (var own = issuer.IssueClient(served.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read())
             using (var foreign = issuer.IssueClient(issuer.CreateAuthority(), "agent-fictitious", new[] { "ops" }).Read())
             {
-                var records = new AdmissionStore(admissions, NullGateLog.Instance);
-                records.Write(AdmissionRecord.For(own, DateTimeOffset.UtcNow, new[] { "ops" }));
-                records.Write(AdmissionRecord.For(foreign, DateTimeOffset.UtcNow, new[] { "ops" }));
+                admissions.Write(AdmissionRecord.For(own, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
+                admissions.Write(AdmissionRecord.For(foreign, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
 
                 using (var targets = new OpenDatabaseTargets(() => new[] { _database.Database }, NullGateLog.Instance))
                 {
@@ -65,7 +64,7 @@ namespace KeePassGate.Host.Tests
         {
             // What one database holds is that database's business, `CA.md` §204.
             var served = StoreSeeds.Authority(
-                new KdbxStore(_database.Database, GateVersion.Current, NullGateLog.Instance), new CustomDataStore(_database.Database));
+                new KdbxStore(_database.Database, GateVersion.Current, NullGateLog.Instance));
 
             using (var damaged = TemporaryDatabase.New())
             {
@@ -94,21 +93,21 @@ namespace KeePassGate.Host.Tests
         public void A_retirement_written_under_a_served_database_refuses_at_the_next_connection_and_inside_a_held_target()
         {
             var store = new KdbxStore(_database.Database, GateVersion.Current, NullGateLog.Instance);
-            var admissions = new CustomDataStore(_database.Database);
-            StoreSeeds.Authority(store, admissions);
+            var admissions = new StoredAdmissions(_database.Database);
+            StoreSeeds.Authority(store);
 
             var issuer = new AuthorityIssuer();
-            using (var served = new AuthorityService(store, admissions, NullGateLog.Instance).Read())
+            using (var served = new AuthorityService(store, NullGateLog.Instance).Read())
             using (var client = issuer.IssueClient(served.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read())
             using (var targets = new OpenDatabaseTargets(() => new[] { _database.Database }, NullGateLog.Instance))
             {
-                new AdmissionStore(admissions, NullGateLog.Instance).Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }));
+                admissions.Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
                 using (var held = targets.Current().Single())
                 {
                     Assume.That(ClientCredentials.For(client, held, NullGateLog.Instance).IsPaired, Is.True);
 
-                    // A retirement alone, the client's record left where it is: what refuses is
-                    // the store.
+                    // A retirement alone, written as a merge brings it: what refuses is the store,
+                    // whose write deletes the admission the retirement refuses.
                     byte[] key;
                     string retired;
                     using (var reading = store.Read())
@@ -140,16 +139,16 @@ namespace KeePassGate.Host.Tests
             // authority retired and refuse, and the next connection, in a hold of its own, walks
             // it again and finds nothing served.
             var store = new KdbxStore(_database.Database, GateVersion.Current, NullGateLog.Instance);
-            var admissions = new CustomDataStore(_database.Database);
-            var authority = StoreSeeds.Authority(store, admissions);
+            var admissions = new StoredAdmissions(_database.Database);
+            var authority = StoreSeeds.Authority(store);
 
             var issuer = new AuthorityIssuer();
             var hold = new Holds();
-            using (var served = new AuthorityService(store, admissions, NullGateLog.Instance).Read())
+            using (var served = new AuthorityService(store, NullGateLog.Instance).Read())
             using (var client = issuer.IssueClient(served.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read())
             using (var targets = new OpenDatabaseTargets(() => new[] { _database.Database }, null, hold, NullGateLog.Instance))
             {
-                new AdmissionStore(admissions, NullGateLog.Instance).Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }));
+                admissions.Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
 
                 var paired = hold.Hold(() =>
                 {
@@ -170,7 +169,7 @@ namespace KeePassGate.Host.Tests
         public void A_target_is_handed_out_as_it_is_while_what_stands_is_unchanged()
         {
             var store = new KdbxStore(_database.Database, GateVersion.Current, NullGateLog.Instance);
-            StoreSeeds.Authority(store, new CustomDataStore(_database.Database));
+            StoreSeeds.Authority(store);
 
             using (var targets = new OpenDatabaseTargets(() => new[] { _database.Database }, NullGateLog.Instance))
             {

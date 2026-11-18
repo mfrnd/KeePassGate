@@ -51,9 +51,10 @@ namespace KeePassGate.Pipeline
     /// than one client does, and no client's own allowance is spent by them. **So a client
     /// keeping refused certificates is recorded at up to twice the pace**, its own allowance and
     /// the shared allowance together, which is conceded: counting a refused certificate against
-    /// its client would need the client named, and a revoked record is emptied, an expired record
-    /// is taken away, and reading the database again per request for a certificate that reaches
-    /// nothing is a cost the router's identity exists to avoid.
+    /// its client would need the client named, and a refused certificate's admission is deleted by
+    /// the next write, an expired certificate is refused on its dates before its admission is read,
+    /// and reading the database again per request for a certificate that reaches nothing is a cost
+    /// the router's identity exists to avoid.
     ///
     /// A decision with no key at all is not paced. The only lines written without a key are
     /// pairings, whose pace is the operator answering the dialog, and anything else without a key

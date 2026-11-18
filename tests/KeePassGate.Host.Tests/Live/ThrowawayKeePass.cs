@@ -446,12 +446,14 @@ namespace KeePassGate.Host.Tests.Live
             }
         }
 
-        /// <summary>Writes the one admission record the pictures of the tab show, as its own step.</summary>
+        /// <summary>
+        /// Writes the one admission the pictures of the tab show, as its own step.
+        /// </summary>
         /// <remarks>
         /// Separate from the authority, and written between two sessions rather than beside it,
         /// because the two are true at different moments. A database whose authority has just been
-        /// made has admitted nobody, and the tab counts admission records: seeding both at once
-        /// put a one under a picture captioned as the tab the instant the authority exists.
+        /// made has admitted nobody, and the tab counts admissions: seeding both at once put a one
+        /// under a picture captioned as the tab the instant the authority exists.
         ///
         /// Written rather than paired for, for the same reason the authority is: a real pairing
         /// stamps the moment it happened, and a picture of a date that moves is a picture that
@@ -461,20 +463,19 @@ namespace KeePassGate.Host.Tests.Live
         /// </remarks>
         public void SeedAdmittedClient()
         {
-            SeedAdmittedClient(DatabasePath, SeededAuthority.ClientKey, SeededAuthority.ClientRecord);
+            SeedAdmittedClient(DatabasePath, SeededAuthority.Client());
         }
 
-        /// <summary>The same for any written down record, into one copy of the database.</summary>
-        public void SeedAdmittedClient(string path, string key, string record)
+        /// <summary>
+        /// The same for any written down admission, into one copy of the database.
+        /// </summary>
+        public void SeedAdmittedClient(string path, AdmissionRecord admission)
         {
             var database = new PwDatabase();
             try
             {
                 database.Open(IOConnectionInfo.FromPath(path), NewKey(), null);
-
-                var store = new CustomDataStore(database);
-                store.Set(key, record);
-
+                WriteAdmission(database, admission);
                 database.Save(null);
             }
             finally
@@ -484,14 +485,49 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
+        /// An admission written as a pairing writes it, by the product's own act, under fixed
+        /// nonces, `WriteSeeded`: its issuer has to be the authority the copy serves.
+        /// </summary>
+        private static void WriteAdmission(PwDatabase database, AdmissionRecord admission)
+        {
+            var served = StoreSeeds.Served(new KdbxStore(database, GateVersion.Current, null));
+            if (!string.Equals(served, admission.Issuer, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("An admission is seeded only under the authority the copy serves.");
+            }
+
+            WriteSeeded(database, served, (key, reading) =>
+            {
+                var act = AdmissionActs.Admit(reading, admission);
+                try
+                {
+                    return act.Records;
+                }
+                finally
+                {
+                    act.Forget();
+                }
+            });
+        }
+
+        /// <summary>
+        /// The `id` of the authority a copy serves, written into an admission it seeds.
+        /// </summary>
+        private static string Served(PwDatabase database)
+        {
+            return StoreSeeds.Served(new KdbxStore(database, GateVersion.Current, null));
+        }
+
+        /// <summary>
         /// Replaces the authority in one copy of the database with a written down one, as Recreate
         /// would with one it had minted, and answers with its digest.
         /// </summary>
         /// <remarks>
         /// Written rather than minted, for the reason <see cref="SeedAuthority"/> gives. What is
         /// written is what Recreate writes: every authority that stood retired, the new authority
-        /// beside them under the same store key in a single write, and every admission record taken
-        /// away, so that the copy holds exactly what the plugin would have left.
+        /// beside them under the same store key in a single write, whose plan deletes every
+        /// admission of an authority it retires, so that the copy holds exactly what the plugin
+        /// would have left.
         ///
         /// **Only before KeePass starts.**
         /// </remarks>
@@ -510,7 +546,6 @@ namespace KeePassGate.Host.Tests.Live
                         new Dictionary<string, string>(StringComparer.Ordinal) { { StoreKinds.AuthorityMember, record.Form.Member(StoreKinds.Id) } }))
                     .Concat(new[] { StoreRecord.Compose(key, StoreKinds.Authority, WrittenDownMembers(fingerprint, key, authority, host, sniKey)) })
                     .ToList());
-                new AdmissionStore(new CustomDataStore(database), NullGateLog.Instance).RemoveAll();
 
                 database.Save(null);
                 return fingerprint;
@@ -1308,8 +1343,7 @@ namespace KeePassGate.Host.Tests.Live
                 try
                 {
                     database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
-                    new AdmissionStore(new CustomDataStore(database), NullGateLog.Instance)
-                        .Write(AdmissionRecord.For(issued, at, profiles));
+                    WriteAdmission(database, AdmissionRecord.For(issued, at, profiles, Served(database)));
                     database.Save(null);
                 }
                 finally
@@ -1332,8 +1366,7 @@ namespace KeePassGate.Host.Tests.Live
             try
             {
                 database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
-                new AdmissionStore(new CustomDataStore(database), NullGateLog.Instance)
-                    .RefuseRenewal(admissionKey, refusal);
+                new StoredAdmissions(database).Answers.RefuseRenewal(admissionKey, refusal);
                 database.Save(null);
             }
             finally
@@ -1350,12 +1383,11 @@ namespace KeePassGate.Host.Tests.Live
             {
                 database.Open(IOConnectionInfo.FromPath(path), NewKey(), null);
 
-                new AdmissionStore(new CustomDataStore(database), NullGateLog.Instance)
-                    .Write(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles));
+                WriteAdmission(database, AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles, Served(database)));
 
                 // Named as well, because pairing names what it approves in the same write as the
-                // record, and a client holds only the names the database still lists: a record
-                // written without them would be a client reaching nothing.
+                // admission, and a client holds only the names the database still lists: an
+                // admission written without them would be a client reaching nothing.
                 var names = ProfileNames.Read(database.CustomData.Get(ProfileNames.CustomDataKey));
                 foreach (var refused in profiles.Select(names.Add))
                 {
@@ -1719,9 +1751,9 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
-        /// The admission records in the file, read after KeePass has exited. This is the only way to
-        /// find out whether pairing really made one durable, because everything KeePass reports
-        /// about a save it reports to itself.
+        /// The admissions in the file, read after KeePass has exited as a page lists them. This is
+        /// the only way to find out whether pairing really made one durable, because everything
+        /// KeePass reports about a save it reports to itself.
         /// </summary>
         public IReadOnlyList<AdmissionRecord> ReadAdmissions()
         {
@@ -1729,8 +1761,27 @@ namespace KeePassGate.Host.Tests.Live
             try
             {
                 database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
-                return new AdmissionStore(
-                    new CustomDataStore(database), NullGateLog.Instance).All().Records;
+                return new StoredAdmissions(database).All().Records;
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>
+        /// Whether the file holds an entry of the plugin's store of this kind whose content holds
+        /// this member with this value, in force or not, read after KeePass has exited: the record
+        /// a write left, for a test that has to tell what was written from what the store makes
+        /// of it.
+        /// </summary>
+        public bool FileHolds(string kind, string member, string value)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                return new StoredAdmissions(database).Holds(kind, member, value);
             }
             finally
             {
@@ -1740,8 +1791,8 @@ namespace KeePassGate.Host.Tests.Live
 
         /// <summary>
         /// One key of the database's own custom data as the file holds it, read after KeePass has
-        /// exited, or null when the file has no such key: the raw value, for a test that has to
-        /// tell an emptied record from a revocation rather than ask the store what they add up to.
+        /// exited, or null when the file has no such key: the raw value, as the list of profile
+        /// names is kept.
         /// </summary>
         public string ReadCustomData(string key)
         {
@@ -1767,8 +1818,7 @@ namespace KeePassGate.Host.Tests.Live
             try
             {
                 database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
-                return new AdmissionStore(
-                    new CustomDataStore(database), NullGateLog.Instance).StandingRefusal(admissionKey);
+                return new StoredAdmissions(database).Answers.StandingRefusal(admissionKey);
             }
             finally
             {

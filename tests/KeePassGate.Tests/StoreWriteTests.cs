@@ -437,6 +437,28 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_admission_that_reads_is_deleted_by_what_refuses_it_and_one_nothing_refuses_is_left()
+        {
+            // The plan reads no certificate, so an admission that reads goes by the same texts as
+            // a record that does not: its client revoked, its issuer retired, its certificate
+            // taken away, each by the write's own record.
+            using (var refusedCertificate = Minted.Named("CN=agent-fictitious").SelfSigned().Read())
+            using (var leftCertificate = Minted.Named("CN=agent-other-fictitious").SelfSigned().Read())
+            {
+                var taken = KeePassGate.Authority.CertificateDigest.Of(refusedCertificate);
+                AssertDeletedBy(
+                    Readable(refusedCertificate, Hex('c'), Hex('b')),
+                    Readable(leftCertificate, Hex('e'), Hex('a')),
+                    new Dictionary<string, Func<ComposedStore, StoreAct>>
+                    {
+                        { "its client revoked", store => Act(One, Recorded("revoked", ("client", Hex('c')))) },
+                        { "its issuer retired", store => Retire(One, 'b') },
+                        { "its certificate taken away", store => Act(One, Recorded("withdrawn", ("certificate", taken), ("renewed", string.Empty))) },
+                    });
+            }
+        }
+
+        [Test]
         public void A_record_of_kind_client_is_deleted_by_the_texts_it_holds_in_force_or_not_and_whether_or_not_it_reads()
         {
             // `STORE.md` §627 step 3: what an admission comes to is not read, so a record beside
@@ -570,6 +592,26 @@ namespace KeePassGate.Tests
         {
             var all = new List<(string Name, string Value)>(members) { ("client", Hex(client)) };
             return StoreComposer.Record(One, "client", "client:" + Hex(client), StoreComposer.Content(all.ToArray()));
+        }
+
+        /// <summary>
+        /// A record of kind `client` under `One` that reads as an admission of this certificate,
+        /// under this client key and issued by this authority.
+        /// </summary>
+        private static StoreComposer.Composed Readable(
+            System.Security.Cryptography.X509Certificates.X509Certificate2 certificate, string client, string issuer)
+        {
+            var members = new KeePassGate.Authority.AdmissionRecord(
+                KeePassGate.Authority.CertificateDigest.Of(certificate),
+                certificate.Subject,
+                client,
+                new DateTimeOffset(2026, 8, 15, 9, 14, 22, TimeSpan.Zero),
+                new[] { "ops" },
+                certificate.RawData,
+                issuer).Members();
+            Assume.That(KeePassGate.Authority.AdmissionRecord.Read(null, members), Is.Not.Null, "the record reads as an admission");
+            return StoreComposer.Record(
+                One, "client", "client:" + client, StoreComposer.Content(members.Select(member => (member.Key, member.Value)).ToArray()));
         }
 
         /// <summary>A record of the test's under `One`, composed by the product.</summary>

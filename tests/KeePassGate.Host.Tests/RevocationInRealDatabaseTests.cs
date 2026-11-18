@@ -14,14 +14,14 @@ namespace KeePassGate.Host.Tests
     /// A revocation reaching the file, rather than only the database in memory.
     /// </summary>
     /// <remarks>
-    /// The panel's own tests prove that the record leaves the store and that KeePass is told there
-    /// is something to save. Neither of those is the property that matters to the operator, who is
-    /// told at approval time that a client can be revoked later and then walks away.
+    /// The panel's own tests prove that the store refuses the client and that KeePass is told
+    /// there is something to save. Neither of those is the property that matters to the operator,
+    /// who is told at approval time that a client can be revoked later and then walks away.
     ///
     /// **The dangerous case is a revocation that only happened in memory**, because the client is
     /// back the next time KeePass opens that file and nothing said so. That is what this asks: the
-    /// panel revokes, KeePass saves, the file is closed and opened again, and the record has to
-    /// still be gone. It is the same question the pairing side already asks of a write.
+    /// panel revokes, KeePass saves, the file is closed and opened again, and the client has to
+    /// still be refused. It is the same question the pairing side already asks of a write.
     /// </remarks>
     [TestFixture]
     [Apartment(ApartmentState.STA)]
@@ -52,14 +52,14 @@ namespace KeePassGate.Host.Tests
             using (var panel = NewPanel())
             {
                 Assume.That(panel.AdmittedClients().Records.Count, Is.EqualTo(1));
-                Assert.That(panel.Revoke(record.AdmissionKey), Is.Null);
+                Assert.That(panel.Revoke(record.ClientKey), Is.Null);
             }
 
             // What the tab does is change the database and say there is something to save. This is
             // the operator doing the saving, which is the half the tab deliberately leaves to them.
             _database.SaveCloseAndReopen();
 
-            var found = new AdmissionStore(new CustomDataStore(_database.Database), null)
+            var found = new StoredAdmissions(_database.Database)
                 .Find(record.AdmissionKey);
 
             Assert.That(found, Is.Null, "the client is admitted again tomorrow");
@@ -76,12 +76,12 @@ namespace KeePassGate.Host.Tests
 
             using (var panel = NewPanel())
             {
-                Assume.That(panel.Revoke(record.AdmissionKey), Is.Null);
+                Assume.That(panel.Revoke(record.ClientKey), Is.Null);
             }
 
             _database.CloseAndReopenWithoutSaving();
 
-            var found = new AdmissionStore(new CustomDataStore(_database.Database), null)
+            var found = new StoredAdmissions(_database.Database)
                 .Find(record.AdmissionKey);
 
             Assert.That(found, Is.Not.Null, "an unsaved revocation must not read as a saved one");
@@ -89,15 +89,17 @@ namespace KeePassGate.Host.Tests
 
         private AuthorityPanel NewPanel()
         {
-            return new AuthorityPanel(new OpenDatabase(_database.Database), null, NullGateLog.Instance);
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => database.Save(null), null, null, NullGateLog.Instance);
+            return new AuthorityPanel(
+                new OpenDatabase(_database.Database, null, writer, NullGateLog.Instance), null, NullGateLog.Instance);
         }
 
         private AdmissionRecord Admit()
         {
             using (var certificate = IssueClient())
             {
-                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" });
-                new AdmissionStore(new CustomDataStore(_database.Database), null).Write(record);
+                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer);
+                new StoredAdmissions(_database.Database).Write(record);
                 _database.Save();
                 return record;
             }

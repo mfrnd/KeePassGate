@@ -108,7 +108,7 @@ sequenceDiagram
 
     Note over OP,CL: Phase 4. Approval, on the KeePass screen
     CL->>KPG: POST /pair/request + wanted profiles, and a lifetime if it wants one
-    KPG->>KPG: 503 if a dialog is open that would take the record back
+    KPG->>KPG: 503 if a dialog is open that would take the write back
     Note right of KPG: before the dialog, so the invitation is<br/>not spent and a new hello can still work
     KPG->>OP: dialog: database, fingerprint, name, invitation id, profiles, peer, lifetime
     OP-->>KPG: approve, confirming the profiles and picking the lifetime
@@ -116,7 +116,7 @@ sequenceDiagram
     Note over KPG,CL: Phase 5. Issuance. Single writer, on the UI thread, under one lock
     KPG->>KPG: generate the key pair, issue from that database's authority
     KPG->>MEM: burn the token, under the plugin's own lock
-    KPG->>DB: write the admission record
+    KPG->>DB: write the admission record into the plugin's store
     KPG->>DB: SaveDatabase, in a turn on KeePass's thread with a bounded wait, then read back to confirm
     KPG-->>CL: only now: certificate + key + authority + gate key
     CL->>CL: store, then discard the token
@@ -376,6 +376,24 @@ holds a signing key.
 - **The word "atomically" was dropped.** A sorted dictionary plus a file save cannot provide it. The
   property actually wanted is that a certificate without a matching record is refused.
 
+**The record is an entry of the plugin's store now, and that dialog holds no copy of it**,
+`STORE.md` §615 and §626, which reverses the record as a key of the dictionary the dialog copies.
+Database Maintenance still copies the database's own custom data, where the profile names and the
+standing answers to a renewal are kept, so a pairing, whose write can add a name, is still refused
+while it is open. What can take the admission itself back is KeePass's entry dialog, which puts
+its copy of an entry back at its OK: the write is answered `503 busy`, with the approval held,
+while that dialog holds an entry the write deletes or sets back, the store's summary entry among
+them. Nothing of the order changed. The admission and the summary entry written with it are
+saved, found in the database as they were written, and the file hashed back, before the
+certificate is handed over, and a write that does not land is taken back out whole, the entries
+it added and the entries it deleted alike, `STORE.md` §627. A write whose plan adds no admission
+is refused before the approval is used up or the invitation spent, so no certificate is handed
+over on a save of nothing. A lost admission still makes its certificate inert. Held by
+`PairingInRealDatabaseTests`, whose save failures leave every entry and every deletion record of
+the store as before, among them
+`A_pairing_that_does_not_land_puts_an_admission_that_came_back_back_as_well` and
+`A_write_whose_plan_leaves_the_admission_out_is_not_believed_and_spends_nothing`.
+
 The gate against a stale dialog tracks specific `GroupForm` instances through
 `GlobalWindowManager.WindowAdded`. It must **not** gate on `WindowCount`. That number counts every
 window KeePass registers, and nearly none of them copies anything: keyed on it, an about box left
@@ -620,11 +638,11 @@ What a refusal says, and deliberately no more:
 | `404 no such route` | the caller is a client the database already admits, which has nothing to pair. Answered as an undeclared path is, and nothing is spent |
 | `401 proof` | the proof did not verify. No dialog was raised and nothing was spent |
 | `409 no exchange` | there was no hello, or it was answered by a different certificate |
-| `409 no invitation` | it was spent or it ran out between the gate and here |
+| `409 no invitation` | it was spent or it ran out between the gate and here, or the authority it was made under was recreated or deleted before the write: then the approval is used up, and the invitation is left unspent and pairs with nothing, its authority being gone |
 | `400 name` / `400 profile` / `400 malformed` | it could never have been issued as asked |
 | `403 refused` | the operator said no, and the invitation is spent |
 | `504 unanswered` | nobody was at the screen. **Nothing is spent** |
-| `503 busy` | a dialog is open that would take the record back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing or a renewal is already in front of the operator, so little of the pairing's time is left once the request reaches the screen that the dialog would stand for under thirty seconds, a save this plugin is making for another client outlasts the wait for the screen, there is no screen to ask, or the database's list of profiles will not read; or the operator approved and KeePass was still busy a moment later, and then the body carries `heldUntil`, the moment the approval stops being held; or the operator approved and, when the write came to it, the list of profiles no longer held a name the answer rested on as the dialog showed it, and then the approval is used up and the next request is put to the operator again. **Nothing is spent**, and the client is never told which |
+| `503 busy` | a dialog is open that would take the write back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing or a renewal is already in front of the operator, so little of the pairing's time is left once the request reaches the screen that the dialog would stand for under thirty seconds, a save this plugin is making for another client outlasts the wait for the screen, there is no screen to ask, or the database's list of profiles will not read; or the operator approved and KeePass was still busy a moment later, and then the body carries `heldUntil`, the moment the approval stops being held; or the operator approved and, when the write came to it, the list of profiles no longer held a name the answer rested on as the dialog showed it, and then the approval is used up and the next request is put to the operator again; or the operator approved and, when the write came to it, the plugin's store had come to hold the gate back, `STORE.md` §656, and then the approval is used up the same way. **Nothing is spent**, and the client is never told which |
 | `500 not recorded` | the operator approved and the record did not reach the disk. **The invitation is spent** |
 | `500 internal error` | the operator approved and no certificate could be issued: the authority's key would not sign, or the authority has outlived its hundred years. **The invitation is not spent**, and the client starts again from a hello |
 | `503 undecided` | the database holds more than one authority and the operator has not yet kept any of them. Answered before the request is read, as `503 locked` is, so **nothing is spent** |
@@ -645,13 +663,21 @@ dialog the operator had just answered in front of them again.
 **What it was approved against is compared at the write, under the writer's lock**: the authority
 served, and for each approved profile whether the list holds it exactly as it did when the operator
 answered, since the write would otherwise put a name back that was taken off in between. The
-approval is used up there, and the invitation spent there, last, so nothing that can still answer
-busy comes after the burn. **A lock and KeePass exiting let go of every approval held, and a close
-of a database lets go of that database's**, and an approval still settling when KeePass locks is
-answered `503 locked` rather than written into the database an unlock opens again. So is an
-approval the operator gave across the lock or the close, which arrives after it, §308. A close let
-go of every database's until the operator's ruling of 2026-11-01, which told a pairing approved for
-a database still open that its database was locked.
+authority is held first, by the plan of the write: an admission is planned only while the
+authority that issued its certificate stands alone in the store, `STORE.md` §627, and a write
+whose plan is refused for it is answered `409 no invitation`, with the approval used up and the
+invitation unspent, since no retry under that authority can be written. The condition that the
+handler hands the write compares no authority: the plan has held it by then. Held by
+`PairingHandlerTests.An_authority_recreated_under_the_write_admits_nobody` and, over a real
+database, by
+`PairingInRealDatabaseTests.A_pairing_whose_authority_is_recreated_before_its_write_is_told_its_invitation_is_gone`.
+The approval is used up at the write, and the invitation spent there, last, so nothing that can
+still answer busy comes after the burn. **A lock and KeePass exiting let go of every approval
+held, and a close of a database lets go of that database's**, and an approval still settling
+when KeePass locks is answered `503 locked` rather than written into the database an unlock
+opens again. So is an approval the operator gave across the lock or the close, which arrives
+after it, §308. A close let go of every database's until the operator's ruling of 2026-11-01,
+which told a pairing approved for a database still open that its database was locked.
 
 **Two exchanges on one invitation can find the same approval held**, since a client may start again
 from a hello while its first request is still waiting, and the write that lands first uses it up.
@@ -735,21 +761,28 @@ dialog:
   on listing the closed database's groups and entries for as long as the message waits. It is
   written only while the key still holds what it held when the answer was given, and while the
   answer still refuses, so an answer written there since, on a later dialog or by a synchronize, is
-  the later word.
+  the later word. It is written wherever a record in force still names its certificate, whether or
+  not that certificate is admitted at that moment, as in a store that has stopped or beside
+  several authorities, and it is let go unwritten only where no such record names the
+  certificate, which is where a written answer goes as well. Held by
+  `RenewalInRealDatabaseTests.An_owed_answer_is_written_while_a_record_in_force_names_its_certificate`.
 
 **The operator can take any of the three back**, which is the operator's ruling on review 3: on the
-clients page a client with a standing answer has its name in red, the row's tooltip and its
-description to a screen reader name the answer, and the row's menu, opened by the right button,
-Shift and F10 or the menu key, states it on a grayed first line and offers **Allow renewal** beside
-**Revoke**. Allow renewal waits for the settings dialog's OK, as a revocation does: the stored
-answer is taken away in the dialog's buffer and the session's in what the dialog holds of the
-plugin's memory, so the red goes at once and the gate keeps refusing until OK, and Cancel leaves
+clients page the row of a certificate with a standing answer has its name in red, the row's
+tooltip and its description to a screen reader name the answer, and the row's menu, opened by the
+right button, Shift and F10 or the menu key, names the row's certificate on a grayed first line,
+states the answer on a grayed line under it and offers **Allow renewal**, beside **Revoke** on a
+client's first row. Allow renewal waits for the settings dialog's OK, as a revocation does: the
+stored answer is taken away in the dialog's buffer and the session's in what the dialog holds of
+the plugin's memory, so the red goes at once and the gate keeps refusing until OK, and Cancel leaves
 the answer standing. The plugin holds one set of the session's answers, read by the handler and by
 every clients page, so the page shows and lifts exactly what the gate answers from. Once lifted,
 the next renewal raises the dialog again. An answer given on that dialog while the settings dialog
 was still open, possible once an until-date has passed, is the later word and survives the OK.
-Otherwise a standing answer ends as described: the session's with KeePass, the stored ones with
-the certificate they are about, and every one with the authority recreated or deleted.
+Otherwise a standing answer ends as described: the session's with KeePass, the stored answers once
+no admission names the certificate they are about, its client revoked or the certificate given
+up, and every answer with the authority recreated or deleted. A stored answer no longer ends with
+its certificate's expiry, since the admission of an expired certificate stays, `CA.md` §204.
 
 The database's answer is read before the session's. The dialog is raised only while neither
 refuses, and a renewal waiting behind another of the same certificate is answered at once rather
@@ -778,10 +811,19 @@ dialog, and the approval is let go. A stored answer that will not read is no ans
 stays held, and the retry is told `503 busy` with `heldUntil` again. What pairing asks again about
 its invitation a renewal asks about its record: one revoked while the operator was deciding, or left
 behind by an authority recreated or deleted in that time, is answered `401 unpaired` and nothing is
-issued. **And the write asks it once more, under the writer's lock**, comparing the record with the
-one the operator approved, so a revocation landing after the handler last read it, the client's own
-on another connection among them, is found under the lock it was written under rather than
-overtaken. A renewal waits its turn for the screen with every pairing, since one raised inside a
+issued. **And the write asks it once more, under the writer's lock**, in the store as the write's
+own turn reads it: the record still admits its certificate, and it is still the entry the operator
+approved against, so a revocation landing after the handler last read it, or the certificate given
+up by the client on another connection, is found under the lock it was written under rather than
+overtaken. The record is compared by its entry, where it was compared by a digest of its stored
+text: a record of the store is written once, so the same entry is the same content, `STORE.md`
+§627. An authority recreated or deleted after the handler last read it is found there as well,
+by the plan of the write, and answered `401 unpaired` with the approval used up and nothing
+written, held by
+`RenewalHandlerTests.An_authority_recreated_under_the_write_is_answered_unpaired_and_lets_the_approval_go`
+and
+`RenewalInRealDatabaseTests.A_renewal_whose_authority_is_recreated_before_its_write_is_answered_unpaired_with_nothing_written`.
+A renewal waits its turn for the screen with every pairing, since one raised inside a
 pairing's dialog would gray it out, and its connection is measured against
 `GateOptions.PairingBudget` from the moment its request is off the wire until its record is handed
 to the writer, since what is left between the two is the same list of waits.
@@ -794,22 +836,29 @@ the operator decided.
 
 **The old record is left valid.** Nothing is revoked by a renewal: the client gives the old
 certificate up itself with `DELETE /gate/certificate` once the new identity is stored, presenting
-the old one, which is what the reference client does. So an answer lost on the way costs the
-database nothing, since the old certificate still works and the client can ask again, and a record
-a lost answer orphans expires and is pruned, or the operator revokes it from the clients page,
-which lists both until then. It costs the operator the dialog a second time, which is why a client
-waits on its socket at least as long as `GateOptions.PairingBudget` before giving up on the answer,
-as the reference client does for a renewal as for a pairing. The gate holds the connection past
-that budget through a save that outlasts it, so a client that expects a slow save, of a large
-database or a database on slow storage, waits longer still. What each refusal means is in the
-route's own responses, [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) §510.
+the old one, which is what the reference client does. Giving it up writes a record that names
+that single certificate and the renewals made from it, so the certificate the renewal issued
+keeps working, `STORE.md` §648; a revocation, which names the client's key, would refuse both. So
+an answer lost on the way costs the database nothing, since the old certificate still works and
+the client can ask again, and a record a lost answer orphans stays listed under its client on the
+clients page, as expired once its certificate has ended. Nothing prunes it, which reverses its
+going at the plugin's next write once it had expired, `CA.md` §204. Revoking its client takes it
+with every other certificate that client holds; taking it away alone is the clients page's to
+do, `STORE.md` §648, and is not built yet. It costs the operator the dialog a second time, which
+is why a client waits on its socket at least as long as `GateOptions.PairingBudget` before giving
+up on the answer, as the reference client does for a renewal as for a pairing. The gate holds
+the connection past that budget through a save that outlasts it, so a client that expects a slow
+save, of a large database or a database on slow storage, waits longer still. What each refusal
+means is in the route's own responses, [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) §510.
 
 **The new record is the same client.** It carries the client key of the record that asked,
 `CA.md` §223, the digest of the certificate the client paired with, so the two records name one
-client while both stand and every count of clients counts it once. Nothing is issued in two steps
-and nothing is revoked by name: the operator's ruling of 2026-10-16 first had a renewal revoke every
-other certificate under the same name once the client had shown it held the new one, and withdrew
-that the same day, since a name is the client's own choice and two programs may share one.
+client while both stand and every count of clients counts it once. It also names the certificate
+it was renewed from, which is the certificate on the connection, `STORE.md` §648. Nothing is
+issued in two steps and nothing is revoked by name: the operator's ruling of 2026-10-16 first
+had a renewal revoke every other certificate under the same name once the client had shown it
+held the new certificate, and withdrew that the same day, since a name is the client's own
+choice and two programs may share a name.
 
 ## 11. What this deliberately does not defend §310
 

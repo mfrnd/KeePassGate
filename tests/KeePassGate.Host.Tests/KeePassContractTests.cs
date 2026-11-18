@@ -1533,9 +1533,9 @@ namespace KeePassGate.Host.Tests
                 var strings = new ProtectedStringDictionary();
                 var binaries = new ProtectedBinaryDictionary();
 
-                foreach (var key in new[] { "KPG.Client.b0", "KPG.Client.c0", "KPG.Client.aa0" })
+                foreach (var key in new[] { "KPG.Test.b0", "KPG.Test.c0", "KPG.Test.aa0" })
                 {
-                    data.Set(key, "a record");
+                    data.Set(key, "a value");
                 }
 
                 foreach (var name in new[] { "Bank", "Code", "Aa note" })
@@ -1545,14 +1545,14 @@ namespace KeePassGate.Host.Tests
                 }
 
                 thread.CurrentCulture = english;
-                Assert.That(data.Get("KPG.Client.aa0"), Is.Null, "custom data is looked up in the asker's culture");
+                Assert.That(data.Get("KPG.Test.aa0"), Is.Null, "custom data is looked up in the asker's culture");
                 Assert.That(strings.Get("Aa note"), Is.Null, "and so are an entry's strings");
                 Assert.That(binaries.Get("Aa note"), Is.Null, "and its attachments");
-                Assert.That(data.Select(pair => pair.Key), Does.Contain("KPG.Client.aa0"),
+                Assert.That(data.Select(pair => pair.Key), Does.Contain("KPG.Test.aa0"),
                     "while a listing still finds the key the lookup missed");
 
                 thread.CurrentCulture = danish;
-                Assert.That(data.Get("KPG.Client.aa0"), Is.EqualTo("a record"),
+                Assert.That(data.Get("KPG.Test.aa0"), Is.EqualTo("a value"),
                     "and the culture the tree was sorted in finds it");
                 Assert.That(strings.Get("Aa note"), Is.Not.Null);
                 Assert.That(binaries.Get("Aa note"), Is.Not.Null);

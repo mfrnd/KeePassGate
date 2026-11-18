@@ -21,12 +21,16 @@ takes access away is a further entry, never an entry deleted or changed.
 > of groups and entries, and what of it this build still keeps is in `CA.md` §204. What is built of
 > this store: the API's guard of §633, with what tells a node of the store by its identifier; the
 > reading of §620 to §624, with what is in force under the store key, the room a store has for its
-> next write (§627, §643), and the words `split`, `outdated` and `stopped` of §656; and the
+> next write (§627, §643), and the words `split`, `outdated` and `stopped` of §656; the
 > authority and its retirements of §614, written by the plugin's own writes of §627, with the
 > records set back of §628 and what a write asks of KeePass's windows (§626), and served from what
-> stands, with `lost` (§656) answered from what the gate last served with. §614, §620, §626, §627,
-> §628, §633, §643 and §656 state which parts those are, and nothing else below describes what the
-> plugin does today. Each pull request that builds a part of this store brings `CA.md`, `DESIGN.md`,
+> stands, with `lost` (§656) answered from what the gate last served with; and the admissions and
+> the revocations of §615, with a certificate that its own client gives up (§648), read by their
+> meaning at every hold, written by the writes of a pairing, a renewal and a certificate given up,
+> each saved before it is answered, and by the clients page at the settings dialog's OK. §614,
+> §615, §620, §626, §627, §628, §633, §643, §648 and §656 state which parts those are, and
+> nothing else below describes what the plugin does today. Each pull request that builds a part
+> of this store brings `CA.md`, `DESIGN.md`,
 > `PAIRING.md`, `API.md` and `docs/` into line with the code it adds. Until then those documents
 > hold for 0.2.0 where they describe a part not built, and this document holds for what replaces its
 > store.
@@ -182,7 +186,7 @@ there is the argument, and `RESULTS.md` there records every measurement with its
 | Was, and is what 0.2.0 does | Becomes, in 0.3.0 | Why |
 | --- | --- | --- |
 | The database's own `CustomData` is the store | entries in a group of the plugin's own, and no custom data anywhere | a KeePassXC merge replaces the whole dictionary, §603 |
-| The authority takes the file to KDBX 4.1, for the time each custom data key carries | KDBX 4.0, nothing above it | no time decides anything, and nothing the store uses needs 4.1 |
+| The authority takes the file to KDBX 4.1, for the time each custom data key carries | KDBX 4.0, nothing above it: measured for an authority and an admission in the store, while what a build still keeps in custom data takes the file to 4.1, §612 | no time decides anything, and nothing the store uses needs 4.1 |
 | A rule lives in the custom data of its group or entry, and the grant editor writes into the dialog's own copy | a rule is a record in the store for each node and profile, and nothing is on the node | KeePassXC never merges a group's custom data, and two programs delete it at a save, §603 |
 | The profile list is a single key, replayed as a difference | an entry for each addition and each removal | a single value is taken whole from whichever copy a merge prefers |
 | A revocation names a certificate and is pruned once that certificate has expired | a revocation names the client's key and is never pruned | a renewal at a gate not yet told escaped a revocation by certificate, §615 |
@@ -259,7 +263,8 @@ decides where an entry is put, and nothing about what is read. *Held by*
 `StoreWritesInRealDatabaseTests`: a second group with the prefix that holds no record is not
 written into; a group in the recycle bin is not written into; and a store whose group was
 deleted into the bin gets a new group at its next write, with every record in the bin still
-counting.
+counting. And for a write that is saved, by
+`PairingInRealDatabaseTests.A_pairing_into_a_store_whose_group_is_in_the_recycle_bin_makes_a_group_and_takes_it_back_with_the_write`.
 
 ### A record §607
 
@@ -565,7 +570,13 @@ against 2 with it (evaluation 4.1).
   (`measured-source-harness` 5). That is a claim about the store and not about every file that
   holds it: a database that 0.2 wrote keeps its custom data keys, each with a time, and stays a
   4.1 file for as long as they are in it (§645), and so does a file for anything else in it that
-  is 4.1, `CA.md` §204.
+  is 4.1, `CA.md` §204. **Measured in the product for the parts that are built**: a saved database
+  that holds an authority and an admission in the store, and nothing of the plugin's in its
+  custom data, is a KDBX 4.0 file, and a profile name beside them takes it to 4.1, since the
+  profile names are still kept in the custom data (§616). So an admission does not move the
+  file's version, and what the plugin still keeps in custom data does, until that has moved into
+  the store as well. *Held by*
+  `AdmissionInRealDatabaseTests.An_admission_leaves_the_file_KDBX_4_0_and_a_profile_name_beside_it_takes_it_to_4_1`.
 
 ---
 
@@ -764,17 +775,14 @@ the measured code, not run).
 commands' writes, and which authority is served. `AuthorityRecord` composes and reads the
 content, `StoreAuthorities` works out the authorities that stand and the authority served, and
 `AuthorityService` writes Create, Recreate, Delete and keeping an authority as acts of §627,
-each act held to the authorities that stood when it was composed. The admissions and the
-revocations are still kept where `CA.md` §204 keeps them, and are handed the authorities that
-stand: a client is judged by the anchor pin against the authority served before any record is
-asked, so a record of a certificate another authority issued admits nobody, and a revocation
-names the standing authority that issued its certificate. Recreate and Delete take every
-admission record, revocation and standing answer out of the custom data only where the store
-write takes the act: at the tab's OK the store is written first, and the custom data loses them
-as it stands then, a record that a pairing landed under the dialog among them. An act refused or
-left out at OK takes nothing away, since a revocation taken away while the authority that
-issued its certificate is still served lets a stale copy merged in admit that client again. The
-admissions' move into the store (§615) makes their removal part of the act. *Held by*
+each act held to the authorities that stood when it was composed. The admissions are records of
+the store as well (§615), and their removal is part of the act: the write that retires an
+authority deletes every record of kind `client` whose `issuer` is that authority (§627 step 3),
+an admission that a pairing landed under the dialog among them, since the write is planned
+against the store as it stands at OK. An act refused or left out at OK deletes none, and a
+revocation is taken away by no command. What Recreate and Delete still take out of the custom
+data is the standing answers to a renewal (§618): at the tab's OK the store is written first,
+and an answer then goes where no admission in force names its certificate. *Held by*
 `StoreAuthoritiesTests`, `AuthorityCommandsInStoreTests`, `AuthorityServiceTests`,
 `StoreAuthorityServedTests` and `PendingRecordsTests`, and in a real KeePass by
 `LiveAuthorityTests` and `LiveAuthorityChooserTests`.
@@ -922,6 +930,47 @@ again.
 single certificate is taken away by a record of another kind, by its own client or by the
 operator (§648). A record that a lost answer to a renewal left behind is cleared that way by
 the operator: the client never held that certificate and cannot give it up, `PAIRING.md` §312.
+
+**What is built.** The admission's record, its reading and its writes, and the revocation.
+`AdmissionRecord` composes the content and reads it, with the identifier of the entry it was
+read from. `StoreAdmissions` reads who is admitted from the reading of a hold (§620): a
+certificate is admitted by a single admission in force that reads, whose client key no
+revocation names, whose certificate was not taken away, and whose issuer no retirement names
+and is the authority served, in a store that is whole. A record that does not read, and an
+admission that a decision refuses, are counted among no admissions of a certificate (S24). The
+gate asks once for each connection, from the reading every question of that hold is answered
+from, and keeps no answer. `AdmissionActs` composes the acts of §627: an admission, held when
+the write is planned to its issuer standing alone; a revocation that holds the client key alone
+and has no ground; and the records that take a certificate away (§648). A pairing and a renewal
+write the admission by a write that is saved before the certificate is handed over, the
+renewal's with `from`. The operator's revocation is pressed on the clients page, waits in the
+tab's buffer and is written at the settings dialog's OK. Every write deletes the admissions that
+a revocation, a retirement or a certificate taken away refuses, and none for its age (§643).
+The clients page, the Certificate Authority page, the Profiles page, the approval dialog and
+the dialog that asks which authority to keep each read the same listing of a reading: every
+admission in force that reads and that no decision refuses, each with whether it admits, is
+under an authority that is not served, or names a certificate that several admissions name;
+the records that do not read; and how many clients a decision refuses while their admissions
+wait for the next write. A row of the clients page takes what its admission comes to from that
+listing, and reads `not this authority` or `listed twice` where the listing has it admit nobody
+(§648). **Not built yet** are the rules of §648 about a renewal made from a
+certificate that was taken away: `from` is written, and no rule of admission asks it. The
+standing answers to a renewal stay in the custom data (§618), asked by the admission key, and
+go with a write that is saved and with a tab's OK that wrote into the store, once no record of
+kind `client` in force names their certificate. Nothing of this changes what a client is sent,
+`API.md` §411. *Held by*
+`AdmissionRecordTests`, `StoreAdmissionsTests`, `AdmissionActsTests`, `RenewalAnswersTests`,
+`ClientListTests`, `AuthorityPanelTests`, `PendingRecordsTests` and `PendingChangesTests`, and
+over real databases by `AdmissionInRealDatabaseTests`, `PairingInRealDatabaseTests`,
+`RenewalInRealDatabaseTests` and `RevocationInRealDatabaseTests`. Among them: an admission is an
+entry of the plugin's group, its content unprotected, with nothing of it in the custom data
+(`An_admission_is_an_entry_of_the_plugin_s_group_with_its_content_unprotected_and_unmarked`);
+two clients are two entries (`Two_clients_are_two_entries_so_a_replicated_database_can_merge_them`);
+an admission written while a group dialog is open survives that dialog's OK
+(`SnapshotHazardTests.An_admission_written_while_the_dialog_is_open_survives_its_OK`); and over
+copies brought together by `PwDatabase.MergeIn` a revoked client stays refused where the other
+copy still holds its admission, whatever became of the entries' times, and an expired admission
+that a merge brings stays and admits nobody (`MergeInRealDatabaseTests`).
 
 ### A single certificate taken away §648
 
@@ -1111,22 +1160,84 @@ for its age (§643).
 
 **The route.** `DELETE /gate/certificate` keeps what it means to a client: it takes no body and
 names nothing, the certificate on the connection is what is given up, and a client can give up
-its own certificate and nobody else's, `CA.md` §217. It writes this record where it writes a
-revocation today, through the single writer, and answers once the database is saved and read
-back. The reference client goes on calling it with the old certificate after a renewal,
-`PAIRING.md` §312. A client that gives up the only certificate it holds has none to renew with,
-and pairs again as a new client (reasoning).
+its own certificate and nobody else's, `CA.md` §217. It writes this record through the single
+writer, and answers once the database is saved and the file read back. The reference client
+goes on calling it with the old certificate after a renewal, `PAIRING.md` §312. A client that
+gives up the only certificate it holds has none to renew with, and pairs again as a new client
+(reasoning).
 
-**The clients page.** It lists a client's certificates as it lists a client's records today, and
-offers both: revoking the client, which writes a revocation by its key (§615), and taking a
-single certificate away, which writes this record. The single removal is how a record is cleared
+**The clients page.** A client's certificates are a group of rows. The rows are grouped by
+client key, and within a group the certificate admitted last is first. The first row of a group
+is the client's own row: it carries the client's name and the X. Every further row of the group
+is indented under it, reads `earlier certificate` where the client's own row reads the name,
+and has no X. Profiles, Admitted and Until are each row's own, and a row is a certificate for
+everything else: its tooltip names the client key and the certificate whole, a row whose renewal
+stands refused is red, and **Allow renewal** acts on the row's certificate. **The X revokes the
+client**, with every certificate it holds: it writes a revocation by the client's key (§615),
+and every row of the group goes at once. **The menu of a row** names the certificate it acts on
+in its first line, which is gray and no command: the first eight characters of the admission
+key and the day the certificate was admitted. On the client's own row the menu offers
+**Revoke**, which does what the X does, **Take certificate away**, which writes this record for
+the row's certificate alone, and **Allow renewal**. On an indented row it offers the last two.
+**Taking a certificate away takes its row.** Where that was the client's own row, the next row
+of the group becomes the client's own row. Where it was the client's last certificate, the
+client has no row and is not revoked. The single removal is how a record is cleared
 that a lost answer to a renewal left behind, `PAIRING.md` §312: the client never held that
-certificate and cannot give it up. Like everything on the tab, both wait for the settings
-dialog's OK.
+certificate and cannot give it up. **A row whose record does not read** (§615) stands under its
+client where its `client` is a client key that a group is listed for. Records that do not read
+whose client key reads, and whose client no group is listed for, stand together: the first of
+them is that client's own row, and the others are indented under it, in the order of the
+listing. A record whose `client` is no client key stands on a row of its own. Such a row reads
+`not counted` where a row reads its date, with the reason in its tooltip,
+and it offers each command for which the record holds a readable member: Revoke where `client`
+is a client key and the row is the first of that client, Take certificate away
+where `certificate` is an admission key, and no command otherwise. **The X carries what it does
+as the tooltip of its own cell**, and a row without an X shows no tooltip in that column. A
+certificate that several admissions name (S24) reads `listed twice` on each of its rows. **A row
+reads `not this authority` where its date would be** in two cases: a certificate that the
+authority served did not issue, by the anchor pin, and an admission whose `issuer` is not the
+authority served, by the judgment of the listing (§615). The row takes what an admission comes
+to from the listing, as the gate does, so the page shows no date for an admission whose
+certificate chains to the authority served while its `issuer` names another. Like everything on
+the tab, each command waits for the settings dialog's OK. No column is added for any of this,
+and nothing on the tab scrolls. **The Client column is held at least as wide as the fixed text of
+an indented row**, `earlier certificate` or the text of a record that does not read under its
+client, at every scaling: a client's name on its own row may be cut, since its tooltip holds it
+whole, and a fixed text has no other place to be read. *Held by* `ClientListTests`, among them
+`An_admission_naming_an_authority_that_is_not_served_says_so_where_a_date_would_be`,
+`Records_that_do_not_read_of_a_client_no_group_lists_stand_together_under_the_first_of_them`,
+`A_certificate_listed_twice_and_a_record_that_does_not_read_show_why_in_their_own_words` and
+`The_X_shows_what_it_does_on_its_own_cell_and_a_row_without_an_X_shows_nothing_there`, and
+`GateTabFitsTests.Clients_with_standing_answers_fit_the_page_as_every_other_client_does`, which
+measures a group of rows at its longest texts.
 
 **The audit.** As today, `DESIGN.md` §120 and `CA.md` §217: a line by the admission key that was
 taken away and the client key its record carried, for the client's own act written by the writer
-on its landed path, and for the operator's when the dialog's OK lands it.
+on its landed path, and for the operator's when the dialog's OK lands it. **The operator's
+revocation of a client names no certificate**, so it is written as a line for each certificate
+of that client that the OK ended in this copy, each with its admission key and the client key,
+and as a single line with the client key alone where the copy admitted no certificate of the
+client. A certificate the OK ended is a certificate this copy admitted before it: an admission
+under an authority that is not served, a certificate that several admissions name and a record
+that does not read admitted nobody, and get no line. Which certificates those are is read from
+the store before OK is applied, since the write that revokes deletes the admissions it refuses;
+where the store cannot be read then, the single line with the client key alone is written.
+**The lines are written once the store's write is taken**, before the tab's changes to the
+custom data are replayed, so whatever becomes of that half, a revocation the store holds has
+its lines. That half is made all the same where writing the lines throws: the keys the tab held,
+the merge of the profile list, the standing answers and the database's mark run in a `finally`
+around the lines, and what the lines threw reaches the catch-all of the dialog's close once they
+have, so a defect there loses nothing else of the OK
+(`GateWiringTests.A_defect_writing_a_revocation_s_lines_loses_nothing_else_of_the_OK`). What the
+tab does after the store's part runs the same way, whatever the lines came to: the lines of the
+standing answers that went, the answers lifted for this session, and the invitations made on
+the dialog kept, so a defect in the lines leaves no answer standing that the operator lifted
+(`GateWiringTests.A_defect_writing_a_revocation_s_lines_keeps_no_answer_lifted_for_the_session_standing`).
+*Held by*
+`GateWiringTests.A_revocation_writes_a_line_for_each_certificate_of_the_client_and_the_client_key_alone_where_the_copy_holds_none`,
+`GateWiringTests.A_revocation_writes_lines_only_for_the_certificates_this_copy_admitted`,
+`GateWiringTests.A_revocation_s_lines_are_written_once_the_store_holds_it_whatever_the_custom_data_half_comes_to`
+and `GateWiringTests.A_revocation_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel`.
 
 **What it has to satisfy.** A certificate its client gives up is refused from the next request.
 The certificate a renewal issued keeps working. A lost answer to a renewal costs the database
@@ -1136,6 +1247,29 @@ A revocation by the operator still refuses a certificate renewed at another gate
 **Not run.** No run held this kind or the rule about renewals. A gate that has not taken the
 file in still admits a certificate taken away at another gate, as it admits a client revoked
 there (§639). §644 names the runs owed.
+
+**What is built.** The record, what composes it, and what it does to the certificate it names.
+`AdmissionActs.TakeAway` composes the records of the act as this section has them: a record for
+each certificate of origin that the admissions in force of the certificate hold, an absent
+origin among them, each naming in `renewed` every admission in force that reads and was renewed
+from the certificate. `DELETE /gate/certificate` writes them for the certificate on the
+connection, by a write that is saved before it is answered, and the plan of that write deletes
+the certificate's admission and restates each record by an item of its own (§627). A
+certificate that a record, an item or a deletion record states as taken away is admitted by
+nobody, and its admission is counted among no admissions of a certificate (§615). A certificate
+that is no longer admitted when the write is made is answered `401 unpaired`, and nothing is
+written. The clients page is built as far as the revocation: the rows grouped by client, the X
+and **Revoke** on the client's own row, the menu's first line, and the rows marked `not
+counted` and `listed twice`, each with Revoke where it is the first row of a client it names.
+The audit's lines are built for a certificate that its client gave up and for a client that
+the operator revoked. **Not built yet**: rules 3 to 5, so a renewal counts whatever became of
+the certificate it was made from, and `renewed` and `from` are written and asked by no rule;
+**Take certificate away** on the clients page, with what follows from a row going alone; and
+the runs of §644 item 16. *Held by* `AdmissionActsTests`, `StoreAdmissionsTests`,
+`RevocationOperationTests`, `ClientListTests` and `ClientListMenuTests`, and over real databases
+by `GiveUpInRealDatabaseTests`: the record in the file, the certificate a renewal issued still
+admitted once the old certificate is given up, and a write that no save kept taken back out
+with what it deleted put back.
 
 ### Profile names §616
 
@@ -1488,14 +1622,17 @@ stand, and the room of §627. The admission keys the file knows are those of ste
 not, each where it is an admission key, and what the records and the items that took certificates
 away name; they are gathered only where a deletion record under the key carries the tag of a
 certificate taken away, so a store whose deletion records carry no such tag hashes no subject for
-them. The records of kind `client` are kept with the texts of §658 and given no meaning yet. The
-authorities that stand under each key that stands are worked out for every state but no key and a
-store past `StoreFormat.MaxKeys`, of which no key is judged, as a word is answered under them
-(§656). What each kind means for access beyond that (steps 3 and 5) is built by the pull requests
-that bring each kind's meaning, the authority's among them (§614). The authority a database is
-served with is the single authority that stands in a store that is whole, read from the version that
-passed, and every admission holds the target it is made on to what the store then reads: the
-authority's entry, the version of it that passed, and that it still stands alone, so a retirement
+them. The records of kind `client` are kept with the texts of §658, and their meaning is read
+from the reading of each hold by `StoreAdmissions` (§615): the admission of the certificate on a
+connection is parsed there and kept nowhere, and every admission is parsed only for a page or a
+dialog that lists them. The authorities that stand under each key that stands are worked out for
+every state but no key and a store past `StoreFormat.MaxKeys`, of which no key is judged, as a
+word is answered under them (§656). What each kind means for access beyond that (steps 3 and 5)
+is built by the pull requests that bring each kind's meaning, the authority's (§614) and the
+admission's (§615) among them. The authority a database is served with is the single authority
+that stands in a store that is whole, read from the version that passed, and every admission
+holds the target it is made on to what the store then reads: the authority's entry, the version
+of it that passed, and that it still stands alone, so a retirement
 written under a target already handed out refuses from that target's next admission on. A database
 whose store holds no key is served nothing, and a gate that was serving it when the key went answers
 `lost` from what it served with (§656). *Held by* `StoreReadingTests`, `StoreReadingStatesTests`,
@@ -2006,8 +2143,13 @@ so it is written under Database Maintenance and while the TAN wizard is open, an
 holds no copy of an entry. The store write of the settings dialog's OK is refused under Database
 Maintenance and under the TAN wizard as a whole, every act of it with it, while the tab's changes to
 custom data beside that write are asked nothing; neither window can stand beside the settings
-dialog, each being modal. A pairing's write of a profile name is refused under Database Maintenance,
-as today. *Held by* `StoreWritesUnderDialogsTests` and `AuthorityChooserInRealDatabaseTests`.
+dialog, each being modal. A pairing's and a renewal's write, and a certificate given up, are
+refused under Database Maintenance for what each still writes into the custom data: a profile
+name that a pairing adds, and the standing answers to a renewal that each of them takes away once
+no admission names their certificate (§618). The admission itself is an entry, asked about once
+the plan exists, as above. *Held by* `StoreWritesUnderDialogsTests`,
+`AuthorityChooserInRealDatabaseTests` and
+`PairingInRealDatabaseTests.A_pairing_while_an_entry_dialog_holds_the_summary_entry_is_busy_and_spends_nothing`.
 
 ### A write of the plugin's own §627
 
@@ -2089,14 +2231,51 @@ tree under its identifier, with the strings the plan gave it. A certificate give
 as every change is, on the flag and the file. What a whole reading would add, a decision that
 arrived inside the save, is answered at the client's next request, and a whole reading walks
 every entry on KeePass's thread. It rules out believing an admission on the flag and the file
-alone, and a second walk of the tree in the turn. *Held by* `PairingInRealDatabaseTests` and
-`RenewalInRealDatabaseTests`.
+alone, and a second walk of the tree in the turn. *Held by*
+`PairingInRealDatabaseTests.An_admission_missing_from_the_tree_after_its_save_is_taken_back_out_and_hands_nothing_over`;
+a renewal goes through the same method of the writer. **A write whose plan adds no record of
+kind `client` is refused before the condition is asked** (this document's own). Read back by
+its own entries, a write that added nothing would find nothing missing, and believed on a save
+of nothing, a pairing or a renewal would hand a certificate over with no admission in the file,
+which nobody could see and nobody could revoke. So such a write is refused as a refused plan is:
+nothing is applied or saved, the condition uses up no approval and spends no invitation, and no
+certificate is handed over. A plan adds no such record in two cases. **Its act is left out
+because the authority that issued the certificate is not the authority the store serves
+alone**, as where that authority was recreated or deleted since the operator answered: the write
+is answered as an authority that went, a pairing `409 no invitation` and a renewal `401
+unpaired`, with the approval used up by the handler and the invitation unspent, `PAIRING.md`
+§311 and §312. The condition compares no authority, since the plan has held the admission to
+its issuer before the condition is asked.
+**Or the store already holds the act's own record**, which no write through the writer reaches:
+the act is composed in the writer's turn and every record holds a random nonce, so that case is
+held where the plan is asked alone. *Held by*
+`AdmissionActsTests.A_write_that_adds_no_admission_is_not_one_a_pairing_is_believed_on` for a
+plan that plans nothing;
+`PairingInRealDatabaseTests.A_write_whose_plan_leaves_the_admission_out_is_not_believed_and_spends_nothing`
+for an act left out, with the condition not asked; and the answers by
+`PairingHandlerTests.An_authority_recreated_under_the_write_admits_nobody`,
+`RenewalHandlerTests.An_authority_recreated_under_the_write_is_answered_unpaired_and_lets_the_approval_go`,
+`PairingInRealDatabaseTests.A_pairing_whose_authority_is_recreated_before_its_write_is_told_its_invitation_is_gone`
+and
+`RenewalInRealDatabaseTests.A_renewal_whose_authority_is_recreated_before_its_write_is_answered_unpaired_with_nothing_written`.
 
 **What an approval held for a renewal is held to** (S4). The admission it renews is compared at
 the write by the identifier of that admission's entry, where today it is compared by a digest of
 the record's stored text, `PAIRING.md` §312: a record is written once, so the same entry under
 the same store key is the same content. It rules out a digest of a stored text, which the store
-does not keep. *Held by* `ApprovalBookTests`.
+does not keep. **The approval is written only where that admission still admits its
+certificate**, in the reading of the write's own turn, and not merely where an entry is present
+under the identifier: an admission whose client was revoked, whose certificate was taken away,
+whose issuer was retired, or that reads no more since the operator answered, makes the approval
+stale, and the renewal is answered `401 unpaired` with nothing written. *Held by*
+`ApprovalBookTests.A_renewal_is_written_only_while_the_admission_approved_against_is_in_force_and_reads`:
+written while the admission is in force, and stale once its client is revoked, its certificate
+taken away or a second admission names the certificate;
+`ApprovalBookTests.A_renewal_is_stale_while_a_decision_refuses_the_admission_whose_entry_is_still_there`,
+stale beside a revocation and beside a certificate taken away while the entry is still in the
+tree; `ApprovalBookTests.A_renewal_cannot_be_held_without_the_entry_it_was_approved_against`;
+and over a real database
+`ApprovalsUnderLoadTests.A_certificate_given_up_racing_an_approved_renewal_is_never_overtaken`.
 
 **A client's write meets the store's word** (§644 item 26). A pairing, a renewal and a
 certificate given up ask the store again in the writer's turn, and a store that holds the gate
@@ -2145,9 +2324,21 @@ with no deletion record (the design paper 10), and the entries it deleted are pu
 their deletion records removed (reasoning). A record that it set back is put back as it was
 edited, with the history it had; a group that it made is removed; and a deletion record that
 it added for a record this copy does not hold is removed. *Held by*
-`StoreWritesInRealDatabaseTests`: after a save that fails, the database holds the entries, the
-histories, the group and the deletion records that it held before the write, and reads as it
-read before.
+`StoreWritesInRealDatabaseTests.A_part_of_a_write_taken_back_by_its_undo_leaves_the_database_as_it_was`,
+each part of a write's application alone and every part in the order a write takes them; and,
+after a save that fails, by the fixtures of the writes that save, below: the database holds the
+entries, the histories, the group and the deletion records that it held before the write, and
+reads as it read before. **A certificate given up that is taken back out leaves the database's mark as it
+was before the write** (this document's own). The application of a write marks the database as
+changed; for a certificate given up the writer puts the mark back at once and decides it as for
+every change, from what the database held before and from the file, so a write taken back out
+over a file that did not change leaves nothing to save. *Held by* `GiveUpInRealDatabaseTests`:
+`A_certificate_given_up_that_no_save_kept_is_taken_back_out_and_stays_admitted` and
+`A_save_that_fails_before_writing_the_file_takes_the_certificate_given_up_back_out`, each with
+the store as it was and the database unmarked; and by `PairingInRealDatabaseTests` for an
+admission, whose save failures leave every entry and every deletion record of the store as
+before, an admission that had come back beside its revocation among them
+(`A_pairing_that_does_not_land_puts_an_admission_that_came_back_back_as_well`).
 
 **The settings tab still buffers.** `PendingDatabase` holds records to add where it holds keys
 today, OK applies them in a single turn, and Cancel drops them. The merges the tab registers
@@ -2158,34 +2349,52 @@ an answer the renewal dialog wrote underneath is made apart and the refusal stan
 revocation is an addition that cannot fail in the buffer.
 
 **What the buffer holds, and what OK does with it** (this document's own). Each press on the
-tab composes the records of its act at the press, from the store as the page showed it, and
-puts them into the buffer: a revocation, a certificate taken away with the renewals the page
-showed, a retirement, an authority with its certificates and its keys. The pages read the
-store with those records beside it, so a page shows what OK would leave. An authority made on
-the dialog and retired on the same dialog leaves the buffer with its retirement and reaches no
-database, as today, and where that retirement held the store key the retirements left in the
-write hold it, so a Recreate and then a Delete on one dialog write what the Delete alone writes
-(this document's own). At OK the acts are held, in the order they were pressed, to the store as
-it stands then. An act whose ground went meanwhile, as a Recreate of an authority that no
-longer stands, is left out, and the log names it, and so is an act composed against a store key
-other than the key that stands then, or composed where no key stood while a key stands then: a
-Create composed under a key that went since never starts the store again under it (§632). A
-press is planned with every act held, against the store as it stands, as OK plans them, and is
-refused with nothing held where OK would refuse them all or leave it out. Every other act's
-records are written in a single write, with the summary entry over what is then in force. A
-revocation and a certificate taken away have no such ground, and are always written. Cancel
-drops the buffer, and a store key that was made on the dialog goes with it. **What an act takes
-out of the custom data waits with the act** (this document's own): the admissions a Recreate or
-a Delete takes away read as gone on the page while it waits, and leave the custom data at OK
-only where the write took the act (§614). *Held by* `PendingRecordsTests`: a revocation pressed
-beside a Recreate whose authority was retired underneath the dialog is written, and the
-Recreate is not; a Recreate refused or left out at OK takes no revocation away; a Recreate and
-then a Delete write what the Delete alone writes; a press that OK would refuse with the acts
-held is refused with nothing held; a Create and a Delete on the same dialog write nothing and
-change nothing; and a page reads a revoked client as gone before OK. And by `StoreWriteTests`:
-an act composed against another key, or where none stood, is left out; a retirement dropped
-with the authority it retires leaves its hold on the key to the retirements left; and an entry
-the tree holds gets no deletion record and no second entry.
+tab puts its act into the buffer. An act of the authority's, a retirement or an authority with
+its certificates and its keys, is composed at the press, from the store as the page showed it.
+**An act on a client or on a certificate holds what is to be done**, the client to revoke or
+the certificate to take away, and its records are composed wherever the buffer is read and in
+the write at OK, against the store as it stands then with the acts pressed before it written
+over it. So a revocation is written under the store key that OK finds, a certificate taken
+away names the renewals the store holds at OK, a renewal that landed under the dialog among
+them (§648), and the second of two presses sees the first. The pages read the store with those
+records beside it, composed the same way at each reading, so a page shows what OK would write
+now. An authority made on the dialog and retired on the same dialog leaves the buffer with its
+retirement and reaches no database, as today, and where that retirement held the store key the
+retirements left in the write hold it, so a Recreate and then a Delete on one dialog write what
+the Delete alone writes (this document's own). At OK the acts are held, in the order they were
+pressed, to the store as it stands then. An act whose ground went meanwhile, as a Recreate of an
+authority that no longer stands, is left out, and the log names it, and so is an act composed
+against a store key other than the key that stands then, or composed where no key stood while a
+key stands then: a Create composed under a key that went since never starts the store again
+under it (§632). A press is planned with every act held, against the store as it stands, as OK
+plans them, and is refused with nothing held where OK would refuse them all or leave it out.
+Every other act's records are written in a single write, with the summary entry over what is
+then in force. A revocation has no such ground and is always written. A certificate taken away
+has none either, and is written unless the store holds it as taken away by then, by its client
+or in a copy merged in, where a further statement would end nothing. Cancel drops the buffer,
+and a store key that was made on the dialog goes with it. **What an act refuses reads as gone
+while the act waits** (this document's own): the pages read the store with the acts written
+over it in memory, and the plan of that write deletes what the acts refuse, so the rows of a
+client revoked on the page, and the admissions of an authority that is being recreated or
+deleted, are gone from the pages before OK and are deleted in the database at OK only where the
+write took the act (§614, §615). Once OK has written into the store, the standing answers to a
+renewal that no admission in force names any more are taken out of the custom data (§618).
+*Held by* `PendingRecordsTests`: a revocation pressed beside a Recreate whose authority was
+retired underneath the dialog is written, and the Recreate is not; an act left out at OK leaves
+a revocation refusing an admission that a copy brings, and an act written at OK deletes every
+admission of the authority it retires as the store stands then; a Recreate and then a Delete
+write what the Delete alone writes; a press that OK would refuse with the acts held is refused
+with nothing held; a Create and a Delete on the same dialog write nothing and change nothing; a
+page reads a revoked client as gone before OK; and a revocation is composed under the key the
+store holds at OK
+(`A_revocation_held_for_OK_is_composed_under_the_key_the_store_holds_at_OK`). And by
+`StoreWriteTests`: an act composed against another key, or where none stood, is left out; a
+retirement dropped with the authority it retires leaves its hold on the key to the retirements
+left; and an entry the tree holds gets no deletion record and no second entry. And over a real
+database by
+`TabReplayOverRealDatabaseTests.A_certificate_given_up_under_its_client_s_waiting_X_and_the_revocation_both_stand_at_OK`:
+a certificate that its client gives up while that client's revocation waits on the tab stays
+given up, and the revocation is written at OK beside it.
 
 **What is built.** The writes of the authority's commands (§614): Create, Recreate and Delete at the
 settings dialog's OK, buffered by `PendingRecords` beside the keys the tab buffers in custom data
@@ -2200,22 +2409,49 @@ asked about to the entries changed, and without the writer's own questions or th
 KeePass's window, took 18 ms at the median beside ten thousand entries and a store that starts at
 282 entries and gains an entry with each write, and 74 ms where every entry holds ten history items;
 the first write of a run is slower, as warm-up (`StoreReadingCostTests`, `DESIGN.md` §119). A write
-the application cannot finish is taken back out at once; taking back a write that was saved and did
-not land comes with the writes that save, a pairing's and a renewal's. A revocation is not an act
-yet, so the buffer holds the authority's acts alone. Every write deletes the records of kind
+the application cannot finish is taken back out at once. **The writes that save are built**: the
+admission of a pairing and of a renewal (§615) and a certificate that its client gives up (§648).
+Each is a single turn of the writer: the store is read afresh with every entry
+(`KdbxStore.ForWrite`) and written into only where it holds nothing back; the act is planned and
+every entry the plan touches asked about (`KdbxStore.Stage`); the caller's condition, which uses
+up an approval and spends an invitation, is asked last, against the authority served and the
+admissions of that same reading; the plan is applied and its undo kept (`StoreEntries.Apply`);
+then the save, and the write believed or taken back as this section has it. An admission is read
+back by its own entries, and a certificate given up is believed on the flag and the file. Taken
+back are the entries added, the entries deleted with their deletion records, the deletion records
+added, the records set back and a group made, and with them what the same turn wrote into the
+custom data or took out of it: a profile name, and the standing answers to a renewal. A database
+that closed inside the save is taken nothing back from, and no certificate is handed over. A write
+that stands has KeePass's group tree and entry list rebuilt, since it adds and deletes entries of
+the plugin's group, `DESIGN.md` §119. **The operator's revocation is an act**, held by the buffer
+beside the authority's acts and written at OK. Every write deletes the records of kind
 `client` that step 3 names, by the texts §658 keeps, the write's own records counting as present,
-so a Recreate and a Delete delete every such record under the authority they retire; the gate
-admits by what `CA.md` §204 keeps until the admissions are written into the store. *Held by*
+so a revocation, a certificate taken away, a Recreate and a Delete each delete in their own write
+the admissions they refuse. **Not built yet**: the store's word answered to a client's write (§644
+item 26), where a pairing and a renewal that meet a store holding the gate back are answered `503
+busy` with the approval let go, and a certificate given up `500 internal error`; the tab's OK
+behind a save of the plugin's own (§644 item 30); and the single removal on the clients page
+(§648). *Held by*
 `StoreRecordTests`, against the records of the measured code
 (`tests/Shared/StoreRecordVectors.json`); `StoreWriteShapeTests`, against its writes
-(`StoreWriteVectors.json`): both sequences played, and each step's deletions, deletion records,
-records present, summary entries, store keys and answer compared by kind and by count;
+(`StoreWriteVectors.json`): each sequence played through `AuthorityService` and `AdmissionActs`,
+and each step's deletions, deletion records, records present, summary entries, store keys and
+answer compared by kind and by count, the kind `client` among them, with
+`Two_copies_one_revoking_a_client_the_other_renews_synchronized_admit_nobody_of_that_client`
+holding that both copies end with the same records and the renewed certificate refused in each;
 `StoreWriteTests`, each step of the plan alone, the ceiling at its boundary and a record written
 once among them, and a record of kind `client` deleted where its client is revoked, its issuer
 retired or its certificate taken away, by a record, an item, a deletion record and the write's
-own record, in force or not and read or not, and left where it names nothing refused;
-`PendingRecordsTests`; and `StoreWritesInRealDatabaseTests`, the group a write goes into and a
-write applied to a database read as the same write applied in memory among them.
+own record, in force or not and read or not, and left where it names nothing refused
+(`An_admission_that_reads_is_deleted_by_what_refuses_it_and_one_nothing_refuses_is_left` for an
+admission that reads);
+`PendingRecordsTests`; `StoreWritesInRealDatabaseTests`, the group a write goes into and a
+write applied to a database read as the same write applied in memory among them; and the writes
+that save by `PairingInRealDatabaseTests` and `RenewalInRealDatabaseTests`, among them
+`A_pairing_deletes_an_admission_that_came_back_beside_its_revocation`,
+`A_pairing_leaves_the_admission_of_an_expired_certificate_where_it_is` and
+`A_pairing_that_lands_rebuilds_the_tree_and_the_entry_list`, and by `GiveUpInRealDatabaseTests`
+for a certificate given up.
 
 ### A record written again §628
 
@@ -3161,7 +3397,15 @@ guard as product code, with its setting, was not run (§644).
   admitted with their certificates, the revocations, the certificates taken away, the profile
   names and the rules. That list is what the operator checks before sealing the store again
   (§625).
-- **Its clients page takes a client away, or a single certificate** (§615, §648).
+- **Its clients page takes a client away, or a single certificate** (§615, §648). Built for a
+  client: the rows grouped by client key, and the X and **Revoke** that revoke the client, held
+  by `ClientListTests`, `ClientListMenuTests` and `AuthorityPanelTests`. The command for a
+  single certificate is not built yet. **A revocation that waits for OK leaves inviting as it
+  was**: the invite button is turned off, with its notice, only while an act of the authority's
+  waits, a Create, a Recreate or a Delete, since a code made then would pair against an
+  authority the gate does not serve yet or is about to lose. A client revoked on the page
+  changes nothing about which authority a code pairs with. *Held by*
+  `AuthorityPanelTests.A_revocation_waiting_for_OK_leaves_inviting_as_it_was`.
 - **It shows entries that are passed over**: an entry with `KPG.` strings that is not the
   store's (§621). It lists no copy as taking anything away.
 - **It states a database that keeps little or no history** (decision 20), since in such a
@@ -3179,7 +3423,10 @@ guard as product code, with its setting, was not run (§644).
   revokes nothing, which the notes of every record state (§607).
 - **It offers no command on the store where nothing is written into it in the session**, as
   where the dialogs that would take a write back are not watched (§627), and states that and
-  why, as under a word. Built, and held by `AuthorityPanelTests` and `OpenDatabaseTests`.
+  why, as under a word. The clients page then shows no X and its rows' menus no **Revoke**;
+  **Allow renewal** stays, since the standing answers are kept apart from the store. Built, and
+  held by `AuthorityPanelTests`, `OpenDatabaseTests` and
+  `ClientListTests.Where_the_store_takes_no_write_no_row_carries_the_X`.
 
 Nothing of the tab was run.
 
@@ -3710,7 +3957,12 @@ each standing version keeps of what it replaces. The deletion records grow by a 
 replaced entry. An edited record grows by the history KeePass keeps, up to its limit, and a
 record that the plugin set back holds its rewrites there as well (§628). **What an expired
 certificate left stays until the compaction, and nothing is removed by a clock** (a later
-decision): its admission, and the record that took it away.
+decision): its admission, and the record that took it away. That is built for the admission: no
+write deletes an admission for its age, and the clients page lists the admission of an expired
+certificate as expired until the certificate is taken away, its client revoked or its authority
+retired (§615, §627). *Held by*
+`PairingInRealDatabaseTests.A_pairing_leaves_the_admission_of_an_expired_certificate_where_it_is`
+and `MergeInRealDatabaseTests.An_expired_admission_a_merge_brings_stays_and_admits_nobody`.
 
 **What a record for each node and profile does to the sizes** (computed from the strings the
 measured code writes, with no file made, `measured-rules-per-profile` 9; the measured sizes
@@ -3999,12 +4251,15 @@ that finds a measurement against a decision reports it and does not design aroun
     the API leaves out beside it (§633). Owed by the pull request that brings the tab's listing
     of the store.
 26. **The store asked again where a client writes into it.** A pairing, a renewal and a client's
-    own revocation are judged against the store where the connection arrives, and not again
-    where their write is made, since a rule governs none of them and the router asks the store
-    again only where a rule is asked; one that waits for its dialog meets a store that came to
-    hold the gate back meanwhile only at its next request. Owed by the pull request that moves the
-    admissions into the store: each of the three asks the store again at its write and answers
-    the store's word there.
+    own revocation are judged against the store where the connection arrives, and a rule governs
+    none of them, so the router does not ask the store again for them; a request that waits for
+    its dialog met a store that came to hold the gate back meanwhile only at its next request. The
+    writes that save are built (§627), and each of the three now reads the store again in the
+    turn of its write and writes nothing into a store that holds the gate back there. What it
+    is answered there is not the store's word yet: a pairing and a renewal are answered `503
+    busy`, with the approval let go and the invitation unspent, and a certificate given up `500
+    internal error`. Owed by the pull request that moves the admissions into the store: each of
+    the three answers the store's word there.
 27. **What the tab shows past the ceiling on store keys** (§649). A store past it is split with
     nothing judged, and the dialog that keeps a store has nothing to offer, since no keep record
     is read: the tab states the number of keys found and the number of entries hidden, and that
@@ -4105,7 +4360,8 @@ the operator's act and the client's ordinary command. A word that §656 adds is 
 the client). So a 0.2 client works with a 0.3 gate, as §411 has it. §411 also counts what a
 certificate or an admission record carries: the admission changes where it is stored and what
 it names (S4, S29), and that holds only while nothing of it changes what a client is sent. The
-pull request that builds the admission checks it against §411.
+admission is built that way (§615): the bundle that a pairing and a renewal answer with is as it
+was, a certificate carries the claims it carried, and `API.md` §411 records it.
 
 **`CHANGELOG.md` gains its entry with the code.** The pull request that makes a 0.2 database
 start over for somebody running the plugin writes that entry, marked **Breaking**, and this

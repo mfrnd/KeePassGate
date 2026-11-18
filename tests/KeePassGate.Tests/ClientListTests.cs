@@ -9,6 +9,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Windows.Forms;
 using KeePassGate.Authority;
 using KeePassGate.Testing;
+using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -29,6 +30,92 @@ namespace KeePassGate.Tests
     [TestFixture]
     public sealed class ClientListTests
     {
+        [Test]
+        public void Records_that_do_not_read_of_a_client_no_group_lists_stand_together_under_the_first_of_them()
+        {
+            // The first and third name a client no admission that reads names, the second another
+            // client, and the fourth a client key that does not read: the third is drawn under the
+            // first and never under the second client's row, and the fourth stands alone.
+            string first = new string('1', 32), second = new string('2', 32), third = new string('3', 32), fourth = new string('4', 32);
+            var listing = Listings.Of(
+                Array.Empty<AdmissionRecord>(),
+                new[]
+                {
+                    new UnreadAdmission(first, new string('a', 64), null),
+                    new UnreadAdmission(second, new string('b', 64), null),
+                    new UnreadAdmission(third, new string('a', 64), null),
+                    new UnreadAdmission(fourth, "not a client key", null),
+                },
+                0,
+                true);
+
+            var rows = ClientList.Grouped(listing, true);
+
+            Assert.That(rows.Select(row => row.Unread.Entry), Is.EqualTo(new[] { first, third, second, fourth }));
+            Assert.That(rows.Select(row => row.Own), Is.EqualTo(new[] { true, false, true, true }));
+        }
+
+        [Test]
+        public void A_certificate_listed_twice_and_a_record_that_does_not_read_show_why_in_their_own_words()
+        {
+            var record = Record("agent-invented", "ops");
+            var members = record.Members().ToDictionary(member => member.Key, member => member.Value, StringComparer.Ordinal);
+            members["client"] = new string('d', 64);
+            var other = AdmissionRecord.Read(new string('7', 32), members);
+            var listing = new AdmissionListing(
+                new[] { record, other },
+                new Dictionary<AdmissionRecord, AdmissionStanding>
+                {
+                    { record, AdmissionStanding.Twice },
+                    { other, AdmissionStanding.Twice },
+                },
+                new[] { new UnreadAdmission(new string('8', 32), null, null) },
+                0,
+                true);
+
+            using (var list = new ClientList(Allows, Allows))
+            {
+                list.Fill(listing, null, null, null);
+
+                var rows = Grid(list).Rows;
+                for (var at = 0; at < 2; at++)
+                {
+                    Assert.That(Reach(list, at), Is.EqualTo("listed twice"));
+                    Assert.That(
+                        Plain(rows[at].Cells[0].ToolTipText).Replace("\r\n", " ").Replace("\n", " "),
+                        Does.Contain("More than one admission names this certificate, so none of them admits it."));
+                }
+
+                Assert.That(Reach(list, 2), Is.EqualTo("not counted"));
+                Assert.That(
+                    Plain(rows[2].Cells[0].ToolTipText).Replace("\r\n", " ").Replace("\n", " "),
+                    Does.Contain("This record does not read as an admission, so it admits nobody."));
+            }
+        }
+
+        [Test]
+        public void The_X_shows_what_it_does_on_its_own_cell_and_a_row_without_an_X_shows_nothing_there()
+        {
+            // A column's tooltip is its heading's, so the text of the X has to be its cell's own.
+            var record = Record("agent-invented", "ops");
+            var listing = Listings.Of(new[] { record }, new[] { new UnreadAdmission(new string('9', 32), null, null) }, 0, true);
+
+            using (var list = new ClientList(Allows, Allows))
+            {
+                list.Fill(listing, null, null, null);
+
+                var revoke = Grid(list).Rows[0].Cells[ClientList.RevokeColumnName];
+                Assert.That(revoke, Is.InstanceOf<DataGridViewButtonCell>(), "the client's own row holds the X");
+                Assert.That(
+                    Plain(revoke.ToolTipText).Replace("\r\n", " ").Replace("\n", " "),
+                    Is.EqualTo("Revokes this client, with every certificate it holds, when OK is pressed."));
+
+                var alone = Grid(list).Rows[1].Cells[ClientList.RevokeColumnName];
+                Assert.That(alone, Is.Not.InstanceOf<DataGridViewButtonCell>(), "a record naming no client key holds no X");
+                Assert.That(alone.ToolTipText, Is.Empty);
+            }
+        }
+
         [Test]
         public void Every_admitted_client_is_listed_with_what_it_may_reach()
         {
@@ -52,21 +139,28 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Revoking_one_of_a_renewed_clients_two_rows_takes_that_row_alone()
+        public void A_renewed_client_is_a_group_whose_first_row_carries_the_X_that_revokes_it_whole()
         {
-            // A renewal leaves the client two rows with one client key until it gives the older
-            // up, and taking one away leaves it reaching the database through the other, which is
-            // the row still listed. The rows are what show it: nothing is put under the list.
+            // A renewal leaves the client two certificates under one client key until it gives the
+            // older up: a group, the certificate admitted last on the client's own row and the
+            // older indented under it, and the X on the first row revokes the client, every row of
+            // the group going at once.
             var older = Record("agent-fictitious", "ops");
             var renewed = Renewal(older);
+            var asked = new List<string>();
 
-            using (var list = ListOf(Allows, renewed, older))
+            using (var list = ListOf(key => { asked.Add(key); return null; }, older, renewed))
             {
-                Assert.That(list.Revoke(1), Is.Null);
-                Assert.That(list.Result, Is.Null);
-                Assert.That(list.Clients, Is.EqualTo(new[] { renewed }));
+                Assert.That(list.Clients, Is.EqualTo(new[] { renewed, older }), "the certificate admitted last first");
+                Assert.That(Cell(list, 0, 0), Is.EqualTo("agent-fictitious"));
+                Assert.That(Cell(list, 1, 0), Is.EqualTo(ClientList.EarlierText));
+                Assert.That(list.Rows[1].Revocable, Is.False, "an indented row has no X");
+
+                Assert.That(list.Revoke(1), Does.Contain("first row"));
+                Assert.That(asked, Is.Empty);
 
                 Assert.That(list.Revoke(0), Is.Null);
+                Assert.That(asked, Is.EqualTo(new[] { older.ClientKey }), "the client, by its client key");
                 Assert.That(list.Clients, Is.Empty);
                 Assert.That(NoteOn(list), Is.EqualTo(ClientList.EmptiedText),
                     "and with the last gone, the list states that it waits for OK");
@@ -153,6 +247,28 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Where_the_store_takes_no_write_no_row_carries_the_X()
+        {
+            // `STORE.md` §636: no command on the store where nothing is written into it in the
+            // session, as the first page turns its buttons off.
+            var client = Record("agent-fictitious", "ops");
+            using (var list = ListOf(Allows, client))
+            {
+                list.Writable = false;
+                list.Fill(new AdmissionListing(new[] { client }, true), null, null);
+
+                Assert.That(list.Rows[0].Revocable, Is.False);
+                Assert.That(Cell(list, 0, Grid(list).Columns[ClientList.RevokeColumnName].Index), Is.Empty);
+                Assert.That(Grid(list).Rows[0].Cells[ClientList.RevokeColumnName].ToolTipText, Is.Empty);
+
+                list.Writable = true;
+                list.Fill(new AdmissionListing(new[] { client }, true), null, null);
+
+                Assert.That(Cell(list, 0, Grid(list).Columns[ClientList.RevokeColumnName].Index), Is.EqualTo(ClientList.RevokeMark));
+            }
+        }
+
+        [Test]
         public void A_revoked_client_leaves_the_list()
         {
             using (var list = ListOf(
@@ -171,7 +287,7 @@ namespace KeePassGate.Tests
         {
             // A text column sorts its grid at a press on its heading unless told otherwise, and
             // a row is acted on by its place in the list as it was filled: with the grid in
-            // another order, the X beside a client took another client's admission away.
+            // another order, the X beside a client revoked another client.
             var later = Record("zulu-fictitious", "ops");
             var earlier = Record("alpha-fictitious", "ops");
             var revoked = new List<string>();
@@ -195,8 +311,8 @@ namespace KeePassGate.Tests
                 Raise(grid, "OnCellClick", new DataGridViewCellEventArgs(
                     grid.Columns[ClientList.RevokeColumnName].Index, shown.Index));
 
-                Assert.That(revoked, Is.EqualTo(new[] { earlier.AdmissionKey }),
-                    "the X beside a client takes that client's admission away, whatever was pressed before it");
+                Assert.That(revoked, Is.EqualTo(new[] { earlier.ClientKey }),
+                    "the X beside a client revokes that client, whatever was pressed before it");
                 Assert.That(list.Clients, Is.EqualTo(new[] { later }));
             }
         }
@@ -288,7 +404,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_listing_that_could_not_be_read_does_not_claim_nobody_is_admitted()
         {
-            using (var list = new ClientList(Allows))
+            using (var list = new ClientList(Allows, Allows))
             {
                 list.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), false), null, null);
 
@@ -374,7 +490,7 @@ namespace KeePassGate.Tests
             // works until then: a page promising access nobody has.
             var record = Record("agent-fictitious", "ops");
 
-            using (var list = new ClientList(Allows))
+            using (var list = new ClientList(Allows, Allows))
             {
                 list.Fill(new AdmissionListing(new[] { record }, true), Judged(record, ClientReach.Stranger), null);
 
@@ -387,12 +503,35 @@ namespace KeePassGate.Tests
                 Assert.That(list.Clients, Is.Empty);
             }
 
-            using (var list = new ClientList(Allows))
+            using (var list = new ClientList(Allows, Allows))
             {
                 list.Fill(new AdmissionListing(new[] { record }, true), null, null);
 
                 Assert.That(Reach(list, 0), Is.Not.EqualTo(ClientList.StrangerText),
                     "a record nobody called a stranger is answered with its dates");
+            }
+        }
+
+        [Test]
+        public void An_admission_naming_an_authority_that_is_not_served_says_so_where_a_date_would_be()
+        {
+            // `STORE.md` §615: an admission whose `issuer` is not the authority served admits
+            // nobody, whatever its certificate chains to. What the listing judges is what the row
+            // shows, so the certificate's date is not shown as a client that works until then.
+            var record = Record("agent-fictitious", "ops");
+            var listing = new AdmissionListing(
+                new[] { record },
+                new Dictionary<AdmissionRecord, AdmissionStanding> { { record, AdmissionStanding.NotServed } },
+                null,
+                0,
+                true);
+
+            using (var list = new ClientList(Allows, Allows))
+            {
+                list.Fill(listing, Judged(record, ClientReach.Reaches), null);
+
+                Assert.That(Reach(list, 0), Is.EqualTo(ClientList.StrangerText));
+                Assert.That(list.Clients.Count, Is.EqualTo(1), "and the row stays, its client the operator's to revoke");
             }
         }
 
@@ -406,7 +545,7 @@ namespace KeePassGate.Tests
             // next year.
             var record = Record("agent-fictitious", "ops");
 
-            using (var list = new ClientList(Allows))
+            using (var list = new ClientList(Allows, Allows))
             {
                 list.Fill(new AdmissionListing(new[] { record }, true), Judged(record, reach), null);
 
@@ -416,57 +555,66 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_record_that_will_not_read_is_listed_by_its_key_and_its_X_takes_it_away()
+        public void A_record_that_will_not_read_is_listed_under_its_client_and_goes_with_the_client()
         {
-            // K024: a stored record that will not read admits nobody, and it had no row, so the
-            // warning on the authority page named something this page never showed and the one way
-            // to be rid of it on the tab was to recreate the authority. It is listed after the
-            // clients, by the start of its key, and taken away by that key.
+            // A stored record that does not read admits nobody, and it has a row, so the warning on
+            // the authority page names something this page shows: under the client its client key
+            // names, by the start of the certificate it names, marked as not counted.
             var client = Record("agent-fictitious", "ops");
-            var damaged = new string('a', 64);
+            var damaged = new UnreadAdmission(new string('e', 32), client.ClientKey, new string('a', 64));
             var asked = new List<string>();
 
             using (var list = new ClientList(key =>
             {
                 asked.Add(key);
                 return null;
-            }))
+            }, Allows))
             {
-                list.Fill(new AdmissionListing(new[] { client }, new[] { damaged }, 0, true), null, null);
+                list.Fill(Listings.Of(new[] { client }, new[] { damaged }, 0, true), null, null);
 
                 Assert.That(list.Clients.Count, Is.EqualTo(1), "a record that will not read is no client");
                 Assert.That(list.Unreadable, Is.EqualTo(new[] { damaged }));
                 Assert.That(Rows(list), Is.EqualTo(2), "one row per stored record");
-                Assert.That(Cell(list, 1, 0), Is.EqualTo(CertificateDigest.Shorten(damaged)));
-                Assert.That(Reach(list, 1), Is.EqualTo(ClientList.UnreadableRecordText));
-
-                var said = list.Revoke(1);
-
-                Assert.That(asked, Is.EqualTo(new[] { damaged }), "taken away by its key");
-                Assert.That(said, Is.Null, "its row going is what shows it");
-                Assert.That(list.Unreadable, Is.Empty);
-                Assert.That(Rows(list), Is.EqualTo(1), "and its row went with it");
-                Assert.That(list.Clients.Count, Is.EqualTo(1), "the client beside it was not touched");
+                Assert.That(Cell(list, 1, 0), Is.EqualTo("Certificate aaaaaaaa"));
+                Assert.That(Reach(list, 1), Is.EqualTo("not counted"));
+                Assert.That(list.Rows[1].Revocable, Is.False, "under its client, it has no X of its own");
 
                 Assert.That(list.Revoke(0), Is.Null);
+                Assert.That(asked, Is.EqualTo(new[] { client.ClientKey }));
+                Assert.That(list.Unreadable, Is.Empty, "its row went with its client");
                 Assert.That(NoteOn(list), Is.EqualTo(ClientList.EmptiedText),
-                    "the record is still stored until OK, as a client is");
+                    "the records are still stored until OK, as a client is");
             }
         }
 
         [Test]
-        public void A_refused_removal_of_a_record_that_will_not_read_leaves_its_row()
+        public void A_record_that_will_not_read_and_names_no_client_offers_no_revocation()
         {
-            var damaged = new string('b', 64);
+            var damaged = new UnreadAdmission(new string('e', 32), null, new string('b', 64));
 
-            using (var list = new ClientList(Refuses))
+            using (var list = new ClientList(Allows, Allows))
             {
-                list.Fill(
-                    new AdmissionListing(Array.Empty<AdmissionRecord>(), new[] { damaged }, 0, true), null, null);
+                list.Fill(Listings.Of(Array.Empty<AdmissionRecord>(), new[] { damaged }, 0, true), null, null);
 
+                Assert.That(list.Rows[0].Revocable, Is.False);
+                Assert.That(list.Revoke(0), Does.Contain("names no client"));
+                Assert.That(Rows(list), Is.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void A_refused_revocation_of_a_client_whose_record_will_not_read_leaves_its_row()
+        {
+            var damaged = new UnreadAdmission(new string('e', 32), new string('c', 64), new string('b', 64));
+
+            using (var list = new ClientList(Refuses, Allows))
+            {
+                list.Fill(Listings.Of(Array.Empty<AdmissionRecord>(), new[] { damaged }, 0, true), null, null);
+
+                Assert.That(list.Rows[0].Revocable, Is.True, "standing alone, it is its client's own row");
                 var said = list.Revoke(0);
 
-                Assert.That(said, Does.StartWith("That record is still there:"));
+                Assert.That(said, Does.StartWith("That client is still admitted:"));
                 Assert.That(said, Does.Contain("the database is not open"), "the operator is told why");
                 Assert.That(list.Unreadable, Is.EqualTo(new[] { damaged }));
                 Assert.That(Rows(list), Is.EqualTo(1));
@@ -478,10 +626,10 @@ namespace KeePassGate.Tests
         {
             // Nobody is admitted by such a record, and a sentence under its row saying nobody ever
             // was would contradict the row it sits under.
-            using (var list = new ClientList(Allows))
+            using (var list = new ClientList(Allows, Allows))
             {
                 list.Fill(
-                    new AdmissionListing(Array.Empty<AdmissionRecord>(), new[] { new string('c', 64) }, 0, true),
+                    Listings.Of(Array.Empty<AdmissionRecord>(), new[] { new UnreadAdmission(new string('e', 32), null, new string('c', 64)) }, 0, true),
                     null,
                     null);
 
@@ -495,7 +643,7 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Revoked_clients_a_merge_brought_back_are_counted_under_the_list_rather_than_listed()
+        public void Removed_clients_a_merge_brought_back_are_counted_under_the_list_rather_than_listed()
         {
             // A stale copy merged in brings a record back and the revocation beside it refuses
             // it. A row would read as a client, which is a page promising access nobody has; saying
@@ -503,20 +651,20 @@ namespace KeePassGate.Tests
             // write this plugin makes takes the records away.
             var client = Record("agent-fictitious", "ops");
 
-            using (var list = new ClientList(Allows))
+            using (var list = new ClientList(Allows, Allows))
             {
-                list.Fill(new AdmissionListing(new[] { client }, 2, true), null, null);
+                list.Fill(Listings.Of(new[] { client }, 2, true), null, null);
 
                 Assert.That(list.Clients.Count, Is.EqualTo(1), "not clients, so not rows");
                 Assert.That(list.Reappeared,
-                    Is.EqualTo("2 revoked clients came back in a merge; still refused."));
+                    Is.EqualTo("2 removed clients came back in a merge; still refused."));
 
                 list.Revoke(0);
                 Assert.That(list.Reappeared, Is.Not.Null, "the answer to a gesture does not hide it");
 
-                list.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), 1, true), null, null);
+                list.Fill(Listings.Of(Array.Empty<AdmissionRecord>(), 1, true), null, null);
                 Assert.That(list.Reappeared,
-                    Is.EqualTo("1 revoked client came back in a merge; still refused."), "one is one");
+                    Is.EqualTo("1 removed client came back in a merge; still refused."), "one is one");
 
                 list.Fill(new AdmissionListing(new[] { client }, true), null, null);
                 Assert.That(list.Reappeared, Is.Null, "and nothing is said once they are gone");
@@ -542,12 +690,12 @@ namespace KeePassGate.Tests
             var client = Record("agent-fictitious", "ops");
 
             using (var form = Fakes.OffScreenForm.New())
-            using (var list = new ClientList(Allows))
+            using (var list = new ClientList(Allows, Allows))
             {
                 // The gesture's line is up from the start on an empty list, which says nobody is
                 // admitted; with a client on it the line waits for a gesture.
                 var listing = mergeFirst
-                    ? new AdmissionListing(gestureFirst ? Array.Empty<AdmissionRecord>() : new[] { client }, 2, true)
+                    ? Listings.Of(gestureFirst ? Array.Empty<AdmissionRecord>() : new[] { client }, 2, true)
                     : new AdmissionListing(Array.Empty<AdmissionRecord>(), true);
                 list.Fill(listing, null, null);
 
@@ -557,7 +705,7 @@ namespace KeePassGate.Tests
 
                 if (!mergeFirst)
                 {
-                    list.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), 2, true), null, null);
+                    list.Fill(Listings.Of(Array.Empty<AdmissionRecord>(), 2, true), null, null);
                 }
 
                 if (!gestureFirst)
@@ -629,7 +777,8 @@ namespace KeePassGate.Tests
                         "every text cell names it, above the keys");
                 }
 
-                Assert.That(row.Cells[ClientList.RevokeColumnName].ToolTipText, Is.Empty, "the X says what it does");
+                Assert.That(Plain(row.Cells[ClientList.RevokeColumnName].ToolTipText), Does.Not.Contain(said),
+                    "the X shows what it does");
                 Assert.That(row.AccessibilityObject.Description, Is.EqualTo(said));
 
                 var other = Grid(list).Rows[1];
@@ -684,7 +833,7 @@ namespace KeePassGate.Tests
                 list.Fill(new AdmissionListing(new[] { Record("agent-fictitious", "ops") }, true), null, null, null);
 
                 Assert.That(list.AllowRenewal(0), Does.Contain("no standing answer"));
-                Assert.That(list.AllowRenewal(3), Does.Contain("no such client"));
+                Assert.That(list.AllowRenewal(3), Does.Contain("no such certificate"));
                 Assert.That(asked, Is.Zero);
             }
         }
@@ -773,18 +922,18 @@ namespace KeePassGate.Tests
             // name back gives it to this client again.
             var record = Record("agent-fictitious", "reader", "ops");
 
-            using (var list = new ClientList(Allows))
+            using (var list = new ClientList(Allows, Allows))
             {
                 list.Fill(new AdmissionListing(new[] { record }, true), null, new[] { "reader" });
 
-                Assert.That(Held(list, 0), Is.EqualTo(new[] { "reader", "ops" + ClientList.RemovedSuffix }));
+                Assert.That(Held(list, 0), Is.EqualTo(new[] { "ops" + ClientList.RemovedSuffix, "reader" }));
             }
 
-            using (var list = new ClientList(Allows))
+            using (var list = new ClientList(Allows, Allows))
             {
                 list.Fill(new AdmissionListing(new[] { record }, true), null, null);
 
-                Assert.That(Held(list, 0), Is.EqualTo(new[] { "reader", "ops" }),
+                Assert.That(Held(list, 0), Is.EqualTo(new[] { "ops", "reader" }),
                     "a list nobody was asked about marks nothing");
             }
         }
@@ -798,7 +947,7 @@ namespace KeePassGate.Tests
             // looks to see what revoking the client takes away.
             var record = Record("agent-fictitious", Longest, "ops");
 
-            using (var list = new ClientList(Allows))
+            using (var list = new ClientList(Allows, Allows))
             {
                 list.Fill(new AdmissionListing(new[] { record }, true), null, new[] { "ops" });
 
@@ -865,7 +1014,7 @@ namespace KeePassGate.Tests
             Assert.That(AuthorityIssuer.IsUsableProfileName(Longest), Is.True);
 
             using (var form = Fakes.OffScreenForm.New())
-            using (var list = new ClientList(Allows) { Dock = DockStyle.Fill })
+            using (var list = new ClientList(Allows, Allows) { Dock = DockStyle.Fill })
             {
                 form.ClientSize = Gallery.Gallery.SettingsPage;
                 form.Controls.Add(list);
@@ -972,7 +1121,7 @@ namespace KeePassGate.Tests
             // alone and holds the desktop: the window takes the activation from whatever held it,
             // in this process or another.
             using (var form = new Form { ClientSize = new Size(431, 200) })
-            using (var list = new ClientList(Allows) { Dock = DockStyle.Fill })
+            using (var list = new ClientList(Allows, Allows) { Dock = DockStyle.Fill })
             {
                 form.Controls.Add(list);
                 form.ShowInTaskbar = false;
@@ -1043,7 +1192,7 @@ namespace KeePassGate.Tests
         /// </summary>
         private static ClientList ListOf(Func<string, string> revoke, params AdmissionRecord[] records)
         {
-            var list = new ClientList(revoke);
+            var list = new ClientList(revoke, Allows);
             list.Fill(new AdmissionListing(records, true), null, null);
             return list;
         }
@@ -1067,11 +1216,18 @@ namespace KeePassGate.Tests
             return "the database is not open";
         }
 
+        private static readonly DateTimeOffset Made = new DateTimeOffset(2026, 8, 15, 9, 0, 0, TimeSpan.Zero);
+
+        private static int _made;
+
         private static AdmissionRecord Record(string name, params string[] profiles)
         {
             using (var certificate = Certificate(name))
             {
-                return AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles);
+                // Each admitted a minute before the record made just before it, so the page,
+                // which lists the certificate admitted last first, lists them in the order made.
+                _made++;
+                return AdmissionRecord.For(certificate, Made.AddMinutes(-_made), profiles, InventedIssuer.Id);
             }
         }
 
@@ -1080,7 +1236,7 @@ namespace KeePassGate.Tests
         {
             using (var certificate = Certificate(ClientList.Describe(of)))
             {
-                return AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, of.Profiles, of.ClientKey);
+                return AdmissionRecord.For(certificate, of.Admitted.AddSeconds(1), of.Profiles, InventedIssuer.Id, of.ClientKey, of.AdmissionKey);
             }
         }
 

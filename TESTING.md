@@ -157,10 +157,14 @@ reading's own words for a store's status, and `StoreInForceTests` names the stat
 to. `tests/Shared/StoreRecordVectors.json`, records composed by the measured code, and
 `tests/Shared/StoreWriteVectors.json`, the file after each act of sequences the measured model
 played, are the same script's output with `--records` and `--writes`, byte for byte, the first
-at `e002013f` and the second at `30a595a7`. `StoreRecordTests` composes every record of the
+at `e002013f` and the second at `a3c9c828`. `StoreRecordTests` composes every record of the
 first through the product and holds the content, the check, the identifier and every string to
 it; `StoreWriteShapeTests` holds the product's writes to the second by shape, since its records
-hold stand-ins the product does not compose.
+hold stand-ins the product does not compose. It plays each sequence through the product's own
+acts, `AuthorityService` and `AdmissionActs`, with the admissions compared as every other kind
+is; a revocation in a copy and a renewal of the same client in the other, synchronized, is among
+the sequences, and ends with the same records in both copies and the renewed certificate refused
+in each.
 
 **It writes the store into real databases.** `StoreWritesInRealDatabaseTests` writes through the
 product's own commands into a real tree and holds the entries KeePass keeps, the group a write
@@ -168,6 +172,15 @@ goes into, the deletions with their records, a record set back under the databas
 limit, a save and a reload, and copies brought together by `PwDatabase.MergeIn`; and it takes
 each part of a write's application back by its own undo, and every part in the order a write
 takes them, and holds the database to what it was before.
+
+**Who a store admits is held in both tiers.** In the unit tier `StoreAdmissionsTests` reads stores
+the test composes, each rule of `STORE.md` §615 on its own, and `AdmissionActsTests` holds what
+an admission, a revocation and a certificate taken away are composed of. In this tier
+`AdmissionInRealDatabaseTests` holds the entry an admission is in a real database, saved and
+opened again, `PairingInRealDatabaseTests` and `RenewalInRealDatabaseTests` the write that is
+saved before a certificate is handed over, and `MergeInRealDatabaseTests` copies brought together
+by `PwDatabase.MergeIn`: clients paired apart both admitted, a revoked client refused in both,
+and an expired admission that stays and admits nobody.
 
 `StoreReadingCostTests` is explicit, as `Headroom_at_one_room_size` is: it times what reading the
 store holds KeePass's thread for through the real router and vault, and what a write of the
@@ -259,8 +272,9 @@ because how long a save takes is the machine's.
 **A database closed inside a save**, in `LiveCloseAfterTheFileTests` and
 `LiveCloseBeforeTheFileTests`: KeePass given a trigger that closes the active database, on Saved
 database file in the first and on Saving database file with the changes discarded in the second,
-and a client revoking itself. The close ends the client's connection before the
-write has an answer, and the audit holds the revocation exactly where the file does: after the file
+and a client giving its own certificate up. The close ends the client's connection before the
+write has an answer, and the audit holds its line exactly where the file holds the record of kind
+`withdrawn` that takes the certificate away: after the file
 was written, and not when the changes were discarded before it. The host tier reads off the IL that
 a save failing on a closed database still raises `FileSaved` as a failure; this is where KeePass
 is seen doing it.
@@ -280,9 +294,10 @@ presses the invite button on the real tab; the token is read off the real screen
 nothing but that token and a port number derives its own connection names, proves itself and is
 proved to; the approval dialog is a real window, approved by a real button press on a thread that is
 not the one waiting for the answer; the certificate that comes back is then used on the very next
-connection; and the record is looked for in the `.kdbx` as the pairing's own save left it, before
-anything else saves the database, and again after KeePass has exited. A refusal is driven the same
-way, spends its invitation, and writes no record and no profile it was asked for.
+connection; and the record is looked for in the `.kdbx`, read as the plugin's store reads it, as
+the pairing's own save left it, before anything else saves the database, and again after KeePass
+has exited. A refusal is driven the same way, spends its invitation, and writes no record and no
+profile it was asked for.
 
 **The API**, in `LiveApiTests`: a real client with a certificate the database's own authority issued
 creates an entry through the gate, adds a field, reads it back, lists it, and the entry is read out
@@ -293,7 +308,10 @@ holds the overtaking change and the two that followed. A second client, whose re
 no rule mentions, is answered `404` and not shown the entry's title, as a missing entry is answered;
 that the two answers are the same is held in the unit tier. The grant and both admission records are
 written before KeePass starts, because a running KeePass would overwrite anything put into the file
-underneath it.
+underneath it. The admissions are written into the file's store by the product's own act,
+`AdmissionActs.Admit`, under a fixed store key and fixed nonces, so a seeded file is the same
+file at every run; `SeededAuthority` and `SeededCopies` hold certificates that are written down,
+with the admissions those make.
 
 **The reference client**, in `LiveReferenceClientTests`: PyKeePassGate itself, run through `uv` from
 the repository as the client tier runs it, pairs with a real KeePass through an invitation read off
@@ -340,18 +358,21 @@ KeePass goes on running and then exits cleanly, and the plugin logs no warning. 
 tests, so that a picker the plugin could not let go of for want of a window fails the second and
 not the first. `GrantPickerTests` holds the same sequence in the unit tier, on a form of its own.
 
-**A client's own certificate**, in `LiveCertificateTests` and `LiveRenewalTests`. A client revokes
-the certificate it presents and is refused on its very next connection, and the revocation is in the
-`.kdbx` after KeePass has exited. And an admitted client asks to renew: the renewal dialog is a real
-window approved by a real button press, and the certificate that comes back opens a route on the
-next connection. The new certificate's own renewal is then refused in this session from the Refuse
-button's menu, opened and chosen with the pointer in KeePass's own modal loop, and asking again is
-answered `409 this session` with nobody asked, while the file holds no answer of it. That answer is
+**A client's own certificate**, in `LiveCertificateTests` and `LiveRenewalTests`. A client gives up
+the certificate it presents and is refused on its very next connection, and after KeePass has
+exited the `.kdbx` holds a record of kind `withdrawn` for that certificate and no admission of
+it, `The_certificate_given_up_is_taken_away_in_the_file_afterwards`. And an admitted client asks
+to renew: the renewal dialog is a real window approved by a real button press, and the
+certificate that comes back opens a route on the next connection. The new certificate's own
+renewal is then refused in this session from the Refuse button's menu, opened and chosen with
+the pointer in KeePass's own modal loop, and asking again is answered `409 this session` with
+nobody asked, while the file holds no answer of it. That answer is
 then lifted from the clients page, the row's menu opened with Shift and F10 and Allow renewal
 pressed, and the settings dialog accepted, so that the next renewal raises the dialog again and is
 refused once: the one end to end test of Allow renewal. After that the client gives the old
 certificate up by presenting it and is refused with it, and once KeePass has gone the file holds the
-new record and not the old one.
+new record and not the old record, with a record of kind `withdrawn` for the old certificate that
+names the certificate renewed to.
 
 **A standing answer lost at exit**, in `LiveOwedAnswerAtExitTests`. A renewal is refused forever
 while the database's file has been saved again from outside, so the answer holds from memory, and

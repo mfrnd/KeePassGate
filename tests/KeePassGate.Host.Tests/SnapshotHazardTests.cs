@@ -7,6 +7,7 @@ using KeePassLib.Collections;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests
@@ -200,17 +201,22 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void An_admission_record_written_while_the_dialog_is_open_survives_its_OK()
+        public void An_admission_written_while_the_dialog_is_open_survives_its_OK()
         {
-            // The case the design turned on while records lived on the root group, because pairing
-            // writes one of these at a moment nobody controls, and the dialog's OK destroyed it.
-            // They live in the database's own custom data now, which no group dialog copies, so
-            // the record the operator approved is still there afterwards.
+            // The case the design turned on, because pairing writes an admission at a moment
+            // nobody controls, and a dialog's OK puts back the custom data it copied. An admission
+            // is an entry of the plugin's store, which no group dialog holds a copy of, so the
+            // admission the operator approved is still there afterwards.
             var service = Service();
             service.Create();
 
             var dialog = DialogOpensOn(_database.RootGroup);
-            _store.Set(AuthorityKeys.ClientPrefix + "abc123", "an admission record");
+            using (var reading = service.Read())
+            using (var client = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read())
+            {
+                StoreSeeds.Admit(
+                    new KdbxStore(_database.Database, GateVersion.Current, null), client, System.DateTimeOffset.UtcNow, "ops");
+            }
 
             dialog.PressOk();
 

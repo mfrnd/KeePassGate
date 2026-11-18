@@ -72,8 +72,12 @@ namespace KeePassGate.Ui
                 throw new ArgumentNullException(nameof(reading));
             }
 
+            // A certificate several admissions name admits nobody under any authority, `STORE.md`
+            // §615, so it is no client of a candidate either.
             var logger = log ?? NullGateLog.Instance;
-            var records = clients == null ? new List<AdmissionRecord>() : clients.Records.ToList();
+            var records = clients == null
+                ? new List<AdmissionRecord>()
+                : clients.Records.Where(record => clients.StandingOf(record) != AdmissionStanding.Twice).ToList();
 
             IDictionary<string, DateTimeOffset> seen = null;
             if (lastSeen != null)
@@ -115,14 +119,16 @@ namespace KeePassGate.Ui
             var material = candidate.Material;
             var admitted = new List<ChoiceClient>();
 
-            foreach (var record in records)
+            // A client of this candidate is an admission whose `issuer` is the candidate, as the
+            // gate admits only under the authority an admission names, `STORE.md` §615.
+            foreach (var record in records.Where(record => string.Equals(record.Issuer, candidate.Fingerprint, StringComparison.Ordinal)))
             {
                 try
                 {
-                    // A client of this candidate is a record whose client the candidate would let in,
-                    // judged as the clients page judges its rows: a record that has expired, is not
-                    // valid yet or is not for client use is no evidence of which copy is in use,
-                    // and listed as a client it made an authority look more used than it is.
+                    // And whose client the candidate would let in, judged as the clients page
+                    // judges its rows: a record that has expired, is not valid yet or is not for
+                    // client use is no evidence of which copy is in use, and listed as a client it
+                    // made an authority look more used than it is.
                     using (var certificate = record.Certificate())
                     {
                         if (!ClientReaches.GetsIn(certificate, material.Authority, now))

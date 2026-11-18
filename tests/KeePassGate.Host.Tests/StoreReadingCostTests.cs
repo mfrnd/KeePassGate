@@ -138,7 +138,7 @@ namespace KeePassGate.Host.Tests
                 Store(database.Database);
 
                 var store = new TimedStore(new KdbxStore(database.Database, GateVersion.Current, null, entry => null));
-                var service = new AuthorityService(store, new CustomDataStore(database.Database), NullGateLog.Instance);
+                var service = new AuthorityService(store, NullGateLog.Instance);
                 for (var run = 0; run <= Runs; run++)
                 {
                     Assert.That(service.Recreate().Succeeded, Is.True);

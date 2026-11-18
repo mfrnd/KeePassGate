@@ -59,16 +59,16 @@ namespace KeePassGate.Gate
         CertifiedKey AuthorityKey { get; }
 
         /// <summary>
-        /// The record admitting this certificate, or null when there is none.
+        /// The admission of this certificate where it counts, or null when there is none,
+        /// `STORE.md` §615.
         /// </summary>
         /// <remarks>
-        /// Read from the database on every call rather than cached with the certificates, because
-        /// a revocation beside the record has to take effect on the next connection
-        /// rather than on the next time something else changed.
+        /// Read from the database's store on every call rather than cached with the certificates,
+        /// because a revocation has to take effect on the next connection rather than on the next
+        /// time something else changed.
         ///
-        /// **Throws `VaultUnsettled` when the records could not be listed**, which is not the same
-        /// as there being none: answered as none, a write landing at the same instant told an
-        /// admitted client it was never admitted. **And `DatabaseShut` when the database closed
+        /// **Throws `VaultUnsettled` when KeePass's thread could not be held for the reading**,
+        /// which is not the same as there being none. **And `DatabaseShut` when the database closed
         /// under the caller**, a lock nearly always, which is answered as one.
         /// </remarks>
         AdmissionRecord Admission(string admissionKey);
@@ -115,11 +115,11 @@ namespace KeePassGate.Gate
         string ProfilesUnreadable { get; }
 
         /// <summary>
-        /// The admitted clients whose records hold a profile, read now. Empty when none do or the
-        /// records cannot be read.
+        /// The admitted clients whose admissions hold a profile, read now. Empty where none do, and
+        /// where the store cannot be judged or holds no key, since such a store admits nobody.
         /// </summary>
         /// <remarks>
-        /// For the approval dialog. A record keeps every name it was approved for, so a profile
+        /// For the approval dialog. An admission keeps every name it was approved for, so a profile
         /// the operator removed is still held, granting nothing, by every client approved for it
         /// before; approving a pairing for that name puts it back on the list and gives it back
         /// to all of them. The dialog names them, so that is not a side effect nobody saw.
@@ -127,49 +127,50 @@ namespace KeePassGate.Gate
         IReadOnlyList<AdmissionRecord> Holding(string profile);
 
         /// <summary>
-        /// Writes an admission record and makes it durable, on whichever thread owns the database.
+        /// Writes an admission into the plugin's store and makes it durable, on whichever thread
+        /// owns the database.
         /// </summary>
         /// <remarks>
-        /// One of the three writes a connection asks of its target, beside <see cref="Revoke"/>
+        /// One of the three writes a connection asks of its target, beside <see cref="GiveUp"/>
         /// and <see cref="RefuseRenewal"/>, the API's own going through <see cref="Vault"/>. It
         /// marshals synchronously like every write this plugin makes, so what it answers is
-        /// whether the record is on disk. It is checked again inside the write, because the answer
-        /// to <see cref="AdmissionBlocked"/> can change between asking and writing, and a pairing
-        /// that cannot land its record has to fail rather than hand over a certificate nobody can
-        /// see.
+        /// whether the admission is on disk. It is checked again inside the write, because the
+        /// answer to <see cref="AdmissionBlocked"/> can change between asking and writing, and a
+        /// pairing that cannot land its admission has to fail rather than hand over a certificate
+        /// nobody can see.
         /// </remarks>
         /// <param name="condition">
-        /// Why the record may no longer be written, or null when it may, asked of the database's
-        /// own custom data on KeePass's thread, under the writer's lock, once the database is known
-        /// to be writable and before anything is changed. Where an approval is held, spent and
-        /// compared with what it was given against. A refusal is answered as withdrawn. Null for
+        /// Why the admission may no longer be written, or null when it may, asked of the store and
+        /// the custom data as they stand in the write's own turn on KeePass's thread, under the
+        /// writer's lock, once the database is known to be writable and before anything is
+        /// changed. Where an approval is held, spent and compared with what it was given against.
+        /// A refusal is answered as a failure, the caller knowing which part refused. Null for
         /// none.
         /// </param>
         /// <param name="audit">
-        /// The audit line for the record, which the write itself writes once the record has landed
-        /// and before anything else is told, so that nothing after the write can lose it. Run once,
-        /// on KeePass's own thread, where it must not wait; never when the record did not land, so
+        /// The audit line for the admission, which the write itself writes once it has landed and
+        /// before anything else is told, so that nothing after the write can lose it. Run once, on
+        /// KeePass's own thread, where it must not wait; never when the admission did not land, so
         /// the caller writes no line of its own about it. Null for no line.
         /// </param>
         AdmissionWrite Admit(AdmissionRecord record, Func<IWriteGround, string> condition, Action audit);
 
         /// <summary>
-        /// Revokes the client holding this admission key, at that client's own request, and makes
-        /// the revocation durable the way every change is.
+        /// Takes the certificate of this admission key away, at its own client's request, and
+        /// makes that durable the way every change is, `STORE.md` §648.
         /// </summary>
         /// <remarks>
-        /// What the Clients page writes, a revocation beside the record and the record emptied,
-        /// marshaled and saved like <see cref="Admit"/> and answered with what happened to it:
-        /// done, busy, not saved and taken back out, saved and not verified, or failed. Nothing to
-        /// revoke is answered as missing, which is a record that went before the write could make
-        /// it.
+        /// A record of kind `withdrawn` written into the plugin's store, marshaled and saved like
+        /// <see cref="Admit"/> and answered with what happened to it: done, busy, not saved and
+        /// taken back out, saved and not verified, or failed. A certificate no longer admitted is
+        /// answered as missing, which is an admission that went before the write could be made.
         /// </remarks>
         /// <param name="audit">
-        /// The audit line for the revocation, written as <see cref="Admit"/> writes a record's:
-        /// once, by the write itself, whenever the revocation is left in force, saved and verified
-        /// or saved and not verified, and never otherwise. Null for no line.
+        /// The audit line, written as <see cref="Admit"/> writes an admission's: once, by the write
+        /// itself, whenever the record is left in force, saved and verified or saved and not
+        /// verified, and never otherwise. Null for no line.
         /// </param>
-        VaultWrite Revoke(string admissionKey, Action audit);
+        VaultWrite GiveUp(string admissionKey, Action audit);
 
         /// <summary>
         /// The operator's standing answer to renewing this certificate, read now, or null when

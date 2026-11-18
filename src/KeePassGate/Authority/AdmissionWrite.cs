@@ -17,14 +17,14 @@ namespace KeePassGate.Authority
     {
         private readonly bool _ok;
         private readonly bool _busy;
-        private readonly bool _withdrawn;
+        private readonly bool _unserved;
         private readonly string _reason;
 
-        private AdmissionWrite(bool ok, bool busy, bool withdrawn, string reason)
+        private AdmissionWrite(bool ok, bool busy, bool unserved, string reason)
         {
             _ok = ok;
             _busy = busy;
-            _withdrawn = withdrawn;
+            _unserved = unserved;
             _reason = reason ?? string.Empty;
         }
 
@@ -44,13 +44,15 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// True when the write's own condition refused it, under the writer's lock and before
-        /// anything was touched: what it was for no longer stands. The caller that gave the
-        /// condition knows which part of it refused.
+        /// True when the authority that issued the certificate is not the authority the store
+        /// serves alone, found by the write's plan before anything was touched or asked: an
+        /// authority retired by a Recreate or a Delete after the operator answered, an
+        /// authority standing beside another, or a store that holds the gate back,
+        /// `PAIRING.md` §311.
         /// </summary>
-        public bool IsWithdrawn
+        public bool IsUnserved
         {
-            get { return _withdrawn; }
+            get { return _unserved; }
         }
 
         public string Reason
@@ -73,7 +75,7 @@ namespace KeePassGate.Authority
             return new AdmissionWrite(false, true, false, reason);
         }
 
-        public static AdmissionWrite Withdrawn(string reason)
+        public static AdmissionWrite Unserved(string reason)
         {
             return new AdmissionWrite(false, false, true, reason);
         }

@@ -111,13 +111,15 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         [Test]
-        public void The_plugin_recorded_creating_it_once_and_nothing_going_wrong()
+        public void The_plugin_recorded_the_tab_writing_once_and_nothing_going_wrong()
         {
-            // The count, not just the phrase: a second creation, in either session, would be the
-            // authority made again rather than kept, which the fingerprint alone may not show.
-            var created = _pluginLog.Split('\n').Count(line => line.Contains("authority created"));
+            // The count, not just the phrase: a second write from the tab, in either session, would
+            // be the authority made again rather than kept, which the fingerprint alone may not
+            // show. The press logs nothing, since it only waits for the dialog's OK; the OK logs
+            // what it put into the database.
+            var written = _pluginLog.Split('\n').Count(line => line.Contains("tab held was put into the database"));
 
-            Assert.That(created, Is.EqualTo(1), _pluginLog);
+            Assert.That(written, Is.EqualTo(1), _pluginLog);
             Assert.That(LiveSession.FailuresIn(_pluginLog), Is.Empty);
         }
 
