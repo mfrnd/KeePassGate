@@ -179,7 +179,7 @@ namespace KeePassGate.Host.Tests.Live
         public void Nothing_was_reported_but_the_undecided_database()
         {
             var unexpected = LiveSession.FailuresIn(_pluginLog)
-                .Where(line => !line.Contains("until the operator keeps one"))
+                .Where(line => !line.Contains("until the operator keeps an authority"))
                 .ToArray();
 
             Assert.That(unexpected, Is.Empty, string.Join(Environment.NewLine, unexpected));

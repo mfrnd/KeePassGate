@@ -19,7 +19,7 @@ namespace KeePassGate.Authority
         /// </remarks>
         public const string Prefix = "KPG.";
 
-        /// <summary>What a key naming an authority by no digest at all is shown as.</summary>
+        /// <summary>What an authority whose record names no digest at all is shown as.</summary>
         public const string NoDigest = "(no digest)";
 
         /// <summary>

@@ -24,10 +24,11 @@ namespace KeePassGate.Bridge
     /// reads, and what it does not answer for is its own thread changing the tree underneath one.
     /// Nothing here mutates a database.
     ///
-    /// The certificates are cached per database and rebuilt only when what is stored changes,
-    /// compared by the stored text rather than by parsing it. Nothing is written anywhere by a
-    /// rebuild any more, now that the TLS is managed code, so this is only about not parsing a
-    /// PKCS#12 and a pair of certificates on every connection.
+    /// The certificates are cached per database and rebuilt only when what stands changes,
+    /// compared by the store's state and the entries and versions of the authorities standing,
+    /// `Signature`, rather than by parsing them. Nothing is written anywhere by a rebuild, now that
+    /// the TLS is managed code, so this is only about not parsing a PKCS#12 and a pair of
+    /// certificates on every connection.
     /// </remarks>
     public sealed class OpenDatabaseTargets : IGateTargets, ILockableTargets, IDisposable
     {
@@ -836,7 +837,7 @@ namespace KeePassGate.Bridge
             var standing = reading.Answering;
             if (standing.Count > 1)
             {
-                return Undecided(database, signature, standing, readings);
+                return Undecided(database, signature, standing, readings, reading.State);
             }
 
             // The document is parsed here, once for each change of what stands, and never at a
@@ -929,7 +930,9 @@ namespace KeePassGate.Bridge
         /// this state without reading any of them again. Each candidate asks the database's
         /// readings for the store's word first, `STORE.md` §656.
         /// </remarks>
-        private CachedTarget Undecided(PwDatabase database, Signature signature, IReadOnlyList<FoundRecord> standing, StoreReadings readings)
+        /// <param name="state">The store's state, which the log names where it is not whole.</param>
+        private CachedTarget Undecided(
+            PwDatabase database, Signature signature, IReadOnlyList<FoundRecord> standing, StoreReadings readings, StoreState state)
         {
             var targets = new List<UndecidedTarget>();
             Func<string> word = () => readings.Word;
@@ -964,8 +967,14 @@ namespace KeePassGate.Bridge
                     }
                 }
 
-                _log.Warn("not serving a database that holds " + standing.Count +
-                          " authorities until the operator keeps one: " + string.Join(", ", shorts));
+                // Under a single key in a whole store, what ends it is keeping an authority; in a
+                // store that holds the gate back, what ends the store's own state.
+                var heldBack = StoreWords.Of(state);
+                _log.Warn(heldBack == null
+                    ? "not serving a database that holds " + standing.Count + " authorities until the operator keeps an authority: "
+                      + string.Join(", ", shorts)
+                    : "not serving a database whose store is " + heldBack + ", with " + standing.Count + " authorities standing: "
+                      + string.Join(", ", shorts));
 
                 var path = PathOf(database);
                 Discard(path);

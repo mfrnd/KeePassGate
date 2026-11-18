@@ -8,14 +8,13 @@ namespace KeePassGate.Authority
     /// not yet said which to keep.
     /// </summary>
     /// <remarks>
-    /// **Named by the digest its key is filed under**, which is what a choice retires the others
-    /// by. A document that will not read is still a candidate, because it is still an authority
-    /// nobody has retired: it carries its problems rather than its material, and it can be retired
-    /// by keeping another but never kept itself. **The name is whatever follows the prefix**, the
-    /// empty one of a bare `KPG.Authority.` among them, which nothing this plugin writes and a
-    /// crafted `.kdbx` can hold: refused here, it threw out of reading the database, where it is a
-    /// candidate filed under a digest not its own, retired under `KPG.RetiredAuthority.` like any
-    /// other.
+    /// **Named by its record's `id`**, which is what a choice retires the others by. An authority
+    /// that will not read is still a candidate, because it is still an authority nobody has
+    /// retired: it carries its problems rather than its material, and it can be retired by keeping
+    /// another but never kept itself. **The name is the `id` as the record holds it**, a text the
+    /// store's core does not look into, `STORE.md` §658, so an `id` that is empty or not
+    /// hexadecimal, which nothing this plugin writes and a crafted `.kdbx` can hold, names a
+    /// damaged candidate like any other: refused here, it threw out of reading the database.
     /// </remarks>
     public sealed class AuthorityCandidate : IDisposable
     {
@@ -36,8 +35,8 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// The digest its key is filed under: lowercase hex for every authority this plugin wrote,
-        /// and whatever a key holds otherwise, empty included.
+        /// Its record's `id`: lowercase hex for every authority this plugin wrote, and whatever a
+        /// record holds otherwise, empty included.
         /// </summary>
         public string Fingerprint
         {

@@ -261,7 +261,7 @@ namespace KeePassGate.Host.Tests.Live
         public void Nothing_was_reported_but_the_undecided_database_and_the_refused_certificate()
         {
             var unexpected = LiveSession.FailuresIn(_pluginLog)
-                .Where(line => !line.Contains("until the operator keeps one"))
+                .Where(line => !line.Contains("until the operator keeps an authority"))
                 .Where(line => !line.Contains("refused a certificate that does not chain to"))
                 .ToArray();
 

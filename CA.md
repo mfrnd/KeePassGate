@@ -489,9 +489,9 @@ OK**. A value written to the live group therefore survives Cancel and is destroy
 Measured rather than remembered, in `SnapshotHazardTests`: the snapshot field is still there in
 KeePass 2.61.1, a group's custom data can be replaced wholesale from inside KeePass but not from a
 plugin, a write made while the dialog is open is destroyed by OK, and an authority created before
-the dialog opened comes back unharmed because it is in no group for the dialog to copy. That Cancel
-leaves the write alone is read off the dialog's code rather than pressed, and the same tests hold
-it: only its OK puts the copy back.
+the dialog opened comes back unharmed, for the reason given below. That Cancel leaves the write
+alone is read off the dialog's code rather than pressed, and the same tests hold it: only its OK
+puts the copy back.
 
 **The dialog this plugin puts its tab on carries no such snapshot**, which the same tests assert
 against the real type. So the buttons on the KPG tab are safe from their own dialog, and the hazard
@@ -591,15 +591,17 @@ plugin memory. While locked it is the only identity available and it can do noth
   finds it, and what the drop takes away is the key being reachable for as long as the database
   stays locked. The same bound covers what no plugin can overwrite: the text of the authority's
   record, which KeePass keeps protected in memory and hands out as an immutable string each time
-  it is read; the members the plugin's reading of the store parses out of that text, which hold
-  the authority's key, the host's and the gate key, and which go with the reading at the lock;
-  and whatever Bouncy Castle parsed the bytes into. The key a node's tag is made with, derived
-  from the host's PKCS#12, is an array of the plugin's own, and it is overwritten with the rest,
-  as the array it was derived into is. So are the bytes of the store's key every reading of the
-  store finds: the gate's when it lets go of a database's readings, at the lock and at a close,
-  and those the tab, the chooser and the writer read as soon as each is done with its reading. The
-  gate key itself is not let go at all: a copy of it is kept for the responder, as the bullet below
-  has it.
+  it is read; the members parsed out of that text as the authority is read, its certificates and
+  their keys and the gate key as text, which are left to the collector as soon as the authority
+  is read, since a reading of the store keeps of a record no member but its `id` and the store's
+  key, the key as bytes; and whatever Bouncy Castle parsed the bytes into. The key a node's tag is
+  made with, derived from the host's PKCS#12, is an array of the plugin's own, and it is
+  overwritten with the rest, as the array it was derived into is. So are the bytes of the store's
+  key every reading of the store finds: the gate's when it lets go of a database's readings, at
+  the lock and at a close; those the tab, the chooser and the writer read, as soon as each is done
+  with its reading; the copy an act of theirs holds, once its write is done, written, refused or
+  thrown; and the key a composed record is read back with. The gate key itself is not let go at
+  all: a copy of it is kept for the responder, as the bullet below has it.
 - **The responder must be distinguishable by what it carries**, not by convention, so a client can
   refuse to send real requests over it. It is a `kpg://host/responder` URI in the subject
   alternative name rather than an extension of its own: the UUID arc `2.25` does not survive

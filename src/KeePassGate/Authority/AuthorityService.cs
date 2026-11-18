@@ -513,7 +513,7 @@ namespace KeePassGate.Authority
         {
             return presence == AuthorityPresence.Damaged
                 ? "The authority was written and could not be read back, so this database now holds " +
-                  "one that cannot be used. Recreate it to replace it."
+                  "an authority that cannot be used. Recreate it to replace it."
                 : "The authority was written and could not be read back, so nothing was stored.";
         }
 

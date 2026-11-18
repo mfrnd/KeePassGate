@@ -19,8 +19,9 @@ none, since it releases both.
   does keeping an authority where copies of the database each made their own. 0.2 kept the
   authority in the database's custom data, and that is reversed rather than migrated: 0.3 reads
   nothing there about the authority and changes nothing there, so a database 0.2 paired shows no
-  authority on the tab and is served nothing until **Create authority**, OK and a save, after
-  which each program pairs again. The admission records 0.2 wrote stay where they were and admit
+  authority on the tab and is served nothing until **Create authority** and OK, from which it is
+  served; a save puts the authority in the file. Each program then pairs again. The admission
+  records 0.2 wrote stay where they were and admit
   nobody, since each certificate they admit chains to the authority 0.2 made. A database whose
   store holds no key is served nothing. An entry of the store edited in KeePass is put back at
   the plugin's next write of its own, with the edit kept in the entry's history. `STORE.md`

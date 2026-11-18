@@ -107,8 +107,10 @@ namespace KeePassGate.Authority
         /// **Whole, and not only read**, because what a revocation is taken away for has to be
         /// final. In a stopped store an authority can be missing for its entry having been deleted
         /// by hand, and a copy merged in can bring that entry back, which would leave the
-        /// authority standing again with the revocations of its clients gone. In a whole store an
-        /// authority is missing only where the plugin retired it and deleted its entry.
+        /// authority standing again with the revocations of its clients gone. A whole store can
+        /// lack an authority for the same deletion by hand, where another entry carries the key;
+        /// the deletion record left beside it keeps the entry out of every merge, and only that
+        /// record lost brings it back, which `STORE.md` §639 concedes.
         /// </remarks>
         public static IReadOnlyCollection<string> Standing(StoreReading reading)
         {

@@ -364,7 +364,7 @@ namespace KeePassGate.Tests
             var result = _service.Create();
 
             Assert.That(result.Succeeded, Is.False);
-            Assert.That(result.Message, Does.Contain("now holds one that cannot be used"));
+            Assert.That(result.Message, Does.Contain("now holds an authority that cannot be used"));
             Assert.That(result.Message, Does.Not.Contain("nothing"));
 
             _records.DamageAuthorities = false;

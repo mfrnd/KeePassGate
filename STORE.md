@@ -3816,6 +3816,16 @@ that finds a measurement against a decision reports it and does not design aroun
     be made, held to its ground as it stands then. This item is this document's own, read from
     the code and not run. Owed by the pull request that keeps the admissions in the store,
     which builds the writes that save.
+31. **The longest item a summary entry carries, against the room.** The room holds the content of
+    the summary entry a write would write to the ceiling for a string, and not the items that
+    entry carries, each a string of its own, and an item is longer than the record it restates:
+    a version's item is 14 characters longer than the version record's content, and a keep's
+    item 11 (this document's own, computed from the members each carries and not run). A version
+    record whose content is 262,131 to 262,144 characters is written, since it fits, and from then
+    on every write is refused for the ceiling while the store is served, against §627. Nothing
+    writes a version record yet. Owed by the pull request that builds the rules: the room holds
+    the longest item it would carry to the ceiling, or a version is composed only where its item
+    fits.
 
 ---
 

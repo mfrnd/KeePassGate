@@ -335,8 +335,10 @@ later at most. Windows has locked the screen by then, so this happens behind it.
 takes nothing out of a database, so a database whose authority stays keeps the authority's private
 key, the host's and the gate key inside it, in an entry of the plugin's group, which an XML export
 writes out in the clear. **Delete authority**, followed by OK and a save, takes them out, with
-every admission record, revocation and standing answer to a renewal. Then close KeePass and
-delete `plugins\KeePassGate`.
+every admission record, revocation and standing answer to a renewal. A copy of the authority's
+entry that an import with Create new IDs brought in is an entry like any other, which the plugin
+neither reads nor deletes: delete it in KeePass. Then close KeePass and delete
+`plugins\KeePassGate`.
 
 **What stays in the database grants nothing and holds no private key**, and KeePass's own dialogs
 remove it once the plugin is gone:
