@@ -72,11 +72,11 @@ flowchart LR
 The authority, with the host certificate and the gate key, is an entry in a group of the plugin's
 own, named `KeePassGate`, under a check keyed by a secret the database holds, and a retirement
 beside it is a further entry. Each admission record is an entry of that group as well, and so is
-each revocation of a client and each certificate a program gave up. The list of profile names and
-the standing answers to a renewal live in the database's own custom data. The rules live on the
-group or entry they are about. All of it is
-inside the database, covered by the database's own encryption, and none of it is anywhere else on
-the machine.
+each revocation of a client and each certificate that a program gave up or the operator took
+away. The list of profile names and the standing answers to a renewal live in the database's
+own custom data. The rules live on the group or entry they are about. All of it is inside the
+database, covered by the database's own encryption, and none of it is anywhere else on the
+machine.
 
 ## How one request is decided
 

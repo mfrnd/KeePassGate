@@ -14,7 +14,7 @@ one page summary.
 | [`getting-started.md`](getting-started.md) | install the plugin, check it loaded, give the database an authority, and take the plugin out again |
 | [`pairing.md`](pairing.md) | let a program in, and decide what it may reach |
 | [`access-control.md`](access-control.md) | name profiles, and write the rules that state what "may reach" means |
-| [`clients.md`](clients.md) | see who is in, renew or refuse one that is about to expire, and take one back out |
+| [`clients.md`](clients.md) | see who is in, renew or refuse a program that is about to expire, take a single certificate away, and take a program back out |
 | [`audit.md`](audit.md) | where the record of every decision is, and what a line in it states |
 | [`architecture.md`](architecture.md) | what the pieces are, on one page |
 | [`pykeepassgate.md`](pykeepassgate.md) | the client, from the other side |

@@ -114,8 +114,9 @@ the page to the front reads the database again anyway.
 
 Press the **X** on a client's first row, or choose **Revoke** on that row's menu.
 
-**It revokes the client, not a single certificate.** Every row of the client goes, and once the
-last row on the list has gone, the empty list reads "No clients once OK is pressed."
+**It revokes the client, not a single certificate**, which a row's menu
+[takes away alone](#taking-a-single-certificate-away). Every row of the client goes, and once
+the last row on the list has gone, the empty list reads "No clients once OK is pressed."
 **Nothing has happened to the database yet**: press **OK** on the settings dialog to make it real,
 then **save the database** to write it to disk. Cancel discards the revocation along with everything
 else done on this tab. A revocation that is waiting changes nothing about inviting: the invite
@@ -323,14 +324,15 @@ operator answered or left unanswered, one refused without asking included. An ap
 there when its record lands, which may be on the program's next try, below; one that issued
 nothing, because the new record did not reach the disk, has no line there, and the log states why.
 An answer until a date or forever goes once the certificate it was about is no longer on the list:
-its client revoked, the certificate given up, or the authority recreated or deleted. It stays past
-the certificate's end, as the expired row does.
+its client revoked, the certificate given up or taken away, or the authority recreated or
+deleted. It stays past the certificate's end, as the expired row does.
 
 Approving writes a new record beside the old record rather than replacing it, so the client has
 two rows, the new certificate under the client's name and the old certificate indented under it
 as `earlier certificate`, until the program gives the old certificate up, which the reference
 client does as soon as it has stored the new certificate. A program that does not leaves the
-earlier row on the list, where it reads `expired` once its date has passed.
+earlier row on the list, where it reads `expired` once its date has passed, and where
+[its menu takes it away](#taking-a-single-certificate-away).
 
 **If KeePass is still busy a moment after Approve is pressed**, saving or with a dialog open that
 would take the new record back, nothing is issued yet and the approval is kept, in KeePass's memory

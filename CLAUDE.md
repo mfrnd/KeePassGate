@@ -9,18 +9,21 @@ mutual TLS, so that automation and AI agents can each be given a narrow, revocab
 a database.
 
 **Status: released, and changed through pull requests into `master`.** The plugin makes each
-database its own certificate authority, kept in the database's own `CustomData`, and serves a gate
-on loopback over mutual TLS 1.3, on Windows only. A client is served only while the database holds
-an admission record for its certificate. A stranger becomes a client by pairing, on an invitation
-from the KPG tab and an approval dialog the operator answers, and a client's certificate is renewed
-on a dialog of the same kind, given up by the client or revoked by the operator. The OpenAPI
-document is the routing table, and every route declares the verb it needs: the router intersects
-the record's profiles with the rules kept on groups and entries, which the KPG tab of their dialogs
-edits as a `CRUSDLAP` mask, and writes every decision the rules make, and every pairing, renewal
-and revocation, to an audit file outside the database. A locked database answers `503 locked`.
-PyKeePassGate is the reference client, a library and a command line covering every route, and a
-`v` tag publishes the two, the plugin's zip as a GitHub release and the client on PyPI.
-[`docs/`](docs/README.md) is the operator's account of all of it.
+database its own certificate authority, kept with the admissions and the revocations as entries
+of a group of the plugin's own in that database, `STORE.md`, and serves a gate on loopback over
+mutual TLS 1.3, on Windows only. A client is served only while the database holds an admission
+record for its certificate that nothing refuses. A stranger becomes a client by pairing, on an
+invitation from the KPG tab and an approval dialog the operator answers, and a client's
+certificate is renewed on a dialog of the same kind, given up by the client, taken away alone
+by the operator, or revoked by the operator with every other certificate of its client. The
+OpenAPI document is the routing table, and every route declares the verb it needs: the router
+intersects the record's profiles with the rules kept on groups and entries, which the KPG tab
+of their dialogs edits as a `CRUSDLAP` mask, and writes every decision the rules make, and
+every pairing, renewal, revocation and certificate taken away, to an audit file outside the
+database. A locked database answers `503 locked`. PyKeePassGate is the reference client, a
+library and a command line covering every route, and a `v` tag publishes the two, the plugin's
+zip as a GitHub release and the client on PyPI. [`docs/`](docs/README.md) is the operator's
+account of all of it.
 
 ## Read these before proposing anything
 
@@ -101,14 +104,21 @@ designing around them.
   issued it. A revocation names the client's key, refuses every certificate under that key
   wherever and whenever it was issued, is restated by the summary entry every write of the
   plugin's writes, and is never removed and never pruned. A single certificate that its client
-  gives up gets a record of a kind of its own, so the certificate a renewal issued keeps working,
-  STORE.md §648. **This reverses three rules.** A revocation was `KPG.Revoked.<key>` in the custom
-  data beside an emptied record, never changed, on the measured fact below that a KeePass merge
-  never removes a key and never reads a value. Two measurements reversed it: a KeePassXC merge
-  replaces that whole dictionary, and a revocation that named a single certificate let a renewal
-  made at a gate not yet told of it escape. That key had itself reversed a revocation written
-  empty rather than removed, resting on a merge carrying the newer value, which a dropped time, a
-  slow clock or an import defeats.
+  gives up, or that the operator takes away on the clients page, gets a record of a kind of its
+  own, which names every certificate its copy holds as renewed from it when the record is
+  written, by an admission in force or by a record that has since taken the renewal away. So
+  the certificate a renewal issued keeps working, what a client keeps does not turn on which of
+  its certificates was taken away first, and a renewal made from it at a gate not yet told is
+  refused once the copies meet, STORE.md §648, run over copies merged by each of KeePass's
+  methods, `StoreAdmissionMergeTests`. **Taking a certificate away ends that certificate alone
+  and not what was already renewed from it**: where a certificate may have been taken and
+  renewed from, the act is the revocation of the client. **This reverses three rules.** A
+  revocation was `KPG.Revoked.<key>` in the custom data beside an emptied record, never
+  changed, on the measured fact below that a KeePass merge never removes a key and never reads
+  a value. Two measurements reversed it: a KeePassXC merge replaces that whole dictionary, and
+  a revocation that named a single certificate let a renewal made at a gate not yet told of it
+  escape. That key had itself reversed a revocation written empty rather than removed, resting
+  on a merge carrying the newer value, which a dropped time, a slow clock or an import defeats.
   And the record of an expired certificate went with the plugin's next write of its own, with a
   revocation whose certificate had expired: **nothing is removed for its age now**, so an expired
   admission stays, listed as expired, until its certificate is taken away, its client revoked or
@@ -160,11 +170,13 @@ designing around them.
   since that dialog's OK puts its copy back, §626. A database whose store holds no key is served
   nothing, but by a gate that was serving it when the key went, which answers `503 lost` from what
   it served with until the database is locked or closed, §656. And the admissions and the
-  revocations, §615, with a certificate that its client gives up, §648: read by their meaning from
-  the reading of every hold, `StoreAdmissions`, written by a pairing's, a renewal's and a given up
-  certificate's write, each saved, read back and taken back out whole where it did not land, §627,
-  and by the clients page's revocation of a client at the settings dialog's OK. The profile names,
-  the rules and the standing answers to a renewal are still where CA.md §204 keeps them.
+  revocations, §615, with a single certificate taken away, by its client or by the operator, and
+  the rule about renewals made from it, §648: read by their meaning from the reading of every
+  hold, `StoreAdmissions`, written by a pairing's, a renewal's and a given up certificate's
+  write, each saved, read back and taken back out whole where it did not land, §627, and by the
+  clients page's revocation of a client and its removal of a single certificate at the settings
+  dialog's OK. The profile names, the rules and the standing answers to a renewal are still
+  where CA.md §204 keeps them.
 - **The admission record is load bearing.** A certificate that chains, passes its EKU check and has
   no record in the database is refused, and so is a certificate whose client is revoked, that was
   itself taken away, or that more than a single record admits, STORE.md §615. The
@@ -1752,17 +1764,18 @@ replaced it, over a real socket. See DESIGN.md §119.
 connection, and again inside the hold a request is read in or the turn it changes in, and never
 cached, so a record that lands takes effect with nothing having to be reloaded or told: the KPG
 tab's clients page lists every admitted client with the certificates it holds as a group of rows,
-names in red the rows whose renewals stand refused and lifts that answer from the row's menu, and
-revokes a client from the X on its first row, and from then on that client is refused, a request
-of its own that was already waiting included. **Landing is what waits now**, as the settings
-tab's entry under "Things that are already decided" has it: the client's rows go at once, the
-revocation lands when the dialog is accepted, and the file changes when the database is saved.
-Until then its certificates still work. The press itself goes into the dialog's buffer, so
-whether a revocation reached the database is written in the log when the dialog is accepted, not
-on the page. And a record written into the `.kdbx` file underneath a running KeePass is invisible
-to it and will be overwritten by its next save: KeePass serves the database it holds in memory,
-which is why pairing writes through the plugin rather than through the file. **And no
-record goes for its age.** The admission of an expired certificate admits nobody and stays, listed
+names in red the rows whose renewals stand refused and lifts that answer from the row's menu,
+takes a single certificate away from that menu, and revokes a client from the X on its first
+row, and from then on that client is refused, a request of its own that was already waiting
+included. **Landing is what waits now**, as the settings tab's entry under "Things that are
+already decided" has it: the rows go at once, the revocation or the certificate taken away
+lands when the dialog is accepted, and the file changes when the database is saved. Until then
+the certificates still work. The press itself goes into the dialog's buffer, so whether it
+reached the database is written in the log when the dialog is accepted, not on the page. And a
+record written into the `.kdbx` file underneath a running KeePass is invisible to it and will
+be overwritten by its next save: KeePass serves the database it holds in memory, which is why
+pairing writes through the plugin rather than through the file. **And no record goes for its
+age.** The admission of an expired certificate admits nobody and stays, listed
 as expired, until its certificate is taken away, its client revoked or its authority retired,
 STORE.md §643, which reverses the records of expired certificates going with the plugin's next
 write of its own. What a write deletes is the admissions a decision refuses, STORE.md §627.

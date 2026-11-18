@@ -25,15 +25,22 @@ takes access away is a further entry, never an entry deleted or changed.
 > authority and its retirements of §614, written by the plugin's own writes of §627, with the
 > records set back of §628 and what a write asks of KeePass's windows (§626), and served from what
 > stands, with `lost` (§656) answered from what the gate last served with; and the admissions and
-> the revocations of §615, with a certificate that its own client gives up (§648), read by their
-> meaning at every hold, written by the writes of a pairing, a renewal and a certificate given up,
-> each saved before it is answered, and by the clients page at the settings dialog's OK. §614,
-> §615, §620, §626, §627, §628, §633, §643, §648 and §656 state which parts those are, and
-> nothing else below describes what the plugin does today. Each pull request that builds a part
-> of this store brings `CA.md`, `DESIGN.md`,
-> `PAIRING.md`, `API.md` and `docs/` into line with the code it adds. Until then those documents
-> hold for 0.2.0 where they describe a part not built, and this document holds for what replaces its
-> store.
+> the revocations of §615, with a single certificate taken away (§648), by its own client or by
+> the operator, and the rule about renewals made from it: read by their meaning at every hold,
+> written by the writes of a pairing, a renewal and a certificate given up, each saved before it
+> is answered, and by the clients page at the settings dialog's OK, where the X revokes a client
+> and a row's menu takes a single certificate away (§636). §614, §615, §620, §626, §627,
+> §628, §633, §636, §643, §648 and §656 state which parts those are, and nothing else below
+> describes what the plugin does today. **Not built**: the profile names (§616), the rules
+> (§617) and the standing answers to a renewal as records of this store, which this build
+> keeps in custom data as 0.2.0 does; the page that seals a store again (§625) and the command
+> that starts it again (§632); the guard over KeePass's own windows, with its switch (§635);
+> the tab's listing of the store (§636); the raising of the format, with `frozen` (§647,
+> §656); and the dialog that keeps a store among several (§649). §644 lists what is not
+> measured, with what each pull request ran of it. Each pull request that builds a part of
+> this store brings `CA.md`, `DESIGN.md`, `PAIRING.md`, `API.md` and `docs/` into line with
+> the code it adds. Until then those documents hold for 0.2.0 where they describe a part not
+> built, and this document holds for what replaces its store.
 
 **How to read it.**
 
@@ -942,16 +949,17 @@ read from. `StoreAdmissions` reads who is admitted from the reading of a hold (�
 certificate is admitted by a single admission in force that reads, whose client key no
 revocation names, whose certificate was not taken away, that no rule of §648 about its chain of
 origins refuses, and whose issuer no retirement names and is the authority served, in a store
-that is whole. A record that does not read, and an
-admission that a decision refuses, are counted among no admissions of a certificate (S24). The
-gate asks once for each connection, from the reading every question of that hold is answered
-from, and keeps no answer. `AdmissionActs` composes the acts of §627: an admission, held when
-the write is planned to its issuer standing alone; a revocation that holds the client key alone
-and has no ground; and the records that take a certificate away (§648). A pairing and a renewal
-write the admission by a write that is saved before the certificate is handed over, the
-renewal's with `from`. The operator's revocation is pressed on the clients page, waits in the
-tab's buffer and is written at the settings dialog's OK. Every write deletes the admissions that
-a revocation, a retirement or a certificate taken away refuses, and none for its age (§643).
+that is whole. A record that does not read, and an admission that a decision refuses, are
+counted among no admissions of a certificate (S24). The gate asks once for each connection,
+from the reading every question of that hold is answered from, and keeps no answer.
+`AdmissionActs` composes the acts of §627: an admission, held when the write is planned to its
+issuer standing alone; a revocation that holds the client key alone and has no ground; and the
+records that take a certificate away (§648). A pairing and a renewal write the admission by a
+write that is saved before the certificate is handed over, the renewal's with `from`. The
+operator's revocation, and the operator's removal of a single certificate, are pressed on the
+clients page, wait in the tab's buffer and are written at the settings dialog's OK. Every
+write deletes the admissions that a revocation, a retirement or a certificate taken away
+refuses, and none for its age (§643).
 The clients page, the Certificate Authority page, the Profiles page, the approval dialog and
 the dialog that asks which authority to keep each read the same listing of a reading: every
 admission in force that reads and that no decision refuses, each with whether it admits, is
@@ -962,8 +970,7 @@ what its admission comes to from that listing, and reads `not this authority`, `
 `not counted` where the listing has it admit nobody (§648). The standing answers to a renewal
 stay in the custom data (§618), asked by the admission key, and go with a write that is saved
 and with a tab's OK that wrote into the store, once no record of kind `client` in force names
-their certificate. Nothing of this changes what a client is sent,
-`API.md` §411. *Held by*
+their certificate. Nothing of this changes what a client is sent, `API.md` §411. *Held by*
 `AdmissionRecordTests`, `StoreAdmissionsTests`, `StoreAdmissionChainTests`, `AdmissionActsTests`,
 `RenewalAnswersTests`, `ClientListTests`, `AuthorityPanelTests`, `PendingRecordsTests` and
 `PendingChangesTests`, and over real databases by `AdmissionInRealDatabaseTests`,
@@ -4615,8 +4622,11 @@ that finds a measurement against a decision reports it and does not design aroun
     a `head` (`StoreHeldBackGateTests`), and `stopped` in a real KeePass (`LiveStoreTests`).
     The pull request that keeps the authority in the store runs `lost` over a real handshake and
     from a key carrier deleted in a real database (`HeldBackGateTests`,
-    `LockInRealDatabaseTests`); `lost` in KeePass's window (`LiveLostTests`) and `frozen` stay
-    owed, `frozen` by the pull request that makes the gate answer it.
+    `LockInRealDatabaseTests`). The pull request that keeps the admissions in the store runs,
+    over real databases, what a request in flight and what a database was last served with
+    answer once several authorities stand, with the request's own authority among them and
+    without it (`LockInRealDatabaseTests`). `lost` in KeePass's window and `frozen` stay owed,
+    `frozen` by the pull request that makes the gate answer it.
 23. **The grant editor's rows for a rule in several versions** (§657). The pictures the decision
     was taken from are of a prototype with rows that were made up, and not of a store: two and
     three versions, scrolled, under a high contrast setting, and with what removing a row and

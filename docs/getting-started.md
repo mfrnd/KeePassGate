@@ -200,7 +200,7 @@ The table is the whole state of it:
 | | |
 | --- | --- |
 | **Fingerprint** | which authority this is. Written down somewhere, it is how a replaced authority is noticed: the one in the database is not the one that was made. |
-| **Admission records** | how many records of programs let in the database holds and has not taken back out: a record for each certificate, so a record for each program, and two for a program that has [renewed](clients.md#expiry) until it gives the old certificate up. A record whose certificate has expired is counted until its client is revoked or the authority is recreated or deleted. So is a record that cannot be read, and such a record that names no client stays counted, since nothing revokes it: the [clients page](clients.md) lists every record and states which admit nobody. |
+| **Admission records** | how many records of programs let in the database holds and has not taken back out: a record for each certificate, so a record for each program, and two for a program that has [renewed](clients.md#expiry) until it gives the old certificate up. A record whose certificate has expired is counted until the certificate is taken away, its client is revoked or the authority is recreated or deleted. So is a record that cannot be read, and such a record that names neither a client nor a certificate stays counted, since nothing on the page takes it away: the [clients page](clients.md) lists every record and states which admit nobody. |
 
 No date is in it. The authority and the certificate KeePass answers with are made together and good
 for a hundred years, so there is nothing to count down to: see [`clients.md`](clients.md#expiry).
