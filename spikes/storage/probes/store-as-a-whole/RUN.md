@@ -1127,12 +1127,16 @@ keys sorted:
   by item and by deletion record, an authority beside a deletion record naming it, an admission,
   a revocation by record, by item and by deletion record, an admission beside a deletion record
   naming it, under a retired issuer, and under an authority that is not served.
-- **`--writes`**, `StoreWriteVectors.json`: the file after each act of two sequences that
+- **`--writes`**, `StoreWriteVectors.json`: the file after each act of three sequences that
   `crdt_model.py`'s `World.step` plays under `bridge.py`'s `FLAGS`, written out by `store.py`'s
   `Encoder`, each step with its records, its deletion records, its summary entries and `read.py`'s
   answer. From the store the model's World starts with: Pair, Pair, Revoke, Recreate, Pair,
-  Delete and Create on a single copy; and Recreate in each of two copies, Synchronize of the
-  second into the first, and keeping an authority.
+  Delete and Create on a single copy; Recreate in each of two copies, Synchronize of the
+  second into the first, and keeping an authority; and in two copies, Revoke of the client `c0`
+  in the first, Renew of its certificate in the second, the model's `renewcert`, Synchronize of
+  the second into the first and then of the first into the second. The third sequence, added on
+  2026-11-18, ends with the renewed certificate refused in both copies, since the revocation
+  names the client's key.
 
 ### Defects and limits
 

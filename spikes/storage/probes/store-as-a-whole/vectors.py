@@ -27,7 +27,7 @@ of its own and each opening with an `about` that names what made it and what is 
 and 648 fix, and summary entries, composed as `rec` composes them (part 5). `--meanings` prints
 `tests/Shared/StoreMeaningVectors.json`: small stores of those records and what read.py answers for
 each about authorities, admissions and refusals (part 6). `--writes` prints
-`tests/Shared/StoreWriteVectors.json`: the file after each act of two fixed sequences that the
+`tests/Shared/StoreWriteVectors.json`: the file after each act of three fixed sequences that the
 model plays, written out by store.py's `Encoder`, with read.py's answer after each (part 7). Part
 7 reads more than store.py and read.py: the model, `model/crdt_model.py`, and `probe/bridge.py`
 for the switches the family's runs give it. The script imports both whatever it prints, and
@@ -448,17 +448,19 @@ def play(nrep, steps):
 
 
 WRITES_ABOUT = (
-    'The file after each act of two fixed sequences that the model plays, World.step and '
+    'The file after each act of three fixed sequences that the model plays, World.step and '
     'World.act of model/crdt_model.py of spikes/storage/probes/store-as-a-whole on '
     'spikes/storage-survival under the FLAGS of probe/bridge.py, the store as decided, written '
     'out as entries by store.py\'s Encoder as the family\'s runs write them, and read by read.py '
     'with its history rule on; made by vectors.py beside the probe and never from this side. '
     'Each sequence starts from the store the model\'s World starts with, given as start: the '
     'authority a0, the profile name pf, the admission of the client c0 under a0 with the '
-    'profiles pf and pg, a version of the rule of the root granting read, and a summary entry of '
-    'height 1, each under the key label K; the second sequence\'s two copies start as the same '
-    'file. The first sequence raises the model\'s maxclients to 4, as growth.py raises it, so '
-    'that three pairings fit beside c0. The first Create of the sequence asked for, on a '
+    'profile pf alone, a version of the rule of the root granting read, and a summary entry of '
+    'height 1, each under the key label K; the two copies of the second and of the third '
+    'sequence start as the same file. A pairing admits its client with the profiles pf and pg, '
+    'and a renewal with the profiles of the admission renewed. The first sequence raises the '
+    'model\'s maxclients to 4, as growth.py raises it, so that three pairings fit beside c0. '
+    'The first Create of the sequence asked for, on a '
     'database with no store, is not played. On a file with no store the model\'s Create writes '
     'its authority under a new key label, K and a number, while its pairing writes every '
     'admission under the label K whatever key the file holds; played from emptied files, every '
@@ -469,14 +471,18 @@ WRITES_ABOUT = (
     'present and every deletion record in the file by identifier, kind, subject and number, the '
     'deletion records the step added, each summary entry present with its identifier, its '
     'height, the count of its after and its items, read.py\'s answer as the meanings file gives '
-    'it, and the file itself. Synchronize is the model\'s kp_sync merge of copy 1 into copy 0, '
-    'which writes copy 0 alone. The records hold v, the model\'s short names (a0, c1), nonces '
+    'it, and the file itself. Synchronize is the model\'s kp_sync merge of a copy into the other, '
+    'which writes the copy merged into alone: copy 1 into copy 0 in the second sequence, and in '
+    'the third copy 1 into copy 0 and then copy 0 into copy 1. The third sequence revokes the '
+    'client c0 in copy 0 and renews its certificate in copy 1, the model\'s renewcert, which '
+    'admits the certificate c0.1 under the client key c0 beside the admission of c0, before the '
+    'copies are synchronized. The records hold v, the model\'s short names (a0, c1), nonces '
     'derived from the model\'s elements and store keys derived from its labels, so the product '
     'holds them by shape and by answer. What the model writes otherwise than STORE.md fixes: no '
     'version record at Create and no item format in any summary entry (650, 611); an authority '
-    'holding id and storeKey alone (614); an admission without der, subject and admitted (615); '
-    'a revocation that also holds certificate (615); and a retirement for keeping an authority '
-    'that does not hold the store key (614).')
+    'holding id and storeKey alone (614); an admission without der, subject and admitted (615), '
+    'and a renewal\'s without from as well (648); a revocation that also holds certificate (615); '
+    'and a retirement for keeping an authority that does not hold the store key (614).')
 
 out['writes'] = {'about': WRITES_ABOUT, 'sequences': {
     'one copy': play(1, [('Pair', ('pair', 0)), ('Pair', ('pair', 0)),
@@ -485,6 +491,10 @@ out['writes'] = {'about': WRITES_ABOUT, 'sequences': {
                          ('Create', ('create', 0))]),
     'two copies': play(2, [('Recreate', ('recreate', 0)), ('Recreate', ('recreate', 1)),
                            ('Synchronize', ('merge', 'kp_sync', 0, 1)), ('Keep', ('keep', 0))]),
+    # ADDED (a revocation beside a renewal): c0, paired in the store both copies start with
+    'two copies, revoked in the first and renewed in the second': play(2, [
+        ('Revoke', ('revoke', 0, 'c0')), ('Renew', ('renewcert', 1, 'c0')),
+        ('Synchronize', ('merge', 'kp_sync', 0, 1)), ('Synchronize', ('merge', 'kp_sync', 1, 0))]),
 }}
 
 
