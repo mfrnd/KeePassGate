@@ -222,7 +222,7 @@ namespace KeePassGate.Ui
                             {
                                 Log().Info("what the " + GateName.Product + " tab held was put into "
                                     + "the database, which KeePass now says has changes to save");
-                                Revoked(database, clients ?? new Dictionary<string, string>(StringComparer.Ordinal));
+                                Revoked(live, database, clients ?? new Dictionary<string, string>(StringComparer.Ordinal));
                                 Lifted(database);
                             }
                         }
@@ -279,27 +279,54 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
+        /// The authority the database is served with, from a reading let go at once, or null where
+        /// none is or the store could not be read: the audit then names no database.
+        /// </summary>
+        private string Served(IGateDatabase live)
+        {
+            if (live == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                using (var reading = live.Store.Read())
+                {
+                    return StoreAuthorities.Served(reading);
+                }
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                Log().Warn("the plugin's store could not be read for the database the revocations name: " + error.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Writes down every revocation the dialog's OK just put into the database, one line each.
         /// </summary>
         /// <remarks>
         /// **When it lands, which is now.** A revocation pressed on the Clients page waits in the
         /// dialog's buffer with everything else on the tab, and Cancel takes it away with nothing
         /// written anywhere. What is written is what the buffer stored, so a client revoked by
-        /// itself while the dialog was open is not written down a second time, and a revocation an
-        /// authority's recreation took away again is not written down at all.
+        /// itself while the dialog was open is not written down a second time, and a revocation
+        /// that a Recreate or a Delete the same OK wrote took away with every admission is not
+        /// written down at all.
         ///
         /// The database is named by the authority it serves now, as the gate's own lines name it,
         /// or as nothing when it serves none. That is the authority served once OK is through, not
-        /// necessarily the one that issued the revoked certificate: after a recreate in the same
-        /// dialog it is the new one, and in a database whose two copies each made an authority it
-        /// is nothing, which `docs/audit.md` says beside the `database` member.
+        /// necessarily the authority that issued the revoked certificate: where the same dialog
+        /// kept another authority it is the authority kept, and in a database whose two copies
+        /// each made an authority it is nothing, as `docs/audit.md` has it beside the `database`
+        /// member.
         /// </remarks>
         /// <param name="clients">
         /// The client key of every record the live database held before OK, by admission key, which
         /// <see cref="ClientKeys"/> read. A revoked certificate missing from it is named with no
         /// client key.
         /// </param>
-        private void Revoked(PendingDatabase database, IDictionary<string, string> clients)
+        private void Revoked(IGateDatabase live, PendingDatabase database, IDictionary<string, string> clients)
         {
             var revoked = new List<string>();
             foreach (var key in database.Stored.Where(AuthorityKeys.IsRevocation))
@@ -312,11 +339,7 @@ namespace KeePassGate.Ui
                 return;
             }
 
-            string databaseId;
-            using (var reading = new AuthorityService(database.PluginCustomData, Log()).Read())
-            {
-                databaseId = reading.IsPresent ? reading.Material.AuthorityDigest : null;
-            }
+            var databaseId = Served(live);
 
             foreach (var key in revoked)
             {

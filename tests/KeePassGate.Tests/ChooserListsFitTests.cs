@@ -130,9 +130,10 @@ namespace KeePassGate.Tests
             Application.EnableVisualStyles();
 
             var values = new InMemoryKeyValueStore();
-            var service = new AuthorityService(values, null);
-            var chosen = Authorities(values, service, authorities);
-            Admit(values, chosen, clients);
+            var records = new MemoryStore();
+            var service = new AuthorityService(records, values, null);
+            var chosen = Authorities(records, values, authorities);
+            Admit(records, values, chosen, clients);
 
             AuthorityChoice choice;
             using (var reading = service.Read())
@@ -182,36 +183,20 @@ namespace KeePassGate.Tests
         /// This many authorities side by side and none retired, answering with the first, which is
         /// the one the clients are admitted under.
         /// </summary>
-        private static string Authorities(InMemoryKeyValueStore values, AuthorityService service, int count)
+        private static string Authorities(MemoryStore records, InMemoryKeyValueStore values, int count)
         {
-            var aside = new Dictionary<string, string>();
-            string first = null;
-
-            for (var i = 0; i < count; i++)
+            var first = StoreSeeds.Authority(records, values);
+            for (var i = 1; i < count; i++)
             {
-                if (!service.Create().Succeeded)
-                {
-                    throw new InvalidOperationException("an authority could not be made for the measurement");
-                }
-
-                var key = values.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null);
-                aside[key] = values.Get(key);
-                first = first ?? AuthorityKeys.FingerprintInAuthority(key);
-                values.Remove(key);
-            }
-
-            foreach (var pair in aside)
-            {
-                values.Plant(pair.Key, pair.Value);
+                StoreSeeds.Beside(records);
             }
 
             return first;
         }
 
-        private static void Admit(InMemoryKeyValueStore values, string fingerprint, int count)
+        private static void Admit(MemoryStore records, InMemoryKeyValueStore values, string fingerprint, int count)
         {
-            var authority = CertificateBlob.Load(
-                AuthorityDocument.Read(values.Get(AuthorityKeys.AuthorityKey(fingerprint)), null).Authority);
+            var authority = StoreSeeds.KeyOf(records, fingerprint);
             for (var i = 0; i < count; i++)
             {
                 var name = "agent-" + i.ToString("00", CultureInfo.InvariantCulture);

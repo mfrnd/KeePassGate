@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Security.Cryptography.X509Certificates;
 using System.Windows.Forms;
 using KeePassGate.Authority;
+using KeePassGate.Store;
 
 namespace KeePassGate.Ui
 {
@@ -34,6 +35,10 @@ namespace KeePassGate.Ui
 
         public const string UndecidedHeadline =
             "This database holds more than one authority, so nothing is served.";
+
+        /// <summary>The headline of a page over a store nothing pressed on the tab is written into in this session.</summary>
+        public const string UnwritableHeadline =
+            "Nothing is written into the store of this database in this session.";
 
         public const string RetiredHeadline =
             "Every authority this database has held is retired, so nothing is served.";
@@ -156,6 +161,88 @@ namespace KeePassGate.Ui
             get { return _isServed; }
         }
 
+        /// <summary>
+        /// This description as the page shows it beside the store it was read from, `STORE.md`
+        /// §636: under a store that holds the gate back, the word, why, and no command offered;
+        /// under a store nothing is written into in this session, that and why, and no command
+        /// offered; under a store past half its room, a line with how many changes still fit.
+        /// </summary>
+        /// <remarks>
+        /// **Every command is off while the store holds the gate back**, Create among them, since
+        /// a write into such a store is refused at the press and again at the dialog's OK,
+        /// `STORE.md` §624. The words and what ends each are those of `STORE.md` §656.
+        ///
+        /// **And while nothing is written into it at all**, as where the dialogs that would take a
+        /// write back are not watched: the plugin's load logs it, and every OK refuses what the tab
+        /// holds for the store. A code handed out is not offered either, since no client is
+        /// paired then.
+        /// </remarks>
+        /// <param name="unwritable">Why nothing is written into the store in this session, or null.</param>
+        internal AuthorityDescription Under(StoreReading store, string unwritable)
+        {
+            var word = store == null ? null : StoreWords.Of(store.State);
+            if (word != null)
+            {
+                return new AuthorityDescription(
+                    HeldBackHeadline(word), null, new[] { HeldBackLine(word), Clipped.Message(store.Reason) }, false, false, false);
+            }
+
+            if (unwritable != null)
+            {
+                return new AuthorityDescription(UnwritableHeadline, null, new[] { Clipped.Message(unwritable) }, false, false, false);
+            }
+
+            if (store == null)
+            {
+                return this;
+            }
+
+            var room = store.Room;
+            if (room == null || !room.PastHalf)
+            {
+                return this;
+            }
+
+            return new AuthorityDescription(
+                _headline, _facts, _details.Concat(new[] { HalfLine(Math.Min(room.Writes, room.ItemsLeft)) }), _canCreate, _canRecreate, _canDelete, _isServed)
+            {
+                CanChoose = CanChoose,
+            };
+        }
+
+        /// <summary>What the page is headed with under a store that holds the gate back.</summary>
+        internal static string HeldBackHeadline(string word)
+        {
+            return "The store of this database is " + word + ".";
+        }
+
+        /// <summary>What a store that holds the gate back is, and what it costs, `STORE.md` §656.</summary>
+        /// <remarks>
+        /// **Only what is so, and no remedy**: what ends each state is a command of the tab's that
+        /// the build bringing it names here, and a page naming a command it does not hold sends
+        /// the operator looking for a button that is not there.
+        /// </remarks>
+        internal static string HeldBackLine(string word)
+        {
+            switch (word)
+            {
+                case StoreWords.Split:
+                    return "It holds records under more than one store key. Nothing is served for this database.";
+                case StoreWords.Outdated:
+                    return "A later plugin wrote it, or it holds a record this plugin does not know. "
+                           + "Nothing is served for this database.";
+                default:
+                    return "It is not whole, or it has no room for its next write. Nothing is served for this database.";
+            }
+        }
+
+        /// <summary>The line of a store past half its room, `STORE.md` §643.</summary>
+        internal static string HalfLine(int changes)
+        {
+            return "The store is half full. About " + changes.ToString("N0", CultureInfo.CurrentCulture)
+                   + " more changes fit, and then nothing is served for this database.";
+        }
+
         public static AuthorityDescription NoDatabase()
         {
             return new AuthorityDescription(NoDatabaseHeadline, null, null, false, false, false);
@@ -271,8 +358,8 @@ namespace KeePassGate.Ui
         /// What is wrong with an authority that will not read, and what that costs.
         /// </summary>
         /// <remarks>
-        /// **The problems are cut, because two of them carry somebody else's exception message.**
-        /// `AuthorityStore.Read` and `AuthorityService.Read` both compose one as
+        /// **The problems are cut, because one of them carries somebody else's exception message.**
+        /// `AuthorityRecord.Read` composes it as
         /// `The authority could not be read: ` followed by whatever threw, and the length of that
         /// is not this plugin's to choose. The detail label has `AutoScroll` off like everything
         /// else on the tab, so an untrimmed one grew the page past it and pushed the three buttons
@@ -361,7 +448,7 @@ namespace KeePassGate.Ui
         /// says for the longest input it can be given, and <see cref="DetailText"/> joins it.
         ///
         /// **What is still written down is which inputs can arrive together**, each beside the
-        /// code that decides it: `AuthorityStore.LongestProblems` for the problems one authority
+        /// code that decides it: `AuthorityRecord.LongestProblems` for the problems one authority
         /// can be reported with at once, and here for the warnings, where a listing that could
         /// not be made is said in place of the records it could not read, so the longer of those
         /// two is taken rather than both.
@@ -376,7 +463,7 @@ namespace KeePassGate.Ui
             var most = Counts.Max();
 
             List<string> damage;
-            using (var damaged = AuthorityReading.Damaged(AuthorityStore.LongestProblems(Thrown), most, true))
+            using (var damaged = AuthorityReading.Damaged(AuthorityRecord.LongestProblems(Thrown), most, true))
             {
                 damage = Damage(damaged).ToList();
             }
@@ -395,10 +482,20 @@ namespace KeePassGate.Ui
                 facts = LongestFacts(values);
             }
 
+            // The line of a store past half its room beside the longest warnings, with as many
+            // changes as fit in a store just past half of its room, and the store that holds the
+            // gate back, by each word, with the longest reason a page shows.
+            var present = OneLine(warnings);
+            present.Add(HalfLine(StoreFormat.MaxItems));
+
             return new List<AuthorityDescription>
             {
                 new AuthorityDescription(DamagedHeadline, null, damage, false, true, true),
-                new AuthorityDescription(PresentHeadline, facts, OneLine(warnings), false, true, true),
+                new AuthorityDescription(PresentHeadline, facts, present, false, true, true),
+                new AuthorityDescription(HeldBackHeadline(StoreWords.Outdated), null, new[] { HeldBackLine(StoreWords.Outdated), Clipped.Message(Thrown) }, false, false, false),
+                new AuthorityDescription(HeldBackHeadline(StoreWords.Stopped), null, new[] { HeldBackLine(StoreWords.Stopped), Clipped.Message(Thrown) }, false, false, false),
+                new AuthorityDescription(HeldBackHeadline(StoreWords.Split), null, new[] { HeldBackLine(StoreWords.Split), Clipped.Message(Thrown) }, false, false, false),
+                new AuthorityDescription(UnwritableHeadline, null, new[] { Clipped.Message(Thrown) }, false, false, false),
                 new AuthorityDescription(UndecidedHeadline, null, new[] { Longest(UndecidedLine) }, false, true, true)
                 {
                     CanChoose = true

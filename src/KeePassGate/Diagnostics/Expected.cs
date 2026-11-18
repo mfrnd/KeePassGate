@@ -69,7 +69,7 @@ namespace KeePassGate.Diagnostics
         /// created it.
         ///
         /// **That refusal is the state of a database that old, not a defect here.**
-        /// `AuthorityStore.Read` ignores expiry deliberately, so an authority past its hundred years
+        /// `AuthorityRecord.Read` ignores expiry deliberately, so an authority past its hundred years
         /// is served and reaches every site that issues. A site that does not name this lets the
         /// exception travel to a catch-all, which reports it as something this plugin got wrong and
         /// counts it on the operator's window, while the operator is the only one who can act on

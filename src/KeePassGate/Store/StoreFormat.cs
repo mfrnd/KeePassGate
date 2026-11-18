@@ -73,6 +73,12 @@ namespace KeePassGate.Store
         public const int ItemDigits = 4;
 
         /// <summary>
+        /// The random bytes of a record's nonce, written as twice as many lowercase hexadecimal
+        /// characters, `STORE.md` §607.
+        /// </summary>
+        public const int NonceLength = 16;
+
+        /// <summary>
         /// The format number of the store this plugin reads, `STORE.md` §650: the form of every
         /// record, every item, the check and the identifier, as `StoreKinds` and this class hold
         /// them.
@@ -98,6 +104,24 @@ namespace KeePassGate.Store
         public const int MaxStringLength = JsonBody.MaxStringLength;
 
         /// <summary>
+        /// The longest string of the store the plugin writes, `STORE.md` §643: the longest that was
+        /// measured to come through the programs a database is shared with, below what its reader
+        /// takes.
+        /// </summary>
+        /// <remarks>
+        /// The distance between the two is what keeps growth from ever reading as damage: records
+        /// that each fit this are each read, however many a merge brings together, and only the
+        /// next write, which names them all, has to fit again.
+        /// </remarks>
+        public const int MaxWritten = 262144;
+
+        /// <summary>
+        /// The most items a summary entry the plugin writes holds, `STORE.md` §611 and §643: every
+        /// item name, `KPG.S.` and four digits, from `KPG.S.0001`.
+        /// </summary>
+        public const int MaxItems = 9999;
+
+        /// <summary>
         /// The most store keys a reading works under, `STORE.md` §649: past it the store is split,
         /// and no version is checked under a key not its own.
         /// </summary>
@@ -118,11 +142,80 @@ namespace KeePassGate.Store
         /// <summary>The highest number bytes 9 and 10 of an identifier can hold, `STORE.md` §609.</summary>
         public const int MaxNumber = 65535;
 
+        /// <summary>The name of the plugin's group, `STORE.md` §606. Nothing reads it.</summary>
+        public const string GroupName = "KeePassGate";
+
+        /// <summary>The notes of the plugin's group, `STORE.md` §606. Nothing reads them.</summary>
+        public const string GroupNotes = "KeePassGate data.";
+
+        /// <summary>The notes of every record's entry, `STORE.md` §607 (S14). Nothing reads them.</summary>
+        public const string RecordNotes =
+            "KeePassGate data. Managed on the KPG tab in KeePass. Deleting an entry here revokes nothing.";
+
+        /// <summary>
+        /// The line the notes of an entry that carries the store key begin with, on a line of its
+        /// own, `STORE.md` §607 (S14).
+        /// </summary>
+        public const string KeyNotes = "Do not delete this entry. It holds the key of this database's KeePassGate store.";
+
+        /// <summary>What the title of an entry that carries the store key ends with, `STORE.md` §607 (S14).</summary>
+        public const string KeyTitleEnd = " (do not delete)";
+
+        /// <summary>The random bytes of the second half of the plugin's group's identifier, `STORE.md` §606.</summary>
+        private const int GroupRandomLength = 8;
+
         /// <summary>
         /// The first eight bytes of the plugin's group's identifier, the ASCII of `KPG/STOR`, as
         /// measured, `STORE.md` §606.
         /// </summary>
         private static readonly byte[] GroupPrefix = Encoding.ASCII.GetBytes("KPG/STOR");
+
+        /// <summary>
+        /// A record's nonce, `NonceLength` random bytes as lowercase hexadecimal, `STORE.md` §607:
+        /// from the generator the gate key is drawn from (S2).
+        /// </summary>
+        internal static string Nonce()
+        {
+            var bytes = Random(NonceLength);
+            try
+            {
+                return Hex.Of(bytes);
+            }
+            finally
+            {
+                Array.Clear(bytes, 0, bytes.Length);
+            }
+        }
+
+        /// <summary>A new store key, from the generator the gate key is drawn from (S2).</summary>
+        internal static byte[] NewKey()
+        {
+            return Random(KeyLength);
+        }
+
+        /// <summary>
+        /// The identifier of a new group of the plugin's own: the prefix, then random bytes drawn
+        /// when the group is made, `STORE.md` §606 (S2).
+        /// </summary>
+        internal static byte[] NewGroupIdentifier()
+        {
+            var identifier = new byte[GroupPrefix.Length + GroupRandomLength];
+            Buffer.BlockCopy(GroupPrefix, 0, identifier, 0, GroupPrefix.Length);
+            var random = Random(GroupRandomLength);
+            Buffer.BlockCopy(random, 0, identifier, GroupPrefix.Length, GroupRandomLength);
+            return identifier;
+        }
+
+        private static byte[] Random(int length)
+        {
+            var bytes = new byte[length];
+            using (var generator = RandomNumberGenerator.Create())
+            {
+                generator.GetBytes(bytes);
+            }
+
+            return bytes;
+        }
 
         /// <summary>Whether this is the identifier of the plugin's own group.</summary>
         public static bool IsGroupIdentifier(byte[] identifier)

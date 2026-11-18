@@ -150,10 +150,28 @@ regenerated there and never from this side, offline, by
 `uv run --no-project python -I -X utf8 spikes/storage/probes/store-as-a-whole/vectors.py`, and the
 JSON file is that command's output with `--readings`, byte for byte, so a reader checks it with
 the one command. The three words of the measured reading's status are written as the product's
-states by the script's `STATES` table.
+states by the script's `STATES` table. `tests/Shared/StoreMeaningVectors.json`, small stores and
+what the measured reading found in force in each, is the same script's output with `--meanings`,
+byte for byte, at its commit `30a595a7`, which reads the same two files. It keeps the measured
+reading's own words for a store's status, and `StoreInForceTests` names the state it holds each
+to. `tests/Shared/StoreRecordVectors.json`, records composed by the measured code, and
+`tests/Shared/StoreWriteVectors.json`, the file after each act of sequences the measured model
+played, are the same script's output with `--records` and `--writes`, byte for byte, the first
+at `e002013f` and the second at `30a595a7`. `StoreRecordTests` composes every record of the
+first through the product and holds the content, the check, the identifier and every string to
+it; `StoreWriteShapeTests` holds the product's writes to the second by shape, since its records
+hold stand-ins the product does not compose.
+
+**It writes the store into real databases.** `StoreWritesInRealDatabaseTests` writes through the
+product's own commands into a real tree and holds the entries KeePass keeps, the group a write
+goes into, the deletions with their records, a record set back under the database's history
+limit, a save and a reload, and copies brought together by `PwDatabase.MergeIn`; and it takes
+each part of a write's application back by its own undo, and every part in the order a write
+takes them, and holds the database to what it was before.
 
 `StoreReadingCostTests` is explicit, as `Headroom_at_one_room_size` is: it times what reading the
-store holds KeePass's thread for through the real router and vault, and is run by name and read.
+store holds KeePass's thread for through the real router and vault, and what a write of the
+operator's into it holds the thread for, and is run by name and read.
 
 **It is also where KeePass's own compiler is asked.** `ReferenceVectorsTests` builds a database in
 memory holding the entries `tests/Shared/ReferenceVectors.json` writes down, compiles every value
@@ -172,10 +190,12 @@ dotnet test tests\KeePassGate.Host.Tests --filter "FullyQualifiedName~ReferenceV
 KeePass, and WinForms answers with its unhandled-exception dialog, which blocks the run until
 something kills it. So `SnapshotHazardTests` measures the group dialog's custom data snapshot in two
 halves: the mechanism by reflection over the real types, and the behavior by reproducing it with
-KeePass's own `CloneDeep` and a real group. Pressing buttons for real belongs to the tier below. The
-plugin's own dialogs are another matter, and `ApprovalsUnderLoadTests` shows one: an approval dialog
-put up through the real prompt, transparent and off screen, on a message loop of its own, so the
-tier needs a session that can show a form.
+KeePass's own `CloneDeep` and a real group. `StoreWritesUnderDialogsTests` asks the same of every
+window the plugin watches about an entry, and reproduces the entry dialog's copy put back over a
+write of the plugin's own. Pressing buttons for real belongs to the tier below. The plugin's own
+dialogs are another matter, and `ApprovalsUnderLoadTests` shows one: an approval dialog put up
+through the real prompt, transparent and off screen, on a message loop of its own, so the tier needs
+a session that can show a form.
 
 ## What the end to end tier is for
 

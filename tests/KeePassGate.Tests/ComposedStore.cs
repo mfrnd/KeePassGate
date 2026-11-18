@@ -107,8 +107,9 @@ namespace KeePassGate.Tests
                     var removed = Add(StoreComposer.Record(_key, kind, "profile:reader", StoreComposer.Content(("name", "reader"))));
                     return StoreComposer.Item(("id", removed.Hex), ("kind", kind), ("name", "reader"));
                 case "withdrawn":
-                    Add(StoreComposer.Record(_key, kind, "certificate:" + Hex('d'), StoreComposer.Content(("certificate", Hex('d')))));
-                    return StoreComposer.Item(("certificate", Hex('d')), ("kind", kind));
+                    var withdrawn = Add(StoreComposer.Record(
+                        _key, kind, "certificate:" + Hex('d'), StoreComposer.Content(("certificate", Hex('d')), ("renewed", string.Empty))));
+                    return StoreComposer.Item(("certificate", Hex('d')), ("id", withdrawn.Hex), ("kind", kind), ("renewed", string.Empty));
                 case "kept":
                     var kept = Kept(_key, Three);
                     return KeptItem(kept, Three);
@@ -131,12 +132,13 @@ namespace KeePassGate.Tests
         /// </summary>
         public void Restate(string item = null, string after = null)
         {
-            var items = new List<string>();
-            if (item != null)
-            {
-                items.Add(item);
-            }
+            RestateAll(item == null ? Array.Empty<string>() : new[] { item }, after);
+        }
 
+        /// <summary>The same, over several items.</summary>
+        public void RestateAll(IEnumerable<string> restating, string after = null)
+        {
+            var items = new List<string>(restating);
             var names = new List<string>();
             if (Head != null)
             {

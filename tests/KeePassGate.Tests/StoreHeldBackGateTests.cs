@@ -49,6 +49,8 @@ namespace KeePassGate.Tests
         [TestCase("stopped", "HEAD")]
         [TestCase("split", "GET")]
         [TestCase("outdated", "HEAD")]
+        [TestCase("lost", "GET")]
+        [TestCase("lost", "HEAD")]
         public void A_request_is_answered_the_store_s_word_before_a_route_is_chosen(string word, string method)
         {
             _authority.Unavailable = word;

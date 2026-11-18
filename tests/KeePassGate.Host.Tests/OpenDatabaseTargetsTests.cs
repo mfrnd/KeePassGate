@@ -74,6 +74,57 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_database_whose_store_will_not_read_leaves_every_other_database_served()
+        {
+            // What reading a database's store raises is named, and that database is left unserved:
+            // a throw out of one database left `Current` for every open database at once.
+            CreateAuthorityIn(_first);
+            CreateAuthorityIn(_second);
+
+            using (var targets = new OpenDatabaseTargets(delegate { return _open; }, null, new FirstAskThrows(), _log))
+            {
+                var current = targets.Current();
+                Assert.That(current, Has.Count.EqualTo(1));
+                using (var served = current[0])
+                {
+                    Assert.That(served.DatabaseId, Is.EqualTo(DigestOf(_second)));
+                }
+            }
+
+            Assert.That(_log.Errors, Has.Some.Contains("could not be read, so it is not served"));
+        }
+
+        [Test]
+        public void The_same_authorities_in_new_objects_are_not_asked_about_again_and_another_set_is()
+        {
+            // KeePass's Synchronize hands the database the very text of the store in objects of
+            // its own, as each periodic synchronize of a trigger does under the chooser, and the
+            // operator who answered or canceled is not asked again for any synchronize of the
+            // same authorities.
+            var store = new KdbxStore(_first.Database, GateVersion.Current, NullGateLog.Instance);
+            StoreSeeds.Undecided(store, new CustomDataStore(_first.Database));
+
+            Assert.That(_targets.Unasked(), Is.EqualTo(new[] { _first.Database }));
+
+            foreach (var entry in _first.Database.RootGroup.GetEntries(true).Where(entry => entry.Strings.ReadSafe("KPG.Kind") == "authority"))
+            {
+                foreach (var name in entry.Strings.GetKeys().Where(name => name.StartsWith("KPG.", StringComparison.Ordinal)).ToList())
+                {
+                    var value = entry.Strings.Get(name);
+                    entry.Strings.Set(name, new KeePassLib.Security.ProtectedString(value.IsProtected, value.ReadString()));
+                }
+            }
+
+            Assert.That(_targets.Unasked(), Is.Empty, "the same authorities, asked about already");
+            Assert.That(_log.Warnings.Count(line => line.Contains("until the operator keeps an authority")), Is.EqualTo(1),
+                "and the log names them once");
+
+            StoreSeeds.Beside(store);
+
+            Assert.That(_targets.Unasked(), Is.EqualTo(new[] { _first.Database }), "another set is asked about");
+        }
+
+        [Test]
         public void Each_database_is_served_under_its_own_authority()
         {
             CreateAuthorityIn(_first);
@@ -187,21 +238,6 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_database_whose_authorities_will_not_read_leaves_every_other_one_served()
-        {
-            // A key naming an authority by no digest at all, beside the database's own, made
-            // reading that database throw, and the throw left `Current` for every database at once:
-            // the healthy one went unserved with it, and every connection to it was dropped as one
-            // naming nothing.
-            CreateAuthorityIn(_first);
-            CreateAuthorityIn(_second);
-            var own = _second.Database.CustomData.Get(AuthorityKeys.AuthorityKey(DigestOf(_second)));
-            _second.Database.CustomData.Set(AuthorityKeys.AuthorityPrefix, own);
-
-            Assert.That(_targets.Current().Select(target => target.DatabaseId), Does.Contain(DigestOf(_first)));
-        }
-
-        [Test]
         public void Recreating_the_authority_gives_a_new_target()
         {
             CreateAuthorityIn(_first);
@@ -293,9 +329,12 @@ namespace KeePassGate.Host.Tests
             var second = CertificateDigest.Shorten(DigestOf(_second));
             Assume.That(_targets.Current(), Has.Count.EqualTo(2));
 
-            // One the way a synchronize can bring it, a value under the key this cannot read, and
-            // one the way the tab takes it away.
-            _first.Database.CustomData.Set(AuthorityKeys.AuthorityKey(DigestOf(_first)), "rubbish");
+            // The first database the way synchronizes can leave it: retired by another copy's
+            // answer, with an authority this cannot read standing in its place. The second the way
+            // the tab takes it away.
+            var store = new KdbxStore(_first.Database, GateVersion.Current, null);
+            StoreSeeds.Retire(store, DigestOf(_first));
+            StoreSeeds.Damaged(store);
             ServiceFor(_second).Delete();
 
             Assert.That(_targets.Current(), Is.Empty);
@@ -325,7 +364,7 @@ namespace KeePassGate.Host.Tests
         public void A_damaged_authority_is_not_served_and_does_not_stop_the_others()
         {
             CreateAuthorityIn(_first);
-            _second.Database.CustomData.Set(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
+            StoreSeeds.Damaged(new KdbxStore(_second.Database, GateVersion.Current, null));
 
             var targets = _targets.Current();
 
@@ -351,10 +390,11 @@ namespace KeePassGate.Host.Tests
                 .SelfSigned();
             var host = Minted.Named("CN=KeePassGate host").ForUsage(AuthorityIssuer.ServerAuthOid).IssuedBy(authority);
             var crafted = CertificateDigest.Of(authority.CertificateDer);
-            var sniKey = Convert.ToBase64String(Enumerable.Range(1, AuthorityMaterial.SniKeyLength).Select(i => (byte)i).ToArray());
-            _second.Database.CustomData.Set(
-                AuthorityKeys.AuthorityKey(crafted),
-                AuthorityDocument.Save(CertificateBlob.Save(authority), CertificateBlob.Save(host), sniKey));
+            var sniKey = Enumerable.Range(1, AuthorityMaterial.SniKeyLength).Select(i => (byte)i).ToArray();
+            using (var material = new AuthorityMaterial(authority, host, sniKey))
+            {
+                StoreSeeds.AuthorityOf(new KdbxStore(_second.Database, GateVersion.Current, null), material);
+            }
 
             var targets = _targets.Current();
 
@@ -588,7 +628,7 @@ namespace KeePassGate.Host.Tests
 
         private static AuthorityService ServiceFor(TemporaryDatabase database)
         {
-            return new AuthorityService(new CustomDataStore(database.Database), NullGateLog.Instance);
+            return DatabaseAuthority.Of(database.Database, NullGateLog.Instance);
         }
 
         private static string DigestOf(TemporaryDatabase database)
@@ -596,6 +636,36 @@ namespace KeePassGate.Host.Tests
             using (var reading = ServiceFor(database).Read())
             {
                 return reading.Material.AuthorityDigest;
+            }
+        }
+
+        /// <summary>
+        /// A hold whose first question about which hold a reading is in throws, as a store read
+        /// that fails raises, and that answers each later question with the hold it is in.
+        /// </summary>
+        private sealed class FirstAskThrows : KeePassGate.Ui.IReadHold
+        {
+            private bool _asked;
+            private long _stamp;
+
+            public long Stamp
+            {
+                get
+                {
+                    if (!_asked)
+                    {
+                        _asked = true;
+                        throw new InvalidOperationException("the store could not be read");
+                    }
+
+                    return _stamp;
+                }
+            }
+
+            public T Hold<T>(Func<T> read)
+            {
+                _stamp++;
+                return read();
             }
         }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace KeePassGate.Store
@@ -16,6 +17,7 @@ namespace KeePassGate.Store
     /// </remarks>
     internal sealed class FoundKey
     {
+        private readonly Dictionary<string, string> _subjects = new Dictionary<string, string>(StringComparer.Ordinal);
         private int[] _tags;
 
         public FoundKey(byte[] bytes)
@@ -57,10 +59,61 @@ namespace KeePassGate.Store
             }
         }
 
-        /// <summary>Overwrites the key. Its name stays, which tells nothing of it.</summary>
+        /// <summary>
+        /// The tag of a kind of `StoreKinds` under the key, as the six hexadecimal characters an
+        /// identifier under it begins with.
+        /// </summary>
+        public string TagOf(StoreKind kind)
+        {
+            for (var index = 0; index < StoreKinds.All.Count; index++)
+            {
+                if (ReferenceEquals(StoreKinds.All[index], kind))
+                {
+                    return Tags[index].ToString("x6", CultureInfo.InvariantCulture);
+                }
+            }
+
+            throw new ArgumentOutOfRangeException(nameof(kind), kind == null ? null : kind.Name, "a kind the table does not hold");
+        }
+
+        /// <summary>
+        /// The hash of a subject under the key, as the ten hexadecimal characters of an identifier
+        /// that follow its tag, `STORE.md` §609: made the first time it is asked for and kept
+        /// with the key, as the tags are.
+        /// </summary>
+        /// <remarks>
+        /// A reading asks for a subject only where a deletion record under the key carries the
+        /// tag of a kind with that subject, so a store whose deletion records name nothing of it
+        /// costs no digest here, and a store whose deletion records do costs a digest a subject
+        /// once and none at the holds after it. A hash tells nothing of the key, and every
+        /// deletion record of the subject shows it already. The subject's text is kept with its
+        /// hash, as long as the key is, `STORE.md` §620.
+        ///
+        /// **Asked only while a reading is made**, by `StoreInForce` on the thread making it: a
+        /// gate's reading holds the forms it reuses under `StoreReadings`' lock on its work, one
+        /// reading at a time, and a reading beside it, or made afresh, asks only forms of its own.
+        /// Nothing asks a reading handed out for a subject, so the cache has no lock.
+        /// </remarks>
+        public string Subject(string subject)
+        {
+            string hash;
+            if (!_subjects.TryGetValue(subject, out hash))
+            {
+                hash = Hex.Of(StoreFormat.Subject(Bytes, subject));
+                _subjects[subject] = hash;
+            }
+
+            return hash;
+        }
+
+        /// <summary>
+        /// Overwrites the key, and lets go of the subjects hashed under it, which the key overwritten
+        /// would not give. Its name stays, which tells nothing of it.
+        /// </summary>
         public void Clear()
         {
             Array.Clear(Bytes, 0, Bytes.Length);
+            _subjects.Clear();
         }
     }
 }

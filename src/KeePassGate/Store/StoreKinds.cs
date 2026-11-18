@@ -53,6 +53,13 @@ namespace KeePassGate.Store
 
         /// <summary>By the item `format` of a summary entry that states a number at least the record's.</summary>
         ByFormat,
+
+        /// <summary>
+        /// By an item of the kind whose `id` is the record's identifier and which holds the same
+        /// value of every member the record's row names, a member absent equal only to a member
+        /// absent: each record a statement of its own, `STORE.md` §648.
+        /// </summary>
+        ByStatement,
     }
 
     /// <summary>A member the core reads, with its form.</summary>
@@ -120,7 +127,7 @@ namespace KeePassGate.Store
 
         public StoreRestated Restated { get; private set; }
 
-        /// <summary>The member an item restating the record holds the same value of, or null.</summary>
+        /// <summary>The member whose value a record of the kind takes away, which its item holds the same of, or null.</summary>
         public string RestatedBy { get; private set; }
 
         /// <summary>
@@ -171,6 +178,12 @@ namespace KeePassGate.Store
         /// <summary>The member of a summary entry's content that holds its height.</summary>
         public const string Height = "height";
 
+        /// <summary>
+        /// The member every content holds beside its own, `StoreFormat.NonceLength` random bytes
+        /// as hexadecimal, `STORE.md` §607.
+        /// </summary>
+        public const string Nonce = "nonce";
+
         /// <summary>The member of an item that names the record it restates by identifier.</summary>
         public const string Id = "id";
 
@@ -182,6 +195,30 @@ namespace KeePassGate.Store
 
         /// <summary>The member of a version record, and of its item, holding the format number.</summary>
         public const string FormatMember = "format";
+
+        /// <summary>The member of a version record, and of its item, holding the plugin's version.</summary>
+        public const string PluginMember = "plugin";
+
+        /// <summary>The member of a retirement, and of its item, naming the authority it retires.</summary>
+        public const string AuthorityMember = "authority";
+
+        /// <summary>The member of a profile addition and of a removal, and of its item, holding the name.</summary>
+        public const string NameMember = "name";
+
+        /// <summary>The member of a record taking a certificate away, and of its item, naming the certificate.</summary>
+        public const string Certificate = "certificate";
+
+        /// <summary>
+        /// The member of a record taking a certificate away, and of its item, naming the renewals
+        /// from that certificate its writer had read, `STORE.md` §648.
+        /// </summary>
+        public const string Renewed = "renewed";
+
+        /// <summary>
+        /// The member of a record taking a certificate away, and of its item, naming the
+        /// certificate the certificate taken away was renewed from, `STORE.md` §648.
+        /// </summary>
+        public const string From = "from";
 
         /// <summary>The subject of a summary entry, `STORE.md` §609.</summary>
         public const string StoreSubject = "store";
@@ -217,10 +254,17 @@ namespace KeePassGate.Store
                 true, StoreRestated.BySameMember, "client",
                 Members(new StoreMember("client", StoreForm.Text))),
             new StoreKind(
-                Withdrawn, "certificate:", "certificate", StoreNumber.None,
-                Members(new StoreMember("certificate", StoreForm.Hex)),
-                true, StoreRestated.BySameMember, "certificate",
-                Members(new StoreMember("certificate", StoreForm.Hex))),
+                Withdrawn, "certificate:", Certificate, StoreNumber.None,
+                Members(
+                    new StoreMember(Certificate, StoreForm.Hex),
+                    new StoreMember(Renewed, StoreForm.Text, true),
+                    new StoreMember(From, StoreForm.Text, true)),
+                true, StoreRestated.ByStatement, Certificate,
+                Members(
+                    new StoreMember(Id, StoreForm.Text),
+                    new StoreMember(Certificate, StoreForm.Hex),
+                    new StoreMember(Renewed, StoreForm.Text, true),
+                    new StoreMember(From, StoreForm.Text, true))),
             new StoreKind(
                 Profile, "profile:", "name", StoreNumber.None,
                 Members(new StoreMember("name", StoreForm.Text), new StoreMember(After, StoreForm.Identifiers)),

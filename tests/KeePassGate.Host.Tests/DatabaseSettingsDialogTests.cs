@@ -34,9 +34,12 @@ namespace KeePassGate.Host.Tests
             KeePassDialogs.InitializeFor(_form, _database.Database);
             _book = new InvitationBook(NullGateLog.Instance);
 
+            // The writer the plugin hands the tab, which a write into the plugin's store at OK
+            // goes through.
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, null, NullGateLog.Instance);
             _injector = new TabPageInjector(
                 new AuthorityPanelFactory(
-                    new DialogDatabases(NullGateLog.Instance),
+                    new DialogDatabases(NullGateLog.Instance, null, writer),
                     new AlwaysConfirms(),
                     NullGateLog.Instance,
                     _book),
@@ -160,7 +163,7 @@ namespace KeePassGate.Host.Tests
             // An invitation is not the database's, so the buffer that makes Cancel mean Cancel for
             // everything else on the tab never held it, and a code copied before Cancel used to
             // stay good for its whole lifetime.
-            new AuthorityService(new CustomDataStore(_database.Database), NullGateLog.Instance).Create();
+            DatabaseAuthority.Of(_database.Database, NullGateLog.Instance).Create();
             _injector.Attach(_form);
 
             Panel().InviteClient();
@@ -175,7 +178,7 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void Accepting_the_dialog_keeps_the_invitation_made_on_it()
         {
-            new AuthorityService(new CustomDataStore(_database.Database), NullGateLog.Instance).Create();
+            DatabaseAuthority.Of(_database.Database, NullGateLog.Instance).Create();
             _injector.Attach(_form);
 
             Panel().InviteClient();
@@ -187,7 +190,7 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void The_tab_shows_what_is_already_in_the_database()
         {
-            new AuthorityService(new CustomDataStore(_database.Database), NullGateLog.Instance).Create();
+            DatabaseAuthority.Of(_database.Database, NullGateLog.Instance).Create();
 
             _injector.Attach(_form);
 
@@ -199,7 +202,7 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void Deleting_from_the_tab_empties_the_real_database()
         {
-            new AuthorityService(new CustomDataStore(_database.Database), NullGateLog.Instance).Create();
+            DatabaseAuthority.Of(_database.Database, NullGateLog.Instance).Create();
             _injector.Attach(_form);
 
             Panel().DeleteAuthority();
@@ -258,10 +261,11 @@ namespace KeePassGate.Host.Tests
             Assert.That(Captions().Count(c => c == GateTab.Text), Is.EqualTo(1));
         }
 
-        /// <summary>Whether the real database holds a document for any authority at all.</summary>
+        /// <summary>Whether any authority stands in the real database's store.</summary>
         private bool HoldsAnAuthority()
         {
-            return _database.Database.CustomData.Any(p => AuthorityKeys.FingerprintInAuthority(p.Key) != null);
+            var standing = StoreAuthorities.Standing(new KdbxStore(_database.Database, GateVersion.Current, null).Read());
+            return standing != null && standing.Count > 0;
         }
 
         private AuthorityPanel Panel()

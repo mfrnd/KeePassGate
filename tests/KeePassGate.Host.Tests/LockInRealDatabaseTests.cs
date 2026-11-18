@@ -9,6 +9,7 @@ using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Pipeline;
+using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassGate.Ui;
 using NUnit.Framework;
@@ -41,7 +42,7 @@ namespace KeePassGate.Host.Tests
             _database = TemporaryDatabase.New();
             _log = new RecordingLog();
 
-            var created = new AuthorityService(new CustomDataStore(_database.Database), _log).Create();
+            var created = DatabaseAuthority.Of(_database.Database, _log).Create();
             Assert.That(created.Succeeded, Is.True, created.Message);
             _database.Save();
 
@@ -67,6 +68,147 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(target.IsLocked, Is.False);
             Assert.That(target.Authority, Is.Not.Null);
+        }
+
+        [Test]
+        public void A_served_database_whose_key_carrier_goes_answers_lost_with_what_it_served_and_nothing_once_locked_and_unlocked()
+        {
+            // `STORE.md` §656: the authority's entry, the store key's only carrier, deleted for
+            // good under a database being served, as the edits in KeePass's window or a
+            // synchronize leave it. The file then holds no store key, and the gate answers `lost`
+            // from the host certificate and the gate key it served with, until the database is
+            // locked; the file unlocked again holds no key either, and nothing answers for it.
+            var served = _targets.Current().Single();
+            var databaseId = served.DatabaseId;
+            var gateKey = served.GateKey;
+            var host = served.Host.CertificateDer;
+
+            DeleteForGood(Entry(StoreKinds.Authority));
+
+            var lost = _targets.Current().Single();
+            Assert.That(lost.Unavailable, Is.EqualTo("lost"));
+            Assert.That(lost.DatabaseId, Is.EqualTo(databaseId));
+            Assert.That(SniName.Matches(SniName.For(lost.GateKey), gateKey), Is.True, "under the gate key it served with");
+            Assert.That(lost.Host.CertificateDer, Is.EqualTo(host), "and its host certificate");
+            Assert.That(lost.Authority, Is.Null, "judging no certificate");
+            Assert.That(lost.Vault, Is.Null, "and reaching nothing of the database");
+
+            _database.Save();
+            Lock();
+
+            Assert.That(_targets.Current(), Is.Empty, "nothing answers once the database is locked");
+
+            Reopen();
+            _targets.Unlock(_database.Path);
+
+            Assert.That(_targets.Current(), Is.Empty, "nor once it is unlocked");
+        }
+
+        [Test]
+        public void A_served_database_whose_key_carrier_goes_answers_nothing_once_closed_and_opened_again()
+        {
+            Assume.That(_targets.Current(), Has.Count.EqualTo(1));
+            DeleteForGood(Entry(StoreKinds.Authority));
+            Assume.That(_targets.Current().Single().Unavailable, Is.EqualTo("lost"));
+            _database.Save();
+
+            var path = _database.Path;
+            _database.Database.Close();
+            _open.Clear();
+            _targets.Forget(path);
+
+            Reopen();
+            _targets.Unlock(path);
+
+            Assert.That(_targets.Current(), Is.Empty);
+        }
+
+        [Test]
+        public void A_served_database_whose_authority_a_synchronize_retires_into_a_stopped_store_answers_nothing()
+        {
+            // A retired authority's clients are told nothing, `STORE.md` §656, and a store held
+            // back for another reason changes none of that: a retirement of the authority served,
+            // holding the store key as another copy's Delete writes it, arrives under the database
+            // being served, and its summary entry is then deleted for good, which stops the store.
+            var served = _targets.Current().Single().DatabaseId;
+            var store = Store();
+            StoreSeeds.Retire(store, served);
+            DeleteForGood(Entry(StoreKinds.Head));
+            Assume.That(State(store), Is.EqualTo(StoreState.Stopped));
+
+            Assert.That(_targets.Current(), Is.Empty);
+        }
+
+        [Test]
+        public void A_served_database_whose_authority_does_not_read_in_a_stopped_store_answers_stopped_from_what_it_served()
+        {
+            // The authority served stands in a record that passes and will not read, as an edit by
+            // another program leaves it, and the store is stopped: retired by nothing, its clients
+            // are answered the store's word under the gate key and the host certificate they knew.
+            var served = _targets.Current().Single();
+            var databaseId = served.DatabaseId;
+            var gateKey = served.GateKey;
+            var store = Store();
+            var original = Entry(StoreKinds.Authority);
+            StoreSeeds.Damaged(store, databaseId);
+            DeleteForGood(original);
+            DeleteForGood(Entry(StoreKinds.Head));
+            Assume.That(State(store), Is.EqualTo(StoreState.Stopped));
+
+            var stopped = _targets.Current().Single();
+            Assert.That(stopped.Unavailable, Is.EqualTo("stopped"));
+            Assert.That(stopped.DatabaseId, Is.EqualTo(databaseId));
+            Assert.That(SniName.Matches(SniName.For(stopped.GateKey), gateKey), Is.True, "under the gate key it served with");
+            Assert.That(stopped.Authority, Is.Null, "judging no certificate");
+            Assert.That(stopped.Vault, Is.Null, "and reaching nothing of the database");
+        }
+
+        [Test]
+        public void What_a_database_was_served_with_is_carried_through_a_choice_and_answers_lost_once_the_key_goes()
+        {
+            // An authority from another copy arrives beside the authority served, and each is
+            // answered `undecided`; then every entry holding the store key goes, and what the gate
+            // served with before the choice answers `lost`.
+            var served = _targets.Current().Single();
+            var databaseId = served.DatabaseId;
+            var gateKey = served.GateKey;
+            var store = Store();
+            StoreSeeds.Beside(store);
+            Assume.That(_targets.Current().Select(target => target.Unavailable), Is.All.EqualTo(HeldBackTarget.Undecided));
+
+            foreach (var authority in Entries(StoreKinds.Authority))
+            {
+                DeleteForGood(authority);
+            }
+
+            Assume.That(State(store), Is.EqualTo(StoreState.None));
+
+            var lost = _targets.Current().Single();
+            Assert.That(lost.Unavailable, Is.EqualTo("lost"));
+            Assert.That(lost.DatabaseId, Is.EqualTo(databaseId));
+            Assert.That(SniName.Matches(SniName.For(lost.GateKey), gateKey), Is.True, "under the gate key it served with");
+        }
+
+        [Test]
+        public void A_database_whose_authority_was_deleted_answers_nothing()
+        {
+            // A retired authority's clients are told nothing, `STORE.md` §656: what the gate
+            // served with is let go with the authority, and so nothing answers once the
+            // retirements the Delete wrote, which hold the store key, are deleted for good too and
+            // the file holds no key.
+            Assume.That(_targets.Current(), Has.Count.EqualTo(1));
+
+            Assert.That(DatabaseAuthority.Of(_database.Database, NullGateLog.Instance).Delete().Succeeded, Is.True);
+
+            Assert.That(_targets.Current(), Is.Empty);
+
+            foreach (var retirement in Entries(StoreKinds.Retired))
+            {
+                DeleteForGood(retirement);
+            }
+
+            Assume.That(State(Store()), Is.EqualTo(StoreState.None));
+            Assert.That(_targets.Current(), Is.Empty);
         }
 
         [Test]
@@ -334,7 +476,7 @@ namespace KeePassGate.Host.Tests
             // responder to be promoted from.
             using (var later = TemporaryDatabase.New())
             {
-                var created = new AuthorityService(new CustomDataStore(later.Database), _log).Create();
+                var created = DatabaseAuthority.Of(later.Database, _log).Create();
                 Assert.That(created.Succeeded, Is.True, created.Message);
                 _open.Add(later.Database);
 
@@ -432,11 +574,11 @@ namespace KeePassGate.Host.Tests
             {
                 using (var other = TemporaryDatabase.New())
                 {
-                    var created = new AuthorityService(new CustomDataStore(other.Database), _log).Create();
+                    var created = DatabaseAuthority.Of(other.Database, _log).Create();
                     Assert.That(created.Succeeded, Is.True, created.Message);
 
                     string locked;
-                    using (var reading = new AuthorityService(new CustomDataStore(_database.Database), _log).Read())
+                    using (var reading = DatabaseAuthority.Of(_database.Database, _log).Read())
                     {
                         locked = reading.Material.AuthorityDigest;
                     }
@@ -551,7 +693,7 @@ namespace KeePassGate.Host.Tests
                 _open.Add(later.Database);
                 _targets.Unlock(later.Path);
 
-                var created = new AuthorityService(new CustomDataStore(later.Database), _log).Create();
+                var created = DatabaseAuthority.Of(later.Database, _log).Create();
                 Assert.That(created.Succeeded, Is.True, created.Message);
 
                 _targets.Refresh();
@@ -571,7 +713,7 @@ namespace KeePassGate.Host.Tests
             // name of an authority the operator had deleted.
             _targets.Current();
 
-            var deleted = new AuthorityService(new CustomDataStore(_database.Database), _log).Delete();
+            var deleted = DatabaseAuthority.Of(_database.Database, _log).Delete();
             Assert.That(deleted.Succeeded, Is.True, deleted.Message);
 
             _targets.Refresh();
@@ -608,13 +750,49 @@ namespace KeePassGate.Host.Tests
             _targets.Lock(path);
         }
 
-        private void Unlock()
+        /// <summary>The database's file opened again, as KeePass opens it at an unlock.</summary>
+        private void Reopen()
         {
             _database.Reopen();
             _open.Clear();
             _open.Add(_database.Database);
+        }
 
-            using (var reading = new AuthorityStore(new CustomDataStore(_database.Database), NullGateLog.Instance).Read())
+        private KdbxStore Store()
+        {
+            return new KdbxStore(_database.Database, GateVersion.Current, _log);
+        }
+
+        private static StoreState State(KdbxStore store)
+        {
+            using (var reading = store.Read())
+            {
+                return reading.State;
+            }
+        }
+
+        private IEnumerable<PwEntry> Entries(string kind)
+        {
+            return _database.RootGroup.GetEntries(true).Where(entry => entry.Strings.ReadSafe("KPG.Kind") == kind).ToList();
+        }
+
+        private PwEntry Entry(string kind)
+        {
+            return Entries(kind).Single();
+        }
+
+        /// <summary>An entry deleted for good, with the deletion record KeePass writes for it.</summary>
+        private void DeleteForGood(PwEntry entry)
+        {
+            entry.ParentGroup.Entries.Remove(entry);
+            _database.Database.DeletedObjects.Add(new PwDeletedObject(entry.Uuid, DateTime.UtcNow));
+        }
+
+        private void Unlock()
+        {
+            Reopen();
+
+            using (var reading = DatabaseAuthority.Of(_database.Database, NullGateLog.Instance).Read())
             {
                 Assert.That(reading.IsPresent, Is.True,
                     "the file this unlock reopened has no authority in it: " + string.Join("; ", reading.Problems));
@@ -625,7 +803,7 @@ namespace KeePassGate.Host.Tests
 
         private System.Security.Cryptography.X509Certificates.X509Certificate2 IssueAndAdmit()
         {
-            using (var reading = new AuthorityService(new CustomDataStore(_database.Database), _log).Read())
+            using (var reading = DatabaseAuthority.Of(_database.Database, _log).Read())
             {
                 var certificate = new AuthorityIssuer().IssueClient(
                     reading.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read();

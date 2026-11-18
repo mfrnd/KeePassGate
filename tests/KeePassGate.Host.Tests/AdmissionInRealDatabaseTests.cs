@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
@@ -32,7 +33,7 @@ namespace KeePassGate.Host.Tests
             _database = TemporaryDatabase.New();
 
             var store = new CustomDataStore(_database.Database);
-            _authority = new AuthorityService(store, NullGateLog.Instance);
+            _authority = DatabaseAuthority.Of(_database.Database, NullGateLog.Instance);
             _admissions = new AdmissionStore(store, NullGateLog.Instance);
 
             var created = _authority.Create();
@@ -77,19 +78,18 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void Anything_this_plugin_stores_takes_the_file_from_KDBX_4_0_to_4_1()
+        public void An_admission_record_takes_the_file_from_KDBX_4_0_to_4_1_and_the_authority_alone_does_not()
         {
             // What the dictionary costs, written down where it cannot be forgotten. KeePass stamps each
             // key of the database's own custom data with a modification time, and a file carrying
             // one of those stamps is KDBX 4.1: `PwDatabase.GetMinKdbxVersion` says so. A database
-            // this plugin has been used on is therefore a 4.1 file, and nothing on the tab says it
+            // that has been paired with is therefore a 4.1 file, and nothing on the tab shows it
             // happened. That is a format and not a gate: other programs open such a file, and what
             // their saves do to the stamps is measured and stated in `CA.md` §204.
             //
-            // Written about the authority rather than about a record, because the authority is
-            // what comes first: creating one is enough, and every database that is served has one.
-            // A fixture that measured the record alone would be inconclusive, because the authority
-            // it is stored beside has already taken the file there.
+            // The authority is entries of the plugin's store, which need nothing above 4.0, so a
+            // database with an authority alone stays a 4.0 file: what is kept in custom data moves
+            // it, a record here and a profile name in the test below.
             using (var untouched = TemporaryDatabase.New())
             {
                 untouched.Save();
@@ -98,14 +98,31 @@ namespace KeePassGate.Host.Tests
             }
 
             _database.Save();
-            Assert.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040001),
-                "and the authority alone is what takes it to 4.1");
+            Assert.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040000),
+                "and the authority alone leaves it a 4.0 file");
 
             _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }));
             _database.Save();
 
             Assert.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040001),
-                "a record keeps it there rather than moving it again");
+                "a record takes it to 4.1");
+        }
+
+        [Test]
+        public void A_profile_name_takes_the_file_to_KDBX_4_1_before_anything_is_paired()
+        {
+            // The list of profiles is the database's own custom data too, stamped with a
+            // modification time as a record is, and an invitation names a profile: a database
+            // with an authority and a profile name is a 4.1 file before any program has paired.
+            _database.Save();
+            Assume.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040000), "the authority alone leaves it a 4.0 file");
+
+            var names = ProfileNames.Empty();
+            Assume.That(names.Add("ops"), Is.Null);
+            new CustomDataStore(_database.Database).Set(ProfileNames.CustomDataKey, names.Write());
+            _database.Save();
+
+            Assert.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040001), "a profile name takes it to 4.1");
         }
 
         /// <summary>The KDBX version out of the file header: two signatures, then minor and major.</summary>
@@ -121,19 +138,6 @@ namespace KeePassGate.Host.Tests
             var minor = BitConverter.ToUInt16(header, 8);
             var major = BitConverter.ToUInt16(header, 10);
             return (major << 16) | minor;
-        }
-
-        [Test]
-        public void The_authority_sits_beside_them_under_its_own_key()
-        {
-            _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }));
-
-            Assert.That(
-                _database.Database.CustomData.Count(p => AuthorityKeys.FingerprintInAuthority(p.Key) != null),
-                Is.EqualTo(1),
-                "the authority is one key, so a merge cannot take its parts from different replicas");
-            Assert.That(_database.RootGroup.CustomData.Count, Is.Zero,
-                "and the root group carries nothing of this plugin's at all");
         }
 
         [Test]

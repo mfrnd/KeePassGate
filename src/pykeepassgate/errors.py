@@ -267,6 +267,30 @@ class AuthorityUndecided(GateUnavailable):
         super().__init__(message, self.word, retry_after)
 
 
+class StoreLost(GateUnavailable):
+    """`503 lost`: the database's file holds no store key, so the gate serves nothing from it.
+
+    The entry of the plugin's store that carried the key was deleted for good, in KeePass or by
+    a synchronize, while the gate was serving the database. Only that gate answers this, with the
+    host certificate it was serving with, and only until the database is locked or closed: after
+    that nothing answers at all. It ends when the operator creates an authority again at
+    KeePass, after which this client pairs again. Nothing waits it out.
+    """
+
+    #: The word the gate sends with this refusal.
+    word: ClassVar[str] = "lost"
+
+    def __init__(self, message: str = "", retry_after: float | None = None) -> None:
+        """Keep the delay the gate answered with, where it gave a delay."""
+        super().__init__(
+            message
+            or "the gate found no store key in this database, and serves nothing until the "
+            "operator creates an authority again at KeePass",
+            self.word,
+            retry_after,
+        )
+
+
 class StoreSplit(GateUnavailable):
     """`503 split`: the database holds the plugin's store under more than one store key.
 

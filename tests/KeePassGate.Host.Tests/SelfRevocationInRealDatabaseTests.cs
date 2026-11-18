@@ -46,7 +46,7 @@ namespace KeePassGate.Host.Tests
 
             _writer = new DatabaseWriter(CurrentThread.Instance, Save, null, _dialogs, null);
 
-            var created = new AuthorityService(new CustomDataStore(_database.Database), null).Create();
+            var created = DatabaseAuthority.Of(_database.Database, null).Create();
             Assume.That(created.Succeeded, Is.True, created.Message);
         }
 
@@ -546,7 +546,7 @@ namespace KeePassGate.Host.Tests
         /// <summary>A client admitted in the real database, answering with its admission key.</summary>
         private string Admitted()
         {
-            using (var reading = new AuthorityService(new CustomDataStore(_database.Database), null).Read())
+            using (var reading = DatabaseAuthority.Of(_database.Database, null).Read())
             using (var certificate = new AuthorityIssuer().IssueClient(
                        reading.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read())
             {

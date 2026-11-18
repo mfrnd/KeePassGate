@@ -81,6 +81,10 @@ namespace KeePassGate
         /// </summary>
         private ControlUiThread _ui;
         private OpenDatabaseTargets _targets;
+
+        // The writer every write into a database goes through, the tab's into the plugin's store
+        // among them, or null where no main window was there to write through.
+        private DatabaseWriter _writer;
         private GateListener _listener;
         // The seam rather than the class, because the seam is what the window is written
         // against and a field typed at the implementation is a claim about testing that nothing
@@ -515,8 +519,7 @@ namespace KeePassGate
                     // `GroupDialogs` answers refuses from here on, so the gate serves and reads,
                     // and writes nothing and admits nobody, which is the safe half of being wrong.
                     _log.Error(
-                        "the dialogs that would take a write back could not be watched, so nothing " +
-                        "is written and no client can be paired with this session", null);
+                        GroupDialogs.NotWatched + ", so nothing is written and no client can be paired with this session", null);
                 }
 
                 _invitations = new InvitationBook(_log);
@@ -538,7 +541,7 @@ namespace KeePassGate
                     new TypeNameFormMatcher(KeePassContract.DatabaseSettingsFormTypeName),
                     new TabPageInjector(
                         new AuthorityPanelFactory(
-                            new DialogDatabases(_log, () => Changed(host)),
+                            new DialogDatabases(_log, () => Changed(host), _writer),
                             new MessageBoxPrompt(),
                             _log,
                             _invitations,
@@ -922,6 +925,8 @@ namespace KeePassGate
                 _admissions.Raise,
                 _groupDialogs,
                 _log);
+
+            _writer = writer;
 
             // The standing answers the operator gave while a database could not take them, which
             // every save of that database writes as well, whoever asks for it.

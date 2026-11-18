@@ -37,6 +37,18 @@ namespace KeePassGate.Tests
             Assert.That(StoreWords.Of(state), Is.EqualTo(word));
         }
 
+        [TestCase(StoreState.None, "lost")]
+        [TestCase(StoreState.Split, "split")]
+        [TestCase(StoreState.Outdated, "outdated")]
+        [TestCase(StoreState.Stopped, "stopped")]
+        [TestCase(StoreState.Whole, null)]
+        public void The_gate_answers_a_store_with_no_key_lost_and_every_other_state_as_a_write_is_refused(StoreState state, string word)
+        {
+            // `STORE.md` §656: a file with no store key is `lost` to a client, while a write and
+            // the tab take it for a database that has no store yet, which a Create starts.
+            Assert.That(StoreWords.Answered(state), Is.EqualTo(word));
+        }
+
         [TestCase("split")]
         [TestCase("outdated")]
         [TestCase("stopped")]

@@ -131,6 +131,23 @@ namespace KeePassGate.Bridge
         };
 
         /// <summary>
+        /// Why nothing is written where the watch did not start, in the words the plugin's load
+        /// logs it in.
+        /// </summary>
+        public const string NotWatched = "the dialogs that would take a write back could not be watched";
+
+        /// <summary>Whether the watch started and still runs.</summary>
+        public bool Watching
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return _started;
+                }
+            }
+        }
+        /// <summary>
         /// Starts watching, or answers false and watches nothing, which refuses every question
         /// this class answers.
         /// </summary>
@@ -146,6 +163,7 @@ namespace KeePassGate.Bridge
         /// against the KeePass they build with; this is the same question asked of the one the
         /// plugin is running in.
         /// </remarks>
+
         public bool Start()
         {
             lock (_lock)

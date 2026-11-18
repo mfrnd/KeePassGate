@@ -208,10 +208,12 @@ for a hundred years, so there is nothing to count down to: see [`clients.md`](cl
 Anything wrong or about to be wrong appears as a sentence under the table: a client in the last
 third of its certificate's life, which is thirty days at most, and anything unreadable.
 
-**Once it is saved, the file is KDBX 4.1.** What the plugin keeps in the database carries the time
-each value was written, and that is a 4.1 field. KeePass 2.48 or later keeps those times. Other
-programs open the file all the same, and [Revoking](clients.md#revoking) states what saving or
-merging in them costs and what to check afterwards.
+**Once a profile is named or a program has paired, the saved file is KDBX 4.1.** What the plugin
+keeps in the database's own custom data, the profile names and what it keeps about the programs it
+lets in, carries the time each value was written, and that is a 4.1 field; the authority alone needs
+nothing above 4.0. KeePass 2.48 or later keeps those times. Other programs open the file all the
+same, and [Revoking](clients.md#revoking) states what saving or merging in them costs and what to
+check afterwards.
 
 ## OK, then save
 
@@ -256,8 +258,24 @@ Both ask first, and both state how many clients are about to be cut off, because
 number nobody can work out unaided. Both retire the old authority rather than only removing it, so
 a copy of the file from before, synchronized in later, cannot put it back into service.
 
-An authority made by a development build older than this layout is not read at all: the page states
-the database has no authority yet. Create a new authority, and pair every program again.
+## The plugin's group
+
+The authority is an entry of the database, in a group of the plugin's own named `KeePassGate`,
+beside the entries that keep the group's own account of what is in it. They are there to be seen
+and left alone. **An edit to what the plugin wrote in an entry of that group is undone at the
+plugin's next write into the group**, with the edit kept in the entry's history; in a database
+that keeps no history, such an edit ends the serving of the database. A title or notes changed on
+such an entry are not put back.
+
+**Deleting entries of that group is no way to stop a program or the gate.** Some deletions change
+nothing that is served, and some end the serving of the database. To stop a program, revoke it on
+the [clients page](clients.md#revoking); to stop serving the database, press **Delete
+authority** and then OK.
+
+**Keep this authority** is refused while an entry's dialog is open on an entry of that group that
+the choice would delete or put back, the entry keeping the group's account among them, since every
+choice replaces that entry, and the dialog's OK would write its own copy back over the choice. The
+operator is told the choice was not kept: close the entry's dialog, and choose again.
 
 ## When a database holds more than one authority
 
@@ -336,26 +354,28 @@ later at most. Windows has locked the screen by then, so this happens behind it.
 
 **Delete each database's authority first, while the plugin is still there.** Taking the plugin out
 takes nothing out of a database, so a database whose authority stays keeps the authority's private
-key, the host's and the gate key inside it, where KeePass keeps them without knowing what they are
-and an XML export writes them out in the clear. **Delete authority**, followed by OK and a save,
-takes them out, with every admission record, revocation and standing answer to a renewal. Then
-close KeePass and delete `plugins\KeePassGate`.
+key, the host's and the gate key inside it, in an entry of the plugin's group, which an XML export
+writes out in the clear. **Delete authority**, followed by OK and a save, takes them out, with
+every admission record, revocation and standing answer to a renewal. A copy of the authority's
+entry that an import with Create new IDs brought in is an entry like any other, which the plugin
+neither reads nor deletes: delete it in KeePass. Then close KeePass and delete
+`plugins\KeePassGate`.
 
-**What stays in the database grants nothing and holds no key**, and KeePass's own dialogs remove
-it once the plugin is gone:
+**What stays in the database grants nothing and holds no private key**, and KeePass's own dialogs
+remove it once the plugin is gone:
 
 | | |
 | --- | --- |
-| **The retirements** | `KPG.RetiredAuthority.` and a fingerprint, a key for each authority the database has held, which Delete authority writes on purpose: they are what keeps a copy of the file from before, synchronized in later, from putting the old authority back into service, so remove them only once the plugin is not coming back. |
+| **The plugin's group** | `KeePassGate`, holding a retirement for each authority the database has held, which Delete authority writes on purpose, and the entries that keep the group's own account of what is in it. The retirements are what keeps a copy of the file from before, synchronized in later, from putting the old authority back into service, so delete the group only once the plugin is not coming back. |
 | **The profiles** | `KPG.Profiles`, the names the Profiles page kept. |
 | **The rules** | `KPG`, in the custom data of each group and entry that has a rule. |
 
-The first two are on the **Plugin Data** tab under **Tools**, **Database Tools**, **Database
-Maintenance**, the tab to leave alone while the plugin is in use, as [Revoking](clients.md#revoking)
-explains. A group's rules are
-on the **Plugin Data** tab of **Edit Group**, and an entry's under **Plugin data** on the
-**Properties** tab of **Edit Entry**; the versions an entry keeps in its history keep the rules they
-had. Then save the database.
+The group is deleted as any group is, into the recycle bin where the database keeps a recycle bin
+enabled, to be emptied from there. The profiles are on the **Plugin Data** tab under **Tools**,
+**Database Tools**, **Database Maintenance**, the tab to leave alone while the plugin is in use, as
+[Revoking](clients.md#revoking) explains. A group's rules are on the **Plugin Data** tab of
+**Edit Group**, and an entry's under **Plugin data** on the **Properties** tab of **Edit Entry**;
+the versions an entry keeps in its history keep the rules they had. Then save the database.
 
 **Outside the databases** are the plugin's files, its port and what the programs it let in were
 handed:

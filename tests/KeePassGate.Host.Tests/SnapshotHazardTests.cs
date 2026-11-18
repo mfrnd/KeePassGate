@@ -156,9 +156,9 @@ namespace KeePassGate.Host.Tests
         public void An_authority_created_while_a_group_dialog_is_open_survives_its_OK()
         {
             // This was the shape that made the admission record load bearing: the authority went
-            // in silently and came back reported as absent. It lives in the database's own custom
-            // data now, which that dialog does not copy.
-            var service = new AuthorityService(_store, NullGateLog.Instance);
+            // in silently and came back reported as absent. It is kept in the plugin's store now,
+            // which that dialog does not copy.
+            var service = Service();
             var dialog = DialogOpensOn(_database.RootGroup);
 
             var created = service.Create();
@@ -176,9 +176,10 @@ namespace KeePassGate.Host.Tests
         public void An_authority_created_before_the_dialog_opened_survives_OK()
         {
             // The ordinary case, an authority already there when the dialog opens. It comes back
-            // because it is in no group, so out of the dialog's reach, and not because the dialog
-            // puts back what it copied: the dialog copies the group's custom data alone.
-            var service = new AuthorityService(_store, NullGateLog.Instance);
+            // because nothing of it is in what the dialog copies, so out of the dialog's reach, and
+            // not because the dialog puts back what it copied: the dialog copies the group's custom
+            // data alone.
+            var service = Service();
             var created = service.Create();
             Assume.That(created.Succeeded, Is.True, created.Message);
 
@@ -205,7 +206,7 @@ namespace KeePassGate.Host.Tests
             // writes one of these at a moment nobody controls, and the dialog's OK destroyed it.
             // They live in the database's own custom data now, which no group dialog copies, so
             // the record the operator approved is still there afterwards.
-            var service = new AuthorityService(_store, NullGateLog.Instance);
+            var service = Service();
             service.Create();
 
             var dialog = DialogOpensOn(_database.RootGroup);
@@ -218,8 +219,14 @@ namespace KeePassGate.Host.Tests
                 Assert.That(reading.ClientRecordCount, Is.EqualTo(1),
                     "A client approved while a group dialog was open is still admitted after its OK.");
                 Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.Present),
-                    "The authority is in no group either, so the dialog's OK cannot reach it.");
+                    "Nothing of the authority is in what the dialog copies either, so its OK cannot reach it.");
             }
+        }
+
+        /// <summary>The authority of the database under test, kept in its store.</summary>
+        private AuthorityService Service()
+        {
+            return DatabaseAuthority.Of(_database.Database, NullGateLog.Instance);
         }
 
         private static SnapshotDialog DialogOpensOn(PwGroup group)

@@ -1,43 +1,55 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using KeePassGate.Diagnostics;
+using KeePassGate.Store;
 
 namespace KeePassGate.Authority
 {
     /// <summary>
     /// What an operator can do to a database's authority: create it, recreate it, delete it, and
-    /// keep one when a merge has left several. Everything else about an authority happens without
-    /// them.
+    /// keep an authority where several stand, each a write into the plugin's store, `STORE.md` §614.
     /// </summary>
     /// <remarks>
-    /// Two rules run through this class. Nothing is destroyed implicitly: creating over an existing
-    /// authority is refused rather than silently replacing one, because replacing it revokes every
+    /// Two rules run through this class. Nothing is destroyed implicitly: creating where an
+    /// authority stands is refused rather than replacing it, because replacing it revokes every
     /// client at once and that has to be asked for. And nothing is believed without reading it
     /// back, because a write that did not land as it was written must be reported rather than
-    /// assumed. That is no defense against a dialog holding a stale copy of the store, which puts
-    /// its copy back only on its own OK, after the read back has run: `GroupDialogs` refusing the
-    /// write while such a dialog is open is what answers that. What the read back found is then
-    /// what the message says: a refusal claiming the database was left alone, made after something
-    /// in it was already taken away, is a worse answer than the failure it is reporting, because
-    /// the operator acts on it.
+    /// assumed.
+    ///
+    /// **Each command is an act composed now and held to its ground at the write**, `STORE.md`
+    /// §627: on the KPG tab the store is the dialog's buffer, the write lands at its OK, and the
+    /// act is left out there if what it was composed against went meanwhile.
+    ///
+    /// **The admissions are where the database keeps them**, beside the store, and Recreate and
+    /// Delete take every admission away with the authority that issued them, as the store's own
+    /// admission records will be taken away by their issuer's retirement. Over a store that holds
+    /// the act for a dialog's OK they are taken away there, and only where the write takes the
+    /// act, `PendingDatabase`; over a store that writes it, as soon as it is written.
     /// </remarks>
     public sealed class AuthorityService
     {
-        private readonly AuthorityStore _store;
+        private readonly IGateStore _store;
+        private readonly IKeyValueStore _admissions;
         private readonly AuthorityIssuer _issuer;
         private readonly IGateLog _log;
 
-        public AuthorityService(IKeyValueStore store, IGateLog log)
-            : this(store, new AuthorityIssuer(), log)
+        public AuthorityService(IGateStore store, IKeyValueStore admissions, IGateLog log)
+            : this(store, admissions, new AuthorityIssuer(), log)
         {
         }
 
-        public AuthorityService(IKeyValueStore store, AuthorityIssuer issuer, IGateLog log)
+        public AuthorityService(IGateStore store, IKeyValueStore admissions, AuthorityIssuer issuer, IGateLog log)
         {
             if (store == null)
             {
                 throw new ArgumentNullException(nameof(store));
+            }
+
+            if (admissions == null)
+            {
+                throw new ArgumentNullException(nameof(admissions));
             }
 
             if (issuer == null)
@@ -45,187 +57,237 @@ namespace KeePassGate.Authority
                 throw new ArgumentNullException(nameof(issuer));
             }
 
-            _log = log ?? NullGateLog.Instance;
-            _store = new AuthorityStore(store, _log);
+            _store = store;
+            _admissions = admissions;
             _issuer = issuer;
+            _log = log ?? NullGateLog.Instance;
         }
 
         /// <summary>What the database holds. The caller disposes what comes back.</summary>
+        /// <remarks>
+        /// **A store that cannot be read is damage, never absence**: an absent authority is
+        /// created, and a store the plugin could not read may hold an authority that stands.
+        /// </remarks>
         public AuthorityReading Read()
+        {
+            StoreReading stored;
+            var reading = Read(out stored);
+            if (stored != null)
+            {
+                stored.Dispose();
+            }
+
+            return reading;
+        }
+
+        /// <summary>
+        /// What the database holds, with the store read for it, for a caller that asks more of
+        /// that reading and lets it go; the reading is null where the store could not be read.
+        /// </summary>
+        internal AuthorityReading Read(out StoreReading stored)
         {
             try
             {
-                return _store.Read();
+                stored = _store.Read();
             }
-            catch (Exception error) when (Expected.OfCryptography(error) || Expected.OfCustomData(error))
+            catch (Exception error) when (Expected.OfCustomData(error))
             {
-                _log.Error("the authority could not be read", error);
-                // Nothing was counted, and saying so is not the same as counting nobody: the
-                // read that would have listed the records is the one that just failed.
-                return AuthorityReading.Damaged(
-                    new[] { "The authority could not be read: " + error.Message }, 0, false);
+                stored = null;
+                _log.Warn("the plugin's store could not be read: " + error.Message);
+                bool listed;
+                var records = new AdmissionStore(_admissions, _log).Count(out listed);
+                return AuthorityReading.Damaged(new[] { AuthorityRecord.CouldNotReadProblem + error.Message }, records, listed);
             }
+
+            return Read(stored);
         }
 
         /// <summary>
-        /// Creates one, and refuses if there is anything there already. A damaged authority is
-        /// refused too: recreating is the answer to that, and it is a different button because it
-        /// has different consequences.
+        /// Creates an authority, and refuses if any authority stands. A damaged authority is refused too:
+        /// recreating is the answer to that, and it is a different button because it has
+        /// different consequences. Where no store key stands, the authority starts a store under
+        /// a new key, `STORE.md` §632.
         /// </summary>
         public AuthorityChange Create()
         {
-            using (var existing = Read())
+            using (var reading = _store.Read())
             {
-                if (existing.Presence == AuthorityPresence.Present)
+                var held = HeldBack(reading);
+                if (held != null)
                 {
-                    return AuthorityChange.Refused(
-                        "This database already has an authority. Use Recreate to replace it.");
+                    return held;
                 }
 
-                if (existing.Presence == AuthorityPresence.Damaged)
+                using (var existing = Read(reading))
                 {
-                    return AuthorityChange.Refused(
-                        "This database holds an authority that cannot be read. Recreate it to replace it.");
+                    if (existing.Presence == AuthorityPresence.Present)
+                    {
+                        return AuthorityChange.Refused("This database already has an authority. Use Recreate to replace it.");
+                    }
+
+                    if (existing.Presence == AuthorityPresence.Damaged)
+                    {
+                        return AuthorityChange.Refused(
+                            "This database holds an authority that cannot be read. Recreate it to replace it.");
+                    }
+
+                    if (existing.Presence == AuthorityPresence.Undecided)
+                    {
+                        return AuthorityChange.Refused(
+                            "This database holds more than one authority. Choose the authority to keep, or " +
+                            "recreate to replace them all.");
+                    }
                 }
 
-                if (existing.Presence == AuthorityPresence.Undecided)
-                {
-                    return AuthorityChange.Refused(
-                        "This database holds more than one authority. Choose the one to keep, or " +
-                        "recreate to replace them all.");
-                }
+                return Issue("created", reading, Array.Empty<string>(), out _);
             }
-
-            return Issue("created", null);
         }
 
         /// <summary>
-        /// Replaces whatever is there. Every client admitted under the old authority loses its
-        /// admission, which the tab counts in the question it asks before this runs, because that
-        /// is the number the operator needs before pressing it and the only one they cannot work
-        /// out themselves.
+        /// Replaces whatever stands: a retirement of each authority that stands and a new
+        /// authority under the same store key, in a single write, and every admission record
+        /// taken away. The tab counts the clients in the question it asks before this runs.
         /// </summary>
         public AuthorityChange Recreate()
         {
-            // Removed only once the replacement exists. Removing first and issuing after meant a
-            // mint that failed left the old authority and every admission record already gone,
-            // under a message saying the recreation had not happened.
-            var removed = 0;
-            var cleared = false;
-            var result = Issue("recreated", () =>
+            AuthorityChange result;
+            bool waits;
+            using (var reading = _store.Read())
             {
-                try
+                var held = HeldBack(reading);
+                if (held != null)
                 {
-                    // Cleared from the first write rather than once the clearing returns, so that
-                    // the clearing failing part way is reported as the change it already made.
-                    removed = _store.DeleteEverything(() => cleared = true);
-                    return null;
+                    return held;
                 }
-                catch (Exception error) when (Expected.OfCustomData(error))
-                {
-                    _log.Error("the old authority could not be removed", error);
-                    return AuthorityChange.Refused(
-                        "The old authority could not be removed: " + error.Message);
-                }
-            });
-            if (!result.Succeeded)
-            {
-                // Once the clearing has begun, a refusal is not a database that was left alone, and
-                // the message has to say so or the operator reads "it did not happen" and goes
-                // back to whatever they were doing with a database that now serves nobody. The
-                // sentence describes what recreation does rather than asserting what landed,
-                // because the store that swallowed the replacement swallowed the removal too and
-                // nothing here can tell those apart.
-                return cleared ? AuthorityChange.Refused(result.Message + ClearingNote()) : result;
+
+                result = Issue("recreated", reading, Standing(reading), out waits);
             }
 
-            _log.Info("authority recreated, admission records removed: " + removed);
+            if (result.Succeeded && !waits)
+            {
+                _log.Info("authority recreated, admission records removed: " + RemoveAdmissions());
+            }
+
             return result;
         }
 
         /// <summary>
-        /// Removes the authority and every admission record with it. The plugin serves nothing for
-        /// this database afterwards, which is the point: this is how a database is taken out of
-        /// service.
+        /// Retires every authority that stands, each retirement holding the store key, and takes
+        /// every admission record away. The plugin serves nothing for this database afterwards,
+        /// which is the point: this is how a database is taken out of service.
         /// </summary>
         public AuthorityChange Delete()
         {
-            int removed;
-            var deleting = false;
-            try
+            var waits = false;
+            using (var reading = _store.Read())
             {
-                removed = _store.DeleteEverything(() => deleting = true);
-            }
-            catch (Exception error) when (Expected.OfCustomData(error))
-            {
-                // Once the deletion has begun, a failure is not a database that was left alone,
-                // for the reason a recreation that fails once its clearing has begun tells the
-                // operator so.
-                _log.Error("the authority could not be deleted", error);
-                return AuthorityChange.Refused(
-                    "The authority could not be deleted: " + error.Message + (deleting ? PartlyDeletedNote : string.Empty));
+                var held = HeldBack(reading);
+                if (held != null)
+                {
+                    return held;
+                }
+
+                var standing = Standing(reading);
+                if (standing.Count > 0)
+                {
+                    var written = Write(Retirements(reading, "Delete", standing, null, true), out waits);
+                    if (written != null)
+                    {
+                        _log.Warn("the authority could not be deleted: " + written);
+                        return AuthorityChange.Refused("The authority could not be deleted: " + written);
+                    }
+                }
             }
 
             using (var check = Read())
             {
                 if (check.Presence != AuthorityPresence.None)
                 {
-                    // Not "nothing was changed on disk", which this cannot know and which was
-                    // wrong the moment the admission records went first: the removals are already
-                    // asked for by the time the authority is read back, so a delete that comes
-                    // apart halfway is the case being reported and reporting it as a no-op sends
-                    // the operator away from a database that needs looking at.
                     _log.Warn("the authority survived a delete");
                     return AuthorityChange.Refused(
-                        "The authority is still in the database after being deleted, so some of the " +
-                        "deletion may have landed. Read the page again before pressing anything else.");
+                        "The authority is still in the database after being deleted. Read the page again " +
+                        "before pressing anything else.");
                 }
             }
 
-            _log.Info("authority deleted, admission records removed: " + removed);
+            if (!waits)
+            {
+                _log.Info("authority deleted, admission records removed: " + RemoveAdmissions());
+            }
+
             return AuthorityChange.Done();
         }
 
         /// <summary>
-        /// Keeps one of several authorities and retires the rest, which is the operator's answer
-        /// to a database that met another copy of itself holding an authority of its own.
+        /// Keeps one of several authorities and retires the rest, each retirement holding the
+        /// store key, which is the operator's answer to a database that met another copy of
+        /// itself holding an authority of its own, `STORE.md` §614.
         /// </summary>
         /// <remarks>
-        /// Read back like everything else here, and believed only if what is served afterwards is
-        /// the one that was kept: a store that swallowed the retirements reads back as the same
-        /// several authorities, and telling the operator their choice was made would leave them
-        /// waiting for a gate that goes on answering nobody.
-        ///
-        /// **An answer is about the authorities it was given among**, and the store refuses it
-        /// once the database holds any other set, `AuthorityStore.Keep`. That refusal is
-        /// <see cref="AuthorityChange.IsOvertaken"/> here, for a caller that puts the question
-        /// again, and is no error: the database is as a synchronize left it.
+        /// **An answer is about the authorities it was given among**, and the write is refused
+        /// once any other set stands, as <see cref="AuthorityChange.IsOvertaken"/>, for a caller
+        /// that puts the question again: the database is as a synchronize left it. Read back like
+        /// everything else here, and believed only if what is served afterwards is the authority kept.
         /// </remarks>
-        /// <param name="fingerprint">The digest of the authority to keep.</param>
-        /// <param name="offered">The digest of every authority the question listed.</param>
+        /// <param name="fingerprint">The `id` of the authority to keep.</param>
+        /// <param name="offered">The `id` of every authority the question listed.</param>
         public AuthorityChange Keep(string fingerprint, IEnumerable<string> offered)
         {
-            int retired;
-            try
+            if (offered == null)
             {
-                retired = _store.Keep(fingerprint, offered);
+                throw new ArgumentNullException(nameof(offered));
             }
-            catch (ChoiceOvertaken overtaken)
+
+            List<string> others;
+            using (var reading = _store.Read())
             {
-                _log.Info("an authority was not kept, because the database no longer holds the " +
-                          "authorities the question listed");
-                return AuthorityChange.Overtaken(overtaken.Message);
-            }
-            catch (Exception error) when (Expected.OfCryptography(error) || Expected.OfCustomData(error))
-            {
-                _log.Error("an authority could not be kept", error);
-                return AuthorityChange.Refused("The authority could not be kept: " + error.Message);
+                var held = HeldBack(reading);
+                if (held != null)
+                {
+                    return held;
+                }
+
+                var listed = new HashSet<string>(offered, StringComparer.Ordinal);
+                var standing = Standing(reading);
+                if (!listed.SetEquals(standing))
+                {
+                    _log.Info("an authority was not kept, because the database no longer holds the " +
+                              "authorities the question listed");
+                    return AuthorityChange.Overtaken(
+                        "This database no longer holds the authorities that were listed, so none of them was kept.");
+                }
+
+                // Among the authorities listed and whole, or a refusal the log names as an error:
+                // the chooser offers nothing else, so an answer outside them is a defect upstream.
+                var kept = reading.Answering.FirstOrDefault(record => record.Form.Member(StoreKinds.Id) == fingerprint);
+                var refused = string.IsNullOrEmpty(fingerprint) || kept == null
+                    ? "That authority is not among the authorities this database can keep."
+                    : Unreadable(kept);
+                if (refused != null)
+                {
+                    _log.Error("an authority could not be kept: " + refused, null);
+                    return AuthorityChange.Refused("The authority could not be kept. " + refused);
+                }
+
+                // None to retire is the authority already standing alone, which is kept as it is.
+                others = standing.Where(id => id != fingerprint).ToList();
+                var written = others.Count == 0 ? null : Write(Retirements(reading, "keeping an authority", others, listed, false), out _);
+                if (written != null)
+                {
+                    if (written.Contains(Overtaken))
+                    {
+                        return AuthorityChange.Overtaken(
+                            "This database no longer holds the authorities that were listed, so none of them was kept.");
+                    }
+
+                    _log.Error("an authority could not be kept: " + written, null);
+                    return AuthorityChange.Refused("The authority could not be kept: " + written);
+                }
             }
 
             using (var check = Read())
             {
-                if (!check.IsPresent ||
-                    !string.Equals(check.Material.AuthorityDigest, fingerprint, StringComparison.Ordinal))
+                if (!check.IsPresent || !string.Equals(check.Material.AuthorityDigest, fingerprint, StringComparison.Ordinal))
                 {
                     _log.Warn("an authority was kept and the database does not read back as serving it");
                     return AuthorityChange.Refused(
@@ -234,56 +296,138 @@ namespace KeePassGate.Authority
                 }
             }
 
-            // None retired is the authority already served alone, which is kept as it was: the
-            // chooser asks only of a database serving several, and keeping one that is already the
-            // only one leaves the database as the operator asked for it.
-            _log.Info("authority " + CertificateDigest.Shorten(fingerprint) + " kept, others retired: " + retired);
+            _log.Info("authority " + CertificateDigest.Shorten(fingerprint) + " kept, others retired: " + others.Count);
             return AuthorityChange.Done();
         }
 
-        /// <summary>
-        /// What a recreation that failed once its clearing had begun has to add, whatever it failed
-        /// at. The old authority and the records are asked for before the replacement is written,
-        /// so every refusal from that point on is about a database that has already been changed.
-        /// </summary>
-        private static string ClearingNote()
+        /// <summary>Why an authority standing cannot be kept, or null where it reads whole.</summary>
+        private static string Unreadable(FoundRecord record)
         {
-            return " Recreating removes the old authority and every admission record before writing " +
-                   "the replacement, so what was there before may be gone as well.";
+            using (var material = StoreAuthorities.Material(record, new List<string>()))
+            {
+                return material == null ? "That authority cannot be read, so it cannot be kept." : null;
+            }
+        }
+
+        /// <summary>What a ground that went answers, for a caller that tells a choice overtaken apart.</summary>
+        private const string Overtaken = "the authorities it was asked about no longer stand as they did";
+
+        /// <summary>What a store reading made already holds, with the admissions counted beside it.</summary>
+        internal AuthorityReading Read(StoreReading reading)
+        {
+            bool listed;
+            var records = new AdmissionStore(_admissions, _log).Count(out listed);
+            return StoreAuthorities.Read(reading, records, listed);
         }
 
         /// <summary>
-        /// What a deletion that failed once it had begun has to add: the authority may already be
-        /// retired, and the records gone with it.
+        /// Refuses a command while the store holds the gate back, with the word and why, or null
+        /// where a command may write: a store that is whole, and a database with no store key.
         /// </summary>
-        private const string PartlyDeletedNote =
-            " Some of the deletion may have landed, so read the page again before pressing anything else.";
-
-        private static byte[] NewSniKey()
+        private static AuthorityChange HeldBack(StoreReading reading)
         {
-            var key = new byte[AuthorityMaterial.SniKeyLength];
-            using (var random = RandomNumberGenerator.Create())
+            var word = StoreWords.Of(reading.State);
+            return word == null
+                ? null
+                : AuthorityChange.Refused(
+                    "The store of this database is " + word + ", so nothing is written into it: " + reading.Reason + ".");
+        }
+
+        /// <summary>The `id` of every authority standing, a damaged authority among them.</summary>
+        private static IReadOnlyList<string> Standing(StoreReading reading)
+        {
+            return reading.Answering.Select(record => record.Form.Member(StoreKinds.Id)).ToList();
+        }
+
+        /// <summary>
+        /// An act retiring these authorities, each retirement holding the store key, held to the
+        /// authorities that stood when it was composed, or to those listed.
+        /// </summary>
+        /// <param name="endsAdmissions">Whether every admission goes with the act, as with a Delete.</param>
+        private static StoreAct Retirements(
+            StoreReading reading, string name, IReadOnlyList<string> retired, ISet<string> listed, bool endsAdmissions)
+        {
+            var key = (byte[])reading.InForce.Key.Bytes.Clone();
+            try
             {
-                random.GetBytes(key);
+                var stood = listed ?? new HashSet<string>(Standing(reading), StringComparer.Ordinal);
+                var records = retired.Select(id => Retirement(key, id, true)).ToList();
+                return new StoreAct(
+                    name, key, reading.InForce.Key.Name, records, ground => ground.Standing.SetEquals(stood) ? null : Overtaken, endsAdmissions);
+            }
+            finally
+            {
+                Array.Clear(key, 0, key.Length);
+            }
+        }
+
+        private static StoreRecord Retirement(byte[] key, string authority, bool holdingKey)
+        {
+            var members = new Dictionary<string, string>(StringComparer.Ordinal) { { StoreKinds.AuthorityMember, authority } };
+            if (holdingKey)
+            {
+                members[StoreKinds.StoreKey] = Hex.Of(key);
             }
 
-            return key;
+            return StoreRecord.Compose(key, StoreKinds.Retired, members);
+        }
+
+        /// <summary>Writes an act, answering why it was not written, or null where it was.</summary>
+        /// <remarks>
+        /// **The act's copy of the store key is overwritten here** once the store is done with it,
+        /// written, refused or thrown, `CA.md` §208, unless the store holds the act for a dialog's
+        /// OK: that buffer overwrites it when it lets the act go.
+        /// </remarks>
+        /// <param name="waits">
+        /// Whether the store holds the act for a dialog's OK, where what the act takes out of the
+        /// custom data is decided.
+        /// </param>
+        private string Write(StoreAct act, out bool waits)
+        {
+            waits = false;
+            try
+            {
+                var written = _store.Write(new[] { act });
+                waits = written.Taken && written.Waits;
+                return written.Taken ? null : written.Reason;
+            }
+            finally
+            {
+                if (!waits)
+                {
+                    act.Forget();
+                }
+            }
+        }
+
+        /// <summary>Takes every admission record away, as the authority that issued them goes.</summary>
+        private int RemoveAdmissions()
+        {
+            try
+            {
+                return new AdmissionStore(_admissions, _log).RemoveAll();
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                // The authority is retired already, so every record left chains to an authority
+                // that is not served and admits nobody.
+                _log.Warn("the admission records could not be taken away with the authority: " + error.Message);
+                return 0;
+            }
         }
 
         /// <summary>
-        /// Mints an authority and its host certificate, writes them, and reads them back, which is
-        /// what creating and recreating have in common.
+        /// Mints an authority and its host certificate, writes it with a retirement of each
+        /// authority it replaces, and reads it back, which is what creating and recreating have in
+        /// common.
         /// </summary>
-        /// <param name="clearFirst">
-        /// Runs after the new material is minted and before anything is written, or null when
-        /// there is nothing to clear. `Recreate` removes the old authority here rather than
-        /// before calling, so that a mint which fails destroys nothing: what it returns, if
-        /// anything, is the refusal to report.
-        /// </param>
-        private AuthorityChange Issue(string verb, Func<AuthorityChange> clearFirst)
+        /// <param name="waits">Whether the store holds the act for a dialog's OK.</param>
+        private AuthorityChange Issue(string verb, StoreReading reading, IReadOnlyList<string> replacing, out bool waits)
         {
             byte[] sniKey = null;
-            string minted = null;
+            byte[] key = null;
+            string minted;
+            waits = false;
 
             try
             {
@@ -291,22 +435,33 @@ namespace KeePassGate.Authority
                 var host = _issuer.IssueHost(authority);
                 sniKey = NewSniKey();
 
-                if (clearFirst != null)
-                {
-                    var refused = clearFirst();
-                    if (refused != null)
-                    {
-                        return refused;
-                    }
-                }
+                // Under the store key that stands, or a new key where none does, `STORE.md` §632:
+                // a Recreate carries the key, and a Create after a Delete keeps it.
+                key = reading.State == StoreState.None ? StoreFormat.NewKey() : (byte[])reading.InForce.Key.Bytes.Clone();
 
                 using (var material = new AuthorityMaterial(authority, host, sniKey))
                 {
                     minted = material.AuthorityDigest;
-                    _store.Write(material);
+                    var records = replacing.Select(id => Retirement(key, id, false)).ToList();
+                    records.Add(StoreRecord.Compose(key, StoreKinds.Authority, AuthorityRecord.Members(material, key)));
+                    var stood = new HashSet<string>(Standing(reading), StringComparer.Ordinal);
+                    var act = new StoreAct(
+                        verb == "created" ? "Create" : "Recreate",
+                        key,
+                        reading.State == StoreState.None ? null : reading.InForce.Key.Name,
+                        records,
+                        ground => ground.Standing.SetEquals(stood) ? null : Overtaken,
+                        verb != "created");
+
+                    var written = Write(act, out waits);
+                    if (written != null)
+                    {
+                        _log.Warn("the authority could not be " + verb + ": " + written);
+                        return AuthorityChange.Refused("The authority could not be " + verb + ": " + written);
+                    }
                 }
             }
-            catch (Exception error) when (Expected.OfCryptography(error) || Expected.OfCustomData(error))
+            catch (Exception error) when (Expected.OfCryptography(error))
             {
                 _log.Error("the authority could not be " + verb, error);
                 return AuthorityChange.Refused("The authority could not be " + verb + ": " + error.Message);
@@ -317,19 +472,22 @@ namespace KeePassGate.Authority
                 {
                     Array.Clear(sniKey, 0, sniKey.Length);
                 }
+
+                if (key != null)
+                {
+                    Array.Clear(key, 0, key.Length);
+                }
             }
 
             // Read back out of the store that was written to. On the tab that store is the tab's
-            // own buffer, so this proves the material round-trips through the format and not that
+            // own buffer, so this proves the record round-trips through the format and not that
             // it reached the database: the write that does that happens when the dialog is
             // accepted, and is reported there.
             using (var check = Read())
             {
-                // Present is not enough, and recreation is what makes that matter. A write the
-                // store swallows leaves the authority that was already there, which reads back as
-                // present: the operator was told the recreation had worked while nothing had
-                // changed and every client it claimed to revoke was still admitted. The digest of
-                // what was just minted is the only thing that separates the two.
+                // Present is not enough: a write the store swallowed leaves the authority that was
+                // already there, which reads back as present. The digest of what was just minted
+                // is the only thing that separates the two.
                 if (!check.IsPresent ||
                     !string.Equals(check.Material.AuthorityDigest, minted, StringComparison.Ordinal))
                 {
@@ -343,21 +501,31 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// What to say when the material was written and the read back did not find it whole.
+        /// What the operator is told when the record was written and the read back did not find it whole.
         /// </summary>
         /// <remarks>
-        /// Two states rather than one, because the operator's next move differs and the message
-        /// used to give them neither. Nothing under the key is a write the store did not keep.
-        /// Something unreadable under the key is the write landing: the database now carries an
-        /// authority this plugin refuses, `Create` answers "recreate it" from here on, and a
-        /// message saying nothing had changed leaves the operator arguing with that.
+        /// Two states rather than a single state, because the operator's next move differs. Nothing standing
+        /// is a write the store did not keep. Something unreadable standing is the write landing:
+        /// the database now carries an authority this plugin refuses, and Create answers
+        /// "recreate it" from here on.
         /// </remarks>
         private static string NotReadBack(AuthorityPresence presence)
         {
             return presence == AuthorityPresence.Damaged
                 ? "The authority was written and could not be read back, so this database now holds " +
-                  "one that cannot be used. Recreate it to replace it."
+                  "an authority that cannot be used. Recreate it to replace it."
                 : "The authority was written and could not be read back, so nothing was stored.";
+        }
+
+        private static byte[] NewSniKey()
+        {
+            var key = new byte[AuthorityMaterial.SniKeyLength];
+            using (var random = RandomNumberGenerator.Create())
+            {
+                random.GetBytes(key);
+            }
+
+            return key;
         }
     }
 }

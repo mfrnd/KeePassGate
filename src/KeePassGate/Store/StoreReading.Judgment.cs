@@ -5,13 +5,13 @@ using System.Linq;
 
 namespace KeePassGate.Store
 {
-    internal sealed partial class StoreReading
+    public sealed partial class StoreReading
     {
         /// <summary>
         /// The state of the store, worked out from the checked forms and the deletion records:
         /// which entries are records under each key found, which key stands, whether the store is
-        /// of the plugin's format, and whether it is whole, `STORE.md` §621 to §624 and §649 to
-        /// §651, in the order of §656.
+        /// of the plugin's format, whether it is whole, and whether it has room for its next
+        /// write, `STORE.md` §621 to §624, §627 and §649 to §651, in the order of §656.
         /// </summary>
         /// <remarks>
         /// **No step follows a list.** `after` is read as the identifiers it names and nothing is
@@ -24,9 +24,10 @@ namespace KeePassGate.Store
         /// marks between keys, whatever number of keep records the file holds. The marking runs
         /// at most K rounds, each settling in at most K passes of K by K and asking each unmarked
         /// key whether a circle leads back to it, a search of K by K: of the order of K to the
-        /// fourth, about a million steps at the ceiling of 32, a few milliseconds. Whether the
-        /// store is whole: every record and every item once, through sets. So the reading grows
-        /// with the store's entries and their history, and with no power of them.
+        /// fourth, about a million steps at the ceiling of 32, a few milliseconds. What is in
+        /// force, whether the store is whole and the room it has: every record and every item
+        /// once, through sets, `StoreInForce`. So the reading grows with the store's entries and
+        /// their history, and with no power of them.
         /// </remarks>
         private sealed class Judgment
         {
@@ -48,6 +49,18 @@ namespace KeePassGate.Store
 
             /// <summary>Whether anything was judged, which past the ceiling on keys nothing is.</summary>
             public bool Judged { get; private set; } = true;
+
+            /// <summary>What is in force, for a store that is whole or stopped.</summary>
+            public StoreInForce InForce { get; private set; }
+
+            /// <summary>The authorities a word is answered under, `STORE.md` §656.</summary>
+            public IReadOnlyList<FoundRecord> Answering { get; private set; } = Array.Empty<FoundRecord>();
+
+            /// <summary>
+            /// Whether a retirement under a key that stands names an authority, by its `id`: none
+            /// where no key is judged.
+            /// </summary>
+            public Func<string, bool> Retires { get; private set; } = id => false;
 
             /// <summary>
             /// A store with more keys than the reading works under: split, with no key judged,
@@ -86,21 +99,23 @@ namespace KeePassGate.Store
                     };
                 }
 
+                // The tags of every kind under each key found, which each key keeps once made.
+                var known = keys
+                    .Select(key => (ISet<string>)new HashSet<string>(
+                        key.Tags.Select(tag => tag.ToString("x6", CultureInfo.InvariantCulture)), StringComparer.Ordinal))
+                    .ToList();
+                var deleted = Deleted(deletions, keys);
+
                 // Each entry's record under each key found: the first version, in order, that
                 // passes under it, `STORE.md` §621 and §622.
-                var records = new List<Record>[keys.Count];
+                var records = new List<FoundRecord>[keys.Count];
                 var damage = new List<string>[keys.Count];
                 var passed = 0;
                 for (var key = 0; key < keys.Count; key++)
                 {
-                    records[key] = new List<Record>();
+                    records[key] = new List<FoundRecord>();
                     damage[key] = new List<string>();
                 }
-
-                var known = keys
-                    .Select(key => (ISet<string>)new HashSet<string>(
-                        StoreKinds.All.Select(kind => Hex.Of(StoreFormat.Tag(key.Bytes, kind.Name))), StringComparer.Ordinal))
-                    .ToList();
 
                 for (var at = 0; at < candidates.Count; at++)
                 {
@@ -112,7 +127,7 @@ namespace KeePassGate.Store
                         {
                             if (forms[at][index].Passes(keys[key], candidate.Identifier))
                             {
-                                records[key].Add(new Record(candidate.Hex, forms[at][index], index > 0));
+                                records[key].Add(new FoundRecord(candidate.Hex, forms[at][index], index, deleted.Contains(candidate.Hex)));
                                 any = true;
                                 break;
                             }
@@ -141,34 +156,55 @@ namespace KeePassGate.Store
                     }
                 }
 
-                var deleted = Deleted(deletions, known);
-                var standing = Standing(keys, records, deleted);
+                var kept = keys.Count == 1 ? new List<Relation>() : KeptRelations(keys, records).ToList();
+                var told = keys.Count == 1 ? new List<Relation>() : DeletedRelations(keys, deleted).ToList();
+                var standing = Standing(keys.Count, kept.Concat(told).ToList());
+
+                // The deletion records by their tags, once for every key, `STORE.md` §649.
+                var byTag = ByTag(deleted);
                 if (standing.Count > 1)
                 {
+                    // A word is answered under each authority that stands under each key that
+                    // stands, `STORE.md` §656: the authorities that stand under each key are worked
+                    // out for that, and nothing else of what is in force, so no value of a record
+                    // under another key is hashed but the `id` of an authority present.
                     return new Judgment(
                         StoreState.Split,
                         "records under " + standing.Count.ToString(CultureInfo.InvariantCulture)
                         + " store keys stand, and the operator has kept no store")
                     {
                         Passed = passed,
+                        Answering = standing
+                            .SelectMany(key => StoreInForce.Standing(keys[key], records[key], byTag))
+                            .ToList(),
+                        Retires = id => standing.Any(key => StoreInForce.Retired(keys[key], records[key], byTag, new[] { id }).Contains(id)),
                     };
                 }
 
                 var store = standing[0];
-                var judged = Store(keys[store], records[store], damage[store], deleted);
+                var keptByDeletion = told.Where(relation => relation.Source == store)
+                    .Select(relation => new KeyValuePair<string, string>(relation.Id, keys[relation.Target].Name))
+                    .ToList();
+                var judged = Store(keys[store], records[store], damage[store], byTag, keptByDeletion);
                 judged.Damage = damage[store].Count;
                 judged.Passed = passed;
                 judged.ByHistory = records[store].Count(record => record.ByHistory);
+                judged.Retires = id => StoreInForce.Retired(keys[store], records[store], byTag, new[] { id }).Contains(id);
                 return judged;
             }
 
             /// <summary>
-            /// The state of the store under the single key that stands: its format, and whether it
-            /// is whole, `STORE.md` §651, §623 and §624.
+            /// The state of the store under the single key that stands: its format, whether it is
+            /// whole, and whether it has room, `STORE.md` §651, §623, §624 and §627.
             /// </summary>
-            private static Judgment Store(FoundKey key, IReadOnlyList<Record> records, IReadOnlyList<string> damage, ISet<string> deleted)
+            private static Judgment Store(
+                FoundKey key,
+                IReadOnlyList<FoundRecord> records,
+                IReadOnlyList<string> damage,
+                IReadOnlyDictionary<string, List<string>> byTag,
+                IReadOnlyCollection<KeyValuePair<string, string>> keptByDeletion)
             {
-                var heads = records.Where(record => record.Is(StoreKinds.Head)).ToList();
+                var inForce = StoreInForce.Of(key, records, byTag, keptByDeletion);
 
                 // A record of a kind the plugin does not know, an item of such a kind, or a
                 // version of an object of such a type: outdated, with or without a version
@@ -176,195 +212,64 @@ namespace KeePassGate.Store
                 var unknown = records.FirstOrDefault(record => record.Form.Unknown || record.Form.UnknownItem);
                 if (unknown != null)
                 {
-                    return new Judgment(
-                        StoreState.Outdated,
-                        "the store holds a record of a kind this plugin does not know: " + Short(unknown.Hex));
+                    return Outdated(
+                        "the store holds a record of a kind this plugin does not know: " + Short(unknown.Hex), inForce);
                 }
 
-                var highest = Highest(key.Bytes, records, heads, deleted);
-                if (highest > StoreFormat.Number)
+                if (inForce.Format > StoreFormat.Number)
                 {
-                    return new Judgment(
-                        StoreState.Outdated,
-                        "the store is of format " + highest.ToString(CultureInfo.InvariantCulture)
-                        + ", and this plugin reads format " + StoreFormat.Number.ToString(CultureInfo.InvariantCulture));
+                    return Outdated(
+                        "the store is of format " + inForce.Format.ToString(CultureInfo.InvariantCulture)
+                        + ", and this plugin reads format " + StoreFormat.Number.ToString(CultureInfo.InvariantCulture),
+                        inForce);
                 }
 
-                var inForce = heads.Where(head => head.InForce(deleted)).ToList();
-                if (inForce.Count == 0)
+                if (inForce.HeadsInForce.Count == 0)
                 {
-                    return new Judgment(StoreState.Stopped, "no summary entry of the store is in force");
+                    return Stopped("no summary entry of the store is in force", inForce);
                 }
 
-                var replaced = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var head in inForce)
+                if (inForce.Lost != null)
                 {
-                    replaced.Add(head.Hex);
-                    replaced.UnionWith(After(head.Form.Member(StoreKinds.After)));
-                }
-
-                var summaryStart = Hex.Of(StoreFormat.Tag(key.Bytes, StoreKinds.Head))
-                                   + Hex.Of(StoreFormat.Subject(key.Bytes, StoreKinds.StoreSubject));
-                var lost = deleted.FirstOrDefault(identifier =>
-                    identifier.StartsWith(summaryStart, StringComparison.Ordinal) && !replaced.Contains(identifier));
-                if (lost != null)
-                {
-                    return new Judgment(
-                        StoreState.Stopped, "a summary entry was deleted that nothing in force replaces: " + Short(lost));
+                    return Stopped("a summary entry was deleted that nothing in force replaces: " + Short(inForce.Lost), inForce);
                 }
 
                 if (damage.Count > 0)
                 {
-                    return new Judgment(
-                        StoreState.Stopped,
+                    return Stopped(
                         damage.Count.ToString(CultureInfo.InvariantCulture)
-                        + " entries of the store have no version that passes, the first " + Short(damage[0]));
+                        + " entries of the store have no version that passes, the first " + Short(damage[0]),
+                        inForce);
                 }
 
-                var notRestated = NotRestated(records, heads, inForce, deleted);
+                var notRestated = inForce.NotRestated();
                 if (notRestated != null)
                 {
-                    return new Judgment(
-                        StoreState.Stopped, "a record no summary entry restates: " + Short(notRestated.Hex));
+                    return Stopped("a record no summary entry restates: " + Short(notRestated.Hex), inForce);
                 }
 
-                return new Judgment(StoreState.Whole, null);
+                // Last, since a store with room is otherwise whole: answered as a stopped store,
+                // and lifted by nothing but a store started again, `STORE.md` §624 and §643.
+                if (!inForce.Room.HasRoom)
+                {
+                    return Stopped(inForce.Room.Reason, inForce);
+                }
+
+                return new Judgment(StoreState.Whole, null) { InForce = inForce, Answering = inForce.Authorities };
             }
 
             /// <summary>
-            /// The first record that takes something away, or holds a plugin back, and that no
-            /// summary entry restates as its row of `STORE.md` §658 has it, or null.
+            /// A store of a form the plugin does not read: answered under the authorities that
+            /// stand, and nothing of it handed out as in force.
             /// </summary>
-            /// <remarks>
-            /// Every item is put into a set once, by what restates a record, so each record is a
-            /// lookup whatever number of items the summary entries hold.
-            /// </remarks>
-            private static Record NotRestated(
-                IReadOnlyList<Record> records, IReadOnlyList<Record> heads, IReadOnlyList<Record> inForce, ISet<string> deleted)
+            private static Judgment Outdated(string reason, StoreInForce inForce)
             {
-                var restating = new HashSet<(string Kind, string Value, string Id)>();
-                var formats = 0;
-                foreach (var item in heads.SelectMany(head => head.Form.Items))
-                {
-                    var row = StoreKinds.Find(item.Kind);
-                    switch (row.Restated)
-                    {
-                        case StoreRestated.BySameMember:
-                            // A removal is restated by its name and its identifier both.
-                            restating.Add(Restating(row.Name, item.Member(row.RestatedBy), row.Name == StoreKinds.Removed ? item.Member(StoreKinds.Id) : null));
-                            break;
-                        case StoreRestated.ById:
-                            restating.Add(Restating(row.Name, item.Member(StoreKinds.Id), null));
-                            break;
-                        case StoreRestated.ByFormat:
-                            formats = Math.Max(formats, StoreChecked.NumberOf(item.Member(StoreKinds.FormatMember)));
-                            break;
-                    }
-                }
-
-                // What a version in force names as replaced: a version record in force, and an item
-                // of a summary entry in force.
-                var replacedVersions = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var record in records.Where(record => record.Is(StoreKinds.Version) && record.InForce(deleted)))
-                {
-                    replacedVersions.UnionWith(After(record.Form.Member(StoreKinds.After)));
-                }
-
-                foreach (var item in inForce.SelectMany(head => head.Form.Items).Where(item => item.Kind == StoreKinds.Version))
-                {
-                    replacedVersions.UnionWith(After(item.Member(StoreKinds.After)));
-                }
-
-                foreach (var record in records.Where(record => record.Form.ReadsAsKind))
-                {
-                    var row = record.Form.Row;
-                    switch (row.Restated)
-                    {
-                        case StoreRestated.BySameMember:
-                            var restated = Restating(
-                                row.Name, record.Form.Member(row.RestatedBy), row.Name == StoreKinds.Removed ? record.Hex : null);
-                            if (!restating.Contains(restated))
-                            {
-                                return record;
-                            }
-
-                            break;
-
-                        case StoreRestated.ById:
-                            // A version out of force, or one a version in force replaces, is no
-                            // standing version, and no summary entry carries it.
-                            if (!row.CountsBesideDeletion
-                                && (!record.InForce(deleted) || replacedVersions.Contains(record.Hex)))
-                            {
-                                break;
-                            }
-
-                            if (!restating.Contains(Restating(row.Name, record.Hex, null)))
-                            {
-                                return record;
-                            }
-
-                            break;
-
-                        case StoreRestated.ByFormat:
-                            if (formats < record.Form.Number)
-                            {
-                                return record;
-                            }
-
-                            break;
-                    }
-                }
-
-                return null;
+                return new Judgment(StoreState.Outdated, reason) { Answering = inForce.Authorities };
             }
 
-            /// <summary>
-            /// What restates a record, its members held apart: a member's value may hold any
-            /// character, a line feed among them, so no text joined from them could tell two apart.
-            /// </summary>
-            private static (string Kind, string Value, string Id) Restating(string kind, string value, string id)
+            private static Judgment Stopped(string reason, StoreInForce inForce)
             {
-                return (kind, value, id);
-            }
-
-            /// <summary>
-            /// The highest format number the store states: a version record, the item `format` of
-            /// a summary entry that is a record, or a deletion record that tells of a version
-            /// record by its tag, a number from 1 and the subject hash of that number, `STORE.md`
-            /// §623.
-            /// </summary>
-            private static int Highest(byte[] key, IReadOnlyList<Record> records, IReadOnlyList<Record> heads, ISet<string> deleted)
-            {
-                var highest = 0;
-                foreach (var record in records.Where(record => record.Is(StoreKinds.Format)))
-                {
-                    highest = Math.Max(highest, record.Form.Number);
-                }
-
-                foreach (var item in heads.SelectMany(head => head.Form.Items).Where(item => item.Kind == StoreKinds.Format))
-                {
-                    highest = Math.Max(highest, StoreChecked.NumberOf(item.Member(StoreKinds.FormatMember)));
-                }
-
-                var tag = Hex.Of(StoreFormat.Tag(key, StoreKinds.Format));
-                var numberAt = (StoreFormat.TagLength + StoreFormat.SubjectLength) * 2;
-                foreach (var identifier in deleted.Where(identifier => identifier.StartsWith(tag, StringComparison.Ordinal)))
-                {
-                    var number = int.Parse(identifier.Substring(numberAt, StoreFormat.HeightLength * 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-                    if (number < 1)
-                    {
-                        continue;
-                    }
-
-                    var subject = Hex.Of(StoreFormat.Subject(key, "format:" + number.ToString(CultureInfo.InvariantCulture)));
-                    if (string.Equals(identifier.Substring(StoreFormat.TagLength * 2, StoreFormat.SubjectLength * 2), subject, StringComparison.Ordinal))
-                    {
-                        highest = Math.Max(highest, number);
-                    }
-                }
-
-                return highest;
+                return new Judgment(StoreState.Stopped, reason) { InForce = inForce, Answering = inForce.Authorities };
             }
 
             /// <summary>
@@ -376,27 +281,26 @@ namespace KeePassGate.Store
             /// into K by K marks first, however many keep records the file holds, and the marking
             /// runs over those.
             /// </remarks>
-            private static IReadOnlyList<int> Standing(IReadOnlyList<FoundKey> keys, IReadOnlyList<Record>[] records, ISet<string> deleted)
+            private static IReadOnlyList<int> Standing(int keys, IReadOnlyList<Relation> relations)
             {
-                if (keys.Count == 1)
+                if (keys == 1)
                 {
                     return new[] { 0 };
                 }
 
-                var relations = KeptRelations(keys, records).Concat(DeletedRelations(keys, deleted)).ToList();
                 var named = new HashSet<string>(relations.SelectMany(relation => relation.After), StringComparer.Ordinal);
-                var names = new bool[keys.Count, keys.Count];
+                var names = new bool[keys, keys];
                 foreach (var relation in relations.Where(relation => relation.Target >= 0 && !named.Contains(relation.Id)))
                 {
                     names[relation.Source, relation.Target] = true;
                 }
 
                 var marks = Marked(names);
-                return Enumerable.Range(0, keys.Count).Where(key => marks[key] != Mark.Aside).ToList();
+                return Enumerable.Range(0, keys).Where(key => marks[key] != Mark.Aside).ToList();
             }
 
             /// <summary>The keep records under each key found, and the items that restate them.</summary>
-            private static IEnumerable<Relation> KeptRelations(IReadOnlyList<FoundKey> keys, IReadOnlyList<Record>[] records)
+            private static IEnumerable<Relation> KeptRelations(IReadOnlyList<FoundKey> keys, IReadOnlyList<FoundRecord>[] records)
             {
                 var byName = new Dictionary<string, int>(StringComparer.Ordinal);
                 for (var key = 0; key < keys.Count; key++)
@@ -434,14 +338,15 @@ namespace KeePassGate.Store
                     .GroupBy(identifier => identifier.Substring(0, (StoreFormat.TagLength + StoreFormat.SubjectLength) * 2), StringComparer.Ordinal)
                     .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
 
+                var keptKind = StoreKinds.Find(StoreKinds.Kept);
                 for (var source = 0; source < keys.Count; source++)
                 {
-                    var tag = Hex.Of(StoreFormat.Tag(keys[source].Bytes, StoreKinds.Kept));
+                    var tag = keys[source].TagOf(keptKind);
                     for (var target = 0; target < keys.Count; target++)
                     {
                         List<string> starting;
                         if (target == source
-                            || !byStart.TryGetValue(tag + Hex.Of(StoreFormat.Subject(keys[source].Bytes, "key:" + keys[target].Name)), out starting))
+                            || !byStart.TryGetValue(tag + keys[source].Subject("key:" + keys[target].Name), out starting))
                         {
                             continue;
                         }
@@ -487,6 +392,7 @@ namespace KeePassGate.Store
                     }
                 }
             }
+
             private static int Target(IReadOnlyDictionary<string, int> byName, string name)
             {
                 int target;
@@ -577,9 +483,9 @@ namespace KeePassGate.Store
             /// kind under a key found: every deletion record that can name a record of the store,
             /// since a record's identifier begins with its tag.
             /// </summary>
-            private static ISet<string> Deleted(IReadOnlyList<byte[]> deletions, IReadOnlyList<ISet<string>> known)
+            private static ISet<string> Deleted(IReadOnlyList<byte[]> deletions, IReadOnlyList<FoundKey> keys)
             {
-                var tags = new HashSet<int>(known.SelectMany(set => set).Select(tag => Convert.ToInt32(tag, 16)));
+                var tags = new HashSet<int>(keys.SelectMany(key => key.Tags));
                 var deleted = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var identifier in deletions)
                 {
@@ -588,13 +494,36 @@ namespace KeePassGate.Store
                         continue;
                     }
 
-                    if (tags.Contains((identifier[0] << 16) | (identifier[1] << 8) | identifier[2]))
+                    if (tags.Contains(StoreFormat.TagNumber(identifier)))
                     {
                         deleted.Add(Hex.Of(identifier));
                     }
                 }
 
                 return deleted;
+            }
+
+            /// <summary>
+            /// The identifiers the deletion records name, by the tag each begins with, as
+            /// lowercase hexadecimal: sorted once, for every key the reading judges.
+            /// </summary>
+            private static Dictionary<string, List<string>> ByTag(IEnumerable<string> deleted)
+            {
+                var byTag = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+                foreach (var identifier in deleted)
+                {
+                    List<string> tagged;
+                    var tag = identifier.Substring(0, StoreFormat.TagLength * 2);
+                    if (!byTag.TryGetValue(tag, out tagged))
+                    {
+                        tagged = new List<string>();
+                        byTag[tag] = tagged;
+                    }
+
+                    tagged.Add(identifier);
+                }
+
+                return byTag;
             }
 
             private static IReadOnlyList<string> After(string list)
@@ -633,39 +562,6 @@ namespace KeePassGate.Store
                 public string Id { get; private set; }
 
                 public IReadOnlyList<string> After { get; private set; }
-            }
-        }
-
-        /// <summary>An entry's record under a key: the version that passes, and whether it is from its history.</summary>
-        private sealed class Record
-        {
-            public Record(string hex, StoreChecked form, bool byHistory)
-            {
-                Hex = hex;
-                Form = form;
-                ByHistory = byHistory;
-            }
-
-            public string Hex { get; private set; }
-
-            public StoreChecked Form { get; private set; }
-
-            public bool ByHistory { get; private set; }
-
-            /// <summary>Whether it reads as a record of this kind.</summary>
-            public bool Is(string kind)
-            {
-                return Form.ReadsAsKind && string.Equals(Form.Kind, kind, StringComparison.Ordinal);
-            }
-
-            /// <summary>
-            /// Whether it is in force: a record of a kind that counts beside a deletion record
-            /// naming it always, and any other only where no deletion record names it, as its row
-            /// of `STORE.md` §658 has it.
-            /// </summary>
-            public bool InForce(ISet<string> deleted)
-            {
-                return (Form.Row != null && Form.Row.CountsBesideDeletion) || !deleted.Contains(Hex);
             }
         }
     }

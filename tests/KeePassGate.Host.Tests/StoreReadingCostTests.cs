@@ -5,9 +5,12 @@ using System.Globalization;
 using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Audit;
+using KeePassGate.Authority;
 using KeePassGate.Bridge;
+using KeePassGate.Diagnostics;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
+using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassGate.Transport;
 using KeePassGate.Ui;
@@ -19,7 +22,8 @@ namespace KeePassGate.Host.Tests
 {
     /// <summary>
     /// What reading the plugin's store holds KeePass's thread for, through the real router and
-    /// vault, `STORE.md` §620 and §644, recorded in `FINDINGS.md` section 22.
+    /// vault, `STORE.md` §620 and §644, and what a write of the operator's into it holds the
+    /// thread for, §627, recorded in `FINDINGS.md` section 22.
     /// </summary>
     /// <remarks>
     /// **A measurement to read, and not a gate to pass**, since a time on a shared machine is no
@@ -98,6 +102,86 @@ namespace KeePassGate.Host.Tests
                     later[later.Count / 2],
                     later[later.Count - 1],
                     keePass.Readings));
+            }
+        }
+
+        [Test]
+        public void What_a_hold_costs_at_the_plugin_s_ceilings()
+        {
+            // The same database beside a store near both of the plugin's ceilings: what is in
+            // force and the room are worked out at every hold, over every item and every
+            // deletion record of the store, `STORE.md` §623 and §627.
+            using (var database = TemporaryDatabase.New())
+            {
+                Fill(database.Database, 0);
+                AtTheCeilings(database.Database);
+
+                var hold = new Timed();
+                var store = new StoreReadings(database.Database, hold, null);
+                Assert.That(hold.Hold(() => store.Now()).Room.HasRoom, Is.True);
+                Report("the store's word at the plugin's ceilings", hold, () => hold.Hold(() => store.Word));
+            }
+        }
+
+        [TestCase(0)]
+        [TestCase(10)]
+        public void What_a_write_of_the_operator_s_holds_the_thread_for(int history)
+        {
+            // A Recreate as the settings dialog's OK writes it, the store's write timed alone on
+            // the thread that makes it: the reading in the writer's turn, the plan, every entry it
+            // touches asked about, and the application, `STORE.md` §627. Making the authority the
+            // write carries is left out, since the tab makes it at the press and not at the OK.
+            // Each Recreate leaves a retirement behind, so the store gains an entry with each write.
+            using (var database = TemporaryDatabase.New())
+            {
+                Fill(database.Database, history);
+                Store(database.Database);
+
+                var store = new TimedStore(new KdbxStore(database.Database, GateVersion.Current, null, entry => null));
+                var service = new AuthorityService(store, new CustomDataStore(database.Database), NullGateLog.Instance);
+                for (var run = 0; run <= Runs; run++)
+                {
+                    Assert.That(service.Recreate().Succeeded, Is.True);
+                }
+
+                var later = store.Times.Skip(1).OrderBy(time => time).ToList();
+                TestContext.Out.WriteLine(string.Format(
+                    CultureInfo.InvariantCulture,
+                    "a Recreate's write: first {0:F2} ms, median {1:F2} ms, worst {2:F2} ms",
+                    store.Times[0],
+                    later[later.Count / 2],
+                    later[later.Count - 1]));
+            }
+        }
+
+        /// <summary>A store whose writes are timed, each from its call to its answer.</summary>
+        private sealed class TimedStore : IGateStore
+        {
+            private readonly IGateStore _store;
+
+            public TimedStore(IGateStore store)
+            {
+                _store = store;
+            }
+
+            public List<double> Times { get; } = new List<double>();
+
+            public string Unwritable
+            {
+                get { return _store.Unwritable; }
+            }
+
+            public StoreReading Read()
+            {
+                return _store.Read();
+            }
+
+            public StoreWritten Write(IReadOnlyList<StoreAct> acts)
+            {
+                var clock = Stopwatch.StartNew();
+                var written = _store.Write(acts);
+                Times.Add(clock.Elapsed.TotalMilliseconds);
+                return written;
             }
         }
 
@@ -218,6 +302,52 @@ namespace KeePassGate.Host.Tests
                 key, "head", "store",
                 StoreComposer.Content(("after", string.Join(" ", after)), ("height", "1")),
                 1,
+                items)), true);
+        }
+
+        /// <summary>
+        /// An authority, and a summary entry that names nearly as many summary entries as a
+        /// string the plugin writes holds, each of them deleted with a deletion record, and that
+        /// restates nearly as many revocations as a summary entry has item names, a tenth of them
+        /// with a deletion record of its own besides, `StoreFormat.MaxWritten` and
+        /// `StoreFormat.MaxItems`.
+        /// </summary>
+        private static void AtTheCeilings(PwDatabase database)
+        {
+            const int Named = 7900;
+            const int Revoked = 9000;
+            var key = StoreComposer.Key("ceilings");
+            var group = new PwGroup(true, true, "KeePassGate", PwIcon.TerminalEncrypted);
+            database.RootGroup.AddGroup(group, true);
+            group.AddEntry(StoreEntries.Of(StoreComposer.Record(
+                key, "authority", "authority:" + new string('a', 64),
+                StoreComposer.Content(("id", new string('a', 64)), ("storeKey", StoreComposer.HexOf(key))))), true);
+
+            var after = new List<string>();
+            for (var height = 1; height <= Named; height++)
+            {
+                var replaced = StoreComposer.IdentifierOf(key, "head", "store", height, height.ToString("x64", CultureInfo.InvariantCulture));
+                database.DeletedObjects.Add(new PwDeletedObject(new PwUuid(replaced), DateTime.UtcNow));
+                after.Add(StoreComposer.HexOf(replaced));
+            }
+
+            var items = new List<string> { StoreComposer.Item(("format", "1"), ("kind", "format"), ("plugin", "0.3.0")) };
+            for (var index = 0; index < Revoked; index++)
+            {
+                var client = index.ToString("x64", CultureInfo.InvariantCulture);
+                items.Add(StoreComposer.Item(("client", client), ("kind", "revoked")));
+                if (index % 10 == 0)
+                {
+                    var revocation = StoreComposer.IdentifierOf(key, "revoked", "client:" + client, 0, new string('5', 64));
+                    database.DeletedObjects.Add(new PwDeletedObject(new PwUuid(revocation), DateTime.UtcNow));
+                }
+            }
+
+            after.Sort(StringComparer.Ordinal);
+            group.AddEntry(StoreEntries.Of(StoreComposer.Record(
+                key, "head", "store",
+                StoreComposer.Content(("after", string.Join(" ", after)), ("height", (Named + 1).ToString(CultureInfo.InvariantCulture))),
+                Named + 1,
                 items)), true);
         }
 

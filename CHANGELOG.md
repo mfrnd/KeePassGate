@@ -11,6 +11,23 @@ none, since it releases both.
 
 ## 0.3.0, unreleased
 
+- **Breaking: no authority that 0.2 made is served, so a database is given an authority again and
+  every program paired again.** The authority, its host certificate and the gate key are now a
+  record in the plugin's store: an entry in a group of the plugin's own named `KeePassGate`, its
+  content protected in memory as a password is, under a check keyed by the store's own key. Create,
+  Recreate and Delete on the KPG tab write it there at the settings dialog's OK, and so does keeping
+  an authority where copies of the database each made their own. 0.2 kept the authority in the
+  database's custom data, and that is reversed rather than migrated: 0.3 reads nothing there about
+  the authority and changes nothing there, so a database 0.2 paired shows no authority on the tab
+  and is served nothing until **Create authority** and OK, from which it is served; a save puts the
+  authority in the file. Each program then pairs again. The admission records 0.2 wrote stay where
+  they were and admit nobody, since each certificate they admit chains to the authority 0.2 made. A
+  database whose store holds no key is served nothing, but for `503 lost` below. An edit to what the
+  plugin wrote in an entry of the store is undone at the plugin's next write into the store, with
+  the edit kept in the entry's history; in a database that keeps no history such an edit stops the
+  store, and a title or notes changed on such an entry are not put back. **Keep this authority** is
+  refused while KeePass's entry dialog is open on an entry the choice would delete or put back,
+  since that dialog's OK writes its own copy over it. `STORE.md` §614, §626, §627, §628 and §645.
 - **Breaking: a field whose name begins `KPG.` is out of every program's reach, on whichever
   entry it is.** A program that made fields of its own whose names begin with `KPG.` renames them
   before the upgrade, in KeePass or through the API under 0.2, since 0.3 neither serves nor
@@ -27,18 +44,23 @@ none, since it releases both.
   key gives, which a random identifier meets about once in one and a half million entries.
   Nothing else changes for a program, and a 0.2 client works with a 0.3 gate, `API.md` §411.
   `STORE.md` §633.
-- **A gate answers `503 split`, `503 outdated` or `503 stopped` to every request for a database
-  whose store holds it back, and PyKeePassGate raises `StoreSplit`, `StoreOutdated` and
-  `StoreStopped` for them.** `split` is a store under more than one store key, as a copy that
-  made a store of its own leaves after a synchronize, until the operator keeps one; `outdated`
-  is a store a later release raised, or that holds a record of a kind this release does not know,
-  until the plugin is updated; `stopped` is a store that is not whole, as a record of the
-  plugin's deleted or edited by hand leaves it, until the operator seals it again. Each is
-  answered before a route is chosen, in the body and in `KPG-Unavailable`, as `locked` and
-  `undecided` are, and ahead of `undecided`. None is waited out, since each ends by an act of
-  the operator's. The routing document declares `frozen` beside them, which a later gate sends
-  and this one never does, and the client raises `StoreFrozen` for it. A 0.2 client takes each
-  for the gate being unavailable, `API.md` §411. `STORE.md` §656.
+- **A gate answers `503 lost`, `503 split`, `503 outdated` or `503 stopped` to every request for a
+  database whose store holds it back, and PyKeePassGate raises `StoreLost`, `StoreSplit`,
+  `StoreOutdated` and `StoreStopped` for them.** `lost` is a database whose file holds no store key
+  any more, as the entry that carried it deleted for good leaves it, answered only by a gate that
+  was serving the database when the key went, with the host certificate it served with, and only
+  until the database is locked or closed, after which nothing answers; `split` is a store under more
+  than one store key, as a copy that made a store of its own leaves after a synchronize, until the
+  operator keeps one; `outdated` is a store a later release raised, or that holds a record of a kind
+  this release does not know, until the plugin is updated; `stopped` is a store that is not whole,
+  as a record of the plugin's deleted or edited by hand leaves it, until the operator seals it
+  again, and a store that has no room left for its next write, which the plugin's log warns of once
+  the store has grown past half its room, `STORE.md` §643. Each is answered before a route is
+  chosen, in the body and in `KPG-Unavailable`, as `locked` and `undecided` are, and ahead of
+  `undecided`. None is waited out, since each ends by an act of the operator's. The routing document
+  declares `frozen` beside them, which a later gate sends and this gate never does, and the client
+  raises `StoreFrozen` for it. A 0.2 client takes each for the gate being unavailable, `API.md`
+  §411. `STORE.md` §656.
 
 ## 0.2.0, 2026-11-17
 

@@ -319,12 +319,11 @@ namespace KeePassGate.Gate
         /// changed since then without either was invisible to the lock: a Save As left the entry
         /// under the old path and the lock matched nothing, an authority created on the KPG tab
         /// had no entry and the lock answered nothing, and one deleted there still had one and the
-        /// lock answered `503 locked` for it. Reading here closes all three. It costs a comparison
-        /// of stored text per open database whose reading was kept, which is one served or one
-        /// holding several authorities, and a key pair only where an authority is new. **A
-        /// database whose authority does not read is read in full every time**, both PKCS#12 blobs
-        /// parsed again at every lock, unlock, close, open and save, because nothing remembers a
-        /// reading that served nothing.
+        /// lock answered `503 locked` for it. Reading here closes all three. It costs a walk of each
+        /// open database's store and a comparison of what stands there, and a key pair only where
+        /// an authority is new. **A database whose authority does not read is parsed in full every
+        /// time**, both PKCS#12 blobs again at every lock, unlock, close, open and save, because
+        /// nothing remembers a target that served nothing.
         /// </remarks>
         private void OnClosing(object sender, EventArgs e)
         {

@@ -5,6 +5,7 @@ using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
+using KeePassGate.Testing;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests
@@ -54,7 +55,7 @@ namespace KeePassGate.Host.Tests
 
             foreach (var target in targets)
             {
-                Assert.That(target.Unavailable, Is.EqualTo(UndecidedTarget.Error));
+                Assert.That(target.Unavailable, Is.EqualTo(HeldBackTarget.Undecided));
                 Assert.That(target.IsLocked, Is.False);
                 Assert.That(target.Authority, Is.Null, "no authority is loaded to judge a certificate with");
                 Assert.That(target.AuthorityKey, Is.Null, "nothing is issued from a candidate");
@@ -90,7 +91,7 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void Keeping_one_serves_it_on_the_next_connection()
         {
-            var kept = new AuthorityService(new CustomDataStore(_database.Database), NullGateLog.Instance)
+            var kept = DatabaseAuthority.Of(_database.Database, NullGateLog.Instance)
                 .Keep(_candidates[1], _candidates);
             Assume.That(kept.Succeeded, Is.True, kept.Message);
 
@@ -109,19 +110,8 @@ namespace KeePassGate.Host.Tests
         /// </summary>
         private string[] Undecided()
         {
-            var store = new CustomDataStore(_database.Database);
-            var service = new AuthorityService(store, NullGateLog.Instance);
-
-            Assume.That(service.Create().Succeeded, Is.True);
-            var first = store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null);
-            var document = store.Get(first);
-            store.Remove(first);
-
-            Assume.That(service.Create().Succeeded, Is.True);
-            var second = store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null);
-            store.Set(first, document);
-
-            return new[] { AuthorityKeys.FingerprintInAuthority(first), AuthorityKeys.FingerprintInAuthority(second) };
+            return StoreSeeds.Undecided(
+                new KdbxStore(_database.Database, GateVersion.Current, null), new CustomDataStore(_database.Database));
         }
     }
 }

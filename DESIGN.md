@@ -628,11 +628,12 @@ concession beside the code.
 **A certificate proves who a client is. It grants nothing.** [`CA.md`](CA.md) is the reference;
 this is what the rest of the design depends on.
 
-- **Every database is its own certificate authority**, stored inside itself under `KPG` keys in the
-  database's own `CustomData`. That is what makes a malicious kdbx harmless: it vouches only for
-  itself, and a certificate it issued opens exactly one door, its own. CA.md §204 says why that
-  dictionary and not a group's. Release 0.3.0 keeps the authority and everything beside it in
-  entries of a group of the plugin's own, which is decided and not yet built: `STORE.md` §601.
+- **Every database is its own certificate authority**, stored inside itself as a record of the
+  plugin's store, an entry in a group of the plugin's own, `STORE.md` §614. That is what makes a
+  malicious kdbx harmless: it vouches only for itself, and a certificate it issued opens exactly
+  one door, its own. What else the plugin keeps is still under `KPG` keys in the database's own
+  `CustomData`, and CA.md §204 has why that dictionary and not a group's; release 0.3.0 moves it
+  into the same store, which is decided and built for the authority alone: `STORE.md` §601.
 - **The issuer generates the key pair and builds every extension.** It never accepts a signing
   request, because a request can carry extensions and an issuer that copies them lets the client
   choose its own claims.
@@ -700,8 +701,9 @@ against the host that issued its invitation.
 **One hazard that is KeePass's, not ours.** Two KeePass instances writing one replicated kdbx is the
 ordinary multi-writer problem, and this design does not solve it. Admission records are one key per
 certificate in the database's own `CustomData` precisely so a merge is per certificate rather than
-last-writer-wins, and a revocation or a retired authority is a key of its own that is only ever
-added, because a KeePass merge never removes a key and never reads a value; see CA.md §204. That
+last-writer-wins, and a revocation is a key of its own that is only ever added, because a KeePass
+merge never removes a key and never reads a value, while a retired authority is a record of the
+plugin's store beside the authority it retires; see CA.md §204. That
 replaced a revocation written as an empty record, which a merge carried only while the file kept its
 times. The safe arrangement is still one writer and any number of readers.
 
@@ -1315,6 +1317,18 @@ So the rules here:
   listing, against the five seconds a hold is let run. `FINDINGS.md` has the figures beside the
   table above.
 
+  **A write of the operator's into the store is made on KeePass's thread, in memory**, `STORE.md`
+  §627: the store read in the writer's turn, the plan, every entry the plan touches asked about
+  (§124), and the entries changed, which marks the database as changed and saves nothing, the save
+  being the operator's. Beside the same ten thousand entries and a store that starts at the same
+  size and gains an entry with each write, the store's own write of a Recreate, which is that span
+  and not the writer's own questions or the redraw of KeePass's window, took 18 milliseconds at the
+  median and 74 where every entry holds ten history items; the first write of a run, 83 and 93
+  milliseconds, is warm-up, since every write reads the store afresh and keeps nothing. A write is
+  made at the settings dialog's OK and at keeping an authority, a single press each, and no request
+  of a client's makes a write. `StoreReadingCostTests` measures it, and `FINDINGS.md` has the
+  figures.
+
   **Nothing that waits runs inside a hold**, since the operator's window waits with it: not the
   writer, which waits on that thread itself and is refused as a defect, not the audit's pacing or
   its file, not a dialog and not the network. So the answer is kept inside the hold and written
@@ -1851,6 +1865,12 @@ a place of a kind sees it, or must add no exception of its own:
   posted it, followed across the post to KeePass's message queue, and what its reporter throws, for
   the reason the log does.
 
+**The plugin's store adds no kind and no such place.** A write the application cannot finish is
+taken back in a `finally`, `StoreEntries.Apply`, so what was thrown goes on untouched to the
+writer's own filters, and every write is made inside a place of a kind already listed: the settings
+dialog's OK in the handler of that dialog's close, and keeping an authority in the chooser's
+handlers.
+
 CodeQL reports each of these places but the places that throw again from inside the catch and
 `WindowHandlers`, which catches through a filter: its query accepts both. Each place it reports
 carries a suppression naming where it stands in this account.
@@ -2196,6 +2216,17 @@ lacks any of them starts no watch, and every write and every pairing is refused.
 - **KeePass's progress window** holds nothing, and shows that KeePass is part way through an
   operation of its own that pumps messages inside the tree, XML Replace among them, so every
   write is refused while it is open (§119).
+
+**A write into the plugin's store meets these windows by entry**, since its records are entries,
+`STORE.md` §626, measured by `StoreWritesUnderDialogsTests` over each window's own code and every
+type nested in it. Of the windows above only the entry dialog's code puts an entry's strings,
+history or attachments back, so once a write's plan exists it is refused while an entry dialog holds
+any entry the plan deletes, sets back or protects again. Database Maintenance removes history items
+from entries at the press of a button and puts no copy of an entry back over a write, so no write is
+refused for it: pressed where a record counts by its history, the removal is the loss `STORE.md`
+§622 describes. Keeping an authority, which writes no custom data and saves nothing, is written
+under it, while the store write of the settings dialog's OK is refused under it and under the TAN
+wizard as a whole; neither window can stand beside that dialog, each being modal.
 
 ### C4. The plugin as its own CA puts the CA key beside the database §125
 

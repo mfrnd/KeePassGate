@@ -1,6 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using KeePassGate.Authority;
+using KeePassGate.Diagnostics;
+using KeePassGate.Store;
+using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using NUnit.Framework;
 
@@ -14,6 +18,7 @@ namespace KeePassGate.Tests
     public sealed class AuthorityServiceTests
     {
         private InMemoryKeyValueStore _values;
+        private MemoryStore _records;
         private RecordingGateLog _log;
         private AuthorityService _service;
 
@@ -21,8 +26,9 @@ namespace KeePassGate.Tests
         public void SetUp()
         {
             _values = new InMemoryKeyValueStore();
+            _records = new MemoryStore();
             _log = new RecordingGateLog();
-            _service = new AuthorityService(_values, _log);
+            _service = new AuthorityService(_records, _values, _log);
         }
 
         [Test]
@@ -90,7 +96,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Creating_over_damage_is_refused_and_says_what_to_do_instead()
         {
-            _values.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
+            StoreSeeds.Damaged(_records);
 
             var result = _service.Create();
 
@@ -120,7 +126,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Recreating_repairs_damage()
         {
-            _values.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
+            StoreSeeds.Damaged(_records);
 
             var result = _service.Recreate();
 
@@ -160,25 +166,23 @@ namespace KeePassGate.Tests
 
             Assert.That(result.Succeeded, Is.True, result.Message);
             Assert.That(_log.Entries.Any(e => e.Message.Contains("admission records removed: 1")), Is.True);
-            Assert.That(_values.Keys.OrderBy(k => k, StringComparer.Ordinal), Is.EqualTo(new[]
-            {
-                AuthorityKeys.RetirementKey(deleted),
-                "SomebodyElse"
-            }), "the retirement is what keeps a stale copy of the file from bringing it back");
+            Assert.That(_values.Keys, Is.EqualTo(new[] { "SomebodyElse" }),
+                "the admission records go with the authority, and what is somebody else's stays");
+            Assert.That(Retired(), Does.Contain(deleted),
+                "the retirement is what keeps a stale copy of the file from bringing it back");
         }
 
         [Test]
         public void A_recreated_authority_stays_replaced_when_a_stale_copy_brings_the_old_one_back()
         {
-            // What a merge with a copy taken before the recreation does to the file: it adds the
-            // old document again, because a merge never removes a key and never reads a value.
+            // What a merge with a copy taken before the recreation does to the file: it brings back
+            // every entry that copy holds, the authority it served among them.
             _service.Create();
-            var old = Digest();
-            var oldDocument = _values.Get(AuthorityKeys.AuthorityKey(old));
+            var stale = _records.Copy();
 
             _service.Recreate();
             var current = Digest();
-            _values.Plant(AuthorityKeys.AuthorityKey(old), oldDocument);
+            _records.Synchronize(stale);
 
             using (var reading = _service.Read())
             {
@@ -208,7 +212,7 @@ namespace KeePassGate.Tests
             Assert.That(result.Succeeded, Is.True, result.Message);
             foreach (var digest in digests)
             {
-                Assert.That(_values.Get(AuthorityKeys.RetirementKey(digest)), Is.Not.Null);
+                Assert.That(Retired(), Does.Contain(digest));
             }
 
             using (var reading = _service.Read())
@@ -271,7 +275,7 @@ namespace KeePassGate.Tests
 
             Assert.That(result.Succeeded, Is.False);
             Assert.That(result.IsOvertaken, Is.True, "a question to put again, rather than an answer to try again");
-            Assert.That(_values.Get(AuthorityKeys.RetirementKey(digests[1])), Is.Null, "nothing is retired");
+            Assert.That(Retired(), Does.Not.Contain(digests[1]), "nothing is retired");
         }
 
         [Test]
@@ -285,14 +289,14 @@ namespace KeePassGate.Tests
 
             Assert.That(result.Succeeded, Is.False);
             Assert.That(result.IsOvertaken, Is.True);
-            Assert.That(_values.Get(AuthorityKeys.RetirementKey(digests[1])), Is.Null, "nothing is retired");
+            Assert.That(Retired(), Does.Not.Contain(digests[1]), "nothing is retired");
         }
 
         [Test]
         public void A_choice_that_does_not_land_is_not_reported_as_made()
         {
             var digests = Undecided();
-            _values.SwallowWrites = true;
+            _records.SwallowWrites = true;
 
             var result = _service.Keep(digests[1], digests);
 
@@ -307,16 +311,13 @@ namespace KeePassGate.Tests
         /// </summary>
         private string[] Undecided()
         {
-            _service.Create();
-            var first = Digest();
-            var firstDocument = _values.Get(AuthorityKeys.AuthorityKey(first));
-            _values.Remove(AuthorityKeys.AuthorityKey(first));
+            return StoreSeeds.Undecided(_records, _values);
+        }
 
-            _service.Create();
-            var second = Digest();
-            _values.Plant(AuthorityKeys.AuthorityKey(first), firstDocument);
-
-            return new[] { first, second };
+        /// <summary>The `id` of every authority the store holds a retirement of.</summary>
+        private IReadOnlyCollection<string> Retired()
+        {
+            return _records.Read().InForce.Taken(StoreKinds.Retired);
         }
 
         /// <summary>The digest of the one authority the store serves now.</summary>
@@ -342,7 +343,7 @@ namespace KeePassGate.Tests
         public void A_write_that_vanishes_is_reported_rather_than_believed()
         {
             // A store that loses a write: it is accepted and it is not there.
-            _values.SwallowWrites = true;
+            _records.SwallowWrites = true;
 
             var result = _service.Create();
 
@@ -355,127 +356,21 @@ namespace KeePassGate.Tests
         [Test]
         public void A_write_that_lands_unusable_is_not_reported_as_nothing_having_happened()
         {
-            // The other half of a failed read back, and the one the message used to get wrong.
-            // The value is in the database and cannot be read, so the next press of Create is
-            // answered with "recreate it": a refusal saying nothing changed contradicts the very
-            // next thing the tab does.
-            _values.DamageWritesTo = "rubbish";
+            // The other half of a failed read back. The authority is in the database and cannot
+            // be read, so the next press of Create is answered with "recreate it": a refusal
+            // stating nothing changed contradicts the very next thing the tab does.
+            _records.DamageAuthorities = true;
 
             var result = _service.Create();
 
             Assert.That(result.Succeeded, Is.False);
-            Assert.That(result.Message, Does.Contain("now holds one that cannot be used"));
+            Assert.That(result.Message, Does.Contain("now holds an authority that cannot be used"));
             Assert.That(result.Message, Does.Not.Contain("nothing"));
 
-            _values.DamageWritesTo = null;
+            _records.DamageAuthorities = false;
             var second = _service.Create();
             Assert.That(second.Message, Does.Contain("cannot be read"),
                 "which is the answer the refusal above has to be consistent with");
-        }
-
-        [Test]
-        public void A_recreation_that_fails_after_the_clearing_says_what_it_already_took_away()
-        {
-            // The old authority and every admission record are taken away before the replacement
-            // is written, so a failure from there on has already changed the database. Reported as
-            // a refusal with nothing else said, the operator walks away from a database that
-            // serves nobody.
-            _service.Create();
-            _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
-            _values.DamageWritesTo = "rubbish";
-
-            var result = _service.Recreate();
-
-            Assert.That(result.Succeeded, Is.False);
-            Assert.That(result.Message, Does.Contain("now holds one that cannot be used"));
-            Assert.That(result.Message, Does.Contain("may be gone as well"));
-        }
-
-        [Test]
-        public void A_recreation_whose_clearing_fails_part_way_says_what_it_already_took_away()
-        {
-            // The authorities are retired before anything else is taken away, so a failure later
-            // in the clearing comes from a database that already serves nobody. Counted as cleared
-            // only once the clearing returned, it was refused as though nothing had been removed.
-            _service.Create();
-            _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
-            ListingFailsOnceRetired();
-
-            var result = _service.Recreate();
-
-            Assert.That(result.Succeeded, Is.False);
-            Assert.That(result.Message, Does.Contain("could not be removed"));
-            Assert.That(result.Message, Does.Contain("may be gone as well"));
-            Assert.That(Served(), Is.False, "the old authority is retired");
-        }
-
-        [Test]
-        public void A_deletion_that_fails_part_way_says_some_of_it_may_have_landed()
-        {
-            _service.Create();
-            _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
-            ListingFailsOnceRetired();
-
-            var result = _service.Delete();
-
-            Assert.That(result.Succeeded, Is.False);
-            Assert.That(result.Message, Does.Contain("could not be deleted"));
-            Assert.That(result.Message, Does.Contain("may have landed"));
-            Assert.That(Served(), Is.False, "the authority is retired");
-        }
-
-        [Test]
-        public void A_clearing_refused_before_it_wrote_anything_claims_nothing_was_taken()
-        {
-            // The authorities could not be listed, so none of them was touched, and saying what
-            // may be gone would send the operator looking for damage that is not there.
-            _service.Create();
-            _values.ThrowOnList = true;
-
-            var recreated = _service.Recreate();
-            var deleted = _service.Delete();
-
-            Assert.That(recreated.Succeeded, Is.False);
-            Assert.That(recreated.Message, Does.Not.Contain("may be gone as well"));
-            Assert.That(deleted.Succeeded, Is.False);
-            Assert.That(deleted.Message, Does.Not.Contain("may have landed"));
-
-            _values.ThrowOnList = false;
-            Assert.That(Served(), Is.True, "and the authority is still served");
-        }
-
-        /// <summary>Makes listing the store fail from the moment an authority is retired.</summary>
-        private void ListingFailsOnceRetired()
-        {
-            _values.WhenSet = key =>
-            {
-                if (AuthorityKeys.FingerprintInRetirement(key) != null)
-                {
-                    _values.ThrowOnList = true;
-                }
-            };
-        }
-
-        /// <summary>Whether the store serves an authority, read with the store answering again.</summary>
-        private bool Served()
-        {
-            _values.WhenSet = null;
-            _values.ThrowOnList = false;
-            using (var reading = _service.Read())
-            {
-                return reading.IsPresent;
-            }
-        }
-
-        [Test]
-        public void A_creation_that_fails_says_nothing_about_an_old_authority()
-        {
-            // Creating clears nothing, so the sentence recreation adds would be a lie here.
-            _values.ThrowOnWrite = new InvalidOperationException("the database said no");
-
-            var result = _service.Create();
-
-            Assert.That(result.Message, Does.Not.Contain("may be gone as well"));
         }
 
         [Test]
@@ -483,8 +378,8 @@ namespace KeePassGate.Tests
         {
             // A swallowed write leaves the authority that was already there, and reading back only
             // far enough to find one present is satisfied by it: the operator was told the
-            // recreation had worked, and told how many clients it had revoked, while the old
-            // authority and every one of those clients were untouched.
+            // recreation had worked, and told how many clients it had revoked, while the authority
+            // and all of those clients were untouched.
             _service.Create();
             _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
             string before;
@@ -493,12 +388,12 @@ namespace KeePassGate.Tests
                 before = reading.Material.AuthorityDigest;
             }
 
-            _values.SwallowWrites = true;
+            _records.SwallowWrites = true;
             var result = _service.Recreate();
 
             Assert.That(result.Succeeded, Is.False, result.Message);
 
-            _values.SwallowWrites = false;
+            _records.SwallowWrites = false;
             using (var reading = _service.Read())
             {
                 Assert.That(reading.Material.AuthorityDigest, Is.EqualTo(before),
@@ -509,12 +404,12 @@ namespace KeePassGate.Tests
         [Test]
         public void A_deletion_that_does_not_land_does_not_claim_the_database_is_untouched()
         {
-            // The admission records are removed before the authority is read back, so a delete
-            // that comes apart halfway is exactly the case being reported. Saying nothing was
-            // changed on disk was a guess, and the wrong one.
+            // A delete the store swallowed leaves the authority standing, which is the case being
+            // reported, and reporting it as a change that changed nothing sends the operator away
+            // from a database that needs looking at.
             _service.Create();
             _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
-            _values.SwallowWrites = true;
+            _records.SwallowWrites = true;
 
             var result = _service.Delete();
 
@@ -526,19 +421,20 @@ namespace KeePassGate.Tests
         [Test]
         public void A_store_that_throws_is_reported_rather_than_thrown()
         {
-            _values.ThrowOnWrite = new InvalidOperationException("the database said no");
+            _records.ThrowOnWrite = new DatabaseShut("the database refused it");
 
             var result = _service.Create();
 
             Assert.That(result.Succeeded, Is.False);
-            Assert.That(result.Message, Does.Contain("the database said no"));
+            Assert.That(result.Message, Does.Contain("the database refused it"));
             Assert.That(_log.Errors, Is.Not.Empty);
         }
 
         [Test]
         public void Reading_a_store_that_throws_reports_damage_rather_than_absence()
         {
-            var service = new AuthorityService(new ThrowingKeyValueStore(), _log);
+            var store = new MemoryStore { ThrowOnRead = new DatabaseShut("the database refused it") };
+            var service = new AuthorityService(store, _values, _log);
 
             using (var reading = service.Read())
             {
@@ -570,7 +466,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_missing_store_is_refused_at_construction()
         {
-            Assert.Throws<ArgumentNullException>(() => new AuthorityService(null, _log));
+            Assert.Throws<ArgumentNullException>(() => new AuthorityService(null, _values, _log));
         }
     }
 }

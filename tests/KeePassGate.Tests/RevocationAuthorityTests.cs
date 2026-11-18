@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
 using KeePassGate.Testing;
@@ -22,6 +24,7 @@ namespace KeePassGate.Tests
     public sealed class RevocationAuthorityTests
     {
         private InMemoryKeyValueStore _values;
+        private MemoryStore _records;
         private RecordingGateLog _log;
         private AuthorityService _service;
         private AdmissionStore _admissions;
@@ -30,9 +33,10 @@ namespace KeePassGate.Tests
         public void SetUp()
         {
             _values = new InMemoryKeyValueStore();
+            _records = new MemoryStore();
             _log = new RecordingGateLog();
-            _service = new AuthorityService(_values, _log);
-            _admissions = new AdmissionStore(_values, _log);
+            _service = new AuthorityService(_records, _values, _log);
+            _admissions = new AdmissionStore(_values, _records, _log);
             Assume.That(_service.Create().Succeeded, Is.True);
         }
 
@@ -69,12 +73,12 @@ namespace KeePassGate.Tests
                 _values.Plant(AuthorityKeys.RevocationKey(older), End(certificate));
                 _values.Plant(AuthorityKeys.ClientRecordKey(older), string.Empty);
 
-                var removed = new AuthorityStore(_values, _log).Prune();
+                var removed = Prune();
 
                 Assert.That(_values.Get(AuthorityKeys.RevocationKey(key)), Is.Null,
                     "the revocation of a retired authority's certificate is taken away");
                 Assert.That(_values.Get(AuthorityKeys.ClientRecordKey(key)), Is.Null, "with its emptied record");
-                Assert.That(removed, Has.Some.Matches<System.Collections.Generic.KeyValuePair<string, string>>(
+                Assert.That(removed, Has.Some.Matches<KeyValuePair<string, string>>(
                     pair => pair.Key == AuthorityKeys.RevocationKey(key) && pair.Value == revocation),
                     "and named among what went, so that a write that does not land puts it back");
                 Assert.That(_values.Get(AuthorityKeys.RevocationKey(older)), Is.EqualTo(End(certificate)),
@@ -117,19 +121,14 @@ namespace KeePassGate.Tests
                 var key = CertificateDigest.Of(certificate);
                 Assume.That(_admissions.Remove(key), Is.True);
 
-                var elsewhere = new InMemoryKeyValueStore();
-                Assume.That(new AuthorityService(elsewhere, _log).Create().Succeeded, Is.True);
-                foreach (var stored in elsewhere.Keys)
-                {
-                    _values.Plant(stored, elsewhere.Get(stored));
-                }
+                StoreSeeds.Beside(_records);
 
                 using (var reading = _service.Read())
                 {
                     Assume.That(reading.Presence, Is.EqualTo(AuthorityPresence.Undecided));
                 }
 
-                new AuthorityStore(_values, _log).Prune();
+                Prune();
 
                 Assert.That(_values.Get(AuthorityKeys.RevocationKey(key)), Is.Not.Null);
             }
@@ -154,6 +153,12 @@ namespace KeePassGate.Tests
                 _admissions.Write(AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" }));
                 return certificate;
             }
+        }
+
+        /// <summary>What the writer takes away on every write of its own, answering with what went.</summary>
+        private IReadOnlyList<KeyValuePair<string, string>> Prune()
+        {
+            return _admissions.PruneOnWrite(DateTimeOffset.UtcNow);
         }
 
         /// <summary>The digest of the authority the store serves now.</summary>

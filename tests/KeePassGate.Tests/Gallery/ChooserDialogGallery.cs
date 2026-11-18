@@ -50,36 +50,27 @@ namespace KeePassGate.Tests.Gallery
             string name, string databaseName, int authorities, int[] clients, bool unreadable, bool audit)
         {
             var values = new InMemoryKeyValueStore();
-            var service = new AuthorityService(values, null);
-            var digests = new List<string>();
+            var records = new MemoryStore();
+            var service = new AuthorityService(records, values, null);
 
-            // Each one made with the ones before it moved aside, and all of them put back, which is
-            // what copies that each recreated leave behind once they are merged.
-            var aside = new Dictionary<string, string>();
-            for (var i = 0; i < authorities; i++)
+            // Each authority beside those before it, which is what copies that each recreated
+            // leave behind once they are merged.
+            var digests = new List<string> { StoreSeeds.Authority(records, values) };
+            for (var i = 1; i < authorities; i++)
             {
-                Assume.That(service.Create().Succeeded, Is.True);
-                var key = values.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null);
-                aside[key] = values.Get(key);
-                digests.Add(AuthorityKeys.FingerprintInAuthority(key));
-                values.Remove(key);
-            }
-
-            foreach (var pair in aside)
-            {
-                values.Plant(pair.Key, pair.Value);
+                digests.Add(StoreSeeds.Beside(records));
             }
 
             if (unreadable)
             {
-                values.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
+                StoreSeeds.Damaged(records);
             }
 
             for (var i = 0; i < digests.Count; i++)
             {
                 for (var c = 0; c < clients[i]; c++)
                 {
-                    Admit(values, digests[i], "agent-" + i + "-" + c.ToString("00", CultureInfo.InvariantCulture));
+                    Admit(records, values, digests[i], "agent-" + i + "-" + c.ToString("00", CultureInfo.InvariantCulture));
                 }
             }
 
@@ -100,17 +91,16 @@ namespace KeePassGate.Tests.Gallery
                 // The unreadable one when there is one, and otherwise the one with the most clients,
                 // which is the list that decides how the lower half looks.
                 dialog.Select(unreadable
-                    ? new string('d', 64)
+                    ? StoreSeeds.DamagedId
                     : choice.Options.OrderByDescending(o => o.Clients.Count).First().Fingerprint);
 
                 Gallery.Shot(dialog, name);
             }
         }
 
-        private static void Admit(InMemoryKeyValueStore values, string digest, string client)
+        private static void Admit(MemoryStore records, InMemoryKeyValueStore values, string digest, string client)
         {
-            var authority = CertificateBlob.Load(
-                AuthorityDocument.Read(values.Get(AuthorityKeys.AuthorityKey(digest)), null).Authority);
+            var authority = StoreSeeds.KeyOf(records, digest);
             using (var certificate = new AuthorityIssuer().IssueClient(authority, client, new[] { "ops", "reader" }).Read())
             {
                 new AdmissionStore(values, null).Write(AdmissionRecord.For(certificate, Admitted, new[] { "ops", "reader" }));

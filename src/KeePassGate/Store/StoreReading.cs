@@ -19,20 +19,31 @@ namespace KeePassGate.Store
     ///
     /// **It keeps no key.** The keys found are the checked forms' own, held by the forms that
     /// gave them; what it answers with are the tags they give and the entries that pass under
-    /// them, which is what the API's guard asks, `STORE.md` §633.
+    /// them, which is what the API's guard asks, `STORE.md` §633, and the records it found, each
+    /// with the form that passes, whose key is overwritten when the forms kept are let go.
     ///
     /// **Its work is bounded in the keys found**, by `StoreFormat.MaxKeys`: each version is asked
     /// about its own key while keys are found, and past the ceiling about no other, so a file that
     /// brings a key for each of its entries costs a reading no more than a version each.
+    ///
+    /// **A reading made afresh owns its forms, and whoever asked for it lets it go**, which
+    /// overwrites every key they hold, `CA.md` §208: <see cref="Afresh"/>, what the plugin's own
+    /// screens and writer read. A gate's reading does not, since the readings it keeps for a
+    /// database let go of their forms themselves, and letting go of such a reading does nothing.
     /// </remarks>
-    internal sealed partial class StoreReading
+    public sealed partial class StoreReading : IDisposable
     {
         private readonly ISet<int> _tags;
         private readonly ISet<string> _passing;
+        private readonly Func<string, bool> _retires;
+        private StoreKept _owned;
 
-        private StoreReading(ISet<int> tags, ISet<string> passing, Judgment judged)
+        private StoreReading(
+            ISet<int> tags, ISet<string> passing, Judgment judged, IReadOnlyList<StoreCandidate> candidates, IReadOnlyList<byte[]> deletions)
         {
             _tags = tags;
+            Candidates = candidates;
+            Deletions = deletions;
             _passing = passing;
             State = judged.State;
             Reason = judged.Reason;
@@ -40,6 +51,9 @@ namespace KeePassGate.Store
             Passed = judged.Passed;
             ByHistory = judged.ByHistory;
             Judged = judged.Judged;
+            InForce = judged.InForce;
+            Answering = judged.Answering;
+            _retires = judged.Retires;
         }
 
         /// <summary>
@@ -67,12 +81,118 @@ namespace KeePassGate.Store
         public int ByHistory { get; private set; }
 
         /// <summary>
+        /// What is in force under the store key, `STORE.md` §623, for a store that is whole or
+        /// stopped: null for a database with no store key, a store under several keys, and a
+        /// store of a form the plugin does not read.
+        /// </summary>
+        internal StoreInForce InForce { get; private set; }
+
+        /// <summary>
+        /// The authorities a word is answered under, `STORE.md` §656: each that stands under each
+        /// key that stands, in force and retired by nothing under its own key, whatever the
+        /// store's state; none for a database with no store key, and none past
+        /// `StoreFormat.MaxKeys`, where no key is judged.
+        /// </summary>
+        internal IReadOnlyList<FoundRecord> Answering { get; private set; }
+
+        /// <summary>
+        /// Whether a retirement under a key that stands names this authority, by record, by an
+        /// item of a summary entry or by a deletion record of its tag, whatever the store's state:
+        /// never where no key is found, and never past `StoreFormat.MaxKeys`, where no key is
+        /// judged, `STORE.md` §656.
+        /// </summary>
+        /// <param name="id">The authority's `id`, hashed against the deletion records of retirements.</param>
+        internal bool Retires(string id)
+        {
+            return id != null && _retires(id);
+        }
+
+        /// <summary>
+        /// The entries this was read from, with their versions: what a write that has not yet
+        /// reached the database is read beside, `PendingRecords`.
+        /// </summary>
+        internal IReadOnlyList<StoreCandidate> Candidates { get; private set; }
+
+        /// <summary>The identifiers the database's deletion records name, as this was read with them.</summary>
+        internal IReadOnlyList<byte[]> Deletions { get; private set; }
+
+        /// <summary>
+        /// The identifier of every entry in the tree this was read from, in hexadecimal, records
+        /// or not; the candidates' where it was read from candidates alone.
+        /// </summary>
+        internal ISet<string> Present
+        {
+            get { return _present ?? (_present = new HashSet<string>(Candidates.Select(candidate => candidate.Hex), StringComparer.Ordinal)); }
+        }
+
+        private ISet<string> _present;
+
+        /// <summary>
+        /// The room the store has for its next write, `STORE.md` §627, or null where nothing is in
+        /// force: a store whole but for its room reads as stopped.
+        /// </summary>
+        internal StoreRoom Room
+        {
+            get { return InForce == null ? null : InForce.Room; }
+        }
+
+        /// <summary>
+        /// Reads the store from these candidates afresh, into forms of its own that
+        /// <see cref="Dispose"/> lets go of.
+        /// </summary>
+        /// <param name="deletions">The identifiers the database's deletion records name.</param>
+        /// <param name="present">
+        /// The identifier of every entry in the tree, records or not, where the reading has a tree;
+        /// null where the candidates are all there is.
+        /// </param>
+        internal static StoreReading Afresh(
+            IReadOnlyList<StoreCandidate> candidates, IReadOnlyList<byte[]> deletions, IEnumerable<byte[]> present = null)
+        {
+            var owned = new StoreKept();
+            StoreReading reading = null;
+            try
+            {
+                reading = Of(candidates, deletions, null, owned);
+                reading._owned = owned;
+                if (present != null)
+                {
+                    reading._present = new HashSet<string>(present.Select(Hex.Of), StringComparer.Ordinal);
+                }
+
+                return reading;
+            }
+            finally
+            {
+                // A reading that never came to own them lets go of the forms here, `Of` having
+                // handed every form it made to them whatever it threw.
+                if (reading == null)
+                {
+                    owned.Clear();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Overwrites every key the forms this reading owns hold, and drops the forms: nothing for a
+        /// reading that owns none.
+        /// </summary>
+        public void Dispose()
+        {
+            var owned = _owned;
+            _owned = null;
+            if (owned != null)
+            {
+                owned.Clear();
+            }
+        }
+
+        /// <summary>
         /// Reads the store from these candidates, keeping in <paramref name="next"/> the checked
         /// form of every version it met, taken from <paramref name="kept"/> where the objects are
         /// those kept.
         /// </summary>
         /// <param name="deletions">The identifiers the database's deletion records name.</param>
-        public static StoreReading Of(
+        internal static StoreReading Of(
             IReadOnlyList<StoreCandidate> candidates, IReadOnlyList<byte[]> deletions, StoreKept kept, StoreKept next)
         {
             if (candidates == null)
@@ -158,7 +278,7 @@ namespace KeePassGate.Store
                 var judged = beyond
                     ? Judgment.Beyond(keys.Count, candidates.Count)
                     : Judgment.Of(candidates, forms, keys, deletions ?? Array.Empty<byte[]>());
-                return new StoreReading(tags, passing, judged);
+                return new StoreReading(tags, passing, judged, candidates, deletions ?? Array.Empty<byte[]>());
             }
             finally
             {

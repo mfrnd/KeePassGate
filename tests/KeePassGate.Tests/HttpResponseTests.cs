@@ -172,7 +172,7 @@ namespace KeePassGate.Tests
             Fits("503 busy with heldUntil", 503, PairingHandler.HeldBody(held), null);
             Fits("503 busy", 503, HttpResponse.ErrorBody("busy"), null);
             Fits("503 locked", 503, HttpResponse.ErrorBody(LockedTarget.Error), null);
-            Fits("503 undecided", 503, HttpResponse.ErrorBody(UndecidedTarget.Error), null);
+            Fits("503 undecided", 503, HttpResponse.ErrorBody(HeldBackTarget.Undecided), null);
 
             // What a read of a node is refused with. A `412` carries no tag: the node's tag goes
             // out on a read that is answered, and in the body of a write that landed.

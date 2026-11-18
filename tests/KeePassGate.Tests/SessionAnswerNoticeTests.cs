@@ -152,7 +152,7 @@ namespace KeePassGate.Tests
                            .Read())
                 {
                     record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" });
-                    new AdmissionStore(database.Store, null).Write(record);
+                    new AdmissionStore(database.Values, null).Write(record);
                 }
 
                 panel.Describe();

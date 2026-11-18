@@ -5,6 +5,7 @@ using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Pairing;
+using KeePassGate.Store;
 
 namespace KeePassGate.Ui
 {
@@ -27,9 +28,19 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// Whether any key of a kind is waiting, for a subject kept under more than one key: the
-        /// authorities and their retirements are one per authority.
+        /// revocations and the standing answers are one per certificate.
         /// </summary>
         bool WaitingOn(Func<string, bool> kind);
+
+        /// <summary>Whether an act on the plugin's store is waiting: an authority made, replaced or deleted.</summary>
+        bool StoreWaiting { get; }
+
+        /// <summary>
+        /// The plugin's store as the database holds it, without the acts waiting, which OK may
+        /// yet leave out: what a revocation pressed on the tab names its authority by, and what
+        /// takes a revocation away for an authority no longer held.
+        /// </summary>
+        IGateStore LiveStore { get; }
     }
 
     /// <summary>
@@ -68,18 +79,20 @@ namespace KeePassGate.Ui
     /// renewal is asked again and may be refused again. That answer is the newer word on the
     /// certificate, so OK keeps it rather than replaying the removal over it.
     ///
-    /// One case survives all of that and is worth naming rather than hiding. An operator who
-    /// recreates or deletes the authority, while a pairing lands, leaves that pairing's record
-    /// behind, because the record did not exist when the page read the database. It is inert: its
-    /// certificate was issued by an authority that is gone, so it chains to nothing and is
-    /// refused. That is the direction this design fails in everywhere else too.
+    /// **What a Recreate or a Delete takes out of the custom data lands only with the act**, which
+    /// is every admission record, revocation and standing answer to a renewal, `STORE.md` §614.
+    /// Taken out of the buffer at the press, it landed at OK whatever the store write came to,
+    /// and an authority still served lost its revocations, so a copy merged in later admitted a
+    /// revoked client again. While such an act waits the page reads every admission as gone, and
+    /// at OK they are taken out of the live custom data only where the write took the act, as it
+    /// stands then, a record a pairing landed meanwhile among them.
     /// </remarks>
     public sealed class PendingDatabase : IGateDatabase, IPendingChanges
     {
         private readonly IGateDatabase _database;
         private readonly PendingStore _store;
+        private readonly PendingRecords _records;
         private readonly IGateLog _log;
-
 
         public PendingDatabase(IGateDatabase database, IGateLog log)
         {
@@ -97,6 +110,10 @@ namespace KeePassGate.Ui
             // reading and writing the group that was replaced. `OpenDatabaseTargets` rebuilds its
             // own per read for the same reason.
             _store = new PendingStore(() => database.PluginCustomData);
+
+            // And the plugin's store, whose acts are held the same way, asked for on every access
+            // for the same reason.
+            _records = new PendingRecords(() => database.Store);
 
             // **The key with a second writer whose two versions have to be merged.** A record
             // the tab touches can also be written while the dialog is up, by a client revoking
@@ -122,6 +139,10 @@ namespace KeePassGate.Ui
             // value this dialog chose for the same key, since its value names an authority and the
             // two may have read different ones.
             _store.Reconcile(AuthorityKeys.IsRevocation, KeepTheRevocationThere);
+
+            // Every admission read as gone while an act that takes them away waits, which `Apply`
+            // lands only with the act.
+            _store.Hide(key => AuthorityKeys.IsAdmission(key) && _records.EndsAdmissions);
         }
 
         /// <summary>
@@ -226,6 +247,12 @@ namespace KeePassGate.Ui
             get { return _store; }
         }
 
+        /// <summary>The plugin's store with the acts pressed on the dialog beside it.</summary>
+        public IGateStore Store
+        {
+            get { return _records; }
+        }
+
         /// <summary>The live tree, read through: nothing on the tab writes to it.</summary>
         public IRuledNodes Nodes
         {
@@ -235,7 +262,7 @@ namespace KeePassGate.Ui
         /// <summary>Whether anything is waiting for the dialog's OK.</summary>
         public bool Waiting
         {
-            get { return _store != null && _store.Waiting; }
+            get { return (_store != null && _store.Waiting) || _records.Waiting; }
         }
 
         /// <summary>Whether one key in particular is waiting.</summary>
@@ -265,6 +292,18 @@ namespace KeePassGate.Ui
         public bool WaitingOn(Func<string, bool> kind)
         {
             return _store != null && _store.WaitingOn(kind);
+        }
+
+        /// <summary>Whether an act on the plugin's store is waiting.</summary>
+        public bool StoreWaiting
+        {
+            get { return _records.Waiting; }
+        }
+
+        /// <summary>The plugin's store as the database holds it, without the acts waiting.</summary>
+        public IGateStore LiveStore
+        {
+            get { return _database.Store; }
         }
 
         /// <summary>
@@ -298,34 +337,63 @@ namespace KeePassGate.Ui
                 return false;
             }
 
+            // The plugin's store first, through the writer, `STORE.md` §627: each act held to the
+            // store as it stands now. An act left out is named by the store's writer, and a write
+            // refused is named here with the acts it held, a write the writer's guard refuses
+            // among them: an OK that meets a save of the plugin's own is refused there, and adds
+            // nothing.
             var changed = false;
+            var ends = false;
+            if (_records.Waiting)
+            {
+                // The acts are let go, and the store key each holds overwritten, whatever the
+                // write comes to, a write that throws among it.
+                var acts = _records.Acts;
+                StoreWritten written;
+                try
+                {
+                    written = _database.Store.Write(acts);
+                }
+                finally
+                {
+                    _records.Discard();
+                }
+
+                if (written.Taken)
+                {
+                    changed = written.Wrote;
+                    ends = written.Acts.Any(act => act.EndsAdmissions);
+                }
+                else
+                {
+                    _log.Warn("what the " + GateName.Product + " tab held for the plugin's store was not written ("
+                              + string.Join(", ", acts.Select(act => act.Name)) + "): " + written.Reason
+                              + (written.LeftOut.Count == 0 ? string.Empty : "; " + string.Join("; ", written.LeftOut)));
+                }
+            }
+
+            // What the dialog held for an admission goes with every admission, where an act the
+            // write took takes them away: there is nothing left for it to land on.
+            if (ends && _store != null)
+            {
+                _store.Withdraw(AuthorityKeys.IsAdmission);
+            }
 
             if (_store != null)
             {
-                // An authority made and then retired on this one dialog, by a create and a delete
-                // or by two recreates, never reached the database. Its retirement would: a key the
-                // file keeps for good, naming an authority it never held, and reading as a
-                // database that retired every authority it had.
-                var underneath = _database.PluginCustomData;
-                if (underneath != null)
-                {
-                    _store.Withdraw(key =>
-                    {
-                        var fingerprint = AuthorityKeys.FingerprintInRetirement(key);
-                        return fingerprint != null
-                               && underneath.Get(AuthorityKeys.AuthorityKey(fingerprint)) == null
-                               && underneath.Get(key) == null;
-                    });
-                }
-
                 changed |= _store.Apply();
+            }
+
+            var live = _database.PluginCustomData;
+            if (ends && live != null)
+            {
+                changed |= TakeAdmissionsAway(live);
             }
 
             // A standing answer about a certificate this OK revoked may have landed after the
             // press, when the prune that rode on it had already looked and found nothing. Asked
             // again over what was written, so the order of the two does not decide whether an
             // answer about a certificate no record admits stays in the file.
-            var live = _database.PluginCustomData;
             if (changed && live != null)
             {
                 changed |= new AdmissionStore(live, _log).PruneRefusals().Count > 0;
@@ -359,10 +427,42 @@ namespace KeePassGate.Ui
             return changed;
         }
 
+        /// <summary>
+        /// Takes every admission record, revocation and standing answer out of the live custom
+        /// data, as an act the write took retires the authority that issued them, answering
+        /// whether any key went.
+        /// </summary>
+        /// <remarks>
+        /// **The revocations go too**, since the retirement written a moment ago is only ever
+        /// added and refuses every certificate that authority issued. A failure leaves the keys it
+        /// did not reach where they are, which admits nobody the retirement does not already
+        /// refuse, and is named in the log.
+        /// </remarks>
+        private bool TakeAdmissionsAway(IKeyValueStore live)
+        {
+            var any = false;
+            try
+            {
+                any = live.Keys.Any(AuthorityKeys.IsAdmission);
+                var clients = new AdmissionStore(live, _log).RemoveAll();
+                if (any)
+                {
+                    _log.Info("the admission records went with the authority at the dialog's OK: " + clients);
+                }
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Warn("the admission records could not be taken away with the authority: " + error.Message);
+            }
+
+            return any;
+        }
+
         /// <summary>Throws away everything that was waiting, which is what Cancel means.</summary>
         public void Discard()
         {
             _leftOut.Clear();
+            _records.Discard();
             if (_store != null)
             {
                 _store.Discard();
@@ -439,6 +539,9 @@ namespace KeePassGate.Ui
         /// <summary>The same for every key of a kind, asked after the keys named one by one.</summary>
         private readonly List<KeyValuePair<Func<string, bool>, Reconciler>> _kinds =
             new List<KeyValuePair<Func<string, bool>, Reconciler>>();
+
+        /// <summary>The keys a page reads as gone, whatever the store or this buffer holds for them.</summary>
+        private Func<string, bool> _hidden = key => false;
 
         /// <summary>
         /// Over a store that cannot be replaced underneath, which is what a test holds.
@@ -540,7 +643,7 @@ namespace KeePassGate.Ui
 
         public string Get(string key)
         {
-            if (string.IsNullOrEmpty(key))
+            if (string.IsNullOrEmpty(key) || _hidden(key))
             {
                 return null;
             }
@@ -657,8 +760,9 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Takes back the writes the dialog holds for every key <paramref name="which"/> picks,
-        /// as though they had never been made. Nothing is removed by it.
+        /// Takes back the writes and the removals the dialog holds for every key
+        /// <paramref name="which"/> picks, as though they had never been made. Nothing is asked
+        /// of the store by it.
         /// </summary>
         public void Withdraw(Func<string, bool> which)
         {
@@ -673,6 +777,31 @@ namespace KeePassGate.Ui
                 _order.Remove(key);
                 _before.Remove(key);
             }
+
+            foreach (var key in _removed.Where(which).ToList())
+            {
+                _removed.Remove(key);
+                _before.Remove(key);
+            }
+        }
+
+        /// <summary>
+        /// Has a page read every key <paramref name="hidden"/> picks as gone, as it answers then,
+        /// with nothing written or removed for it: what OK does with those keys is the caller's.
+        /// </summary>
+        /// <remarks>
+        /// For what an act on the plugin's store takes out of the custom data, which lands only
+        /// where the write at OK takes the act: buffered as removals, it landed whatever became of
+        /// the act, and it took with it whatever else the dialog had written under those keys.
+        /// </remarks>
+        public void Hide(Func<string, bool> hidden)
+        {
+            if (hidden == null)
+            {
+                throw new ArgumentNullException(nameof(hidden));
+            }
+
+            _hidden = hidden;
         }
 
         public void Remove(string key)
@@ -732,7 +861,7 @@ namespace KeePassGate.Ui
                     keys.Add(key);
                 }
 
-                return keys;
+                return keys.Where(key => !_hidden(key)).ToList();
             }
         }
 

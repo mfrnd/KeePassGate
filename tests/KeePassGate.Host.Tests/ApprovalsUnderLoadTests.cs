@@ -35,6 +35,11 @@ namespace KeePassGate.Host.Tests
     /// approval written after a lock all passed every tier. This is the tier where each of them is
     /// asked for.
     ///
+    /// **The targets hold KeePass's thread for every read, as the plugin builds them**, through
+    /// the same <see cref="ControlUiThread"/>: the other clients' writes change the tree on that
+    /// thread while a renewal reads the database's store, and a read beside such a change meets a
+    /// list being changed under it, `DESIGN.md` §119.
+    ///
     /// **The save is KeePass's save as far as the message queue is concerned**: it raises the
     /// interaction block the writer asks about, pumps on the way in, pumps again while it
     /// serializes, and pumps once more before it lifts the block, which is what
@@ -65,7 +70,7 @@ namespace KeePassGate.Host.Tests
         public void SetUp()
         {
             _database = TemporaryDatabase.New();
-            var created = new AuthorityService(new CustomDataStore(_database.Database), null).Create();
+            var created = DatabaseAuthority.Of(_database.Database, null).Create();
             Assume.That(created.Succeeded, Is.True, created.Message);
             _database.Save();
 
@@ -80,7 +85,7 @@ namespace KeePassGate.Host.Tests
                 null, null, null, NullGateLog.Instance);
 
             var databases = new List<PwDatabase> { _database.Database };
-            _targets = new OpenDatabaseTargets(delegate { return databases; }, _writer, NullGateLog.Instance);
+            _targets = new OpenDatabaseTargets(delegate { return databases; }, _writer, ui, NullGateLog.Instance);
             _session = new SessionRefusals();
             _held = new ApprovalBook();
             _audit = new OrderedAudit();
@@ -293,7 +298,7 @@ namespace KeePassGate.Host.Tests
 
         private X509Certificate2 Admit(string name)
         {
-            using (var reading = new AuthorityService(new CustomDataStore(_database.Database), null).Read())
+            using (var reading = DatabaseAuthority.Of(_database.Database, null).Read())
             {
                 var certificate = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, name, new[] { "ops" }).Read();
                 var written = _writer.WriteAdmission(

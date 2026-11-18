@@ -21,6 +21,7 @@ using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
+using KeePassGate.Store;
 using KeePassGate.Testing;
 
 namespace KeePassGate.Host.Tests.Live
@@ -429,16 +430,13 @@ namespace KeePassGate.Host.Tests.Live
             {
                 database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
 
-                // Through `CustomDataStore`, not the dictionary underneath it, so that a seeded
-                // database is written exactly the way the plugin writes one.
-                var store = new CustomDataStore(database);
-                string fingerprint;
-                fingerprint = CertificateDigest.Of(CertificateBlob.Load(SeededAuthority.Authority).CertificateDer);
-
-                store.Set(
-                    AuthorityKeys.AuthorityKey(fingerprint),
-                    AuthorityDocument.Save(
-                        SeededAuthority.Authority, SeededAuthority.Host, SeededAuthority.SniKey));
+                // As the plugin writes its store, with the written down parts as they are, under
+                // a fixed store key and fixed nonces, `WriteSeeded`.
+                var id = IdOf(SeededAuthority.Authority);
+                WriteSeeded(database, id, (key, reading) => new[]
+                {
+                    StoreRecord.Compose(key, StoreKinds.Authority, WrittenDownMembers(id, key, SeededAuthority.Authority, SeededAuthority.Host, SeededAuthority.SniKey)),
+                });
 
                 database.Save(null);
             }
@@ -490,10 +488,10 @@ namespace KeePassGate.Host.Tests.Live
         /// would with one it had minted, and answers with its digest.
         /// </summary>
         /// <remarks>
-        /// Written rather than minted, for the reason <see cref="SeedAuthority"/> gives. What goes is
-        /// what Recreate takes: the old authority retired, its document removed, and every
-        /// admission record with it, through `AuthorityStore` so that the copy holds exactly what
-        /// the plugin would have left.
+        /// Written rather than minted, for the reason <see cref="SeedAuthority"/> gives. What is
+        /// written is what Recreate writes: every authority that stood retired, the new authority
+        /// beside them under the same store key in a single write, and every admission record taken
+        /// away, so that the copy holds exactly what the plugin would have left.
         ///
         /// **Only before KeePass starts.**
         /// </remarks>
@@ -504,12 +502,15 @@ namespace KeePassGate.Host.Tests.Live
             {
                 database.Open(IOConnectionInfo.FromPath(path), NewKey(), null);
 
-                var store = new CustomDataStore(database);
-                new AuthorityStore(store, NullGateLog.Instance).DeleteEverything();
-
-                var fingerprint = CertificateDigest.Of(CertificateBlob.Load(authority).CertificateDer);
-
-                store.Set(AuthorityKeys.AuthorityKey(fingerprint), AuthorityDocument.Save(authority, host, sniKey));
+                var fingerprint = IdOf(authority);
+                WriteSeeded(database, fingerprint, (key, reading) => reading.Answering
+                    .Select(record => StoreRecord.Compose(
+                        key,
+                        StoreKinds.Retired,
+                        new Dictionary<string, string>(StringComparer.Ordinal) { { StoreKinds.AuthorityMember, record.Form.Member(StoreKinds.Id) } }))
+                    .Concat(new[] { StoreRecord.Compose(key, StoreKinds.Authority, WrittenDownMembers(fingerprint, key, authority, host, sniKey)) })
+                    .ToList());
+                new AdmissionStore(new CustomDataStore(database), NullGateLog.Instance).RemoveAll();
 
                 database.Save(null);
                 return fingerprint;
@@ -517,6 +518,137 @@ namespace KeePassGate.Host.Tests.Live
             finally
             {
                 database.Close();
+            }
+        }
+
+        /// <summary>
+        /// The store key a seeded database is written under, the same at every regeneration.
+        /// </summary>
+        private static readonly byte[] SeededStoreKey = Digest("KeePassGate seeded store key");
+
+        /// <summary>The tail of the identifier of a seeded database's group of the plugin's own.</summary>
+        private static readonly byte[] SeededGroupTail = Encoding.ASCII.GetBytes("pictures");
+
+        /// <summary>
+        /// Writes these records into a database's store as a write of the plugin's own writes them,
+        /// with the version record and the summary entry its plan adds, every record composed
+        /// again with a nonce fixed by what it holds and by the authority seeded, under a fixed
+        /// store key where the database holds none, into a group of a fixed identifier.
+        /// </summary>
+        /// <remarks>
+        /// **So that a picture is the same at every regeneration**: a store the plugin writes draws
+        /// its key, its group's identifier and every nonce at random, and each entry's identifier
+        /// and title follow from them. The plan is the plugin's own, `StoreWrite`, and only the
+        /// nonces and the group are fixed here, in the seed's own code; what the store reads as
+        /// afterwards is held to what the plugin would serve.
+        /// </remarks>
+        private static void WriteSeeded(
+            PwDatabase database, string seeded, Func<byte[], StoreReading, IReadOnlyList<StoreRecord>> records)
+        {
+            var store = new KdbxStore(database, GateVersion.Current, null);
+            using (var reading = store.Read())
+            {
+                var key = reading.InForce == null ? (byte[])SeededStoreKey.Clone() : (byte[])reading.InForce.Key.Bytes.Clone();
+                var against = reading.InForce == null ? null : reading.InForce.Key.Name;
+                var write = StoreWrite.Plan(reading, new[] { new StoreAct("a seed", key, against, records(key, reading), null) }, GateVersion.Current);
+                if (write.Refused != null || write.Empty || write.SetBack.Count > 0 || write.Deletions.Count > 0)
+                {
+                    throw new InvalidOperationException("The seed is not a write it can make: " + (write.Refused ?? "nothing to write"));
+                }
+
+                var root = database.RootGroup;
+                var group = write.Starts ? SeededGroup(root) : KeePassGate.Bridge.StoreEntries.Into(database, reading);
+                foreach (var uuid in write.Delete.Select(hex => new PwUuid(StoreComposer.BytesOf(hex))))
+                {
+                    var entry = root.FindEntry(uuid, true);
+                    if (entry != null)
+                    {
+                        entry.ParentGroup.Entries.Remove(entry);
+                    }
+
+                    database.DeletedObjects.Add(new PwDeletedObject(uuid, SeededAuthority.During.UtcDateTime));
+                }
+
+                foreach (var record in write.Add)
+                {
+                    group.AddEntry(KeePassGate.Bridge.StoreEntries.Of(Seeded(key, seeded, record)), true);
+                }
+            }
+
+            using (var written = store.Read())
+            {
+                if (written.State != StoreState.Whole || StoreAuthorities.Served(written) != seeded)
+                {
+                    throw new InvalidOperationException("The seeded store does not serve the authority seeded: " + written.State + ", " + written.Reason);
+                }
+            }
+        }
+
+        /// <summary>A record composed again under a nonce fixed by what it holds and by the authority seeded.</summary>
+        private static StoreRecord Seeded(byte[] key, string seeded, StoreRecord record)
+        {
+            var members = record.Members
+                .Where(pair => pair.Key != StoreKinds.Nonce)
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+            var items = record.Strings
+                .Where(pair => pair.Key.StartsWith(StoreFormat.ItemPrefix, StringComparison.Ordinal))
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => (IReadOnlyDictionary<string, string>)Newtonsoft.Json.Linq.JObject.Parse(pair.Value).Properties()
+                    .ToDictionary(property => property.Name, property => (string)property.Value, StringComparer.Ordinal))
+                .ToList();
+
+            var held = seeded + " " + record.Kind + " " + string.Join(" ", members.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => pair.Key + "=" + pair.Value)) + " " + string.Join(" ", record.Strings
+                .Where(pair => pair.Key.StartsWith(StoreFormat.ItemPrefix, StringComparison.Ordinal)).Select(pair => pair.Value));
+            members[StoreKinds.Nonce] = KeePassGate.Hex.Of(Digest(held).Take(StoreFormat.NonceLength).ToArray());
+
+            return StoreRecord.Compose(key, record.Kind, members, items.Count == 0 ? null : items);
+        }
+
+        /// <summary>A group of the plugin's own, as the plugin makes it, under a fixed identifier.</summary>
+        private static PwGroup SeededGroup(PwGroup root)
+        {
+            var identifier = Encoding.ASCII.GetBytes("KPG/STOR").Concat(SeededGroupTail).ToArray();
+            if (!StoreFormat.IsGroupIdentifier(identifier))
+            {
+                throw new InvalidOperationException("The seeded group's identifier does not begin with the prefix of the plugin's group identifiers.");
+            }
+
+            var group = new PwGroup(true, true, StoreFormat.GroupName, PwIcon.TerminalEncrypted)
+            {
+                Uuid = new PwUuid(identifier),
+                Notes = StoreFormat.GroupNotes,
+                EnableSearching = false,
+                EnableAutoType = false,
+            };
+            root.AddGroup(group, true);
+            return group;
+        }
+
+        /// <summary>The members of an authority's record holding written down parts as they are written.</summary>
+        private static Dictionary<string, string> WrittenDownMembers(string id, byte[] key, string authority, string host, string sniKey)
+        {
+            return new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                { StoreKinds.Id, id },
+                { StoreKinds.StoreKey, KeePassGate.Hex.Of(key) },
+                { AuthorityRecord.AuthorityMember, authority },
+                { AuthorityRecord.HostMember, host },
+                { AuthorityRecord.SniKeyMember, sniKey },
+            };
+        }
+
+        /// <summary>The `id` of an authority written down as base64 of a PKCS#12.</summary>
+        private static string IdOf(string authority)
+        {
+            return CertificateDigest.Of(CertificateBlob.Load(authority).CertificateDer);
+        }
+
+        private static byte[] Digest(string text)
+        {
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+            {
+                return sha.ComputeHash(Encoding.UTF8.GetBytes(text));
             }
         }
 
@@ -949,8 +1081,7 @@ namespace KeePassGate.Host.Tests.Live
 
             if (withAuthority)
             {
-                var created = new AuthorityService(
-                    new CustomDataStore(database), NullGateLog.Instance).Create();
+                var created = DatabaseAuthority.Of(database, NullGateLog.Instance).Create();
                 if (!created.Succeeded)
                 {
                     throw new InvalidOperationException("The throwaway database got no authority: " + created.Message);
@@ -1000,9 +1131,9 @@ namespace KeePassGate.Host.Tests.Live
         /// settings dialog is accepted, and answers with the new authority's digest.
         /// </summary>
         /// <remarks>
-        /// Through `AuthorityService`, so the copy holds exactly what the plugin leaves: the old
-        /// authority retired, its document and every admission record gone, and the new one under
-        /// a key of its own. Minted rather than written down, so it differs on every run, which
+        /// Through `AuthorityService`, so the copy holds exactly what the plugin leaves: the
+        /// authority it held retired, every admission record gone, and the new authority beside it
+        /// under the same store key. Minted rather than written down, so it differs on every run, which
         /// costs nothing to a test that reads back the digest it is given.
         ///
         /// **Only before KeePass starts.**
@@ -1014,7 +1145,7 @@ namespace KeePassGate.Host.Tests.Live
             {
                 database.Open(IOConnectionInfo.FromPath(path), NewKey(), null);
 
-                var authority = new AuthorityService(new CustomDataStore(database), NullGateLog.Instance);
+                var authority = DatabaseAuthority.Of(database, NullGateLog.Instance);
                 var recreated = authority.Recreate();
                 if (!recreated.Succeeded)
                 {
@@ -1080,7 +1211,7 @@ namespace KeePassGate.Host.Tests.Live
             try
             {
                 database.Open(IOConnectionInfo.FromPath(path), NewKey(), null);
-                return new AuthorityStore(new CustomDataStore(database), NullGateLog.Instance).Read();
+                return DatabaseAuthority.Of(database, NullGateLog.Instance).Read();
             }
             finally
             {

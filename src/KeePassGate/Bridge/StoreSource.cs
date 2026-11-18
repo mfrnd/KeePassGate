@@ -30,12 +30,22 @@ namespace KeePassGate.Bridge
     internal static class StoreSource
     {
         /// <summary>The candidates under this root, and the identifiers this database's deletion records name.</summary>
-        public static Walk Of(PwDatabase database, PwGroup root)
+        /// <param name="everyEntry">
+        /// Whether the walk keeps the identifier of every entry it passes as well, which a write
+        /// plans against, `STORE.md` §627, and the gate's readings never ask for.
+        /// </param>
+        public static Walk Of(PwDatabase database, PwGroup root, bool everyEntry = false)
         {
             var candidates = new List<StoreCandidate>();
+            var present = everyEntry ? new List<byte[]>() : null;
 
             foreach (var entry in root.GetEntries(true))
             {
+                if (present != null)
+                {
+                    present.Add(entry.Uuid.UuidBytes);
+                }
+
                 var history = entry.History;
                 if (!Carries(entry) && !Carries(history))
                 {
@@ -53,7 +63,7 @@ namespace KeePassGate.Bridge
                 candidates.Add(new StoreCandidate(entry.Uuid.UuidBytes, versions));
             }
 
-            return new Walk(candidates, database.DeletedObjects.Select(deleted => deleted.Uuid.UuidBytes).ToList());
+            return new Walk(candidates, present, database.DeletedObjects.Select(deleted => deleted.Uuid.UuidBytes).ToList());
         }
 
         private static bool Carries(PwObjectList<PwEntry> history)
@@ -75,16 +85,23 @@ namespace KeePassGate.Bridge
                 KeePassStrings.Instance);
         }
 
-        /// <summary>The candidates of a walk, and the identifiers the deletion records name.</summary>
+        /// <summary>
+        /// The candidates of a walk, the identifier of every entry it passed, and the identifiers
+        /// the deletion records name.
+        /// </summary>
         internal sealed class Walk
         {
-            public Walk(IReadOnlyList<StoreCandidate> candidates, IReadOnlyList<byte[]> deletions)
+            public Walk(IReadOnlyList<StoreCandidate> candidates, IReadOnlyList<byte[]> present, IReadOnlyList<byte[]> deletions)
             {
                 Candidates = candidates;
+                Present = present;
                 Deletions = deletions;
             }
 
             public IReadOnlyList<StoreCandidate> Candidates { get; private set; }
+
+            /// <summary>The identifier of every entry under the root, a record or not, or null where the walk was not asked for them.</summary>
+            public IReadOnlyList<byte[]> Present { get; private set; }
 
             public IReadOnlyList<byte[]> Deletions { get; private set; }
         }

@@ -242,10 +242,9 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void Two_authorities_made_apart_arrive_whole_and_side_by_side()
         {
-            // The three parts are one key precisely so a merge cannot take a certificate from one
-            // replica and a private key from another, and each authority is a key of its own so
-            // that neither beats the other on a clock. What arrives is a choice for the operator,
-            // with both candidates intact.
+            // Each authority is one record, whole in itself, so a merge cannot take a certificate
+            // from one replica and a private key from another, and neither beats the other on a
+            // clock. What arrives is a choice for the operator, with both candidates intact.
             var created = Authority(_elsewhere).Create();
             Assume.That(created.Succeeded, Is.True, created.Message);
 
@@ -318,7 +317,7 @@ namespace KeePassGate.Host.Tests
 
         private static AuthorityService Authority(TemporaryDatabase database)
         {
-            return new AuthorityService(new CustomDataStore(database.Database), NullGateLog.Instance);
+            return DatabaseAuthority.Of(database.Database, NullGateLog.Instance);
         }
 
         private static AdmissionStore Records(TemporaryDatabase database)

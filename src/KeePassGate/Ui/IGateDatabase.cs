@@ -18,6 +18,12 @@ namespace KeePassGate.Ui
         IKeyValueStore PluginCustomData { get; }
 
         /// <summary>
+        /// The plugin's store in the database, `STORE.md` §601: where its authority is kept, read
+        /// as it stands and written through the writer.
+        /// </summary>
+        Store.IGateStore Store { get; }
+
+        /// <summary>
         /// What this database is called, for a screen that has to say which one it is talking
         /// about. Empty when there is nothing to call it.
         /// </summary>

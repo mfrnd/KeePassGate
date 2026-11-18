@@ -69,10 +69,12 @@ flowchart LR
     rules -->|say what a profile reaches| tree["Groups and entries"]
 ```
 
-The authority, the host certificate, the records, the revocations and the list of profile names live
-in the database's own custom data. The rules live on the
-group or entry they are about. All of it is inside the database, covered by the database's own
-encryption, and none of it is anywhere else on the machine.
+The authority, with the host certificate and the gate key, is an entry in a group of the plugin's
+own, named `KeePassGate`, under a check keyed by a secret the database holds, and a retirement
+beside it is a further entry. The records, the revocations and the list of profile names live in
+the database's own custom data. The rules live on the group or entry they are about. All of it is
+inside the database, covered by the database's own encryption, and none of it is anywhere else on
+the machine.
 
 ## How one request is decided
 

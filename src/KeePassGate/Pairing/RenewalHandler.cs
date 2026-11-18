@@ -726,7 +726,7 @@ namespace KeePassGate.Pairing
                 // here, under the lock it was written under, rather than overtaken.
                 string refused = null;
                 var taken = false;
-                Func<IKeyValueStore, string> condition = store =>
+                Func<IWriteGround, string> condition = ground =>
                 {
                     if (!_held.Take(held))
                     {
@@ -735,7 +735,7 @@ namespace KeePassGate.Pairing
                     }
 
                     taken = true;
-                    var stale = held.Stale(store, key);
+                    var stale = held.Stale(ground, key);
                     if (stale == HeldStaleness.Authority || stale == HeldStaleness.Unpaired)
                     {
                         refused = "unpaired";

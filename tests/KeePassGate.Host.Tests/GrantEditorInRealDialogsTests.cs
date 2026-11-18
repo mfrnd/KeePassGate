@@ -1047,7 +1047,7 @@ namespace KeePassGate.Host.Tests
         private void Admit(params string[] profiles)
         {
             var store = new CustomDataStore(_database.Database);
-            var authority = new AuthorityService(store, null);
+            var authority = DatabaseAuthority.Of(_database.Database, null);
 
             var created = authority.Create();
             Assume.That(created.Succeeded, Is.True, created.Message);

@@ -2,24 +2,27 @@ using System.Linq;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Store;
 using KeePassLib;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests
 {
     /// <summary>
-    /// What KeePass's own merges do to the authority, one key per authority and one retirement per
-    /// authority replaced, against real databases.
+    /// What KeePass's own merges do to the authority in the plugin's store, against real
+    /// databases.
     /// </summary>
     /// <remarks>
-    /// The layout rests on one rule `CustomDataMergeRuleTests` pins: a merge never removes a key
-    /// the target holds and never reads a value. So a retirement, once written, stays wherever the
-    /// copy that wrote it takes part, and a document a stale copy brings back is served by
-    /// nothing. What cannot be decided that way is two authorities made apart, and those arrive
-    /// side by side for the operator rather than one of them winning on a clock.
+    /// A retirement, once written, stays wherever the copy that wrote it takes part, so an
+    /// authority a stale copy brings back is served by nothing. What cannot be decided that way is
+    /// two authorities made apart, and those arrive side by side for the operator rather than
+    /// either winning on a clock.
     ///
-    /// Every method that copies custom data at all is run: `KeepExisting` copies none, so it
-    /// teaches the target nothing and changes nothing, which is the probe's "not learned".
+    /// **Create new IDs brings no record**: every entry of the other copy arrives under another
+    /// identifier, where it is a copy the store passes over, so the copy imported into stays as it
+    /// was, `STORE.md` §621 and §640. Each merge here is from the other copy's file opened afresh,
+    /// as KeePass's import and synchronize open it, since `PwDatabase.MergeIn` with Create new IDs
+    /// gives the source's own items new identifiers in place.
     /// </remarks>
     [TestFixture]
     public sealed class AuthorityMergeTests
@@ -49,7 +52,13 @@ namespace KeePassGate.Host.Tests
                         var mine = Digest(first);
                         var theirs = Digest(second);
 
-                        first.Database.MergeIn(second.Database, method, null);
+                        MergeIn(first, second, method);
+
+                        if (method == PwMergeMethod.CreateNewUuids)
+                        {
+                            Assert.That(Digest(first), Is.EqualTo(mine), method + ": the copy imported into stays as it was");
+                            continue;
+                        }
 
                         using (var reading = Authority(first).Read())
                         {
@@ -59,6 +68,8 @@ namespace KeePassGate.Host.Tests
                                 method + ": both new ones, and never the one both copies retired");
                             Assert.That(reading.Candidates.Select(c => c.Fingerprint), Does.Not.Contain(original));
                         }
+
+                        AssertServes(first, null, method + ": nothing is served while both stand");
                     }
                 }
             }
@@ -81,14 +92,16 @@ namespace KeePassGate.Host.Tests
 
                     var expected = new[] { Digest(first), Digest(second), Digest(third) };
 
-                    first.Database.MergeIn(second.Database, PwMergeMethod.Synchronize, null);
-                    third.Database.MergeIn(first.Database, PwMergeMethod.Synchronize, null);
+                    MergeIn(first, second, PwMergeMethod.Synchronize);
+                    MergeIn(third, first, PwMergeMethod.Synchronize);
 
                     using (var reading = Authority(third).Read())
                     {
                         Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.Undecided));
                         Assert.That(reading.Candidates.Select(c => c.Fingerprint), Is.EquivalentTo(expected));
                     }
+
+                    AssertServes(third, null, "nothing is served while the three stand");
                 }
             }
         }
@@ -113,8 +126,8 @@ namespace KeePassGate.Host.Tests
                             }
 
                             var kept = Digest(chooser);
-                            chooser.Database.MergeIn(second.Database, PwMergeMethod.Synchronize, null);
-                            chooser.Database.MergeIn(third.Database, PwMergeMethod.Synchronize, null);
+                            MergeIn(chooser, second, PwMergeMethod.Synchronize);
+                            MergeIn(chooser, third, PwMergeMethod.Synchronize);
 
                             var choice = Keep(chooser, kept);
                             Assume.That(choice.Succeeded, Is.True, choice.Message);
@@ -125,14 +138,13 @@ namespace KeePassGate.Host.Tests
                             {
                                 var target = intoChooser ? chooser : loser;
                                 var source = intoChooser ? loser : chooser;
-                                target.Database.MergeIn(source.Database, method, null);
 
-                                using (var reading = Authority(target).Read())
-                                {
-                                    var named = method + (intoChooser ? ", into the copy that chose" : ", into a copy that lost");
-                                    Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.Present), named);
-                                    Assert.That(reading.Material.AuthorityDigest, Is.EqualTo(kept), named);
-                                }
+                                // Create new IDs leaves a copy that lost as it was, serving its own.
+                                var expected = method == PwMergeMethod.CreateNewUuids ? Digest(target) : kept;
+                                MergeIn(target, source, method);
+
+                                var named = method + (intoChooser ? ", into the copy that chose" : ", into a copy that lost");
+                                AssertServes(target, expected, named);
                             }
                         }
                     }
@@ -167,10 +179,10 @@ namespace KeePassGate.Host.Tests
                         var agreed = Digest(first);
                         var own = Digest(second);
 
-                        first.Database.MergeIn(second.Database, PwMergeMethod.Synchronize, null);
-                        first.Database.MergeIn(third.Database, PwMergeMethod.Synchronize, null);
-                        second.Database.MergeIn(first.Database, PwMergeMethod.Synchronize, null);
-                        third.Database.MergeIn(first.Database, PwMergeMethod.Synchronize, null);
+                        MergeIn(first, second, PwMergeMethod.Synchronize);
+                        MergeIn(first, third, PwMergeMethod.Synchronize);
+                        MergeIn(second, first, PwMergeMethod.Synchronize);
+                        MergeIn(third, first, PwMergeMethod.Synchronize);
 
                         var choices = new[]
                         {
@@ -184,47 +196,22 @@ namespace KeePassGate.Host.Tests
                             Assume.That(choice.Succeeded, Is.True, choice.Message);
                         }
 
-                        first.Database.MergeIn(second.Database, method, null);
-                        first.Database.MergeIn(third.Database, method, null);
+                        MergeIn(first, second, method);
+                        MergeIn(first, third, method);
+
+                        if (method == PwMergeMethod.CreateNewUuids)
+                        {
+                            Assert.That(Digest(first), Is.EqualTo(agreed), method + ": the copy imported into stays as it was");
+                            continue;
+                        }
 
                         using (var reading = Authority(first).Read())
                         {
                             Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.None), method.ToString());
                             Assert.That(reading.IsRetired, Is.True, method + ": every authority it held is retired");
                         }
-                    }
-                }
-            }
-        }
 
-        [Test]
-        public void A_stale_copy_brings_a_pruned_document_back_and_it_serves_nothing()
-        {
-            foreach (var method in Methods)
-            {
-                using (var current = TemporaryDatabase.New())
-                {
-                    Assume.That(Authority(current).Create().Succeeded, Is.True);
-                    var old = Digest(current);
-
-                    using (var stale = CopyOf(current))
-                    {
-                        Assume.That(Authority(current).Recreate().Succeeded, Is.True);
-                        var replacement = Digest(current);
-                        Assume.That(current.Database.CustomData.Exists(AuthorityKeys.AuthorityKey(old)), Is.False,
-                            "recreating takes the old document away");
-
-                        current.Database.MergeIn(stale.Database, method, null);
-                        current.SaveCloseAndReopen();
-
-                        Assert.That(current.Database.CustomData.Exists(AuthorityKeys.AuthorityKey(old)), Is.True,
-                            method + ": a merge never removes a key, so the stale copy's document comes back");
-                        Assert.That(Digest(current), Is.EqualTo(replacement),
-                            method + ": and the retirement beside it means it is served by nothing");
-
-                        var pruned = new AuthorityStore(new CustomDataStore(current.Database), NullGateLog.Instance).Prune();
-                        Assert.That(pruned.Select(p => p.Key), Is.EqualTo(new[] { AuthorityKeys.AuthorityKey(old) }),
-                            method + ": and the next write that prunes takes it away again");
+                        AssertServes(first, null, method + ": nothing is served");
                     }
                 }
             }
@@ -241,12 +228,16 @@ namespace KeePassGate.Host.Tests
 
                     using (var stale = CopyOf(deleted))
                     {
+                        var before = Digest(stale);
                         Assume.That(Authority(deleted).Delete().Succeeded, Is.True);
 
-                        deleted.Database.MergeIn(stale.Database, method, null);
-                        stale.Database.MergeIn(deleted.Database, method, null);
+                        MergeIn(deleted, stale, method);
+                        MergeIn(stale, deleted, method);
 
-                        foreach (var copy in new[] { deleted, stale })
+                        // Create new IDs brings nothing into the stale copy either, which goes on
+                        // serving the authority it held: the import fails to bring it up to date.
+                        var copies = method == PwMergeMethod.CreateNewUuids ? new[] { deleted } : new[] { deleted, stale };
+                        foreach (var copy in copies)
                         {
                             using (var reading = Authority(copy).Read())
                             {
@@ -254,32 +245,82 @@ namespace KeePassGate.Host.Tests
                                 Assert.That(reading.IsRetired, Is.True,
                                     method + ": and reads as retired, rather than as never having had an authority");
                             }
+
+                            AssertServes(copy, null, method + ": nothing is served");
+                        }
+
+                        if (method == PwMergeMethod.CreateNewUuids)
+                        {
+                            Assert.That(Digest(stale), Is.EqualTo(before), method + ": the stale copy stays as it was");
                         }
                     }
                 }
             }
         }
 
+        [Test]
+        public void A_retired_authority_a_stale_copy_brings_back_serves_nothing_and_the_next_write_deletes_it_again()
+        {
+            foreach (var method in Methods.Where(method => method != PwMergeMethod.CreateNewUuids))
+            {
+                using (var first = TemporaryDatabase.New())
+                {
+                    Assume.That(Authority(first).Create().Succeeded, Is.True);
+                    var old = Digest(first);
+
+                    using (var stale = CopyOf(first))
+                    {
+                        Assume.That(Authority(first).Recreate().Succeeded, Is.True);
+                        var current = Digest(first);
+
+                        MergeIn(first, stale, method);
+
+                        Assert.That(Digest(first), Is.EqualTo(current), method + ": the authority served is the authority recreated");
+
+                        Assume.That(Authority(first).Recreate().Succeeded, Is.True);
+                        Assert.That(EntriesHolding(first, old), Is.Zero, method + ": and no entry holds the retired authority after the next write");
+                    }
+                }
+            }
+        }
+
+        /// <summary>How many entries of the database hold an authority's record filed under this `id`.</summary>
+        private static int EntriesHolding(TemporaryDatabase database, string id)
+        {
+            return database.RootGroup.GetEntries(true).Count(entry =>
+                entry.Strings.ReadSafe("KPG.Kind") == "authority" && entry.Strings.ReadSafe("KPG.Data").Contains(id));
+        }
+
         /// <summary>
-        /// A second copy of one database, as a file copied to another machine is: the same root
-        /// group, since KeePass matches groups by identifier, and the same custom data.
+        /// A second copy of one database, as a file copied to another machine is: the original
+        /// saved, and its file opened again in a directory of its own.
         /// </summary>
         private static TemporaryDatabase CopyOf(TemporaryDatabase original)
         {
+            original.Save();
+
             var copy = TemporaryDatabase.New();
-            copy.Database.RootGroup.Uuid = original.Database.RootGroup.Uuid;
-
-            foreach (var pair in original.Database.CustomData.ToList())
-            {
-                copy.Database.CustomData.Set(pair.Key, pair.Value);
-            }
-
+            System.IO.File.Copy(original.Path, copy.Path, true);
+            copy.Reopen();
             return copy;
+        }
+
+        /// <summary>
+        /// Merges the source copy into the target from the source's file opened afresh, as
+        /// KeePass's import and synchronize open the other copy, so that the source as it stands
+        /// in memory is not what the merge changes.
+        /// </summary>
+        private static void MergeIn(TemporaryDatabase target, TemporaryDatabase source, PwMergeMethod method)
+        {
+            using (var opened = CopyOf(source))
+            {
+                target.Database.MergeIn(opened.Database, method, null);
+            }
         }
 
         private static AuthorityService Authority(TemporaryDatabase database)
         {
-            return new AuthorityService(new CustomDataStore(database.Database), NullGateLog.Instance);
+            return DatabaseAuthority.Of(database.Database, NullGateLog.Instance);
         }
 
         /// <summary>
@@ -298,14 +339,32 @@ namespace KeePassGate.Host.Tests
             return authority.Keep(fingerprint, offered);
         }
 
-        /// <summary>The one authority a copy serves, which the caller expects there to be.</summary>
+        /// <summary>The authority a copy serves, which the caller expects there to be, from a store that is whole.</summary>
         private static string Digest(TemporaryDatabase database)
         {
-            using (var reading = Authority(database).Read())
+            using (var store = Store(database))
             {
-                Assert.That(reading.IsPresent, Is.True, "expected exactly one authority, and found " + reading.Presence);
-                return reading.Material.AuthorityDigest;
+                Assert.That(store.State, Is.EqualTo(StoreState.Whole), store.Reason);
+                var served = StoreAuthorities.Served(store);
+                Assert.That(served, Is.Not.Null, "expected an authority served");
+                return served;
             }
+        }
+
+        /// <summary>That a copy's store is whole and serves this authority, or nothing where it is null.</summary>
+        private static void AssertServes(TemporaryDatabase database, string expected, string named)
+        {
+            using (var store = Store(database))
+            {
+                Assert.That(store.State, Is.EqualTo(StoreState.Whole), named + ": " + store.Reason);
+                Assert.That(StoreAuthorities.Served(store), Is.EqualTo(expected), named);
+            }
+        }
+
+        /// <summary>A copy's store as it stands, for the caller to let go.</summary>
+        private static StoreReading Store(TemporaryDatabase database)
+        {
+            return new KdbxStore(database.Database, GateVersion.Current, NullGateLog.Instance).Read();
         }
     }
 }

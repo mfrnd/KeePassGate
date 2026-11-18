@@ -1,10 +1,9 @@
 using System;
 using System.Linq;
-using System.Reflection;
-using KeePassLib.Collections;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassGate.Transport;
 using NUnit.Framework;
@@ -15,10 +14,10 @@ namespace KeePassGate.Host.Tests
     /// The authority against a real KeePass database, saved to a real file and opened again.
     /// </summary>
     /// <remarks>
-    /// The unit tests prove the logic against a dictionary. This proves the two things a
-    /// dictionary cannot: that KeePass's custom data really carries what we put in it, and that it
-    /// survives being written to a KDBX4 file and read back. Nothing is believed until it has been
-    /// through the file.
+    /// The unit tests prove the logic against a store in memory. This proves the two things a
+    /// store in memory cannot: that KeePass's database really carries what we put in it, and that
+    /// it survives being written to a KDBX4 file and read back. Nothing is believed until it has
+    /// been through the file.
     /// </remarks>
     [TestFixture]
     public sealed class AuthorityInRealDatabaseTests
@@ -30,7 +29,7 @@ namespace KeePassGate.Host.Tests
         public void SetUp()
         {
             _database = TemporaryDatabase.New();
-            _service = new AuthorityService(new CustomDataStore(_database.Database), NullGateLog.Instance);
+            _service = DatabaseAuthority.Of(_database.Database, NullGateLog.Instance);
         }
 
         [TearDown]
@@ -49,17 +48,6 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void An_authority_lands_in_the_databases_own_custom_data()
-        {
-            _service.Create();
-
-            Assert.That(_database.Database.CustomData.Select(pair => pair.Key), Is.EqualTo(new[] { AuthorityKey() }),
-                "one key, so a merge cannot take the three parts from different replicas");
-            Assert.That(_database.RootGroup.CustomData.Exists(AuthorityKey()), Is.False,
-                "and nothing of this plugin's is left where the group dialog's snapshot reaches");
-        }
-
-        [Test]
         public void It_survives_being_saved_and_opened_again()
         {
             var created = _service.Create();
@@ -75,8 +63,7 @@ namespace KeePassGate.Host.Tests
 
             _database.SaveCloseAndReopen();
 
-            var afterReopening = new AuthorityService(
-                new CustomDataStore(_database.Database), NullGateLog.Instance);
+            var afterReopening = DatabaseAuthority.Of(_database.Database, NullGateLog.Instance);
             using (var after = afterReopening.Read())
             {
                 Assert.That(after.Presence, Is.EqualTo(AuthorityPresence.Present));
@@ -94,8 +81,7 @@ namespace KeePassGate.Host.Tests
             _service.Create();
             _database.SaveCloseAndReopen();
 
-            var afterReopening = new AuthorityService(
-                new CustomDataStore(_database.Database), NullGateLog.Instance);
+            var afterReopening = DatabaseAuthority.Of(_database.Database, NullGateLog.Instance);
 
             using (var reading = afterReopening.Read())
             using (var issued = new AuthorityIssuer().IssueHost(reading.Material.AuthorityKey).Read())
@@ -109,19 +95,19 @@ namespace KeePassGate.Host.Tests
         {
             _service.Create();
             _database.Save();
-            var digest = AuthorityKeys.FingerprintInAuthority(AuthorityKey());
+            var digest = Digest();
             _service.Delete();
 
             _database.SaveCloseAndReopen();
 
-            var afterReopening = new AuthorityService(
-                new CustomDataStore(_database.Database), NullGateLog.Instance);
+            var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+            var afterReopening = new AuthorityService(store, new CustomDataStore(_database.Database), NullGateLog.Instance);
             using (var reading = afterReopening.Read())
             {
                 Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.None));
             }
 
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RetirementKey(digest)), Is.True,
+            Assert.That(store.Read().InForce.Taken(StoreKinds.Retired), Does.Contain(digest),
                 "the retirement is what keeps the deletion when a copy still holding the authority is merged in");
         }
 
@@ -152,32 +138,6 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void Writing_stamps_the_key_so_a_replica_can_merge_it()
-        {
-            // The dictionary does this itself, which is the property the authority was moved here
-            // for: a change with no modification time behind it is one another copy cannot prefer.
-            _service.Create();
-
-            // Read by reflection because KeePass keeps the accessor internal, which is also why
-            // this is worth pinning: the whole placement rests on a stamp no public API reports.
-            var accessor = typeof(StringDictionaryEx).GetMethod(
-                "GetLastModificationTime", BindingFlags.Instance | BindingFlags.NonPublic);
-            Assert.That(accessor, Is.Not.Null,
-                "KeePass no longer stamps a key of a database's own custom data, which is what a merge orders by");
-
-            var stamped = (DateTime?)accessor.Invoke(
-                _database.Database.CustomData, new object[] { AuthorityKey() })
-                ?? throw new InvalidOperationException("the authority was written without a modification time");
-
-            Assert.That(stamped, Is.GreaterThan(DateTime.UtcNow.AddMinutes(-5)));
-
-            var onTheGroup = (DateTime?)accessor.Invoke(
-                _database.RootGroup.CustomData, new object[] { AuthorityKey() });
-            Assert.That(onTheGroup, Is.Null,
-                "a group's dictionary keeps no per-key time, which is why nothing of ours is on it");
-        }
-
-        [Test]
         public void Nothing_of_ours_is_left_on_the_root_group()
         {
             _service.Create();
@@ -186,37 +146,13 @@ namespace KeePassGate.Host.Tests
                 "The group dialog copies that dictionary and writes the copy back over anything put there.");
         }
 
-        [Test]
-        public void The_stored_form_is_text_that_a_kdbx_can_hold()
-        {
-            _service.Create();
-
-            var stored = _database.Database.CustomData.Get(AuthorityKey());
-            Assert.That(stored, Is.Not.Null.And.Not.Empty);
-
-            var body = JsonBody.Read(stored);
-            Assert.That(body, Is.Not.Null, "what was written has to read back as a document");
-
-            foreach (var part in new[]
-                     {
-                         AuthorityDocument.AuthorityPartKey,
-                         AuthorityDocument.HostPartKey,
-                         AuthorityDocument.SniKeyPartKey
-                     })
-            {
-                var value = body.Text(part);
-                Assert.That(value, Is.Not.Null.And.Not.Empty, part + " is missing");
-                Assert.DoesNotThrow(() => Convert.FromBase64String(value), part + " is not base64");
-            }
-        }
-
-        /// <summary>The key the authority the database holds now is stored under.</summary>
-        private string AuthorityKey()
+        /// <summary>The digest of the authority the database holds now.</summary>
+        private string Digest()
         {
             using (var reading = _service.Read())
             {
-                Assume.That(reading.IsPresent, "there has to be an authority to name its key");
-                return AuthorityKeys.AuthorityKey(reading.Material.AuthorityDigest);
+                Assume.That(reading.IsPresent, "there has to be an authority to name");
+                return reading.Material.AuthorityDigest;
             }
         }
     }

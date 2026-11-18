@@ -3,80 +3,23 @@ using System;
 namespace KeePassGate.Authority
 {
     /// <summary>
-    /// The custom data keys this plugin owns, all under one prefix so that what belongs to
-    /// KeePassGate can be listed, and deleted, without guessing.
+    /// The custom data keys this plugin owns for its admissions, all under one prefix so that what
+    /// belongs to KeePassGate can be listed, and deleted, without guessing.
     /// </summary>
     public static class AuthorityKeys
     {
         /// <summary>
-        /// Everything the authority writes starts with this.
+        /// Every key the admissions are written under starts with this.
         /// </summary>
         /// <remarks>
         /// Not everything the plugin writes. The access control document is `KPG`, with no dot, so
-        /// a prefix test on this finds the authority's own keys, the admission records and the
-        /// profile list, and misses the grants entirely. Deleting names its keys rather than
-        /// sweeping the prefix, for that reason. The revocations and the retirements are under it
-        /// too.
+        /// a prefix test on this finds the admission records, the revocations, the standing
+        /// answers and the profile list, and misses the grants entirely. Deleting names its keys
+        /// rather than sweeping the prefix, for that reason.
         /// </remarks>
         public const string Prefix = "KPG.";
 
-        /// <summary>
-        /// One authority per key, named by the digest of its certificate: its certificate and
-        /// private key, the host certificate and key, and the gate key, all three inside one value.
-        /// </summary>
-        /// <remarks>
-        /// One key rather than three, so that a kdbx merge cannot take the parts from different
-        /// replicas and leave a host certificate that does not chain to the authority beside it.
-        /// `AuthorityDocument` is the shape inside it.
-        ///
-        /// **One key per authority rather than one key for the only authority**, because a key
-        /// that is only ever added and never changed is the one shape a KeePass merge cannot undo,
-        /// `CA.md` §204. A replacement written over the old authority's key lost to any copy whose
-        /// time for that key was later, and a stale copy merged in could put back an authority the
-        /// operator had replaced. Written under its own digest, a document is written once and
-        /// never rewritten; what replaces it is a retirement beside it, and two authorities made
-        /// separately in two copies arrive side by side for the operator to choose between rather
-        /// than one silently beating the other.
-        /// </remarks>
-        public const string AuthorityPrefix = "KPG.Authority.";
-
-        /// <summary>
-        /// One retirement per authority that was replaced, deleted or not chosen, named by the same
-        /// digest as its document.
-        /// </summary>
-        /// <remarks>
-        /// **Only ever added, never changed and never removed**, for the reason `RevokedPrefix`
-        /// gives: a merge cannot take away a key the target holds, so an authority once retired
-        /// stays retired whatever copy of the file is merged in later, and its document coming
-        /// back with that copy serves nothing. The value is a constant, so there is nothing for a
-        /// merge to decide between.
-        /// </remarks>
-        public const string RetiredPrefix = "KPG.RetiredAuthority.";
-
-        /// <summary>What a retirement holds. Constant, so that no two copies of one ever differ.</summary>
-        public const string RetiredValue = "retired";
-
-        /// <summary>The key the authority with this digest is stored under.</summary>
-        public static string AuthorityKey(string fingerprint)
-        {
-            return AuthorityPrefix + fingerprint;
-        }
-
-        /// <summary>The key that retires the authority with this digest.</summary>
-        public static string RetirementKey(string fingerprint)
-        {
-            return RetiredPrefix + fingerprint;
-        }
-
-        /// <summary>The digest an authority's key is filed under, or null when the key is not one.</summary>
-        public static string FingerprintInAuthority(string key)
-        {
-            return key != null && key.StartsWith(AuthorityPrefix, StringComparison.Ordinal)
-                ? key.Substring(AuthorityPrefix.Length)
-                : null;
-        }
-
-        /// <summary>What a key naming an authority by no digest at all is shown as.</summary>
+        /// <summary>What an authority whose record names no digest at all is shown as.</summary>
         public const string NoDigest = "(no digest)";
 
         /// <summary>
@@ -86,23 +29,6 @@ namespace KeePassGate.Authority
         public static string Shown(string fingerprint)
         {
             return string.IsNullOrEmpty(fingerprint) ? NoDigest : CertificateDigest.Shorten(fingerprint);
-        }
-
-        /// <summary>The digest a retirement is filed under, or null when the key is not one.</summary>
-        public static string FingerprintInRetirement(string key)
-        {
-            return key != null && key.StartsWith(RetiredPrefix, StringComparison.Ordinal)
-                ? key.Substring(RetiredPrefix.Length)
-                : null;
-        }
-
-        /// <summary>
-        /// Whether a key is an authority or a retirement, which between them are everything that
-        /// decides which authority a database serves.
-        /// </summary>
-        public static bool IsAuthorityState(string key)
-        {
-            return FingerprintInAuthority(key) != null || FingerprintInRetirement(key) != null;
         }
 
         /// <summary>
@@ -257,6 +183,15 @@ namespace KeePassGate.Authority
         public static string AdmissionKeyInRenewalRefusal(string key)
         {
             return IsRenewalRefusal(key) ? key.Substring(RenewalRefusedPrefix.Length) : null;
+        }
+
+        /// <summary>
+        /// Whether a key is about an admission: a record, a revocation or a standing answer to a
+        /// renewal, each of which goes with the authority that issued its certificate.
+        /// </summary>
+        public static bool IsAdmission(string key)
+        {
+            return IsClientRecord(key) || IsRevocation(key) || IsRenewalRefusal(key);
         }
 
         public static bool IsOurs(string key)

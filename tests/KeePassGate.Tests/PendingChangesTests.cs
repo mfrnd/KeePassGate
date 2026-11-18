@@ -43,23 +43,23 @@ namespace KeePassGate.Tests
         [Test]
         public void A_kind_of_key_is_waiting_while_any_key_of_it_is()
         {
-            // The authority is one key per authority, so whether it is waiting is a question about
-            // every key of that kind, written or removed.
+            // A revocation is one key per certificate, so whether revocations are waiting is a
+            // question about every key of that kind, written or removed.
             var live = new InMemoryKeyValueStore();
-            live.Plant(AuthorityKeys.AuthorityKey("old"), "a document");
+            live.Plant(AuthorityKeys.RevocationKey("aaa"), "a revocation");
             var pending = new PendingStore(live);
 
-            Assert.That(pending.WaitingOn(AuthorityKeys.IsAuthorityState), Is.False);
+            Assert.That(pending.WaitingOn(AuthorityKeys.IsRevocation), Is.False);
 
             pending.Set("KPG.Thing", "a value");
-            Assert.That(pending.WaitingOn(AuthorityKeys.IsAuthorityState), Is.False, "another kind entirely");
+            Assert.That(pending.WaitingOn(AuthorityKeys.IsRevocation), Is.False, "another kind entirely");
 
-            pending.Remove(AuthorityKeys.AuthorityKey("old"));
-            Assert.That(pending.WaitingOn(AuthorityKeys.IsAuthorityState), Is.True, "a removal is waiting too");
+            pending.Remove(AuthorityKeys.RevocationKey("aaa"));
+            Assert.That(pending.WaitingOn(AuthorityKeys.IsRevocation), Is.True, "a removal is waiting too");
 
             pending.Discard();
-            pending.Set(AuthorityKeys.RetirementKey("old"), AuthorityKeys.RetiredValue);
-            Assert.That(pending.WaitingOn(AuthorityKeys.IsAuthorityState), Is.True, "and so is a retirement");
+            pending.Set(AuthorityKeys.RevocationKey("bbb"), "a revocation");
+            Assert.That(pending.WaitingOn(AuthorityKeys.IsRevocation), Is.True, "and so is another key of it written");
         }
 
         [Test]
@@ -173,43 +173,6 @@ namespace KeePassGate.Tests
 
             Assert.That(after, Is.EqualTo(new[] { "deploy", "ops", "readonly" }),
                 "the name the pairing wrote is still there, and so is the one the operator typed");
-        }
-
-        [Test]
-        public void A_create_and_a_delete_on_one_dialog_leave_the_database_as_it_was()
-        {
-            // Delete retires what it deletes, and an authority made on this dialog was retired
-            // into the database at OK: a key the file kept for good, for an authority it never
-            // held, reading as a database that had retired every authority it had.
-            var live = new InMemoryKeyValueStore();
-            var pending = new PendingDatabase(new FakeGateDatabase(live), null);
-            var service = new AuthorityService(pending.PluginCustomData, null);
-
-            Assume.That(service.Create().Succeeded, Is.True);
-            Assume.That(service.Delete().Succeeded, Is.True);
-
-            Assert.That(pending.Apply(), Is.False, "nothing was written, so nothing is to be saved");
-            Assert.That(live.Keys, Is.Empty);
-        }
-
-        [Test]
-        public void Two_recreates_on_one_dialog_retire_only_the_authority_the_database_held()
-        {
-            var live = new InMemoryKeyValueStore();
-            Assume.That(new AuthorityService(live, null).Create().Succeeded, Is.True);
-            var held = live.Keys.Single(key => AuthorityKeys.FingerprintInAuthority(key) != null);
-
-            var pending = new PendingDatabase(new FakeGateDatabase(live), null);
-            var service = new AuthorityService(pending.PluginCustomData, null);
-            Assume.That(service.Recreate().Succeeded, Is.True);
-            Assume.That(service.Recreate().Succeeded, Is.True);
-
-            Assert.That(pending.Apply(), Is.True);
-
-            var retired = live.Keys.Select(AuthorityKeys.FingerprintInRetirement).Where(fingerprint => fingerprint != null);
-            Assert.That(retired, Is.EqualTo(new[] { AuthorityKeys.FingerprintInAuthority(held) }),
-                "the authority made between the two was never in the database, and is retired nowhere");
-            Assert.That(live.Keys.Count(key => AuthorityKeys.FingerprintInAuthority(key) != null), Is.EqualTo(1));
         }
 
         [Test]
@@ -697,7 +660,7 @@ namespace KeePassGate.Tests
             Assert.That(pending.Apply(), Is.True);
 
             Assert.That(inner.MarkedModifiedCount, Is.EqualTo(1));
-            Assert.That(inner.Store.Get("KPG.Thing"), Is.EqualTo("a value"));
+            Assert.That(inner.Values.Get("KPG.Thing"), Is.EqualTo("a value"));
         }
 
         [Test]
@@ -724,7 +687,7 @@ namespace KeePassGate.Tests
 
             pending.Discard();
 
-            Assert.That(inner.Store.Get("KPG.Thing"), Is.Null);
+            Assert.That(inner.Values.Get("KPG.Thing"), Is.Null);
             Assert.That(inner.MarkedModifiedCount, Is.Zero);
             Assert.That(pending.Waiting, Is.False);
 
@@ -743,7 +706,7 @@ namespace KeePassGate.Tests
             inner.IsOpen = false;
 
             Assert.That(pending.Apply(), Is.False);
-            Assert.That(inner.Store.Get("KPG.Thing"), Is.Null);
+            Assert.That(inner.Values.Get("KPG.Thing"), Is.Null);
             Assert.That(inner.MarkedModifiedCount, Is.Zero);
         }
 

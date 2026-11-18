@@ -6,6 +6,7 @@ using KeePassLib;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
+using KeePassGate.Store;
 using KeePassGate.Ui;
 using KeePassGate.Vault;
 
@@ -787,7 +788,7 @@ namespace KeePassGate.Bridge
             PwDatabase database,
             AdmissionRecord record,
             Action audit = null,
-            Func<IKeyValueStore, string> condition = null)
+            Func<IWriteGround, string> condition = null)
         {
             if (record == null)
             {
@@ -919,7 +920,7 @@ namespace KeePassGate.Bridge
             }
 
             var store = new CustomDataStore(database);
-            var admissions = new AdmissionStore(store, _log);
+            var admissions = new AdmissionStore(store, new KdbxStore(database, GateVersion.Current, _log), _log);
             if (admissions.Find(admissionKey) == null)
             {
                 // Gone since the connection was admitted: revoked from the Clients page in
@@ -1136,24 +1137,23 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Keeps one of several authorities, retiring the rest and taking their documents away,
-        /// and marks the database modified without saving it.
+        /// Keeps one of several authorities, a retirement of each of the others written into the
+        /// plugin's store, and marks the database modified without saving it, `STORE.md` §614.
         /// </summary>
         /// <remarks>
         /// **The operator's answer in the authority chooser, and the one write here nobody waits on
-        /// from a connection.** It still goes through the same lock and the same questions as
-        /// every other write, because what it writes is exactly what Database Maintenance's
-        /// write-back undoes: a retirement written while that dialog is open is lost when it
-        /// closes, and a prune beside it is what turns a lucky key count into a write-back. So it
-        /// is refused while that dialog is open or while KeePass is part way through something of
-        /// its own, and the operator is told why.
+        /// from a connection.** It still goes through the same lock as every other write, and is
+        /// refused while an entry dialog holds an entry the write deletes, sets back or protects,
+        /// the summary entry among them, and while KeePass is part way through something of its
+        /// own, and the operator is told why. It writes no custom data and saves nothing, so
+        /// Database Maintenance and the TAN wizard refuse it nothing, `STORE.md` §626.
         ///
         /// **Not saved, which is operator answer 5**: the database is marked, the window says so,
         /// and the operator saves as they would any other change. Serving starts at once all the
         /// same, because the gate reads the database in memory.
         ///
         /// **About the authorities the question listed, and no others**, which the answer carries
-        /// to `AuthorityStore.Keep`: asked there, inside the turn that writes, so a synchronize
+        /// to `AuthorityService.Keep`: asked there, inside the turn that writes, so a synchronize
         /// that ended while the question stood or between two tries refuses the answer rather than
         /// having it retire an authority nobody was shown.
         /// </remarks>
@@ -1209,25 +1209,98 @@ namespace KeePassGate.Bridge
                 return AuthorityChange.Refused(interrupting);
             }
 
+            // No window is asked about the database as a whole: a keep writes no custom data, so
+            // Database Maintenance's copy of it takes nothing back, and it saves nothing, so a
+            // save the TAN wizard is inside is not met. What a window can take back is an entry
+            // the keep deletes, sets back or protects, asked of each once the plan exists,
+            // `STORE.md` §626.
+            var kept = new AuthorityService(
+                new KdbxStore(database, GateVersion.Current, _log, Holding), new CustomDataStore(database), _log).Keep(fingerprint, offered);
+            if (kept.Succeeded)
+            {
+                // The tree and the list too: a choice writes entries into the plugin's group.
+                database.Modified = true;
+                Redraw(database, true);
+            }
+
+            return kept;
+        }
+
+        /// <summary>
+        /// A write of the operator's into the plugin's store, made now on KeePass's own thread,
+        /// after the questions every write asks there, `STORE.md` §627: the tab's OK, applied in
+        /// memory, the database marked, and saved by the operator's own save.
+        /// </summary>
+        /// <remarks>
+        /// **No lock is taken.** The writer's lock orders the connection threads' writes, each of
+        /// which takes a turn on this very thread to make its change; what keeps two writes apart
+        /// on this thread is the thread, and a turn never returns into a dialog's own loop before
+        /// it ends. A connection's write waiting for its turn waits for this write to end.
+        ///
+        /// **Refused where KeePass is part way through something of its own**, a merge or a save
+        /// among it, a save of this writer's included, or a window holds what the write touches:
+        /// the same questions `Keep` asks. Nothing is added then, and the caller names what was not
+        /// written. The settings dialog's OK can meet a save of this writer's, pumping under the
+        /// dialog while a pairing lands, so this is a refusal like any other and no defect.
+        /// </remarks>
+        /// <param name="write">The write, planned and applied against the store as it stands then.</param>
+        public StoreWritten ByOperator(PwDatabase database, Func<StoreWritten> write)
+        {
+            if (write == null)
+            {
+                throw new ArgumentNullException(nameof(write));
+            }
+
+            if (database == null || !database.IsOpen)
+            {
+                return StoreWritten.Refused("the database is not open");
+            }
+
+            var interrupting = Interrupting();
+            if (interrupting != null)
+            {
+                return StoreWritten.Refused(interrupting);
+            }
+
             if (_dialogs != null)
             {
                 var open = _dialogs.BlockingRecords(database) ?? _dialogs.BlockingSaves(database);
                 if (open != null)
                 {
-                    return AuthorityChange.Refused(open);
+                    return StoreWritten.Refused(open);
                 }
             }
 
-            var kept = new AuthorityService(new CustomDataStore(database), _log).Keep(fingerprint, offered);
-            if (kept.Succeeded)
+            var written = write();
+            if (written.Wrote)
             {
-                // The title bar and the menus only: a choice changes the database's own custom
-                // data, which the tree and the list do not show.
-                database.Modified = true;
-                Redraw(database, false);
+                Redraw(database, true);
             }
 
-            return kept;
+            return written;
+        }
+
+        /// <summary>
+        /// Why an entry cannot be written now, a window holding a copy of it, or null, `STORE.md`
+        /// §626: what every write into the store asks of each entry it deletes, sets back or
+        /// protects. Where no watch was given, which is a test, nothing holds.
+        /// </summary>
+        internal string Holding(PwEntry entry)
+        {
+            return _dialogs == null ? null : _dialogs.Blocking(entry);
+        }
+
+        /// <summary>
+        /// Why every write of the operator's into a store is refused in this session, or null:
+        /// the dialogs that would take a write back were not watched from the plugin's load.
+        /// </summary>
+        /// <remarks>
+        /// Asked by the KPG tab before it offers a command, so that a press is never taken that
+        /// every OK refuses. Null where this writer was given no watch, which is a test.
+        /// </remarks>
+        public string Unwritable
+        {
+            get { return _dialogs != null && !_dialogs.Watching ? GroupDialogs.NotWatched : null; }
         }
 
         private VaultWrite ChangeOnTheUiThread(
@@ -1738,12 +1811,27 @@ namespace KeePassGate.Bridge
             }
 
             var owing = new Owing(new CustomDataStore(database));
+
+            // Which authorities the store retired and which stand, taken out of a reading that is
+            // let go at once; null for both where the store does not tell.
+            ISet<string> retired = null;
+            ISet<string> standing = null;
+            using (var reading = new KdbxStore(database, GateVersion.Current, _log).Read())
+            {
+                if (reading.InForce != null)
+                {
+                    retired = new HashSet<string>(reading.InForce.Taken(StoreKinds.Retired), StringComparer.Ordinal);
+                    standing = new HashSet<string>(
+                        reading.InForce.Authorities.Select(record => record.Form.Member(StoreKinds.Id)), StringComparer.Ordinal);
+                }
+            }
+
             try
             {
                 var admissions = new AdmissionStore(owing.Store, _log);
                 foreach (var answer in owed)
                 {
-                    if (owing.Store.Get(AuthorityKeys.RetirementKey(answer.DatabaseId)) != null)
+                    if (retired != null && retired.Contains(answer.DatabaseId))
                     {
                         // Given under an authority this database has since retired. A recreate or a
                         // delete takes every record with it, so nothing is left for the answer to
@@ -1754,9 +1842,10 @@ namespace KeePassGate.Bridge
                         continue;
                     }
 
-                    if (string.IsNullOrEmpty(owing.Store.Get(AuthorityKeys.AuthorityKey(answer.DatabaseId))))
+                    if (standing == null || !standing.Contains(answer.DatabaseId))
                     {
-                        // Owed to another database: this database never held the authority.
+                        // Owed to another database, which never held the authority, or to a database whose
+                        // store does not tell which authorities stand: kept owed.
                         continue;
                     }
 
@@ -1818,6 +1907,20 @@ namespace KeePassGate.Bridge
             owing.Settled.Clear();
         }
 
+        /// <summary>What an admission's write is held to, read in its own turn.</summary>
+        private sealed class Ground : IWriteGround
+        {
+            public Ground(string served, IKeyValueStore names)
+            {
+                Served = served;
+                Names = names;
+            }
+
+            public string Served { get; private set; }
+
+            public IKeyValueStore Names { get; private set; }
+        }
+
         /// <summary>What one write wrote of the answers owed, and what it wrote over.</summary>
         private sealed class Owing
         {
@@ -1850,10 +1953,10 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Takes away the documents of retired authorities, the admission records that came back
-        /// beside their revocations, the records of expired certificates and the standing answers
-        /// about certificates no record admits, as part of a write this plugin is making anyway,
-        /// answering with what went.
+        /// Takes away the admission records that came back beside their revocations, the records of
+        /// expired certificates, the revocations of authorities the store no longer holds and the
+        /// standing answers about certificates no record admits, as part of a write this plugin is
+        /// making anyway, answering with what went, `AdmissionStore.PruneOnWrite`.
         /// </summary>
         /// <remarks>
         /// **Here, inside the guarded write, and never at open**, which is operator answer 3a:
@@ -1862,11 +1965,11 @@ namespace KeePassGate.Bridge
         /// the decision reads the retirements and admission reads the revocations, so one that
         /// fails is a warning and the write goes on.
         /// </remarks>
-        private IReadOnlyList<KeyValuePair<string, string>> Prune(CustomDataStore store)
+        private IReadOnlyList<KeyValuePair<string, string>> Prune(PwDatabase database, CustomDataStore store)
         {
             try
             {
-                return new AuthorityStore(store, _log).Prune();
+                return new AdmissionStore(store, new KdbxStore(database, GateVersion.Current, _log), _log).PruneOnWrite(DateTimeOffset.UtcNow);
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
@@ -1877,7 +1980,7 @@ namespace KeePassGate.Bridge
         }
 
         private AdmissionWrite OnTheUiThread(
-            PwDatabase database, AdmissionRecord record, Action audit, Func<IKeyValueStore, string> condition)
+            PwDatabase database, AdmissionRecord record, Action audit, Func<IWriteGround, string> condition)
         {
             if (!database.IsOpen)
             {
@@ -1904,7 +2007,15 @@ namespace KeePassGate.Bridge
                 // busy, which keeps an approval held, and nothing below can. So what the condition
                 // spends, an approval or an invitation, is spent only on a write that is going
                 // ahead, and what it compares cannot move before the write that relies on it.
-                var withdrawn = condition(store);
+                // The authority served read from the store in this very turn, which nothing can
+                // move before the write that relies on it.
+                string served;
+                using (var reading = new KdbxStore(database, GateVersion.Current, _log).Read())
+                {
+                    served = StoreAuthorities.Served(reading);
+                }
+
+                var withdrawn = condition(new Ground(served, store));
                 if (withdrawn != null)
                 {
                     return AdmissionWrite.Withdrawn(withdrawn);
@@ -1934,7 +2045,7 @@ namespace KeePassGate.Bridge
             {
                 Name(store, record.Profiles);
                 store.Set(record.StorageKey, written);
-                pruned = Prune(store);
+                pruned = Prune(database, store);
                 database.Modified = true;
             }
             catch (Exception error) when (Expected.OfCustomData(error))

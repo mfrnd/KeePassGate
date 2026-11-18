@@ -86,50 +86,63 @@ These came out of a long design discussion and several rounds of adversarial rev
 settled unless there is new evidence, and where there is, say so explicitly rather than quietly
 designing around them.
 
-- **Every database is its own certificate authority**, stored inside itself under `KPG` keys in the
-  database's own `CustomData`. A malicious `.kdbx` therefore vouches only for itself. An earlier design
+- **Every database is its own certificate authority**, stored inside itself as a record of the
+  plugin's store, an entry in a group of the plugin's own, STORE.md §614. A malicious `.kdbx`
+  therefore vouches only for itself. An earlier design
   put one authority on the host with a registry beside it, and that registry had to name databases,
   which an attacker-supplied file could forge. **Do not re-propose a host-level authority or
   registry.**
 - **The database's own `CustomData`, never the root group's**, and it was the root group's until a
   merge was measured: KeePass merges `PwDatabase.CustomData` key by key and a group's dictionary
-  whole, CA.md §204. Records shaped one-per-client to survive a merge did not. Two consequences
-  worth keeping straight. Each authority's three parts are **one key**, `AuthorityDocument`,
-  because there the argument runs the other way: merged apart, a certificate from one replica and a
-  private key from another read as damage. And **what has to survive a merge is a key that is only
-  ever added**, because a KeePass merge never removes a key and never reads a value, which is the
-  measured fact below. A revocation is
+  whole, CA.md §204. Records shaped one-per-client to survive a merge did not. And **what has to
+  survive a merge is a key that is only ever added**, because a KeePass merge never removes a key
+  and never reads a value, which is the measured fact below. A revocation is
   `KPG.Revoked.<key>` beside the emptied record, never changed, naming the certificate's end and the
   authority that issued it, and pruned once the certificate has expired or that authority is retired
-  or gone, or kept for good beside a record that would not read and so gave no date; an authority is
-  one key per authority, `KPG.Authority.<fp>`, written once, and an authority recreated or deleted
-  gets `KPG.RetiredAuthority.<fp>` beside it, so which authority is served is decided by the
-  retirements and never by counting documents. More than one authority with no retirement serves
-  nothing: every connection is answered `503 undecided`, and KeePass asks the operator which to keep
-  in a dialog over its main window, never raised from a connection. **This reverses two rules**: a
-  revocation used to be written empty rather than removed and the only authority lived under one
-  key, both resting on a merge carrying the newer value, which a dropped time, a slow clock or an
-  import defeats. A record that comes back beside its revocation is deleted by the plugin's next
-  write of its own, and recreating or deleting the authority removes every record and every
-  revocation with it. See CA.md §204.
-- **The authority takes the file to KDBX 4.1**, because a per-key modification time is a 4.1
-  field. A database saved with an authority in it is a 4.1 file before anything has paired with
-  it, and a record keeps it there. That is a format and not a gate: other programs open it, and
-  what saving and merging in them does to it is measured and stated in CA.md §204. A revocation no
-  longer needs the times, being a key of its own, but a KeePassXC merge can still undo a revocation,
-  which is why a paired database belongs in KeePass 2.48 or later with the plugin.
-- **That store is decided to be replaced in 0.3.0, and is what 0.2.0 ships until then.** The
-  entries above about `CustomData` and KDBX 4.1 describe the plugin as released. What replaces
-  them is decided and not built: the plugin's data as entries in a group of its own, each written
-  once under a check keyed by a secret the database holds, with no custom data anywhere and
-  nothing on the operator's own entries or groups. [`STORE.md`](STORE.md) §601 is the contract,
+  or gone, or kept for good beside a record that would not read and so gave no date. **This
+  reverses a rule**: a revocation used to be written empty rather than removed, resting on a merge
+  carrying the newer value, which a dropped time, a slow clock or an import defeats. A record that
+  comes back beside its revocation is deleted by the plugin's next write of its own, and recreating
+  or deleting the authority removes every record and every revocation with it. See CA.md §204.
+- **An authority is one record, written once, and a retirement beside it takes it out of
+  service**, so which authority is served is decided by the retirements and never by counting
+  authorities. Its three parts are one record, `AuthorityRecord`, because merged apart a
+  certificate from one replica and a private key from another read as damage. More than one
+  authority with no retirement serves nothing: every connection is answered `503 undecided`, and
+  KeePass asks the operator which to keep in a dialog over its main window, never raised from a
+  connection. **This reverses the authority in custom data**, a key per authority with a
+  retirement key beside it, which itself reversed a single key for the only authority: a KeePassXC
+  merge replaces the whole of the custom data with the other copy's, which took the authority
+  away or put a retired authority back. An authority 0.2 made is neither read nor migrated, so a
+  database 0.2 paired is given an authority again and every client paired again. See CA.md §204
+  and STORE.md §614.
+- **What the plugin keeps in custom data takes the file to KDBX 4.1**, because a per-key
+  modification time is a 4.1 field. **This reverses "the authority takes the file to KDBX 4.1"**:
+  the authority is entries now, which need nothing above 4.0, so a database with an authority alone
+  is a 4.0 file, measured, and what the plugin keeps in custom data, a profile name on the Profiles
+  page or an admission record, takes it to 4.1, measured too, and keeps it there. That is a format
+  and not a gate: other programs open it, and what saving and merging in them does to it is measured
+  and stated in CA.md §204. A revocation no longer needs the times, being a key of its own, but a
+  KeePassXC merge can still undo a revocation, which is why a paired database belongs in KeePass
+  2.48 or later with the plugin.
+- **That store is decided to be replaced in 0.3.0, and is what 0.2.0 ships until then.** The entries
+  above about `CustomData` and KDBX 4.1 describe the plugin as released, but for the authority. What
+  replaces them is decided and built in part: the plugin's data as entries in a group of its own,
+  each written once under a check keyed by a secret the database holds, with no custom data anywhere
+  and nothing on the operator's own entries or groups. [`STORE.md`](STORE.md) §601 is the contract,
   §604 what it reverses and on which measurements, and `spikes/storage-survival` holds those
   measurements with the evaluation they were decided from. **Do not build anything new on custom
-  data, and do not re-propose what those decisions closed**, which §612, §630 and §634 list with
-  the measurement behind each. **Two parts of it are built**: the API's guard, §633, and the
-  store's reading, §620 to §624, read once for each hold and answered `503 split`, `outdated` or
-  `stopped` before a route is chosen, §656. Nothing writes the store yet, and the authority is
-  still served from where `CA.md` §204 keeps it.
+  data, and do not re-propose what those decisions closed**, which §612, §630 and §634 list with the
+  measurement behind each. **What of it is built**: the API's guard, §633; the store's reading, §620
+  to §624, with what is in force and the room a store has for its next write, read once for each
+  hold and answered `503 split`, `outdated` or `stopped` before a route is chosen, §656, a store
+  with no room among the stopped, §643; and the authority, §614, read from the store, served from
+  what stands in it and written into it by the KPG tab's commands at the settings dialog's OK and by
+  keeping an authority, §627, with every record edited in KeePass set back at the next write, §628,
+  and every write refused while an entry dialog holds an entry it deletes, sets back or protects,
+  since that dialog's OK puts its copy back, §626. A database whose store holds no key is served
+  nothing, but by a gate that was serving it when the key went, which answers `503 lost` from what
+  it served with until the database is locked or closed, §656.
 - **The admission record is load bearing.** A certificate that chains, passes its EKU check and has
   no record in the database is refused, and so is one whose record has a revocation beside it. The
   permitted profiles are read from the **record**, less any name the database's list of profiles no
@@ -246,9 +259,13 @@ designing around them.
   for this session has no key: `PendingSessionRefusals` holds the lift beside the buffer, and the
   factory applies it to the plugin's one `SessionRefusals` on OK and drops it otherwise.
 
-  One case survives all of that, deliberately: recreating or deleting the authority while a pairing
-  lands leaves that record behind, inert, because its certificate chains to an authority that is
-  gone. The clients page says so on the row rather than listing it as a client.
+  **What a Recreate or a Delete takes away lands only with the act the store took.** Every
+  admission record, revocation and standing answer to a renewal goes at OK, and only where the
+  store write took the Recreate or the Delete, out of the custom data as it stands at that moment:
+  a record a pairing landed while the dialog was open goes with them, since its certificate chains
+  to the authority just retired. An act refused or left out at OK takes nothing away, so no
+  revocation goes while the authority that issued its certificate is still served. While such an
+  act waits, the page reads every admission as gone. `STORE.md` §614.
 
   **Revocation waits too, and that is a cost that was argued and accepted.** Immediacy is something
   a revocation would rather have, and an operator who revokes and leaves the dialog open has revoked

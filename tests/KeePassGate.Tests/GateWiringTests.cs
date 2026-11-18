@@ -146,13 +146,40 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_store_write_the_writer_refuses_at_OK_is_logged_and_counts_no_incident()
+        {
+            // As an OK pressed while a save of the plugin's own pumps under the dialog is refused:
+            // reachable, so no incident, and the log names what was not written.
+            var incidents = new GateIncidents(_log);
+            var factory = new AuthorityPanelFactory(
+                new FakeDatabaseSource(_database), new FakePrompt(true), _log, null, null, incidents,
+                new AdmissionAudit(NullGateAudit.Instance), new SessionRefusals());
+
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            using (var panel = (AuthorityPanel)factory.CreatePanel(form))
+            {
+                panel.CreateAuthority();
+                _database.Records.RefuseWrites = "KeePass is part way through a save";
+
+                form.DialogResult = DialogResult.OK;
+                form.RaiseClosed();
+            }
+
+            Assert.That(incidents.Count, Is.EqualTo(0));
+            Assert.That(
+                _log.Warnings.Select(entry => entry.Message),
+                Has.Some.Matches<string>(message => message.Contains("Create") && message.Contains("part way through a save")));
+            Assert.That(StoreAuthorities.Served(_database.Store.Read()), Is.Null);
+        }
+
+        [Test]
         public void A_defect_naming_the_clients_at_OK_keeps_no_revocation_from_landing()
         {
             // The clients are named for the audit's lines before OK empties their records, and a
             // failure there, in the same step as applying what the tab held, dropped every
             // revocation the clients page had already shown gone.
             var incidents = new GateIncidents(_log);
-            Assume.That(new AuthorityService(_database.PluginCustomData, _log).Create().Succeeded, Is.True);
+            Assume.That(new AuthorityService(_database.Store, _database.PluginCustomData, _log).Create().Succeeded, Is.True);
 
             using (var issuer = TestAuthority.New())
             using (var client = issuer.IssueClient("agent-fictitious", "reader"))
@@ -196,10 +223,10 @@ namespace KeePassGate.Tests
             // The moment it takes effect, which is OK: until then it waits in the dialog's buffer
             // with everything else on the tab, and Cancel takes it away with nothing written.
             var audit = new RecordingAudit();
-            Assume.That(new AuthorityService(_database.PluginCustomData, _log).Create().Succeeded, Is.True);
+            Assume.That(new AuthorityService(_database.Store, _database.PluginCustomData, _log).Create().Succeeded, Is.True);
 
             string databaseId;
-            using (var reading = new AuthorityService(_database.PluginCustomData, _log).Read())
+            using (var reading = new AuthorityService(_database.Store, _database.PluginCustomData, _log).Read())
             {
                 databaseId = reading.Material.AuthorityDigest;
             }

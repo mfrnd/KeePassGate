@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Diagnostics;
+using KeePassGate.Store;
 
 namespace KeePassGate.Authority
 {
@@ -33,9 +35,26 @@ namespace KeePassGate.Authority
     public sealed class AdmissionStore
     {
         private readonly IKeyValueStore _store;
+        private readonly IGateStore _authorities;
         private readonly IGateLog _log;
 
+        /// <summary>Over these records, with no word of which authorities stand.</summary>
+        /// <remarks>
+        /// So a revocation written here names no authority, and is kept until its certificate
+        /// expires, and no revocation is taken away for its authority having gone: the direction
+        /// that keeps a refusal longer.
+        /// </remarks>
         public AdmissionStore(IKeyValueStore store, IGateLog log)
+            : this(store, null, log)
+        {
+        }
+
+        /// <summary>
+        /// Over these records, beside the plugin's store that tells which authorities stand: what
+        /// a revocation names its certificate's issuer by, and what the revocations of an
+        /// authority gone are taken away by.
+        /// </summary>
+        public AdmissionStore(IKeyValueStore store, IGateStore authorities, IGateLog log)
         {
             if (store == null)
             {
@@ -43,6 +62,7 @@ namespace KeePassGate.Authority
             }
 
             _store = store;
+            _authorities = authorities;
             _log = log ?? NullGateLog.Instance;
         }
 
@@ -459,7 +479,7 @@ namespace KeePassGate.Authority
         /// </summary>
         /// <remarks>
         /// **Only as part of a write this plugin makes anyway**, which is the rule every prune
-        /// here follows: a revocation, and every write <c>AuthorityStore.Prune</c> rides on, which
+        /// here follows: a revocation, and every write the writer prunes on, which
         /// is pairing, renewing, keeping one authority, and recreating or deleting it. Opening or
         /// reading a database changes nothing in it, so an expired record stays until then, and
         /// the clients page shows it as expired meanwhile.
@@ -595,7 +615,7 @@ namespace KeePassGate.Authority
         /// </summary>
         /// <remarks>
         /// **Only as part of a write this plugin makes anyway**, which is the rule every prune
-        /// here follows: a revocation, and every write <c>AuthorityStore.Prune</c> rides on, which
+        /// here follows: a revocation, and every write the writer prunes on, which
         /// is pairing, renewing, keeping one authority, and recreating or deleting it. Opening or
         /// reading a database changes nothing in it, so a record a merge brought back stays until
         /// then. It admits nobody meanwhile, because <see cref="Find(string)"/> reads the revocation rather
@@ -657,7 +677,7 @@ namespace KeePassGate.Authority
                 {
                     return AuthorityKeys.RevocationValue(
                         Moments.Wire(new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero)),
-                        new AuthorityStore(_store, _log).IssuerOf(certificate));
+                        IssuerOf(certificate));
                 }
             }
             catch (Exception error) when (Expected.OfCryptography(error))
@@ -667,23 +687,85 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// Takes away every revocation that names an authority this store no longer holds, as a
-        /// revocation write does it: the authorities standing are read here.
+        /// Takes away what a write of the plugin's own takes away beside what it writes, answering
+        /// with what went: the records that came back beside their revocations, the records of
+        /// expired certificates, the revocations naming an authority the store no longer holds, and
+        /// the standing answers no record is left to ask, in that order, since the last asks what
+        /// the others left.
         /// </summary>
-        private void PruneUnserved()
+        /// <remarks>
+        /// A revocation goes for its authority only where the store this was given reads whole and
+        /// tells which authorities stand; where it does not, the revocation is kept until its
+        /// certificate expires. The writer runs this on every write of its own, and nothing else.
+        /// </remarks>
+        internal IReadOnlyList<KeyValuePair<string, string>> PruneOnWrite(DateTimeOffset now)
         {
-            HashSet<string> standing;
+            var removed = new List<KeyValuePair<string, string>>(PruneCameBack());
+            removed.AddRange(PruneExpired(now));
+            removed.AddRange(PruneUnserved());
+            removed.AddRange(PruneRefusals());
+            return removed;
+        }
+
+        /// <summary>
+        /// Takes away every revocation that names an authority the store no longer holds, as a
+        /// revocation write does it, answering with what went: the authorities standing are read
+        /// here, and where the store does not tell which stand, nothing is taken away.
+        /// </summary>
+        private IReadOnlyList<KeyValuePair<string, string>> PruneUnserved()
+        {
+            var standing = Standing();
+            return standing == null ? Array.Empty<KeyValuePair<string, string>>() : PruneUnserved(standing.ToList());
+        }
+
+        /// <summary>
+        /// The standing authority that issued this certificate, from a reading let go at once, or
+        /// null where none did, no store was given, or the store could not be read.
+        /// </summary>
+        private string IssuerOf(X509Certificate2 certificate)
+        {
+            if (_authorities == null)
+            {
+                return null;
+            }
+
             try
             {
-                standing = new AuthorityStore(_store, _log).Standing();
+                using (var reading = _authorities.Read())
+                {
+                    return StoreAuthorities.IssuerOf(reading, certificate);
+                }
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
-                _log.Warn("the revocations of authorities no longer held could not be taken away: " + error.Message);
-                return;
+                _log.Warn("the plugin's store could not be read for the authority a revocation names: " + error.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// The authorities standing in a whole store, from a reading let go at once, or null where
+        /// the store does not tell, none was given, or it could not be read.
+        /// </summary>
+        private IReadOnlyCollection<string> Standing()
+        {
+            if (_authorities == null)
+            {
+                return null;
             }
 
-            PruneUnserved(standing);
+            try
+            {
+                using (var reading = _authorities.Read())
+                {
+                    return StoreAuthorities.Standing(reading);
+                }
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Warn("the plugin's store could not be read, so no revocation is taken away for its authority: " + error.Message);
+                return null;
+            }
         }
 
         /// <summary>
@@ -708,7 +790,7 @@ namespace KeePassGate.Authority
         ///
         /// A failure is logged and answered with what went before it, as every prune here is.
         /// </remarks>
-        internal IReadOnlyList<KeyValuePair<string, string>> PruneUnserved(ICollection<string> standing)
+        private IReadOnlyList<KeyValuePair<string, string>> PruneUnserved(ICollection<string> standing)
         {
             var removed = new List<KeyValuePair<string, string>>();
             if (standing == null)
@@ -814,9 +896,7 @@ namespace KeePassGate.Authority
                 var keys = _store.Keys;
                 var found = keys == null
                     ? new List<KeyValuePair<string, string>>()
-                    : keys.Where(key => AuthorityKeys.IsClientRecord(key)
-                                        || AuthorityKeys.IsRevocation(key)
-                                        || AuthorityKeys.IsRenewalRefusal(key))
+                    : keys.Where(AuthorityKeys.IsAdmission)
                           .Select(key => new KeyValuePair<string, string>(key, _store.Get(key)))
                           .ToList();
 

@@ -61,6 +61,88 @@ namespace KeePassGate.Tests
             }
         }
 
+        [TestCase("split")]
+        [TestCase("outdated")]
+        [TestCase("stopped")]
+        public void Under_a_store_that_holds_the_gate_back_the_page_states_its_word_and_every_command_is_off(string word)
+        {
+            _database = HeldBack.Database(word);
+            Assume.That(_database.Store.Read().State.ToString(), Is.EqualTo(word).IgnoreCase);
+
+            using (var panel = NewPanel(true))
+            {
+                Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.HeldBackHeadline(word)));
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Contain("Nothing is served for this database."));
+                Assert.That(Button(panel, GateTab.CreateButtonName).Enabled, Is.False);
+                Assert.That(Button(panel, GateTab.RecreateButtonName).Enabled, Is.False);
+                Assert.That(Button(panel, GateTab.DeleteButtonName).Enabled, Is.False);
+            }
+        }
+
+        [Test]
+        public void Where_nothing_can_be_written_the_page_states_why_and_every_command_on_the_store_is_off()
+        {
+            // As where the dialogs that would take a write back are not watched: the log at load
+            // names it, and the tab took presses that every OK then dropped.
+            StoreSeeds.Authority(_database.Store, _database.Values);
+            _database.Records.Unwritable = "the dialogs that would take a write back could not be watched";
+
+            using (var panel = NewPanel(true))
+            {
+                Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.UnwritableHeadline));
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Contain("could not be watched"));
+                Assert.That(Button(panel, GateTab.CreateButtonName).Enabled, Is.False);
+                Assert.That(Button(panel, GateTab.RecreateButtonName).Enabled, Is.False);
+                Assert.That(Button(panel, GateTab.DeleteButtonName).Enabled, Is.False);
+            }
+        }
+
+        [Test]
+        public void A_revocation_on_the_tab_takes_a_revocation_away_only_for_an_authority_the_live_store_no_longer_holds()
+        {
+            // An authority kept on the tab retires the other in the page's reading, and OK may
+            // yet leave that keep out: the prune a revocation rides on is judged by the store as
+            // the database holds it.
+            var both = StoreSeeds.Undecided(_database.Store, _database.Values);
+            var kept = both[0];
+            var other = both[1];
+            var ofOther = AdmittedBy(other);
+            Assume.That(new AdmissionStore(_database.Values, _database.Store, _log).Remove(ofOther), Is.True);
+            var ofKept = AdmittedBy(kept);
+            var pending = new PendingDatabase(_database, _log);
+
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                Assert.That(new AuthorityService(pending.Store, pending.PluginCustomData, _log).Keep(kept, both).Succeeded, Is.True);
+                Assert.That(panel.Revoke(ofKept), Is.Null);
+                Assert.That(pending.PluginCustomData.Get(AuthorityKeys.RevocationKey(ofOther)), Is.Not.Null,
+                    "the authority that issued it still stands in the database");
+
+                // A third authority arrives under the dialog, and the keep is left out at OK.
+                StoreSeeds.Beside(_database.Store);
+                pending.Apply();
+            }
+
+            Assert.That(_database.Values.Get(AuthorityKeys.RevocationKey(ofOther)), Is.Not.Null);
+            Assert.That(_database.Values.Get(AuthorityKeys.RevocationKey(ofKept)), Is.Not.Null);
+        }
+
+        [Test]
+        public void A_store_past_half_its_room_adds_its_line_and_leaves_the_commands_as_they_are()
+        {
+            _database = HeldBack.Database(HeldBack.Half);
+            Assume.That(_database.Store.Read().Room.PastHalf, Is.True);
+
+            using (var panel = NewPanel(true))
+            {
+                Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.PresentHeadline));
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Contain("The store is half full."));
+                Assert.That(Button(panel, GateTab.CreateButtonName).Enabled, Is.False);
+                Assert.That(Button(panel, GateTab.RecreateButtonName).Enabled, Is.True);
+                Assert.That(Button(panel, GateTab.DeleteButtonName).Enabled, Is.True);
+            }
+        }
+
         [Test]
         public void The_tab_has_a_page_for_each_of_its_three_subjects()
         {
@@ -107,7 +189,7 @@ namespace KeePassGate.Tests
             {
                 panel.CreateAuthority();
 
-                using (var reading = new AuthorityService(_database.Store, null).Read())
+                using (var reading = new AuthorityService(_database.Store, _database.Values, null).Read())
                 {
                     Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.Present));
                 }
@@ -213,8 +295,7 @@ namespace KeePassGate.Tests
             var store = new AdmissionStore(_database.PluginCustomData, null);
             foreach (var candidate in candidates)
             {
-                var key = CertificateBlob.Load(
-                    AuthorityDocument.Read(_database.Store.Get(AuthorityKeys.AuthorityKey(candidate)), null).Authority);
+                var key = StoreSeeds.KeyOf(_database.Store, candidate);
                 using (var client = new AuthorityIssuer().IssueClient(key, "agent-" + candidate.Substring(0, 4), new[] { "ops" }).Read())
                 {
                     store.Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }));
@@ -249,7 +330,7 @@ namespace KeePassGate.Tests
                     store.Write(AdmissionRecord.For(host, DateTimeOffset.UtcNow, new[] { "ops" }));
                 }
 
-                _database.Store.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
+                _database.Values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
                 Assume.That(panel.AdmittedClients().Records, Has.Count.EqualTo(2));
 
                 panel.RecreateAuthority();
@@ -342,8 +423,8 @@ namespace KeePassGate.Tests
                 panel.DeleteAuthority();
 
                 Assert.That(prompt.Asked, Is.EqualTo(1));
-                Assert.That(_database.Store.Keys.All(k => AuthorityKeys.FingerprintInRetirement(k) != null), Is.True,
-                    "nothing is left but the retirement that keeps it deleted");
+                Assert.That(StoreAuthorities.Standing(_database.Store.Read()), Is.Empty,
+                    "nothing stands but the retirement that keeps it deleted");
                 Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.RetiredHeadline),
                     "and the page shows the authority as retired rather than as never made");
             }
@@ -356,11 +437,13 @@ namespace KeePassGate.Tests
             using (var panel = NewPanel(prompt))
             {
                 panel.CreateAuthority();
+                var digest = Digest();
+                var writes = _database.Records.Writes;
 
                 panel.DeleteAuthority();
 
-                Assert.That(_database.Store.Keys.Count(), Is.EqualTo(1),
-                    "the authority is one key, and refusing the question leaves it there");
+                Assert.That(_database.Records.Writes, Is.EqualTo(writes), "refusing the question writes nothing");
+                Assert.That(Digest(), Is.EqualTo(digest), "and leaves the authority standing");
             }
         }
 
@@ -390,13 +473,13 @@ namespace KeePassGate.Tests
         [Test]
         public void A_database_that_refuses_the_write_reports_it_and_stays_upright()
         {
-            _database.Store.ThrowOnWrite = new InvalidOperationException("the database said no");
+            _database.Records.RefuseWrites = "the database refused it";
 
             using (var panel = NewPanel(true))
             {
                 Assert.DoesNotThrow(() => panel.CreateAuthority());
 
-                Assert.That(Label(panel, GateTab.ResultLabelName).Text, Does.Contain("the database said no"));
+                Assert.That(Label(panel, GateTab.ResultLabelName).Text, Does.Contain("the database refused it"));
                 Assert.That(_database.MarkedModifiedCount, Is.Zero);
             }
         }
@@ -404,7 +487,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_write_that_vanishes_is_reported_rather_than_celebrated()
         {
-            _database.Store.SwallowWrites = true;
+            _database.Records.SwallowWrites = true;
 
             using (var panel = NewPanel(true))
             {
@@ -419,7 +502,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Damage_is_shown_and_only_the_two_buttons_that_can_help_are_offered()
         {
-            _database.Store.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
+            StoreSeeds.Damaged(_database.Store);
 
             using (var panel = NewPanel(true))
             {
@@ -644,7 +727,7 @@ namespace KeePassGate.Tests
             // already made were left to the garbage collector. Dropping the notice is the first
             // thing disposing does, and the one part of it a test can see from outside.
             var notice = new CountingNotice();
-            _database.Store.ThrowOnRead = new InvalidCastException("invented for the test");
+            _database.Records.ThrowOnRead = new InvalidCastException("invented for the test");
 
             Assert.That(
                 () => new AuthorityPanel(_database, new FakePrompt(true), _log, null, null, notice),
@@ -668,7 +751,10 @@ namespace KeePassGate.Tests
             }
         }
 
-        /// <summary>A database whose custom data cannot even be asked for, which stops a tab being built.</summary>
+        /// <summary>
+        /// A database whose custom data and store cannot even be asked for, which stops a tab being
+        /// built.
+        /// </summary>
         private sealed class UnreadableDatabase : IGateDatabase
         {
             public bool IsOpen
@@ -682,6 +768,11 @@ namespace KeePassGate.Tests
             }
 
             public IKeyValueStore PluginCustomData
+            {
+                get { throw new InvalidOperationException("invented for the test"); }
+            }
+
+            public KeePassGate.Store.IGateStore Store
             {
                 get { throw new InvalidOperationException("invented for the test"); }
             }
@@ -723,7 +814,7 @@ namespace KeePassGate.Tests
                 var list = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
                 Assume.That(list.Clients.Count, Is.EqualTo(1));
 
-                _database.Store.ThrowOnRead = new InvalidOperationException("the database said no");
+                _database.Records.ThrowOnRead = new DatabaseShut("the database refused it");
                 panel.Describe();
 
                 // The headline says which state this is and the detail says why. A store that
@@ -854,12 +945,12 @@ namespace KeePassGate.Tests
             // no client to revoke, so the row could never go.
             using (var panel = NewPanel(true))
             {
-                _database.Store.Plant(AuthorityKeys.ClientPrefix, "x");
+                _database.Values.Plant(AuthorityKeys.ClientPrefix, "x");
                 Assume.That(panel.AdmittedClients().Unreadable, Is.EqualTo(new[] { string.Empty }));
 
                 Assert.That(panel.Revoke(string.Empty), Is.Null);
 
-                Assert.That(_database.Store.Get(AuthorityKeys.ClientPrefix), Is.Null);
+                Assert.That(_database.Values.Get(AuthorityKeys.ClientPrefix), Is.Null);
                 Assert.That(panel.AdmittedClients().Unreadable, Is.Empty);
                 Assert.That(panel.Revoke(string.Empty), Is.EqualTo("there is no client to revoke"));
             }
@@ -881,7 +972,7 @@ namespace KeePassGate.Tests
                 Assert.That(_log.Entries.Skip(before).Select(entry => entry.Message), Is.Empty);
 
                 pending.Discard();
-                Assert.That(new AdmissionStore(_database.Store, null).All().Records, Has.Count.EqualTo(1),
+                Assert.That(new AdmissionStore(_database.Values, null).All().Records, Has.Count.EqualTo(1),
                     "and the client is still admitted");
             }
         }
@@ -897,7 +988,7 @@ namespace KeePassGate.Tests
             using (var panel = NewPanel(true))
             {
                 var record = Admit("agent-fictitious", DateTimeOffset.UtcNow);
-                _database.Store.SwallowWrites = true;
+                _database.Values.SwallowWrites = true;
 
                 var refused = panel.Revoke(record.AdmissionKey);
 
@@ -914,11 +1005,11 @@ namespace KeePassGate.Tests
             // K024: such a record admits nobody, the first page counted it and warned about it, and
             // nothing on the tab could take it away short of recreating the authority, which makes
             // every client pair again.
-            new AuthorityService(_database.Store, null).Create();
+            new AuthorityService(_database.Store, _database.Values, null).Create();
             Admit("agent-fictitious", DateTimeOffset.UtcNow);
             var damaged = new string('d', 64);
             var stored = AuthorityKeys.ClientRecordKey(damaged);
-            _database.Store.Plant(stored, "v=1\nsubject=x\n");
+            _database.Values.Plant(stored, "v=1\nsubject=x\n");
 
             var pending = new PendingDatabase(_database, _log);
 
@@ -936,16 +1027,16 @@ namespace KeePassGate.Tests
                 Assert.That(list.Unreadable, Is.Empty);
                 Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Not.Contain("cannot be read"));
                 Assert.That(Fact(panel, "Admission records"), Is.EqualTo("1"));
-                Assert.That(_database.Store.Get(stored), Is.Not.Empty, "nothing lands before OK");
+                Assert.That(_database.Values.Get(stored), Is.Not.Empty, "nothing lands before OK");
             }
 
             pending.Apply();
 
-            Assert.That(_database.Store.Get(stored), Is.Empty);
-            Assert.That(_database.Store.Get(AuthorityKeys.RevocationKey(damaged)), Is.Empty,
+            Assert.That(_database.Values.Get(stored), Is.Empty);
+            Assert.That(_database.Values.Get(AuthorityKeys.RevocationKey(damaged)), Is.Empty,
                 "revoked with the empty value a record with no date is given");
 
-            var left = new AdmissionStore(_database.Store, null).All();
+            var left = new AdmissionStore(_database.Values, null).All();
             Assert.That(left.Unreadable, Is.Empty);
             Assert.That(left.Records.Count, Is.EqualTo(1), "and the client beside it is still admitted");
         }
@@ -956,11 +1047,11 @@ namespace KeePassGate.Tests
             // `Find` answers null for such a record, so a read back asking only it would call a
             // removal that did not land one that did, and the row would go while the record stayed.
             var damaged = new string('d', 64);
-            _database.Store.Plant(AuthorityKeys.ClientRecordKey(damaged), "v=1\nsubject=x\n");
+            _database.Values.Plant(AuthorityKeys.ClientRecordKey(damaged), "v=1\nsubject=x\n");
 
             using (var panel = NewPanel(true))
             {
-                _database.Store.SwallowWrites = true;
+                _database.Values.SwallowWrites = true;
 
                 Assert.That(panel.Revoke(damaged), Is.EqualTo("the record is still in the database"));
                 Assert.That(panel.AdmittedClients().Unreadable, Is.EqualTo(new[] { damaged }));
@@ -989,7 +1080,7 @@ namespace KeePassGate.Tests
             // tab does: replayed at OK, and not at all on Cancel. So does the prune riding on it,
             // which is what keeps a dialog somebody only looked at from changing the database.
             var expired = AuthorityKeys.RevocationKey(new string('a', 64));
-            _database.Store.Plant(expired, "2020-01-01T00:00:00Z");
+            _database.Values.Plant(expired, "2020-01-01T00:00:00Z");
 
             var record = Admit("agent-fictitious", DateTimeOffset.UtcNow);
             var revocation = AuthorityKeys.RevocationKey(record.AdmissionKey);
@@ -1004,24 +1095,24 @@ namespace KeePassGate.Tests
                 Assume.That(held.Remove(record.AdmissionKey), Is.True);
                 Assume.That(held.All().Records, Is.Empty, "the page reads what it is holding");
 
-                Assert.That(_database.Store.Get(revocation), Is.Null, "nothing lands before OK");
-                Assert.That(_database.Store.Get(expired), Is.Not.Null);
+                Assert.That(_database.Values.Get(revocation), Is.Null, "nothing lands before OK");
+                Assert.That(_database.Values.Get(expired), Is.Not.Null);
 
                 if (accepted)
                 {
                     pending.Apply();
 
-                    Assert.That(_database.Store.Get(revocation), Is.Not.Null);
-                    Assert.That(_database.Store.Get(record.StorageKey), Is.Empty);
-                    Assert.That(_database.Store.Get(expired), Is.Null, "and the prune landed with it");
+                    Assert.That(_database.Values.Get(revocation), Is.Not.Null);
+                    Assert.That(_database.Values.Get(record.StorageKey), Is.Empty);
+                    Assert.That(_database.Values.Get(expired), Is.Null, "and the prune landed with it");
                 }
                 else
                 {
                     pending.Discard();
 
-                    Assert.That(new AdmissionStore(_database.Store, null).Find(record.AdmissionKey),
+                    Assert.That(new AdmissionStore(_database.Values, null).Find(record.AdmissionKey),
                         Is.Not.Null, "Cancel means Cancel");
-                    Assert.That(_database.Store.Get(expired), Is.Not.Null);
+                    Assert.That(_database.Values.Get(expired), Is.Not.Null);
                 }
             }
         }
@@ -1031,31 +1122,31 @@ namespace KeePassGate.Tests
         {
             // Through the store the tab's pages write to, like the revocation above: the delete's
             // removals of revocation keys land at OK with the rest of it, and not at all on Cancel.
-            new AuthorityService(_database.Store, null).Create();
+            new AuthorityService(_database.Store, _database.Values, null).Create();
             var record = Admit("agent-fictitious", DateTimeOffset.UtcNow);
-            Assume.That(new AdmissionStore(_database.Store, null).Remove(record.AdmissionKey), Is.True);
+            Assume.That(new AdmissionStore(_database.Values, null).Remove(record.AdmissionKey), Is.True);
             var revocation = AuthorityKeys.RevocationKey(record.AdmissionKey);
 
             foreach (var accepted in new[] { false, true })
             {
                 var pending = new PendingDatabase(_database, null);
-                Assume.That(new AuthorityService(pending.PluginCustomData, null).Delete().Succeeded, Is.True);
+                Assume.That(new AuthorityService(pending.Store, pending.PluginCustomData, null).Delete().Succeeded, Is.True);
 
                 Assert.That(pending.PluginCustomData.Get(revocation), Is.Null, "the page reads what it is holding");
-                Assert.That(_database.Store.Get(revocation), Is.Not.Null, "nothing lands before OK");
+                Assert.That(_database.Values.Get(revocation), Is.Not.Null, "nothing lands before OK");
 
                 if (accepted)
                 {
                     pending.Apply();
 
-                    Assert.That(_database.Store.Get(revocation), Is.Null);
-                    Assert.That(_database.Store.Get(record.StorageKey), Is.Null, "and the record it emptied");
+                    Assert.That(_database.Values.Get(revocation), Is.Null);
+                    Assert.That(_database.Values.Get(record.StorageKey), Is.Null, "and the record it emptied");
                 }
                 else
                 {
                     pending.Discard();
 
-                    Assert.That(_database.Store.Get(revocation), Is.Not.Null, "Cancel means Cancel");
+                    Assert.That(_database.Values.Get(revocation), Is.Not.Null, "Cancel means Cancel");
                 }
             }
         }
@@ -1070,13 +1161,13 @@ namespace KeePassGate.Tests
                 Assume.That(panel.Revoke(record.AdmissionKey), Is.Null);
 
                 // What a stale copy merged in does.
-                _database.Store.Plant(record.StorageKey, record.Save());
+                _database.Values.Plant(record.StorageKey, record.Save());
 
                 var listing = panel.AdmittedClients();
 
                 Assert.That(listing.Records.Single().Subject, Does.Contain("agent-invented"));
                 Assert.That(listing.CameBack, Is.EqualTo(1));
-                Assert.That(_database.Store.Get(record.StorageKey), Is.Not.Empty,
+                Assert.That(_database.Values.Get(record.StorageKey), Is.Not.Empty,
                     "reading the page changes nothing in the database");
             }
         }
@@ -1088,8 +1179,8 @@ namespace KeePassGate.Tests
             // this tab is replayed at OK and not at all on Cancel.
             var revoked = Admit("agent-fictitious", DateTimeOffset.UtcNow);
             var other = Admit("agent-invented", DateTimeOffset.UtcNow);
-            Assume.That(new AdmissionStore(_database.Store, null).Remove(revoked.AdmissionKey), Is.True);
-            _database.Store.Plant(revoked.StorageKey, revoked.Save());
+            Assume.That(new AdmissionStore(_database.Values, null).Remove(revoked.AdmissionKey), Is.True);
+            _database.Values.Plant(revoked.StorageKey, revoked.Save());
 
             foreach (var accepted in new[] { false, true })
             {
@@ -1098,17 +1189,17 @@ namespace KeePassGate.Tests
 
                 Assume.That(held.Remove(other.AdmissionKey), Is.True);
                 Assert.That(held.All().CameBack, Is.Zero, "the page reads what it is holding");
-                Assert.That(_database.Store.Get(revoked.StorageKey), Is.Not.Empty, "nothing lands before OK");
+                Assert.That(_database.Values.Get(revoked.StorageKey), Is.Not.Empty, "nothing lands before OK");
 
                 if (accepted)
                 {
                     pending.Apply();
-                    Assert.That(_database.Store.Get(revoked.StorageKey), Is.Null, "and the record went with OK");
+                    Assert.That(_database.Values.Get(revoked.StorageKey), Is.Null, "and the record went with OK");
                 }
                 else
                 {
                     pending.Discard();
-                    Assert.That(_database.Store.Get(revoked.StorageKey), Is.Not.Empty, "Cancel means Cancel");
+                    Assert.That(_database.Values.Get(revoked.StorageKey), Is.Not.Empty, "Cancel means Cancel");
                 }
             }
         }
@@ -1125,7 +1216,7 @@ namespace KeePassGate.Tests
                 var stranger = Admit("agent-fictitious", DateTimeOffset.UtcNow);
                 panel.CreateAuthority();
 
-                using (var reading = new AuthorityService(_database.Store, null).Read())
+                using (var reading = new AuthorityService(_database.Store, _database.Values, null).Read())
                 using (var certificate = stranger.Certificate())
                 {
                     Assume.That(reading.IsPresent, Is.True);
@@ -1139,7 +1230,7 @@ namespace KeePassGate.Tests
                     using (var issued = new AuthorityIssuer().IssueClient(
                         reading.Material.AuthorityKey, "agent-invented", new[] { "ops" }).Read())
                     {
-                        new AdmissionStore(_database.Store, null).Write(
+                        new AdmissionStore(_database.Values, null).Write(
                             AdmissionRecord.For(issued, DateTimeOffset.UtcNow, new[] { "ops" }));
                     }
                 }
@@ -1170,7 +1261,7 @@ namespace KeePassGate.Tests
                 AdmissionRecord ordinary;
                 var now = DateTimeOffset.UtcNow;
 
-                using (var reading = new AuthorityService(_database.Store, null).Read())
+                using (var reading = new AuthorityService(_database.Store, _database.Values, null).Read())
                 {
                     Assume.That(reading.IsPresent, Is.True);
                     var authority = reading.Material.AuthorityKey;
@@ -1189,7 +1280,7 @@ namespace KeePassGate.Tests
                     }
                 }
 
-                var store = new AdmissionStore(_database.Store, null);
+                var store = new AdmissionStore(_database.Values, null);
                 store.Write(host);
                 store.Write(early);
                 store.Write(ordinary);
@@ -1260,49 +1351,42 @@ namespace KeePassGate.Tests
 
         [TestCase(true)]
         [TestCase(false)]
-        public void A_pairing_that_lands_while_a_recreate_or_delete_waits_is_kept_and_named_a_stranger(bool recreating)
+        public void A_pairing_that_lands_while_a_recreate_or_delete_waits_goes_with_every_admission_at_OK(bool recreating)
         {
-            // The one case the key by key replay leaves behind on purpose, run whole rather than
-            // in its parts. The tab buffers the recreate or the delete, which lists the records
-            // there are as it is pressed; a pairing then lands on the live database, a record under
-            // the authority the gate still serves and the profile it approved named in the same
-            // write; and OK replays only what was buffered.
-            Assume.That(new AuthorityService(_database.Store, null).Create().Succeeded, Is.True);
+            // The tab holds the recreate or the delete; a pairing then lands on the live database,
+            // a record under the authority the gate still serves and the profile it approved named
+            // in the same write; and OK takes every admission out of the custom data as it stands
+            // then, once the write took the act.
+            Assume.That(new AuthorityService(_database.Store, _database.Values, null).Create().Succeeded, Is.True);
             var before = IssuedAndAdmitted("agent-before");
 
             var pending = new PendingDatabase(_database, null);
-            var held = new AuthorityService(pending.PluginCustomData, null);
+            var held = new AuthorityService(pending.Store, pending.PluginCustomData, null);
             Assume.That((recreating ? held.Recreate() : held.Delete()).Succeeded, Is.True);
 
             var landed = IssuedAndAdmitted("agent-landed");
-            var names = ProfileNames.Read(_database.Store.Get(ProfileNames.CustomDataKey));
+            var names = ProfileNames.Read(_database.Values.Get(ProfileNames.CustomDataKey));
             Assume.That(names.Add("reader"), Is.Null);
-            _database.Store.Set(ProfileNames.CustomDataKey, names.Write());
+            _database.Values.Set(ProfileNames.CustomDataKey, names.Write());
 
             pending.Apply();
 
-            var admissions = new AdmissionStore(_database.Store, null);
-            Assert.That(admissions.Find(before.AdmissionKey), Is.Null, "the records it listed went with it");
-            Assert.That(admissions.Find(landed.AdmissionKey), Is.Not.Null, "the one that landed meanwhile is kept");
-            Assert.That(ProfileNames.Read(_database.Store.Get(ProfileNames.CustomDataKey)).Names,
-                Does.Contain("reader"), "and so is the name it brought");
-
-            using (var panel = NewPanel(true))
-            {
-                Assert.That(panel.Reaches(panel.AdmittedClients())[landed.AdmissionKey],
-                    Is.EqualTo(ClientReach.Stranger),
-                    "its certificate chains to an authority that is gone, which the clients page says on its row");
-            }
+            var admissions = new AdmissionStore(_database.Values, null);
+            Assert.That(admissions.Find(before.AdmissionKey), Is.Null, "the records there were went with it");
+            Assert.That(_database.Values.Get(AuthorityKeys.ClientRecordKey(landed.AdmissionKey)), Is.Null,
+                "and so did the record that landed meanwhile, whose authority is retired");
+            Assert.That(ProfileNames.Read(_database.Values.Get(ProfileNames.CustomDataKey)).Names,
+                Does.Contain("reader"), "while the name it brought stays");
         }
 
         /// <summary>A client of the authority the database holds now, admitted in the live store.</summary>
         private AdmissionRecord IssuedAndAdmitted(string name)
         {
-            using (var reading = new AuthorityService(_database.Store, null).Read())
+            using (var reading = new AuthorityService(_database.Store, _database.Values, null).Read())
             using (var issued = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, name, new[] { "ops" }).Read())
             {
                 var record = AdmissionRecord.For(issued, DateTimeOffset.UtcNow, new[] { "ops" });
-                new AdmissionStore(_database.Store, null).Write(record);
+                new AdmissionStore(_database.Values, null).Write(record);
                 return record;
             }
         }
@@ -1315,7 +1399,7 @@ namespace KeePassGate.Tests
             // whole list ended it there, so every older record had no answer, and the page shows a
             // record with no answer as a client admitted until its date: this authority's own host
             // certificate and a foreign authority's client among them.
-            var service = new AuthorityService(_database.Store, null);
+            var service = new AuthorityService(_database.Store, _database.Values, null);
             Assume.That(service.Create().Succeeded, Is.True);
 
             var now = DateTimeOffset.UtcNow;
@@ -1369,17 +1453,9 @@ namespace KeePassGate.Tests
             // of the button's handler, which has no catch, into WinForms' own dialog: the page went
             // on reading as though there were no authority while the dialog held a new one, and
             // every page switch threw the same.
-            var service = new AuthorityService(_database.Store, null);
-            Assume.That(service.Create().Succeeded, Is.True);
-
-            AdmissionRecord crafted;
-            using (var reading = service.Read())
-            {
-                var key = reading.Material.AuthorityKey;
-                crafted = AdmitReshaped(key, DateTimeOffset.UtcNow, der => NamingEd25519(der, key));
-            }
-
-            _database.Store.Remove(_database.Store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null));
+            // Issued by an authority the database does not hold, so the page is built with none.
+            var key = new AuthorityIssuer().CreateAuthority();
+            var crafted = AdmitReshaped(key, DateTimeOffset.UtcNow, der => NamingEd25519(der, key));
 
             using (var panel = NewPanel(true))
             {
@@ -1398,8 +1474,7 @@ namespace KeePassGate.Tests
             // The same record in a database holding two authorities, where Choose threw it out of
             // the pin, past the filter `AuthorityChoice` carries, before the chooser opened.
             var candidates = Undecided();
-            var key = CertificateBlob.Load(
-                AuthorityDocument.Read(_database.Store.Get(AuthorityKeys.AuthorityKey(candidates[0])), null).Authority);
+            var key = StoreSeeds.KeyOf(_database.Store, candidates[0]);
             var crafted = AdmitReshaped(key, DateTimeOffset.UtcNow, der => NamingEd25519(der, key));
 
             using (var panel = NewPanel(true))
@@ -1426,7 +1501,7 @@ namespace KeePassGate.Tests
             // The panel draws itself as it is built, and the pin threw `InvalidCastException` out
             // of that for such a record, which the injector took for an attach that failed: the
             // database's settings dialog had no tab, and nothing was counted anywhere.
-            var service = new AuthorityService(_database.Store, null);
+            var service = new AuthorityService(_database.Store, _database.Values, null);
             Assume.That(service.Create().Succeeded, Is.True);
 
             AdmissionRecord crafted;
@@ -1447,7 +1522,7 @@ namespace KeePassGate.Tests
         /// <summary>The record, written to the live store.</summary>
         private AdmissionRecord Admitted(AdmissionRecord record)
         {
-            new AdmissionStore(_database.Store, null).Write(record);
+            new AdmissionStore(_database.Values, null).Write(record);
             return record;
         }
 
@@ -1474,11 +1549,11 @@ namespace KeePassGate.Tests
         [Test]
         public void A_refusal_carrying_somebody_elses_message_is_cut_to_what_the_band_can_hold()
         {
-            // `AuthorityChange.Message` ends in whatever the store threw, and the band showed it
+            // `AuthorityChange.Message` ends in whatever the store answered, and the band showed it
             // whole while the two sentences this page composes itself were cut. Nothing on the tab
             // scrolls, so an untrimmed one wraps, grows the page past the tab, and pushes the
             // three buttons out of reach with no way to scroll to them.
-            _database.Store.ThrowOnWrite = new InvalidOperationException(Rambling());
+            _database.Records.RefuseWrites = Rambling();
 
             using (var panel = NewPanel(true))
             {
@@ -1511,8 +1586,8 @@ namespace KeePassGate.Tests
             // The other half of the same gap. A reading that will not read reports the problem as
             // `The authority could not be read: ` and whatever threw, and the sentences under the
             // facts table showed that whole. There has to be an authority for the read to reach.
-            _database.Store.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
-            _database.Store.ThrowOnRead = new InvalidOperationException(Rambling());
+            StoreSeeds.Damaged(_database.Store);
+            _database.Records.ThrowOnRead = new DatabaseShut(Rambling());
 
             using (var panel = NewPanel(true))
             {
@@ -1621,7 +1696,7 @@ namespace KeePassGate.Tests
             using (var certificate = SelfSigned(name))
             {
                 var record = AdmissionRecord.For(certificate, when, new[] { "ops" });
-                new AdmissionStore(_database.Store, null).Write(record);
+                new AdmissionStore(_database.Values, null).Write(record);
                 return record;
             }
         }
@@ -1640,7 +1715,7 @@ namespace KeePassGate.Tests
             // The notice written for a create told the operator to press OK and reopen the dialog
             // to pair, under a line stating that the database has no authority: after the delete
             // there is nothing to pair with.
-            new AuthorityService(_database.Store, null).Create();
+            new AuthorityService(_database.Store, _database.Values, null).Create();
             var pending = new PendingDatabase(_database, null);
 
             using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, new InvitationBook(_log)))
@@ -1964,8 +2039,7 @@ namespace KeePassGate.Tests
             // It read the audit's variable again, which a relative path resolves against wherever
             // KeePass's working directory had moved to, while the audit itself resolved it once.
             var candidates = Undecided();
-            var key = CertificateBlob.Load(
-                AuthorityDocument.Read(_database.Store.Get(AuthorityKeys.AuthorityKey(candidates[0])), null).Authority);
+            var key = StoreSeeds.KeyOf(_database.Store, candidates[0]);
             string admission;
             using (var client = new AuthorityIssuer().IssueClient(key, "agent-audited", new[] { "ops" }).Read())
             {
@@ -2062,17 +2136,7 @@ namespace KeePassGate.Tests
         /// </summary>
         private string[] Undecided()
         {
-            var service = new AuthorityService(_database.Store, null);
-            Assume.That(service.Create().Succeeded, Is.True);
-            var first = _database.Store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null);
-            var document = _database.Store.Get(first);
-            _database.Store.Remove(first);
-
-            Assume.That(service.Create().Succeeded, Is.True);
-            var second = _database.Store.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null);
-            _database.Store.Plant(first, document);
-
-            return new[] { AuthorityKeys.FingerprintInAuthority(first), AuthorityKeys.FingerprintInAuthority(second) };
+            return StoreSeeds.Undecided(_database.Store, _database.Values);
         }
 
         private AuthorityPanel NewPanel(bool confirm)
@@ -2089,11 +2153,20 @@ namespace KeePassGate.Tests
             return new AuthorityPanel(_database, prompt, _log);
         }
 
+        /// <summary>A client of this authority admitted in the database, answering its admission key.</summary>
+        private string AdmittedBy(string authority)
+        {
+            using (var client = new AuthorityIssuer().IssueClient(StoreSeeds.KeyOf(_database.Store, authority), "agent-fictitious", new[] { "reader" }).Read())
+            {
+                new AdmissionStore(_database.Values, _log).Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "reader" }));
+                return CertificateDigest.Of(client);
+            }
+        }
+
         /// <summary>The authority the panel created, as the key it issues with.</summary>
         private CertifiedKey OwnAuthority()
         {
-            var stored = _database.Store.Get(AuthorityKeys.AuthorityKey(Digest()));
-            return CertificateBlob.Load(AuthorityDocument.Read(stored, null).Authority);
+            return StoreSeeds.KeyOf(_database.Store, Digest());
         }
 
         /// <summary>A client of the panel's own authority, for the caller to dispose.</summary>
@@ -2104,7 +2177,7 @@ namespace KeePassGate.Tests
 
         private string Digest()
         {
-            using (var reading = new AuthorityService(_database.Store, null).Read())
+            using (var reading = new AuthorityService(_database.Store, _database.Values, null).Read())
             {
                 return reading.IsPresent ? reading.Material.AuthorityDigest : null;
             }

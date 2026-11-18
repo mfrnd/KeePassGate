@@ -31,7 +31,7 @@ namespace KeePassGate.Tests
                 .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
                 .Where(field => field.IsLiteral && field.FieldType == typeof(string))
                 .Select(field => (string)field.GetRawConstantValue());
-            var sent = new[] { LockedTarget.Error, UndecidedTarget.Error, "busy" }.Concat(store);
+            var sent = new[] { LockedTarget.Error, HeldBackTarget.Undecided, "busy" }.Concat(store);
 
             Assert.That(HeaderWords(), Is.EquivalentTo(sent.Concat(new[] { Declared })));
         }

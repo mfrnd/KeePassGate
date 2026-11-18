@@ -50,6 +50,28 @@ namespace KeePassGate.Store
         public const string Stopped = "stopped";
 
         /// <summary>
+        /// The file holds no store key, answered only by a gate that was serving the database when
+        /// the key went, from what it served with, until the database is locked or closed.
+        /// </summary>
+        public const string Lost = "lost";
+
+        /// <summary>
+        /// The word the gate answers a store in this state with, or null where it holds nothing
+        /// back: <see cref="Of"/>, and <see cref="Lost"/> for a file with no store key.
+        /// </summary>
+        /// <remarks>
+        /// **Apart from <see cref="Of"/>, because a write and the tab read the same state as no
+        /// store yet**, which a Create starts and the tab offers to create: nothing in a file
+        /// tells a key lost from a store never made. The gate answers it only from what it last
+        /// served a database with, so the word reaches only a client that was being served when
+        /// the key went.
+        /// </remarks>
+        public static string Answered(StoreState state)
+        {
+            return state == StoreState.None ? Lost : Of(state);
+        }
+
+        /// <summary>
         /// The word a database whose store is in this state is answered with, or null where the
         /// store holds nothing back: a store that is whole, and a database with no store key.
         /// </summary>

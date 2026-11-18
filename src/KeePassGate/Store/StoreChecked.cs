@@ -124,6 +124,34 @@ namespace KeePassGate.Store
         }
 
         /// <summary>
+        /// The content, read again from the version's own object, or null where the version does
+        /// not read as its kind: for what a kind's meaning reads that the checked form does not
+        /// keep, as an authority's document, which holds private keys and is kept nowhere as text,
+        /// `STORE.md` §614.
+        /// </summary>
+        /// <remarks>
+        /// The very object the form is kept by, so the text read is the text that was checked,
+        /// `STORE.md` §620.
+        /// </remarks>
+        public string Content()
+        {
+            if (!ReadsAsKind)
+            {
+                return null;
+            }
+
+            for (var index = 0; index < Version.Names.Count; index++)
+            {
+                if (string.Equals(Version.Names[index], StoreFormat.DataField, StringComparison.Ordinal))
+                {
+                    return Version.Strings.Read(Version.Values[index]);
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// The checked form of a version, read from its strings: the one place the reading reads
         /// a value.
         /// </summary>

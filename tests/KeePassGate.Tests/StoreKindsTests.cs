@@ -32,11 +32,13 @@ namespace KeePassGate.Tests
             "ceiling: a string of the store, 1048576 characters",
             "ceiling: a content or an item, 32 members",
             "ceiling: an item's name, KPG.S. and 4 digits",
+            "ceiling: a string of the store the plugin writes, 262144 characters",
+            "ceiling: the items of a summary entry the plugin writes, 9999",
             "kind authority: subject authority: and id; number none; members id text, storeKey hex; beside a deletion record out of force; restated not",
             "kind retired: subject authority: and authority; number none; members authority text, storeKey hex where present; beside a deletion record counts; restated by an item with the same authority; item authority text",
             "kind client: subject client: and client; number none; members client text; beside a deletion record out of force; restated not",
             "kind revoked: subject client: and client; number none; members client text; beside a deletion record counts; restated by an item with the same client; item client text",
-            "kind withdrawn: subject certificate: and certificate; number none; members certificate hex; beside a deletion record counts; restated by an item with the same certificate; item certificate hex",
+            "kind withdrawn: subject certificate: and certificate; number none; members certificate hex, renewed text where present, from text where present; beside a deletion record counts; restated by an item whose id is its identifier, with the same certificate, renewed and from; item id text, certificate hex, renewed text where present, from text where present",
             "kind profile: subject profile: and name; number none; members name text, after identifiers; beside a deletion record out of force; restated not",
             "kind removed: subject profile: and name; number none; members name text; beside a deletion record counts; restated by an item with the same name; item name text, id text",
             "kind version: subject the object; number none; members object text, after identifiers, doc text; beside a deletion record out of force; restated by an item whose id is its identifier; item id text, object text, after identifiers, doc text; objects of the types rule, switch, renew",
@@ -74,6 +76,8 @@ namespace KeePassGate.Tests
             yield return "ceiling: a string of the store, " + StoreFormat.MaxStringLength + " characters";
             yield return "ceiling: a content or an item, " + KeePassGate.Transport.JsonBody.MaxMembers + " members";
             yield return "ceiling: an item's name, " + StoreFormat.ItemPrefix + " and " + StoreFormat.ItemDigits + " digits";
+            yield return "ceiling: a string of the store the plugin writes, " + StoreFormat.MaxWritten + " characters";
+            yield return "ceiling: the items of a summary entry the plugin writes, " + StoreFormat.MaxItems;
 
             foreach (var kind in StoreKinds.All)
             {
@@ -126,6 +130,10 @@ namespace KeePassGate.Tests
                     return "by an item with the same " + kind.RestatedBy;
                 case StoreRestated.ById:
                     return "by an item whose id is its identifier";
+                case StoreRestated.ByStatement:
+                    var names = kind.Members.Select(member => member.Name).ToList();
+                    return "by an item whose id is its identifier, with the same "
+                           + string.Join(", ", names.Take(names.Count - 1)) + " and " + names[names.Count - 1];
                 case StoreRestated.ByFormat:
                     return "by the item format of a summary entry stating a number at least its own";
                 default:

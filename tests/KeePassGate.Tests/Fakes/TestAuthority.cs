@@ -256,9 +256,23 @@ namespace KeePassGate.Tests.Fakes
         public bool Retired { get; set; }
 
         /// <summary>
-        /// This fake's records, its list of profiles and its authority as one database's custom
-        /// data, which is what a write's condition reads.
+        /// What a write's condition is held to: the authority this fake serves, unless it is set
+        /// as retired, and its records and its list of profiles as one database's custom data.
         /// </summary>
+        private sealed class ConditionGround : IWriteGround
+        {
+            public ConditionGround(TestAuthority authority)
+            {
+                Served = authority.Retired ? null : authority.DatabaseId;
+                Names = new ConditionStore(authority);
+            }
+
+            public string Served { get; private set; }
+
+            public IKeyValueStore Names { get; private set; }
+        }
+
+        /// <summary>This fake's records and its list of profiles as one database's custom data.</summary>
         private sealed class ConditionStore : IKeyValueStore
         {
             private readonly TestAuthority _authority;
@@ -291,15 +305,6 @@ namespace KeePassGate.Tests.Fakes
                     return names.Write();
                 }
 
-                if (key == AuthorityKeys.AuthorityKey(_authority.DatabaseId))
-                {
-                    return "the authority";
-                }
-
-                if (key == AuthorityKeys.RetirementKey(_authority.DatabaseId))
-                {
-                    return _authority.Retired ? "retired" : null;
-                }
 
                 return _authority._records.Get(key);
             }
@@ -319,7 +324,7 @@ namespace KeePassGate.Tests.Fakes
         /// A record, written in this fake's own records, with its audit line written as the writer
         /// writes it: once, when the record lands, and before anything else hears of it.
         /// </summary>
-        public AdmissionWrite Admit(AdmissionRecord record, Func<IKeyValueStore, string> condition, Action audit)
+        public AdmissionWrite Admit(AdmissionRecord record, Func<IWriteGround, string> condition, Action audit)
         {
             if (AdmitThrows != null)
             {
@@ -340,7 +345,7 @@ namespace KeePassGate.Tests.Fakes
 
             if (condition != null)
             {
-                var withdrawn = condition(new ConditionStore(this));
+                var withdrawn = condition(new ConditionGround(this));
                 if (withdrawn != null)
                 {
                     return AdmissionWrite.Withdrawn(withdrawn);
@@ -671,7 +676,7 @@ namespace KeePassGate.Tests.Fakes
                     locked.Retain();
                 }
 
-                var undecided = target as UndecidedTarget;
+                var undecided = target as HeldBackTarget;
                 if (undecided != null)
                 {
                     undecided.Retain();

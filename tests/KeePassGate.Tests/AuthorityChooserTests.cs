@@ -27,6 +27,7 @@ namespace KeePassGate.Tests
         private static readonly DateTimeOffset Requested = new DateTimeOffset(2026, 9, 20, 10, 30, 0, TimeSpan.Zero);
 
         private InMemoryKeyValueStore _values;
+        private MemoryStore _records;
         private AuthorityService _service;
         private string[] _candidates;
         private string _clientKey;
@@ -35,7 +36,8 @@ namespace KeePassGate.Tests
         public void SetUp()
         {
             _values = new InMemoryKeyValueStore();
-            _service = new AuthorityService(_values, null);
+            _records = new MemoryStore();
+            _service = new AuthorityService(_records, _values, null);
             _candidates = Undecided();
             _clientKey = AdmitUnder(_candidates[0], "agent-fictitious", "ops", "reader");
         }
@@ -66,8 +68,7 @@ namespace KeePassGate.Tests
             // The clients a candidate admitted are the evidence of which copy is in use, and the
             // clients page marks a record the gate refuses: one not for a client to present, or
             // one not valid yet, was listed and counted as a client all the same.
-            var authority = CertificateBlob.Load(
-                AuthorityDocument.Read(_values.Get(AuthorityKeys.AuthorityKey(_candidates[1])), null).Authority);
+            var authority = StoreSeeds.KeyOf(_records, _candidates[1]);
             var store = new AdmissionStore(_values, null);
 
             using (var host = new AuthorityIssuer().IssueHost(authority).Read())
@@ -121,7 +122,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_candidate_that_will_not_read_is_listed_and_cannot_be_kept()
         {
-            _values.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
+            StoreSeeds.Damaged(_records);
 
             var option = Choice(null).Options.Single(o => o.Fingerprint == new string('d', 64));
 
@@ -138,8 +139,7 @@ namespace KeePassGate.Tests
             // left every undecided database behind this one unasked.
             var named = new Org.BouncyCastle.Asn1.X509.AlgorithmIdentifier(
                 new Org.BouncyCastle.Asn1.DerObjectIdentifier("1.3.101.112"));
-            var authority = CertificateBlob.Load(
-                AuthorityDocument.Read(_values.Get(AuthorityKeys.AuthorityKey(_candidates[0])), null).Authority);
+            var authority = StoreSeeds.KeyOf(_records, _candidates[0]);
             var issued = new AuthorityIssuer().IssueClient(authority, "agent-crafted", new[] { "ops" }).CertificateDer;
 
             string crafted;
@@ -323,7 +323,7 @@ namespace KeePassGate.Tests
         [Test]
         public void One_that_will_not_read_cannot_be_kept_from_the_dialog_either()
         {
-            _values.Plant(AuthorityKeys.AuthorityKey(new string('d', 64)), "rubbish");
+            StoreSeeds.Damaged(_records);
 
             using (var dialog = new AuthorityChooserForm(Choice(null), null))
             {
@@ -458,16 +458,7 @@ namespace KeePassGate.Tests
         /// </summary>
         private string[] Undecided()
         {
-            Assume.That(_service.Create().Succeeded, Is.True);
-            var first = _values.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null);
-            var document = _values.Get(first);
-            _values.Remove(first);
-
-            Assume.That(_service.Create().Succeeded, Is.True);
-            var second = _values.Keys.Single(k => AuthorityKeys.FingerprintInAuthority(k) != null);
-            _values.Plant(first, document);
-
-            return new[] { AuthorityKeys.FingerprintInAuthority(first), AuthorityKeys.FingerprintInAuthority(second) };
+            return StoreSeeds.Undecided(_records, _values);
         }
 
         /// <summary>Admits a client whose certificate the named candidate issued, answering with its key.</summary>
@@ -482,8 +473,7 @@ namespace KeePassGate.Tests
         /// </summary>
         private string Admit(string fingerprint, string name, string clientKey, params string[] profiles)
         {
-            var authority = CertificateBlob.Load(
-                AuthorityDocument.Read(_values.Get(AuthorityKeys.AuthorityKey(fingerprint)), null).Authority);
+            var authority = StoreSeeds.KeyOf(_records, fingerprint);
 
             using (var client = new AuthorityIssuer().IssueClient(authority, name, profiles).Read())
             {

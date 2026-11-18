@@ -155,6 +155,60 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_store_past_half_its_room_is_named_in_the_log_once_while_it_stays_there()
+        {
+            Add(_group, Authority(One, 'a'));
+            var head = Add(_group, HeadNaming(3971));
+            var log = new Lines();
+            var readings = new StoreReadings(_database.Database, CurrentThread.Instance, log);
+
+            for (var request = 0; request < 10; request++)
+            {
+                Assert.That(readings.Word, Is.Null, "a store past half its room is served");
+            }
+
+            Assert.That(log.Warnings, Has.Count.EqualTo(1));
+            Assert.That(log.Warnings[0], Does.Contain("past half its room").And.Contain("3972").And.Contain("262144"));
+            Assert.That(log.Infos, Is.Empty);
+
+            // Below half again, then past it again: named again.
+            head.ParentGroup.Entries.Remove(head);
+            Add(_group, HeadNaming(0));
+            Assert.That(readings.Word, Is.Null);
+            Add(_group, HeadNaming(3971));
+            Assert.That(readings.Word, Is.Null);
+            Assert.That(log.Warnings, Has.Count.EqualTo(2));
+        }
+
+        [Test]
+        public void A_store_below_half_its_room_puts_nothing_in_the_log()
+        {
+            Add(_group, Authority(One, 'a'));
+            Add(_group, HeadNaming(3970));
+            var log = new Lines();
+            var readings = new StoreReadings(_database.Database, CurrentThread.Instance, log);
+
+            Assert.That(readings.Word, Is.Null);
+            Assert.That(log.Warnings, Is.Empty);
+            Assert.That(log.Infos, Is.Empty);
+        }
+
+        [Test]
+        public void A_store_with_no_room_for_its_next_write_is_not_served_and_the_log_names_its_room()
+        {
+            Add(_group, Authority(One, 'a'));
+            Add(_group, HeadNaming(7941));
+            var log = new Lines();
+            var readings = new StoreReadings(_database.Database, CurrentThread.Instance, log);
+
+            Assert.That(readings.Word, Is.EqualTo("stopped"));
+            Assert.That(readings.Word, Is.EqualTo("stopped"));
+
+            Assert.That(log.Warnings, Has.Count.EqualTo(1));
+            Assert.That(log.Warnings[0], Does.Contain("stopped").And.Contain("no room").And.Contain("7942"));
+        }
+
+        [Test]
         public void What_is_kept_goes_when_the_cache_lets_go_whoever_still_reads()
         {
             // A connection can hold a target after the cache has let go of it at a lock, a pairing
@@ -300,6 +354,20 @@ namespace KeePassGate.Host.Tests
             return StoreComposer.Record(
                 key, "authority", "authority:" + Hex(id),
                 StoreComposer.Content(("id", Hex(id)), ("storeKey", StoreComposer.HexOf(key))));
+        }
+
+        /// <summary>
+        /// A summary entry of height 1 naming this many summary entries the file does not hold,
+        /// so that the next write names one more.
+        /// </summary>
+        private static StoreComposer.Composed HeadNaming(int count)
+        {
+            var after = string.Join(
+                " ",
+                Enumerable.Range(0, count).Select(index => index.ToString("x32", System.Globalization.CultureInfo.InvariantCulture)));
+            return StoreComposer.Record(
+                One, "head", "store", StoreComposer.Content(("after", after), ("height", "1")), 1,
+                new[] { StoreComposer.Item(("format", "1"), ("kind", "format"), ("plugin", "0.3.0")) });
         }
 
         private static StoreComposer.Composed Revoked(byte[] key, char client)

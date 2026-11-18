@@ -7,6 +7,7 @@ using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
+using KeePassGate.Store;
 using KeePassGate.Ui;
 
 namespace KeePassGate.Bridge
@@ -40,8 +41,9 @@ namespace KeePassGate.Bridge
     /// `Unattended`, and the databases the round had not reached are asked a moment later rather
     /// than left marked.
     ///
-    /// **A choice goes through `DatabaseWriter`**, whose guard refuses it while Database
-    /// Maintenance is open, and marks the database modified without saving it.
+    /// **A choice goes through `DatabaseWriter`**, whose guard refuses it while an entry dialog
+    /// holds an entry the write deletes, sets back or protects, the summary entry among them,
+    /// `STORE.md` §626, and marks the database modified without saving it.
     ///
     /// **An answer is about the authorities the question listed.** The chooser is not registered
     /// with `GlobalWindowManager`, so KeePass runs a periodic trigger under it, and a synchronize
@@ -73,11 +75,12 @@ namespace KeePassGate.Bridge
         /// a whole-database write: eight seconds and more were measured for one, and 80.6 for a
         /// database of 201 MiB of attachments, so a few seconds told the operator their answer was
         /// not kept for a wait that would have ended by itself a moment later. **What this bounds is
-        /// a refusal that does not end by itself**, Database Maintenance left open or KeePass busy
-        /// with an operation of its own, counted from the last time another write held the writer,
-        /// and told once it has passed. **Told, though, only once KeePass is no longer part way
-        /// through something**, <see cref="NotKept"/>: the answer is given up when the bound
-        /// passes, as the rulings have it, and the message about it waits.
+        /// a refusal that does not end by itself**, an entry dialog left open on an entry the
+        /// choice deletes, sets back or protects, the summary entry among them, or KeePass busy
+        /// with an operation of its own, counted from the last time another write held the
+        /// writer, and told once it has passed. **Told, though, only once KeePass is no longer
+        /// part way through something**, <see cref="NotKept"/>: the answer is given up when the
+        /// bound passes, as the rulings have it, and the message about it waits.
         /// </remarks>
         public static readonly TimeSpan KeepTrying = TimeSpan.FromSeconds(3);
 
@@ -372,7 +375,8 @@ namespace KeePassGate.Bridge
             _asking.Remove(database);
 
             string served;
-            using (var reading = new AuthorityStore(new CustomDataStore(database), _log).Read())
+            using (var reading = new AuthorityService(
+                       new KdbxStore(database, GateVersion.Current, _log), new CustomDataStore(database), _log).Read())
             {
                 if (reading.Presence == AuthorityPresence.Undecided)
                 {
@@ -511,13 +515,19 @@ namespace KeePassGate.Bridge
         {
             offered = null;
             var store = new CustomDataStore(database);
+            var authorities = new KdbxStore(database, GateVersion.Current, _log);
+
 
             AuthorityChoice choice;
-            using (var reading = new AuthorityStore(store, _log).Read())
+            StoreReading stored;
+            using (var reading = new AuthorityService(authorities, store, _log).Read(out stored))
+            using (stored)
             {
-                if (reading.Presence != AuthorityPresence.Undecided)
+                // Asked only of a store that is whole: several store keys are a store to keep, and
+                // a store that holds the gate back takes no answer, `STORE.md` §614. Decided since
+                // it was noticed is no question either, by the tab or by another save.
+                if (stored == null || stored.State != StoreState.Whole || reading.Presence != AuthorityPresence.Undecided)
                 {
-                    // Decided since it was noticed, by the tab or by another save.
                     return null;
                 }
 
