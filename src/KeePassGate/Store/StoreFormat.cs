@@ -187,10 +187,44 @@ namespace KeePassGate.Store
             }
         }
 
-        /// <summary>A new store key, from the generator the gate key is drawn from (S2).</summary>
+        /// <summary>
+        /// A new store key, from the generator the gate key is drawn from (S2), under which the
+        /// tags of all kinds of the format differ, `STORE.md` §632.
+        /// </summary>
         internal static byte[] NewKey()
         {
-            return Random(KeyLength);
+            return NewKey(() => Random(KeyLength));
+        }
+
+        /// <summary>
+        /// The first key this draw gives under which the tags of all kinds of the format differ,
+        /// every key drawn before it overwritten.
+        /// </summary>
+        /// <remarks>
+        /// Where two kinds' tags meet under a key, a deletion record of the first reads as a
+        /// deletion record of the second, and a deletion of an admission the plugin makes would
+        /// read as a revocation of its client. Two tags of the first format meet about once in
+        /// 300,000 draws, so the loop rarely runs twice.
+        /// </remarks>
+        internal static byte[] NewKey(Func<byte[]> draw)
+        {
+            while (true)
+            {
+                var key = draw();
+                if (TagsApart(key))
+                {
+                    return key;
+                }
+
+                Array.Clear(key, 0, key.Length);
+            }
+        }
+
+        /// <summary>Whether the tags of all kinds of the format differ under this key.</summary>
+        private static bool TagsApart(byte[] key)
+        {
+            var tags = new HashSet<int>();
+            return StoreKinds.All.All(kind => tags.Add(TagNumber(Tag(key, kind.Name))));
         }
 
         /// <summary>

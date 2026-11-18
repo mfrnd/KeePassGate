@@ -2371,6 +2371,18 @@ KeePass instances with the plugin were not run (§644).
 **What it is.** 32 random bytes, made with the first authority (the design paper 7). Every check
 and every identifier of the store is keyed by it.
 
+**No key is made under which two kinds' tags meet** (this document's own). Where the tags of two
+kinds are the same under a key, a deletion record of the first kind reads as a deletion record
+of the second (§623 step 2), which tells of more and never of less, and the plugin deletes
+admissions as a matter of course (§627 step 3): under a key where the tags of `client` and
+`revoked` meet, a client that renews and gives its earlier certificate up would be revoked for
+good, and every client of that store with it. So the plugin draws the key again until the tags
+of all kinds of the format differ from each other. Two of the 3-byte tags of the kinds of the
+first format (§658) meet under a random key about once in 300,000, so a second draw is rare and
+a third rarer still. A key found in a file is taken as it is, since the reading
+cannot choose it. *Held by* `StoreFormatTests`: a key under which two tags meet, found by a
+search run once, is drawn again.
+
 **Where it lives.** In the protected content of every authority's entry, and of every
 retirement that Delete or keeping an authority wrote (§614). While an authority is served, its
 entry holds the key. After a Delete with no new authority, the retirement holds it. No record
