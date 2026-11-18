@@ -63,7 +63,11 @@ namespace KeePassGate.Bridge
         /// </remarks>
         public IGateStore Store
         {
-            get { return new Through(_database, new KdbxStore(_database, GateVersion.Current, _log), _writer); }
+            get
+            {
+                var holding = _writer == null ? null : new Func<PwEntry, string>(_writer.Holding);
+                return new Through(_database, new KdbxStore(_database, GateVersion.Current, _log, holding), _writer);
+            }
         }
 
         public bool IsOpen

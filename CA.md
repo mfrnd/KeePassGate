@@ -293,16 +293,16 @@ the authorities not kept stay, admitting nobody, and the clients page names them
 Cancel serves nothing, and the KPG tab's authority page asks again, waiting for the settings
 dialog's OK like everything else there. **A choice the writer refuses is tried again** before the
 operator is told to choose again, which is the operator's rulings of 2026-10-14 and 2026-11-08:
-another client's write holding the writer is waited out however long its save takes, which can be
-a minute and more for a large database, and a refusal that does not end by itself, Database
-Maintenance left open or KeePass busy with an operation of its own, is tried again for a few
-seconds and then put back in front of the operator. The answer is given up when those seconds
-have passed, and the operator is told once KeePass is no longer part way through an operation of
-its own: told from the retry's own tick, the message stood inside that operation, and a save was
-measured waiting under it until it was closed. **A lock closes the dialog unanswered**, as it
-closes a pairing or a renewal dialog and for their reason: KeePass locks under a dialog the plugin
-does not register, and this dialog lists every authority's clients. An answer given as the lock
-lands is not written, and the unlock asks again.
+another client's write holding the writer is waited out however long its save takes, which can be a
+minute and more for a large database, and a refusal that does not end by itself, an entry dialog
+left open on an entry the choice deletes, sets back or protects, the summary entry among them, or
+KeePass busy with an operation of its own, is tried again for a few seconds and then put back in
+front of the operator. The answer is given up when those seconds have passed, and the operator is
+told once KeePass is no longer part way through an operation of its own: told from the retry's own
+tick, the message stood inside that operation, and a save was measured waiting under it until it was
+closed. **A lock closes the dialog unanswered**, as it closes a pairing or a renewal dialog and for
+their reason: KeePass locks under a dialog the plugin does not register, and this dialog lists every
+authority's clients. An answer given as the lock lands is not written, and the unlock asks again.
 
 **The dialog waits for whatever would refuse its answer.** The question is posted at the open and
 at the save, and it used to be held back by KeePass's two signals alone, `DESIGN.md` §119, on the

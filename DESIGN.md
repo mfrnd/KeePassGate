@@ -2199,6 +2199,17 @@ lacks any of them starts no watch, and every write and every pairing is refused.
   operation of its own that pumps messages inside the tree, XML Replace among them, so every
   write is refused while it is open (§119).
 
+**A write into the plugin's store meets these windows by entry**, since its records are entries,
+`STORE.md` §626, measured by `StoreWritesUnderDialogsTests` over each window's own code and every
+type nested in it. Of the windows above only the entry dialog's code puts an entry's strings,
+history or attachments back, so once a write's plan exists it is refused while an entry dialog holds
+any entry the plan deletes, sets back or protects again. Database Maintenance removes history items
+from entries at the press of a button and puts no copy of an entry back over a write, so no write is
+refused for it: pressed where a record counts by its history, the removal is the loss `STORE.md`
+§622 describes. Keeping an authority, which writes no custom data and saves nothing, is written
+under it, while the store write of the settings dialog's OK is refused under it and under the TAN
+wizard as a whole; neither window can stand beside that dialog, each being modal.
+
 ### C4. The plugin as its own CA puts the CA key beside the database §125
 
 **The objection was right, and the answer is now structural rather than defensive.** Its point was

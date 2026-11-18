@@ -171,21 +171,23 @@ namespace KeePassGate.Bridge
         /// </summary>
         internal static void Protect(PwDatabase database, StoreReading reading, IEnumerable<string> deleted, Stack<Action> undo)
         {
-            if (reading.InForce == null)
-            {
-                return;
-            }
-
-            var root = database.RootGroup;
-            var deleting = new HashSet<string>(deleted, StringComparer.Ordinal);
-            var carriers = reading.InForce.Records
-                .Where(record => record.Form.StoreKey != null && !deleting.Contains(record.Hex))
-                .Select(record => root.FindEntry(new PwUuid(Bytes(record.Hex)), true))
-                .Where(entry => entry != null);
-            foreach (var entry in carriers)
+            foreach (var entry in Carriers(database, reading, deleted))
             {
                 Protect(database, entry, undo);
             }
+        }
+
+        /// <summary>
+        /// Every entry of the database a write deletes, sets back or protects again, which is what
+        /// a window holding a copy of an entry would put back over, `STORE.md` §626.
+        /// </summary>
+        internal static IEnumerable<PwEntry> Touched(PwDatabase database, StoreWrite write, StoreReading reading)
+        {
+            var root = database.RootGroup;
+            return write.Delete.Concat(write.SetBack.Select(pair => pair.Key))
+                .Select(hex => root.FindEntry(new PwUuid(Bytes(hex)), true))
+                .Where(entry => entry != null)
+                .Concat(Carriers(database, reading, write.Delete).Where(Unprotected));
         }
 
         /// <summary>The entry that holds a record, in no group yet, `STORE.md` §607.</summary>
@@ -318,15 +320,41 @@ namespace KeePassGate.Bridge
             entry.Touch(true, false);
         }
 
+        /// <summary>
+        /// The entry of every record holding the store key that the reading found, but those the
+        /// write deletes.
+        /// </summary>
+        private static IEnumerable<PwEntry> Carriers(PwDatabase database, StoreReading reading, IEnumerable<string> deleted)
+        {
+            if (reading.InForce == null)
+            {
+                return Enumerable.Empty<PwEntry>();
+            }
+
+            var root = database.RootGroup;
+            var deleting = new HashSet<string>(deleted, StringComparer.Ordinal);
+            return reading.InForce.Records
+                .Where(record => record.Form.StoreKey != null && !deleting.Contains(record.Hex))
+                .Select(record => root.FindEntry(new PwUuid(Bytes(record.Hex)), true))
+                .Where(entry => entry != null);
+        }
+
+        /// <summary>Whether an entry's content went unprotected, which a write protects again.</summary>
+        private static bool Unprotected(PwEntry entry)
+        {
+            var content = entry.Strings.Get(StoreFormat.DataField);
+            return content != null && !content.IsProtected;
+        }
+
         /// <summary>A record whose content holds the store key, protected again where its protection went.</summary>
         private static void Protect(PwDatabase database, PwEntry entry, Stack<Action> undo)
         {
-            var content = entry.Strings.Get(StoreFormat.DataField);
-            if (content == null || content.IsProtected)
+            if (!Unprotected(entry))
             {
                 return;
             }
 
+            var content = entry.Strings.Get(StoreFormat.DataField);
             Backup(database, entry, undo);
             entry.Strings.Set(StoreFormat.DataField, content.WithProtection(true));
             entry.Touch(true, false);

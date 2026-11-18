@@ -476,15 +476,44 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void Database_Maintenance_open_refuses_the_choice_and_the_operator_is_told()
+        public void Database_Maintenance_open_lets_the_choice_be_written()
         {
-            // The writer refuses every write of the operator's while that dialog stands. Refused,
-            // the operator is told, and nothing is written.
+            // `STORE.md` §626: that dialog holds a copy of the custom data and no entry, and a
+            // choice writes no custom data, so nothing of it is taken back.
             _answer = _candidates[0];
 
             using (var form = new DatabaseOperationsForm())
             {
                 form.InitEx(_database.Database);
+                GlobalWindowManager.AddWindow(form);
+
+                try
+                {
+                    _chooser.AskAll();
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+
+            Assert.That(_asked, Is.EqualTo(1));
+            Assert.That(_prompt.Told, Is.Null);
+            Assert.That(Retired(_candidates[1]), Is.True);
+        }
+
+        [Test]
+        public void An_entry_dialog_on_the_authority_retired_refuses_the_choice_and_the_operator_is_told()
+        {
+            // The dialog puts its copy of the entry back at its OK, over the entry the choice
+            // deletes. Refused, the operator is told, and nothing is written.
+            _answer = _candidates[0];
+            var loser = _database.RootGroup.FindEntry(EntryOf(_candidates[1]), true);
+
+            using (var icons = new ImageList())
+            using (var form = new PwEntryForm())
+            {
+                form.InitEx(loser, PwEditMode.EditExistingEntry, _database.Database, icons, false, false);
                 GlobalWindowManager.AddWindow(form);
 
                 try

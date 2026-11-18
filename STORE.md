@@ -1879,20 +1879,29 @@ the summary entry written with it are in the file, which is the order `PAIRING.m
 `DESIGN.md` §124 lists the windows the plugin watches and why, and several of those reasons are
 about custom data, which the store no longer uses: Database Maintenance's copy of the database's
 custom data, and a group dialog's copy of its group's. The store's records are entries, so the
-question becomes which window puts back or takes away an entry of the plugin's group. That
-question was not measured, and §644 names it as an obligation (reasoning, from §124).
+question becomes which window puts back or takes away an entry of the plugin's group, which is
+measured (§644 item 14).
 
-**What a write of the plugin's own asks of KeePass's windows until that is measured** (this
-document's own, read from `DESIGN.md` §124 and not run). A write is refused `503 busy` while
-KeePass's progress window is open, and while the TAN wizard is open on the database where the
-write ends in a save, as every write is today. It is refused as well while an entry dialog
-holds an entry that the write would delete or set back, since that dialog puts its copy of the
-entry's strings back at its OK. It is not refused on account of the store for Database
-Maintenance or for a group dialog, since neither holds a copy of an entry. A write that still
-adds to custom data, as a pairing's write of a profile name does until the names are records,
-is refused under Database Maintenance for that part, as today. The pull request that builds
-the first writes runs each window of `DESIGN.md` §124 against a write into the plugin's group,
-and records what it found there and in that section.
+**What a write of the plugin's own asks of KeePass's windows** (measured). Read off the real types,
+the code of each window `DESIGN.md` §124 lists and of every type nested in it, the entry dialog is
+the only window whose code puts an entry's strings, history or attachments back, which it does at
+its OK with the copy it took as it opened: content the plugin protected again while the dialog stood
+goes unprotected again, reproduced with KeePass's own types. Database Maintenance removes history
+items from entries and clears the database's deletion records (§639), each at the press of a button,
+and puts no copy of an entry back over a write: pressed where a record counts by its history, the
+removal is the loss §622 describes, which no refusal of a write would prevent, so no write is
+refused for it. No other of those windows calls anything that puts an entry back or removes from it.
+So a write is refused `503 busy` while KeePass's progress window is open, and while the TAN wizard
+is open on the database where the write ends in a save, as every write is today; and once its plan
+exists, it is refused busy while an entry dialog holds any entry the plan deletes, sets back or
+protects again, the summary entry among them, since every write deletes the summary entry it finds.
+Keeping an authority asks nothing more of the windows: it writes no custom data and saves nothing,
+so it is written under Database Maintenance and while the TAN wizard is open, and a group dialog
+holds no copy of an entry. The store write of the settings dialog's OK is refused under Database
+Maintenance and under the TAN wizard as a whole, every act of it with it, while the tab's changes to
+custom data beside that write are asked nothing; neither window can stand beside the settings
+dialog, each being modal. A pairing's write of a profile name is refused under Database Maintenance,
+as today. *Held by* `StoreWritesUnderDialogsTests` and `AuthorityChooserInRealDatabaseTests`.
 
 ### A write of the plugin's own §627
 
@@ -3699,8 +3708,10 @@ that finds a measurement against a decision reports it and does not design aroun
     was run as a page.
 14. **Which of KeePass's windows takes back or takes away an entry of the plugin's group** while
     the plugin writes (§626). This item is this document's own, read from `DESIGN.md` §124 and
-    from no report. Owed by the pull request that moves the first write onto the store, and
-    §626 states what such a write asks until then.
+    from no report. Run by the pull request that keeps the authority in the store, in the host
+    tier (`StoreWritesUnderDialogsTests`): each window of §124 read off the real types, and the
+    entry dialog's copy put back over a write reproduced; §626 and `DESIGN.md` §124 state what
+    it found. A window shown in a real KeePass over a write stays owed by the end to end tier.
 15. **A second store key** (§649), of which nothing was run. The case to run first is a file
     from outside that holds a retirement carrying a key of its own and naming no authority of
     the database, a rule version under that key for a node with no rule, and a summary entry

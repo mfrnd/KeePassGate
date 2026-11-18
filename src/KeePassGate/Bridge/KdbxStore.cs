@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using KeePassGate.Diagnostics;
 using KeePassGate.Store;
 using KeePassLib;
@@ -31,8 +32,20 @@ namespace KeePassGate.Bridge
         private readonly PwDatabase _database;
         private readonly string _plugin;
         private readonly IGateLog _log;
+        private readonly Func<PwEntry, string> _holding;
 
+        /// <summary>A store over this database, written with no window asked about.</summary>
         public KdbxStore(PwDatabase database, string plugin, IGateLog log)
+            : this(database, plugin, log, null)
+        {
+        }
+
+        /// <summary>The same, asking of every entry a write touches whether a window holds it.</summary>
+        /// <param name="holding">
+        /// Why an entry cannot be written now, a window holding a copy of it, or null where it can:
+        /// the writer's question, `STORE.md` §626; null asks nothing, which is a reading alone.
+        /// </param>
+        public KdbxStore(PwDatabase database, string plugin, IGateLog log, Func<PwEntry, string> holding)
         {
             if (database == null)
             {
@@ -42,6 +55,7 @@ namespace KeePassGate.Bridge
             _database = database;
             _plugin = plugin;
             _log = log ?? NullGateLog.Instance;
+            _holding = holding;
         }
 
         /// <summary>The store as the database holds it now, for the caller to let go.</summary>
@@ -76,6 +90,17 @@ namespace KeePassGate.Bridge
                 if (write.Refused != null)
                 {
                     return StoreWritten.Refused(write.Refused, write.LeftOut);
+                }
+
+                // Asked once the plan exists, of what it deletes, sets back and protects: an entry
+                // dialog puts its copy of an entry back at its OK, `STORE.md` §626, which would take
+                // back what this write did to that entry.
+                var held = write.Empty || _holding == null
+                    ? null
+                    : StoreEntries.Touched(_database, write, reading).Select(_holding).FirstOrDefault(why => why != null);
+                if (held != null)
+                {
+                    return StoreWritten.Refused(held, write.LeftOut);
                 }
 
                 if (!write.Empty)

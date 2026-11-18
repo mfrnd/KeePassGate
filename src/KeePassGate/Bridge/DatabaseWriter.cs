@@ -1142,10 +1142,11 @@ namespace KeePassGate.Bridge
         /// </summary>
         /// <remarks>
         /// **The operator's answer in the authority chooser, and the one write here nobody waits on
-        /// from a connection.** It still goes through the same lock and the same questions as
-        /// every other write: it is refused while Database Maintenance is open, while a window
-        /// holds what a write would take back, and while KeePass is part way through something of
-        /// its own, and the operator is told why.
+        /// from a connection.** It still goes through the same lock as every other write, and is
+        /// refused while an entry dialog holds an entry the write deletes, sets back or protects,
+        /// the summary entry among them, and while KeePass is part way through something of its
+        /// own, and the operator is told why. It writes no custom data and saves nothing, so
+        /// Database Maintenance and the TAN wizard refuse it nothing, `STORE.md` §626.
         ///
         /// **Not saved, which is operator answer 5**: the database is marked, the window says so,
         /// and the operator saves as they would any other change. Serving starts at once all the
@@ -1208,17 +1209,13 @@ namespace KeePassGate.Bridge
                 return AuthorityChange.Refused(interrupting);
             }
 
-            if (_dialogs != null)
-            {
-                var open = _dialogs.BlockingRecords(database) ?? _dialogs.BlockingSaves(database);
-                if (open != null)
-                {
-                    return AuthorityChange.Refused(open);
-                }
-            }
-
+            // No window is asked about the database as a whole: a keep writes no custom data, so
+            // Database Maintenance's copy of it takes nothing back, and it saves nothing, so a
+            // save the TAN wizard is inside is not met. What a window can take back is an entry
+            // the keep deletes, sets back or protects, asked of each once the plan exists,
+            // `STORE.md` §626.
             var kept = new AuthorityService(
-                new KdbxStore(database, GateVersion.Current, _log), new CustomDataStore(database), _log).Keep(fingerprint, offered);
+                new KdbxStore(database, GateVersion.Current, _log, Holding), new CustomDataStore(database), _log).Keep(fingerprint, offered);
             if (kept.Succeeded)
             {
                 // The tree and the list too: a choice writes entries into the plugin's group.
@@ -1281,6 +1278,16 @@ namespace KeePassGate.Bridge
             }
 
             return written;
+        }
+
+        /// <summary>
+        /// Why an entry cannot be written now, a window holding a copy of it, or null, `STORE.md`
+        /// §626: what every write into the store asks of each entry it deletes, sets back or
+        /// protects. Where no watch was given, which is a test, nothing holds.
+        /// </summary>
+        internal string Holding(PwEntry entry)
+        {
+            return _dialogs == null ? null : _dialogs.Blocking(entry);
         }
 
         /// <summary>
