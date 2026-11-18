@@ -12,17 +12,26 @@ namespace KeePassGate.Ui
     /// </summary>
     /// <remarks>
     /// **Each press composes its act at the press**, from the store as the page showed it, and
-    /// the act is held here. **A revocation holds what is to be done**: its records are composed
-    /// again wherever the buffer is read and at OK, against the store as it stands then with the
-    /// acts pressed before it written over it, `AdmissionActs.Again`, so OK writes it under the
-    /// store key it finds. **The pages read the store with the acts beside it**, composed so,
-    /// planned and applied in memory over the live entries, so a page shows what OK would write
-    /// now.
+    /// the act is held here. **An act on a client or a certificate holds what is to be done**:
+    /// its records are composed again wherever the buffer is read and at OK, against the store
+    /// as it stands then with the acts pressed before it planned over it in a single write,
+    /// `AdmissionActs.Again`. A renewal that lands under the dialog is named by a certificate
+    /// taken away pressed before it, and each press sees the presses before it. **The pages read
+    /// the store with the acts beside it**, composed so, planned together in a single write and
+    /// applied in memory over the live entries, as OK writes them, so a page shows what OK would
+    /// write now: a single summary entry more however many acts are held, and the room that
+    /// write leaves.
+    ///
+    /// **What the acts compose to is kept** until the store or the acts held change: each act is
+    /// composed once, over the live store with the acts composed before it planned together, and
+    /// a press composes its own act alone. A read of the buffer reads the live store to tell
+    /// whether it changed, and composes and plans nothing it kept.
     ///
     /// **At OK the acts are written in the order they were pressed**, through the live store and
     /// so through the writer, each held to the store as it stands then: an act whose ground went
-    /// meanwhile is left out and named. **Cancel drops every act**, and a store key made on the
-    /// dialog goes with the act that held it.
+    /// meanwhile is left out and named, and a certificate taken away by then is not taken away
+    /// again. **Cancel drops every act**, and a store key made on the dialog goes with the act
+    /// that held it.
     ///
     /// **The buffer holds what the store would be written with.** A press that retires an
     /// authority an act held made takes that act out with it, and what is left of the two takes
@@ -39,8 +48,8 @@ namespace KeePassGate.Ui
         private readonly Func<IGateStore> _live;
         private readonly List<StoreAct> _acts = new List<StoreAct>();
 
-        // The acts composed for OK's write, which go with the acts held.
-        private readonly List<StoreAct> _composed = new List<StoreAct>();
+        // What the acts held composed to over the live store as last read, or null.
+        private Composition _kept;
 
         /// <summary>A buffer over the database's own store, holding no act yet.</summary>
         /// <param name="live">
@@ -76,115 +85,68 @@ namespace KeePassGate.Ui
         /// </summary>
         public StoreReading Read()
         {
-            if (_acts.Count > 0)
+            if (_acts.Count == 0)
             {
-                using (var live = _live().Read())
+                return _live().Read();
+            }
+
+            using (var live = _live().Read())
+            {
+                var after = Kept(live).After;
+                if (after != null)
                 {
-                    var composed = Compose(live, _acts);
-                    try
-                    {
-                        var over = Over(live, composed);
-                        if (over != null)
-                        {
-                            return over;
-                        }
-                    }
-                    finally
-                    {
-                        LetGo(composed, _acts);
-                    }
+                    // A reading of its own, which the caller lets go: what is kept stays.
+                    return StoreReading.Afresh(after.Candidates, after.Deletions);
                 }
             }
 
-            // Nothing held, or nothing the acts leave: the store as it is, read for the caller.
+            // Nothing the acts leave: the store as it is, read for the caller.
             return _live().Read();
         }
 
         /// <summary>
         /// The acts held, composed against the store as it stands now for the write at OK, in
-        /// the order pressed: see <see cref="Compose"/>. What is composed here is let go by
-        /// <see cref="Discard"/>, with the acts held.
+        /// the order pressed, with null in the place of an act with nothing left to write: see
+        /// <see cref="Composition"/>. What is composed here is let go by <see cref="Discard"/>,
+        /// with the acts held.
         /// </summary>
         public IReadOnlyList<StoreAct> Composed()
         {
             using (var live = _live().Read())
             {
-                var composed = Compose(live, _acts);
-                _composed.AddRange(composed.Where(act => !_acts.Contains(act)));
-                return composed;
+                return Kept(live).Composed.ToList();
             }
         }
 
         /// <summary>
-        /// The acts in the order pressed, each act on a client composed again against this
-        /// reading with the acts before it written over it, `AdmissionActs.Again`, and every
-        /// other act as it was pressed. The acts composed here are the caller's to let go,
-        /// <see cref="LetGo"/>.
+        /// What the acts held compose to over this reading of the live store: what was kept where
+        /// neither the store nor the acts held changed since, and otherwise composed now, over
+        /// what was kept where the acts held begin with the acts it was composed for, and kept in
+        /// its place.
         /// </summary>
-        private static List<StoreAct> Compose(StoreReading live, IReadOnlyList<StoreAct> acts)
+        private Composition Kept(StoreReading live)
         {
-            var composed = new List<StoreAct>();
-            var done = false;
-            try
+            if (_kept != null && _kept.For(live, _acts))
             {
-                foreach (var act in acts)
-                {
-                    if (!AdmissionActs.Composes(act.Name))
-                    {
-                        composed.Add(act);
-                        continue;
-                    }
-
-                    var over = composed.Count == 0 ? null : Over(live, composed.ToList());
-                    try
-                    {
-                        composed.Add(AdmissionActs.Again(over ?? live, act));
-                    }
-                    finally
-                    {
-                        if (over != null)
-                        {
-                            over.Dispose();
-                        }
-                    }
-                }
-
-                done = true;
-                return composed;
+                return _kept;
             }
-            finally
-            {
-                if (!done)
-                {
-                    LetGo(composed, acts);
-                }
-            }
+
+            var composed = Composition.Of(live, _acts, _kept);
+            Keep(composed);
+            return composed;
         }
 
         /// <summary>
-        /// The reading with these acts written over it in memory, or null where they would be
-        /// refused or leave nothing.
+        /// Keeps this composition in place of the composition kept, which is let go but for what
+        /// the two share; null keeps none.
         /// </summary>
-        private static StoreReading Over(StoreReading live, IReadOnlyList<StoreAct> acts)
+        private void Keep(Composition composition)
         {
-            var write = StoreWrite.Plan(live, acts, GateVersion.Current);
-            if (write.Refused != null || write.Empty)
+            var before = _kept;
+            _kept = composition;
+            if (before != null && !ReferenceEquals(before, composition))
             {
-                return null;
-            }
-
-            var applied = write.Applied(live.Candidates, live.Deletions);
-            return StoreReading.Afresh(applied.Key, applied.Value);
-        }
-
-        /// <summary>
-        /// Overwrites the keys of the acts composed that are not among the acts held.
-        /// </summary>
-        private static void LetGo(IEnumerable<StoreAct> composed, IReadOnlyList<StoreAct> held)
-        {
-            foreach (var act in composed.Where(act => !held.Contains(act)))
-            {
-                act.Forget();
+                before.Release(composition, _acts);
             }
         }
 
@@ -217,7 +179,7 @@ namespace KeePassGate.Ui
             var next = _acts.ToList();
             var letGo = new List<StoreAct>();
             var standing = new List<StoreAct>();
-            List<StoreAct> composed = null;
+            Composition composition = null;
             var held = false;
             try
             {
@@ -229,14 +191,22 @@ namespace KeePassGate.Ui
                 {
                     using (var live = _live().Read())
                     {
-                        composed = Compose(live, next);
-                        var write = StoreWrite.Plan(live, composed, GateVersion.Current);
+                        composition = Composition.Of(live, next, _kept);
+                        var written = composition.Composed;
+
+                        // A press with nothing left to write is refused as an act the plan
+                        // leaves out is, before a plan that may hold nothing at all.
+                        if (standing.Any(act => written[next.IndexOf(act)] == null))
+                        {
+                            return StoreWritten.Refused("the act no longer applies to the store as it stands");
+                        }
+
+                        var write = StoreWrite.Plan(live, written.Where(act => act != null).ToList(), GateVersion.Current);
                         if (write.Refused != null)
                         {
                             return StoreWritten.Refused(write.Refused, write.LeftOut);
                         }
 
-                        var written = composed;
                         if (standing.Any(act => !write.Taken.Contains(written[next.IndexOf(act)])))
                         {
                             var left = write.LeftOut.Where(line => standing.Any(act => line.StartsWith(act.Name + ": ", StringComparison.Ordinal))).ToList();
@@ -250,13 +220,14 @@ namespace KeePassGate.Ui
                 _acts.Clear();
                 _acts.AddRange(next);
                 held = true;
+                Keep(composition);
                 return StoreWritten.Waiting(standing, leftOut);
             }
             finally
             {
-                if (composed != null)
+                if (!held && composition != null && !ReferenceEquals(composition, _kept))
                 {
-                    LetGo(composed, next);
+                    composition.Release(_kept, next.Concat(_acts).ToList());
                 }
 
                 // An act composed here and not held is let go, and so is every act folded into
@@ -349,17 +320,267 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// Drops every act, which is what Cancel means, and overwrites the keys they held and the
-        /// keys of the acts composed from them for OK.
+        /// keys of the acts composed from them.
         /// </summary>
         public void Discard()
         {
-            foreach (var act in _acts.Concat(_composed))
+            var acts = _acts.ToList();
+            _acts.Clear();
+            foreach (var act in acts)
             {
                 act.Forget();
             }
 
-            _acts.Clear();
-            _composed.Clear();
+            Keep(null);
+        }
+
+        /// <summary>
+        /// Acts composed in the order pressed over a reading of the live store, each act on a
+        /// client or a certificate composed again over that reading with the acts composed before
+        /// it planned together in a single write, `AdmissionActs.Again`, and every other act as it
+        /// was pressed, with null in the place of an act with nothing left to write; and the
+        /// reading they all leave, planned together the same way, as OK writes them.
+        /// </summary>
+        private sealed class Composition
+        {
+            private readonly IReadOnlyList<StoreCandidate> _candidates;
+            private readonly IReadOnlyList<byte[]> _deletions;
+            private readonly List<StoreAct> _acts;
+
+            private Composition(
+                StoreReading live, List<StoreAct> acts, List<StoreAct> composed, StoreReading after)
+            {
+                _candidates = live.Candidates;
+                _deletions = live.Deletions;
+                _acts = acts;
+                Composed = composed;
+                After = after;
+            }
+
+            /// <summary>
+            /// An act composed for each act held, in its place, or null where nothing is left to
+            /// write.
+            /// </summary>
+            public List<StoreAct> Composed { get; private set; }
+
+            /// <summary>
+            /// The reading the acts leave, or null where they leave the store as it is.
+            /// </summary>
+            public StoreReading After { get; private set; }
+
+            /// <summary>
+            /// Whether this was composed for these acts held, over a reading of these very entries
+            /// and deletion records.
+            /// </summary>
+            public bool For(StoreReading live, IReadOnlyList<StoreAct> acts)
+            {
+                return _acts.Count == acts.Count && Begins(acts) && Over(live);
+            }
+
+            /// <summary>
+            /// The acts composed over this reading: those this prior composition was composed for
+            /// taken from it, where it was composed over the same entries and these acts begin
+            /// with its own, and each act after them composed over this reading with the acts
+            /// composed before it planned together, as the reading they all leave is.
+            /// </summary>
+            public static Composition Of(StoreReading live, IReadOnlyList<StoreAct> acts, Composition prior)
+            {
+                var reused = prior != null && prior._acts.Count <= acts.Count && prior.Begins(acts) && prior.Over(live);
+                var composed = reused ? new List<StoreAct>(prior.Composed) : new List<StoreAct>();
+                var done = false;
+                using (var left = new Left(reused ? prior.After : null))
+                {
+                    try
+                    {
+                        // Whether an act was composed since the reading held was planned: that
+                        // reading is planned again, with every act composed so far, before an act
+                        // is composed over it and once the last act is composed.
+                        var since = false;
+                        foreach (var act in acts.Skip(composed.Count))
+                        {
+                            var made = act;
+                            if (AdmissionActs.Composes(act.Name))
+                            {
+                                if (since)
+                                {
+                                    left.Take(Written(live, composed));
+                                    since = false;
+                                }
+
+                                made = AdmissionActs.Again(left.Reading ?? live, act);
+                            }
+
+                            composed.Add(made);
+                            since |= made != null;
+                        }
+
+                        if (since)
+                        {
+                            left.Take(Written(live, composed));
+                        }
+
+                        done = true;
+                        return new Composition(live, acts.ToList(), composed, left.Keep());
+                    }
+                    finally
+                    {
+                        if (!done)
+                        {
+                            foreach (var made in composed.Skip(reused ? prior.Composed.Count : 0).Where(made => made != null && !acts.Contains(made)))
+                            {
+                                made.Forget();
+                            }
+                        }
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Lets go of what this holds that the other composition does not, and of no act held:
+            /// the acts composed here, and the reading the acts leave.
+            /// </summary>
+            public void Release(Composition other, IReadOnlyCollection<StoreAct> held)
+            {
+                foreach (var made in Composed.Where(made => made != null
+                             && !held.Contains(made)
+                             && (other == null || !other.Composed.Contains(made))))
+                {
+                    made.Forget();
+                }
+
+                if (After != null && (other == null || !ReferenceEquals(After, other.After)))
+                {
+                    After.Dispose();
+                }
+            }
+
+            /// <summary>
+            /// Whether these acts begin with the acts this was composed for, the very same.
+            /// </summary>
+            private bool Begins(IReadOnlyList<StoreAct> acts)
+            {
+                for (var at = 0; at < _acts.Count; at++)
+                {
+                    if (at >= acts.Count || !ReferenceEquals(_acts[at], acts[at]))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            /// <summary>
+            /// Whether this was composed over a reading of these very entries, version for version,
+            /// and these deletion records: the same objects are the same text, `StoreVersion.Same`.
+            /// </summary>
+            /// <remarks>
+            /// **It rests on a reading's lists not changing once they are handed out**: a store
+            /// builds the lists of every reading afresh, as `KdbxStore` does, and a write puts new
+            /// lists in the place of the old. Lists changed in place would compare as the lists
+            /// kept here, and what was composed over them would be handed out for a store it was
+            /// not composed over.
+            /// </remarks>
+            private bool Over(StoreReading live)
+            {
+                var candidates = live.Candidates;
+                var deletions = live.Deletions;
+                if (candidates.Count != _candidates.Count || deletions.Count != _deletions.Count)
+                {
+                    return false;
+                }
+
+                for (var at = 0; at < candidates.Count; at++)
+                {
+                    var now = candidates[at];
+                    var then = _candidates[at];
+                    if (!string.Equals(now.Hex, then.Hex, StringComparison.Ordinal) || now.Versions.Count != then.Versions.Count)
+                    {
+                        return false;
+                    }
+
+                    for (var version = 0; version < now.Versions.Count; version++)
+                    {
+                        if (!now.Versions[version].Same(then.Versions[version]))
+                        {
+                            return false;
+                        }
+                    }
+                }
+
+                for (var at = 0; at < deletions.Count; at++)
+                {
+                    if (!deletions[at].SequenceEqual(_deletions[at]))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            /// <summary>
+            /// The live reading with these acts, those not null, planned together in a single
+            /// write and written over it in memory, as OK writes them, or null where that write
+            /// would be refused or leave nothing.
+            /// </summary>
+            private static StoreReading Written(StoreReading live, IEnumerable<StoreAct> composed)
+            {
+                var write = StoreWrite.Plan(live, composed.Where(act => act != null).ToList(), GateVersion.Current);
+                if (write.Refused != null || write.Empty)
+                {
+                    return null;
+                }
+
+                var applied = write.Applied(live.Candidates, live.Deletions);
+                return StoreReading.Afresh(applied.Key, applied.Value);
+            }
+
+            /// <summary>
+            /// The reading the acts composed so far leave: the prior composition's to begin with,
+            /// which stays that composition's, and then each reading made here, let go where the
+            /// next takes its place and at the end unless it is kept.
+            /// </summary>
+            private sealed class Left : IDisposable
+            {
+                private bool _made;
+
+                public Left(StoreReading prior)
+                {
+                    Reading = prior;
+                }
+
+                /// <summary>The reading the acts so far leave, or null where they leave the store as it is.</summary>
+                public StoreReading Reading { get; private set; }
+
+                /// <summary>
+                /// Puts a reading made here in the place of the reading held, or none where the
+                /// acts so far leave the store as it is.
+                /// </summary>
+                public void Take(StoreReading made)
+                {
+                    Dispose();
+                    Reading = made;
+                    _made = made != null;
+                }
+
+                /// <summary>Hands the reading held to the caller, who lets it go from here on.</summary>
+                public StoreReading Keep()
+                {
+                    _made = false;
+                    return Reading;
+                }
+
+                /// <summary>Lets the reading held go where it was made here and not handed on.</summary>
+                public void Dispose()
+                {
+                    if (_made)
+                    {
+                        _made = false;
+                        Reading.Dispose();
+                    }
+                }
+            }
         }
     }
 }

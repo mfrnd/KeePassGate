@@ -963,7 +963,9 @@ after the client has gone spends the invitation, or grants the renewal, all the 
 [clients page](clients.md) then lists a certificate this client never received. Ask the operator
 to refuse it instead. A pairing approved that way leaves a client on the list that the operator
 can revoke. After `renew`, the certificate this client already holds goes on working, and the
-certificate it never received is the first row of this client on the list: revoking there
+certificate it never received is the first row of this client on the list: **Take certificate
+away** in that row's menu
+[takes it away alone](clients.md#taking-a-single-certificate-away), where revoking there
 revokes the client with both.
 
 ## What to catch

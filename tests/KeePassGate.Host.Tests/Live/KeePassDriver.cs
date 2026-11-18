@@ -818,6 +818,49 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
+        /// Presses the X on the first row of the clients page naming this client, with the
+        /// pointer, and answers whether there was an X to press.
+        /// </summary>
+        /// <remarks>
+        /// Found among the cells of the row naming the client, by the name the list gives every
+        /// cell of the X's column, its heading followed by the row, and held to a cell that holds
+        /// an X: a button, or a cell whose value is the X. A row without an X has a text cell of
+        /// the same name there, which is no X to press.
+        /// </remarks>
+        public bool PressClientMark(AutomationElement dialog, string client)
+        {
+            var cell = ClientCell(dialog, client);
+            if (cell == null)
+            {
+                _diagnostics.AppendLine("no row names " + client + ". What the dialog shows: " + Uia.Inventory(dialog));
+                return false;
+            }
+
+            var row = TreeWalker.RawViewWalker.GetParent(cell);
+            AutomationElement mark = null;
+            foreach (AutomationElement element in row.FindAll(TreeScope.Children, Condition.TrueCondition))
+            {
+                object pattern;
+                var value = element.TryGetCurrentPattern(ValuePattern.Pattern, out pattern) ? ((ValuePattern)pattern).Current.Value : null;
+                if (element.Current.Name.StartsWith(ClientList.RevokeHeading + " ", StringComparison.Ordinal)
+                    && (element.Current.ControlType == ControlType.Button || value == ClientList.RevokeMark))
+                {
+                    mark = element;
+                }
+            }
+
+            if (mark == null)
+            {
+                _diagnostics.AppendLine("the row of " + client + " has no X. What the row holds: " + Uia.Inventory(row));
+                return false;
+            }
+
+            Keyboard.Front(dialog);
+            Mouse.Click(mark);
+            return true;
+        }
+
+        /// <summary>
         /// The first cell on the clients page whose value is this text, which is the first row of
         /// a client listed by that name, or null when there is none.
         /// </summary>

@@ -73,7 +73,7 @@ namespace KeePassGate.Tests
                 0,
                 true);
 
-            using (var list = new ClientList(Allows, Allows))
+            using (var list = new ClientList(Allows, Allows, Allows))
             {
                 list.Fill(listing, null, null, null);
 
@@ -104,7 +104,7 @@ namespace KeePassGate.Tests
                 0,
                 true);
 
-            using (var list = new ClientList(Allows, Allows))
+            using (var list = new ClientList(Allows, Allows, Allows))
             {
                 list.Fill(listing, null, null, null);
 
@@ -124,7 +124,7 @@ namespace KeePassGate.Tests
             var record = Record("agent-invented", "ops");
             var listing = Listings.Of(new[] { record }, new[] { new UnreadAdmission(new string('9', 32), null, null) }, 0, true);
 
-            using (var list = new ClientList(Allows, Allows))
+            using (var list = new ClientList(Allows, Allows, Allows))
             {
                 list.Fill(listing, null, null, null);
 
@@ -428,7 +428,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_listing_that_could_not_be_read_does_not_claim_nobody_is_admitted()
         {
-            using (var list = new ClientList(Allows, Allows))
+            using (var list = new ClientList(Allows, Allows, Allows))
             {
                 list.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), false), null, null);
 
@@ -514,7 +514,7 @@ namespace KeePassGate.Tests
             // works until then: a page promising access nobody has.
             var record = Record("agent-fictitious", "ops");
 
-            using (var list = new ClientList(Allows, Allows))
+            using (var list = new ClientList(Allows, Allows, Allows))
             {
                 list.Fill(new AdmissionListing(new[] { record }, true), Judged(record, ClientReach.Stranger), null);
 
@@ -527,7 +527,7 @@ namespace KeePassGate.Tests
                 Assert.That(list.Clients, Is.Empty);
             }
 
-            using (var list = new ClientList(Allows, Allows))
+            using (var list = new ClientList(Allows, Allows, Allows))
             {
                 list.Fill(new AdmissionListing(new[] { record }, true), null, null);
 
@@ -550,7 +550,7 @@ namespace KeePassGate.Tests
                 0,
                 true);
 
-            using (var list = new ClientList(Allows, Allows))
+            using (var list = new ClientList(Allows, Allows, Allows))
             {
                 list.Fill(listing, Judged(record, ClientReach.Reaches), null);
 
@@ -569,7 +569,7 @@ namespace KeePassGate.Tests
             // next year.
             var record = Record("agent-fictitious", "ops");
 
-            using (var list = new ClientList(Allows, Allows))
+            using (var list = new ClientList(Allows, Allows, Allows))
             {
                 list.Fill(new AdmissionListing(new[] { record }, true), Judged(record, reach), null);
 
@@ -588,11 +588,14 @@ namespace KeePassGate.Tests
             var damaged = new UnreadAdmission(new string('e', 32), client.ClientKey, new string('a', 64));
             var asked = new List<string>();
 
-            using (var list = new ClientList(key =>
-            {
-                asked.Add(key);
-                return null;
-            }, Allows))
+            using (var list = new ClientList(
+                       key =>
+                       {
+                           asked.Add(key);
+                           return null;
+                       },
+                       Allows,
+                       Allows))
             {
                 list.Fill(Listings.Of(new[] { client }, new[] { damaged }, 0, true), null, null);
 
@@ -616,7 +619,7 @@ namespace KeePassGate.Tests
         {
             var damaged = new UnreadAdmission(new string('e', 32), null, new string('b', 64));
 
-            using (var list = new ClientList(Allows, Allows))
+            using (var list = new ClientList(Allows, Allows, Allows))
             {
                 list.Fill(Listings.Of(Array.Empty<AdmissionRecord>(), new[] { damaged }, 0, true), null, null);
 
@@ -631,7 +634,7 @@ namespace KeePassGate.Tests
         {
             var damaged = new UnreadAdmission(new string('e', 32), new string('c', 64), new string('b', 64));
 
-            using (var list = new ClientList(Refuses, Allows))
+            using (var list = new ClientList(Refuses, Allows, Allows))
             {
                 list.Fill(Listings.Of(Array.Empty<AdmissionRecord>(), new[] { damaged }, 0, true), null, null);
 
@@ -646,11 +649,121 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Taking_a_client_s_last_certificate_away_leaves_no_row_and_revokes_nobody()
+        {
+            var client = Record("agent-fictitious", "ops");
+            var other = Record("agent-invented", "ops");
+            var taken = new List<string>();
+            var revoked = new List<string>();
+
+            using (var list = new ClientList(
+                       key =>
+                       {
+                           revoked.Add(key);
+                           return null;
+                       },
+                       Allows,
+                       key =>
+                       {
+                           taken.Add(key);
+                           return null;
+                       }))
+            {
+                list.Fill(new AdmissionListing(new[] { client, other }, true), null, null);
+
+                Assert.That(list.TakeAway(0), Is.Null);
+
+                Assert.That(taken, Is.EqualTo(new[] { client.AdmissionKey }));
+                Assert.That(revoked, Is.Empty);
+                Assert.That(list.Clients, Is.EqualTo(new[] { other }), "the client has no row");
+
+                Assert.That(list.TakeAway(0), Is.Null);
+                Assert.That(NoteOn(list), Is.EqualTo(ClientList.EmptiedText),
+                    "the certificates are still stored until OK, as a revoked client is");
+            }
+        }
+
+        [Test]
+        public void Taking_away_a_certificate_listed_twice_takes_each_row_of_it()
+        {
+            // A certificate several admissions name is a single certificate, and taking it away
+            // refuses it under each of them.
+            var client = Record("agent-fictitious", "ops");
+            var twice = AdmissionRecord.Read(null, client.Members()
+                .ToDictionary(
+                    member => member.Key,
+                    member => member.Key == KeePassGate.Store.StoreKinds.ClientMember ? new string('d', 64) : member.Value));
+            Assume.That(twice, Is.Not.Null);
+            var listing = new AdmissionListing(
+                new[] { client, twice },
+                new Dictionary<AdmissionRecord, AdmissionStanding>
+                {
+                    { client, AdmissionStanding.Twice },
+                    { twice, AdmissionStanding.Twice },
+                },
+                Array.Empty<UnreadAdmission>(),
+                0,
+                true);
+
+            using (var list = new ClientList(Allows, Allows, Allows))
+            {
+                list.Fill(listing, null, null);
+                Assume.That(Rows(list), Is.EqualTo(2));
+                Assume.That(Reach(list, 1), Is.EqualTo(ClientList.ListedTwiceText));
+
+                Assert.That(list.TakeAway(1), Is.Null);
+
+                Assert.That(Rows(list), Is.Zero);
+            }
+        }
+
+        [Test]
+        public void A_record_that_will_not_read_is_taken_away_by_the_certificate_it_names_and_otherwise_refuses()
+        {
+            var named = new UnreadAdmission(new string('e', 32), new string('c', 64), new string('b', 64));
+            var nameless = new UnreadAdmission(new string('f', 32), null, null);
+            var taken = new List<string>();
+
+            using (var list = new ClientList(Allows, Allows, key =>
+            {
+                taken.Add(key);
+                return null;
+            }))
+            {
+                list.Fill(Listings.Of(Array.Empty<AdmissionRecord>(), new[] { named, nameless }, 0, true), null, null);
+                var at = list.Rows.ToList().FindIndex(row => row.Unread == nameless);
+
+                Assert.That(list.TakeAway(at), Does.Contain("names no certificate"));
+                Assert.That(taken, Is.Empty);
+
+                Assert.That(list.TakeAway(list.Rows.ToList().FindIndex(row => row.Unread == named)), Is.Null);
+                Assert.That(taken, Is.EqualTo(new[] { named.Certificate }));
+                Assert.That(list.Unreadable, Is.EqualTo(new[] { nameless }));
+            }
+        }
+
+        [Test]
+        public void A_refused_taking_away_leaves_every_row()
+        {
+            var client = Record("agent-fictitious", "ops");
+
+            using (var list = new ClientList(Allows, Allows, Refuses))
+            {
+                list.Fill(new AdmissionListing(new[] { client }, true), null, null);
+
+                var answer = list.TakeAway(0);
+
+                Assert.That(answer, Does.StartWith("That certificate was not taken away:"));
+                Assert.That(list.Clients, Is.EqualTo(new[] { client }));
+            }
+        }
+
+        [Test]
         public void A_list_of_records_that_will_not_read_is_not_called_empty()
         {
             // Nobody is admitted by such a record, and a sentence under its row saying nobody ever
             // was would contradict the row it sits under.
-            using (var list = new ClientList(Allows, Allows))
+            using (var list = new ClientList(Allows, Allows, Allows))
             {
                 list.Fill(
                     Listings.Of(Array.Empty<AdmissionRecord>(), new[] { new UnreadAdmission(new string('e', 32), null, new string('c', 64)) }, 0, true),
@@ -675,7 +788,7 @@ namespace KeePassGate.Tests
             // write this plugin makes takes the records away.
             var client = Record("agent-fictitious", "ops");
 
-            using (var list = new ClientList(Allows, Allows))
+            using (var list = new ClientList(Allows, Allows, Allows))
             {
                 list.Fill(Listings.Of(new[] { client }, 2, true), null, null);
 
@@ -714,7 +827,7 @@ namespace KeePassGate.Tests
             var client = Record("agent-fictitious", "ops");
 
             using (var form = Fakes.OffScreenForm.New())
-            using (var list = new ClientList(Allows, Allows))
+            using (var list = new ClientList(Allows, Allows, Allows))
             {
                 // The gesture's line is up from the start on an empty list, which says nobody is
                 // admitted; with a client on it the line waits for a gesture.
@@ -775,7 +888,7 @@ namespace KeePassGate.Tests
             var refused = Record("agent-fictitious", "ops");
             var asked = Record("agent-invented", "ops");
 
-            using (var list = new ClientList(Allows, Allows))
+            using (var list = new ClientList(Allows, Allows, Allows))
             {
                 list.Fill(
                     new AdmissionListing(new[] { refused, asked }, true),
@@ -824,7 +937,7 @@ namespace KeePassGate.Tests
                    {
                        lifted.Add(key);
                        return null;
-                   }))
+                   }, Allows))
             {
                 list.Fill(
                     new AdmissionListing(new[] { record }, true),
@@ -852,7 +965,7 @@ namespace KeePassGate.Tests
                    {
                        asked++;
                        return null;
-                   }))
+                   }, Allows))
             {
                 list.Fill(new AdmissionListing(new[] { Record("agent-fictitious", "ops") }, true), null, null, null);
 
@@ -867,7 +980,7 @@ namespace KeePassGate.Tests
         {
             var record = Record("agent-fictitious", "ops");
 
-            using (var list = new ClientList(Allows, Refuses))
+            using (var list = new ClientList(Allows, Refuses, Allows))
             {
                 list.Fill(
                     new AdmissionListing(new[] { record }, true),
@@ -946,14 +1059,14 @@ namespace KeePassGate.Tests
             // name back gives it to this client again.
             var record = Record("agent-fictitious", "reader", "ops");
 
-            using (var list = new ClientList(Allows, Allows))
+            using (var list = new ClientList(Allows, Allows, Allows))
             {
                 list.Fill(new AdmissionListing(new[] { record }, true), null, new[] { "reader" });
 
                 Assert.That(Held(list, 0), Is.EqualTo(new[] { "ops" + ClientList.RemovedSuffix, "reader" }));
             }
 
-            using (var list = new ClientList(Allows, Allows))
+            using (var list = new ClientList(Allows, Allows, Allows))
             {
                 list.Fill(new AdmissionListing(new[] { record }, true), null, null);
 
@@ -971,7 +1084,7 @@ namespace KeePassGate.Tests
             // looks to see what revoking the client takes away.
             var record = Record("agent-fictitious", Longest, "ops");
 
-            using (var list = new ClientList(Allows, Allows))
+            using (var list = new ClientList(Allows, Allows, Allows))
             {
                 list.Fill(new AdmissionListing(new[] { record }, true), null, new[] { "ops" });
 
@@ -1038,7 +1151,7 @@ namespace KeePassGate.Tests
             Assert.That(AuthorityIssuer.IsUsableProfileName(Longest), Is.True);
 
             using (var form = Fakes.OffScreenForm.New())
-            using (var list = new ClientList(Allows, Allows) { Dock = DockStyle.Fill })
+            using (var list = new ClientList(Allows, Allows, Allows) { Dock = DockStyle.Fill })
             {
                 form.ClientSize = Gallery.Gallery.SettingsPage;
                 form.Controls.Add(list);
@@ -1145,7 +1258,7 @@ namespace KeePassGate.Tests
             // alone and holds the desktop: the window takes the activation from whatever held it,
             // in this process or another.
             using (var form = new Form { ClientSize = new Size(431, 200) })
-            using (var list = new ClientList(Allows, Allows) { Dock = DockStyle.Fill })
+            using (var list = new ClientList(Allows, Allows, Allows) { Dock = DockStyle.Fill })
             {
                 form.Controls.Add(list);
                 form.ShowInTaskbar = false;
@@ -1216,7 +1329,7 @@ namespace KeePassGate.Tests
         /// </summary>
         private static ClientList ListOf(Func<string, string> revoke, params AdmissionRecord[] records)
         {
-            var list = new ClientList(revoke, Allows);
+            var list = new ClientList(revoke, Allows, Allows);
             list.Fill(new AdmissionListing(records, true), null, null);
             return list;
         }

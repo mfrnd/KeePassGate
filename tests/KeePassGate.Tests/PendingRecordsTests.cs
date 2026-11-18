@@ -204,6 +204,46 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_store_near_the_ceiling_of_its_room_reads_through_the_buffer_as_the_single_write_OK_makes_of_every_act_held()
+        {
+            // Room for two more writes, and three acts held: OK writes them in a single write,
+            // which names a single summary entry more, and the page reads the store as that write
+            // leaves it, with as many writes left as OK leaves.
+            var live = new FakeGateDatabase();
+            live.Records.Put(StoreRecords.Authority(StoreRecords.One, 'a'));
+            live.Records.Put(StoreRecords.Head(StoreRecords.One, 1, Named(7939)));
+            int named;
+            using (var reading = live.Store.Read())
+            {
+                Assume.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assume.That(reading.Room.Writes, Is.EqualTo(2), "room for two more writes");
+                named = reading.Room.Named;
+            }
+
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            foreach (var id in new[] { 'b', 'c', 'd' })
+            {
+                Assert.That(pending.Store.Write(new[] { Retirements(id) }).Taken, Is.True);
+            }
+
+            int writes;
+            using (var buffered = pending.Store.Read())
+            {
+                Assert.That(buffered.State, Is.EqualTo(StoreState.Whole), buffered.Reason);
+                Assert.That(buffered.Room.Named, Is.EqualTo(named + 1), "the room of a single write spent");
+                writes = buffered.Room.Writes;
+            }
+
+            Assert.That(pending.Apply(), Is.True);
+
+            using (var written = live.Store.Read())
+            {
+                Assert.That(written.State, Is.EqualTo(StoreState.Whole), written.Reason);
+                Assert.That(written.Room.Writes, Is.EqualTo(writes), "the page counts the writes OK leaves");
+            }
+        }
+
+        [Test]
         public void A_write_refused_at_OK_writes_nothing_and_names_what_was_not_written()
         {
             // As the writer's guard refuses a write where KeePass is part way through something of
@@ -288,6 +328,54 @@ namespace KeePassGate.Tests
 
             Assert.That(pending.Apply(), Is.True);
             Assert.That(live.Store.Read().InForce.Taken("revoked"), Does.Contain(client));
+        }
+
+        [Test]
+        public void A_sitting_of_presses_composes_each_act_once_until_the_store_or_the_acts_held_change()
+        {
+            // What the buffer composed is kept while the store and the acts held stay as they
+            // were: a press composes its own act over what the acts before it leave, and a read
+            // composes nothing a press or a read before it composed. A press and a read each read
+            // the live store as often whatever the acts held. A change to the store composes every
+            // act again.
+            var live = new FakeGateDatabase();
+            var served = StoreSeeds.Authority(live.Store);
+            var clients = Enumerable.Range(0, 4).Select(index => Admitted(live, served)).ToList();
+            var records = new PendingRecords(() => live.Store);
+            var kept = new List<StoreAct>();
+            var atPress = new List<int>();
+            var atRead = new List<int>();
+            foreach (var client in clients)
+            {
+                StoreAct act;
+                using (var reading = records.Read())
+                {
+                    act = AdmissionActs.Revoke(reading, client);
+                }
+
+                var reads = live.Records.Reads;
+                Assert.That(records.Write(new[] { act }).Waits, Is.True);
+                atPress.Add(live.Records.Reads - reads);
+
+                reads = live.Records.Reads;
+                records.Read().Dispose();
+                atRead.Add(live.Records.Reads - reads);
+
+                var composed = records.Composed();
+                Assert.That(composed, Has.Count.EqualTo(kept.Count + 1));
+                Assert.That(
+                    kept.Select((before, at) => ReferenceEquals(before, composed[at])), Is.All.True, "composed once, at its own press");
+                kept = composed.ToList();
+            }
+
+            Assert.That(atPress, Is.All.EqualTo(atPress[0]), "a press reads the live store as often whatever the acts held");
+            Assert.That(atRead, Is.All.EqualTo(atRead[0]), "and so does a read of the buffer");
+
+            Admitted(live, served);
+
+            var again = records.Composed();
+            Assert.That(kept.Select((before, at) => ReferenceEquals(before, again[at])), Is.All.False, "composed again over a store that changed");
+            records.Discard();
         }
 
         [Test]
@@ -461,6 +549,37 @@ namespace KeePassGate.Tests
             Assert.That(pending.AuthorityWaiting, Is.False);
         }
 
+        [Test]
+        public void An_OK_whose_lines_throw_after_the_write_landed_lets_the_buffer_go_last()
+        {
+            // The line telling what landed comes as soon as the write's outcome is known, the
+            // lines of what landed and the custom data half after it, and the buffer, with the
+            // store key each act holds, is let go after all of them, whatever they throw.
+            var live = new FakeGateDatabase();
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            Assert.That(Service(pending).Create().Succeeded, Is.True);
+            pending.PluginCustomData.Set("KPG.Fictitious", "held for OK");
+            var held = ((PendingRecords)pending.Store).Acts.Single();
+            var heldAtTheLines = false;
+
+            Assert.Catch<InvalidOperationException>(() => pending.Apply(() =>
+            {
+                var key = held.Key();
+                heldAtTheLines = key.Any(value => value != 0);
+                Array.Clear(key, 0, key.Length);
+                throw new InvalidOperationException("a defect writing the lines of what landed");
+            }));
+
+            Assert.That(heldAtTheLines, Is.True, "the buffer is let go after the lines of what landed");
+            Assert.That(
+                log.Entries.Where(entry => entry.Level == GateLogFormat.InfoLevel).Select(entry => entry.Message),
+                Has.Some.StartsWith("the plugin's store holds what the " + GateName.Product + " tab held: Create"));
+            Assert.That(live.Values.Get("KPG.Fictitious"), Is.EqualTo("held for OK"), "the custom data half ran");
+            Assert.That(held.Key(), Is.All.EqualTo((byte)0), "and the buffer is let go whatever the lines threw");
+            Assert.That(pending.AuthorityWaiting, Is.False);
+        }
+
         private static AuthorityService Service(PendingDatabase pending)
         {
             return new AuthorityService(pending.Store, NullGateLog.Instance);
@@ -470,6 +589,15 @@ namespace KeePassGate.Tests
         private static IEnumerable<string> Held(PendingDatabase pending)
         {
             return ((PendingRecords)pending.Store).Acts.Select(act => act.Name);
+        }
+
+        /// <summary>
+        /// The `after` of a summary entry naming this many identifiers no store holds, numbered
+        /// from zero.
+        /// </summary>
+        private static string Named(int count)
+        {
+            return string.Join(" ", Enumerable.Range(0, count).Select(index => index.ToString("x32", CultureInfo.InvariantCulture)));
         }
 
         /// <summary>Items retiring authorities no store holds, numbered from a start.</summary>

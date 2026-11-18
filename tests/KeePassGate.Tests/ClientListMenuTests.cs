@@ -46,6 +46,7 @@ namespace KeePassGate.Tests
         private readonly List<Exception> _loop = new List<Exception>();
         private readonly List<string> _lifted = new List<string>();
         private readonly List<string> _revoked = new List<string>();
+        private readonly List<string> _taken = new List<string>();
 
         private AdmissionRecord _refused;
         private AdmissionRecord _asked;
@@ -63,6 +64,7 @@ namespace KeePassGate.Tests
             _loop.Clear();
             _lifted.Clear();
             _revoked.Clear();
+            _taken.Clear();
             Application.ThreadException += OnThreadException;
         }
 
@@ -85,7 +87,7 @@ namespace KeePassGate.Tests
                 Assert.That(menu.Visible, Is.True, "Shift and F10 opened nothing");
                 Assert.That(Shown(menu), Is.EqualTo(new[]
                 {
-                    FirstLine(list.Rows[0]), "Renewal refused forever", "-", ClientList.RevokeText, ClientList.AllowRenewalText
+                    FirstLine(list.Rows[0]), "Renewal refused forever", "-", ClientList.RevokeText, ClientList.TakeAwayText, ClientList.AllowRenewalText
                 }));
                 Assert.That(Item(menu, ClientList.CertificateItemName).Enabled, Is.False, "the certificate is a statement, grayed out");
 
@@ -111,12 +113,36 @@ namespace KeePassGate.Tests
                 Assert.That(menu.Visible, Is.True);
                 Assert.That(Shown(menu), Is.EqualTo(new[]
                 {
-                    FirstLine(list.Rows[1]), "-", ClientList.RevokeText, ClientList.AllowRenewalText
+                    FirstLine(list.Rows[1]), "-", ClientList.RevokeText, ClientList.TakeAwayText, ClientList.AllowRenewalText
                 }));
                 Assert.That(Item(menu, ClientList.AllowRenewalItemName).Enabled, Is.False);
                 Assert.That(Item(menu, ClientList.RevokeItemName).Enabled, Is.True);
                 Assert.That(Item(menu, ClientList.RevokeItemName).Selected, Is.True,
                     "the first choice that can be made is the one highlighted");
+            });
+        }
+
+        [Test]
+        public void Where_the_store_takes_no_write_the_menu_offers_Allow_renewal_alone()
+        {
+            Using((list, grid) =>
+            {
+                list.Writable = false;
+                list.Fill(
+                    new AdmissionListing(new[] { _refused, _asked }, true),
+                    null,
+                    null,
+                    new Dictionary<string, RenewalRefusal> { { _refused.AdmissionKey, RenewalRefusal.Forever() } });
+                Pump();
+                Select(grid, 0);
+
+                AskFromTheKeyboard(grid);
+
+                Assert.That(Shown(list.Menu), Is.EqualTo(new[]
+                {
+                    FirstLine(list.Rows[0]), "Renewal refused forever", "-", ClientList.AllowRenewalText
+                }));
+                Assert.That(Item(list.Menu, ClientList.AllowRenewalItemName).Enabled, Is.True);
             });
         }
 
@@ -193,6 +219,36 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_menu_of_a_record_that_does_not_read_offers_what_the_record_names()
+        {
+            // Revoke where it names a client key and stands alone, Take certificate away where it
+            // names a certificate, and no command otherwise; Allow renewal on no such row.
+            var named = new UnreadAdmission(new string('e', 32), new string('c', 64), new string('b', 64));
+            var nameless = new UnreadAdmission(new string('f', 32), null, null);
+
+            Using((list, grid) =>
+            {
+                list.Fill(Listings.Of(Array.Empty<AdmissionRecord>(), new[] { named, nameless }, 0, true), null, null, null);
+                Pump();
+
+                var at = list.Rows.ToList().FindIndex(row => row.Unread == named);
+                Select(grid, at);
+                AskFromTheKeyboard(grid);
+
+                Assert.That(Shown(list.Menu).Skip(1), Is.EqualTo(new[] { "-", ClientList.RevokeText, ClientList.TakeAwayText }));
+                Key(grid, Keys.Escape);
+                Pump();
+
+                Select(grid, list.Rows.ToList().FindIndex(row => row.Unread == nameless));
+                AskFromTheKeyboard(grid);
+
+                Assert.That(Shown(list.Menu).Skip(1), Is.Empty, "a record that names neither offers no command");
+                Key(grid, Keys.Escape);
+                Assert.That(_loop, Is.Empty);
+            });
+        }
+
+        [Test]
         public void Revoke_on_the_menu_takes_the_row_away_as_the_X_does()
         {
             Using((list, grid) =>
@@ -201,13 +257,81 @@ namespace KeePassGate.Tests
                 AskFromTheKeyboard(grid);
 
                 Key(grid, Keys.Up);
+                Key(grid, Keys.Up);
                 Key(grid, Keys.Enter);
 
                 Assert.That(_revoked, Is.EqualTo(new[] { _refused.AdmissionKey }));
                 Assert.That(_lifted, Is.Empty);
+                Assert.That(_taken, Is.Empty);
                 Assert.That(list.Clients, Is.EqualTo(new[] { _asked }));
                 Assert.That(_loop, Is.Empty);
             });
+        }
+
+        [Test]
+        public void An_earlier_certificate_s_menu_offers_taking_it_away_and_no_revocation()
+        {
+            Using((list, grid) =>
+            {
+                list.Fill(Group(), null, null, null);
+                Pump();
+                Assume.That(list.Rows[1].Own, Is.False, "the second row is an earlier certificate");
+                Select(grid, 1);
+
+                AskFromTheKeyboard(grid);
+
+                Assert.That(Shown(list.Menu), Is.EqualTo(new[]
+                {
+                    FirstLine(list.Rows[1]), "-", ClientList.TakeAwayText, ClientList.AllowRenewalText
+                }));
+                Assert.That(Item(list.Menu, ClientList.TakeAwayItemName).Selected, Is.True,
+                    "the first choice that can be made is highlighted");
+            });
+        }
+
+        [Test]
+        public void Take_certificate_away_on_the_menu_takes_that_row_alone_and_the_next_becomes_the_client_s_own()
+        {
+            Using((list, grid) =>
+            {
+                var group = Group();
+                list.Fill(group, null, null, null);
+                Pump();
+                var first = list.Rows[0].Record;
+                var earlier = list.Rows[1].Record;
+                Select(grid, 0);
+                AskFromTheKeyboard(grid);
+                Assume.That(Item(list.Menu, ClientList.RevokeItemName).Selected, Is.True);
+
+                Key(grid, Keys.Down);
+                Key(grid, Keys.Enter);
+
+                Assert.That(_taken, Is.EqualTo(new[] { first.AdmissionKey }));
+                Assert.That(_revoked, Is.Empty, "the client is not revoked");
+                Assert.That(list.Clients, Is.EqualTo(new[] { earlier }));
+                Assert.That(list.Rows[0].Own, Is.True, "the earlier certificate is the client's own row now");
+                Assert.That(grid.Rows[0].Cells[ClientList.RevokeColumnName].Value, Is.EqualTo(ClientList.RevokeMark),
+                    "and it carries the client's X");
+                Assert.That(_loop, Is.Empty);
+            });
+        }
+
+        /// <summary>
+        /// A client that renewed: the certificate admitted last, and the certificate it was renewed
+        /// from, under a client key of its own.
+        /// </summary>
+        private static AdmissionListing Group()
+        {
+            var first = Record("agent-renewing");
+            using (var certificate = Minted.Named("CN=agent-renewing")
+                       .Lasting(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(30))
+                       .SelfSigned()
+                       .Read())
+            {
+                var renewed = AdmissionRecord.For(
+                    certificate, first.Admitted.AddMinutes(1), new[] { "ops" }, InventedIssuer.Id, first.ClientKey, first.AdmissionKey);
+                return new AdmissionListing(new[] { renewed, first }, true);
+            }
         }
 
         [Test]
@@ -224,6 +348,7 @@ namespace KeePassGate.Tests
                     Select(grid, 0);
                     AskFromTheKeyboard(grid);
 
+                    Key(grid, Keys.Up);
                     Key(grid, Keys.Up);
                     Key(grid, Keys.Enter);
 
@@ -249,6 +374,7 @@ namespace KeePassGate.Tests
                         Select(grid, 0);
                         AskFromTheKeyboard(grid);
 
+                        Key(grid, Keys.Up);
                         Key(grid, Keys.Up);
                         Key(grid, Keys.Enter);
 
@@ -298,6 +424,11 @@ namespace KeePassGate.Tests
                        key =>
                        {
                            _lifted.Add(key);
+                           return null;
+                       },
+                       key =>
+                       {
+                           _taken.Add(key);
                            return null;
                        }))
             {

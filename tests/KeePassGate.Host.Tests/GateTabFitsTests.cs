@@ -720,6 +720,7 @@ namespace KeePassGate.Host.Tests
                             }
 
                             var cut = new List<string>();
+                            var dated = false;
                             var line = TextRenderer.MeasureText("ops", grid.DefaultCellStyle.Font ?? grid.Font).Height;
                             foreach (DataGridViewRow row in grid.Rows)
                             {
@@ -746,6 +747,42 @@ namespace KeePassGate.Host.Tests
                                     cut.Add(ClientList.Describe(record) + " holds " + record.Profiles.Count
                                             + " profiles in a row " + row.Height + " tall");
                                 }
+
+                                // The row's menu, on every row that holds an admission and so on
+                                // the row whose menu holds the longest lines, an answer naming its
+                                // date among them: each command the row offers is available, and
+                                // the menu comes up no wider than the page it is opened over. A
+                                // menu is a window of its own and takes no room on the page, so the
+                                // page's width is no room it needs: it is the bound a line that
+                                // grew without end would cross.
+                                var listed = list.Rows[row.Index];
+                                if (listed.Record != null && list.Prepare(row.Index))
+                                {
+                                    var offered = new[]
+                                    {
+                                        Tuple.Create(ClientList.RevokeItemName, listed.Revocable),
+                                        Tuple.Create(ClientList.TakeAwayItemName, true),
+                                        Tuple.Create(ClientList.AllowRenewalItemName, true),
+                                    };
+                                    foreach (var command in offered.Where(command => list.Menu.Items[command.Item1].Available != command.Item2))
+                                    {
+                                        cut.Add("the menu of row " + row.Index + (command.Item2 ? " offers no " : " offers ") + command.Item1);
+                                    }
+
+                                    var menu = list.Menu.GetPreferredSize(Size.Empty).Width;
+                                    if (menu > area.Width)
+                                    {
+                                        cut.Add("the menu of row " + row.Index + " needs " + menu + " in " + area.Width);
+                                    }
+
+                                    var answer = list.Menu.Items[ClientList.AnswerItemName];
+                                    dated |= answer.Available && answer.Text.Contains(day.Year.ToString(CultureInfo.InvariantCulture));
+                                }
+                            }
+
+                            if (!dated)
+                            {
+                                cut.Add("no menu measured holds an answer naming its date");
                             }
 
                             TestContext.Out.WriteLine(what + ": columns " + columns + " of " + grid.ClientSize.Width

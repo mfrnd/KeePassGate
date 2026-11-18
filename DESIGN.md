@@ -1963,16 +1963,28 @@ and no `admissionKey` where the copy admitted none, or where the store could not
 was applied. A certificate the OK ended is a certificate this copy admitted before it, so an
 admission under an authority that is not served, a certificate several admissions name and a
 record that does not read get no line. The lines are written once the store's write is taken,
-ahead of the tab's changes to the custom data, so nothing that half comes to loses them, and that
-half runs in a `finally` around them, and so does what the tab does after it, the answers lifted
-for this session and the invitations kept, so a defect in writing the lines loses nothing else
-of the OK and reaches the catch-all of the dialog's close afterwards, §141. This reverses a
-single line for the certificate of the row pressed, which a revocation used to name.
+after the log's own line of what that write came to and ahead of the tab's changes to the
+custom data, so nothing that half comes to loses them, and that half runs in a `finally`
+around them, and so does what the tab does after it, the answers lifted for this session and
+the invitations kept, with the tab's buffer let go last, so a defect in writing the lines
+loses nothing else of the OK and reaches the catch-all of the dialog's close afterwards, §141.
+A defect inside the write itself, as out of the writer's redraw of KeePass's window, comes
+before any of that order and leaves no line, `STORE.md` §648. This reverses a
+single line for the certificate of the row pressed, which a revocation used to name. **A single
+certificate that the operator took away on the page** is written at the same place and reads
+as a revocation's line does, decision `revoked`: a single line with its `admissionKey`, and
+with the `clientKey` of the admission that admitted the certificate before the OK, or with no
+`clientKey` where the certificate admitted nobody then, so that the operator's act is on
+record and no client is named as having held what admitted nobody. A certificate whose client
+the same OK revokes has the revocation's line and no second line, and a certificate given up
+or taken away before the OK, for which the OK wrote nothing, has none.
 Held by
 `GateWiringTests.A_revocation_writes_a_line_for_each_certificate_of_the_client_and_the_client_key_alone_where_the_copy_holds_none`,
 `GateWiringTests.A_revocation_writes_lines_only_for_the_certificates_this_copy_admitted`,
-`GateWiringTests.A_revocation_s_lines_are_written_once_the_store_holds_it_whatever_the_custom_data_half_comes_to`
-and `GateWiringTests.A_revocation_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel`.
+`GateWiringTests.A_revocation_s_lines_are_written_once_the_store_holds_it_whatever_the_custom_data_half_comes_to`,
+`GateWiringTests.A_revocation_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel`
+and
+`GateWiringTests.A_certificate_taken_away_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel`.
 The operator's word, or the act's, is the decision, so `permitted` keeps
 meaning only that the rules allowed something; `node` and `decidedAt` are null, and so is
 `operation` on the operator's revocation, which no route asked for. **`approved` always names a key

@@ -253,18 +253,25 @@ namespace KeePassGate.Pipeline
         }
 
         /// <summary>
-        /// The operator's revocation, as the settings dialog's OK puts it into the database.
+        /// The operator's revocation of a client or a certificate taken away by the operator, as
+        /// the settings dialog's OK puts it into the database.
         /// </summary>
         /// <remarks>
         /// Never paced: it is recorded from KeePass's own thread, and an operator cannot revoke
         /// faster than they can press a button and accept a dialog.
         /// </remarks>
         /// <param name="client">
-        /// The admission key of a certificate of the revoked client that the copy admitted, read
-        /// from the store before OK applied the revocation, or null where it admitted none or the
+        /// The admission key of the certificate the line is about: a certificate of the revoked
+        /// client that the copy admitted, read from the store before OK applied the revocation, or
+        /// the certificate taken away, which ended nothing where it admitted nobody before OK.
+        /// Null for a revocation where the copy admitted none of the client's certificates or the
         /// store could not be read then.
         /// </param>
-        /// <param name="clientKey">The client key the revocation names.</param>
+        /// <param name="clientKey">
+        /// The client key the revocation names, or the client key of the admission that admitted
+        /// the certificate taken away before OK; null for a certificate taken away that admitted
+        /// nobody then, or where the store could not be read then.
+        /// </param>
         public void RevokedByOperator(string databaseId, string client, string clientKey)
         {
             _audit.Record(AuditEntry.Admission(

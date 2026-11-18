@@ -87,18 +87,94 @@ namespace KeePassGate.Host.Tests
             Assert.That(found, Is.Not.Null, "an unsaved revocation must not read as a saved one");
         }
 
-        private AuthorityPanel NewPanel()
+        [Test]
+        public void A_certificate_taken_away_on_the_tab_is_gone_from_the_file_after_OK_and_a_save()
         {
-            var writer = new DatabaseWriter(CurrentThread.Instance, database => database.Save(null), null, null, NullGateLog.Instance);
-            return new AuthorityPanel(
-                new OpenDatabase(_database.Database, null, writer, NullGateLog.Instance), null, NullGateLog.Instance);
+            var record = Admit();
+            var pending = new PendingDatabase(Live(), NullGateLog.Instance);
+            using (var panel = new AuthorityPanel(pending, null, NullGateLog.Instance))
+            {
+                Assert.That(panel.TakeAway(record.AdmissionKey), Is.Null);
+            }
+
+            Assert.That(pending.Apply(), Is.True);
+            _database.SaveCloseAndReopen();
+
+            var admissions = new StoredAdmissions(_database.Database);
+            Assert.That(admissions.Find(record.AdmissionKey), Is.Null, "the certificate is admitted again tomorrow");
+            Assert.That(admissions.Holds(KeePassGate.Store.StoreKinds.Withdrawn, KeePassGate.Store.StoreKinds.Certificate, record.AdmissionKey), Is.True);
         }
 
-        private AdmissionRecord Admit()
+        [Test]
+        public void A_certificate_taken_away_on_the_tab_that_is_never_saved_stays_admitted()
+        {
+            var record = Admit();
+            var pending = new PendingDatabase(Live(), NullGateLog.Instance);
+            using (var panel = new AuthorityPanel(pending, null, NullGateLog.Instance))
+            {
+                Assume.That(panel.TakeAway(record.AdmissionKey), Is.Null);
+            }
+
+            Assume.That(pending.Apply(), Is.True);
+            _database.CloseAndReopenWithoutSaving();
+
+            Assert.That(new StoredAdmissions(_database.Database).Find(record.AdmissionKey), Is.Not.Null);
+        }
+
+        [Test]
+        public void A_certificate_given_up_by_its_client_and_the_certificate_before_it_taken_away_on_the_tab_leave_the_newest_admitted()
+        {
+            // A client paired, renewed twice and gave the certificate between up, while giving up
+            // the first never landed. The operator then takes the first away on the tab: the
+            // record OK writes names the certificate between, which its client's own record holds
+            // as renewed from the first, and the newest certificate keeps admitting.
+            var paired = Admit();
+            var between = Admit(paired);
+            var newest = Admit(between);
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => database.Save(null), null, null, NullGateLog.Instance);
+            Assume.That(writer.GiveUp(_database.Database, between.AdmissionKey, Served()).Ok, Is.True);
+
+            var pending = new PendingDatabase(Live(), NullGateLog.Instance);
+            using (var panel = new AuthorityPanel(pending, null, NullGateLog.Instance))
+            {
+                Assert.That(panel.TakeAway(paired.AdmissionKey), Is.Null);
+            }
+
+            Assert.That(pending.Apply(), Is.True);
+            _database.SaveCloseAndReopen();
+
+            var admissions = new StoredAdmissions(_database.Database);
+            Assert.That(admissions.Find(newest.AdmissionKey), Is.Not.Null);
+            Assert.That(admissions.Find(paired.AdmissionKey), Is.Null);
+            Assert.That(admissions.Find(between.AdmissionKey), Is.Null);
+        }
+
+        private AuthorityPanel NewPanel()
+        {
+            return new AuthorityPanel(Live(), null, NullGateLog.Instance);
+        }
+
+        /// <summary>The database as the gate serves it, written through the writer.</summary>
+        private OpenDatabase Live()
+        {
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => database.Save(null), null, null, NullGateLog.Instance);
+            return new OpenDatabase(_database.Database, null, writer, NullGateLog.Instance);
+        }
+
+        private string Served()
+        {
+            return StoreSeeds.Served(new StoredAdmissions(_database.Database).Store);
+        }
+
+        /// <summary>A pairing's admission, or a renewal's from the origin given, saved.</summary>
+        private AdmissionRecord Admit(AdmissionRecord origin = null)
         {
             using (var certificate = IssueClient())
             {
-                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer);
+                var record = origin == null
+                    ? AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer)
+                    : AdmissionRecord.For(
+                        certificate, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer, origin.ClientKey, origin.AdmissionKey);
                 new StoredAdmissions(_database.Database).Write(record);
                 _database.Save();
                 return record;

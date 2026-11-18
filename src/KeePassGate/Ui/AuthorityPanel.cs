@@ -420,7 +420,7 @@ namespace KeePassGate.Ui
             // Under the widgets that hand an invitation out, because the list is what an invitation
             // turns into. The list fills what the invitation band leaves, so it goes in first:
             // docking is applied from the end of the collection backwards.
-            _clients = new ClientList(RevokeAndDescribe, AllowRenewalAndDescribe);
+            _clients = new ClientList(RevokeAndDescribe, AllowRenewalAndDescribe, TakeAwayAndDescribe);
             _tabs.TabPages[2].Controls.Add(_clients);
             _tabs.TabPages[2].Controls.Add(invitation);
 
@@ -1876,6 +1876,21 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
+        /// What the list takes a certificate away through: the act is held, and the tab is read
+        /// again so the page shows the client's other certificates as OK would leave them.
+        /// </summary>
+        private string TakeAwayAndDescribe(string admissionKey)
+        {
+            var refused = TakeAway(admissionKey);
+            if (refused == null)
+            {
+                Describe();
+            }
+
+            return refused;
+        }
+
+        /// <summary>
         /// What the list lifts a standing answer through: the answer is taken away in what the
         /// dialog holds, and the tab is read again so the row shows what OK would leave.
         /// </summary>
@@ -2214,6 +2229,37 @@ namespace KeePassGate.Ui
                 return "there is no client to revoke";
             }
 
+            return Hold("a revocation", reading => AdmissionActs.Revoke(reading, clientKey));
+        }
+
+        /// <summary>
+        /// Take a single certificate away, answering with why it could not or null when it did,
+        /// `STORE.md` §648: records of kind `withdrawn`, each naming what the store holds as
+        /// renewed from the certificate it takes away, held by the dialog's buffer as a revocation
+        /// is and composed again at OK against the store as it stands then.
+        /// </summary>
+        /// <remarks>
+        /// **Nothing else of the client goes.** Every certificate the store holds as renewed from
+        /// this certificate is named, an admission or a certificate itself taken away before, so
+        /// its other certificates keep admitting it; and a client whose last certificate goes is
+        /// not revoked, and can pair again.
+        /// </remarks>
+        public string TakeAway(string admissionKey)
+        {
+            if (!CertificateDigest.IsDigest(admissionKey))
+            {
+                return "there is no certificate to take away";
+            }
+
+            return Hold("a certificate taken away", reading => AdmissionActs.TakeAway(reading, admissionKey));
+        }
+
+        /// <summary>
+        /// Composes an act from the store as the page shows it and holds it in the dialog's buffer,
+        /// answering with why it could not or null when it did.
+        /// </summary>
+        private string Hold(string what, Func<StoreReading, StoreAct> compose)
+        {
             if (_database == null || !_database.IsOpen)
             {
                 return "the database is not open";
@@ -2224,18 +2270,18 @@ namespace KeePassGate.Ui
             {
                 using (var reading = _database.Store.Read())
                 {
-                    act = AdmissionActs.Revoke(reading, clientKey);
+                    act = compose(reading);
                 }
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
-                _log.Error("a revocation could not be composed", error);
+                _log.Error(what + " could not be composed", error);
                 return error.Message;
             }
 
             if (act == null)
             {
-                return "the database holds no store to write a revocation into";
+                return "the database holds no store to write " + what + " into";
             }
 
             // **On the tab the store is the dialog's buffer**, which holds the act and writes it at
@@ -2262,7 +2308,7 @@ namespace KeePassGate.Ui
             }
 
             // Nothing logged here either, for the same reason: `AuthorityPanelFactory` logs and
-            // audits the revocation as the dialog's OK lands it.
+            // audits the act as the dialog's OK lands it.
             _database.MarkModified();
             return null;
         }

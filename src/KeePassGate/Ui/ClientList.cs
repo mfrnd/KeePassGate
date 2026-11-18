@@ -52,9 +52,14 @@ namespace KeePassGate.Ui
     /// any of the three kinds stands, the row's text cells tell which in their tooltip, and the row
     /// tells a screen reader the same words as its description. The row's menu, opened by the right
     /// button, Shift and F10 or the menu key, names the certificate it acts on on a grayed first
-    /// line, states the answer on a grayed line under it, and offers **Allow renewal**, and on a
-    /// client's own row **Revoke** as well. Allow renewal waits for the dialog's OK as a revocation
-    /// does, and the name stops being red at once as a revoked group goes at once.
+    /// line, states the answer on a grayed line under it, and offers **Take certificate away** and
+    /// **Allow renewal**, and on a client's own row **Revoke** as well. Both wait for the dialog's
+    /// OK as a revocation does: a certificate taken away goes from the page at once, alone, and the
+    /// name stops being red at once as a revoked group goes at once.
+    ///
+    /// **A row whose record does not read offers what the record names**: Revoke where it names a
+    /// client key and is its client's own row or stands alone, Take certificate away where it
+    /// names an admission key, and no command otherwise.
     ///
     /// **Each row's client key is in its tooltip**, whole, with the certificate's own key under
     /// it: a client chooses its own name, so two groups under one name are two programs that chose
@@ -88,8 +93,8 @@ namespace KeePassGate.Ui
         public const string NobodyText = "No client has been admitted to this database.";
 
         /// <summary>
-        /// The line under a list that revocations on this page emptied, while the database still
-        /// holds every client they took off it.
+        /// The line under a list that revocations or certificates taken away on this page emptied,
+        /// while the database still holds every client they took off it.
         /// </summary>
         /// <remarks>
         /// <see cref="NobodyText"/> there read as though no client had ever been admitted, when
@@ -207,6 +212,9 @@ namespace KeePassGate.Ui
         /// <summary>The menu's Revoke, by name.</summary>
         public const string RevokeItemName = "KpgRevokeItem";
 
+        /// <summary>The menu's Take certificate away, by name.</summary>
+        public const string TakeAwayItemName = "KpgTakeAwayItem";
+
         /// <summary>What lifts a standing answer, with its access key.</summary>
         public const string AllowRenewalText = "&Allow renewal";
 
@@ -214,6 +222,11 @@ namespace KeePassGate.Ui
         /// What revokes the client from the menu, as the X does, with its access key.
         /// </summary>
         public const string RevokeText = "&Revoke";
+
+        /// <summary>
+        /// What takes the row's certificate away alone, kind `withdrawn`, with its access key.
+        /// </summary>
+        public const string TakeAwayText = "&Take certificate away";
 
         /// <summary>
         /// What a screen reader calls the row's menu, which has no caption of its own.
@@ -238,6 +251,7 @@ namespace KeePassGate.Ui
 
         private readonly Func<string, string> _revoke;
         private readonly Func<string, string> _allowRenewal;
+        private readonly Func<string, string> _takeAway;
         private readonly DataGridView _grid;
         private readonly Label _note;
 
@@ -246,7 +260,16 @@ namespace KeePassGate.Ui
         private readonly ToolStripMenuItem _answerItem;
         private readonly ToolStripSeparator _commandsSeparator;
         private readonly ToolStripMenuItem _revokeItem;
+        private readonly ToolStripMenuItem _takeAwayItem;
         private readonly ToolStripMenuItem _allowItem;
+
+        /// <summary>
+        /// What the list was last filled with, so that a certificate taken away can be drawn as
+        /// gone with the rest of its group as the listing groups it.
+        /// </summary>
+        private AdmissionListing _listing;
+
+        private IDictionary<string, ClientReach> _reaches;
 
         /// <summary>
         /// The row the menu was opened on, by <see cref="ClientListRow.Id"/>, so that a choice acts
@@ -278,9 +301,10 @@ namespace KeePassGate.Ui
         // list that nobody has filled yet is empty, not unreadable.
         private bool _readable = true;
 
-        // Whether a revocation on this list went through, which lands only on OK. Kept across a
-        // refill, since what the host lists is the page's own copy, with the revoked gone.
-        private bool _revoked;
+        // Whether a revocation or a certificate taken away on this list went through, which lands
+        // only on OK. Kept across a refill, since what the host lists is the page's own copy, with
+        // what went taken off it.
+        private bool _removed;
 
         private readonly Label _reappeared;
 
@@ -290,7 +314,8 @@ namespace KeePassGate.Ui
         private int _cameBack;
 
         /// <summary>
-        /// The list, with the host behind Allow renewal as well as each client's X.
+        /// The list, with the host behind Allow renewal and Take certificate away as well as each
+        /// client's X.
         /// </summary>
         /// <param name="revoke">
         /// Revokes a client, by its client key, and answers with why it could not, or null when it
@@ -301,7 +326,11 @@ namespace KeePassGate.Ui
         /// with why it could not, or null when it did. Like a revocation it waits for the dialog's
         /// OK, and like one it is the host's to do: the list reads and writes no database.
         /// </param>
-        public ClientList(Func<string, string> revoke, Func<string, string> allowRenewal)
+        /// <param name="takeAway">
+        /// Takes a certificate away alone, by its admission key, and answers with why it could not,
+        /// or null when it did. It waits for the dialog's OK as a revocation does.
+        /// </param>
+        public ClientList(Func<string, string> revoke, Func<string, string> allowRenewal, Func<string, string> takeAway)
         {
             if (revoke == null)
             {
@@ -313,8 +342,14 @@ namespace KeePassGate.Ui
                 throw new ArgumentNullException(nameof(allowRenewal));
             }
 
+            if (takeAway == null)
+            {
+                throw new ArgumentNullException(nameof(takeAway));
+            }
+
             _revoke = revoke;
             _allowRenewal = allowRenewal;
+            _takeAway = takeAway;
 
             Name = ControlName;
             Dock = DockStyle.Fill;
@@ -355,6 +390,14 @@ namespace KeePassGate.Ui
                     "Revokes this client, with every certificate it holds, when OK is pressed, as the X does.")
             };
 
+            _takeAwayItem = new ToolStripMenuItem(TakeAwayText)
+            {
+                Name = TakeAwayItemName,
+                ToolTipText = Tooltips.Wrapped(
+                    "Takes this certificate away when OK is pressed. The client keeps every other "
+                    + "certificate it holds, and is not revoked.")
+            };
+
             _allowItem = new ToolStripMenuItem(AllowRenewalText)
             {
                 Name = AllowRenewalItemName,
@@ -365,7 +408,7 @@ namespace KeePassGate.Ui
 
             _menu.Items.AddRange(new ToolStripItem[]
             {
-                _certificateItem, _answerItem, _commandsSeparator, _revokeItem, _allowItem
+                _certificateItem, _answerItem, _commandsSeparator, _revokeItem, _takeAwayItem, _allowItem
             });
 
             // **A choice is acted on a message after the menu has closed**, as on the Refuse
@@ -679,7 +722,7 @@ namespace KeePassGate.Ui
                 return Said("That client is still admitted: " + refused);
             }
 
-            _revoked = true;
+            _removed = true;
 
             // Found again rather than trusting the index, because what the callback does is the
             // host's business: a host that refills the list in answer to the change is a reasonable
@@ -706,6 +749,66 @@ namespace KeePassGate.Ui
             UpdateEmptiness();
 
             return Done();
+        }
+
+        /// <summary>
+        /// Take the certificate of a row away, by its place in the list: that certificate alone,
+        /// a record of kind `withdrawn`, `STORE.md` §648.
+        /// </summary>
+        /// <remarks>
+        /// Public for the reason <see cref="Revoke"/> is. Answers with what the line under the list
+        /// now states, which is null when it went through, see <see cref="Done"/>. **The rows of
+        /// that certificate go, and nothing else of the client**: where a row that went was its
+        /// client's own, the next row of the group becomes the client's own row, and a client whose
+        /// last certificate went has no row. It is not revoked, and can pair again.
+        /// </remarks>
+        public string TakeAway(int index)
+        {
+            if (index < 0 || index >= _rows.Count)
+            {
+                return Said("There is no such certificate.");
+            }
+
+            var certificate = _rows[index].Certificate;
+            if (certificate == null)
+            {
+                return Said("That record names no certificate to take away.");
+            }
+
+            var refused = _takeAway(certificate);
+            if (refused != null)
+            {
+                return Said("That certificate was not taken away: " + refused);
+            }
+
+            _removed = true;
+
+            // Drawn again from the listing the list holds, without that certificate, so that the
+            // groups are what the listing makes of what is left. A host that refilled the list in
+            // answer to the change has already left it out, and this changes nothing more.
+            var standing = new Dictionary<string, RenewalRefusal>(_standing, StringComparer.Ordinal);
+            Fill(Without(_listing, certificate), _reaches, _named, standing);
+
+            return Done();
+        }
+
+        /// <summary>The listing without the admissions and records of this certificate.</summary>
+        private static AdmissionListing Without(AdmissionListing listing, string certificate)
+        {
+            if (listing == null)
+            {
+                return null;
+            }
+
+            var records = listing.Records
+                .Where(record => !string.Equals(record.AdmissionKey, certificate, StringComparison.Ordinal))
+                .ToList();
+            return new AdmissionListing(
+                records,
+                records.ToDictionary(record => record, listing.StandingOf),
+                listing.Unreadable.Where(unread => !string.Equals(unread.Certificate, certificate, StringComparison.Ordinal)).ToList(),
+                listing.Waiting,
+                listing.Complete);
         }
 
         /// <summary>
@@ -783,6 +886,8 @@ namespace KeePassGate.Ui
             try
             {
                 _named = named;
+                _listing = listing;
+                _reaches = reaches;
                 _rows.Clear();
                 _standing.Clear();
                 _grid.Rows.Clear();
@@ -1306,6 +1411,34 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
+        /// Sets the menu's lines and commands for the row at this place in the list, and answers
+        /// whether there is such a row.
+        /// </summary>
+        internal bool Prepare(int row)
+        {
+            if (row < 0 || row >= _rows.Count)
+            {
+                return false;
+            }
+
+            var listed = _rows[row];
+            var answer = AnswerText(StandingAt(row));
+            _certificateItem.Text = CertificateText(listed);
+            _answerItem.Text = answer ?? string.Empty;
+
+            // Set as Available, which is what is asked for, since Visible reads false for every
+            // item of a menu that is not on screen yet.
+            _answerItem.Available = answer != null;
+            _revokeItem.Available = listed.Revocable;
+            _takeAwayItem.Available = listed.Certificate != null && listed.Writable;
+            _allowItem.Available = listed.Record != null;
+            _allowItem.Enabled = answer != null;
+            _commandsSeparator.Available = _revokeItem.Available || _takeAwayItem.Available || _allowItem.Available;
+            _menuRow = listed.Id;
+            return true;
+        }
+
+        /// <summary>
         /// Opens the row's menu: at the pointer, on the row it was pressed on, or under the
         /// selected row's name when the keyboard asked.
         /// </summary>
@@ -1357,24 +1490,11 @@ namespace KeePassGate.Ui
                     at = cell.IsEmpty ? new Point(0, _grid.ColumnHeadersHeight) : new Point(cell.Left, cell.Bottom);
                 }
 
-                if (row >= _rows.Count)
+                if (!Prepare(row))
                 {
                     return;
                 }
 
-                var listed = _rows[row];
-                var answer = AnswerText(StandingAt(row));
-                _certificateItem.Text = CertificateText(listed);
-                _answerItem.Text = answer ?? string.Empty;
-                // Set as Available, which is what is asked for, since Visible reads false for every
-                // item of a menu that is not on screen yet.
-                _answerItem.Available = answer != null;
-                _revokeItem.Available = listed.Revocable;
-                _allowItem.Available = listed.Record != null;
-                _allowItem.Enabled = answer != null;
-                _commandsSeparator.Available = listed.Revocable || listed.Record != null;
-
-                _menuRow = listed.Id;
                 _chosen = null;
                 _menu.Show(_grid, at);
 
@@ -1424,7 +1544,7 @@ namespace KeePassGate.Ui
             var id = _menuRow;
             _chosen = null;
 
-            if (chosen != _allowItem && chosen != _revokeItem)
+            if (chosen != _allowItem && chosen != _revokeItem && chosen != _takeAwayItem)
             {
                 return;
             }
@@ -1435,6 +1555,10 @@ namespace KeePassGate.Ui
                 if (chosen == _allowItem)
                 {
                     AllowRenewal(row);
+                }
+                else if (chosen == _takeAwayItem)
+                {
+                    TakeAway(row);
                 }
                 else
                 {
@@ -1931,7 +2055,7 @@ namespace KeePassGate.Ui
                     ? _said
                     : _rows.Count > 0
                         ? string.Empty
-                        : _revoked ? EmptiedText : NobodyText;
+                        : _removed ? EmptiedText : NobodyText;
 
             _note.Text = text;
             _note.Visible = text.Length > 0;
@@ -1998,6 +2122,15 @@ namespace KeePassGate.Ui
         public bool Revocable
         {
             get { return Own && ClientKey != null && Writable; }
+        }
+
+        /// <summary>
+        /// The certificate the row is about, by its admission key, which Take certificate away
+        /// takes away; null for a record that does not read and names no admission key.
+        /// </summary>
+        public string Certificate
+        {
+            get { return Record != null ? Record.AdmissionKey : Unread.Certificate; }
         }
 
         /// <summary>

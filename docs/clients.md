@@ -1,9 +1,9 @@
 # Who is in, renewing a client, and taking a client back out
 
 The **Clients** page of the **KPG** tab lists every program this database has admitted, with the
-certificates each holds, and revokes a program. A program about to expire asks to renew on a
-dialog of its own, which approves the renewal or refuses it, once or as a standing answer this
-page can take back: [Expiry](#expiry) covers both.
+certificates each holds, and revokes a program or takes a single certificate away. A program
+about to expire asks to renew on a dialog of its own, which approves the renewal or refuses it,
+once or as a standing answer this page can take back: [Expiry](#expiry) covers both.
 
 ![The clients page with an admitted client on it](images/clients-admitted.png)
 
@@ -46,13 +46,17 @@ colors, so the red shows only while the row is not selected.
 key on the selected row. Its first line names the certificate the menu is about, grayed out: the
 start of the certificate's fingerprint and the day it was admitted. For a certificate with a
 standing answer, a second grayed line states the answer. Under them are **Revoke**, on a client's
-first row only, which does what the **X** does, and **Allow renewal**, which takes a standing
-answer back and is grayed out where none stands.
+first row only, which does what the **X** does, **Take certificate away**, which
+[takes that row's certificate away](#taking-a-single-certificate-away) and leaves the client
+every other certificate it holds, and **Allow renewal**, which takes a standing answer back and
+is grayed out where none stands. Where the Certificate Authority page states that nothing is
+written into the store of this database in this session, no row carries the **X** and the menu
+offers **Allow renewal** alone.
 
 A certificate that has expired is refused like any other, and **Until (UTC)** states `expired`
 instead of a date, by this computer's clock. The row stays: nothing takes a row away for its age,
 so a certificate that ran out and a client somebody revoked never look the same. It goes when
-its client is revoked or the authority is recreated or deleted.
+the certificate is taken away, its client is revoked or the authority is recreated or deleted.
 
 **Until (UTC)** states `not this authority` for a certificate that the authority this database
 serves did not issue, for a record that names another authority than that as the issuer of its
@@ -64,7 +68,8 @@ that is not true. Revoking its client is the same **X**.
 **Until (UTC)** states `listed twice` on each row of a certificate that more than one record
 admits. None of them admits it, and resting the pointer on the row states so. The plugin writes no
 such records; a file changed outside the plugin can hold them. Revoking one of the clients that
-hold the certificate leaves it admitted for the other.
+hold the certificate leaves it admitted for the other, and **Take certificate away** on any of
+its rows takes the certificate from each of them.
 
 **Until (UTC)** states `not counted` for a certificate that was renewed from a certificate taken
 away, where whoever took that certificate away did not know of the renewal. That is a renewal
@@ -95,8 +100,10 @@ holds `Certificate` and the start of the fingerprint it names, or `Entry` and th
 entry's identifier where it names no certificate, and `not counted` under **Until (UTC)**.
 Resting the pointer on it states why and names in full what it holds. Where such a row is the
 first row of a client it carries the **X**, which revokes that client as any other, once OK is
-pressed; a row that names no client has no **X**. The Certificate Authority page counts such
-records and states how many cannot be read.
+pressed; a row that names no client has no **X**. Where such a row names a certificate, its
+menu takes that certificate away, which clears the row and admits nobody: a certificate that
+was renewed from it stays `not counted`. The Certificate Authority page counts such records
+and states how many cannot be read.
 
 The list is read from the open database rather than remembered, so it never shows a client that
 has gone or misses one that has arrived. A program that pairs while this dialog is open is added
@@ -206,6 +213,34 @@ alone.
 There is no undo. Pair it again: hand out a new invitation, let it ask, approve it. It gets a new
 certificate and a new record, and the profiles are chosen again. To the database it is a new
 client, with a client key of its own.
+
+## Taking a single certificate away
+
+Open the menu of the certificate's row and choose **Take certificate away**.
+
+**It takes that certificate away and no other.** The row goes, and the client keeps every other
+certificate it holds, whichever of its certificates was taken away first: an earlier
+certificate taken away after a later certificate leaves the same certificates working as the
+other order does. Where the row was the client's first row, the next row of the client becomes
+its first row, with the client's name and the **X**. Where it was the only certificate the
+client held, the client leaves the list without being revoked, and the program pairs again. It
+is the command for a certificate the program no longer uses and did not give up itself, such as
+the earlier certificate a renewal left behind, or a certificate a renewal issued whose answer
+never reached the program.
+
+Like a revocation it waits: nothing has happened to the database until **OK** is pressed on the
+settings dialog, Cancel discards it, and saving the database is what keeps it. It changes
+nothing about inviting meanwhile. Until OK the certificate still works, and a renewal the
+program makes from it meanwhile keeps working afterwards, as a renewal made before the press
+does. Once accepted, the certificate is refused from the next request, and
+[the audit file](audit.md) records it, by the certificate's key and the client key.
+
+**It ends that certificate alone, and not what was already renewed from it.** A certificate
+that was renewed from it before it was taken away, on this copy of the database, keeps working,
+and so does whatever was renewed onward from that. So where a certificate may have been stolen
+and renewed from, taking it away is not enough: **revoke the client**, which refuses every
+certificate of the client, wherever and whenever it was issued. To end a program's access for
+any other reason, revoke the client as well.
 
 ## Revoking everything at once
 

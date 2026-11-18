@@ -957,10 +957,12 @@ a group of rows under its name, and the X on the first of them revokes the clien
 certificate it holds, by its client key. This reverses a row's X taking that row's certificate
 away and no other: a client that had renewed kept its other certificate, and a certificate it
 renewed to at another machine, or before the dialog was accepted, stayed admitted, where a
-revocation by the client key refuses each of them wherever it was issued, `STORE.md` §615. The
-page is also to take a single certificate away, which is how a record that a lost answer to a
-renewal left behind is cleared, `PAIRING.md` §312; that command is not built yet, and until it is
-such a record stays listed unless its client is revoked.
+revocation by the client key refuses each of them wherever it was issued, `STORE.md` §615.
+**The page takes a single certificate away as well**, with **Take certificate away** in a row's
+menu: it writes the record a client's own giving up writes, of kind `withdrawn`, for that row's
+certificate alone, so the client keeps every other certificate it holds and is not revoked,
+`STORE.md` §648. That is how a record that a lost answer to a renewal left behind is cleared,
+`PAIRING.md` §312, and it waits for the dialog's OK as the revocation does.
 
 **A client gives its own certificate up with `DELETE /gate/certificate`**,
 [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) §509. It takes no body and names nothing,
@@ -988,10 +990,16 @@ that client that the dialog's OK ended in this copy, each with its key and the c
 from the store just before OK is applied, and a single line with the client key alone where the
 copy admitted no certificate of the client. An admission that admitted nobody before the OK,
 under an authority that is not served, of a certificate several admissions name, or that does
-not read, gets no line. Held by
+not read, gets no line. A certificate that the operator took away is a single line by its key,
+where the OK wrote its record: with the client key of the admission that admitted it before the
+OK, or with the certificate's key alone where it admitted nobody then. It gets no second line
+where the same OK revokes its client, and no line where it was given up or taken away before
+the OK. Held by
 `GateWiringTests.A_revocation_writes_a_line_for_each_certificate_of_the_client_and_the_client_key_alone_where_the_copy_holds_none`,
-`GateWiringTests.A_revocation_writes_lines_only_for_the_certificates_this_copy_admitted`
-and `GateWiringTests.A_revocation_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel`.
+`GateWiringTests.A_revocation_writes_lines_only_for_the_certificates_this_copy_admitted`,
+`GateWiringTests.A_revocation_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel`
+and
+`GateWiringTests.A_certificate_taken_away_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel`.
 
 Recreating the authority is the other way, and it is the blunt one: it revokes every client at once
 and each has to pair again. That is a recovery from a compromised authority, not a way to remove one

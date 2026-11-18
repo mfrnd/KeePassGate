@@ -11,9 +11,10 @@ namespace KeePassGate.Store
     /// <remarks>
     /// **Composed when it is asked for, and held to its ground at the write.** The tab buffers an
     /// act until its dialog's OK, and the store can change meanwhile: an act whose ground went is
-    /// left out and named, as a Recreate of an authority that no longer stands. A revocation the
-    /// tab holds is composed again over the store as it stands at each read of the buffer and at
-    /// OK. A revocation and a certificate taken away have no ground and are always written.
+    /// left out and named, as a Recreate of an authority that no longer stands. An act on a client
+    /// or a certificate is composed again over the store as it stands at each read of the buffer
+    /// and at OK, and has no ground: a revocation is always written, and a certificate taken away
+    /// is written unless nothing of it is left to end by then.
     /// </remarks>
     public sealed class StoreAct
     {

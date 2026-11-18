@@ -42,9 +42,13 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// An act on a client held for a later write, composed again against this reading: what is
-        /// to be done stays, and what it is written as is what the store calls for now. The act as
-        /// it was where the reading holds no store key, and for an act of any other name.
+        /// An act on a client or a certificate held for a later write, composed again against this
+        /// reading: what is to be done stays, and what it is written as is what the store calls
+        /// for now. The act as it was where the reading holds no store key, and for an act of any
+        /// other name; null where nothing is left to write: a certificate the reading already
+        /// takes away, or a certificate with no record left in force under a client the store
+        /// still admits, as where a revocation ended its client or its records were deleted by
+        /// hand.
         /// </summary>
         public static StoreAct Again(StoreReading reading, StoreAct act)
         {
@@ -58,7 +62,46 @@ namespace KeePassGate.Authority
                 return Revoke(reading, act.Records[0].Member(StoreKinds.ClientMember)) ?? act;
             }
 
+            if (string.Equals(act.Name, TakeAwayName, StringComparison.Ordinal))
+            {
+                // Taken away before the write, by its client or in another copy, or left with no
+                // record in force under a client still admitted: nothing of it admits, and nothing
+                // is written.
+                var certificate = act.Records[0].Member(StoreKinds.Certificate);
+                if (reading != null && reading.InForce != null && Ended(reading.InForce, certificate))
+                {
+                    return null;
+                }
+
+                return TakeAway(reading, certificate) ?? act;
+            }
+
             return act;
+        }
+
+        /// <summary>
+        /// Whether nothing of this certificate is left for a statement to end: a statement took it
+        /// away, or no record of kind `client` in force names it under a client the store does not
+        /// take away, whether or not the record reads.
+        /// </summary>
+        /// <remarks>
+        /// **The second case is a client a revocation took away, and a record deleted by hand**,
+        /// also where the deletion is merged in while the settings dialog is open: an act on such
+        /// a certificate is refused at a press, and writes nothing at OK, where the log names it. A
+        /// record of the certificate that a later merge brings back is admitted again, as any
+        /// record deleted by hand is, `STORE.md` §639.
+        /// </remarks>
+        private static bool Ended(StoreInForce inForce, string certificate)
+        {
+            if (inForce.Taken(StoreKinds.Withdrawn).Contains(certificate))
+            {
+                return true;
+            }
+
+            var revoked = inForce.Taken(StoreKinds.Revoked);
+            return !inForce.Admissions.Any(record => record.InForce
+                && string.Equals(record.Form.Member(StoreKinds.Certificate), certificate, StringComparison.Ordinal)
+                && !revoked.Contains(record.Form.Member(StoreKinds.ClientMember)));
         }
 
         /// <summary>

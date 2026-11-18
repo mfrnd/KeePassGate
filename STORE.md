@@ -1240,18 +1240,70 @@ key and the day the certificate was admitted. On the client's own row the menu o
 the row's certificate alone, and **Allow renewal**. On an indented row it offers the last two.
 **Taking a certificate away takes its row.** Where that was the client's own row, the next row
 of the group becomes the client's own row. Where it was the client's last certificate, the
-client has no row and is not revoked. The single removal is how a record is cleared
-that a lost answer to a renewal left behind, `PAIRING.md` §312: the client never held that
-certificate and cannot give it up. **A row whose record does not read** (§615) stands under its
-client where its `client` is a client key that a group is listed for. Records that do not read
-whose client key reads, and whose client no group is listed for, stand together: the first of
-them is that client's own row, and the others are indented under it, in the order of the
-listing. A record whose `client` is no client key stands on a row of its own. Such a row reads
-`not counted` where a row reads its date, with the reason in its tooltip,
-and it offers each command for which the record holds a readable member: Revoke where `client`
-is a client key and the row is the first of that client, Take certificate away
-where `certificate` is an admission key, and no command otherwise. **The X carries what it does
-as the tooltip of its own cell**, and a row without an X shows no tooltip in that column. A
+client has no row and is not revoked. A certificate that several admissions name goes from each
+row that names it. The page reads the certificate gone at once, and the act waits in the
+dialog's buffer as a revocation does, so Cancel takes the removal back. **The buffer holds
+which certificate is to be taken away, and the records are composed in the write at OK**,
+against the store as it stands then with the acts pressed before it planned over it together,
+as the single write OK makes of them (§627). So `renewed` names what the store holds at OK: a
+renewal made from that certificate between the press and OK is named and keeps counting, and
+of two certificates of a client taken away on the same dialog the second act sees the first,
+so the client's newest certificate stays admitted in either order of the presses. The page
+lists from the same composition, so no row reads `not counted` that OK will leave admitted.
+**An act that has nothing left to end comes to nothing**: where a statement took the
+certificate away by then, by its client or in a copy merged in, or where no record of kind
+`client` in force names it under a client that the store does not take away. The second case
+is a client that a revocation ended, and a record deleted by hand, also where the deletion is
+merged in while the dialog is open. At the press such an act is refused with nothing held, so
+a certificate pressed after its client's revocation on the same dialog is refused and OK
+writes the revocation alone, while pressed before it, its statement is written and then the
+revocation. At OK such an act writes nothing, and the log names the press and that nothing
+was left to write. A record of the certificate that a later merge brings back is then admitted
+again, as any record deleted by hand is (§639, row 11): no statement was written about it. A
+record that does not read is taken away with the origin its own record names, and with the
+origin that an admission of its certificate brings before OK, and its statement names nothing
+(above), so the row is cleared and nobody is admitted by it. A press that is refused leaves
+every row, and the line under the list reads "That certificate was not taken away: " and the
+reason, which for an act with nothing left to end is "the act no longer applies to the store
+as it stands". *Held by*
+`ClientListMenuTests.Take_certificate_away_on_the_menu_takes_that_row_alone_and_the_next_becomes_the_client_s_own`,
+`ClientListMenuTests.An_earlier_certificate_s_menu_offers_taking_it_away_and_no_revocation`,
+`ClientListTests.Taking_a_client_s_last_certificate_away_leaves_no_row_and_revokes_nobody`,
+`ClientListTests.Taking_away_a_certificate_listed_twice_takes_each_row_of_it`,
+`ClientListTests.A_refused_taking_away_leaves_every_row`,
+`AuthorityPanelTests.Taking_a_certificate_away_waits_for_OK_and_leaves_the_client_s_other_certificate`,
+`AuthorityPanelTests.Taking_a_certificate_away_and_canceling_leaves_it_admitted`,
+`AuthorityPanelTests.A_renewal_landing_between_the_press_and_OK_is_named_by_the_record_OK_writes`,
+`AuthorityPanelTests.Two_certificates_of_a_client_taken_away_on_one_dialog_in_either_order_leave_its_newest_admitted`,
+`AuthorityPanelTests.A_record_that_will_not_read_taken_away_is_written_with_the_origin_an_admission_of_its_certificate_brings_before_OK`,
+`AuthorityPanelTests.A_record_that_will_not_read_taken_away_holds_the_origin_its_own_record_names_and_admits_nobody`,
+`AuthorityPanelTests.A_certificate_taken_away_after_a_revocation_of_its_client_comes_to_nothing_and_before_it_lands_first`,
+`AuthorityPanelTests.A_press_on_a_certificate_taken_away_since_the_page_was_drawn_is_refused_with_nothing_held`,
+`AuthorityPanelTests.An_OK_at_which_some_certificates_were_taken_away_by_then_writes_the_others`,
+`AuthorityPanelTests.The_page_reads_the_store_as_it_is_where_every_act_held_comes_to_nothing`,
+`AuthorityPanelTests.A_certificate_taken_away_beside_a_revocation_and_a_command_on_the_authority_lands_with_them`
+and, over a real database,
+`RevocationInRealDatabaseTests.A_certificate_given_up_by_its_client_and_the_certificate_before_it_taken_away_on_the_tab_leave_the_newest_admitted`,
+`RevocationInRealDatabaseTests.A_certificate_taken_away_on_the_tab_is_gone_from_the_file_after_OK_and_a_save`
+and
+`RevocationInRealDatabaseTests.A_certificate_taken_away_on_the_tab_that_is_never_saved_stays_admitted`.
+The single removal is how a record is cleared that a lost answer to a renewal left behind,
+`PAIRING.md` §312: the client never held that certificate and cannot give it up. **A row whose
+record does not read** (§615) stands under its client where its `client` is a client key that
+a group is listed for. Records that do not read whose client key reads, and whose client no
+group is listed for, stand together: the first of them is that client's own row, and the
+others are indented under it, in the order of the listing. A record whose `client` is no
+client key stands on a row of its own. Such a row reads `not counted` where a row reads its
+date, with the reason in its tooltip, and it offers each command for which the record holds a
+readable member: Revoke where `client` is a client key and the row is the first of that
+client, Take certificate away where `certificate` is an admission key, and no command
+otherwise
+(`ClientListTests.A_record_that_will_not_read_is_taken_away_by_the_certificate_it_names_and_otherwise_refuses`,
+`ClientListMenuTests.The_menu_of_a_record_that_does_not_read_offers_what_the_record_names`).
+**The X carries what it does as the tooltip of its own cell**, and a row without an X shows no
+tooltip in that column. **Where the store takes no write in the session** (§636), no row
+carries the X and a row's menu offers neither Revoke nor Take certificate away
+(`ClientListMenuTests.Where_the_store_takes_no_write_the_menu_offers_Allow_renewal_alone`). A
 certificate that several admissions name (S24) reads `listed twice` on each of its rows. **A
 renewal that does not count reads `not counted` where its date would be**, as a record that does
 not read does, and its tooltip gives the reason: "Renewed, directly or further back, from a
@@ -1287,7 +1339,20 @@ measures a group of rows at its longest texts.
 
 **The audit.** As today, `DESIGN.md` §120 and `CA.md` §217: a line by the admission key that was
 taken away and the client key its record carried, for the client's own act written by the writer
-on its landed path, and for the operator's when the dialog's OK lands it. **The operator's
+on its landed path, and for the operator's when the dialog's OK lands it. **A certificate that
+the operator took away** is written as a single line, and only where the OK wrote the record.
+The line names the admission key and the client key of the admission that admitted the
+certificate before OK, also where the certificate was past its dates and the gate refused it
+for them: the line tells whose certificate ended. A certificate that admitted nobody before
+OK, listed twice, under an authority that is not served, a renewal that does not count or a
+record that does not read, gets the line with the admission key and no client key, and so does
+every certificate where the store cannot be read before OK is applied: the operator's act is
+on record, and no client is named as having held what admitted nobody. A certificate whose
+client the same OK revokes has the revocation's line and no second line. A certificate that
+was given up or taken away before OK, that was pressed after its client's revocation, or whose
+records were deleted by hand, a deletion merged in under the dialog among them, gets no line,
+since the OK wrote nothing for it; the log names the press. The line reads as a revocation's
+does, and it is written where a revocation's lines are, below. **The operator's
 revocation of a client names no certificate**, so it is written as a line for each certificate
 of that client that the OK ended in this copy, each with its admission key and the client key,
 and as a single line with the client key alone where the copy admitted no certificate of the
@@ -1302,16 +1367,36 @@ its lines. That half is made all the same where writing the lines throws: the ke
 the merge of the profile list, the standing answers and the database's mark run in a `finally`
 around the lines, and what the lines threw reaches the catch-all of the dialog's close once they
 have, so a defect there loses nothing else of the OK
-(`GateWiringTests.A_defect_writing_a_revocation_s_lines_loses_nothing_else_of_the_OK`). What the
-tab does after the store's part runs the same way, whatever the lines came to: the lines of the
-standing answers that went, the answers lifted for this session, and the invitations made on
-the dialog kept, so a defect in the lines leaves no answer standing that the operator lifted
+(`GateWiringTests.A_defect_writing_a_revocation_s_lines_loses_nothing_else_of_the_OK`). **The
+log tells what the write came to before anything that follows it in the tab's OK**: once the
+outcome of the store's write is known, the store's part logs a line of its own that names
+each act written, a client revoked or a certificate taken away by its short key, or a warning
+that names what was not written and why. Then the lines of the audit are written, then the
+custom data half, and the buffer is let go last, with the store key each act holds
+overwritten, whatever the lines and that half throw (§627). So the log holds what landed also
+where a line of the audit throws. **That holds from the write's outcome on, and not inside the
+write**: the writer redraws KeePass's main window once the write has changed the entries,
+before the tab learns the outcome, and nothing on the writer's path logs an operator's write
+before that redraw. A defect thrown out of the redraw therefore leaves entries written with no
+line telling what landed, no line of the audit and no custom data half: the buffer is let go,
+and the dialog's close records the incident with what was thrown. A failure of the redraw
+that the writer names as the user interface's is caught there and logged, and loses nothing.
+What the tab does after the store's part runs the same way, whatever the lines came to: the
+lines of the standing answers that went, the answers lifted for this session, and the
+invitations made on the dialog kept, so a defect in the lines leaves no answer standing that
+the operator lifted
 (`GateWiringTests.A_defect_writing_a_revocation_s_lines_keeps_no_answer_lifted_for_the_session_standing`).
-*Held by*
+*Held by* `PendingRecordsTests.An_OK_whose_lines_throw_after_the_write_landed_lets_the_buffer_go_last`,
 `GateWiringTests.A_revocation_writes_a_line_for_each_certificate_of_the_client_and_the_client_key_alone_where_the_copy_holds_none`,
 `GateWiringTests.A_revocation_writes_lines_only_for_the_certificates_this_copy_admitted`,
-`GateWiringTests.A_revocation_s_lines_are_written_once_the_store_holds_it_whatever_the_custom_data_half_comes_to`
-and `GateWiringTests.A_revocation_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel`.
+`GateWiringTests.A_revocation_s_lines_are_written_once_the_store_holds_it_whatever_the_custom_data_half_comes_to`,
+`GateWiringTests.A_revocation_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel`,
+`GateWiringTests.A_certificate_taken_away_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel`,
+`GateWiringTests.A_certificate_taken_away_and_its_client_revoked_on_one_OK_is_written_down_once`,
+`GateWiringTests.A_certificate_that_admitted_nobody_before_OK_is_written_down_once_with_no_client`,
+`GateWiringTests.A_certificate_taken_away_with_the_store_unreadable_before_OK_is_written_down_with_no_client`,
+`GateWiringTests.A_certificate_its_client_gave_up_before_OK_writes_nothing_at_OK_and_no_line`
+and `GateWiringTests.A_defect_writing_a_taken_certificate_s_line_loses_nothing_else_of_the_OK`.
 
 **What it has to satisfy.** A certificate its client gives up is refused from the next request.
 The certificate a renewal issued keeps working. A lost answer to a renewal costs the database
@@ -1334,11 +1419,13 @@ deletes the certificate's admission and restates each record by an item of its o
 certificate that a record, an item or a deletion record states as taken away is admitted by
 nobody, and its admission is counted among no admissions of a certificate (§615). A certificate
 that is no longer admitted when the write is made is answered `401 unpaired`, and nothing is
-written. The clients page is built as far as the revocation: the rows grouped by client, the X
-and **Revoke** on the client's own row, the menu's first line, and the rows marked `not
-counted` and `listed twice`, each with Revoke where it is the first row of a client it names.
-The audit's lines are built for a certificate that its client gave up and for a client that
-the operator revoked. **The rules about a renewal are built**, rules 3 to 5 with the chain of
+written. The clients page is built: the rows grouped by client, the X and **Revoke** on the
+client's own row, **Take certificate away** on every row that names a certificate, with what
+follows from a row going alone, the menu's first line, and the rows marked `not counted` and
+`listed twice`, each with Revoke where it is the first row of a client it names. The audit's
+lines are built for a certificate that its client gave up, for a certificate that the operator
+took away and for a client that the operator revoked. **The rules about a renewal are built**,
+rules 3 to 5 with the chain of
 rule 4. Whether an admission counts is asked along its chain of origins by iteration, each
 certificate worked out once for a reading, so a long chain costs no depth of calls and a chain
 that leads back into itself ends: `StoreInForce` holds, for each certificate, the statements
@@ -1346,12 +1433,12 @@ that took it away with their `renewed` and `from`, and the admissions in force t
 worked out as the reading is made. The gate's hold, an approval held for a renewal at its write,
 and a certificate given up all ask the same judgment, so a renewal that does not count is
 answered `401 unpaired` wherever it asks, and the listing marks it for the clients page. **Not
-built yet**: **Take certificate away** on the clients page, with what follows from a row going
-alone; and the runs of §644 item 16. *Held by* `AdmissionActsTests`, `StoreAdmissionsTests`,
-`StoreAdmissionChainTests`, `RevocationOperationTests`, `ClientListTests` and
-`ClientListMenuTests`, and over real databases by `GiveUpInRealDatabaseTests`: the record in the
-file, the certificate a renewal issued still admitted once the old certificate is given up, and
-a write that no save kept taken back out with what it deleted put back.
+run yet**: the runs of §644 item 16. *Held by* `AdmissionActsTests`, `StoreAdmissionsTests`,
+`StoreAdmissionChainTests`, `RevocationOperationTests`, `ClientListTests`,
+`ClientListMenuTests` and `AuthorityPanelTests`, and over real databases by
+`GiveUpInRealDatabaseTests`: the record in the file, the certificate a renewal issued still
+admitted once the old certificate is given up, and a write that no save kept taken back out
+with what it deleted put back.
 
 ### Profile names §616
 
@@ -2494,41 +2581,69 @@ tab puts its act into the buffer. An act of the authority's, a retirement or an 
 its certificates and its keys, is composed at the press, from the store as the page showed it.
 **An act on a client or on a certificate holds what is to be done**, the client to revoke or
 the certificate to take away, and its records are composed wherever the buffer is read and in
-the write at OK, against the store as it stands then with the acts pressed before it written
-over it. So a revocation is written under the store key that OK finds, a certificate taken
-away names the renewals the store holds at OK, a renewal that landed under the dialog among
-them (§648), and the second of two presses sees the first. The pages read the store with those
-records beside it, composed the same way at each reading, so a page shows what OK would write
-now. An authority made on the dialog and retired on the same dialog leaves the buffer with its
-retirement and reaches no database, as today, and where that retirement held the store key the
-retirements left in the write hold it, so a Recreate and then a Delete on one dialog write what
-the Delete alone writes (this document's own). At OK the acts are held, in the order they were
-pressed, to the store as it stands then. An act whose ground went meanwhile, as a Recreate of an
-authority that no longer stands, is left out, and the log names it, and so is an act composed
-against a store key other than the key that stands then, or composed where no key stood while a
-key stands then: a Create composed under a key that went since never starts the store again
-under it (§632). A press is planned with every act held, against the store as it stands, as OK
-plans them, and is refused with nothing held where OK would refuse them all or leave it out.
-Every other act's records are written in a single write, with the summary entry over what is
-then in force. A revocation has no such ground and is always written. A certificate taken away
-has none either, and is written unless the store holds it as taken away by then, by its client
-or in a copy merged in, where a further statement would end nothing. Cancel drops the buffer,
-and a store key that was made on the dialog goes with it. **What an act refuses reads as gone
-while the act waits** (this document's own): the pages read the store with the acts written
-over it in memory, and the plan of that write deletes what the acts refuse, so the rows of a
-client revoked on the page, and the admissions of an authority that is being recreated or
-deleted, are gone from the pages before OK and are deleted in the database at OK only where the
-write took the act (§614, §615). Once OK has written into the store, the standing answers to a
-renewal that no admission in force names any more are taken out of the custom data (§618).
-*Held by* `PendingRecordsTests`: a revocation pressed beside a Recreate whose authority was
-retired underneath the dialog is written, and the Recreate is not; an act left out at OK leaves
-a revocation refusing an admission that a copy brings, and an act written at OK deletes every
-admission of the authority it retires as the store stands then; a Recreate and then a Delete
-write what the Delete alone writes; a press that OK would refuse with the acts held is refused
-with nothing held; a Create and a Delete on the same dialog write nothing and change nothing; a
-page reads a revoked client as gone before OK; and a revocation is composed under the key the
-store holds at OK
-(`A_revocation_held_for_OK_is_composed_under_the_key_the_store_holds_at_OK`). And by
+the write at OK, against the store as it stands then with the acts pressed before it planned
+over it together, as the single write OK makes of them. So a revocation is written under the
+store key that OK finds, a certificate taken away names the renewals the store holds at OK, a
+renewal that landed under the dialog among them (§648), and the second of two presses sees the
+first. **The pages read the store with every act held planned as that single write**, applied
+in memory over the live entries, so a page shows what OK would write now: a single summary
+entry more than the live store however many acts are held, and so the room the page shows,
+the state and from half of a ceiling the count of writes that still fit (§643), is the room OK
+leaves. Where that single write would be refused or would leave nothing, the pages read the
+store as it is. **The buffer composes each act once**, over the live store with the acts
+composed before it planned together, and keeps what it composed until the store or the acts
+held change: a press composes its own act alone, and a read of the buffer that finds neither
+changed composes and plans nothing again. An authority made on the dialog and retired on the
+same dialog leaves the buffer with its retirement and reaches no database, as today, and where
+that retirement held the store key the retirements left in the write hold it, so a Recreate
+and then a Delete on one dialog write what the Delete alone writes (this document's own). At OK
+the acts are held, in the order they were pressed, to the store as it stands then. An act
+whose ground went meanwhile, as a Recreate of an authority that no longer stands, is left out,
+and the log names it, and so is an act composed against a store key other than the key that
+stands then, or composed where no key stood while a key stands then: a Create composed under a
+key that went since never starts the store again under it (§632). A press is planned with
+every act held, against the store as it stands, as OK plans them, and is refused with nothing
+held where OK would refuse them all or leave it out. Every other act's records are written in
+a single write, with the summary entry over what is then in force. A revocation has no such
+ground and is always written. A certificate taken away has none either, and is written unless
+nothing of the certificate is left to end by then: a statement took it away, by its client or
+in a copy merged in, or no record of kind `client` in force names it under a client the store
+still admits, as where a revocation ended it with its client or its records were deleted by
+hand, a deletion merged in under the dialog among them (§648). An act that comes to nothing so
+is refused at the press with nothing held, with "the act no longer applies to the store as it
+stands", and at OK it writes nothing and the log names the press and that nothing was left to
+write. **What follows the write runs in a fixed order.** Once the outcome of the store's write
+is known, the log tells what it came to, each act that landed or what was not written and why;
+then the audit's lines are written (§648); then the tab's changes to the custom data are
+replayed, whatever the lines came to; and the buffer is let go last, the store key each act
+holds overwritten, whatever the write, the lines and the custom data threw. Cancel drops the
+buffer, and a store key that was made on the dialog goes with it. **What an act refuses reads
+as gone while the act waits** (this document's own): the pages read the store with the acts
+planned over it in memory, and the plan of that write deletes what the acts refuse, so the
+rows of a client revoked on the page, and the admissions of an authority that is being
+recreated or deleted, are gone from the pages before OK and are deleted in the database at OK
+only where the write took the act (§614, §615). Once OK has written into the store, the
+standing answers to a renewal that no admission in force names any more are taken out of the
+custom data (§618). *Held by* `PendingRecordsTests`: a revocation pressed beside a Recreate
+whose authority was retired underneath the dialog is written, and the Recreate is not; an act
+left out at OK leaves a revocation refusing an admission that a copy brings, and an act written
+at OK deletes every admission of the authority it retires as the store stands then; a Recreate
+and then a Delete write what the Delete alone writes; a press that OK would refuse with the
+acts held is refused with nothing held; a Create and a Delete on the same dialog write nothing
+and change nothing; a page reads a revoked client as gone before OK; a revocation is composed
+under the key the store holds at OK
+(`A_revocation_held_for_OK_is_composed_under_the_key_the_store_holds_at_OK`); a revocation
+held while the store lost its key stays as pressed and writes nothing
+(`A_revocation_held_while_the_store_lost_its_key_stays_as_pressed_and_writes_nothing`); each
+act is composed once until the store or the acts held change, with the live store read no
+more often as the acts held grow
+(`A_sitting_of_presses_composes_each_act_once_until_the_store_or_the_acts_held_change`); a
+store near the ceiling of its room reads whole through the buffer, with a single summary
+entry more and the count of writes that OK leaves
+(`A_store_near_the_ceiling_of_its_room_reads_through_the_buffer_as_the_single_write_OK_makes_of_every_act_held`);
+and an OK whose lines throw after the write landed has its line of what landed in the log,
+its custom data replayed and its buffer let go last
+(`An_OK_whose_lines_throw_after_the_write_landed_lets_the_buffer_go_last`). And by
 `StoreWriteTests`: an act composed against another key, or where none stood, is left out; a
 retirement dropped with the authority it retires leaves its hold on the key to the retirements
 left; and an entry the tree holds gets no deletion record and no second entry. And over a real
@@ -2570,9 +2685,9 @@ beside the authority's acts and written at OK. Every write deletes the records o
 so a revocation, a certificate taken away, a Recreate and a Delete each delete in their own write
 the admissions they refuse. **A client's write is answered the store's word** where the store
 holds the gate back in the writer's turn, above (§644 item 26). **The tab's OK meets no save of
-the plugin's own**, above (§644 item 30), so nothing was built for it. **Not built yet**: the
-single removal on the clients page (§648). *Held by*
-`StoreRecordTests`, against the records of the measured code
+the plugin's own**, above (§644 item 30), so nothing was built for it. **The single removal on
+the clients page is written as the revocation is**, by the dialog's OK through the writer's
+guard (§648). *Held by* `StoreRecordTests`, against the records of the measured code
 (`tests/Shared/StoreRecordVectors.json`); `StoreWriteShapeTests`, against its writes
 (`StoreWriteVectors.json`): each sequence played through `AuthorityService` and `AdmissionActs`,
 and each step's deletions, deletion records, records present, summary entries, store keys and
@@ -3562,13 +3677,14 @@ guard as product code, with its setting, was not run (§644).
   admitted with their certificates, the revocations, the certificates taken away, the profile
   names and the rules. That list is what the operator checks before sealing the store again
   (§625).
-- **Its clients page takes a client away, or a single certificate** (§615, §648). Built for a
-  client: the rows grouped by client key, and the X and **Revoke** that revoke the client, held
-  by `ClientListTests`, `ClientListMenuTests` and `AuthorityPanelTests`. The command for a
-  single certificate is not built yet. **A revocation that waits for OK leaves inviting as it
-  was**: the invite button is turned off, with its notice, only while an act of the authority's
-  waits, a Create, a Recreate or a Delete, since a code made then would pair against an
-  authority the gate does not serve yet or is about to lose. A client revoked on the page
+- **Its clients page takes a client away, or a single certificate** (§615, §648). Built: the
+  rows grouped by client key, the X and **Revoke** that revoke the client, and **Take
+  certificate away** in a row's menu, which takes that row's certificate alone, held by
+  `ClientListTests`, `ClientListMenuTests` and `AuthorityPanelTests`. **A revocation or a
+  certificate taken away that waits for OK leaves inviting as it was**: the invite button is
+  turned off, with its notice, only while an act of the authority's waits, a Create, a Recreate
+  or a Delete, since a code made then would pair against an authority the gate does not serve
+  yet or is about to lose. A client revoked on the page, or a certificate taken away there,
   changes nothing about which authority a code pairs with. *Held by*
   `AuthorityPanelTests.A_revocation_waiting_for_OK_leaves_inviting_as_it_was`.
 - **It shows entries that are passed over**: an entry with `KPG.` strings that is not the
@@ -3588,10 +3704,11 @@ guard as product code, with its setting, was not run (§644).
   revokes nothing, which the notes of every record state (§607).
 - **It offers no command on the store where nothing is written into it in the session**, as
   where the dialogs that would take a write back are not watched (§627), and states that and
-  why, as under a word. The clients page then shows no X and its rows' menus no **Revoke**;
-  **Allow renewal** stays, since the standing answers are kept apart from the store. Built, and
-  held by `AuthorityPanelTests`, `OpenDatabaseTests` and
-  `ClientListTests.Where_the_store_takes_no_write_no_row_carries_the_X`.
+  why, as under a word. The clients page then shows no X, and its rows' menus neither
+  **Revoke** nor **Take certificate away**; **Allow renewal** stays, since the standing answers
+  are kept apart from the store. Built, and held by `AuthorityPanelTests`, `OpenDatabaseTests`,
+  `ClientListTests.Where_the_store_takes_no_write_no_row_carries_the_X` and
+  `ClientListMenuTests.Where_the_store_takes_no_write_the_menu_offers_Allow_renewal_alone`.
 
 Nothing of the tab was run.
 

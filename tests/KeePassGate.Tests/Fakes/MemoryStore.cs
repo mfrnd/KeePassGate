@@ -31,6 +31,11 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>How many writes were made.</summary>
         public int Writes { get; private set; }
 
+        /// <summary>
+        /// How many readings were asked for, the reading a write plans over apart.
+        /// </summary>
+        public int Reads { get; private set; }
+
         /// <summary>When true, a write is planned and answered as made, and nothing is kept.</summary>
         public bool SwallowWrites { get; set; }
 
@@ -143,12 +148,18 @@ namespace KeePassGate.Tests.Fakes
                 .ToList();
         }
 
+        public StoreReading Read()
+        {
+            Reads++;
+            return Reading();
+        }
+
         /// <summary>
         /// The store as it holds it now, over lists of its own, as `KdbxStore` builds every
         /// reading afresh: a put, a drop, a deletion record or a write after it changes nothing a
         /// reading already handed out holds.
         /// </summary>
-        public StoreReading Read()
+        private StoreReading Reading()
         {
             if (ThrowOnRead != null)
             {
@@ -184,7 +195,7 @@ namespace KeePassGate.Tests.Fakes
             }
 
             StoreWrite plan;
-            using (var reading = Read())
+            using (var reading = Reading())
             {
                 plan = StoreWrite.Plan(reading, acts, Plugin);
             }

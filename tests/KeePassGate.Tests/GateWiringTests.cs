@@ -444,6 +444,223 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_certificate_taken_away_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel()
+        {
+            // The line of a certificate the operator took away: the certificate, the client its
+            // admission named, and the operator's revocation as the reason.
+            var audit = new RecordingAudit();
+            Assume.That(new AuthorityService(_database.Store, _log).Create().Succeeded, Is.True);
+
+            string databaseId;
+            using (var reading = new AuthorityService(_database.Store, _log).Read())
+            {
+                databaseId = reading.Material.AuthorityDigest;
+            }
+
+            using (var issuer = TestAuthority.New())
+            using (var paired = issuer.IssueClient("agent-fictitious", "reader"))
+            using (var renewed = issuer.IssueClient("agent-fictitious", "reader"))
+            {
+                var first = Admit(paired);
+                var second = Admit(renewed, first);
+                var factory = new AuthorityPanelFactory(
+                    new FakeDatabaseSource(_database), new FakePrompt(true), _log, null, null, null, new AdmissionAudit(audit), new SessionRefusals());
+
+                TakeAwayAndClose(factory, first, DialogResult.Cancel);
+
+                Assert.That(audit.Entries, Is.Empty, "a Cancel took it away again");
+                Assert.That(Admitted(first), Is.Not.Null);
+
+                TakeAwayAndClose(factory, first, DialogResult.OK);
+
+                var line = audit.Entries.Single();
+                Assert.That(line.AdmissionKey, Is.EqualTo(first));
+                Assert.That(line.ClientKey, Is.EqualTo(first));
+                Assert.That(line.Decision, Is.EqualTo(AuditEntry.Revoked));
+                Assert.That(line.Reason, Is.EqualTo(AdmissionAudit.RevokedByOperatorReason));
+                Assert.That(line.DatabaseId, Is.EqualTo(databaseId));
+                Assert.That(Admitted(first), Is.Null, "the certificate is taken away");
+                Assert.That(Admitted(second), Is.Not.Null, "and the client is not revoked");
+            }
+        }
+
+        [Test]
+        public void A_defect_writing_a_taken_certificate_s_line_loses_nothing_else_of_the_OK()
+        {
+            var incidents = new GateIncidents(_log);
+            Assume.That(new AuthorityService(_database.Store, _log).Create().Succeeded, Is.True);
+
+            using (var issuer = TestAuthority.New())
+            using (var certificate = issuer.IssueClient("agent-fictitious", "reader"))
+            {
+                var key = Admit(certificate);
+                var factory = new AuthorityPanelFactory(
+                    new FakeDatabaseSource(_database), new FakePrompt(true), _log, null, null, incidents,
+                    new AdmissionAudit(new ThrowingAudit()), new SessionRefusals());
+
+                using (var form = Dialogs.WithNestedTabControl("General"))
+                using (var panel = (AuthorityPanel)factory.CreatePanel(form))
+                {
+                    ControlTree.FindByName<ProfileList>(panel, ProfileList.ControlName).Add("deploy");
+                    Assert.That(panel.TakeAway(key), Is.Null);
+
+                    form.DialogResult = DialogResult.OK;
+                    form.RaiseClosed();
+                }
+
+                Assert.That(Admitted(key), Is.Null, "the certificate is taken away");
+                Assert.That(
+                    ProfileNames.Read(_database.PluginCustomData.Get(ProfileNames.CustomDataKey)).Holds("deploy"), Is.True,
+                    "and the profile added on the same OK is on the list");
+                Assert.That(incidents.Recent, Has.Exactly(1).Contains(nameof(NullReferenceException)));
+            }
+        }
+
+        [Test]
+        public void A_certificate_taken_away_and_its_client_revoked_on_one_OK_is_written_down_once()
+        {
+            // The revocation ends the certificate as well and writes its line; the certificate
+            // taken away beside it writes no second line.
+            var audit = new RecordingAudit();
+            Assume.That(new AuthorityService(_database.Store, _log).Create().Succeeded, Is.True);
+
+            using (var issuer = TestAuthority.New())
+            using (var paired = issuer.IssueClient("agent-fictitious", "reader"))
+            using (var renewed = issuer.IssueClient("agent-fictitious", "reader"))
+            {
+                var first = Admit(paired);
+                var second = Admit(renewed, first);
+                var factory = new AuthorityPanelFactory(
+                    new FakeDatabaseSource(_database), new FakePrompt(true), _log, null, null, null, new AdmissionAudit(audit), new SessionRefusals());
+
+                using (var form = Dialogs.WithNestedTabControl("General"))
+                using (var panel = (AuthorityPanel)factory.CreatePanel(form))
+                {
+                    Assert.That(panel.TakeAway(first), Is.Null);
+                    Assert.That(panel.Revoke(first), Is.Null);
+
+                    form.DialogResult = DialogResult.OK;
+                    form.RaiseClosed();
+                }
+
+                Assert.That(audit.Entries.Select(line => line.AdmissionKey), Is.EquivalentTo(new[] { first, second }));
+                Assert.That(audit.Entries.Select(line => line.ClientKey), Is.All.EqualTo(first));
+            }
+        }
+
+        [TestCase("listed twice")]
+        [TestCase("not read")]
+        public void A_certificate_that_admitted_nobody_before_OK_is_written_down_once_with_no_client(string how)
+        {
+            // The operator's act is on record, and no client is named as having held what
+            // admitted nobody.
+            var audit = new RecordingAudit();
+            Assume.That(new AuthorityService(_database.Store, _log).Create().Succeeded, Is.True);
+
+            using (var issuer = TestAuthority.New())
+            using (var certificate = issuer.IssueClient("agent-fictitious", "reader"))
+            {
+                var key = CertificateDigest.Of(certificate);
+                var members = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "reader" }, Served(), key, null)
+                    .Members().ToDictionary(member => member.Key, member => member.Value);
+                if (how == "listed twice")
+                {
+                    Admit(certificate);
+                    members["client"] = new string('e', 64);
+                }
+                else
+                {
+                    members["der"] = "not base64";
+                }
+
+                StoreSeeds.Client(_database.Store, members);
+                var factory = new AuthorityPanelFactory(
+                    new FakeDatabaseSource(_database), new FakePrompt(true), _log, null, null, null, new AdmissionAudit(audit), new SessionRefusals());
+
+                TakeAwayAndClose(factory, key, DialogResult.OK);
+
+                var line = audit.Entries.Single();
+                Assert.That(line.AdmissionKey, Is.EqualTo(key));
+                Assert.That(line.ClientKey, Is.Null);
+            }
+        }
+
+        [Test]
+        public void A_certificate_its_client_gave_up_before_OK_writes_nothing_at_OK_and_no_line()
+        {
+            var audit = new RecordingAudit();
+            Assume.That(new AuthorityService(_database.Store, _log).Create().Succeeded, Is.True);
+
+            using (var issuer = TestAuthority.New())
+            using (var certificate = issuer.IssueClient("agent-fictitious", "reader"))
+            {
+                var key = Admit(certificate);
+                var factory = new AuthorityPanelFactory(
+                    new FakeDatabaseSource(_database), new FakePrompt(true), _log, null, null, null, new AdmissionAudit(audit), new SessionRefusals());
+
+                using (var form = Dialogs.WithNestedTabControl("General"))
+                using (var panel = (AuthorityPanel)factory.CreatePanel(form))
+                {
+                    Assert.That(panel.TakeAway(key), Is.Null);
+                    StoreSeeds.TakeAway(_database.Store, key);
+
+                    form.DialogResult = DialogResult.OK;
+                    form.RaiseClosed();
+                }
+
+                Assert.That(audit.Entries, Is.Empty);
+                using (var reading = _database.Store.Read())
+                {
+                    Assert.That(reading.InForce.StatementsOf(key), Has.Count.EqualTo(1), "the statement its client wrote, and none of the OK's");
+                }
+
+                Assert.That(
+                    _log.Entries.Where(entry => entry.Level == GateLogFormat.InfoLevel).Select(entry => entry.Message),
+                    Has.Some.Contains(CertificateDigest.Shorten(key)).And.Contains("nothing was left to write"),
+                    "the press that came to nothing is in the log");
+            }
+        }
+
+        [Test]
+        public void A_certificate_taken_away_with_the_store_unreadable_before_OK_is_written_down_with_no_client()
+        {
+            var audit = new RecordingAudit();
+            Assume.That(new AuthorityService(_database.Store, _log).Create().Succeeded, Is.True);
+
+            using (var issuer = TestAuthority.New())
+            using (var certificate = issuer.IssueClient("agent-fictitious", "reader"))
+            {
+                var key = Admit(certificate);
+                var factory = new AuthorityPanelFactory(
+                    new FakeDatabaseSource(_database), new FakePrompt(true), _log, null, null, null, new AdmissionAudit(audit), new SessionRefusals());
+
+                using (var form = Dialogs.WithNestedTabControl("General"))
+                using (var panel = (AuthorityPanel)factory.CreatePanel(form))
+                {
+                    Assert.That(panel.TakeAway(key), Is.Null);
+                    _database.Records.NextReadThrows = new InvalidOperationException("a store that will not read");
+
+                    form.DialogResult = DialogResult.OK;
+                    form.RaiseClosed();
+                }
+
+                Assert.That(Admitted(key), Is.Null, "taken away all the same");
+                var line = audit.Entries.Single();
+                Assert.That(line.AdmissionKey, Is.EqualTo(key));
+                Assert.That(line.ClientKey, Is.Null);
+            }
+        }
+
+        /// <summary>The authority the database serves now.</summary>
+        private string Served()
+        {
+            using (var reading = _database.Store.Read())
+            {
+                return StoreAuthorities.Served(reading);
+            }
+        }
+
+        [Test]
         public void A_revocation_in_a_database_serving_no_authority_names_no_database()
         {
             // The line names the authority served once OK is through, and where two copies each
@@ -469,7 +686,24 @@ namespace KeePassGate.Tests
             }
         }
 
-        /// <summary>Presses revoke on a fresh tab and closes its dialog with the answer given.</summary>
+        /// <summary>
+        /// Takes a certificate away on a fresh tab and closes its dialog with the answer given.
+        /// </summary>
+        private static void TakeAwayAndClose(AuthorityPanelFactory factory, string admissionKey, DialogResult result)
+        {
+            using (var form = Dialogs.WithNestedTabControl("General"))
+            using (var panel = (AuthorityPanel)factory.CreatePanel(form))
+            {
+                Assert.That(panel.TakeAway(admissionKey), Is.Null);
+
+                form.DialogResult = result;
+                form.RaiseClosed();
+            }
+        }
+
+        /// <summary>
+        /// Presses revoke on a fresh tab and closes its dialog with the answer given.
+        /// </summary>
         private static void RevokeAndClose(AuthorityPanelFactory factory, string clientKey, DialogResult result)
         {
             using (var form = Dialogs.WithNestedTabControl("General"))

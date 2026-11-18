@@ -301,12 +301,27 @@ designing around them.
   the page they are not looking at is the one that costs them. **A revocation is of a client**:
   a client's certificates are a group of rows, and the X on the first of them revokes the client
   with every certificate it holds, by its client key. That reverses a row's X taking that row's
-  certificate away and no other, STORE.md §615; taking a single certificate away on the page is
-  decided and not built yet, STORE.md §648. **A revocation that waits leaves inviting as it
-  was**: only an act of the authority's waiting, a Create, a Recreate or a Delete, turns the
-  invite button off, `IPendingChanges.AuthorityWaiting`, since a code made then pairs against an
-  authority the gate does not serve yet or is about to lose, and a revoked client changes nothing
-  about that. **Allow renewal waits the same way**: the row's name stops being red at once, as a
+  certificate away and no other, STORE.md §615. **A single certificate is taken away from a
+  row's menu**, **Take certificate away**, which writes the record a client's own giving up
+  writes, for that row's certificate alone: the row goes, the next row of the group becomes the
+  client's own, and a client whose last certificate went has no row and is not revoked, STORE.md
+  §648. **The buffer holds which client or certificate, and the records are composed in the
+  write at OK**, against the store as it stands then with the acts pressed before it planned
+  over it together, as the single write OK makes of them, `AdmissionActs.Again`: a renewal that
+  lands under the dialog is named by the certificate taken away, the second of two presses sees
+  the first, and the pages read the store with every act held planned as that single write, so
+  the room a page shows is the room OK leaves, STORE.md §627. A certificate that has nothing
+  left to end, taken away by then or with no record left in force under a client the store
+  still admits, as after a revocation of its client or a record deleted by hand, is refused at
+  the press with nothing held, and at OK writes nothing, which the log names. The log tells
+  what the store's write came to as soon as that is known, then the audit's lines are written,
+  then the custom data, and the buffer is let go last. **Where the store takes no write in the
+  session**, no row carries the X and a row's menu offers Allow renewal alone, STORE.md §636.
+  **A revocation or a certificate taken away that waits leaves inviting as it was**: only an
+  act of the authority's waiting, a Create, a Recreate or a Delete, turns the invite button
+  off, `IPendingChanges.AuthorityWaiting`, since a code made then pairs against an authority the
+  gate does not serve yet or is about to lose, and neither of the two changes anything about
+  that. **Allow renewal waits the same way**: the row's name stops being red at once, as a
   revoked client's rows go at once, and the answer is lifted, from the database and from the
   session alike, when the dialog is accepted.
 

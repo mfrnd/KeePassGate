@@ -372,7 +372,16 @@ pressed, and the settings dialog accepted, so that the next renewal raises the d
 refused once: the one end to end test of Allow renewal. After that the client gives the old
 certificate up by presenting it and is refused with it, and once KeePass has gone the file holds the
 new record and not the old record, with a record of kind `withdrawn` for the old certificate that
-names the certificate renewed to.
+names the certificate renewed to, which is read from the file as the give-up's own save wrote
+it, before any later save. **Every command of the clients page is taken to the file there**,
+`Every_command_of_the_clients_page_reached_the_file_once_OK_landed_it_and_KeePass_saved`: the
+file holds further clients before KeePass starts, the X is pressed on the first, Revoke chosen
+from the menu of the second, Take certificate away from the menu of the third, and Allow
+renewal on an answer the file keeps, each press waited out until the page shows what it does,
+with no order of the rows relied on; the dialog is accepted and the database saved, and once
+KeePass has gone the file holds a revocation of each of the first two, a record of kind
+`withdrawn` and no revocation for the third, no standing answer, and the audit a line for each
+of the three.
 
 **A standing answer lost at exit**, in `LiveOwedAnswerAtExitTests`. A renewal is refused forever
 while the database's file has been saved again from outside, so the answer holds from memory, and

@@ -200,10 +200,10 @@ namespace KeePassGate.Audit
 
         /// <summary>
         /// Which certificate the line is about, by admission key, so a certificate refused since
-        /// stays identifiable: the certificate that asked, or a certificate the operator's
-        /// revocation ended. Null on a pairing, and on the operator's revocation of a client of
-        /// which the copy admitted no certificate, or whose store could not be read at the OK.
-        /// Written as `admissionKey`.
+        /// stays identifiable: the certificate that asked, a certificate the operator's revocation
+        /// ended, or a certificate the operator took away. Null on a pairing, and on the
+        /// operator's revocation of a client of which the copy admitted no certificate, or whose
+        /// store could not be read at the OK. Written as `admissionKey`.
         /// </summary>
         public string AdmissionKey { get; private set; }
 
@@ -214,12 +214,13 @@ namespace KeePassGate.Audit
         /// <remarks>
         /// The issued key on an approved pairing, which is that client's first certificate. Null
         /// where no admission stands behind the line: a pairing refused or unanswered, which
-        /// admitted nobody, and a certificate refused for having no admission, for not being for
-        /// client authentication or for being outside its dates. The last two are refused before
-        /// the admission is read, and the admission of a certificate a decision refuses is deleted
-        /// by the next write, so naming a client there would cost each such request a read of its
-        /// own for a certificate that reaches nothing. Its admission key is the name the operator
-        /// has for it on the Clients page.
+        /// admitted nobody, a certificate the operator took away that admitted nobody before the
+        /// OK, or whose store could not be read then, and a certificate refused for having no
+        /// admission, for not being for client authentication or for being outside its dates. The
+        /// last two are refused before the admission is read, and the admission of a certificate a
+        /// decision refuses is deleted by the next write, so naming a client there would cost each
+        /// such request a read of its own for a certificate that reaches nothing. Its admission
+        /// key is the name the operator has for it on the Clients page.
         /// </remarks>
         public string ClientKey { get; private set; }
 

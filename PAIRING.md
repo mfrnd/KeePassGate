@@ -874,10 +874,11 @@ an answer lost on the way costs the database nothing, since the old certificate 
 the client can ask again, and a record a lost answer orphans stays listed under its client on the
 clients page, as expired once its certificate has ended. Nothing prunes it, which reverses its
 going at the plugin's next write once it had expired, `CA.md` §204. Revoking its client takes it
-with every other certificate that client holds; taking it away alone is the clients page's to
-do, `STORE.md` §648, and is not built yet. It costs the operator the dialog a second time, which
-is why a client waits on its socket at least as long as `GateOptions.PairingBudget` before giving
-up on the answer, as the reference client does for a renewal as for a pairing. The gate holds
+with every other certificate that client holds; **Take certificate away** in its row's menu on
+the clients page takes it away alone, `STORE.md` §648. A lost answer costs the operator the
+dialog a second time, which is why a client waits on its socket at least as long as
+`GateOptions.PairingBudget` before giving up on the answer, as the reference client does for a
+renewal as for a pairing. The gate holds
 the connection past that budget through a save that outlasts it, so a client that expects a slow
 save, of a large database or a database on slow storage, waits longer still. What each refusal
 means is in the route's own responses, [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) §510.

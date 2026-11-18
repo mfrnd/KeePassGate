@@ -286,9 +286,9 @@ namespace KeePassGate.Ui
         /// <param name="landed">
         /// Run once the plugin's store holds what this wrote into it, before the custom data half,
         /// and only where the store's write wrote anything: what has to outlive a defect in that
-        /// half, the audit lines of a revocation, is written there. What it throws reaches the
-        /// caller once the custom data half has run, unless that half throws too. Null for
-        /// nothing.
+        /// half, the audit lines of what the clients page ended, is written there. What it throws
+        /// reaches the caller once the custom data half has run and the buffer is let go, unless
+        /// either throws too. Null for nothing.
         /// </param>
         /// <returns>True when the database now holds something it did not before.</returns>
         public bool Apply(Action landed = null)
@@ -312,60 +312,75 @@ namespace KeePassGate.Ui
             // loop once the save has returned.
             var changed = false;
             var wrote = false;
-            if (_records.Waiting)
+            try
             {
-                // Composed against the store as it stands now, on KeePass's thread with no other
-                // write between, and let go, the store key each holds overwritten, whatever the
-                // write comes to, a write that throws among it.
-                IReadOnlyList<StoreAct> acts;
-                StoreWritten written;
+                if (_records.Waiting)
+                {
+                    // Composed against the store as it stands now, on KeePass's thread with no
+                    // other write between. An act with nothing left to write writes nothing, and
+                    // the log names it: a certificate taken away by then, by its client or in a
+                    // copy merged in, or with no record left in force under a client the store
+                    // does not take away, as after a revocation held before it or a record deleted
+                    // by hand.
+                    var held = _records.Acts;
+                    var composed = _records.Composed();
+                    for (var at = 0; at < composed.Count; at++)
+                    {
+                        if (composed[at] == null)
+                        {
+                            _log.Info(Described(held[at]) + ": nothing was left to write at OK");
+                        }
+                    }
+
+                    var acts = composed.Where(act => act != null).ToList();
+                    var written = acts.Count == 0 ? null : _database.Store.Write(acts);
+
+                    // The line telling what the write came to as soon as that is known, before the
+                    // audit lines, the custom data half and letting the buffer go, so that a defect
+                    // in any of them leaves a line telling what landed.
+                    if (written != null && written.Taken)
+                    {
+                        wrote = written.Wrote;
+                        changed = wrote;
+                        Landed = wrote ? written.Acts : Array.Empty<StoreAct>();
+                        if (wrote)
+                        {
+                            _log.Info("the plugin's store holds what the " + GateName.Product + " tab held: "
+                                      + string.Join(", ", Landed.Select(Described)));
+                        }
+                    }
+                    else if (written != null)
+                    {
+                        _log.Warn("what the " + GateName.Product + " tab held for the plugin's store was not written ("
+                                  + string.Join(", ", acts.Select(act => act.Name)) + "): " + written.Reason
+                                  + (written.LeftOut.Count == 0 ? string.Empty : "; " + string.Join("; ", written.LeftOut)));
+                    }
+                }
+
+                // What has to outlive a defect in the custom data half first, as soon as the store
+                // holds what was written; and that half whatever came of it, so that a defect
+                // writing the lines loses nothing of the database's half of the OK, and reaches the
+                // catch-all above once it has run. Where the half throws as well, what it threw is
+                // the incident recorded. The caller's own steps after this run whatever the lines
+                // came to as well.
                 try
                 {
-                    acts = _records.Composed();
-                    written = _database.Store.Write(acts);
+                    if (wrote && landed != null)
+                    {
+                        landed();
+                    }
                 }
                 finally
                 {
-                    _records.Discard();
-                }
-
-                if (written.Taken)
-                {
-                    wrote = written.Wrote;
-                    changed = wrote;
-                    Landed = wrote ? written.Acts : Array.Empty<StoreAct>();
-                    if (wrote)
-                    {
-                        // A line of its own as soon as the store holds the write, before the
-                        // audit lines, so that a defect in what follows leaves a line telling
-                        // what landed.
-                        _log.Info("the plugin's store holds what the " + GateName.Product + " tab held: "
-                                  + string.Join(", ", Landed.Select(Described)));
-                    }
-                }
-                else
-                {
-                    _log.Warn("what the " + GateName.Product + " tab held for the plugin's store was not written ("
-                              + string.Join(", ", acts.Select(act => act.Name)) + "): " + written.Reason
-                              + (written.LeftOut.Count == 0 ? string.Empty : "; " + string.Join("; ", written.LeftOut)));
-                }
-            }
-
-            // What has to outlive a defect in the custom data half first, as soon as the store
-            // holds what was written; and that half whatever came of it, so that a defect writing
-            // the lines loses nothing of the database's half of the OK, and reaches the catch-all
-            // above once it has run. Where the half throws as well, what it threw is the incident
-            // recorded. The caller's own steps after this run whatever the lines came to as well.
-            try
-            {
-                if (wrote && landed != null)
-                {
-                    landed();
+                    changed = ApplyCustomData(changed, wrote);
                 }
             }
             finally
             {
-                changed = ApplyCustomData(changed, wrote);
+                // The buffer last, whatever the write, the lines and the custom data half came to,
+                // a write that throws among it: the acts held and composed, the store key each
+                // holds overwritten, and the reading they leave.
+                _records.Discard();
             }
 
             return changed;
