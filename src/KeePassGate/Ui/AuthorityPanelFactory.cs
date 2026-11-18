@@ -402,9 +402,9 @@ namespace KeePassGate.Ui
         /// place the operator would look for which certificates the OK ended. Read once per OK
         /// that carries a revocation, never per request: every admission the listing has admitting
         /// before OK. An admission under an authority that is not served, a certificate several
-        /// admissions name and a record that does not read admitted nobody, so the OK ended none of
-        /// them. A store that cannot be read logs it and leaves a single line with the client key
-        /// alone rather than keeping the revocation from landing.
+        /// admissions name, a renewal that does not count and a record that does not read admitted
+        /// nobody, so the OK ended none of them. A store that cannot be read logs it and leaves a
+        /// single line with the client key alone rather than keeping the revocation from landing.
         /// </remarks>
         private ILookup<string, string> Certificates(IGateDatabase live, PendingDatabase database)
         {

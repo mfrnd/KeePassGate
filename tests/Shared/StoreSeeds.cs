@@ -62,6 +62,18 @@ namespace KeePassGate.Testing
         }
 
         /// <summary>
+        /// The same, as it would stand were the authority of this `id` the authority served, which
+        /// is what the choice between several authorities lists a candidate's clients from.
+        /// </summary>
+        public static AdmissionListing Listed(IGateStore store, string served)
+        {
+            using (var reading = store.Read())
+            {
+                return StoreAdmissions.Listing(reading, served);
+            }
+        }
+
+        /// <summary>
         /// The `id` of the authority the store serves, or null where it serves none.
         /// </summary>
         public static string Served(IGateStore store)

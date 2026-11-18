@@ -180,6 +180,49 @@ namespace KeePassGate.Tests
             Assert.That(act.Records.Select(written => written.Member("renewed")), Is.All.EqualTo(Key(_fourth)), "each with the same renewals");
         }
 
+        [TestCase("a record")]
+        [TestCase("an item")]
+        public void A_certificate_taken_away_names_each_certificate_a_statement_took_away_after_it_was_renewed_from_it(string by)
+        {
+            // The client renewed the first to the second and the second to the third, and the
+            // second was taken away: the statement holds the first as its origin, so the first
+            // taken away names the second beside the admissions renewed from it, by the record
+            // with its item and by the item alone.
+            var store = new ComposedStore(One);
+            store.Add(Admission(_first, Key(_first), null));
+            store.Add(Admission(_fourth, Key(_first), Key(_first)));
+            store.Add(Admission(_third, Key(_first), Key(_second)));
+            var record = Withdrawn(_second, Key(_third), Key(_first));
+            if (by == "a record")
+            {
+                store.Add(record);
+            }
+
+            store.Restate(ItemOf(record, Key(_second), Key(_third), Key(_first)));
+
+            var act = AdmissionActs.TakeAway(store.Read(), Key(_first));
+
+            Assert.That(
+                act.Records.Single().Member("renewed").Split(' '),
+                Is.EqualTo(new[] { Key(_second), Key(_fourth) }.OrderBy(key => key, StringComparer.Ordinal)));
+        }
+
+        [Test]
+        public void A_certificate_taken_away_names_nothing_a_deletion_record_alone_tells_of()
+        {
+            // A deletion record holds no origin, so nothing it tells of is named as renewed from
+            // the certificate taken away.
+            var store = new ComposedStore(One);
+            store.Add(Admission(_first, Key(_first), null));
+            store.Add(Admission(_third, Key(_first), Key(_second)));
+            store.Deleted.Add(Withdrawn(_second, Key(_third), Key(_first)).Identifier);
+
+            var reading = store.Read();
+            Assume.That(reading.InForce.Taken(StoreKinds.Withdrawn), Has.Member(Key(_second)), "the deletion record tells of it");
+
+            Assert.That(AdmissionActs.TakeAway(reading, Key(_first)).Records.Single().Member("renewed"), Is.Empty);
+        }
+
         [Test]
         public void A_certificate_no_admission_names_is_taken_away_with_no_origin_and_no_renewal()
         {
@@ -232,6 +275,29 @@ namespace KeePassGate.Tests
 
             return StoreComposer.Record(
                 One, "client", "client:" + client, StoreComposer.Content(members.Select(member => (member.Key, member.Value)).ToArray()));
+        }
+
+        /// <summary>A record of kind `withdrawn` taking this certificate away.</summary>
+        private static StoreComposer.Composed Withdrawn(X509Certificate2 certificate, string renewed, string from)
+        {
+            return StoreComposer.Record(
+                One,
+                "withdrawn",
+                "certificate:" + Key(certificate),
+                StoreComposer.Content(("certificate", Key(certificate)), ("from", from), ("renewed", renewed)));
+        }
+
+        /// <summary>
+        /// The item that restates a record of kind `withdrawn`, with its identifier.
+        /// </summary>
+        private static string ItemOf(StoreComposer.Composed record, string certificate, string renewed, string from)
+        {
+            return StoreComposer.Item(
+                ("certificate", certificate),
+                ("from", from),
+                ("id", KeePassGate.Hex.Of(record.Identifier)),
+                ("kind", "withdrawn"),
+                ("renewed", renewed));
         }
 
         private static string Key(X509Certificate2 certificate)

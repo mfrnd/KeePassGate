@@ -61,6 +61,14 @@ none, since it releases both.
   for its age, so the plugin's group grows with every pairing and renewal. A record of a client
   that does not read is listed as `not counted`, and a certificate that more than one record
   admits as `listed twice` on each of its rows; neither admits anybody. `STORE.md` §615 and §643.
+- **A renewal made from a certificate that was already given up is refused.** Where a certificate
+  is given up on a copy of the database and renewed on another copy that had not learned of it,
+  the renewed certificate stops working once the copies are synchronized, and so does whatever
+  was renewed onward from it. The clients page
+  lists such a certificate as `not counted`, with the reason in its tooltip, and the program
+  pairs again. A renewal made before the older certificate was given up, on the copy where it was
+  given up, keeps working, as `renew` followed by giving the old certificate up does. `STORE.md`
+  §648.
 - **Breaking: a field whose name begins `KPG.` is out of every program's reach, on whichever
   entry it is.** A program that made fields of its own whose names begin with `KPG.` renames them
   before the upgrade, in KeePass or through the API under 0.2, since 0.3 neither serves nor

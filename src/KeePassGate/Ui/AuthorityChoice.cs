@@ -57,13 +57,17 @@ namespace KeePassGate.Ui
         /// <summary>
         /// The choice a reading of several authorities offers.
         /// </summary>
+        /// <param name="clientsUnder">
+        /// The admissions as they would stand were the authority of this `id` kept, which is the
+        /// listing asked with that authority as the authority served. Null for none.
+        /// </param>
         /// <param name="lastSeen">
         /// When each admission key was last written down in the audit, or null when it could not
         /// be read. Asked once, for every client of every candidate at once.
         /// </param>
         public static AuthorityChoice From(
             AuthorityReading reading,
-            AdmissionListing clients,
+            Func<string, AdmissionListing> clientsUnder,
             Func<ICollection<string>, IDictionary<string, DateTimeOffset>> lastSeen,
             IGateLog log)
         {
@@ -72,19 +76,29 @@ namespace KeePassGate.Ui
                 throw new ArgumentNullException(nameof(reading));
             }
 
-            // A certificate several admissions name admits nobody under any authority, `STORE.md`
-            // §615, so it is no client of a candidate either.
+            // A client of a candidate is an admission that would count were the candidate kept,
+            // `STORE.md` §615 and §648: issued under it, the only admission of its certificate,
+            // and a renewal whose chain of origins passes under it. Anything else admits nobody
+            // whichever authority is kept, so it is no evidence of which copy is in use.
             var logger = log ?? NullGateLog.Instance;
-            var records = clients == null
-                ? new List<AdmissionRecord>()
-                : clients.Records.Where(record => clients.StandingOf(record) != AdmissionStanding.Twice).ToList();
+            var records = new Dictionary<string, List<AdmissionRecord>>(StringComparer.Ordinal);
+            foreach (var candidate in reading.Candidates.Where(candidate => candidate.IsWhole))
+            {
+                var clients = clientsUnder == null ? null : clientsUnder(candidate.Fingerprint);
+                records[candidate.Fingerprint] = clients == null
+                    ? new List<AdmissionRecord>()
+                    : clients.Records.Where(record => clients.StandingOf(record) == AdmissionStanding.Admitted).ToList();
+            }
 
             IDictionary<string, DateTimeOffset> seen = null;
             if (lastSeen != null)
             {
                 try
                 {
-                    seen = lastSeen(records.Select(record => record.AdmissionKey).ToList());
+                    seen = lastSeen(records.Values.SelectMany(admitted => admitted)
+                        .Select(record => record.AdmissionKey)
+                        .Distinct(StringComparer.Ordinal)
+                        .ToList());
                 }
                 catch (Exception error) when (Expected.OfStorage(error))
                 {
@@ -96,7 +110,13 @@ namespace KeePassGate.Ui
             var now = DateTimeOffset.UtcNow;
             foreach (var candidate in reading.Candidates)
             {
-                options.Add(Option(candidate, records, seen, now, logger));
+                List<AdmissionRecord> admitted;
+                options.Add(Option(
+                    candidate,
+                    records.TryGetValue(candidate.Fingerprint, out admitted) ? admitted : new List<AdmissionRecord>(),
+                    seen,
+                    now,
+                    logger));
             }
 
             return new AuthorityChoice(options, seen != null);
@@ -119,9 +139,7 @@ namespace KeePassGate.Ui
             var material = candidate.Material;
             var admitted = new List<ChoiceClient>();
 
-            // A client of this candidate is an admission whose `issuer` is the candidate, as the
-            // gate admits only under the authority an admission names, `STORE.md` §615.
-            foreach (var record in records.Where(record => string.Equals(record.Issuer, candidate.Fingerprint, StringComparison.Ordinal)))
+            foreach (var record in records)
             {
                 try
                 {

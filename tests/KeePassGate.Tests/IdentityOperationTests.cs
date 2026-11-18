@@ -80,11 +80,13 @@ namespace KeePassGate.Tests
         {
             // The client key is the certificate it paired with, which the renewal copied into the
             // record; the admission key is the certificate on this connection, which the audit
-            // names and the Clients page revokes.
+            // names and a renewal changes. The certificate it paired with is still admitted, as a
+            // renewal's origin has to be.
             using (var paired = _authority.IssueClient("agent-fictitious", "reader"))
             using (var renewed = _authority.IssueClient("agent-fictitious", "reader"))
             {
                 var first = CertificateDigest.Of(paired);
+                _authority.Admit(paired, "reader");
                 _authority.Admit(
                     AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "reader" }, _authority.DatabaseId, first, first), null, null);
 

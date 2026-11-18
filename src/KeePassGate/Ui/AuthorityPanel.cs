@@ -583,7 +583,7 @@ namespace KeePassGate.Ui
                     var audit = AuditPath == null ? null : AuditPath();
                     choice = AuthorityChoice.From(
                         reading,
-                        AdmittedClients(),
+                        ClientsUnder,
                         audit == null
                             ? (Func<ICollection<string>, IDictionary<string, DateTimeOffset>>)null
                             : clients => JsonLinesAudit.LastSeen(audit, clients),
@@ -1793,37 +1793,46 @@ namespace KeePassGate.Ui
         /// </remarks>
         private int CountRecords()
         {
-            var admitted = AdmittedClients();
-
             using (var reading = _service.Read())
             {
-                // The clients that get in, judged as the clients page judges its rows: a record
-                // the gate refuses, of another authority, not for client use, not yet valid or
-                // expired, loses nothing to a recreate, and neither does a record that will not
-                // read. While several authorities wait to be chosen between, a client of any of
-                // them is counted, since choosing would keep it and this keeps none.
-                var authorities = Admitting(reading);
+                // The clients that get in, judged as the clients page judges its rows: an
+                // admission that admits nobody, of another authority, listed twice or a renewal
+                // that does not count, loses nothing to a recreate, and neither does a record the
+                // gate refuses, not for client use, not yet valid or expired, or a record that will
+                // not read. While several authorities wait to be chosen between, a client of any
+                // of them is counted, judged as it would stand were that authority kept, since
+                // choosing would keep it and this keeps none.
                 var now = DateTimeOffset.UtcNow;
-                return ClientList.ClientNames(admitted.Records.Where(
-                    record => authorities.Any(authority => ClientReaches.GetsIn(record, authority, now)))).Count;
+                var counted = new List<AdmissionRecord>();
+                foreach (var authority in Admitting(reading))
+                {
+                    var admitted = authority.Key == null ? AdmittedClients() : ClientsUnder(authority.Key);
+                    counted.AddRange(admitted.Records.Where(
+                        record => admitted.StandingOf(record) == AdmissionStanding.Admitted
+                                  && ClientReaches.GetsIn(record, authority.Value, now)));
+                }
+
+                return ClientList.ClientNames(counted).Count;
             }
         }
 
         /// <summary>
-        /// The authorities whose clients recreating or deleting cuts off: the authority served, or
-        /// while several are undecided, each candidate that reads.
+        /// The authorities whose clients recreating or deleting cuts off, each by the `id` its
+        /// clients are listed under: the authority served, by none, since the listing as it stands
+        /// is the listing under it, or while several are undecided, each candidate that reads.
         /// </summary>
-        private static IReadOnlyList<X509Certificate2> Admitting(AuthorityReading reading)
+        private static IReadOnlyList<KeyValuePair<string, X509Certificate2>> Admitting(AuthorityReading reading)
         {
             if (reading.IsPresent)
             {
-                return new[] { reading.Material.Authority };
+                return new[] { new KeyValuePair<string, X509Certificate2>(null, reading.Material.Authority) };
             }
 
             return reading.Presence == AuthorityPresence.Undecided
                 ? reading.Candidates.Where(candidate => candidate.IsWhole)
-                    .Select(candidate => candidate.Material.Authority).ToList()
-                : new List<X509Certificate2>();
+                    .Select(candidate => new KeyValuePair<string, X509Certificate2>(candidate.Fingerprint, candidate.Material.Authority))
+                    .ToList()
+                : new List<KeyValuePair<string, X509Certificate2>>();
         }
 
         private void OnCreate(object sender, EventArgs e)
@@ -1998,6 +2007,20 @@ namespace KeePassGate.Ui
         /// </remarks>
         public AdmissionListing AdmittedClients()
         {
+            return Listed(StoreAdmissions.Listing);
+        }
+
+        /// <summary>
+        /// The same, as it would stand were the authority of this `id` kept, which is what a
+        /// candidate among several authorities is judged by.
+        /// </summary>
+        private AdmissionListing ClientsUnder(string authority)
+        {
+            return Listed(reading => StoreAdmissions.Listing(reading, authority));
+        }
+
+        private AdmissionListing Listed(Func<StoreReading, AdmissionListing> list)
+        {
             if (_database == null || !_database.IsOpen)
             {
                 // Read rather than unreadable: there is no database to have admitted anybody,
@@ -2009,7 +2032,7 @@ namespace KeePassGate.Ui
             {
                 using (var reading = _database.Store.Read())
                 {
-                    return StoreAdmissions.Listing(reading);
+                    return list(reading);
                 }
             }
             catch (Exception error) when (Expected.OfCustomData(error))

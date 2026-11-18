@@ -974,6 +974,8 @@ namespace KeePassGate.Ui
                     return ListedTwiceText;
                 case AdmissionStanding.NotServed:
                     return StrangerText;
+                case AdmissionStanding.Uncounted:
+                    return NotCountedText;
                 default:
                     return null;
             }
@@ -1251,6 +1253,10 @@ namespace KeePassGate.Ui
             {
                 lines.Add(ListedTwiceReason);
             }
+            else if (standing == AdmissionStanding.Uncounted)
+            {
+                lines.Add(UncountedReason);
+            }
 
             if (answer != null)
             {
@@ -1268,15 +1274,23 @@ namespace KeePassGate.Ui
             "More than one admission names this certificate, so none of them admits it.";
 
         /// <summary>Why a record that does not read admits nobody, in its row's tooltip.</summary>
-        public const string NotCountedReason =
+        public const string UnreadReason =
             "This record does not read as an admission, so it admits nobody.";
+
+        /// <summary>
+        /// Why a renewal that does not count admits nobody, in its row's tooltip: what fails may be
+        /// the row's own origin or a certificate further back along its chain.
+        /// </summary>
+        public const string UncountedReason =
+            "Renewed, directly or further back, from a certificate that was taken away without naming "
+            + "the renewal made from it, or that no single admission admits, so it admits nobody.";
 
         /// <summary>
         /// What a row of a record that does not read shows when the pointer rests on it.
         /// </summary>
         internal static string Unidentified(UnreadAdmission unread)
         {
-            var lines = new List<string> { NotCountedReason };
+            var lines = new List<string> { UnreadReason };
             if (unread.ClientKey != null)
             {
                 lines.Add("Client key " + unread.ClientKey);

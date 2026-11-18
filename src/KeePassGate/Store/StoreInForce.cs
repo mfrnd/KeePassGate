@@ -82,6 +82,14 @@ namespace KeePassGate.Store
         private readonly HashSet<(string Id, string Certificate, string Renewed, string From)> _itemStatements =
             new HashSet<(string Id, string Certificate, string Renewed, string From)>();
 
+        /// <summary>The statements, by the certificate each took away.</summary>
+        private readonly Dictionary<string, List<StoreStatement>> _statementsOf =
+            new Dictionary<string, List<StoreStatement>>(StringComparer.Ordinal);
+
+        /// <summary>The records of kind `client`, by the text of their `certificate`.</summary>
+        private readonly Dictionary<string, List<FoundRecord>> _admissionsOf =
+            new Dictionary<string, List<FoundRecord>>(StringComparer.Ordinal);
+
         private HashSet<string> _after = new HashSet<string>(StringComparer.Ordinal);
 
         private StoreInForce()
@@ -190,6 +198,33 @@ namespace KeePassGate.Store
         }
 
         /// <summary>
+        /// The statements that took this certificate away, `STORE.md` §648, each with the renewals
+        /// it names and the certificate of origin it holds; none for a certificate no statement
+        /// names. Worked out as the reading is made, so that following a chain of origins builds
+        /// no index in a hold.
+        /// </summary>
+        public IReadOnlyList<StoreStatement> StatementsOf(string certificate)
+        {
+            List<StoreStatement> statements;
+            return certificate != null && _statementsOf.TryGetValue(certificate, out statements)
+                ? statements
+                : (IReadOnlyList<StoreStatement>)Array.Empty<StoreStatement>();
+        }
+
+        /// <summary>
+        /// The records of kind `client` under the key whose `certificate` is this text, in force or
+        /// not and whether or not they read as admissions, in the order of
+        /// <see cref="Admissions"/>; none where no record names it.
+        /// </summary>
+        public IReadOnlyList<FoundRecord> AdmissionsOf(string certificate)
+        {
+            List<FoundRecord> records;
+            return certificate != null && _admissionsOf.TryGetValue(certificate, out records)
+                ? records
+                : (IReadOnlyList<FoundRecord>)Array.Empty<FoundRecord>();
+        }
+
+        /// <summary>
         /// The first record that takes something away, or holds a plugin back, and that no
         /// summary entry restates as its row of `STORE.md` §658 has it, or null, `STORE.md` §624.
         /// </summary>
@@ -270,6 +305,23 @@ namespace KeePassGate.Store
             made.HeadsInForce = made.Heads.Where(head => head.InForce).ToList();
             made.Items = made.Heads.SelectMany(head => head.Form.Items).ToList();
             made.Admissions = records.Where(record => record.Is(StoreKinds.Client)).ToList();
+            foreach (var admission in made.Admissions)
+            {
+                var certificate = admission.Form.Member(StoreKinds.Certificate);
+                if (certificate == null)
+                {
+                    continue;
+                }
+
+                List<FoundRecord> named;
+                if (!made._admissionsOf.TryGetValue(certificate, out named))
+                {
+                    named = new List<FoundRecord>();
+                    made._admissionsOf[certificate] = named;
+                }
+
+                named.Add(admission);
+            }
 
             var byKind = ByKind(key, byTag);
             made.Told = Telling(key, byKind, StoreKinds.Head, StoreKinds.StoreSubject).ToList();
@@ -480,6 +532,18 @@ namespace KeePassGate.Store
             }
 
             _taken[row.Name] = new HashSet<string>(_statements.Select(statement => statement.Certificate), StringComparer.Ordinal);
+
+            foreach (var statement in _statements.Where(statement => statement.Certificate != null))
+            {
+                List<StoreStatement> of;
+                if (!_statementsOf.TryGetValue(statement.Certificate, out of))
+                {
+                    of = new List<StoreStatement>();
+                    _statementsOf[statement.Certificate] = of;
+                }
+
+                of.Add(new StoreStatement(statement.Renewed, statement.From));
+            }
         }
 
         /// <summary>A statement of what a record or an item holds, a member absent kept as null.</summary>

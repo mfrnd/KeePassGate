@@ -97,6 +97,29 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_renewal_that_would_not_count_were_its_issuer_kept_is_no_client_of_it()
+        {
+            // Renewed from a certificate nothing admits, it admits nobody whichever authority is
+            // kept, `STORE.md` §648, so it is no evidence of which copy is in use.
+            Admit(_candidates[1], "agent-renewed", new string('e', 64), "ops");
+
+            Assert.That(Choice(null).Options.Single(o => o.Fingerprint == _candidates[1]).Clients, Is.Empty);
+        }
+
+        [Test]
+        public void A_renewal_that_would_count_were_its_issuer_kept_is_a_client_of_it()
+        {
+            // Renewed from a certificate the same candidate admits, it counts once that candidate
+            // is kept, as the first certificate does.
+            var first = Admit(_candidates[1], "agent-first", null, "ops");
+            Admit(_candidates[1], "agent-renewed", first, "ops");
+
+            Assert.That(
+                Choice(null).Options.Single(o => o.Fingerprint == _candidates[1]).Clients.Select(c => c.Name),
+                Is.EquivalentTo(new[] { "agent-first", "agent-renewed" }));
+        }
+
+        [Test]
         public void A_record_its_authority_would_not_let_in_is_no_client_of_it()
         {
             // The clients a candidate admitted are the evidence of which copy is in use, and the
@@ -480,7 +503,7 @@ namespace KeePassGate.Tests
             using (var reading = _service.Read())
             {
                 Assume.That(reading.Presence, Is.EqualTo(AuthorityPresence.Undecided));
-                return AuthorityChoice.From(reading, StoreSeeds.Listed(_records), lastSeen, null);
+                return AuthorityChoice.From(reading, candidate => StoreSeeds.Listed(_records, candidate), lastSeen, null);
             }
         }
 

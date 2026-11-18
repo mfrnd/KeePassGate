@@ -165,7 +165,7 @@ namespace KeePassGate.Host.Tests
 
                 using (var reading = new AuthorityService(records, NullGateLog.Instance).Read())
                 {
-                    var choice = AuthorityChoice.From(reading, StoreSeeds.Listed(records), null, NullGateLog.Instance);
+                    var choice = AuthorityChoice.From(reading, candidate => StoreSeeds.Listed(records, candidate), null, NullGateLog.Instance);
 
                     var offered = choice.Options.Select(option => option.CanKeep
                         ? string.Join(", ", option.Clients.Select(client => client.Name))

@@ -416,8 +416,17 @@ namespace KeePassGate.Ui
             IDictionary<string, ClientReach> reaches,
             DateTimeOffset now)
         {
+            // The admissions that admit, as the clients page lists its clients: an admission of
+            // another authority, a certificate listed twice and a renewal that does not count
+            // admit nobody, so none of them is a client about to stop being admitted.
             var warnings = new List<string>();
-            Clients(warnings, clients == null ? null : clients.Records, reaches, now);
+            Clients(
+                warnings,
+                clients == null
+                    ? null
+                    : clients.Records.Where(record => clients.StandingOf(record) == AdmissionStanding.Admitted).ToList(),
+                reaches,
+                now);
             Unreadable(warnings, clients, reading.ClientRecordCount);
 
             return OneLine(warnings);

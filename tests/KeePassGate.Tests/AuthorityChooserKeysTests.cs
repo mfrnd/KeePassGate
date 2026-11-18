@@ -89,7 +89,7 @@ namespace KeePassGate.Tests
             using (var reading = service.Read())
             {
                 Assume.That(reading.Presence, Is.EqualTo(AuthorityPresence.Undecided));
-                choice = AuthorityChoice.From(reading, StoreSeeds.Listed(records), null, null);
+                choice = AuthorityChoice.From(reading, candidate => StoreSeeds.Listed(records, candidate), null, null);
             }
 
             var dialog = new AuthorityChooserForm(choice, null)

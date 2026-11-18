@@ -137,7 +137,7 @@ namespace KeePassGate.Tests
             AuthorityChoice choice;
             using (var reading = service.Read())
             {
-                choice = AuthorityChoice.From(reading, StoreSeeds.Listed(records), null, null);
+                choice = AuthorityChoice.From(reading, candidate => StoreSeeds.Listed(records, candidate), null, null);
             }
 
             using (var dialog = new AuthorityChooserForm(choice, "Invented Vault"))

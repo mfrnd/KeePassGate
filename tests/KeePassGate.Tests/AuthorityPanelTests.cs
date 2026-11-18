@@ -288,7 +288,7 @@ namespace KeePassGate.Tests
                 var key = StoreSeeds.KeyOf(_database.Store, candidate);
                 using (var client = new AuthorityIssuer().IssueClient(key, "agent-" + candidate.Substring(0, 4), new[] { "ops" }).Read())
                 {
-                    store.Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
+                    store.Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }, candidate));
                 }
             }
 
@@ -297,6 +297,59 @@ namespace KeePassGate.Tests
                 panel.RecreateAuthority();
 
                 Assert.That(prompt.LastQuestion, Does.Contain("2 clients are admitted"));
+            }
+        }
+
+        [Test]
+        public void Recreating_between_undecided_authorities_costs_no_renewal_that_would_not_count_were_its_issuer_kept()
+        {
+            // A renewal from a certificate nothing admits admits nobody whichever authority is
+            // kept, `STORE.md` §648, so recreating takes nobody's admission away with it.
+            var candidates = Undecided();
+            var prompt = new FakePrompt(false);
+            var store = new Admissions(_database);
+            var key = StoreSeeds.KeyOf(_database.Store, candidates[0]);
+            using (var client = new AuthorityIssuer().IssueClient(key, "agent-counted", new[] { "ops" }).Read())
+            using (var renewed = new AuthorityIssuer().IssueClient(key, "agent-renewed", new[] { "ops" }).Read())
+            {
+                store.Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }, candidates[0]));
+                store.Write(AdmissionRecord.For(
+                    renewed, DateTimeOffset.UtcNow, new[] { "ops" }, candidates[0], new string('e', 64), new string('e', 64)));
+            }
+
+            using (var panel = NewPanel(prompt))
+            {
+                panel.RecreateAuthority();
+
+                Assert.That(prompt.LastQuestion, Does.Contain("One client is admitted"));
+            }
+        }
+
+        [Test]
+        public void A_renewal_that_does_not_count_and_a_certificate_listed_twice_cost_nothing_to_recreate()
+        {
+            // Counted as the clients page judges its rows: neither admits anybody, `STORE.md` §615
+            // and §648, so recreating takes nobody's admission away with them.
+            var prompt = new FakePrompt(false);
+            using (var panel = NewPanel(prompt))
+            {
+                panel.CreateAuthority();
+                var store = new Admissions(_database);
+                using (var counted = IssueOwnClient("agent-counted"))
+                using (var renewed = IssueOwnClient("agent-renewed"))
+                using (var twice = IssueOwnClient("agent-twice"))
+                {
+                    store.Write(AdmissionRecord.For(counted, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
+                    store.Write(AdmissionRecord.For(
+                        renewed, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id, new string('e', 64), new string('e', 64)));
+                    store.Write(AdmissionRecord.For(twice, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
+                    store.Write(AdmissionRecord.For(
+                        twice, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id, new string('d', 64), null));
+                }
+
+                panel.RecreateAuthority();
+
+                Assert.That(prompt.LastQuestion, Does.Contain("One client is admitted"));
             }
         }
 

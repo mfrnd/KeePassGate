@@ -102,10 +102,25 @@ namespace KeePassGate.Authority
         /// <summary>
         /// An act of the records of kind `withdrawn` that take this certificate away, with no
         /// ground, `STORE.md` §648 (S29), or null where the reading holds no store key: a record
-        /// for each certificate of origin the admissions in force that read hold for it, an absent
-        /// origin among them, each naming in `renewed` every admission in force that reads and was
-        /// renewed from it, whatever else refuses that admission.
+        /// for each certificate of origin its records of kind `client` in force hold, an absent
+        /// origin among them, each naming in `renewed` every certificate the reading holds as
+        /// renewed from it where an admission in force of this certificate reads, and nothing
+        /// where none does.
         /// </summary>
+        /// <remarks>
+        /// **Renewed from it** is the certificate of every admission in force that reads and holds
+        /// it in `from`, whatever else refuses that admission, and of every statement that took a
+        /// certificate away and holds it in `from`, a record of kind `withdrawn` present or an
+        /// item of that kind. A deletion record holds no origin, so nothing it tells of is named.
+        /// A certificate between that was taken away first is named so, and what was renewed from
+        /// it keeps counting; a renewal another copy made after this statement is named by no
+        /// statement written before it reached this copy, and stays refused.
+        ///
+        /// **A certificate no admission in force of which reads names nothing**: it admitted
+        /// nobody, so taking it away ends nothing renewed from it, which stays refused. Its
+        /// statement holds the origins its records name all the same, whether or not they read,
+        /// so that the chain is asked onward from them.
+        /// </remarks>
         public static StoreAct TakeAway(StoreReading reading, string admissionKey)
         {
             if (!CertificateDigest.IsDigest(admissionKey))
@@ -114,9 +129,15 @@ namespace KeePassGate.Authority
             }
 
             var admissions = Readable(reading);
+            var inForce = reading == null ? null : reading.InForce;
+            var statements = inForce == null
+                ? Enumerable.Empty<string>()
+                : inForce.Taken(StoreKinds.Withdrawn).Where(certificate => inForce.StatementsOf(certificate)
+                    .Any(statement => string.Equals(statement.From, admissionKey, StringComparison.Ordinal)));
             var renewed = string.Join(" ", admissions
                 .Where(admission => string.Equals(admission.From, admissionKey, StringComparison.Ordinal))
                 .Select(admission => admission.AdmissionKey)
+                .Concat(statements)
                 .Distinct(StringComparer.Ordinal)
                 .OrderBy(key => key, StringComparer.Ordinal));
             var origins = admissions

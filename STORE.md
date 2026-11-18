@@ -887,10 +887,10 @@ several admissions for a certificate, read in every order, admit nobody, and the
 admissions with a deletion record naming all but a single admission admit by that admission;
 revoking the client of an admission of a certificate that two admissions name leaves the
 certificate admitted under the other, before the write that deletes the refused admission and
-after it; a record that does not read beside an admission leaves the certificate admitted; a
-renewal from a certificate that several admissions name and that was not taken away is not
-admitted, in every order; and a renewal from such a certificate that was taken away is answered
-as §648 answers it, before the write that deletes its admissions and after it.
+after it; a record that does not read beside an admission leaves the certificate admitted; and
+by `StoreAdmissionChainTests`: a renewal from a certificate that several admissions name and
+that was not taken away is not admitted, in every order, and a renewal from such a certificate
+that was taken away is answered by the statements, as §648 answers it.
 
 **A revocation** is a record of kind `revoked` that names the client's key, in the member
 `client`. It refuses every certificate whose record carries that client key, in whichever copy
@@ -935,8 +935,9 @@ the operator: the client never held that certificate and cannot give it up, `PAI
 `AdmissionRecord` composes the content and reads it, with the identifier of the entry it was
 read from. `StoreAdmissions` reads who is admitted from the reading of a hold (§620): a
 certificate is admitted by a single admission in force that reads, whose client key no
-revocation names, whose certificate was not taken away, and whose issuer no retirement names
-and is the authority served, in a store that is whole. A record that does not read, and an
+revocation names, whose certificate was not taken away, that no rule of §648 about its chain of
+origins refuses, and whose issuer no retirement names and is the authority served, in a store
+that is whole. A record that does not read, and an
 admission that a decision refuses, are counted among no admissions of a certificate (S24). The
 gate asks once for each connection, from the reading every question of that hold is answered
 from, and keeps no answer. `AdmissionActs` composes the acts of §627: an admission, held when
@@ -949,21 +950,21 @@ a revocation, a retirement or a certificate taken away refuses, and none for its
 The clients page, the Certificate Authority page, the Profiles page, the approval dialog and
 the dialog that asks which authority to keep each read the same listing of a reading: every
 admission in force that reads and that no decision refuses, each with whether it admits, is
-under an authority that is not served, or names a certificate that several admissions name;
-the records that do not read; and how many clients a decision refuses while their admissions
-wait for the next write. A row of the clients page takes what its admission comes to from that
-listing, and reads `not this authority` or `listed twice` where the listing has it admit nobody
-(§648). **Not built yet** are the rules of §648 about a renewal made from a
-certificate that was taken away: `from` is written, and no rule of admission asks it. The
-standing answers to a renewal stay in the custom data (§618), asked by the admission key, and
-go with a write that is saved and with a tab's OK that wrote into the store, once no record of
-kind `client` in force names their certificate. Nothing of this changes what a client is sent,
+under an authority that is not served, names a certificate that several admissions name, or is
+a renewal that does not count (§648); the records that do not read; and how many clients a
+decision refuses while their admissions wait for the next write. A row of the clients page takes
+what its admission comes to from that listing, and reads `not this authority`, `listed twice` or
+`not counted` where the listing has it admit nobody (§648). The standing answers to a renewal
+stay in the custom data (§618), asked by the admission key, and go with a write that is saved
+and with a tab's OK that wrote into the store, once no record of kind `client` in force names
+their certificate. Nothing of this changes what a client is sent,
 `API.md` §411. *Held by*
-`AdmissionRecordTests`, `StoreAdmissionsTests`, `AdmissionActsTests`, `RenewalAnswersTests`,
-`ClientListTests`, `AuthorityPanelTests`, `PendingRecordsTests` and `PendingChangesTests`, and
-over real databases by `AdmissionInRealDatabaseTests`, `PairingInRealDatabaseTests`,
-`RenewalInRealDatabaseTests` and `RevocationInRealDatabaseTests`. Among them: an admission is an
-entry of the plugin's group, its content unprotected, with nothing of it in the custom data
+`AdmissionRecordTests`, `StoreAdmissionsTests`, `StoreAdmissionChainTests`, `AdmissionActsTests`,
+`RenewalAnswersTests`, `ClientListTests`, `AuthorityPanelTests`, `PendingRecordsTests` and
+`PendingChangesTests`, and over real databases by `AdmissionInRealDatabaseTests`,
+`PairingInRealDatabaseTests`, `RenewalInRealDatabaseTests` and `RevocationInRealDatabaseTests`.
+Among them: an admission is an entry of the plugin's group, its content unprotected, with
+nothing of it in the custom data
 (`An_admission_is_an_entry_of_the_plugin_s_group_with_its_content_unprotected_and_unmarked`);
 two clients are two entries (`Two_clients_are_two_entries_so_a_replicated_database_can_merge_them`);
 an admission written while a group dialog is open survives that dialog's OK
@@ -993,29 +994,53 @@ certificate the renewal had just issued.
 
 **What the record holds** (S29). Its kind is `withdrawn` (S23, §658). It names the certificate
 by its admission key, the SHA-256 over the certificate that `CA.md` §217 defines, in the member
-`certificate`. In the member `renewed` it names the renewals made from that certificate that
-its writer had read (below): the admission key of each renewed certificate, each once, in
-ordinal order, separated by single spaces, and empty for none. In the member `from` it holds
-the admission key of the
-certificate that the certificate taken away was itself renewed from, where its admission named
-such a certificate, and it holds no such member otherwise. The subject in its identifier is
+`certificate`. In the member `renewed` it names the certificates that its copy holds as renewed
+from that certificate when the record is written (below): the admission key of each renewed
+certificate, each once, in ordinal order, separated by single spaces, and empty for none. In
+the member `from` it holds the admission key of the certificate that the certificate taken away
+was itself renewed from, where a record of kind `client` in force for it named such a
+certificate, and it holds no such member otherwise. The subject in its identifier is
 `certificate:` and the admission key of the certificate taken away, so that a deletion record
 of it still tells which certificate was taken away (§609).
 
-**Which renewals it names** (S29). `renewed` names the certificate of every admission in force
-that reads and holds the certificate taken away in `from`, whatever else refuses that admission:
-a revocation, an issuer retired or not served, several admissions of its certificate, or a rule
-below. Naming a renewal lets it count only as far as nothing else refuses it. It rules out
-naming only the renewals that are admitted, which would turn on which authority is served at the
-write. A record of kind `client` that does not read is named by none (§615).
+**Which renewals it names** (S29). `renewed` names every certificate that the copy holds as
+renewed from the certificate taken away when the record is written. The copy holds a
+certificate so in two ways. By an admission in force that reads and holds the certificate taken
+away in `from`, whatever else refuses that admission: a revocation, an issuer retired or not
+served, several admissions of its certificate, or a rule below. And by a statement in force
+that took a certificate away and holds the certificate taken away in `from`: a record of this
+kind present, or an item of this kind in a summary entry present. A deletion record holds no
+origin, so what a deletion record alone tells of is named by nothing. It holds for every writer
+of such a record, the operator's command and a client that gives its own certificate up alike.
+Naming a renewal lets it count only as far as nothing else refuses it. It rules out naming only
+the renewals that are admitted, which would turn on which authority is served at the write, and
+naming only the renewals whose admission is still in force, which would turn on the order in
+which the certificates of a chain were taken away (below). A record of kind `client` that does
+not read is named by none (§615). **Where no admission in force of the certificate taken away
+reads, its statement names nothing**: `renewed` is empty where the only records of kind
+`client` in force for the certificate do not read. Such a certificate admitted nobody, so
+taking it away ends nothing, and what was renewed from it was refused before the statement and
+stays refused after it. It rules out naming those renewals, by which taking away a certificate
+that admitted nobody would let a renewal onward from it count, with the chain behind that
+certificate never asked. *Held by*
+`AdmissionActsTests.A_certificate_taken_away_names_each_certificate_a_statement_took_away_after_it_was_renewed_from_it`,
+by a record and by an item,
+`AdmissionActsTests.A_certificate_taken_away_names_nothing_a_deletion_record_alone_tells_of`,
+`AdmissionActsTests.A_certificate_whose_record_does_not_read_is_taken_away_with_the_origin_the_record_holds_and_naming_nothing`
+and
+`StoreAdmissionChainTests.A_renewal_onward_from_a_certificate_whose_record_does_not_read_stays_refused_once_that_certificate_is_taken_away`.
 
-**Where several admissions of the certificate taken away hold other origins** (S29). A record
-holds a single `from`. Where several admissions in force that read name the certificate taken
-away and hold other certificates of origin, the act writes a record for each `from` among them,
-an absent `from` among them, each with the same `renewed`, and the reading holds each of those
-records to its own origin (rule 4). It rules out a single record with any of the origins, which
-would drop a statement about the others. *Held by* `StoreAdmissionsTests`, what each act
-composes, and `StoreWriteTests`, what a write that takes such a certificate away holds.
+**Where the records of the certificate taken away hold other origins** (S29). A record holds a
+single `from`. The origins of a certificate are the `from` of each admission in force that
+reads and names it, an absent `from` among them, and the `from` text of each record of kind
+`client` in force that names it in `certificate` and does not read, where that text is an
+admission key. Where those hold other certificates of origin, the act writes a record for each
+`from` among them, each with the same `renewed`, and the reading holds each of those records to
+its own origin (rule 4). It rules out a single record with any of the origins, which would drop
+a statement about the others, and it rules out passing over the origin of a record that does
+not read, by which the chain behind that certificate would no longer be asked once its record
+is deleted. *Held by* `StoreAdmissionsTests`, what each act composes, and `StoreWriteTests`,
+what a write that takes such a certificate away holds.
 
 **What it does in the reading** (proposed). A certificate is not admitted while a record of this
 kind names it. Such a record counts as a revocation counts: as an entry wherever it sits, as an
@@ -1034,11 +1059,13 @@ admitted. So:
 
 1. **An admission that a renewal writes names the certificate it was renewed from**, in its
    member `from` (§615). An admission that a pairing writes names none.
-2. **A record that takes a certificate away names every admission renewed from that certificate
-   that its writer had read**, as a record names in `after` what its writer had read (§610):
-   in `renewed`, the certificate of each such admission in force. Those are the renewals made
-   before the certificate was taken away, in the copy where it was taken away, the certificate
-   the client has just renewed to among them.
+2. **A record that takes a certificate away names every certificate that its copy holds as
+   renewed from that certificate when the record is written**, as a record names in `after`
+   what its writer had read (§610): in `renewed`, the certificate of each admission in force
+   that holds it in `from`, and of each statement in force that took a certificate away and
+   holds it in `from`. Those are the renewals made before the certificate was taken away, in
+   the copy where it was taken away, the certificate the client has just renewed to among
+   them, and a renewal that was itself taken away since.
 3. **An admission renewed from a certificate that was taken away counts only where every
    statement that took that certificate away names it** (S29). A statement is a record of this
    kind present, an item of this kind in any summary entry present, or a deletion record that
@@ -1090,6 +1117,28 @@ certificate is taken away at another gate that has not read the renewal, so it r
 and that client pairs again. It rules out the renewals that any of the records names, which
 admits whoever renewed last at a gate whose copy was behind.
 
+**Why a statement names what was already taken away** (reasoning). What a client keeps must
+not turn on which of two certificates of its chain was taken away first. Take a chain in which
+a third certificate was renewed from a second, and the second from a first. Where the first is
+taken away and then the second, the statement about the first names the second, whose admission
+is in force then, and the statement about the second names the third: the third counts, since
+every statement about its origin names it, and its origin passes at the first (rule 4). Where
+the second is taken away and then the first, the admission of the second is deleted in the
+write that takes it away (below), and what is left of the renewal is the statement about the
+second, which holds the first in `from`. The statement about the first names the second by
+that statement, so the third counts in this order as well. Naming admissions in force alone
+would name nothing there, the second would not pass at the first, and the third would be
+refused, in a copy that held nothing else than in the other order. **A statement vouches for
+what its copy held**, in force or already taken away: it tells every later reading that the
+renewals it names were made before the certificate was taken away, in the copy where it was
+taken away. It vouches for nothing that had not reached that copy. A renewal made in another
+copy from a certificate that was already taken away is named by no statement written before
+it arrived, and stays refused, with whatever was renewed onward from it, also once the
+certificate between was given up there. And a deletion record vouches for nothing, since it
+holds no origin: a certificate that a deletion record alone tells of is named by no statement
+about its origin, and what was renewed from it stays refused. *Held by*
+`StoreAdmissionChainTests.Certificates_taken_away_in_either_order_leave_the_renewal_after_them_admitted`.
+
 **Why an admission whose certificate of origin is nowhere does not count.** Every deletion of
 an admission by the plugin comes with a record that covers what was renewed from it: a
 revocation and a retirement refuse the renewal as well, and a certificate taken away names
@@ -1104,24 +1153,34 @@ its renewals, because it only refuses: no admission counts under it that would n
 it (reasoning). **What it does not close**, stated plainly: a renewal that was made before the
 certificate was taken away, in a copy the writer had read, stays admitted, since the record
 names it. Somebody who took a certificate and renewed it before its owner gave it up holds a
-certificate that works. Only the operator stops that, by taking that certificate away as well or
-by revoking the client. The certificate a client has just renewed to is never refused by the
-old certificate being given up at a gate whose copy holds the renewal, since the record
-written there names it. What refuses it is a further statement about the old certificate,
-made at a gate that had not read the renewal, which is the sequence the third rule refuses.
-No answer turns on the order in which entries are read, since what every statement names is
-the same in every order. *Held by* `StoreAdmissionsTests`: a renewal that the record names is
-admitted and a renewal it does not name is not; a renewal onward from a renewal that does not
-count is not admitted, also once the certificate between was given up; a renewal from a
-certificate that only a deletion record tells of is not admitted; an admission whose
-certificate of origin is nowhere is not admitted; records for a certificate that hold
-different certificates of origin admit only where each passes; where several records took a
-certificate away, a renewal that each of them names is admitted and a renewal that any of them
-does not name is not, in every order of entries; a deletion record of a record that an item
-restates changes nothing, and a deletion record that neither a record nor an item answers for
-refuses every renewal from that certificate; a certificate taken away while its admission is
-still in force is asked of the `from` of both; a chain that leads back into itself admits
-nobody; and a chain as long as the ceiling on items is answered without recursion.
+certificate that works, and so does whatever was renewed onward from that renewal in the same
+copy, also once the renewal between is taken away, since each statement names what its copy
+held. **Taking a certificate away ends that certificate alone, and not what was already
+renewed from it.** Only the operator stops that, by taking each such certificate away as well,
+or by revoking the client, which refuses every certificate under the client's key at once
+(§615) and is the act for a certificate that may have been taken and renewed from. The
+certificate a client has just renewed to is never refused by the old certificate being given
+up at a gate whose copy holds the renewal, since the record written there names it. What
+refuses it is a further statement about the old certificate, made at a gate that had not read
+the renewal, which is the sequence the third rule refuses. No answer turns on the order in
+which entries are read, since what every statement names is the same in every order, nor on
+the order in which the certificates of a chain were taken away in a copy, above. *Held by*
+`StoreAdmissionChainTests`: a renewal that the record names is admitted and a renewal it does
+not name is not; a renewal onward from a renewal that does not count is not admitted, also
+once the certificate between was given up; certificates of a chain taken away in either order
+leave the renewal after them admitted; a renewal from a certificate that only a deletion
+record tells of is not admitted; an admission whose certificate of origin is nowhere is not
+admitted; records for a certificate that hold different certificates of origin admit only
+where each passes; where several records took a certificate away, a renewal that each of them
+names is admitted and a renewal that any of them does not name is not, in every order of
+entries; a deletion record of a record that an item restates changes nothing, and a deletion
+record that neither a record nor an item answers for refuses every renewal from that
+certificate; a certificate taken away while its admission is still in force is asked of the
+`from` of both; a chain that leads back into itself admits nobody; and a chain of admissions
+several times longer than the ceiling on items is answered without recursion. The refusal of
+an admission that stays beside the statement taking its certificate away, by a record with its
+item, by an item alone and by a deletion record alone, is held by
+`StoreAdmissionsTests.A_certificate_taken_away_is_refused_while_its_admission_stays_beside_the_statement`.
 
 **What restates it** (S29). Each record that takes a certificate away is restated by an item
 of its own (§611), which holds the record's identifier in `id`, the certificate, and the
@@ -1193,11 +1252,26 @@ and it offers each command for which the record holds a readable member: Revoke 
 is a client key and the row is the first of that client, Take certificate away
 where `certificate` is an admission key, and no command otherwise. **The X carries what it does
 as the tooltip of its own cell**, and a row without an X shows no tooltip in that column. A
-certificate that several admissions name (S24) reads `listed twice` on each of its rows. **A row
-reads `not this authority` where its date would be** in two cases: a certificate that the
-authority served did not issue, by the anchor pin, and an admission whose `issuer` is not the
-authority served, by the judgment of the listing (§615). The row takes what an admission comes
-to from the listing, as the gate does, so the page shows no date for an admission whose
+certificate that several admissions name (S24) reads `listed twice` on each of its rows. **A
+renewal that does not count reads `not counted` where its date would be**, as a record that does
+not read does, and its tooltip gives the reason: "Renewed, directly or further back, from a
+certificate that was taken away without naming the renewal made from it, or that no single
+admission admits, so it admits nobody." (rules 3 to 5). The row keeps its place in its client's
+group, with the commands of any row. **Whatever counts or names clients takes only admissions
+that admit**, by the same listing: the count that a Recreate or a Delete is confirmed against,
+the warnings about certificates near their end, and the clients the dialog that asks which
+authority to keep lists for each authority, which are the admissions that would count were that
+authority kept. A certificate listed twice, an admission under another authority and a renewal
+that does not count are no client to any of them. *Held by*
+`ClientListTests.A_renewal_that_does_not_count_reads_not_counted_with_why_in_its_tooltip`,
+`StoreAdmissionChainTests.The_page_reads_a_renewal_whose_chain_fails_as_the_gate_does`,
+`AuthorityPanelTests.A_renewal_that_does_not_count_and_a_certificate_listed_twice_cost_nothing_to_recreate`,
+`AuthorityDescriptionTests.An_admission_that_admits_nobody_is_not_warned_about` and
+`AuthorityChooserTests.A_renewal_that_would_not_count_were_its_issuer_kept_is_no_client_of_it`.
+**A row reads `not this authority` where its date would be** in two cases: a certificate that
+the authority served did not issue, by the anchor pin, and an admission whose `issuer` is not
+the authority served, by the judgment of the listing (§615). The row takes what an admission
+comes to from the listing, as the gate does, so the page shows no date for an admission whose
 certificate chains to the authority served while its `issuer` names another. Like everything on
 the tab, each command waits for the settings dialog's OK. No column is added for any of this,
 and nothing on the tab scrolls. **The Client column is held at least as wide as the fixed text of
@@ -1250,11 +1324,13 @@ there (§639). §644 names the runs owed.
 
 **What is built.** The record, what composes it, and what it does to the certificate it names.
 `AdmissionActs.TakeAway` composes the records of the act as this section has them: a record for
-each certificate of origin that the admissions in force of the certificate hold, an absent
-origin among them, each naming in `renewed` every admission in force that reads and was renewed
-from the certificate. `DELETE /gate/certificate` writes them for the certificate on the
-connection, by a write that is saved before it is answered, and the plan of that write deletes
-the certificate's admission and restates each record by an item of its own (§627). A
+each certificate of origin that the records of kind `client` in force for the certificate
+hold, read or not, an absent origin among them, each naming in `renewed` every admission in
+force that reads and was renewed from the certificate, and every certificate that a statement
+in force took away and holds as renewed from it, and naming nothing where no admission in
+force of the certificate reads. `DELETE /gate/certificate` writes them for the certificate on
+the connection, by a write that is saved before it is answered, and the plan of that write
+deletes the certificate's admission and restates each record by an item of its own (§627). A
 certificate that a record, an item or a deletion record states as taken away is admitted by
 nobody, and its admission is counted among no admissions of a certificate (§615). A certificate
 that is no longer admitted when the write is made is answered `401 unpaired`, and nothing is
@@ -1262,14 +1338,20 @@ written. The clients page is built as far as the revocation: the rows grouped by
 and **Revoke** on the client's own row, the menu's first line, and the rows marked `not
 counted` and `listed twice`, each with Revoke where it is the first row of a client it names.
 The audit's lines are built for a certificate that its client gave up and for a client that
-the operator revoked. **Not built yet**: rules 3 to 5, so a renewal counts whatever became of
-the certificate it was made from, and `renewed` and `from` are written and asked by no rule;
-**Take certificate away** on the clients page, with what follows from a row going alone; and
-the runs of §644 item 16. *Held by* `AdmissionActsTests`, `StoreAdmissionsTests`,
-`RevocationOperationTests`, `ClientListTests` and `ClientListMenuTests`, and over real databases
-by `GiveUpInRealDatabaseTests`: the record in the file, the certificate a renewal issued still
-admitted once the old certificate is given up, and a write that no save kept taken back out
-with what it deleted put back.
+the operator revoked. **The rules about a renewal are built**, rules 3 to 5 with the chain of
+rule 4. Whether an admission counts is asked along its chain of origins by iteration, each
+certificate worked out once for a reading, so a long chain costs no depth of calls and a chain
+that leads back into itself ends: `StoreInForce` holds, for each certificate, the statements
+that took it away with their `renewed` and `from`, and the admissions in force that name it,
+worked out as the reading is made. The gate's hold, an approval held for a renewal at its write,
+and a certificate given up all ask the same judgment, so a renewal that does not count is
+answered `401 unpaired` wherever it asks, and the listing marks it for the clients page. **Not
+built yet**: **Take certificate away** on the clients page, with what follows from a row going
+alone; and the runs of §644 item 16. *Held by* `AdmissionActsTests`, `StoreAdmissionsTests`,
+`StoreAdmissionChainTests`, `RevocationOperationTests`, `ClientListTests` and
+`ClientListMenuTests`, and over real databases by `GiveUpInRealDatabaseTests`: the record in the
+file, the certificate a renewal issued still admitted once the old certificate is given up, and
+a write that no save kept taken back out with what it deleted put back.
 
 ### Profile names §616
 

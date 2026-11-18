@@ -112,7 +112,7 @@ namespace KeePassGate.Host.Tests
             using (var reading = new AuthorityService(records, NullGateLog.Instance).Read())
             {
                 Assume.That(reading.Presence, Is.EqualTo(AuthorityPresence.Undecided));
-                return AuthorityChoice.From(reading, StoreSeeds.Listed(records), null, null);
+                return AuthorityChoice.From(reading, candidate => StoreSeeds.Listed(records, candidate), null, null);
             }
         }
 

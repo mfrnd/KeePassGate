@@ -78,7 +78,7 @@ namespace KeePassGate.Tests.Gallery
             {
                 choice = AuthorityChoice.From(
                     reading,
-                    StoreSeeds.Listed(records),
+                    candidate => StoreSeeds.Listed(records, candidate),
                     keys => audit
                         ? keys.Take((keys.Count + 1) / 2).ToDictionary(k => k, k => Admitted.AddDays(19))
                         : null,

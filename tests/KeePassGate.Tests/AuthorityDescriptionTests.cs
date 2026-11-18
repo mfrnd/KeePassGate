@@ -456,6 +456,36 @@ namespace KeePassGate.Tests
             return string.Join(" ", AuthorityDescription.Of(reading, Listed(record), null, now).Details);
         }
 
+        [TestCase(AdmissionStanding.NotServed)]
+        [TestCase(AdmissionStanding.Twice)]
+        [TestCase(AdmissionStanding.Uncounted)]
+        public void An_admission_that_admits_nobody_is_not_warned_about(AdmissionStanding standing)
+        {
+            // As the clients page lists it: not a client, so not a client about to stop being
+            // admitted either.
+            _service.Create();
+
+            using (var authority = TestAuthority.New())
+            using (var certificate = authority.IssueClient("agent-fictitious"))
+            {
+                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null, InventedIssuer.Id);
+                var almostExpired = new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero)
+                    .AddDays(-10);
+                var listing = new AdmissionListing(
+                    new[] { record },
+                    new Dictionary<AdmissionRecord, AdmissionStanding> { { record, standing } },
+                    null,
+                    0,
+                    true);
+
+                using (var reading = _service.Read())
+                {
+                    Assert.That(string.Join(" ", AuthorityDescription.Of(reading, listing, null, almostExpired).Details),
+                        Does.Not.Contain("expire"));
+                }
+            }
+        }
+
         [TestCase(ClientReach.Stranger)]
         [TestCase(ClientReach.NotForClients)]
         [TestCase(ClientReach.NotYetValid)]

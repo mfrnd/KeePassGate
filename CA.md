@@ -207,7 +207,12 @@ that certificate by its admission key: what a client writes for the certificate 
 with `DELETE /gate/certificate`, §217. It refuses that certificate and leaves the client's other
 certificates admitted, the certificate a renewal has just issued among them, which a revocation
 by the client's key would refuse. It is restated and told of as a revocation is, and is as final.
-`STORE.md` §648.
+The record names every certificate its copy holds as renewed from that certificate when it is
+written, by an admission in force or by a record that has since taken the renewal away, so what
+a client keeps does not turn on which of its certificates was taken away first. A renewal made
+from that certificate that the record does not name, as at a gate whose copy was from before,
+does not count: its certificate is refused once the copies meet, and so is whatever is renewed
+onward from it. `STORE.md` §648, held by `StoreAdmissionChainTests`.
 
 **This reverses the revocation as a custom data key of its own**, `KPG.Revoked.<sha256>` beside an
 emptied record, added once and never changed, and the argument for it is kept because the fact it

@@ -94,6 +94,30 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_renewal_that_does_not_count_reads_not_counted_with_why_in_its_tooltip()
+        {
+            var record = Record("agent-invented", "ops");
+            var listing = new AdmissionListing(
+                new[] { record },
+                new Dictionary<AdmissionRecord, AdmissionStanding> { { record, AdmissionStanding.Uncounted } },
+                Array.Empty<UnreadAdmission>(),
+                0,
+                true);
+
+            using (var list = new ClientList(Allows, Allows))
+            {
+                list.Fill(listing, null, null, null);
+
+                Assert.That(Reach(list, 0), Is.EqualTo("not counted"));
+                Assert.That(
+                    Plain(Grid(list).Rows[0].Cells[0].ToolTipText).Replace("\r\n", " ").Replace("\n", " "),
+                    Does.Contain(
+                        "Renewed, directly or further back, from a certificate that was taken away without naming the "
+                        + "renewal made from it, or that no single admission admits, so it admits nobody."));
+            }
+        }
+
+        [Test]
         public void The_X_shows_what_it_does_on_its_own_cell_and_a_row_without_an_X_shows_nothing_there()
         {
             // A column's tooltip is its heading's, so the text of the X has to be its cell's own.

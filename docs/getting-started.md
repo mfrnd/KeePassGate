@@ -292,10 +292,11 @@ when it was created and how many clients it admitted, and for the authority sele
 fingerprint and every client it admitted, with the client's profiles, when it was admitted and when
 it last made a request, if the audit file remembers one. A client is counted and listed only while
 that authority would let it in: one whose certificate has expired, has not begun or is not for a
-client to present is left out, as the clients page marks it. Resting the pointer on a client names
-it and its profiles whole, where a column cuts them. While KeePass is part way through a
-synchronize, an import or a save, or shows its progress window, the window waits and opens once
-that is over, since an answer given before then could not be written.
+client to present is left out, as the clients page marks it, and so is a certificate that would
+read `listed twice` or `not counted` on the clients page were that authority kept. Resting the
+pointer on a client names it and its profiles whole, where a column cuts them. While KeePass is
+part way through a synchronize, an import or a save, or shows its progress window, the window
+waits and opens once that is over, since an answer given before then could not be written.
 
 ![The window asking which authority to keep](images/authority-chooser.png)
 

@@ -66,6 +66,18 @@ admits. None of them admits it, and resting the pointer on the row states so. Th
 such records; a file changed outside the plugin can hold them. Revoking one of the clients that
 hold the certificate leaves it admitted for the other.
 
+**Until (UTC)** states `not counted` for a certificate that was renewed from a certificate taken
+away, where whoever took that certificate away did not know of the renewal. That is a renewal
+approved on a copy of the database that had not learned the older certificate was given up, seen
+once the copies are synchronized, and the same holds for whatever was renewed onward from it.
+The gate refuses such a certificate, and the program pairs again or renews from a certificate of
+its own that is still admitted. Resting the pointer on the row states why: "Renewed, directly or
+further back, from a certificate that was taken away without naming the renewal made from it, or
+that no single admission admits, so it admits nobody." Such a row, a row marked `listed twice`
+and a row marked `not this authority` count as no client anywhere on the tab: not in the count
+of clients that recreating or deleting the authority is confirmed against, and not in the
+warnings about certificates near their end.
+
 Two more phrases take the date's place, for the two things the gate asks next, in the order it asks
 them. `not for client use` is a certificate this authority issued for something other than a
 program to present, such as its own host certificate: only a file written by hand or merged from

@@ -123,6 +123,13 @@ namespace KeePassGate.Authority
         /// Several admissions in force name its certificate, so none of them admits (S24).
         /// </summary>
         Twice,
+
+        /// <summary>
+        /// A renewal that does not count, `STORE.md` §648: along its chain of origins, a
+        /// certificate taken away by a statement that does not name the certificate renewed from
+        /// it, a certificate neither admitted nor taken away, or a certificate met a second time.
+        /// </summary>
+        Uncounted,
     }
 
     /// <summary>

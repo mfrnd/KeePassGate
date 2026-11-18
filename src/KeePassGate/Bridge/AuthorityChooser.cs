@@ -528,7 +528,7 @@ namespace KeePassGate.Bridge
                     return null;
                 }
 
-                choice = AuthorityChoice.From(reading, StoreAdmissions.Listing(stored), LastSeen, _log);
+                choice = AuthorityChoice.From(reading, candidate => StoreAdmissions.Listing(stored, candidate), LastSeen, _log);
             }
 
             offered = choice.Offered;
