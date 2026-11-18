@@ -87,6 +87,40 @@ namespace KeePassGate.Store
             IReadOnlyDictionary<string, string> members,
             IEnumerable<IReadOnlyDictionary<string, string>> items = null)
         {
+            string unread;
+            var record = Composed(key, kind, members, items, out unread);
+            if (unread != null)
+            {
+                throw new ArgumentException(unread);
+            }
+
+            return record;
+        }
+
+        /// <summary>
+        /// The same, answering null and why where the record does not read back as its kind, which
+        /// is what a plan refuses a write for: a summary entry holding more than the reader takes.
+        /// </summary>
+        /// <exception cref="ArgumentException">A kind the plugin does not know, or a member its kind reads missing.</exception>
+        public static StoreRecord TryCompose(
+            byte[] key,
+            string kind,
+            IReadOnlyDictionary<string, string> members,
+            IEnumerable<IReadOnlyDictionary<string, string>> items,
+            out string unread)
+        {
+            var record = Composed(key, kind, members, items, out unread);
+            return unread == null ? record : null;
+        }
+
+        /// <summary>The record composed, and why it does not read back, or null where it does.</summary>
+        private static StoreRecord Composed(
+            byte[] key,
+            string kind,
+            IReadOnlyDictionary<string, string> members,
+            IEnumerable<IReadOnlyDictionary<string, string>> items,
+            out string unread)
+        {
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
@@ -154,7 +188,7 @@ namespace KeePassGate.Store
             record.Title = "KPG " + kind + " " + record.Hex.Substring(0, 8) + (record.Protected ? StoreFormat.KeyTitleEnd : string.Empty);
             record.Notes = record.Protected ? StoreFormat.KeyNotes + "\r\n" + StoreFormat.RecordNotes : StoreFormat.RecordNotes;
 
-            ReadBack(key, record);
+            unread = ReadBack(key, record);
             return record;
         }
 
@@ -166,23 +200,21 @@ namespace KeePassGate.Store
         }
 
         /// <summary>
-        /// Refuses a record the reading would not take for what it was composed as, and lets go of
-        /// the form it read, overwriting the key that form found in an authority's or a
-        /// retirement's content.
+        /// Why the reading would not take a record for what it was composed as, or null where it
+        /// would, letting go of the form it read and overwriting the key that form found in an
+        /// authority's or a retirement's content.
         /// </summary>
-        private static void ReadBack(byte[] key, StoreRecord record)
+        private static string ReadBack(byte[] key, StoreRecord record)
         {
             var form = StoreChecked.Read(record.Version());
             var copy = (byte[])key.Clone();
             try
             {
                 var found = new FoundKey(copy);
-                if (form.Fails != null || !form.ReadsAsKind || !form.Passes(found, record.Identifier))
-                {
-                    throw new ArgumentException(
-                        "A record of kind " + record.Kind + " was composed that does not read back as a record of its kind: "
-                        + (form.Fails ?? "its members are not those its kind reads"));
-                }
+                return form.Fails != null || !form.ReadsAsKind || !form.Passes(found, record.Identifier)
+                    ? "A record of kind " + record.Kind + " was composed that does not read back as a record of its kind: "
+                      + (form.Fails ?? "its members are not those its kind reads")
+                    : null;
             }
             finally
             {

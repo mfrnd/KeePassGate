@@ -341,19 +341,18 @@ namespace KeePassGate.Store
 
             var height = starts ? 1 : inForce.Room.Height;
             var after = starts ? string.Empty : string.Join(" ", inForce.After.OrderBy(identifier => identifier, StringComparer.Ordinal));
-            StoreRecord head;
-            try
+            // A summary entry that does not read back holds more than the reader takes, which a
+            // store with room never reaches, and is refused here; anything else Compose raises is
+            // a defect, and travels to the catch-all above the write, which counts it.
+            string unread;
+            var head = StoreRecord.TryCompose(key, StoreKinds.Head, new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                head = StoreRecord.Compose(key, StoreKinds.Head, new Dictionary<string, string>(StringComparer.Ordinal)
-                {
-                    { StoreKinds.After, after },
-                    { StoreKinds.Height, height.ToString(CultureInfo.InvariantCulture) },
-                }, items);
-            }
-            catch (ArgumentException beyond)
+                { StoreKinds.After, after },
+                { StoreKinds.Height, height.ToString(CultureInfo.InvariantCulture) },
+            }, items, out unread);
+            if (head == null)
             {
-                // Beyond what the reader takes, which a store with room never reaches.
-                return Refusal(beyond.Message, leftOut);
+                return Refusal(unread, leftOut);
             }
 
             added.Add(head);
