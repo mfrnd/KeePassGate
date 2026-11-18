@@ -910,6 +910,13 @@ namespace KeePassGate.Ui
             }
         }
 
+        /// <summary>A column of text that shares the width the fitted columns leave.</summary>
+        /// <remarks>
+        /// **No column sorts at a press on its heading**, which a text column does unless told
+        /// otherwise. A row is acted on by its place in the list as it was filled, so a grid that
+        /// put its rows in another order left every X, every menu and every cell of profiles on
+        /// another client's row: the X beside a client took another client's admission away.
+        /// </remarks>
         private static DataGridViewTextBoxColumn Filling(string header, int weight)
         {
             return new DataGridViewTextBoxColumn
@@ -917,6 +924,7 @@ namespace KeePassGate.Ui
                 HeaderText = header,
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 FillWeight = weight,
+                SortMode = DataGridViewColumnSortMode.NotSortable,
                 ReadOnly = true
             };
         }
@@ -937,6 +945,7 @@ namespace KeePassGate.Ui
             {
                 HeaderText = header,
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
+                SortMode = DataGridViewColumnSortMode.NotSortable,
                 ReadOnly = true
             };
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Windows.Forms;
@@ -163,6 +164,49 @@ namespace KeePassGate.Tests
                 Assert.That(list.Clients[0].Subject, Does.Contain("agent-invented"),
                     "the wrong client was taken away");
             }
+        }
+
+        [Test]
+        public void A_press_on_a_heading_leaves_every_X_on_the_client_its_row_shows()
+        {
+            // A text column sorts its grid at a press on its heading unless told otherwise, and
+            // a row is acted on by its place in the list as it was filled: with the grid in
+            // another order, the X beside a client took another client's admission away.
+            var later = Record("zulu-fictitious", "ops");
+            var earlier = Record("alpha-fictitious", "ops");
+            var revoked = new List<string>();
+
+            using (var list = ListOf(
+                key =>
+                {
+                    revoked.Add(key);
+                    return null;
+                },
+                later,
+                earlier))
+            {
+                var grid = Grid(list);
+                Raise(grid, "OnColumnHeaderMouseClick", new DataGridViewCellMouseEventArgs(
+                    0, -1, 0, 0, new MouseEventArgs(MouseButtons.Left, 1, 0, 0, 0)));
+
+                var shown = grid.Rows.Cast<DataGridViewRow>()
+                    .Single(row => Convert.ToString(row.Cells[0].Value, CultureInfo.InvariantCulture)
+                        .Contains("alpha-fictitious"));
+                Raise(grid, "OnCellClick", new DataGridViewCellEventArgs(
+                    grid.Columns[ClientList.RevokeColumnName].Index, shown.Index));
+
+                Assert.That(revoked, Is.EqualTo(new[] { earlier.AdmissionKey }),
+                    "the X beside a client takes that client's admission away, whatever was pressed before it");
+                Assert.That(list.Clients, Is.EqualTo(new[] { later }));
+            }
+        }
+
+        /// <summary>Raises an event of the grid as its window does for a press of the mouse.</summary>
+        private static void Raise(DataGridView grid, string method, EventArgs pressed)
+        {
+            typeof(DataGridView)
+                .GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(grid, new object[] { pressed });
         }
 
         [Test]
