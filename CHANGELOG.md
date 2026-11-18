@@ -61,6 +61,13 @@ none, since it releases both.
   declares `frozen` beside them, which a later gate sends and this gate never does, and the client
   raises `StoreFrozen` for it. A 0.2 client takes each for the gate being unavailable, `API.md`
   §411. `STORE.md` §656.
+- **Fixed: a press on a heading of the clients list no longer puts its rows in another order.**
+  The list sorted itself at such a press, as a grid's text columns do unless told otherwise, while
+  each row was still acted on by its place before the press. The X beside a client then took
+  another client's admission away at OK and left the client it stood beside admitted, a row's
+  menu lifted the answer standing on another certificate, and the Profiles column showed another
+  row's profiles. The headings now do nothing when pressed. 0.2.0 and 0.1.0 have the fault: there
+  the page acts on the rows it shows only while no heading was pressed since the dialog opened.
 
 ## 0.2.0, 2026-11-17
 
