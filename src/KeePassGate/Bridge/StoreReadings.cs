@@ -59,8 +59,10 @@ namespace KeePassGate.Bridge
 
         // The state the log last named, and whether it last named the store past half its room,
         // so that a state lasting over many requests is named once. Neither answers anything:
-        // every request is judged by the reading of its own hold.
-        private StoreState _logged = StoreState.None;
+        // every request is judged by the reading of its own hold. Whole to start with, since a
+        // word is asked only of a database the gate served or holds back, and a store with no key
+        // is a word to the gate.
+        private StoreState _logged = StoreState.Whole;
         private bool _loggedHalf;
 
         public StoreReadings(PwDatabase database, IReadHold hold, IGateLog log)
@@ -98,7 +100,7 @@ namespace KeePassGate.Bridge
         private string WordNow()
         {
             var reading = Now();
-            var word = StoreWords.Of(reading.State);
+            var word = StoreWords.Answered(reading.State);
 
             // A store served past half its room: the operator is told from there on, `STORE.md`
             // §643, once for as long as it stays there, as a state is.
@@ -136,9 +138,9 @@ namespace KeePassGate.Bridge
             {
                 _log.Warn("not serving a database whose store is " + word + ": " + reading.Reason + counted);
             }
-            else if (StoreWords.Of(was) != null)
+            else if (StoreWords.Answered(was) != null)
             {
-                _log.Info("serving a database whose store held it back as " + StoreWords.Of(was) + " again" + counted);
+                _log.Info("serving a database whose store held it back as " + StoreWords.Answered(was) + " again" + counted);
             }
 
             return word;

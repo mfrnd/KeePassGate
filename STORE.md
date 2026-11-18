@@ -2848,7 +2848,11 @@ that of `undecided` today, for every word:
   a gate that was serving when the key was lost, by a synchronize that brought the deletion or
   by the edits in its own window, answers `lost` until the database is locked or closed. It is
   also how `outdated` is answered where a later format changed the authority's record so that
-  an earlier plugin reads no host certificate in it.
+  an earlier plugin reads no host certificate in it. Where a key that stands retires the
+  authority the gate held, as another copy's Delete brings a retirement in a synchronize, what
+  it held is let go and the name resolves to nothing, held back or not, since a retired
+  authority's clients are told nothing. A connection that took what the gate held before the
+  store came to hold nothing back is answered `busy`, and asks again.
 - **In every other case the name resolves to nothing and the connection is dropped with no
   answer**, as for a database with no authority today, `DESIGN.md` §112: a database opened or
   unlocked with no store key in it, a KeePass started after the key was lost, and a database
@@ -2869,12 +2873,21 @@ answers `lost` after the key carrier is deleted under it, and nothing after a lo
 for its next write (§643), answered before a route is chosen by the target of a database the
 gate serves, and, ahead of `undecided`, by each target of a database that holds several
 authorities, under the host certificate of the authority that stands or of each of those
-authorities, worked out under each key that stands (§614). A database whose store holds no key
-resolves no name, and a database whose store holds no authority that stands is served nothing.
-`lost`, and the memory of what a gate last served with (§632), are not built; `frozen` comes
-with the release that first moves the format
-number (§652), and the routing document declares it and the reference client knows it already.
-*Held by* `StoreWordsTests`, `StoreHeldBackGateTests`, `UndecidedGateTests`,
+authorities, worked out under each key that stands (§614). `lost`, and the memory of what a gate
+last served with: the host certificate and the gate key of the authority served, copied as the
+target is made, carried by every entry made for the database in its place, and zeroed at the
+lock, at the close, when KeePass ends, and where a store that holds nothing back gives no
+authority to answer with, as where the authority served was deleted on the tab. Where the
+reading gives no authority to answer with and the store holds the gate back, that memory
+answers the store's word, `lost` for a file with no key, under its own gate key, and judges no
+certificate and reaches nothing; a lock lets it go with no responder. A database opened or
+unlocked with no store key, and a database whose store holds no authority that stands, resolve
+no name. *Held by* `HeldBackGateTests`, `StoreHeldBackGateTests`, `StoreWordsTests` and
+`LockInRealDatabaseTests`: a served database whose key carrier is deleted answers `lost` with
+the host certificate and gate key it served with, and nothing after a lock, and a database whose
+authority was deleted answers nothing. `frozen` comes with the release that first moves the
+format number (§652), and the routing document declares it and the reference client knows it
+already. *Held by* `StoreWordsTests`, `StoreHeldBackGateTests`, `HeldBackGateTests`,
 `UnavailableWordsTests` and `StoreInForceTests`, the order of the words by
 `StoreReadingStatesTests` and `StoreRoomTests`, and in a real KeePass by `LiveStoreTests`.
 
@@ -3739,7 +3752,10 @@ that finds a measurement against a decision reports it and does not design aroun
     whether `lost` and `outdated` can be sent at all (S33). The pull request that builds the
     store's core runs `split`, `outdated` and `stopped` over a real handshake to a request and to
     a `head` (`StoreHeldBackGateTests`), and `stopped` in a real KeePass (`LiveStoreTests`).
-    `lost` and `frozen` stay owed by the pull requests that make the gate answer them.
+    The pull request that keeps the authority in the store runs `lost` over a real handshake and
+    from a key carrier deleted in a real database (`HeldBackGateTests`,
+    `LockInRealDatabaseTests`); `lost` in KeePass's window (`LiveLostTests`) and `frozen` stay
+    owed, `frozen` by the pull request that makes the gate answer it.
 23. **The grant editor's rows for a rule in several versions** (§657). The pictures the decision
     was taken from are of a prototype with rows that were made up, and not of a store: two and
     three versions, scrolled, under a high contrast setting, and with what removing a row and

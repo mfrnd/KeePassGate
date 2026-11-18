@@ -200,6 +200,7 @@ def test_every_503_is_one_family_with_one_class_per_word() -> None:
         (errors.GateBusy, "busy"),
         (errors.DatabaseLocked, "locked"),
         (errors.AuthorityUndecided, "undecided"),
+        (errors.StoreLost, "lost"),
         (errors.StoreSplit, "split"),
         (errors.StoreOutdated, "outdated"),
         (errors.StoreStopped, "stopped"),

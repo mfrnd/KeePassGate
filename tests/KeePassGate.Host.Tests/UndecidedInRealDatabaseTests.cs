@@ -55,7 +55,7 @@ namespace KeePassGate.Host.Tests
 
             foreach (var target in targets)
             {
-                Assert.That(target.Unavailable, Is.EqualTo(UndecidedTarget.Error));
+                Assert.That(target.Unavailable, Is.EqualTo(HeldBackTarget.Undecided));
                 Assert.That(target.IsLocked, Is.False);
                 Assert.That(target.Authority, Is.Null, "no authority is loaded to judge a certificate with");
                 Assert.That(target.AuthorityKey, Is.Null, "nothing is issued from a candidate");

@@ -189,7 +189,7 @@ namespace KeePassGate.Host.Tests.Live
         public void While_it_was_open_the_client_of_this_copy_was_told_the_database_is_undecided()
         {
             Assert.That(_oursWhileChoosing.Status, Is.EqualTo(503), Said(_oursWhileChoosing));
-            Assert.That(_oursWhileChoosing.Body, Does.Contain(UndecidedTarget.Error));
+            Assert.That(_oursWhileChoosing.Body, Does.Contain(HeldBackTarget.Undecided));
         }
 
         [Test]
@@ -198,7 +198,7 @@ namespace KeePassGate.Host.Tests.Live
             // Under the other authority's own gate key: each candidate answers, so the clients of
             // either reach an answer rather than a connection that fails for no reason they can see.
             Assert.That(_theirsWhileChoosing.Status, Is.EqualTo(503), Said(_theirsWhileChoosing));
-            Assert.That(_theirsWhileChoosing.Body, Does.Contain(UndecidedTarget.Error));
+            Assert.That(_theirsWhileChoosing.Body, Does.Contain(HeldBackTarget.Undecided));
         }
 
         [Test]

@@ -313,6 +313,21 @@ namespace KeePassGate.Store
                 return authorities;
             }
 
+            var retired = Retired(key, records, byTag, authorities.Select(record => record.Form.Member(StoreKinds.Id)));
+            return authorities
+                .Where(record => !retired.Contains(record.Form.Member(StoreKinds.Id)))
+                .OrderBy(record => record.Hex, StringComparer.Ordinal)
+                .ToList();
+        }
+
+        /// <summary>
+        /// The authorities a retirement under a key names, of those whose `id` is given: by
+        /// record, by an item of any summary entry present, or by a deletion record of its tag
+        /// whose subject hash is that of an `id` given, which are the only values hashed.
+        /// </summary>
+        public static ISet<string> Retired(
+            FoundKey key, IReadOnlyList<FoundRecord> records, IReadOnlyDictionary<string, List<string>> byTag, IEnumerable<string> ids)
+        {
             var retired = new HashSet<string>(
                 records.Where(record => record.Is(StoreKinds.Retired)).Select(record => record.Form.Member(StoreKinds.AuthorityMember)),
                 StringComparer.Ordinal);
@@ -327,15 +342,10 @@ namespace KeePassGate.Store
             if (byTag.TryGetValue(key.TagOf(retirement), out told) && told.Count > 0)
             {
                 var subjects = new HashSet<string>(told.Select(SubjectOf), StringComparer.Ordinal);
-                retired.UnionWith(authorities
-                    .Select(record => record.Form.Member(StoreKinds.Id))
-                    .Where(id => subjects.Contains(key.Subject(retirement.SubjectPrefix + id))));
+                retired.UnionWith(ids.Where(id => subjects.Contains(key.Subject(retirement.SubjectPrefix + id))));
             }
 
-            return authorities
-                .Where(record => !retired.Contains(record.Form.Member(StoreKinds.Id)))
-                .OrderBy(record => record.Hex, StringComparer.Ordinal)
-                .ToList();
+            return retired;
         }
 
         /// <summary>

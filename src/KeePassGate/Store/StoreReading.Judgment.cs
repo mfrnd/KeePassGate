@@ -57,6 +57,12 @@ namespace KeePassGate.Store
             public IReadOnlyList<FoundRecord> Answering { get; private set; } = Array.Empty<FoundRecord>();
 
             /// <summary>
+            /// Whether a retirement under a key that stands names an authority, by its `id`: none
+            /// where no key is judged.
+            /// </summary>
+            public Func<string, bool> Retires { get; private set; } = id => false;
+
+            /// <summary>
             /// A store with more keys than the reading works under: split, with no key judged,
             /// `StoreFormat.MaxKeys`.
             /// </summary>
@@ -171,6 +177,7 @@ namespace KeePassGate.Store
                         Answering = standing
                             .SelectMany(key => StoreInForce.Standing(keys[key], records[key], byTag))
                             .ToList(),
+                        Retires = id => standing.Any(key => StoreInForce.Retired(keys[key], records[key], byTag, new[] { id }).Contains(id)),
                     };
                 }
 
@@ -182,6 +189,7 @@ namespace KeePassGate.Store
                 judged.Damage = damage[store].Count;
                 judged.Passed = passed;
                 judged.ByHistory = records[store].Count(record => record.ByHistory);
+                judged.Retires = id => StoreInForce.Retired(keys[store], records[store], byTag, new[] { id }).Contains(id);
                 return judged;
             }
 

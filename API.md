@@ -495,7 +495,9 @@ works with a 0.3 gate as the rule above has it. It stays in 0.3 by the rule for 
 ruling of 2026-11-15 gave.
 
 **0.3 adds words a client may rely on**, which is what moves the minor version. A `503` carries
-`split`, `outdated` or `stopped` where the database's store holds the gate back, and the routing
-document declares `frozen`, which a later gate sends, `STORE.md` §656. Each is a `503`, so a 0.2
+`lost`, `split`, `outdated` or `stopped` where the database's store holds the gate back, `lost`
+from a gate that was serving the database when its store key went and only until the database
+is locked or closed, and the routing document declares `frozen`, which a later gate sends,
+`STORE.md` §656. Each is a `503`, so a 0.2
 client takes each for the gate being unavailable and works on, and the 0.3 client raises a class
 of its own for each.

@@ -30,6 +30,7 @@ from pykeepassgate.errors import (
     RouteRefused,
     StorageError,
     StoreFrozen,
+    StoreLost,
     StoreOutdated,
     StoreSplit,
     StoreStopped,
@@ -195,6 +196,7 @@ def test_an_empty_answer_is_an_empty_object_rather_than_a_failure(
         (503, "locked", DatabaseLocked),
         (503, "busy", GateBusy),
         (503, "undecided", AuthorityUndecided),
+        (503, "lost", StoreLost),
         (503, "split", StoreSplit),
         (503, "outdated", StoreOutdated),
         (503, "stopped", StoreStopped),
@@ -232,7 +234,8 @@ def test_every_refusal_becomes_something_a_caller_can_act_on(
 
 
 @pytest.mark.parametrize(
-    "error", ["locked", "busy", "undecided", "split", "outdated", "stopped", "frozen", "teapot"]
+    "error",
+    ["locked", "busy", "undecided", "lost", "split", "outdated", "stopped", "frozen", "teapot"],
 )
 def test_a_503_keeps_the_word_and_the_delay_the_gate_gave(
     gate: FakeGate, paired: GateClient, error: str
@@ -931,6 +934,7 @@ class TestWaitingOutARefusal:
     @pytest.mark.parametrize(
         ("word", "refusal"),
         [
+            ("lost", StoreLost),
             ("split", StoreSplit),
             ("outdated", StoreOutdated),
             ("stopped", StoreStopped),

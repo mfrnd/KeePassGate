@@ -819,6 +819,8 @@ namespace KeePassGate.Bridge
 
             CachedTarget cached;
             CachedTarget before = null;
+            // codeql[cs/missed-using-statement] handed on to the entry made, or let go below where no entry takes it, which no `using` can do
+            Remembered remembered = null;
             string served = null;
             if (_cache.TryGetValue(database, out cached))
             {
@@ -828,39 +830,82 @@ namespace KeePassGate.Bridge
                     return cached;
                 }
 
-                served = cached.IsUndecided
-                    ? "a database that held several authorities"
-                    : "the database with authority " + CertificateDigest.Shorten(cached.Target.DatabaseId);
+                served = cached.Target != null
+                    ? "the database with authority " + CertificateDigest.Shorten(cached.Target.DatabaseId)
+                    : cached.IsUndecided ? "a database that held several authorities" : "a database answered from what it was served with";
                 before = cached;
+                remembered = cached.TakeRemembered();
                 cached.Dispose();
                 _cache.Remove(database);
             }
 
-            var standing = reading.Answering;
-            if (standing.Count > 1)
+            // What the gate last served the database with goes on to the entry made now, or is let
+            // go here: a store whole with no authority to answer with keeps nothing, and neither
+            // does a store that holds the gate back while a key that stands retires the authority
+            // served, since the clients of a retired authority are told nothing, `STORE.md` §656.
+            try
             {
-                return Undecided(database, signature, standing, readings, reading.State, before);
-            }
-
-            // The document is parsed here, once for each change of what stands, and never at a
-            // connection: a connection is held to the standing authority's entry and version.
-            var problems = new List<string>();
-            var material = standing.Count == 0 ? null : StoreAuthorities.Material(standing[0], problems);
-            if (material == null)
-            {
-                // No authority, or an authority that cannot be read, and nothing to serve either way. The
-                // tab is where an operator is told why, and a database that was never served is
-                // left at that. A database served until this reading is reported here too,
-                // once, because every client of it is about to be dropped and the log is where an
-                // operator looks for why.
-                if (served != null)
+                var standing = reading.Answering;
+                if (standing.Count > 1)
                 {
-                    _log.Warn("stopped serving " + served + ": " + Unserved(reading, problems));
+                    var undecided = Undecided(database, signature, standing, readings, reading.State, before);
+                    undecided.Remembered = remembered;
+                    remembered = null;
+                    return undecided;
                 }
 
-                return null;
-            }
+                // The document is parsed here, once for each change of what stands, and never at a
+                // connection: a connection is held to the standing authority's entry and version.
+                var problems = new List<string>();
+                var material = standing.Count == 0 ? null : StoreAuthorities.Material(standing[0], problems);
+                if (material == null)
+                {
+                    var word = StoreWords.Answered(reading.State);
+                    if (word != null && remembered != null && !reading.Retires(remembered.DatabaseId))
+                    {
+                        if (before == null || !before.FromMemory)
+                        {
+                            _log.Warn("answering " + word + " for the database with authority " +
+                                      CertificateDigest.Shorten(remembered.DatabaseId) + " from what it was served with: " +
+                                      Unserved(reading, problems));
+                        }
 
+                        var held = Remembering(database, signature, remembered, readings);
+                        remembered = null;
+                        return held;
+                    }
+
+                    // No authority, or an authority that cannot be read, and nothing to serve
+                    // either way. The tab is where an operator is told why, and a database that was
+                    // never served is left at that. A database served until this reading is
+                    // reported here too, once, because every client of it is about to be dropped
+                    // and the log is where an operator looks for why.
+                    if (served != null)
+                    {
+                        _log.Warn("stopped serving " + served + ": " + Unserved(reading, problems));
+                    }
+
+                    return null;
+                }
+
+                return Served(database, signature, readings, standing[0], material);
+            }
+            finally
+            {
+                if (remembered != null)
+                {
+                    remembered.Dispose();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Serves a database under the single authority standing, remembering what it is served
+        /// with for the reading that finds no authority to answer with. Called with the lock held.
+        /// </summary>
+        private CachedTarget Served(
+            PwDatabase database, Signature signature, StoreReadings readings, FoundRecord standing, AuthorityMaterial material)
+        {
             // The target takes the reading, and the cache takes the target, which lets go of it
             // with its last holder. Every other way out lets go of whichever holds it here, in a
             // `finally` rather than a `catch` for the reason `Current` gives.
@@ -871,7 +916,7 @@ namespace KeePassGate.Bridge
             var kept = false;
             try
             {
-                target = new MaterialTarget(database, authority, _writer, _hold, _log, readings, standing[0]);
+                target = new MaterialTarget(database, authority, _writer, _hold, _log, readings, standing);
 
                 var path = PathOf(database);
 
@@ -881,6 +926,21 @@ namespace KeePassGate.Bridge
                 Discard(path);
 
                 var entry = new CachedTarget(signature, path, Responder(authority), target, null);
+
+                // Remembered last, once the responder is minted, so that no exception leaves a
+                // copy of the gate key behind that nothing overwrites. Into a local and zeroed
+                // afterwards: the property hands out a copy, and what is remembered takes a copy
+                // of its own.
+                var gateKey = target.GateKey;
+                try
+                {
+                    entry.Remembered = new Remembered(target.DatabaseId, gateKey, material.HostKey);
+                }
+                finally
+                {
+                    Array.Clear(gateKey, 0, gateKey.Length);
+                }
+
                 _cache[database] = entry;
                 kept = true;
 
@@ -899,6 +959,51 @@ namespace KeePassGate.Bridge
                     {
                         authority.Dispose();
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Answers a database whose store holds the gate back and gives no authority to answer
+        /// with, from what the gate last served it with, `STORE.md` §656: the store's word, `lost`
+        /// for a file with no store key, and `busy` once the store holds nothing back, to a
+        /// connection that took the target before the reading changed and asks again. Called with
+        /// the lock held; the entry takes what is remembered once it is made, and the caller lets
+        /// go of it otherwise.
+        /// </summary>
+        /// <remarks>
+        /// **No responder**, since minting a responder needs the authority's key, which nothing
+        /// remembers: a lock lets the entry go and answers nothing, as for a database without a
+        /// responder.
+        /// </remarks>
+        private CachedTarget Remembering(PwDatabase database, Signature signature, Remembered remembered, StoreReadings readings)
+        {
+            var gateKey = remembered.GateKey;
+            // codeql[cs/missed-using-statement] let go by the cached entry, or disposed below when it is not cached
+            HeldBackTarget target = null;
+            var kept = false;
+            try
+            {
+                target = new HeldBackTarget(remembered.DatabaseId, gateKey, remembered.Host, () => readings.Word, HeldBackTarget.Busy);
+
+                var path = PathOf(database);
+                Discard(path);
+
+                var entry = new CachedTarget(signature, path, null, null, new List<HeldBackTarget> { target })
+                {
+                    Remembered = remembered,
+                    FromMemory = true,
+                };
+                _cache[database] = entry;
+                kept = true;
+                return entry;
+            }
+            finally
+            {
+                Array.Clear(gateKey, 0, gateKey.Length);
+                if (!kept && target != null)
+                {
+                    target.Dispose();
                 }
             }
         }
@@ -955,7 +1060,7 @@ namespace KeePassGate.Bridge
         {
             var ids = new HashSet<string>(standing.Select(record => record.Form.Member(StoreKinds.Id)), StringComparer.Ordinal);
             var same = before != null && before.IsUndecided && before.Standing.SetEquals(ids) && before.State == state;
-            var targets = new List<UndecidedTarget>();
+            var targets = new List<HeldBackTarget>();
             Func<string> word = () => readings.Word;
 
             // Each candidate holds a copy of its gate key until it is disposed, and nothing owns
@@ -979,7 +1084,7 @@ namespace KeePassGate.Bridge
                         var gateKey = material.SniKey;
                         try
                         {
-                            targets.Add(new UndecidedTarget(id, gateKey, material.HostKey, word));
+                            targets.Add(new HeldBackTarget(id, gateKey, material.HostKey, word, HeldBackTarget.Undecided));
                         }
                         finally
                         {
@@ -1005,6 +1110,7 @@ namespace KeePassGate.Bridge
 
                 var entry = new CachedTarget(signature, path, null, null, targets)
                 {
+                    IsUndecided = true,
                     Standing = ids,
                     State = state,
                     Asked = same && before.Asked,
@@ -1169,7 +1275,7 @@ namespace KeePassGate.Bridge
             private string _path;
             private readonly CertifiedKey _responder;
             private readonly MaterialTarget _target;
-            private readonly List<UndecidedTarget> _undecided;
+            private readonly List<HeldBackTarget> _undecided;
 
             /// <summary>What a database answers with, as it was read now.</summary>
             public CachedTarget(
@@ -1177,13 +1283,13 @@ namespace KeePassGate.Bridge
                 string path,
                 CertifiedKey responder,
                 MaterialTarget target,
-                List<UndecidedTarget> undecided)
+                List<HeldBackTarget> undecided)
             {
                 _signature = signature;
                 _path = path;
                 _responder = responder;
                 _target = target;
-                _undecided = undecided ?? new List<UndecidedTarget>();
+                _undecided = undecided ?? new List<HeldBackTarget>();
             }
 
             /// <summary>What is served, or null while the database holds several authorities.</summary>
@@ -1193,9 +1299,23 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>Whether this database holds several authorities and none is chosen.</summary>
-            public bool IsUndecided
+            public bool IsUndecided { get; set; }
+
+            /// <summary>Whether this entry answers from what the gate last served the database with.</summary>
+            public bool FromMemory { get; set; }
+
+            /// <summary>
+            /// What the gate last served this database with, or null: handed on to the entry made
+            /// in this entry's place, and zeroed with this entry otherwise.
+            /// </summary>
+            public Remembered Remembered { get; set; }
+
+            /// <summary>What is remembered, handed over, so that letting this entry go keeps it.</summary>
+            public Remembered TakeRemembered()
             {
-                get { return _target == null; }
+                var remembered = Remembered;
+                Remembered = null;
+                return remembered;
             }
 
             /// <summary>
@@ -1309,6 +1429,52 @@ namespace KeePassGate.Bridge
                 {
                     candidate.Dispose();
                 }
+
+                var remembered = TakeRemembered();
+                if (remembered != null)
+                {
+                    remembered.Dispose();
+                }
+            }
+        }
+
+        /// <summary>
+        /// What the gate last served a database with, `STORE.md` §656: the authority's `id`, a
+        /// copy of its gate key and its host certificate and key, kept from a served target being
+        /// made until the database is locked or closed, or reads with no authority to answer with
+        /// in a store that holds nothing back, and the gate key zeroed then.
+        /// </summary>
+        /// <remarks>
+        /// **The host key is let go and not overwritten**, as the host key a served target signs
+        /// with is, `CA.md` §208: a BouncyCastle key over an immutable integer offers nothing to
+        /// overwrite.
+        /// </remarks>
+        private sealed class Remembered : IDisposable
+        {
+            private readonly byte[] _gateKey;
+
+            public Remembered(string databaseId, byte[] gateKey, CertifiedKey host)
+            {
+                DatabaseId = databaseId;
+                _gateKey = (byte[])gateKey.Clone();
+                Host = host;
+            }
+
+            /// <summary>The `id` of the authority the database was served with.</summary>
+            public string DatabaseId { get; private set; }
+
+            /// <summary>The host certificate and key the database was served with.</summary>
+            public CertifiedKey Host { get; private set; }
+
+            /// <summary>A copy of the gate key, for the caller to zero.</summary>
+            public byte[] GateKey
+            {
+                get { return (byte[])_gateKey.Clone(); }
+            }
+
+            public void Dispose()
+            {
+                Array.Clear(_gateKey, 0, _gateKey.Length);
             }
         }
 

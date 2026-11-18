@@ -35,6 +35,7 @@ namespace KeePassGate.Store
     {
         private readonly ISet<int> _tags;
         private readonly ISet<string> _passing;
+        private readonly Func<string, bool> _retires;
         private StoreKept _owned;
 
         private StoreReading(
@@ -52,6 +53,7 @@ namespace KeePassGate.Store
             Judged = judged.Judged;
             InForce = judged.InForce;
             Answering = judged.Answering;
+            _retires = judged.Retires;
         }
 
         /// <summary>
@@ -92,6 +94,18 @@ namespace KeePassGate.Store
         /// `StoreFormat.MaxKeys`, where no key is judged.
         /// </summary>
         internal IReadOnlyList<FoundRecord> Answering { get; private set; }
+
+        /// <summary>
+        /// Whether a retirement under a key that stands names this authority, by record, by an
+        /// item of a summary entry or by a deletion record of its tag, whatever the store's state:
+        /// never where no key is found, and never past `StoreFormat.MaxKeys`, where no key is
+        /// judged, `STORE.md` §656.
+        /// </summary>
+        /// <param name="id">The authority's `id`, hashed against the deletion records of retirements.</param>
+        internal bool Retires(string id)
+        {
+            return id != null && _retires(id);
+        }
 
         /// <summary>
         /// The entries this was read from, with their versions: what a write that has not yet

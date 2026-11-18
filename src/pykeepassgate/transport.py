@@ -48,6 +48,7 @@ from .errors import (
     ProtocolError,
     StorageError,
     StoreFrozen,
+    StoreLost,
     StoreOutdated,
     StoreSplit,
     StoreStopped,
@@ -597,7 +598,7 @@ def unavailable(reply: Response, *, busy: str, locked: str, undecided: str) -> G
 
     # Each of these ends by an act of the operator's at KeePass, of no length anything here
     # knows, so none has a budget and the message is the class's own wherever it is met.
-    for held_back in (StoreSplit, StoreOutdated, StoreStopped, StoreFrozen):
+    for held_back in (StoreLost, StoreSplit, StoreOutdated, StoreStopped, StoreFrozen):
         if word == held_back.word:
             return held_back(retry_after=reply.retry_after)
 

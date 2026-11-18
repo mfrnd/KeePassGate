@@ -186,7 +186,7 @@ namespace KeePassGate.Host.Tests
             _chooser.AskAll();
 
             Assert.That(_asked, Is.EqualTo(1), "once per state: the tab is where it is asked again");
-            Assert.That(_targets.Current().All(t => t.Unavailable == Gate.UndecidedTarget.Error), Is.True);
+            Assert.That(_targets.Current().All(t => t.Unavailable == Gate.HeldBackTarget.Undecided), Is.True);
         }
 
         [Test]

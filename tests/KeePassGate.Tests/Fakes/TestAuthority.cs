@@ -676,7 +676,7 @@ namespace KeePassGate.Tests.Fakes
                     locked.Retain();
                 }
 
-                var undecided = target as UndecidedTarget;
+                var undecided = target as HeldBackTarget;
                 if (undecided != null)
                 {
                     undecided.Retain();

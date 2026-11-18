@@ -1885,8 +1885,8 @@ components:
             status. Where several share a status, the response
             declaring them names what each means, and those are the words worth matching on,
             because each is a different thing for a client to do next: `locked`, `undecided`,
-            `busy`, `split`, `outdated`, `stopped` and `frozen` on a `503`; `proof` on a `401`
-            from pairing; `no invitation` and `no exchange` on
+            `busy`, `lost`, `split`, `outdated`, `stopped` and `frozen` on a `503`; `proof` on a
+            `401` from pairing; `no invitation` and `no exchange` on
             a `409` from pairing, and `this session`, `too early` and `forever` on a `409` from
             renewal; `malformed`, `name` and `profile` on a `400` from `pairRequest`; and
             `not saved`, `not verified`, `not recorded` and `internal error` on a `500`. The rest
@@ -2346,12 +2346,12 @@ components:
     # afterwards, inside its turn, keeps the line its decision got. §502
     Unavailable:
       description: |
-        Not now, where a refusal is not. The body carries `locked`, `undecided`, `busy`, `split`,
-        `outdated` or `stopped`, and so does `KPG-Unavailable`, for a `head`. `locked` and `busy`
-        are worth trying again shortly, and `busy` covers everything the password manager is
-        doing that this request cannot be served underneath; the others each last until a person
-        acts at KeePass, for as long as that takes. `frozen` is declared beside them and sent by
-        no gate of this version.
+        Not now, where a refusal is not. The body carries `locked`, `undecided`, `busy`, `lost`,
+        `split`, `outdated` or `stopped`, and so does `KPG-Unavailable`, for a `head`. `locked`
+        and `busy` are worth trying again shortly, and `busy` covers everything the password
+        manager is doing that this request cannot be served underneath; the others each last until
+        a person acts at KeePass, for as long as that takes. `frozen` is declared beside them and
+        sent by no gate of this version.
 
         `locked` is the database being locked, answered before a route is chosen at all, by a
         second host certificate held only in memory so that a locked KeePass answers rather than
@@ -2380,8 +2380,16 @@ components:
         entry, already waiting for its turn on KeePass's thread when the store came to hold the
         gate back, is answered the same word; a pairing, a renewal and a client's revocation of
         itself are not asked again once they arrived.
-        Where several hold, the first in this order is answered: `locked`, `split`, `outdated`,
-        `stopped`, `undecided`.
+        Where several hold, the first in this order is answered: `locked`, `lost`, `split`,
+        `outdated`, `stopped`, `undecided`.
+
+        `lost` is a database whose file holds no store key, as the entry that carried it, deleted
+        for good in KeePass or by a synchronize, leaves it. It is answered only by a gate that was
+        serving the database when the key went, before a route is chosen and with the host
+        certificate it served with, to every request whatever it asks, pairing included, until the
+        database is locked or closed; a database opened with no store key answers nothing at all.
+        It lasts until the operator creates an authority again at KeePass, after which every
+        client pairs again.
 
         `split` is records of the store under more than one store key, as a synchronize with a
         copy that made a store of its own leaves them, and it lasts until the operator keeps
@@ -2725,8 +2733,8 @@ components:
     Unavailable:
       description: |
         Which refusal this is, the word the body's `error` names: `locked`, `undecided`, `busy`,
-        `split`, `outdated` or `stopped`, on every `503` this gate sends and on nothing else, and
-        `frozen` from a later gate. Here as well as in the body
+        `lost`, `split`, `outdated` or `stopped`, on every `503` this gate sends and on nothing
+        else, and `frozen` from a later gate. Here as well as in the body
         for the answer to a `head`, which carries no body, so that a client asking whether
         something is there tells `busy` from `locked` and waits each out as it would for a
         `get`. RFC 9110 section 9.3.2 asks a `head` for the header fields a `get` would
