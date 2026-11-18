@@ -1481,12 +1481,14 @@ is `StoreInForce`, worked out for a store that is whole or stopped: every record
 with whether a deletion record names it and whether it counts by its history, the summary entries
 present, in force and told of by deletion records, what the retirements, the revocations and the
 removals take away by record, by item and by deletion record, and the statements that took
-certificates away by record, by item and by a deletion record of an admission key a record or an
-item of that kind names (steps 1, 2, 4 and 7), the highest format number and plugin version (step
-6), the authorities that stand, and the room of §627. A deletion record tells of a certificate taken
-away by the admission keys an admission names, its `certificate` and its `from`, only once the
-admissions are read, which comes with the pull request that keeps the admissions in the store: until
-then such a deletion record tells of nothing but what a record or an item of that kind names. The
+certificates away by record, by item and by a deletion record of an admission key the file knows
+(steps 1, 2, 4 and 7), the highest format number and plugin version (step 6), the authorities that
+stand, and the room of §627. The admission keys the file knows are those of step 2: the
+`certificate` and the `from` of every record of kind `client` present under the key, in force or
+not, each where it is an admission key, and what the records and the items that took certificates
+away name; they are gathered only where a deletion record under the key carries the tag of a
+certificate taken away, so a store whose deletion records carry no such tag hashes no subject for
+them. The records of kind `client` are kept with the texts of §658 and given no meaning yet. The
 authorities that stand under each key that stands are worked out for every state but no key and a
 store past `StoreFormat.MaxKeys`, of which no key is judged, as a word is answered under them
 (§656). What each kind means for access beyond that (steps 3 and 5) is built by the pull requests
@@ -1500,7 +1502,11 @@ whose store holds no key is served nothing, and a gate that was serving it when 
 `StoreReadingKeysTests`, `StoreReadingFormatTests`, `StoreReadingWholeTests`, `StoreInForceTests`,
 `StoreRoomTests`, `StoreInRealDatabaseTests`, `StoreStatesInRealDatabaseTests`,
 `StoreAuthoritiesTests` and `StoreAuthorityServedTests`, and in a real KeePass by `LiveStoreTests`
-and `LiveAuthorityTests`.
+and `LiveAuthorityTests`; the admission keys by `StoreInForceTests`: a deletion record of a
+certificate taken away tells of it by the `certificate` of an admission, in force or not, and by
+the `from` of a renewal, as a statement of its own that the room counts; a text that is no
+admission key adds no key; and a store with admissions hashes no subject for them until a
+deletion record carries that tag.
 
 ### Which entries are records §621
 
@@ -1831,11 +1837,20 @@ taken away, a keep record and a version record they are proposed.
    away. A deletion record tells of a certificate taken away when its identifier begins with that
    kind's tag under the store key and carries the subject hash of `certificate:` and an admission
    key the file knows. The file knows an admission key from the `certificate` and the `from` of
-   an admission, and from the `certificate`, the `from` and each key in `renewed` of a record or
-   an item that took a certificate away. Such a deletion record whose identifier is that of a
-   record present, or the `id` of an item, adds nothing to what that record or item states. Any
-   other stands for a record whose content is nowhere, and is a statement of its own that names
-   no renewal (§648). A keep record is united under the rules of §649.
+   every record of kind `client` present, in force or not and whether or not it reads as an
+   admission (§615), since a record beside a deletion record still holds its content in the
+   file, and from the `certificate`, the `from` and each key in `renewed` of a record or an item
+   that took a certificate away; a text that is not 64 lowercase hexadecimal characters is no
+   admission key. Knowing a key only lets a deletion record refuse. The `from` of a renewal is
+   among them because the admission of a certificate taken away is deleted in the write that
+   takes it away, so where the record and its item are then lost, a renewal's `from` is the text
+   left that names that certificate, and with it the deletion record still refuses that renewal.
+   It rules out knowing a key from `der`, since `certificate` tells also for a record that does
+   not read as an admission, and from an admission's identifier, whose subject is the client
+   key. Such a deletion record whose identifier is that of a record present, or the `id`
+   of an item, adds nothing to what that record or item states. Any other stands for a record
+   whose content is nowhere, and is a statement of its own that names no renewal (§648). A keep
+   record is united under the rules of §649.
 3. **The versions of an object** are the records of kind `version` in force and the versions
    that the summary entries in force restate. Those that no version names stand, and the
    object's value is what all standing versions allow (§617). An object refuses as §617 states.

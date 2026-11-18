@@ -30,9 +30,11 @@ namespace KeePassGate.Store
     /// of a record of a subject the file knows. **A deletion record tells only under its own
     /// kind's tag**, so the deletion record of an authority, which shares a subject with its
     /// retirement, retires nothing. For a certificate taken away the file knows an admission key
-    /// from the records and the items of that kind alone, their `certificate`, `from` and
-    /// `renewed`: an admission's own `certificate` and `from` are read with the admissions, which
-    /// this build does not read, `STORE.md` §620.
+    /// from the `certificate` and the `from` of every record of kind `client` present, in force
+    /// or not, and from the `certificate`, `from` and `renewed` of the records and the items of
+    /// that kind: the admission of a certificate taken away goes with the write that takes it
+    /// away, and where the record and its item are lost as well, a renewal's `from` is the text
+    /// left that names the certificate. Knowing a key only lets a deletion record refuse.
     ///
     /// **A certificate taken away is a set of statements**, `STORE.md` §648: each record of the
     /// kind by its identifier, each item of the kind as it is, and each deletion record of the
@@ -112,6 +114,12 @@ namespace KeePassGate.Store
 
         /// <summary>Every item of every summary entry present, of the kinds the plugin knows.</summary>
         public IReadOnlyList<StoreItem> Items { get; private set; }
+
+        /// <summary>
+        /// Every record of kind `client` under the key, in force or not, whether or not it reads
+        /// as an admission, `STORE.md` §615: each with the texts the core keeps of it, §658.
+        /// </summary>
+        public IReadOnlyList<FoundRecord> Admissions { get; private set; }
 
         /// <summary>The summary entries present, `STORE.md` §611.</summary>
         public IReadOnlyList<FoundRecord> Heads { get; private set; }
@@ -261,6 +269,7 @@ namespace KeePassGate.Store
             made.Heads = records.Where(record => record.Is(StoreKinds.Head)).ToList();
             made.HeadsInForce = made.Heads.Where(head => head.InForce).ToList();
             made.Items = made.Heads.SelectMany(head => head.Form.Items).ToList();
+            made.Admissions = records.Where(record => record.Is(StoreKinds.Client)).ToList();
 
             var byKind = ByKind(key, byTag);
             made.Told = Telling(key, byKind, StoreKinds.Head, StoreKinds.StoreSubject).ToList();
@@ -511,11 +520,20 @@ namespace KeePassGate.Store
 
         /// <summary>
         /// The admission keys the file knows for a certificate taken away, `STORE.md` §623 step
-        /// 2: the `certificate`, the `from` and each key in `renewed` of every record and item of
-        /// the kind, a text that is no admission key adding none.
+        /// 2: the `certificate` and the `from` of every record of kind `client`, and the
+        /// `certificate`, the `from` and each key in `renewed` of every record and item of the
+        /// kind, a text that is no admission key adding none.
         /// </summary>
         private IEnumerable<string> KnownAdmissionKeys(StoreKind row)
         {
+            var named = Admissions
+                .SelectMany(admission => new[] { admission.Form.Member(StoreKinds.Certificate), admission.Form.Member(StoreKinds.From) })
+                .Where(value => value != null && StoreChecked.InForm(value, StoreForm.Hex));
+            foreach (var value in named)
+            {
+                yield return value;
+            }
+
             var stated = Records.Where(record => record.Is(row.Name)).Select(record => record.Form.Members)
                 .Concat(Items.Where(item => item.Kind == row.Name).Select(item => item.Members));
             foreach (var members in stated)

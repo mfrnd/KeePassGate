@@ -303,6 +303,42 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_record_of_kind_client_reads_with_its_client_alone_and_keeps_what_an_admission_reads_as_texts()
+        {
+            // `STORE.md` §658: what an admission's meaning reads is held where present and as a
+            // text, so a member out of the form §615 gives it stops nothing.
+            var bare = StoreComposer.Record(One, "client", "client:" + Hex('c'), StoreComposer.Content(("client", Hex('c'))));
+            var form = StoreVersions.Checked(bare.Strings);
+            Assert.That(form.ReadsAsKind, Is.True);
+            Assert.That(form.Members.Keys, Is.EquivalentTo(new[] { "client" }));
+
+            var held = new Dictionary<string, string>
+            {
+                { "admitted", "not a moment" },
+                { "certificate", Hex('D') },
+                { "client", Hex('c') },
+                { "der", "not base64" },
+                { "from", "short" },
+                { "issuer", string.Empty },
+                { "profiles", "reader,writer" },
+                { "subject", "CN=agent-fictitious" },
+            };
+            var odd = StoreComposer.Record(
+                One, "client", "client:" + Hex('c'),
+                StoreComposer.Content(held.Select(member => (member.Key, member.Value)).Concat(new[] { ("unknown", "passed over") }).ToArray()));
+            var oddForm = StoreVersions.Checked(odd.Strings);
+
+            Assert.That(oddForm.ReadsAsKind, Is.True);
+            Assert.That(oddForm.Members, Is.EquivalentTo(held), "every member an admission reads, as its text, and nothing else");
+
+            var store = new ComposedStore(One);
+            store.Add(odd);
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(reading.InForce.Records.Single(record => record.Hex == odd.Hex).Is("client"), Is.True);
+        }
+
+        [Test]
         public void Keeping_lets_go_of_the_forms_of_versions_no_entry_holds_and_clearing_of_all()
         {
             var authority = Authority(One, 'a');
