@@ -2202,14 +2202,20 @@ KeePass's window, took 18 ms at the median beside ten thousand entries and a sto
 the first write of a run is slower, as warm-up (`StoreReadingCostTests`, `DESIGN.md` §119). A write
 the application cannot finish is taken back out at once; taking back a write that was saved and did
 not land comes with the writes that save, a pairing's and a renewal's. A revocation is not an act
-yet, so the buffer holds the authority's acts alone. *Held by* `StoreRecordTests`, against the
-records of the measured code (`tests/Shared/StoreRecordVectors.json`); `StoreWriteShapeTests`,
-against its writes (`StoreWriteVectors.json`): both sequences played, and each step's deletions,
-deletion records, records present, summary entries, store keys and answer compared by kind and by
-count; `StoreWriteTests`, each step of the plan alone, the ceiling at its boundary and a record
-written once among them; `PendingRecordsTests`; and `StoreWritesInRealDatabaseTests`, the group a
-write goes into and a write applied to a database read as the same write applied in memory among
-them.
+yet, so the buffer holds the authority's acts alone. Every write deletes the records of kind
+`client` that step 3 names, by the texts §658 keeps, the write's own records counting as present,
+so a Recreate and a Delete delete every such record under the authority they retire; the gate
+admits by what `CA.md` §204 keeps until the admissions are written into the store. *Held by*
+`StoreRecordTests`, against the records of the measured code
+(`tests/Shared/StoreRecordVectors.json`); `StoreWriteShapeTests`, against its writes
+(`StoreWriteVectors.json`): both sequences played, and each step's deletions, deletion records,
+records present, summary entries, store keys and answer compared by kind and by count;
+`StoreWriteTests`, each step of the plan alone, the ceiling at its boundary and a record written
+once among them, and a record of kind `client` deleted where its client is revoked, its issuer
+retired or its certificate taken away, by a record, an item, a deletion record and the write's
+own record, in force or not and read or not, and left where it names nothing refused;
+`PendingRecordsTests`; and `StoreWritesInRealDatabaseTests`, the group a write goes into and a
+write applied to a database read as the same write applied in memory among them.
 
 ### A record written again §628
 

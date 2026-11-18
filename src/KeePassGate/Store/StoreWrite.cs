@@ -246,10 +246,12 @@ namespace KeePassGate.Store
                 return new StoreWrite { Empty = true, Taken = taken, LeftOut = leftOut };
             }
 
-            // What the retirements of the store and of this write take away, `STORE.md` §614.
-            var retired = new HashSet<string>(
-                starts ? Enumerable.Empty<string>() : inForce.Taken(StoreKinds.Retired), StringComparer.Ordinal);
-            retired.UnionWith(added.Where(record => record.Kind == StoreKinds.Retired).Select(record => record.Member(StoreKinds.AuthorityMember)));
+            // What the retirements, the revocations and the certificates taken away of the store
+            // and of this write take away, `STORE.md` §614, §615 and §648: a write deletes in the
+            // same write what it refuses.
+            var retired = Taking(starts ? null : inForce, added, StoreKinds.Retired, StoreKinds.AuthorityMember);
+            var revoked = Taking(starts ? null : inForce, added, StoreKinds.Revoked, StoreKinds.ClientMember);
+            var withdrawn = Taking(starts ? null : inForce, added, StoreKinds.Withdrawn, StoreKinds.Certificate);
 
             // Step 3, the version record, `STORE.md` §650: with the store's first write, and where
             // the plugin's version is above the highest the store states.
@@ -267,7 +269,13 @@ namespace KeePassGate.Store
             }
 
             // Step 4, what is deleted with a deletion record: every authority a retirement names,
-            // and every summary entry present.
+            // every summary entry present, and every record of kind `client` whose client key is
+            // revoked, whose issuer is retired or whose certificate was taken away, `STORE.md`
+            // §627 step 3. Those are told by the texts the core keeps, in force or not and whether
+            // or not the record reads as an admission, so no certificate is read here, and no
+            // other record of that kind is deleted, since an admission that does not count now,
+            // among several admissions of a certificate, may count once a merge brings a deletion
+            // record of the others.
             var delete = new List<string>();
             if (!starts)
             {
@@ -275,6 +283,11 @@ namespace KeePassGate.Store
                     .Where(record => (record.Is(StoreKinds.Authority) && retired.Contains(record.Form.Member(StoreKinds.Id)))
                                      || record.Is(StoreKinds.Head))
                     .Select(record => record.Hex));
+                delete.AddRange(inForce.Admissions
+                    .Where(admission => revoked.Contains(admission.Form.Member(StoreKinds.ClientMember))
+                                        || retired.Contains(admission.Form.Member(StoreKinds.Issuer))
+                                        || withdrawn.Contains(admission.Form.Member(StoreKinds.Certificate)))
+                    .Select(admission => admission.Hex));
             }
 
             // A write never takes the store key out of the file: an entry holding it stays, or the
@@ -423,6 +436,19 @@ namespace KeePassGate.Store
                 default:
                     return null;
             }
+        }
+
+        /// <summary>
+        /// The values a kind restated by a member takes away in the store, by record, item and
+        /// deletion record, `STORE.md` §623 step 2, with the values the records of this write of
+        /// that kind name.
+        /// </summary>
+        /// <param name="inForce">What is in force in the store, or null for a write that starts a store.</param>
+        private static HashSet<string> Taking(StoreInForce inForce, IEnumerable<StoreRecord> added, string kind, string member)
+        {
+            var taken = new HashSet<string>(inForce == null ? Enumerable.Empty<string>() : inForce.Taken(kind), StringComparer.Ordinal);
+            taken.UnionWith(added.Where(record => record.Kind == kind).Select(record => record.Member(member)));
+            return taken;
         }
 
         /// <summary>A retirement composed again with the store key among its members.</summary>

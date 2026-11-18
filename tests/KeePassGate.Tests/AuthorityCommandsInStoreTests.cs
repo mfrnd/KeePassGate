@@ -163,6 +163,38 @@ namespace KeePassGate.Tests
             Assert.That(admissions.Keys, Is.EqualTo(new[] { "AnotherPlugin.Something" }), "only what is somebody else's is left");
         }
 
+        [TestCase("Recreate")]
+        [TestCase("Delete")]
+        public void A_command_that_retires_the_authority_deletes_the_records_of_kind_client_it_issued_and_no_other(string command)
+        {
+            // `STORE.md` §627 step 3, the write's own retirement counting as present.
+            var store = new MemoryStore();
+            var first = StoreSeeds.Authority(store, new InMemoryKeyValueStore());
+            var key = (byte[])store.Read().InForce.Key.Bytes.Clone();
+            var issued = Client(key, 'c', first);
+            var other = Client(key, 'e', new string('9', 64));
+            store.Put(issued);
+            store.Put(other);
+
+            var service = Service(store);
+            Assert.That((command == "Recreate" ? service.Recreate() : service.Delete()).Succeeded, Is.True);
+
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(store.Candidates.Select(candidate => candidate.Hex), Does.Not.Contain(issued.Hex));
+            Assert.That(store.Deletions.Select(KeePassGate.Hex.Of), Does.Contain(issued.Hex), "deleted with a deletion record");
+            Assert.That(store.Candidates.Select(candidate => candidate.Hex), Does.Contain(other.Hex));
+        }
+
+        /// <summary>A record of kind `client` under a store key, of a certificate this authority issued.</summary>
+        private static StoreComposer.Composed Client(byte[] key, char client, string issuer)
+        {
+            var clientKey = new string(client, 64);
+            return StoreComposer.Record(
+                key, "client", "client:" + clientKey,
+                StoreComposer.Content(("certificate", clientKey), ("client", clientKey), ("issuer", issuer)));
+        }
+
         [Test]
         public void A_record_written_twice_is_in_the_file_once()
         {

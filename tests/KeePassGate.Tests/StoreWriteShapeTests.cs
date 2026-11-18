@@ -26,18 +26,20 @@ namespace KeePassGate.Tests
     ///
     /// **Both sequences are played.** The commands of the authority are the product's own. A
     /// pairing and a revocation are written as an act with no ground that adds the record the
-    /// model added, a client's record and a revocation of its client key, since this build keeps
-    /// the admissions beside the store; what the model deleted of the admissions is therefore not
-    /// compared, and neither are the kinds this build does not write: the admissions, the profile
-    /// name and the version of the root's rule the model's start holds, where the product's start
-    /// holds the version record a Create writes, restated by the item `format` in the place of the
-    /// version's item. The store the sequence starts from is the product's Create.
+    /// model added: a record of kind `client` holding the model's client key and the `id` of the
+    /// authority served as its `issuer`, and a revocation of a client key. The admission the
+    /// model's start holds is added the same way after the product's Create, so the records of
+    /// kind `client` are compared like every other kind: what each write deletes of them because
+    /// a revocation or a retirement refuses them, `STORE.md` §627, and what stays. Not compared
+    /// are the kinds this build does not write: the profile name and the version of the root's rule
+    /// the model's start holds, where the product's start holds the version record a Create writes,
+    /// restated by the item `format` in the place of the version's item.
     /// </remarks>
     [TestFixture]
     public sealed class StoreWriteShapeTests
     {
         /// <summary>The kinds compared: every kind this build writes or the sequences add.</summary>
-        private static readonly string[] Compared = { "authority", "head", "retired", "revoked" };
+        private static readonly string[] Compared = { "authority", "client", "head", "retired", "revoked" };
 
         [Test]
         public void One_copy_paired_revoked_recreated_deleted_and_created_again_writes_what_the_model_wrote()
@@ -45,11 +47,14 @@ namespace KeePassGate.Tests
             var steps = (JArray)Vectors()["sequences"]["one copy"]["steps"];
             var store = new MemoryStore();
             StoreSeeds.Authority(store, new InMemoryKeyValueStore());
+            Started(store);
 
+            // The model names its clients c0, c1 and on, in the order they paired.
+            var pairs = 0;
             foreach (var step in steps)
             {
                 var act = (JArray)step["act"];
-                AssertShape(step, store, () => Played(store, (string)step["command"], act));
+                AssertShape(step, store, () => Played(store, (string)step["command"], act, ref pairs));
             }
         }
 
@@ -60,6 +65,7 @@ namespace KeePassGate.Tests
 
             var first = new MemoryStore();
             StoreSeeds.Authority(first, new InMemoryKeyValueStore());
+            Started(first);
             var second = first.Copy();
 
             AssertShape(steps[0], first, () => Service(first).Recreate());
@@ -78,7 +84,8 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>A command of the sequence, played by the product.</summary>
-        private static AuthorityChange Played(MemoryStore store, string command, JArray act)
+        /// <param name="pairs">How many pairings were played so far, which names the next client.</param>
+        private static AuthorityChange Played(MemoryStore store, string command, JArray act, ref int pairs)
         {
             switch (command)
             {
@@ -89,16 +96,53 @@ namespace KeePassGate.Tests
                 case "Create":
                     return Service(store).Create();
                 case "Pair":
-                    return Added(store, "client", "client" + store.Writes.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                    pairs++;
+                    return Paired(store, "c" + pairs.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 case "Revoke":
-                    return Added(store, "revoked", (string)act[2]);
+                    return Added(store, "revoked", new Dictionary<string, string> { { "client", (string)act[2] } });
                 default:
                     throw new ArgumentOutOfRangeException(nameof(command), command, "a command this test does not play");
             }
         }
 
+        /// <summary>
+        /// The model's pairing: a record of kind `client` of this client key, issued by the
+        /// authority served.
+        /// </summary>
+        private static AuthorityChange Paired(MemoryStore store, string client)
+        {
+            string served;
+            using (var reading = store.Read())
+            {
+                served = StoreAuthorities.Served(reading);
+            }
+
+            return Added(store, "client", new Dictionary<string, string> { { "client", client }, { "issuer", served } });
+        }
+
+        /// <summary>
+        /// The admission the model's start holds beside its first summary entry, `c0`, put into the
+        /// store as an entry and not by a write, since the start's summary entry is its first.
+        /// </summary>
+        private static void Started(MemoryStore store)
+        {
+            using (var reading = store.Read())
+            {
+                var key = (byte[])reading.InForce.Key.Bytes.Clone();
+                try
+                {
+                    store.Put(StoreComposer.Record(
+                        key, "client", "client:c0", StoreComposer.Content(("client", "c0"), ("issuer", StoreAuthorities.Served(reading)))));
+                }
+                finally
+                {
+                    Array.Clear(key, 0, key.Length);
+                }
+            }
+        }
+
         /// <summary>A record of a kind this build does not write yet, added by an act with no ground.</summary>
-        private static AuthorityChange Added(MemoryStore store, string kind, string client)
+        private static AuthorityChange Added(MemoryStore store, string kind, IReadOnlyDictionary<string, string> members)
         {
             byte[] key;
             string against;
@@ -110,7 +154,7 @@ namespace KeePassGate.Tests
 
             try
             {
-                var record = StoreRecord.Compose(key, kind, new Dictionary<string, string> { { "client", client } });
+                var record = StoreRecord.Compose(key, kind, members);
                 var written = store.Write(new[] { new StoreAct(kind, key, against, new[] { record }, null) });
                 return written.Taken ? AuthorityChange.Done() : AuthorityChange.Refused(written.Reason);
             }

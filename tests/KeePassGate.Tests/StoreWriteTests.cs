@@ -368,6 +368,237 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_admission_of_a_revoked_client_is_deleted_by_a_revocation_as_a_record_an_item_a_deletion_record_and_the_write_s_own()
+        {
+            // `STORE.md` §627 step 3: the records of kind `client` a revocation refuses, by the
+            // client key each holds, the write's own revocation counting as present.
+            AssertDeletedBy(
+                Admission('c', ("certificate", Hex('d')), ("issuer", Hex('a'))),
+                Admission('e', ("certificate", Hex('f')), ("issuer", Hex('a'))),
+                new Dictionary<string, Func<ComposedStore, StoreAct>>
+                {
+                    {
+                        "a record with the item that restates it", store =>
+                        {
+                            store.Revoked('c');
+                            return Neutral();
+                        }
+                    },
+                    { "an item", store => Restating(store, StoreComposer.Item(("client", Hex('c')), ("kind", "revoked"))) },
+                    { "a deletion record", store => Telling(store, "revoked", "client:" + Hex('c')) },
+                    { "the write's own record", store => Act(One, Recorded("revoked", ("client", Hex('c')))) },
+                });
+        }
+
+        [Test]
+        public void An_admission_under_a_retired_issuer_is_deleted_by_a_retirement_as_a_record_an_item_a_deletion_record_and_the_write_s_own()
+        {
+            AssertDeletedBy(
+                Admission('c', ("certificate", Hex('d')), ("issuer", Hex('b'))),
+                Admission('e', ("certificate", Hex('f')), ("issuer", Hex('a'))),
+                new Dictionary<string, Func<ComposedStore, StoreAct>>
+                {
+                    {
+                        "a record with the item that restates it", store =>
+                        {
+                            store.Add(StoreComposer.Record(One, "retired", "authority:" + Hex('b'), StoreComposer.Content(("authority", Hex('b')))));
+                            return Restating(store, StoreComposer.Item(("authority", Hex('b')), ("kind", "retired")));
+                        }
+                    },
+                    { "an item", store => Restating(store, StoreComposer.Item(("authority", Hex('b')), ("kind", "retired"))) },
+                    {
+                        // The authority's entry, beside its deletion record, is what the file
+                        // knows the authority by.
+                        "a deletion record", store =>
+                        {
+                            store.Delete(store.Add(StoreRecords.Authority(One, 'b')));
+                            return Telling(store, "retired", "authority:" + Hex('b'));
+                        }
+                    },
+                    { "the write's own record", store => Retire(One, 'b') },
+                });
+        }
+
+        [Test]
+        public void An_admission_of_a_certificate_taken_away_is_deleted_by_a_record_an_item_a_deletion_record_and_the_write_s_own()
+        {
+            // The deletion record is told by the certificate the admission names, `STORE.md`
+            // §623 step 2; the client's other certificate stays.
+            AssertDeletedBy(
+                Admission('c', ("certificate", Hex('d')), ("issuer", Hex('a'))),
+                Admission('c', ("certificate", Hex('f')), ("issuer", Hex('a'))),
+                new Dictionary<string, Func<ComposedStore, StoreAct>>
+                {
+                    { "a record with the item that restates it", store => Restating(store, store.Decision("withdrawn")) },
+                    { "an item", store => Restating(store, Statement(new string('6', 32), Hex('d'), string.Empty, null)) },
+                    { "a deletion record", store => Telling(store, "withdrawn", "certificate:" + Hex('d')) },
+                    { "the write's own record", store => Act(One, Recorded("withdrawn", ("certificate", Hex('d')), ("renewed", string.Empty))) },
+                });
+        }
+
+        [Test]
+        public void A_record_of_kind_client_is_deleted_by_the_texts_it_holds_in_force_or_not_and_whether_or_not_it_reads()
+        {
+            // `STORE.md` §627 step 3: what an admission comes to is not read, so a record beside
+            // a deletion record naming it, and a record that does not read as an admission, go
+            // where what they name is refused.
+            var store = new ComposedStore(One);
+            var gone = store.Add(Admission('c', ("certificate", Hex('5')), ("issuer", Hex('a'))));
+            store.Delete(gone);
+            var unread = store.Add(Admission('c', ("certificate", Hex('6')), ("der", "not base64"), ("issuer", Hex('a'))));
+            store.Revoked('c');
+            Assume.That(store.Read().State, Is.EqualTo(StoreState.Whole), store.Read().Reason);
+
+            var reading = store.Read();
+            var write = StoreWrite.Plan(reading, new[] { Neutral() }, Plugin);
+
+            Assert.That(write.Delete, Does.Contain(gone.Hex), "beside a deletion record naming it");
+            Assert.That(write.Delete, Does.Contain(unread.Hex), "a record that does not read");
+
+            var applied = write.Applied(reading.Candidates, reading.Deletions);
+            Assert.That(applied.Key.Select(candidate => candidate.Hex), Does.Not.Contain(gone.Hex).And.Not.Contain(unread.Hex));
+            Assert.That(applied.Value.Count(identifier => KeePassGate.Hex.Of(identifier) == gone.Hex), Is.EqualTo(1),
+                "the file holds its deletion record already, and no second is written");
+            Assert.That(applied.Value.Count(identifier => KeePassGate.Hex.Of(identifier) == unread.Hex), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_record_of_kind_client_that_names_nothing_refused_is_left_whatever_it_comes_to()
+        {
+            // `STORE.md` §627 step 3 names the revoked, the retired and the taken away and no
+            // other: a renewal that does not count, the admissions of a certificate several name,
+            // a record that does not read, a record without the member asked, and a text that
+            // differs from what is refused in its case, stay.
+            var store = new ComposedStore(One);
+            store.Add(StoreComposer.Record(One, "revoked", "client:" + Hex('c'), StoreComposer.Content(("client", Hex('c')))));
+            store.Add(StoreComposer.Record(One, "retired", "authority:" + Hex('b'), StoreComposer.Content(("authority", Hex('b')))));
+            var withdrawn = store.Add(StoreComposer.Record(
+                One, "withdrawn", "certificate:" + Hex('d'), StoreComposer.Content(("certificate", Hex('d')), ("renewed", string.Empty))));
+            store.RestateAll(new[]
+            {
+                StoreComposer.Item(("client", Hex('c')), ("kind", "revoked")),
+                StoreComposer.Item(("authority", Hex('b')), ("kind", "retired")),
+                Statement(withdrawn.Hex, Hex('d'), string.Empty, null),
+            });
+
+            var left = new[]
+            {
+                Admission('g'),
+                Admission('h', ("certificate", Hex('8')), ("from", Hex('d')), ("issuer", Hex('a'))),
+                Admission('k', ("certificate", Hex('7')), ("issuer", Hex('a'))),
+                Admission('m', ("certificate", Hex('7')), ("issuer", Hex('a'))),
+                Admission('n', ("certificate", Hex('6')), ("der", "not base64"), ("issuer", Hex('a'))),
+                Admission('p', ("certificate", Hex('D')), ("issuer", Hex('B'))),
+            };
+            foreach (var record in left)
+            {
+                store.Add(record);
+            }
+
+            var reading = store.Read();
+            Assume.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+
+            var write = StoreWrite.Plan(reading, new[] { Neutral() }, Plugin);
+
+            Assert.That(write.Refused, Is.Null);
+            Assert.That(write.Delete.Intersect(left.Select(record => record.Hex)), Is.Empty);
+        }
+
+        [Test]
+        public void A_write_that_revokes_a_client_deletes_its_admission_with_a_deletion_record_and_leaves_the_store_whole()
+        {
+            var store = Started(out var key, 'a');
+            var admission = StoreComposer.Record(
+                key, "client", "client:" + Hex('c'), StoreComposer.Content(("certificate", Hex('d')), ("client", Hex('c')), ("issuer", Hex('a'))));
+            store.Put(admission);
+
+            var written = store.Write(new[] { Act(key, StoreRecord.Compose(key, "revoked", new Dictionary<string, string> { { "client", Hex('c') } })) });
+            Assert.That(written.Taken, Is.True, written.Reason);
+
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(store.Candidates.Select(candidate => candidate.Hex), Does.Not.Contain(admission.Hex));
+            Assert.That(store.Deletions.Select(KeePassGate.Hex.Of), Does.Contain(admission.Hex));
+            Assert.That(reading.InForce.Taken("revoked"), Is.EqualTo(new[] { Hex('c') }));
+        }
+
+        [Test]
+        public void A_write_that_takes_a_certificate_away_restates_its_record_by_an_item_of_its_own_and_a_single_item_more()
+        {
+            var store = Started(out var key, 'a');
+            var before = store.Read().InForce.Room.Items;
+            var record = StoreRecord.Compose(key, "withdrawn", new Dictionary<string, string>
+            {
+                { "certificate", Hex('d') },
+                { "from", Hex('f') },
+                { "renewed", Hex('e') },
+            });
+
+            var write = StoreWrite.Plan(store.Read(), new[] { Act(key, record) }, Plugin);
+
+            var items = Items(SummaryOf(write));
+            Assert.That(items, Does.Contain(Statement(record.Hex, Hex('d'), Hex('e'), Hex('f'))));
+            Assert.That(items, Has.Count.EqualTo(before + 1));
+        }
+
+        /// <summary>
+        /// Plans a write with each case's act over a store holding these two records of kind
+        /// `client`, and holds the first deleted and the second left.
+        /// </summary>
+        private static void AssertDeletedBy(
+            StoreComposer.Composed refused, StoreComposer.Composed left, IReadOnlyDictionary<string, Func<ComposedStore, StoreAct>> cases)
+        {
+            foreach (var pair in cases)
+            {
+                var store = new ComposedStore(One);
+                store.Add(refused);
+                store.Add(left);
+                var act = pair.Value(store);
+                var reading = store.Read();
+                Assume.That(reading.State, Is.EqualTo(StoreState.Whole), pair.Key + ": " + reading.Reason);
+
+                var write = StoreWrite.Plan(reading, new[] { act }, Plugin);
+
+                Assert.That(write.Refused, Is.Null, pair.Key);
+                Assert.That(write.Delete, Does.Contain(refused.Hex), pair.Key + ": the record refused");
+                Assert.That(write.Delete, Does.Not.Contain(left.Hex), pair.Key + ": the record nothing refuses");
+            }
+        }
+
+        /// <summary>A record of kind `client` under `One`, holding the members given beside its client key.</summary>
+        private static StoreComposer.Composed Admission(char client, params (string Name, string Value)[] members)
+        {
+            var all = new List<(string Name, string Value)>(members) { ("client", Hex(client)) };
+            return StoreComposer.Record(One, "client", "client:" + Hex(client), StoreComposer.Content(all.ToArray()));
+        }
+
+        /// <summary>A record of the test's under `One`, composed by the product.</summary>
+        private static StoreRecord Recorded(string kind, params (string Name, string Value)[] members)
+        {
+            return StoreRecord.Compose(One, kind, members.ToDictionary(member => member.Name, member => member.Value));
+        }
+
+        /// <summary>A summary entry restating this item put in place, and a write that refuses nothing more.</summary>
+        private static StoreAct Restating(ComposedStore store, string item)
+        {
+            store.Restate(item);
+            return Neutral();
+        }
+
+        /// <summary>A deletion record of a record of this kind and subject, and a write that refuses nothing more.</summary>
+        private static StoreAct Telling(ComposedStore store, string kind, string subject)
+        {
+            store.Deleted.Add(StoreComposer.IdentifierOf(One, kind, subject, 0, new string('5', 64)));
+            return Neutral();
+        }
+
+        /// <summary>A write that takes away nothing a test's records name: a retirement of an authority none of them names.</summary>
+        private static StoreAct Neutral()
+        {
+            return Retire(One, 'z');
+        }
+
+        [Test]
         public void A_record_counting_by_its_history_is_set_back_to_the_version_that_passes()
         {
             var store = new ComposedStore(One);

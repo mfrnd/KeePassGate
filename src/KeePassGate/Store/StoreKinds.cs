@@ -202,6 +202,9 @@ namespace KeePassGate.Store
         /// <summary>The member of a retirement, and of its item, naming the authority it retires.</summary>
         public const string AuthorityMember = "authority";
 
+        /// <summary>The member of an admission and of a revocation, and of its item, holding the client key.</summary>
+        public const string ClientMember = "client";
+
         /// <summary>The member of a profile addition and of a removal, and of its item, holding the name.</summary>
         public const string NameMember = "name";
 
