@@ -36,7 +36,8 @@ starts no program for them either.
 ADDED (rules per profile): the probe's rows switched on as decided, with the identifier of a row's
 version in the form `split` and the product's texts in the place of the model's letters (below
 the imports). `--records` adds versions of a profile's row and of a node's switch, and a summary
-entry that restates them.
+entry that restates them. `--meanings` adds small stores of such versions in a tree of three
+groups, with what read.py answers about the rules of each.
 """
 import base64
 import hashlib
@@ -92,6 +93,7 @@ def model_undoc(text):
 
 
 S.doc, S.undoc = product_doc, model_undoc
+R.ROWS = R.PP = True    # as bridge.rows sets them: a node's rule read from its rows and its switch
 
 # read.py's status, and the state the product names for it.
 STATES = {'ok': 'Whole', 'incomplete': 'Stopped', 'nostore': 'None'}
@@ -562,6 +564,146 @@ stores = {}
 for name, d in sorted(meanings.items()):
     stores[name] = dict(files(d), **answer(R.read(d, history=True)))
 out['meanings'] = {'about': MEANINGS_ABOUT, 'key': ONE.hex(), 'meanings': stores}
+
+
+# ADDED (rules per profile): what read.py answers about rules, with the rows switched on, over small
+# stores of versions in the objects and texts of the records file, in a tree of three groups.
+BELOW = 'cc' * 16       # a group directly under N
+TREE = {N: ROOT, BELOW: N}
+BPF, PX = 'rule:%s/pf' % BELOW, 'rule:%s/px' % N
+NONCE3 = invented('nonce/3', 16).hex()
+
+
+def ruled(obj, text, after=(), nonce=NONCE):
+    return entry('version', {'after': ' '.join(sorted(after)), 'doc': text, 'nonce': nonce,
+                             'object': obj})
+
+
+def apart(obj, *texts):
+    """Versions of an object made apart, each with a nonce of its own."""
+    return [ruled(obj, t, nonce=n) for t, n in zip(texts, (NONCE, NONCE2, NONCE3))]
+
+
+def restates(v):
+    d = json.loads(v[1]['KPG.Data'])
+    return {'after': d['after'], 'doc': d['doc'], 'id': v[0], 'kind': 'version',
+            'object': d['object']}
+
+
+ROOT_PF, ROOT_PG = ruled('rule:%s/pf' % ROOT, ROW_RU), ruled('rule:%s/pg' % ROOT, ROW_RU)
+
+
+def ruled_store(versions, dels=(), restated=None, more=()):
+    """The authority, the root's rows of pf and pg granting RU, the versions given, and a summary
+    entry restating every version present that nothing names, or the versions given."""
+    present = [ROOT_PF, ROOT_PG] + list(versions)
+    if restated is None:
+        named = set(dels)
+        for v in present:
+            named |= set(json.loads(v[1]['KPG.Data'])['after'].split())
+        restated = [v for v in present if v[0] not in named]
+    d = dump([AUTH1] + present + list(more) + [summary(*(restates(v) for v in restated))], dels)
+    d['groups'] = {g: {'parent': p} for g, p in TREE.items()}
+    return d
+
+
+def value(obj, f):
+    """read.py's value of a row or a switch: whether it refuses, the letters all granting versions
+    hold, and whether a version takes the rule off."""
+    if obj.startswith('switch:'):
+        return {'refuses': R.switch_refuses(f)}
+    if f[0] == 'const':
+        return {'grants': None, 'refuses': True, 'takenOff': False}
+    return {'grants': None if f[1] is None else letters(f[1]), 'refuses': False, 'takenOff': f[2]}
+
+
+def rules(r, nodes):
+    """read.py's answer about rules: what each node gives each profile, the standing versions of
+    each row and switch, the objects a deletion record shows lost, and the value of each."""
+    return {'gives': {n: {p: letters(x.split('.')[1] for x in r['words_raw'].get(n, ())
+                                     if x.startswith(p + '.')) for p in M.PROFS} for n in nodes},
+            'lost': sorted(r['lost']),
+            'standing': dict(sorted(r['standing'].items())),
+            'values': {o: value(o, f) for o, f in sorted(r['row_values'].items())}}
+
+
+DENY = [ruled(SW, SW_DENY)]
+LOST = ruled(PF, ROW_R)         # a version of pf that a deletion record names
+rule_meanings = {
+    'a row that grants': [ruled(PF, ROW_R)],
+    'an empty rule': [ruled(PF, ROW_EMPTY)],
+    'a rule taken off': [ruled(PF, ROW_OFF)],
+    'a row never made': [ruled(PG, ROW_R)],
+    'two versions that grant': apart(PF, ROW_R, ROW_RU),
+    'a version that grants beside a rule taken off': apart(PF, ROW_R, ROW_OFF),
+    'two versions that grant beside a rule taken off': apart(PF, ROW_R, ROW_RU, ROW_OFF),
+    'three versions that grant, with no letter all of them hold': apart(PF, ROW_RU, ROW_R, ROW_U),
+    'two versions that take the rule off': apart(PF, ROW_OFF, ROW_OFF),
+    'an empty rule beside a version that grants': apart(PF, ROW_EMPTY, ROW_R),
+}
+rule_stores = {}
+for name, versions in rule_meanings.items():
+    rule_stores['rules: ' + name] = ruled_store(versions)
+    rule_stores['rules: %s, under a switch that refuses' % name] = ruled_store(DENY + versions)
+rule_stores.update({
+    'rules: versions of the switch that differ': ruled_store(apart(SW, SW_DENY, SW_INHERIT)
+                                                             + [ruled(PF, ROW_R)]),
+    'rules: a row lost by a deletion record': ruled_store([ruled(PG, ROW_R)], [LOST[0]]),
+    'rules: a switch lost by a deletion record': ruled_store([ruled(PF, ROW_R)],
+                                                             [ruled(SW, SW_INHERIT)[0]]),
+    'rules: a deletion record of a version that a standing version names': ruled_store(
+        [ruled(PF, ROW_RU, after=[LOST[0]])], [LOST[0]]),
+    'rules: a deletion record of a version the summary entry restates': ruled_store(
+        [], [LOST[0]], restated=[ROOT_PF, ROOT_PG, LOST]),
+    'rules: a deletion record of a row of a name the file does not know': ruled_store(
+        [], [ruled(PX, ROW_R)[0]]),
+    'rules: a deletion record of a row of a name an addition makes known': ruled_store(
+        [], [ruled(PX, ROW_R)[0]], more=[entry('profile', {'after': '', 'name': 'px',
+                                                           'nonce': NONCE})]),
+    'rules: a version present beside a deletion record naming it': ruled_store([LOST], [LOST[0]]),
+    'rules: a version present beside a deletion record naming it, and a version that grants':
+        ruled_store([LOST, ruled(PF, ROW_RU, nonce=NONCE2)], [LOST[0]]),
+    'rules: a version present beside a deletion record naming it, and a version naming it':
+        ruled_store([LOST, ruled(PF, ROW_RU, after=[LOST[0]])], [LOST[0]]),
+    'rules: a limit at N above a group whose own row grants': ruled_store(
+        apart(PF, ROW_R, ROW_OFF) + [ruled(BPF, ROW_RU)]),
+    'rules: limits at N and at the group below it': ruled_store(
+        apart(PF, ROW_R, ROW_OFF) + apart(BPF, ROW_U, ROW_OFF)),
+    'rules: a version that grants beside a rule taken off, at the root': ruled_store(
+        [ruled('rule:%s/pf' % ROOT, ROW_OFF, nonce=NONCE2)]),
+})
+for name, d in sorted(rule_stores.items()):
+    r = R.read(d, history=True)
+    out['meanings']['meanings'][name] = dict(
+        files(d), **answer(r), rules=rules(r, [ROOT, N, BELOW]),
+        tree={'groups': {g: p for g, p in sorted(TREE.items())}, 'root': ROOT})
+out['meanings']['about'] += (
+    ' The stores whose names begin with rules: are about a profile\'s rule at a node, read by '
+    'read.py with the store\'s rows switched on as decided and the identifier of a row\'s '
+    'version in the form split of store.py, the objects and texts those of the records file. '
+    'Each holds the first authority of the records file, a version of each of the rows of pf '
+    'and pg at the root granting RU, the versions its name gives, and a summary entry of height '
+    '1. The summary entry restates every version present that no deletion record and no '
+    'version names, but in the store of a deletion record of a version the summary entry '
+    'restates, where it restates the root\'s two versions and the version the deletion record '
+    'names. Its tree, as tree holds it by identifiers, is the root, aa repeated 16 times, the '
+    'group N, bb repeated 16 times, directly under the root, and a group, cc repeated 16 times, '
+    'directly under N; no node holds anything of the plugin. Every store answers for all three, '
+    'so a limit at N shows in what the group under N is given. A store with a switch that '
+    'refuses holds a version of N\'s switch refusing; every other switch has no version, which '
+    'inherits. Versions made apart differ in their nonce. Beside the answer of the other stores, '
+    'rules holds what read.py answers about '
+    'rules: gives, what each node gives pf and pg as letters in the order of CRUSDLAP, read.py\'s '
+    'words with the model\'s read and write written R and U; standing, the texts of the versions '
+    'of each row and switch that stand; lost, each row or switch a deletion record shows lost; '
+    'and values, read.py\'s value of each row and switch: whether it refuses, and for a row the '
+    'letters all granting versions hold, null where no version grants, and whether a version '
+    'takes the rule off. A deletion record tells of a row\'s version only where the name of its '
+    'profile is known to the file, from an addition, a removal or a row\'s object: px is known '
+    'in a single store, by an addition that puts it on the list. The model holds a switch under '
+    'an object of its own name, sw: and the node, which store.py writes as switch: and the '
+    'node\'s identifier, and its acts compose a version at the write, with no buffer between a '
+    'press and the write; these stores are composed here and by no act.')
 
 
 # 7. ADDED (vectors for the writes): the file after each act of a fixed sequence the model plays,
