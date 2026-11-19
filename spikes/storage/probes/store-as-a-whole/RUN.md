@@ -1120,13 +1120,21 @@ keys sorted:
   text, its check, its subject and number, its identifier and every string of its entry. An item
   `withdrawn` is in the form S29 settled on 2026-11-17 for §611, §648 and §658: it holds the
   identifier of the record it restates as `id`, and that record's `certificate`, `renewed` and
-  `from` text for text, with no `from` where the record holds none.
-- **`--meanings`**, `StoreMeaningVectors.json`: thirteen small stores of those records, with what
+  `from` text for text, with no `from` where the record holds none. Added on 2026-11-19, in the
+  forms of §616 and §611: an addition of a profile name with an empty `after`, an addition whose
+  `after` names a removal, the removal, and a summary entry of height 1 holding the item
+  `removed` that restates it by its `name` and its identifier as `id`.
+- **`--meanings`**, `StoreMeaningVectors.json`: twenty small stores of those records, with what
   `read.py` answers for each with its history rule on, as `status`, `served`, `auths`, `adm`,
   `valid`, `refusals` and `names`: an authority alone, two authorities, a retirement by record,
   by item and by deletion record, an authority beside a deletion record naming it, an admission,
   a revocation by record, by item and by deletion record, an admission beside a deletion record
-  naming it, under a retired issuer, and under an authority that is not served.
+  naming it, under a retired issuer, and under an authority that is not served. The seven added
+  on 2026-11-19 are about profile names, each the store of an admission with further records or
+  deletion records: a name removed by record, by item and by deletion record, a name added again
+  naming its removal, an addition naming a single removal of two, an addition beside a deletion
+  record naming it, and a name added twice. `read.py` answers the name on the list for the
+  addition that names its removal and for the name added twice, and off it for the other five.
 - **`--writes`**, `StoreWriteVectors.json`: the file after each act of three sequences that
   `crdt_model.py`'s `World.step` plays under `bridge.py`'s `FLAGS`, written out by `store.py`'s
   `Encoder`, each step with its records, its deletion records, its summary entries and `read.py`'s

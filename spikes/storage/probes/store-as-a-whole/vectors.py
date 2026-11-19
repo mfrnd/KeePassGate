@@ -23,10 +23,10 @@ the three words of read.py's `status` are written as the names the product gives
 
 ADDED (vectors for the writes): three further files the product keeps, each printed by an argument
 of its own and each opening with an `about` that names what made it and what is invented.
-`--records` prints `tests/Shared/StoreRecordVectors.json`: records in the forms STORE.md 614, 615
-and 648 fix, and summary entries, composed as `rec` composes them (part 5). `--meanings` prints
+`--records` prints `tests/Shared/StoreRecordVectors.json`: records in the forms STORE.md 614, 615,
+616 and 648 fix, and summary entries, composed as `rec` composes them (part 5). `--meanings` prints
 `tests/Shared/StoreMeaningVectors.json`: small stores of those records and what read.py answers for
-each about authorities, admissions and refusals (part 6). `--writes` prints
+each about authorities, admissions, refusals and profile names (part 6). `--writes` prints
 `tests/Shared/StoreWriteVectors.json`: the file after each act of three fixed sequences that the
 model plays, written out by store.py's `Encoder`, with read.py's answer after each (part 7). Part
 7 reads more than store.py and read.py: the model, `model/crdt_model.py`, and `probe/bridge.py`
@@ -295,6 +295,27 @@ head2 = record('head', {'after': after2, 'height': '2', 'nonce': NONCE},
                 restating(withdrawn)], 2)
 head2w = record('head', {'after': after2, 'height': '2', 'nonce': NONCE2},
                 [FORMAT, restating(withdrawn), restating(withdrawn0)], 2)
+
+
+# ADDED (profile names): an addition and a removal of a profile name in the form STORE.md 616
+# fixes, an addition that names the removal, and a summary entry that restates the removal.
+def restating_removal(r):
+    """ADDED (profile names): the item that restates a removal: its name, and its identifier as
+    `id`."""
+    return {'id': r['id'], 'kind': 'removed', 'name': r['members']['name']}
+
+
+addition = record('profile', {'after': '', 'name': 'reader', 'nonce': NONCE})
+removal = record('removed', {'name': 'reader', 'nonce': NONCE})
+added_again = record('profile', {'after': removal['id'], 'name': 'reader', 'nonce': NONCE})
+head1r = record('head', {'after': '', 'height': '1', 'nonce': NONCE},
+                [FORMAT, restating_removal(removal)], 1)
+RECORDS_ABOUT += (
+    ' An addition and a removal of a profile name are in the form STORE.md 616 fixes, each '
+    'naming reader: the addition holds name and after, and the removal name alone. The second '
+    'addition names the removal of this file in after, and the summary entry that restates a '
+    'removal holds the item removed of STORE.md 611, with the removal\'s name and its identifier '
+    'as id.')
 out['records'] = {'about': RECORDS_ABOUT, 'key': ONE.hex(), 'records': {
     'authority': record('authority', authority(A1)),
     'retired': record('retired', {'authority': A1, 'nonce': NONCE}),
@@ -309,6 +330,10 @@ out['records'] = {'about': RECORDS_ABOUT, 'key': ONE.hex(), 'records': {
     'head of height 1, made apart': head1b,
     'head of height 2': head2,
     'head of height 2, restating both withdrawn records': head2w,
+    'profile': addition,                            # ADDED (profile names): the four below
+    'profile, naming a removal': added_again,
+    'removed': removal,
+    'head of height 1, restating a removal': head1r,
 }}
 
 
@@ -369,6 +394,22 @@ REVOKED = entry('revoked', {'client': K1, 'nonce': NONCE})
 RETIRED = entry('retired', {'authority': A1, 'nonce': NONCE})
 RETIRING = {'authority': A1, 'kind': 'retired'}
 REVOKING = {'client': K1, 'kind': 'revoked'}
+# ADDED (profile names): the removal of reader and the addition naming it of the records file, and
+# a second removal and a second addition with an empty after, made apart under NONCE2
+REMOVED = entry('removed', {'name': 'reader', 'nonce': NONCE})
+REMOVED_APART = entry('removed', {'name': 'reader', 'nonce': NONCE2})
+ADDED_AGAIN = entry('profile', {'after': REMOVED[0], 'name': 'reader', 'nonce': NONCE})
+ADDED_APART = entry('profile', {'after': '', 'name': 'reader', 'nonce': NONCE2})
+REMOVING = {'id': REMOVED[0], 'kind': 'removed', 'name': 'reader'}
+REMOVING_APART = {'id': REMOVED_APART[0], 'kind': 'removed', 'name': 'reader'}
+MEANINGS_ABOUT += (
+    ' The stores about profile names are the store of an admission with further records or '
+    'deletion records: the removal of reader and the addition naming it are those of the records '
+    'file, under the same '
+    'identifiers, and a second removal of reader and a second addition of it with an empty after '
+    'differ from the first only in their nonce. An addition and a removal are in the form '
+    'STORE.md 616 fixes. A removal is known as a record, as an item of a summary entry or as a '
+    'deletion record, and names answers whether reader is on the list.')
 
 meanings = {
     'an authority alone': dump([AUTH1, summary()]),
@@ -388,6 +429,19 @@ meanings = {
                                                  summary(RETIRING)]),
     'an admission under an authority that is not served': dump([AUTH2, PROFILE, ADMITTED,
                                                                 summary()]),
+    # ADDED (profile names)
+    'a name removed by record': dump([AUTH1, PROFILE, ADMITTED, REMOVED, summary(REMOVING)]),
+    'a name removed by item': dump([AUTH1, PROFILE, ADMITTED, summary(REMOVING)]),
+    'a name removed by deletion record': dump([AUTH1, PROFILE, ADMITTED, summary()],
+                                              [REMOVED[0]]),
+    'a name added again, naming its removal': dump([AUTH1, PROFILE, ADMITTED, REMOVED,
+                                                    ADDED_AGAIN, summary(REMOVING)]),
+    'an addition naming a single removal of two': dump(
+        [AUTH1, PROFILE, ADMITTED, REMOVED, REMOVED_APART, ADDED_AGAIN,
+         summary(REMOVING, REMOVING_APART)]),
+    'an addition beside a deletion record naming it': dump([AUTH1, PROFILE, ADMITTED, summary()],
+                                                           [PROFILE[0]]),
+    'a name added twice': dump([AUTH1, PROFILE, ADDED_APART, ADMITTED, summary()]),
 }
 stores = {}
 for name, d in sorted(meanings.items()):
