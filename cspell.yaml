@@ -105,6 +105,7 @@ words:
   - maxclients
   - delauth
   - renewcert
+  - padd
 
   # own the transport, because the name rotates
   - REUSEADDR

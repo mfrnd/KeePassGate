@@ -4858,7 +4858,28 @@ that finds a measurement against a decision reports it and does not design aroun
 32. **A name added in a copy and removed in another** (§642 row 23), measured in the model alone:
     over real databases the product wrote, brought together by `PwDatabase.MergeIn` under each
     method, in each direction and whatever became of the entries' times; and the same merged by
-    KeePassXC, between two KeePass instances with the plugin, and on a device.
+    KeePassXC, between two KeePass instances with the plugin, and on a device. *Run* over real
+    databases the product wrote, merged by `PwDatabase.MergeIn` under each of KeePass's methods in
+    each direction, by `StoreProfileMergeTests`: a name added in each copy apart is on the list;
+    a name both copies hold, removed in a copy, is off it; removed in each copy and added again in
+    a copy, it is off it until added again after the copies met, when the addition names both
+    removals and it is on it; a pairing's new name arrives on the list, and a pairing that put a
+    removed name back is overruled by a removal in the other copy; a removal deleted for good
+    still takes the name off by the summary entry that restates it; twenty names added in each
+    copy are all on the list; a name removed in a copy stays off with the removal's entry dated
+    back a year and the other copy's addition stamped a day ahead; an addition deleted by hand
+    takes the name off wherever its deletion record is, which only a Synchronize carries, so a
+    copy merged into by another method keeps the name (row 24); an addition duplicated and
+    deduplicated by KeePass's Delete Duplicate Entries, which kept the duplicate under another
+    identifier, takes the name off as the deletion of the entry written as the addition does
+    (row 24); and a removal both copies hold, edited in a copy past the history limit, stops the
+    store wherever the edited entry is kept, which is every method but OverwriteExisting into
+    that copy and KeepExisting into the other, and the name stays off where the version written
+    is kept (§622). Under Create new IDs each copy names what it named before. The next write of
+    the plugin's own leaves every answer as it was and no addition a removal defeated. And the
+    model's sequence of names is played through the product's acts and held to the model's file
+    by shape, `StoreWriteShapeTests`. *Still owed*: KeePassXC's merge, two KeePass instances
+    with the plugin, and a device.
 
 ---
 

@@ -543,6 +543,11 @@ namespace KeePassGate.Host.Tests
                 _bin, one, "version", "rule:" + Hex('f'), Data(("after", string.Empty), ("doc", "{}"), ("object", "rule:" + Hex('f'))));
             Record(_fictitious, two, "profile", "profile:" + Profile, Data(("after", string.Empty), ("name", Profile)));
 
+            // The names as the plugin writes them, `STORE.md` §616: an addition in the plugin's
+            // group under the key that stands, and a removal of another name in the bin.
+            Record(group, one, "profile", "profile:" + Profile, Data(("after", string.Empty), ("name", Profile)));
+            Record(_bin, one, "removed", "profile:retired", Data(("name", "retired")));
+
             // The kinds the measured code never wrote, `STORE.md` §658, each of which a tag tells.
             Record(_holder, one, "withdrawn", "certificate:" + Hex('d'), Data(("certificate", Hex('d'))));
             Record(

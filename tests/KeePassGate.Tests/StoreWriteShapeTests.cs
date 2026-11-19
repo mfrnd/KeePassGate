@@ -33,17 +33,22 @@ namespace KeePassGate.Tests
     /// admission the model's start holds is put into the store beside the product's Create, so
     /// the records of kind `client` are compared like every other kind: what each write deletes of
     /// them because a revocation or a retirement refuses them, `STORE.md` §627, and what stays. Not
-    /// compared are the kinds this build does not write: the profile name and the version of the
-    /// root's rule the model's start holds, where the product's start holds the version record a
-    /// Create writes, restated by the item `format` in the place of the version's item. Where the
-    /// model writes otherwise than `STORE.md` fixes, as a renewal's admission without `from`, the
-    /// shape is the same and the members are left to the product's own tests.
+    /// compared is the version of the root's rule the model's start holds, a kind this build does
+    /// not write, where the product's start holds the version record a Create writes, restated by
+    /// the item `format` in the place of the version's item; nor are the names outside the sequence
+    /// of names, since the model's pairing writes no addition for a name it approves and the
+    /// product's does, `STORE.md` §627. The sequence of names compares both kinds of a name.
+    /// Where the model writes otherwise than `STORE.md` fixes, as a renewal's admission without
+    /// `from`, the shape is the same and the members are left to the product's own tests.
     /// </remarks>
     [TestFixture]
     public sealed class StoreWriteShapeTests
     {
         /// <summary>The kinds compared: every kind this build writes or the sequences add.</summary>
         private static readonly string[] Compared = { "authority", "client", "head", "retired", "revoked" };
+
+        /// <summary>The kinds the sequence of names compares: those above and the two of a name.</summary>
+        private static readonly string[] NameKinds = Compared.Concat(new[] { "profile", "removed" }).ToArray();
 
         private static readonly DateTimeOffset Then = new DateTimeOffset(2026, 8, 15, 9, 14, 22, TimeSpan.Zero);
 
@@ -131,6 +136,105 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void Two_copies_that_add_and_remove_names_apart_synchronized_name_what_the_model_named()
+        {
+            // `STORE.md` §616 and §644 item 32: a name removed in each copy and added again in the
+            // first is off the list once the copies meet, a name added in each is on it by two
+            // additions, and the name added again after both removals is on it in both copies,
+            // which then hold the same records.
+            var steps = (JArray)Vectors()["sequences"]["two copies, a name removed in each and added again in the first, another added in each"]["steps"];
+            using (var clients = new Clients())
+            {
+                var first = new MemoryStore();
+                StoreSeeds.Authority(first);
+                Started(first, clients);
+                StartedNamed(first, "pf");
+                var second = first.Copy();
+                var copies = new[] { first, second };
+
+                for (var at = 0; at < steps.Count; at++)
+                {
+                    var step = steps[at];
+                    var copy = copies[(int)step["copy"]];
+                    var other = copies[1 - (int)step["copy"]];
+                    AssertShape(step, copy, () => PlayedNamed(copy, other, step), NameKinds, (string)step["command"] == "Synchronize");
+
+                    if (at == 6)
+                    {
+                        foreach (var met in copies)
+                        {
+                            Assert.That(NamesOf(met), Is.EqualTo(new[] { "pg" }), "once the copies meet: pf off the list, pg on it");
+                            using (var reading = met.Read())
+                            {
+                                Assert.That(
+                                    reading.InForce.Additions.Count(addition => addition.Form.Member(StoreKinds.NameMember) == "pg"),
+                                    Is.EqualTo(2),
+                                    "pg by two additions");
+                            }
+                        }
+                    }
+                }
+
+                foreach (var met in copies)
+                {
+                    Assert.That(NamesOf(met), Is.EqualTo(new[] { "pf", "pg" }), "pf added again after both removals, in both copies");
+                }
+
+                Assert.That(Held(first), Is.EquivalentTo(Held(second)), "and both copies hold the same records");
+            }
+        }
+
+        /// <summary>A step of the sequence of names, played by the product in this copy.</summary>
+        private static AuthorityChange PlayedNamed(MemoryStore copy, MemoryStore other, JToken step)
+        {
+            var act = (JArray)step["act"];
+            switch ((string)step["command"])
+            {
+                case "Add":
+                    StoreSeeds.Name(copy, (string)act[2]);
+                    break;
+                case "Remove":
+                    StoreSeeds.Unname(copy, (string)act[2]);
+                    break;
+                case "Synchronize":
+                    copy.Synchronize(other);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(step), (string)step["command"], "a command this test does not play");
+            }
+
+            return AuthorityChange.Done();
+        }
+
+        /// <summary>
+        /// The name the model's start holds, put into the store as an entry and not by a write,
+        /// as <see cref="Started"/> puts the admission there.
+        /// </summary>
+        private static void StartedNamed(MemoryStore store, string name)
+        {
+            using (var reading = store.Read())
+            {
+                var key = (byte[])reading.InForce.Key.Bytes.Clone();
+                try
+                {
+                    store.Put(StoreComposer.Record(key, "profile", "profile:" + name, StoreComposer.Content(("after", string.Empty), ("name", name))));
+                }
+                finally
+                {
+                    Array.Clear(key, 0, key.Length);
+                }
+            }
+        }
+
+        private static IReadOnlyList<string> NamesOf(MemoryStore store)
+        {
+            using (var reading = store.Read())
+            {
+                return KeePassGate.Acl.ProfileNames.Of(reading).Names;
+            }
+        }
+
         /// <summary>A command of a sequence, played by the product.</summary>
         private static AuthorityChange Played(MemoryStore store, JToken step, Clients clients)
         {
@@ -185,6 +289,19 @@ namespace KeePassGate.Tests
 
         private static void AssertShape(JToken step, MemoryStore store, Func<AuthorityChange> act)
         {
+            AssertShape(step, store, act, Compared, false);
+        }
+
+        /// <summary>A step played, held to the model's file after it by shape.</summary>
+        /// <param name="merged">
+        /// Whether the step is a merge rather than a write, whose deletions are held by what is
+        /// present after it and not record by record: the model derives a summary entry's
+        /// identifier from its height, so a summary entry each copy wrote at the same height is a
+        /// single entry to the model and two to the product, and a merge deletes them differently
+        /// while leaving the same records present.
+        /// </param>
+        private static void AssertShape(JToken step, MemoryStore store, Func<AuthorityChange> act, string[] compared, bool merged)
+        {
             var command = (string)step["command"];
             var before = store.Read();
             var kinds = Kinds(before);
@@ -196,11 +313,29 @@ namespace KeePassGate.Tests
 
             var reading = store.Read();
             var after = Kinds(reading);
+            if (!merged)
+            {
+                AssertDeleted(step, compared, kinds, heights, deletedBefore, reading, after);
+            }
 
+            AssertPresent(step, compared, reading, after);
+        }
+
+        /// <summary>What a write deleted and the deletion records it added, held to the model's.</summary>
+        private static void AssertDeleted(
+            JToken step,
+            string[] compared,
+            Dictionary<string, string> kinds,
+            Dictionary<string, int> heights,
+            HashSet<string> deletedBefore,
+            StoreReading reading,
+            Dictionary<string, string> after)
+        {
+            var command = (string)step["command"];
             var deleted = kinds.Where(pair => !after.ContainsKey(pair.Key)).Select(pair => pair.Value)
-                .Where(Compared.Contains).OrderBy(kind => kind, StringComparer.Ordinal).ToList();
+                .Where(compared.Contains).OrderBy(kind => kind, StringComparer.Ordinal).ToList();
             var modelDeleted = ((JArray)step["deleted"]).Select(item => (string)item["kind"])
-                .Where(Compared.Contains).OrderBy(kind => kind, StringComparer.Ordinal).ToList();
+                .Where(compared.Contains).OrderBy(kind => kind, StringComparer.Ordinal).ToList();
             Assert.That(deleted, Is.EqualTo(modelDeleted), command + ": the records deleted");
 
             // The deletion records the write added: for a record the file held, by its kind and
@@ -209,22 +344,30 @@ namespace KeePassGate.Tests
             var added = reading.Deletions.Select(KeePassGate.Hex.Of).Where(hex => !deletedBefore.Contains(hex)).ToList();
             var held = added.Where(kinds.ContainsKey)
                 .Select(hex => (Kind: kinds[hex], Number: HeightOf(heights, hex)))
-                .Where(item => Compared.Contains(item.Kind))
+                .Where(item => compared.Contains(item.Kind))
                 .OrderBy(item => item.Kind, StringComparer.Ordinal).ThenBy(item => item.Number).ToList();
             var previous = Previous(step);
             var modelAdded = ((JArray)step["deletions"]).Where(item => !previous.Deletions.Contains((string)item["id"])).ToList();
             var modelHeld = modelAdded.Where(item => previous.Present.Contains((string)item["id"]))
                 .Select(item => (Kind: (string)item["kind"], Number: (int)item["number"]))
-                .Where(item => Compared.Contains(item.Kind))
+                .Where(item => compared.Contains(item.Kind))
                 .OrderBy(item => item.Kind, StringComparer.Ordinal).ThenBy(item => item.Number).ToList();
             Assert.That(held, Is.EqualTo(modelHeld), command + ": the deletion records added for records the file held");
             Assert.That(
                 added.Count(hex => !kinds.ContainsKey(hex)),
-                Is.EqualTo(modelAdded.Count(item => !previous.Present.Contains((string)item["id"]) && Compared.Contains((string)item["kind"]))),
+                Is.EqualTo(modelAdded.Count(item => !previous.Present.Contains((string)item["id"]) && compared.Contains((string)item["kind"]))),
                 command + ": the deletion records added for records the file did not hold");
+        }
 
-            var present = after.Values.Where(Compared.Contains).GroupBy(kind => kind).ToDictionary(group => group.Key, group => group.Count());
-            var modelPresent = ((JArray)step["present"]).Select(item => (string)item["kind"]).Where(Compared.Contains)
+        /// <summary>
+        /// What is present after a step, the summary entries, the store key and the answer, held
+        /// to the model's.
+        /// </summary>
+        private static void AssertPresent(JToken step, string[] compared, StoreReading reading, Dictionary<string, string> after)
+        {
+            var command = (string)step["command"];
+            var present = after.Values.Where(compared.Contains).GroupBy(kind => kind).ToDictionary(group => group.Key, group => group.Count());
+            var modelPresent = ((JArray)step["present"]).Select(item => (string)item["kind"]).Where(compared.Contains)
                 .GroupBy(kind => kind).ToDictionary(group => group.Key, group => group.Count());
             Assert.That(present, Is.EquivalentTo(modelPresent), command + ": the records present");
 
