@@ -32,6 +32,11 @@ model plays, written out by store.py's `Encoder`, with read.py's answer after ea
 7 reads more than store.py and read.py: the model, `model/crdt_model.py`, and `probe/bridge.py`
 for the switches the family's runs give it. The script imports both whatever it prints, and
 starts no program for them either.
+
+ADDED (rules per profile): the probe's rows switched on as decided, with the identifier of a row's
+version in the form `split` and the product's texts in the place of the model's letters (below
+the imports). `--records` adds versions of a profile's row and of a node's switch, and a summary
+entry that restates them.
 """
 import base64
 import hashlib
@@ -46,6 +51,47 @@ import read as R      # noqa: E402
 import store as S     # noqa: E402
 import bridge as B    # noqa: E402  ADDED (vectors for the writes): its FLAGS, the store as decided
 import crdt_model as M    # noqa: E402  ADDED (vectors for the writes)
+
+# ADDED (rules per profile): the probe's rows switched on as decided. The identifier of a row's
+# version in the form `split` of store.py, and the texts of store.py's `doc` with the model's two
+# letters written as the product writes them: read as R and write as U, which CRUSDLAP orders as
+# the model sorts r and w. A text of any other form is the model's own and passes as it is; a text
+# of a row or a switch that the product's form does not have is refused, so that no vector holds
+# one. Nothing of store.py changes but these two names, looked up by its Encoder and by read.py.
+S.ID_FORM = 'split'
+LETTERS = {'r': 'R', 'w': 'U'}
+ORDER = 'CRUSDLAP'
+MODEL_DOC, MODEL_UNDOC = S.doc, S.undoc
+
+
+def letters(model):
+    """The model's letters as the product's, in the order of CRUSDLAP."""
+    return ''.join(sorted((LETTERS[x] for x in model), key=ORDER.index))
+
+
+def product_doc(f):
+    text = MODEL_DOC(f)
+    if f[0] not in ('rows', 'sws'):
+        return text
+    kind, _, rest = text.partition(':')
+    if kind == 'row':
+        return 'row:' + letters(rest)
+    if text in ('off:', 'sw:deny', 'sw:inherit'):
+        return text
+    raise ValueError('a text the product does not write: ' + text)
+
+
+def model_undoc(text):
+    kind, _, rest = text.partition(':')
+    if kind == 'row':
+        back = {v: k for k, v in LETTERS.items()}
+        if rest != letters(back[x] for x in rest if x in back) or len(rest) != len(set(rest)):
+            raise ValueError('a text the product does not write: ' + text)
+        text = 'row:' + ''.join(sorted(back[x] for x in rest))
+    return MODEL_UNDOC(text)
+
+
+S.doc, S.undoc = product_doc, model_undoc
 
 # read.py's status, and the state the product names for it.
 STATES = {'ok': 'Whole', 'incomplete': 'Stopped', 'nostore': 'None'}
@@ -316,6 +362,68 @@ RECORDS_ABOUT += (
     'addition names the removal of this file in after, and the summary entry that restates a '
     'removal holds the item removed of STORE.md 611, with the removal\'s name and its identifier '
     'as id.')
+
+
+# ADDED (rules per profile): versions of a profile's row at a node and of the node's switch, in the
+# objects and texts of the rows switched on above, and a summary entry that restates them.
+N = 'bb' * 16       # the model's node N, a group directly under the root ROOT
+PF, PG, SW = 'rule:%s/pf' % N, 'rule:%s/pg' % N, 'switch:' + N
+ROW_RU, ROW_R, ROW_U, ROW_EMPTY = (S.doc(M.row(x)) for x in ('rw', 'r', 'w', ''))
+ROW_OFF = S.doc(M.ROW_OFF)
+SW_DENY, SW_INHERIT = (S.doc(('sws', frozenset([x]))) for x in ('deny', 'inherit'))
+
+
+def rule_record(obj, text, after=(), nonce=NONCE):
+    """A version of a row or of a switch as `record` composes it. For a row, its subject and its
+    number are those its identifier holds in the form `split`: the subject hash over the object
+    before the slash, and the profile's tag read as a number."""
+    made = record('version', {'after': ' '.join(sorted(after)), 'doc': text, 'nonce': nonce,
+                              'object': obj})
+    node, _, profile = obj.partition('/')
+    if profile:
+        made['subject'], made['number'] = node, int(S.profile_tag(ONE, profile), 16)
+    assert made['id'] == S.ident(ONE, 'version', made['subject'], made['number'], made['check'])
+    return made
+
+
+def restating_version(v):
+    """The item that restates a version: its identifier as `id`, its object, after and text."""
+    m = v['members']
+    return {'after': m['after'], 'doc': m['doc'], 'id': v['id'], 'kind': 'version',
+            'object': m['object']}
+
+
+granting = rule_record(PF, ROW_RU)
+emptied = rule_record(PG, ROW_EMPTY)
+taken_off = rule_record(PF, ROW_OFF)
+refusing = rule_record(SW, SW_DENY)
+inheriting = rule_record(SW, SW_INHERIT)
+settled = rule_record(PF, ROW_R, after=[granting['id'], taken_off['id']])
+head1v = record('head', {'after': '', 'height': '1', 'nonce': NONCE},
+                [FORMAT] + [restating_version(x) for x in (granting, emptied, taken_off, refusing,
+                                                            inheriting)], 1)
+RECORDS_ABOUT += (
+    ' A version of a profile\'s row at a node and a version of a node\'s switch are records of '
+    'kind version, with the store\'s rows switched on as decided and the identifier in the form '
+    'split of store.py. The object of a row is rule:, the node\'s identifier in 32 lowercase '
+    'hexadecimal characters, a slash and the profile\'s name; the object of a switch is switch: '
+    'and the node\'s identifier. Each text is store.py\'s doc over the model\'s value with the '
+    'model\'s letters read and write written R and U: row: and the letters granted, row: alone '
+    'for an empty rule, off: for the rule taken off, sw:deny and sw:inherit. The model has no '
+    'other letter. The identifier of a row\'s version holds the subject hash over the object '
+    'before the slash and, in bytes 9 and 10, the profile\'s tag, the first two bytes of '
+    'HMAC-SHA256 under the store key over profile, a line feed and the name; its subject and its '
+    'number are those, the number the tag read as a big-endian number, and profileTags holds '
+    'each tag. The identifier of a switch\'s version holds the subject hash over its object and '
+    'zero. The node is bb repeated 16 times and the profiles are the model\'s pf and pg. The '
+    'versions of pf that grant and that take the rule off were made apart, as were the two '
+    'versions of the switch; the summary entry of height 1 that restates rules holds the item '
+    'format and an item version for each of those four and for the empty rule of pg, each with '
+    'the version\'s identifier as id and its object, after and text; and a further version of pf '
+    'names in after the two versions of pf it replaces. The model holds a switch under an object '
+    'of its own name, sw: and the node, which store.py writes as switch: and the node\'s '
+    'identifier, and its acts compose a version at the write, with no buffer between a press '
+    'and the write; the records here are composed by rec and by no act.')
 out['records'] = {'about': RECORDS_ABOUT, 'key': ONE.hex(), 'records': {
     'authority': record('authority', authority(A1)),
     'retired': record('retired', {'authority': A1, 'nonce': NONCE}),
@@ -334,7 +442,14 @@ out['records'] = {'about': RECORDS_ABOUT, 'key': ONE.hex(), 'records': {
     'profile, naming a removal': added_again,
     'removed': removal,
     'head of height 1, restating a removal': head1r,
-}}
+    'version, a row that grants': granting,        # ADDED (rules per profile): the seven below
+    'version, an empty rule': emptied,
+    'version, a rule taken off': taken_off,
+    'version, the switch refusing': refusing,
+    'version, the switch inheriting': inheriting,
+    'version, a row naming the versions it replaces': settled,
+    'head of height 1, restating rules': head1v,
+}, 'profileTags': {p: S.profile_tag(ONE, p) for p in M.PROFS}}     # ADDED (rules per profile)
 
 
 # 6. ADDED (vectors for the writes): what read.py answers about authorities, admissions and
