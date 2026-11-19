@@ -293,9 +293,40 @@ namespace KeePassGate.Tests
                 PairingClock.For(() => _now).Read().After(TimeSpan.FromMinutes(6)), _book.Mark(), null);
         }
 
-        /// <summary>
-        /// What a write is held to, read from a store held in memory, with "ops" listed.
-        /// </summary>
+        [Test]
+        public void A_held_approval_is_stale_where_a_name_it_rested_on_moved_on_the_list_and_for_no_other_name()
+        {
+            // `PAIRING.md` §311: compared at the write, name by name, with the names on the list in
+            // the reading of the write's turn.
+            var store = new MemoryStore();
+            StoreSeeds.Authority(store);
+            StoreSeeds.Name(store, "ops");
+            var held = _book.Hold(
+                "pairing", "db", new[] { "ops", "new" }, TimeSpan.FromDays(30), new[] { "ops" },
+                PairingClock.For(() => _now).Read().After(TimeSpan.FromMinutes(6)), _book.Mark());
+
+            Assert.That(StaleIn(store, held), Is.EqualTo(HeldStaleness.None), "as the dialog showed the list");
+
+            StoreSeeds.Name(store, "unrelated");
+            Assert.That(StaleIn(store, held), Is.EqualTo(HeldStaleness.None), "a name the decision did not rest on");
+
+            StoreSeeds.Name(store, "new");
+            Assert.That(StaleIn(store, held), Is.EqualTo(HeldStaleness.Profiles), "a name shown as new is on the list by now");
+
+            StoreSeeds.Unname(store, "new");
+            StoreSeeds.Unname(store, "ops");
+            Assert.That(StaleIn(store, held), Is.EqualTo(HeldStaleness.Profiles), "a name shown as held is off the list by now");
+        }
+
+        private static HeldStaleness StaleIn(MemoryStore store, HeldApproval held)
+        {
+            using (var reading = store.Read())
+            {
+                return held.Stale(new Ground(reading), null);
+            }
+        }
+
+        /// <summary>What a write is held to, read from a store held in memory in the write's turn.</summary>
         private sealed class Ground : IWriteGround
         {
             private readonly StoreReading _reading;
@@ -303,17 +334,16 @@ namespace KeePassGate.Tests
             public Ground(StoreReading reading)
             {
                 _reading = reading;
-                var names = ProfileNames.Empty();
-                names.Add("ops");
-                Names = new InMemoryKeyValueStore();
-                Names.Set(ProfileNames.CustomDataKey, names.Write());
             }
-
-            public IKeyValueStore Names { get; private set; }
 
             public AdmissionRecord Admission(string admissionKey)
             {
                 return StoreAdmissions.Admitted(_reading, admissionKey);
+            }
+
+            public bool Named(string profile)
+            {
+                return ProfileNames.Of(_reading).Holds(profile);
             }
         }
 

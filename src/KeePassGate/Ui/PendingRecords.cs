@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using KeePassGate.Authority;
+using KeePassGate.Acl;
 using KeePassGate.Store;
 
 namespace KeePassGate.Ui
@@ -12,11 +12,13 @@ namespace KeePassGate.Ui
     /// </summary>
     /// <remarks>
     /// **Each press composes its act at the press**, from the store as the page showed it, and
-    /// the act is held here. **An act on a client or a certificate holds what is to be done**:
-    /// its records are composed again wherever the buffer is read and at OK, against the store
-    /// as it stands then with the acts pressed before it planned over it in a single write,
-    /// `AdmissionActs.Again`. A renewal that lands under the dialog is named by a certificate
-    /// taken away pressed before it, and each press sees the presses before it. **The pages read
+    /// the act is held here. **An act on a client, on a certificate or about a profile name holds
+    /// what is to be done**: its records are composed again wherever the buffer is read and at OK,
+    /// against the store as it stands then with the acts pressed before it planned over it in a
+    /// single write, `StoreAct.Again`; an act held while the store holds no key stays as pressed.
+    /// A renewal that lands under the dialog is named by a certificate taken away pressed before
+    /// it, an addition names the removals the page showed at its press, and each press sees the
+    /// presses before it. **The pages read
     /// the store with the acts beside it**, composed so, planned together in a single write and
     /// applied in memory over the live entries, as OK writes them, so a page shows what OK would
     /// write now: a single summary entry more however many acts are held, and the room that
@@ -39,6 +41,9 @@ namespace KeePassGate.Ui
     /// Delete of the authority the database holds, its retirements holding the store key as the
     /// Delete's held it. A later press is then composed against what OK would write. The plan's
     /// own dropping of an authority made and retired in a single write stays as the second line.
+    /// **And it holds the operator's last press for each name**, and no earlier press: written as
+    /// records, a name added and removed again would leave an item in every later summary entry
+    /// for good.
     ///
     /// **A revocation has no ground**, so OK always writes it; the pages read the client's
     /// admissions as gone while it waits, since the plan deletes what it refuses, `STORE.md` §627.
@@ -161,7 +166,11 @@ namespace KeePassGate.Ui
         /// against that alone was held although OK would refuse every act with it.
         ///
         /// **A press retiring an authority made on this dialog is folded in** before the plan, as
-        /// the class remarks have it, and the acts folded are let go once it is held.
+        /// the class remarks have it, and the acts folded are let go once it is held. **So is a
+        /// press about a name**: it takes every act held about that name out of the buffer, and is
+        /// held itself only where it still has something to write against the store with the acts
+        /// left, so a name added and removed on a single dialog, or removed and added again,
+        /// writes nothing, `STORE.md` §627. Such a press is taken, holding nothing.
         /// </remarks>
         public StoreWritten Write(IReadOnlyList<StoreAct> acts)
         {
@@ -192,6 +201,35 @@ namespace KeePassGate.Ui
                     using (var live = _live().Read())
                     {
                         composition = Composition.Of(live, next, _kept);
+
+                        // A press about a name with nothing left to write once the presses
+                        // before it about that name are folded out is held as nothing, and the
+                        // buffer is composed again without it.
+                        var spent = standing
+                            .Where(act => ProfileActs.About(act) != null && composition.Composed[next.IndexOf(act)] == null)
+                            .ToList();
+                        if (spent.Count > 0)
+                        {
+                            composition.Release(_kept, next.Concat(_acts).ToList());
+                            composition = null;
+                            foreach (var act in spent)
+                            {
+                                next.Remove(act);
+                                standing.Remove(act);
+                                letGo.Add(act);
+                            }
+
+                            if (next.Count == 0)
+                            {
+                                _acts.Clear();
+                                held = true;
+                                Keep(null);
+                                return StoreWritten.Waiting(standing, leftOut);
+                            }
+
+                            composition = Composition.Of(live, next, _kept);
+                        }
+
                         var written = composition.Composed;
 
                         // A press with nothing left to write is refused as an act the plan
@@ -201,8 +239,10 @@ namespace KeePassGate.Ui
                             return StoreWritten.Refused("the act no longer applies to the store as it stands");
                         }
 
+                        // A press that folds to nothing changes nothing of the acts left, and is
+                        // taken whatever OK makes of them: an act left out then is named there.
                         var write = StoreWrite.Plan(live, written.Where(act => act != null).ToList(), GateVersion.Current);
-                        if (write.Refused != null)
+                        if (write.Refused != null && standing.Count > 0)
                         {
                             return StoreWritten.Refused(write.Refused, write.LeftOut);
                         }
@@ -255,6 +295,20 @@ namespace KeePassGate.Ui
         /// <param name="letGo">Where the acts taken out are put, for the caller to let go once the press is held.</param>
         private static StoreAct Fold(List<StoreAct> buffer, StoreAct act, ICollection<StoreAct> letGo)
         {
+            // The operator's last press about a name, and no earlier press about it.
+            var profile = ProfileActs.About(act);
+            if (profile != null)
+            {
+                foreach (var earlier in buffer.Where(held => string.Equals(ProfileActs.About(held), profile, StringComparison.Ordinal)).ToList())
+                {
+                    buffer.Remove(earlier);
+                    letGo.Add(earlier);
+                }
+
+                buffer.Add(act);
+                return act;
+            }
+
             var retired = new HashSet<string>(
                 act.Records.Where(record => record.Kind == StoreKinds.Retired).Select(record => record.Member(StoreKinds.AuthorityMember)),
                 StringComparer.Ordinal);
@@ -335,11 +389,12 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Acts composed in the order pressed over a reading of the live store, each act on a
-        /// client or a certificate composed again over that reading with the acts composed before
-        /// it planned together in a single write, `AdmissionActs.Again`, and every other act as it
-        /// was pressed, with null in the place of an act with nothing left to write; and the
-        /// reading they all leave, planned together the same way, as OK writes them.
+        /// Acts composed in the order pressed over a reading of the live store, each act that holds
+        /// what is to be done composed again over that reading with the acts composed before it
+        /// planned together in a single write, `StoreAct.Again`, and every other act, or an act
+        /// over a reading that holds no store key, as it was pressed, with null in the place of an
+        /// act with nothing left to write; and the reading they all leave, planned together the
+        /// same way, as OK writes them.
         /// </summary>
         private sealed class Composition
         {
@@ -399,7 +454,7 @@ namespace KeePassGate.Ui
                         foreach (var act in acts.Skip(composed.Count))
                         {
                             var made = act;
-                            if (AdmissionActs.Composes(act.Name))
+                            if (act.Again != null)
                             {
                                 if (since)
                                 {
@@ -407,7 +462,8 @@ namespace KeePassGate.Ui
                                     since = false;
                                 }
 
-                                made = AdmissionActs.Again(left.Reading ?? live, act);
+                                var over = left.Reading ?? live;
+                                made = over.InForce == null ? act : act.Again(over);
                             }
 
                             composed.Add(made);

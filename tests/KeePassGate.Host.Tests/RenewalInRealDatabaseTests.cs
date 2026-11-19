@@ -214,9 +214,9 @@ namespace KeePassGate.Host.Tests
             // test skipped by building its request by hand.
             using (var renewal = new RealRenewal(this))
             {
-                var names = ProfileNames.Read(null);
-                Assume.That(names.Add("audit"), Is.Null);
-                _database.Database.CustomData.Set(ProfileNames.CustomDataKey, names.Write());
+                var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+                StoreSeeds.Unname(store, "ops");
+                StoreSeeds.Name(store, "audit");
 
                 Assume.That(renewal.Ask(RenewalApproval.Refused(null), null).Status, Is.EqualTo(403));
 
@@ -583,9 +583,13 @@ namespace KeePassGate.Host.Tests
             var hold = new StopsAfterAHold();
             using (var renewal = new RealRenewal(this, hold))
             {
-                Assume.That(
-                    ProfileNames.Read(_database.Database.CustomData.Get(ProfileNames.CustomDataKey)).Holds("ops"), Is.True);
-                hold.Between = () => _database.Database.CustomData.Remove(ProfileNames.CustomDataKey);
+                var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+                using (var reading = store.Read())
+                {
+                    Assume.That(ProfileNames.Of(reading).Holds("ops"), Is.True, "the admission's act added the name");
+                }
+
+                hold.Between = () => StoreSeeds.Unname(store, "ops");
                 hold.Armed = true;
 
                 var context = renewal.Ask(RenewalApproval.Approved(new[] { "ops" }), null);

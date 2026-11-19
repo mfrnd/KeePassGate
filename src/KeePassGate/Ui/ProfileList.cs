@@ -121,7 +121,7 @@ namespace KeePassGate.Ui
         private readonly Label _empty;
         private readonly Label _result;
 
-        /// <summary>The name the last gesture said is available to grant, while the line says so.</summary>
+        /// <summary>The name the last gesture showed as available to grant, while the line shows it.</summary>
         private string _added;
 
         /// <summary>
@@ -530,13 +530,14 @@ namespace KeePassGate.Ui
             _add.Enabled = !damaged;
             _empty.Visible = _shown.Count == 0 && !damaged;
 
-            // A redraw a pairing caused can take off the page a name the last
-            // gesture said is available, when the list filled to its ceiling meanwhile, and the
-            // line has to stop saying it is.
+            // A redraw can take off the page a name the last gesture showed as available, where a
+            // removal of it that the press did not see reached the database meanwhile, as a merge
+            // brings it, and the line has to stop showing it so: an addition never overrules a
+            // removal the operator was not shown, `STORE.md` §627.
             if (_added != null && !_shown.Contains(_added))
             {
-                Said("The profile " + _added + " no longer fits: the list filled to " + ProfileNames.Most +
-                     " while this dialog was open, so OK will leave it out.");
+                Said("The profile " + _added + " was removed in another copy of this database while this dialog " +
+                     "was open, so OK will not add it.");
             }
         }
 
@@ -720,9 +721,9 @@ namespace KeePassGate.Ui
     /// What the profiles page reads and changes.
     /// </summary>
     /// <remarks>
-    /// A seam because everything behind it is a database: the list in its custom data, the rules on
-    /// every node, and the write that marks KeePass as having something to save. What the page does
-    /// with the answers is worth testing without any of that.
+    /// A seam because everything behind it is a database: the list in the plugin's store, the rules
+    /// on every node, and the write that marks KeePass as having something to save. What the page
+    /// does with the answers is worth testing without any of that.
     /// </remarks>
     public interface IProfiles
     {

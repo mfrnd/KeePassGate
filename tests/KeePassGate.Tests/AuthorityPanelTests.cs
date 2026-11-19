@@ -1694,9 +1694,7 @@ namespace KeePassGate.Tests
             Assume.That((recreating ? held.Recreate() : held.Delete()).Succeeded, Is.True);
 
             var landed = IssuedAndAdmitted("agent-landed");
-            var names = ProfileNames.Read(_database.Values.Get(ProfileNames.CustomDataKey));
-            Assume.That(names.Add("reader"), Is.Null);
-            _database.Values.Set(ProfileNames.CustomDataKey, names.Write());
+            StoreSeeds.Name(_database.Store, "reader");
 
             pending.Apply();
 
@@ -1704,9 +1702,11 @@ namespace KeePassGate.Tests
             Assert.That(admissions.Find(before.AdmissionKey), Is.Null, "the admissions there were went with it");
             Assert.That(admissions.Find(landed.AdmissionKey), Is.Null,
                 "and so did the admission that landed meanwhile, whose authority is retired");
-            Assert.That(_database.Records.Read().InForce.Admissions, Is.Empty);
-            Assert.That(ProfileNames.Read(_database.Values.Get(ProfileNames.CustomDataKey)).Names,
-                Does.Contain("reader"), "while the name it brought stays");
+            using (var reading = _database.Records.Read())
+            {
+                Assert.That(reading.InForce.Admissions, Is.Empty);
+                Assert.That(ProfileNames.Of(reading).Names, Does.Contain("reader"), "while the name it brought stays");
+            }
         }
 
         /// <summary>A client of the authority the database holds now, admitted in the live store.</summary>
@@ -2169,9 +2169,7 @@ namespace KeePassGate.Tests
                 var digest = Digest();
                 var earlier = book.Invite(digest);
 
-                var names = ProfileNames.Read(null);
-                Assume.That(names.Add("ops"), Is.Null);
-                pending.PluginCustomData.Set(ProfileNames.CustomDataKey, names.Write());
+                Assume.That(new DatabaseProfiles(pending, null).Add("ops"), Is.Null);
                 panel.Describe();
 
                 Assert.That(book.For(digest).Select(invitation => invitation.Id), Is.EqualTo(new[] { earlier.Id }));
@@ -2193,9 +2191,7 @@ namespace KeePassGate.Tests
                 pending.Apply();
                 var earlier = book.Invite(Digest());
 
-                var names = ProfileNames.Read(null);
-                Assume.That(names.Add("ops"), Is.Null);
-                pending.PluginCustomData.Set(ProfileNames.CustomDataKey, names.Write());
+                Assume.That(new DatabaseProfiles(pending, null).Add("ops"), Is.Null);
                 panel.Describe();
 
                 Assume.That(panel.ProfilesAreWaiting, Is.True);
@@ -2217,11 +2213,10 @@ namespace KeePassGate.Tests
         [Test]
         public void Nobody_can_be_invited_while_a_profile_name_is_still_waiting()
         {
-            // `KPG.Profiles` is the one key this tab and pairing both write, and they write it
-            // differently: the tab holds its version until OK, pairing writes live and saves.
-            // `PendingStore` reconciles the two, so what is left is the direction no merge can
+            // The tab holds its acts about names until OK, and a pairing writes its names live and
+            // saves. Each act is composed again at OK, so what is left is the direction nothing can
             // decide: a client approved for a profile the operator is part way through removing is
-            // admitted to a name that OK takes out of the list, where it grants nothing.
+            // admitted to a name that OK takes off the list, where it grants nothing.
             var pending = new PendingDatabase(_database, null);
 
             using (var panel = new AuthorityPanel(
@@ -2235,9 +2230,7 @@ namespace KeePassGate.Tests
                 Assume.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.True,
                     "so what the assertion below reads is this edit and not the authority");
 
-                var names = ProfileNames.Read(null);
-                Assume.That(names.Add("ops"), Is.Null);
-                pending.PluginCustomData.Set(ProfileNames.CustomDataKey, names.Write());
+                Assume.That(new DatabaseProfiles(pending, null).Add("ops"), Is.Null);
                 panel.Describe();
 
                 Assert.That(panel.ProfilesAreWaiting, Is.True);
@@ -2279,9 +2272,7 @@ namespace KeePassGate.Tests
                 pending.Apply();
                 panel.Describe();
 
-                var names = ProfileNames.Read(null);
-                Assume.That(names.Add("ops"), Is.Null);
-                pending.PluginCustomData.Set(ProfileNames.CustomDataKey, names.Write());
+                Assume.That(new DatabaseProfiles(pending, null).Add("ops"), Is.Null);
 
                 // Deliberately not redrawn, which is the state the button cannot cover.
                 panel.InviteClient();

@@ -12,17 +12,27 @@ namespace KeePassGate.Ui
     /// The profiles page's answers, read from and written to one open database.
     /// </summary>
     /// <remarks>
-    /// Two stores rather than one, and they are not the same kind of thing. The list of names is a
-    /// single value in the database's own custom data. The rules are one document per node, all
-    /// over the tree. A profile is added and removed by touching only the first, because a client
-    /// holds only the names its record carries that the list still names: taking a name off the
-    /// list is what makes every rule for it grant nothing, and putting it back is what makes them
-    /// grant again. The rules are read here and never written.
+    /// Two stores rather than a single store, and they are not the same kind of thing. The list
+    /// of names is the plugin's store's, `STORE.md` §616: an addition and a removal are records
+    /// of it. The rules are a document for each node, all over the tree. A profile is added and
+    /// removed by touching only the first, because a client holds only the names its admission
+    /// carries that the list still names: taking a name off the list is what makes every rule for
+    /// it grant nothing, and putting it back is what makes them grant again. The rules are read
+    /// here and never written.
     ///
-    /// Nothing here saves. It marks the database as changed, exactly as the rest of the tab does.
+    /// **A press is an act handed to the database's store**, as the clients page hands a
+    /// revocation: the KPG tab's buffer holds it until the dialog's OK, and the page reads the
+    /// store with every act held planned over it. Nothing here saves.
     /// </remarks>
     public sealed class DatabaseProfiles : IProfiles
     {
+        /// <summary>
+        /// What an Add answers in a database whose store has no key: only an authority starts a
+        /// store, `STORE.md` §627.
+        /// </summary>
+        public const string NoAuthorityRefusal =
+            "This database has no certificate authority yet. Create it on the Certificate Authority page first.";
+
         private readonly IGateDatabase _database;
         private readonly IGateLog _log;
 
@@ -102,21 +112,21 @@ namespace KeePassGate.Ui
         /// How many admitted clients hold each profile.
         /// </summary>
         /// <remarks>
-        /// Counted rather than remembered, for the reason the rules are: a pairing writes a record
-        /// from somewhere else entirely while this dialog is open, so a number kept here would be
-        /// wrong about the client the operator approved a moment ago.
+        /// Counted rather than remembered, for the reason the rules are: a pairing writes an
+        /// admission from somewhere else entirely while this dialog is open, so a number kept here
+        /// would be wrong about the client the operator approved a moment ago.
         ///
-        /// **The records are what is read, not the certificates.** What a client may reach is
-        /// read from its record rather than from its certificate everywhere else in this plugin,
-        /// and a count that disagreed with that would be a count of something else. **And each
-        /// client is counted once**, by the client key every one of its records carries: a client
-        /// that renewed holds two records until it gives the older up, and is one client holding
-        /// the profile if either of them does, while two programs that paired under one name are
-        /// two clients.
+        /// **The admissions are what is read, not the certificates.** What a client may reach is
+        /// read from its admission rather than from its certificate everywhere else in this
+        /// plugin, and a count that disagreed with that would be a count of something else. **And
+        /// each client is counted once**, by the client key all its admissions carry:
+        /// a client that renewed holds two admissions until it gives the older up, and is one
+        /// client holding the profile if either of them does, while two programs that paired under
+        /// one name are two clients.
         ///
-        /// **Every profile from one reading of the records**, for the reason the rules are counted
-        /// in one walk: each reading parses every record's certificate, and the page asks for a
-        /// count on every row.
+        /// **Every profile from one reading of the admissions**, for the reason the rules are
+        /// counted in one walk: each reading parses every admission's certificate, and the page
+        /// asks for a count on every row.
         ///
         /// **Only clients that get in**, which <see cref="GettingIn"/> gives the reason for.
         /// </remarks>
@@ -124,7 +134,7 @@ namespace KeePassGate.Ui
         {
             var found = new Dictionary<string, int>(StringComparer.Ordinal);
 
-            if (_database == null || !_database.IsOpen || _database.PluginCustomData == null)
+            if (_database == null || !_database.IsOpen)
             {
                 return found;
             }
@@ -132,8 +142,8 @@ namespace KeePassGate.Ui
             try
             {
                 // A listing that could not be made counts nobody, which shows this profile as
-                // held by no client rather than claiming it is held by one. The tab's own line
-                // is where a failed read is reported.
+                // held by no client rather than claiming it is held by a client. The tab's own
+                // line is where a failed read is reported.
                 var holders = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
                 foreach (var record in GettingIn())
                 {
@@ -156,8 +166,8 @@ namespace KeePassGate.Ui
                             holders[held] = clients;
                         }
 
-                        // A set of client keys, because a record naming a profile twice is still
-                        // one client, and so is a client holding it through two records.
+                        // A set of client keys, because an admission naming a profile twice is
+                        // still a single client, and so is a client holding it through two.
                         clients.Add(record.ClientKey);
                     }
                 }
@@ -176,13 +186,12 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// The records whose clients get in now, judged by `ClientReaches` against the authority
+        /// The admissions whose clients get in now, judged by `ClientReaches` against the authority
         /// this dialog would serve, as the clients page judges its rows.
         /// </summary>
         /// <remarks>
-        /// A record the gate refuses, of another authority, not for client use, not yet valid or
-        /// expired, holds profiles it cannot use. It was counted as a client holding them, on the
-        /// same page whose warning about adding a name back left the expired ones out.
+        /// An admission the gate refuses, of another authority, not for client use, not yet valid
+        /// or expired, holds profiles it cannot use, and is not counted as a client holding them.
         /// </remarks>
         private List<AdmissionRecord> GettingIn()
         {
@@ -201,6 +210,16 @@ namespace KeePassGate.Ui
             }
         }
 
+        /// <summary>
+        /// Adds a name, as an act the KPG tab's buffer holds until the dialog's OK, or answers why
+        /// not: a text no claim could carry, a name the list already holds, a database whose store
+        /// has no key, or a write the store refuses.
+        /// </summary>
+        /// <remarks>
+        /// **The addition names the removals of the name that the page's reading held at the
+        /// press**, `STORE.md` §627, and that is what OK writes: a removal that reaches the
+        /// database after the press is not overruled by it. The list keeps no ceiling.
+        /// </remarks>
         public string Add(string name)
         {
             if (_database == null || !_database.IsOpen)
@@ -208,24 +227,15 @@ namespace KeePassGate.Ui
                 return "No database is open on this dialog.";
             }
 
-            if (Unreadable)
-            {
-                return UnreadableRefusal;
-            }
-
-            var names = Read();
-            if (names.Holds(name))
-            {
-                return "That profile is already named here.";
-            }
-
-            var refused = names.Add(name);
+            var refused = ProfileNames.Refusal(name);
             if (refused != null)
             {
                 return refused;
             }
 
-            return Store(names);
+            return Press(
+                names => names.Holds(name) ? "That profile is already named here." : null,
+                reading => ProfileActs.Add(reading, name));
         }
 
         /// <summary>
@@ -233,10 +243,10 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// Only a name the list does not hold can come back, and it brings back whatever still
-        /// names it: a removal leaves the rules where they were and the records as they were
+        /// names it: a removal leaves the rules where they were and the admissions as they were
         /// approved, so every client holding the name regains it. Counted now rather than
-        /// remembered from the removal, because a rule can be written by hand, or a record or a
-        /// rule arrive in a merge, long after the name went.
+        /// remembered from the removal, because a rule can be written by hand, or an admission or
+        /// a rule arrive in a merge, long after the name went.
         /// </remarks>
         public string Returning(string name)
         {
@@ -280,32 +290,27 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// The admitted clients whose records hold a name, as the Clients page calls them.
+        /// The admitted clients whose admissions hold a name, as the Clients page calls them.
         /// </summary>
         /// <remarks>
         /// A listing that cannot be made names nobody, as the count does; the tab's own line is
         /// where a failed read is reported, and a warning that could not name the clients still
-        /// says what comes back of the rules.
+        /// states what comes back of the rules.
         ///
-        /// Each client once, by its client key, so a client that renewed and still holds the record
-        /// it renewed from is named once, and two that share a name are named apart. It regains
-        /// the name through whichever of its certificates holds it, which while it holds two can be
-        /// the older one alone.
+        /// Each client once, by its client key, so a client that renewed and still holds the
+        /// admission it renewed from is named once, and two that share a name are named apart. It
+        /// regains the name through whichever of its certificates holds it, which while it holds
+        /// two can be the older alone.
         /// </remarks>
         private IReadOnlyList<string> Holders(string name)
         {
             var found = new List<AdmissionRecord>();
 
-            if (_database.PluginCustomData == null)
-            {
-                return ClientList.ClientNames(found);
-            }
-
             try
             {
-                // Only a record that gets in: an expired record regains nothing and goes with the
-                // plugin's next write, and a record of another authority, not for client use or
-                // not yet valid regains nothing either.
+                // Only an admission that gets in: an expired admission regains nothing and goes
+                // with the plugin's next write, and an admission of another authority, not for
+                // client use or not yet valid regains nothing either.
                 found.AddRange(GettingIn().Where(record => record.Profiles != null
                                                          && record.Profiles.Contains(name, StringComparer.Ordinal)));
             }
@@ -317,6 +322,10 @@ namespace KeePassGate.Ui
             return ClientList.ClientNames(found);
         }
 
+        /// <summary>
+        /// Removes a name, as an act the KPG tab's buffer holds until the dialog's OK, or answers
+        /// why not: a name the list does not hold, or a write the store refuses.
+        /// </summary>
         public string Remove(string name)
         {
             _lastRemoval = null;
@@ -326,18 +335,9 @@ namespace KeePassGate.Ui
                 return "No database is open on this dialog.";
             }
 
-            if (Unreadable)
-            {
-                return UnreadableRefusal;
-            }
-
-            var names = Read();
-            if (!names.Remove(name))
-            {
-                return "That profile is not named here.";
-            }
-
-            var refused = Store(names);
+            var refused = Press(
+                names => names.Holds(name) ? null : "That profile is not named here.",
+                reading => ProfileActs.Remove(reading, name));
             if (refused != null)
             {
                 return refused;
@@ -352,14 +352,14 @@ namespace KeePassGate.Ui
         /// what is left holding it.
         /// </summary>
         /// <remarks>
-        /// The rules are said to stay because they do, and so are the clients, and both are news:
-        /// an operator who removed a name and later adds it back gets every one of those rules in
-        /// force again, for every one of those clients whose record still holds it then. One that
-        /// renewed in between was written without the name, since a renewal carries over only the
-        /// names the list holds. Counted from what could be read, like the columns, which are the
-        /// only counts there are.
+        /// The rules are stated to stay because they do, and so are the clients, and both are
+        /// news: an operator who removed a name and later adds it back gets every rule in force
+        /// again, for every client whose admission still holds it then. A client that renewed in
+        /// between was written without the name, since a renewal carries over only the names the
+        /// list holds. Counted from what could be read, like the columns, which are the only
+        /// counts there are.
         ///
-        /// Internal rather than private so that `GateTabFitsTests` can measure the longest one
+        /// Internal rather than private so that `GateTabFitsTests` can measure the longest sentence
         /// against the page it is shown on.
         /// </remarks>
         internal static string Said(string name, int rules, int clients)
@@ -394,93 +394,63 @@ namespace KeePassGate.Ui
             return counts != null && counts.TryGetValue(name, out found) ? found : 0;
         }
 
+        /// <summary>
+        /// The names on the list as the page shows them: the store read through the tab's buffer,
+        /// with every act held planned over it.
+        /// </summary>
         private ProfileNames Read()
         {
             try
             {
-                return ProfileNames.Read(_database.PluginCustomData.Get(ProfileNames.CustomDataKey));
+                using (var reading = _database.Store.Read())
+                {
+                    return ProfileNames.Of(reading);
+                }
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
                 _log.Warn("the profiles could not be read: " + error.Message);
-                return ProfileNames.Empty();
-            }
-        }
-
-        /// <summary>What Add and Remove answer while the stored list will not read.</summary>
-        public const string UnreadableRefusal =
-            "The list of profiles this database holds will not read, so it is left as it is. Start a new list first.";
-
-        /// <summary>
-        /// Whether the stored list will not read, which <see cref="ProfileNames.Readable"/> decides
-        /// for every reader that writes what it reads.
-        /// </summary>
-        /// <remarks>
-        /// **The page wrote over it, and nothing else does.** `ProfileNames.Read` answers a damaged
-        /// list as naming nothing, which is right for a reader asking what is named and wrong for
-        /// a reader that writes the result back: the page showed no names and no warning, and its first
-        /// Add or Remove at OK replaced the damaged value, every name it held and the only sign
-        /// that it was damaged, which pairing, renewal and the writer all refuse to do. A list
-        /// that cannot be asked about at all is not called damaged, since nothing about its value
-        /// is known.
-        /// </remarks>
-        public bool Unreadable
-        {
-            get
-            {
-                if (_database == null || !_database.IsOpen || _database.PluginCustomData == null)
-                {
-                    return false;
-                }
-
-                try
-                {
-                    return !ProfileNames.Readable(_database.PluginCustomData.Get(ProfileNames.CustomDataKey));
-                }
-                catch (Exception error) when (Expected.OfCustomData(error))
-                {
-                    _log.Warn("the profiles could not be read: " + error.Message);
-                    return false;
-                }
+                return ProfileNames.Of(null);
             }
         }
 
         /// <summary>
-        /// The operator's choice to replace a stored list that will not read with one naming
-        /// nothing, the one way the page writes over it, the operator's ruling of 2026-11-08.
+        /// Composes an act about a name over the store as the page shows it and hands it to the
+        /// store, answering why it was not taken, or null where it was.
         /// </summary>
-        public string StartNew()
+        /// <param name="refusal">Why the press is refused against the list the page shows, or null.</param>
+        /// <param name="compose">The act, composed over that reading, or null where no store key stands.</param>
+        private string Press(Func<ProfileNames, string> refusal, Func<StoreReading, StoreAct> compose)
         {
-            if (_database == null || !_database.IsOpen)
-            {
-                return "No database is open on this dialog.";
-            }
-
-            if (!Unreadable)
-            {
-                return "The list of profiles reads, so there is nothing to replace.";
-            }
-
-            return Store(ProfileNames.Empty());
-        }
-
-        private string Store(ProfileNames names)
-        {
+            StoreAct act;
             try
             {
-                var document = names.Write();
-
-                if (document == null)
+                using (var reading = _database.Store.Read())
                 {
-                    _database.PluginCustomData.Remove(ProfileNames.CustomDataKey);
-                }
-                else
-                {
-                    _database.PluginCustomData.Set(ProfileNames.CustomDataKey, document);
-                }
+                    var refused = refusal(ProfileNames.Of(reading));
+                    if (refused != null)
+                    {
+                        return refused;
+                    }
 
-                _database.MarkModified();
-                return null;
+                    act = compose(reading);
+                }
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Error("the profiles could not be read", error);
+                return "That could not be written: " + Clipped.Message(error.Message);
+            }
+
+            if (act == null)
+            {
+                return NoAuthorityRefusal;
+            }
+
+            StoreWritten written = null;
+            try
+            {
+                written = _database.Store.Write(new[] { act });
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
@@ -489,6 +459,34 @@ namespace KeePassGate.Ui
                 _log.Error("the profiles could not be written", error);
                 return "That could not be written: " + Clipped.Message(error.Message);
             }
+            finally
+            {
+                if (written == null || !written.Taken || !written.Waits)
+                {
+                    act.Forget();
+                }
+            }
+
+            return written.Taken ? null : "That could not be written: " + Clipped.Message(written.Reason);
+        }
+
+        /// <summary>
+        /// Whether the stored list will not read: never, since a damaged record of a name stops
+        /// the store, which the first page of the tab states.
+        /// </summary>
+        public bool Unreadable
+        {
+            get { return false; }
+        }
+
+        /// <summary>What Add and Remove answer while the stored list will not read.</summary>
+        public const string UnreadableRefusal =
+            "The list of profiles this database holds will not read, so it is left as it is. Start a new list first.";
+
+        /// <summary>Refuses, since nothing of the list fails to read: <see cref="Unreadable"/>.</summary>
+        public string StartNew()
+        {
+            return "The list of profiles reads, so there is nothing to replace.";
         }
     }
 }

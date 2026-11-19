@@ -390,9 +390,7 @@ namespace KeePassGate.Tests
                 }
 
                 Assert.That(Admitted(key), Is.Null, "the revocation is in the store");
-                Assert.That(
-                    ProfileNames.Read(_database.PluginCustomData.Get(ProfileNames.CustomDataKey)).Holds("deploy"), Is.True,
-                    "and the profile added on the same OK is on the list");
+                Assert.That(Named("deploy"), Is.True, "and the profile added on the same OK is on the list");
                 Assert.That(incidents.Recent, Has.Exactly(1).Contains(nameof(NullReferenceException)), "the defect reached the catch-all");
                 Assert.That(incidents.Recent.Single(), Does.StartWith("the OK of the " + GateName.Product + " tab did not run to its end"),
                     "true of an OK whose store's part was written");
@@ -509,9 +507,7 @@ namespace KeePassGate.Tests
                 }
 
                 Assert.That(Admitted(key), Is.Null, "the certificate is taken away");
-                Assert.That(
-                    ProfileNames.Read(_database.PluginCustomData.Get(ProfileNames.CustomDataKey)).Holds("deploy"), Is.True,
-                    "and the profile added on the same OK is on the list");
+                Assert.That(Named("deploy"), Is.True, "and the profile added on the same OK is on the list");
                 Assert.That(incidents.Recent, Has.Exactly(1).Contains(nameof(NullReferenceException)));
             }
         }
@@ -732,6 +728,15 @@ namespace KeePassGate.Tests
             StoreSeeds.Admit(_database.Store, AdmissionRecord.For(
                 certificate, DateTimeOffset.UtcNow, new[] { "reader" }, served, client ?? key, client));
             return key;
+        }
+
+        /// <summary>Whether a profile name is on the list of the database's store now.</summary>
+        private bool Named(string profile)
+        {
+            using (var reading = _database.Records.Read())
+            {
+                return ProfileNames.Of(reading).Holds(profile);
+            }
         }
 
         /// <summary>The admission of a certificate as the gate reads it now.</summary>

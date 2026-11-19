@@ -287,10 +287,10 @@ namespace KeePassGate.Ui
         /// What it says while a profile edit is waiting for OK.
         /// </summary>
         /// <remarks>
-        /// `KPG.Profiles` is the one key this tab and pairing both write, and they write it
-        /// differently: the tab holds its version until OK, pairing writes live and saves. A
-        /// client approved while an edit is buffered is approved against a list that is about to
-        /// change under it, so the invite button is dead for that span, and this is what says so.
+        /// The profile names are what this tab and pairing both write, and they write them
+        /// differently: the tab holds its acts until OK, pairing writes live and saves. A client
+        /// approved while an edit is buffered is approved against a list that is about to change
+        /// under it, so the invite button is dead for that span, and this is what states so.
         ///
         /// The remedy is the remedy above, because the state is the same state: something on this
         /// tab has not reached the database, and OK is what puts it there.

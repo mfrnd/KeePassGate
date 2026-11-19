@@ -96,7 +96,7 @@ designing around them.
   which an attacker-supplied file could forge. **Do not re-propose a host-level authority or
   registry.**
 - **The database's own `CustomData`, never the root group's**, for what the plugin still keeps in
-  custom data, the profile names and the standing answers to a renewal. It was the root group's
+  custom data, the standing answers to a renewal. It was the root group's
   until a merge was measured: KeePass merges `PwDatabase.CustomData` key by key and a group's
   dictionary whole, CA.md §204. Records shaped one-per-client to survive a merge did not.
 - **An admission and a revocation are records of the plugin's store**, STORE.md §615. An admission
@@ -270,26 +270,26 @@ designing around them.
   refuse the tab's OK there. The measured fact is below, and `STORE.md` §627.
 
   **Replayed key by key, never wholesale**, because a snapshot written back would be this plugin
-  doing to itself exactly what `GroupForm` does to it: a pairing that lands while the dialog is open
-  can write a profile name to the live database, and only touching the keys the operator changed
-  leaves it alone. **What the tab holds for the plugin's store is acts and not keys**,
-  `PendingRecords`: each composed at its press and all planned at OK against the store as it
-  stands then, so an admission that landed meanwhile, or a certificate a client gave up, is in
-  what they are planned against.
+  doing to itself exactly what `GroupForm` does to it: a renewal dialog that answers while the
+  settings dialog is open can write a standing answer to the live database, and only touching the
+  keys the operator changed leaves it alone. **What the tab holds for the plugin's store is acts
+  and not keys**, `PendingRecords`: each composed at its press and all composed again and planned
+  at OK against the store as it stands then, so an admission that landed meanwhile, or a
+  certificate a client gave up, is in what they are planned against.
 
-  **And `KPG.Profiles` is replayed as a difference**, because it is a key whose second writer
-  has to be merged with the tab: a pairing names an approved profile in the same write as the
-  admission record, so the tab's own list is not the only version of it. Record and revocation keys
-  had second writers too while they were keys of the custom data, and are records of the store
-  now, which a write only ever adds to. Key by key is no help for the list, since the tab did
-  touch that key, and the older list went over the newer one. `PendingStore.Reconcile` registers a
-  merge through `ProfileNames.Merge` for it, so a name an approval added survives and a name the
-  operator removed still goes, and at the ceiling a name the operator added that no longer fits is
-  left out, said on the page as it goes and named in the log at OK, however the list was edited in
-  between. What no merge can decide is left where it is: a client approved for
-  a profile the operator is part way through removing is admitted to a name OK takes off the list,
-  where it grants nothing, which is why a buffered profile edit kills the invite button and
-  withdraws the code made on the dialog, as Cancel does.
+  **A profile name is an act of the store as well**, an addition or a removal, `STORE.md` §616,
+  and the buffer holds only the last press for each name, so a name added and removed on a single
+  dialog writes nothing. A pairing adds an approved name in the admission's own write, so composing
+  again at OK is what keeps both: an Add over a name a pairing added meanwhile writes nothing more,
+  and a Remove deletes that addition. An Add composed again over a removal of the name the press
+  never saw is not written, since the removal is a later word than the press, and the log names it.
+  What no composing can decide is left where it is: a client approved for a profile the operator
+  is part way through removing is admitted to a name OK takes off the list, where it grants
+  nothing, which is why a buffered profile edit kills the invite button and withdraws the code
+  made on the dialog, as Cancel does.
+  **This reverses `KPG.Profiles` replayed as a difference**, a key of the custom data merged at OK
+  with what a pairing wrote into it, which also left out at OK a name past the list's ceiling; the
+  list keeps no ceiling now.
 
   **A standing answer to a renewal is the other key with a second writer that matters.** The
   clients page's **Allow renewal** takes one away in the buffer, and the renewal dialog writes one
@@ -1536,9 +1536,13 @@ profile touches the list and nothing else: a rule still naming it grants nothing
 editor strikes it through, and adding the name back restores every rule and every client holding
 it, which the Profiles page and the approval dialog both state before it happens. This reverses a
 purge that took a removed name out of every rule, revisions included, and still lost to a stale
-copy merged in; see DESIGN.md §139. An unreadable list is an empty list, so every client stays
-admitted and reaches nothing, and the Profiles page shows it as damaged and writes over it only
-when the operator replaces it there.
+copy merged in; see DESIGN.md §139. **The names are records of the plugin's store**, an addition
+and a removal for each name, which a merge carries apart, STORE.md §616: a record of a name that
+will not read stops the store as any record of it does, and every client is answered `stopped`.
+This reverses an unreadable list read as an empty list, which left every client admitted and
+reaching nothing, with the Profiles page showing it as damaged and writing over it only when the
+operator replaced it there. A name needs the authority first, since its record is written under
+the store key, and the list keeps no ceiling.
 
 ### The grant editor
 

@@ -578,17 +578,16 @@ against 2 with it (evaluation 4.1).
   holds it: a database that 0.2 wrote keeps its custom data keys, each with a time, and stays a
   4.1 file for as long as they are in it (§645), and so does a file for anything else in it that
   is 4.1, `CA.md` §204. **Measured in the product for the parts that are built**: a saved database
-  that holds an authority and an admission in the store, and nothing of the plugin's in its
-  custom data, is a KDBX 4.0 file, and a profile name beside them takes it to 4.1, since the
-  profile names are still kept in the custom data (§616). **And through the pairing's own
+  that holds an authority, an admission and a profile name in the store, and nothing of the
+  plugin's in its custom data, is a KDBX 4.0 file (§616). **And through the pairing's own
   write**, saved by KeePass, with the version read from the file's header: an authority and a
-  client paired for no profile is a 4.0 file; paired for a profile, which the write names in the
-  list, a 4.1 file; and paired for no profile with a standing answer to its renewal beside it, a
-  4.1 file. So an admission does not move the file's version, and what the plugin still keeps
-  in custom data does, until that has moved into the store as well. *Held by*
-  `AdmissionInRealDatabaseTests.An_admission_leaves_the_file_KDBX_4_0_and_a_profile_name_beside_it_takes_it_to_4_1`
+  client paired for no profile is a 4.0 file; paired for a profile, which the write adds to the
+  list, a 4.0 file; and paired for no profile with a standing answer to its renewal beside it, a
+  4.1 file. So neither an admission nor a name moves the file's version, and what the plugin still
+  keeps in custom data does, until that has moved into the store as well. *Held by*
+  `AdmissionInRealDatabaseTests.An_admission_and_a_profile_name_in_the_store_leave_the_file_KDBX_4_0`
   and
-  `AdmissionInRealDatabaseTests.A_pairing_leaves_the_file_KDBX_4_0_and_a_profile_it_names_or_a_standing_answer_takes_it_to_4_1`.
+  `AdmissionInRealDatabaseTests.A_pairing_leaves_the_file_KDBX_4_0_whatever_it_names_and_a_standing_answer_takes_it_to_4_1`.
 
 ---
 
@@ -1585,6 +1584,20 @@ editor's pick list is read from the store at each redraw of its tab, and is empt
 names nothing or cannot be read, so it never offers a name removed since. The Profiles page
 offers no Add and no removal where nothing is written into the store in the session, as the
 clients page offers no revocation, and the first page of the tab states why (§636).
+
+**What is built.** The records, their reading and their writes as this section has them:
+`ProfileNames` reads the names from a reading of the store, `ProfileActs` composes an addition and
+a removal and composes each again over the store as it stands at OK, and a pairing's act carries
+its additions after the admission. The gate reads a client's names with its admission, a held
+approval is compared name by name in the write's turn, the Profiles page writes each name through
+the store and refuses a name where no store key stands, and the grant editor's pick list is read
+from the store. Not built yet are the page offering no Add and no removal where nothing is
+written into the store (§636) and the run over synchronized copies (§644). *Held by*
+`ProfileNamesTests`, against the store's meanings of the measured code
+(`tests/Shared/StoreMeaningVectors.json`), and by every rule of this section over the product's
+reading, a hundred names among them; `ProfileActsTests`, against its records
+(`StoreRecordVectors.json`); `AdmissionActsTests`; and `PendingRecordsTests` for the buffer, its
+fold and the additions it leaves out.
 
 ### Rules §617
 
@@ -2862,7 +2875,7 @@ then the save, and the write believed or taken back as this section has it. An a
 back by its own entries, and a certificate given up is believed on the flag and the file. Taken
 back are the entries added, the entries deleted with their deletion records, the deletion records
 added, the records set back and a group made, and with them what the same turn wrote into the
-custom data or took out of it: a profile name, and the standing answers to a renewal. A database
+custom data or took out of it, the standing answers to a renewal. A database
 that closed inside the save is taken nothing back from, and no certificate is handed over. A write
 that stands has KeePass's group tree and entry list rebuilt, since it adds and deletes entries of
 the plugin's group, `DESIGN.md` §119. **What a pairing's write holds KeePass's thread for**
@@ -2883,8 +2896,11 @@ additions that step 3 names** as well: each record of kind `profile` present und
 force or not and whatever its `name`, whose `after` does not hold every removal of its name that
 the store or the write's own records know, a removal known as a record by its identifier, as an
 item by its `id` and as a deletion record by its own identifier; no other addition, and none the
-write adds. The plugin composes no addition and no removal of its own (§616 is not built), so
-what this deletes is what a merge brought. **A client's write is answered the
+write adds. So what this deletes is an addition a merge brought, or an addition that a removal
+arrived after. **The acts about a name are built as the buffer holds them**: the last press for each
+name, composed again at OK, the additions of a pairing in the admission's own act, and an
+addition left out at OK for a removal the press never saw named in the log.
+**A client's write is answered the
 store's word** where the store holds the gate back in the writer's turn, above (§644 item 26).
 **The tab's OK meets no save of the plugin's own**, above (§644 item 30), so nothing was built
 for it. **The single removal on the clients page is written as the revocation is**, by the
@@ -2909,9 +2925,11 @@ write's own;
 write applied to a database read as the same write applied in memory among them; and the writes
 that save by `PairingInRealDatabaseTests` and `RenewalInRealDatabaseTests`, among them
 `A_pairing_deletes_an_admission_that_came_back_beside_its_revocation`,
-`A_pairing_leaves_the_admission_of_an_expired_certificate_where_it_is` and
-`A_pairing_that_lands_rebuilds_the_tree_and_the_entry_list`, and by `GiveUpInRealDatabaseTests`
-for a certificate given up.
+`A_pairing_leaves_the_admission_of_an_expired_certificate_where_it_is`,
+`A_pairing_that_lands_rebuilds_the_tree_and_the_entry_list`,
+`A_pairing_for_a_name_that_was_removed_names_the_removal_and_deletes_the_addition_it_defeated`
+and `A_pairing_whose_save_fails_puts_back_the_addition_its_write_deleted`, and by
+`GiveUpInRealDatabaseTests` for a certificate given up.
 
 ### A record written again §628
 

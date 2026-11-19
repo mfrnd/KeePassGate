@@ -152,17 +152,19 @@ JSON file is that command's output with `--readings`, byte for byte, so a reader
 the one command. The three words of the measured reading's status are written as the product's
 states by the script's `STATES` table. `tests/Shared/StoreMeaningVectors.json`, small stores and
 what the measured reading found in force in each, is the same script's output with `--meanings`,
-byte for byte, at its commit `30a595a7`, which reads the same two files. It keeps the measured
+byte for byte, at its commit `663384cc`, which reads the same two files. It keeps the measured
 reading's own words for a store's status, and `StoreInForceTests` names the state it holds each
-to. `tests/Shared/StoreRecordVectors.json`, records composed by the measured code, and
-`tests/Shared/StoreWriteVectors.json`, the file after each act of sequences the measured model
-played, are the same script's output with `--records` and `--writes`, byte for byte, the first
-at `e002013f` and the second at `a3c9c828`. `StoreRecordTests` composes every record of the
+to, while `ProfileNamesTests` holds the names the product reads in each store to the names the
+measured reading found. `tests/Shared/StoreRecordVectors.json`, records composed by the measured
+code, and `tests/Shared/StoreWriteVectors.json`, the file after each act of sequences the measured
+model played, are the same script's output with `--records` and `--writes`, byte for byte, the
+first at `663384cc` and the second at `a3c9c828`. `StoreRecordTests` composes every record of the
 first through the product and holds the content, the check, the identifier and every string to
-it; `StoreWriteShapeTests` holds the product's writes to the second by shape, since its records
-hold stand-ins the product does not compose. It plays each sequence through the product's own
-acts, `AuthorityService` and `AdmissionActs`, with the admissions compared as every other kind
-is; the third sequence, a revocation in a copy and a renewal of the same client in the other,
+it, and `ProfileActsTests` holds the members of the additions and removals the product's acts
+compose to it; `StoreWriteShapeTests` holds the product's writes to the second by shape, since
+its records hold stand-ins the product does not compose. It plays each sequence through the
+product's own acts, `AuthorityService` and `AdmissionActs`, with the admissions compared as every
+other kind is; the third sequence, a revocation in a copy and a renewal of the same client in the other,
 synchronized, was printed at that commit, `a3c9c828` on `spikes/storage-survival`, and ends
 with the same records in both copies and the renewed certificate refused in each.
 

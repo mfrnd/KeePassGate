@@ -903,8 +903,8 @@ namespace KeePassGate.Host.Tests
             // What a removal on the Profiles page leaves: the list has let the name go and a
             // client's record still holds it. Offering it would let a rule be written for a name
             // that grants nothing, which reads exactly like one that works.
-            Name("reader");
             Admit("reader", "ops");
+            Name("reader");
 
             using (var dialog = new GroupForm())
             {
@@ -1031,25 +1031,52 @@ namespace KeePassGate.Host.Tests
             WorkingCopyField(dialog).SetValue(dialog, live.CloneDeep());
         }
 
-        /// <summary>Writes these names into the database's own profile list, as the page does.</summary>
+        /// <summary>
+        /// Makes these names the database's list of profiles, as the page does, under an authority
+        /// made first where the database has none.
+        /// </summary>
         private void Name(params string[] profiles)
         {
-            var names = ProfileNames.Empty();
-            foreach (var profile in profiles)
+            var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+            Keyed();
+
+            IReadOnlyList<string> named;
+            using (var reading = store.Read())
             {
-                Assume.That(names.Add(profile), Is.Null);
+                named = ProfileNames.Of(reading).Names;
             }
 
-            _database.Database.CustomData.Set(ProfileNames.CustomDataKey, names.Write());
+            foreach (var profile in named.Where(profile => !profiles.Contains(profile)))
+            {
+                StoreSeeds.Unname(store, profile);
+            }
+
+            foreach (var profile in profiles.Where(profile => !named.Contains(profile)))
+            {
+                StoreSeeds.Name(store, profile);
+            }
+        }
+
+        /// <summary>An authority in the database, made where it has none.</summary>
+        private void Keyed()
+        {
+            using (var reading = new KdbxStore(_database.Database, GateVersion.Current, null).Read())
+            {
+                if (reading.InForce != null)
+                {
+                    return;
+                }
+            }
+
+            var created = DatabaseAuthority.Of(_database.Database, null).Create();
+            Assume.That(created.Succeeded, Is.True, created.Message);
         }
 
         /// <summary>Admits an invented client into these profiles, the way pairing does.</summary>
         private void Admit(params string[] profiles)
         {
             var authority = DatabaseAuthority.Of(_database.Database, null);
-
-            var created = authority.Create();
-            Assume.That(created.Succeeded, Is.True, created.Message);
+            Keyed();
 
             using (var reading = authority.Read())
             {

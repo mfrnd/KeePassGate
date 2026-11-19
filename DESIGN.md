@@ -941,13 +941,14 @@ somebody has to answer "what may I grant here", and the honest answer was "whate
 spelled exactly as somebody else typed it". A typo made a profile that existed, granted nothing, and
 looked exactly like the one that was meant.
 
-So the set is `ProfileNames`, under `KPG.Profiles` in the database's own custom data, where the
-authority and the records were kept beside it until each moved into the plugin's store, in the
-same grammar as everything else here:
-
-```json
-{"profiles":["reader","ops"]}
-```
+So the set is `ProfileNames`, read from the plugin's store beside the authority and the
+admissions, `STORE.md` §616. A name is added by a record of kind `profile` and taken off by a
+record of kind `removed`, and it is on the list where an addition of it in force names, among the
+removals it was written after, every removal of that name the store knows: by its record, by the
+summary entry's item or by a deletion record. A merge therefore brings every addition and every
+removal each copy wrote, a removal wins over every addition that did not see it, and a name added
+again after it, naming it, stands. A write of the plugin's deletes the additions a removal has
+defeated, and never deletes a removal.
 
 **It holds names and nothing else.** What a name reaches is on the nodes, who holds one is in the
 admission records, and the set of them is here. Three places, three questions, none of them
@@ -961,12 +962,30 @@ merge, answers for nobody.
 **This reverses what this section first said**, that nothing is authorized by the list and the
 resolver has never heard of it, which made losing the list cost an operator their pick list rather
 than anybody their access. The intersection makes it load bearing, and fails closed the way
-everything here does: a list that will not read is an empty set, so every client stays admitted
-and reaches nothing until it reads again. A list in another shape, or holding a name it cannot
-hold, names only what reading could take from it, and pairing and renewal, which write the list or
-a record from what they read, refuse it as they refuse a list that does not parse. So does the
-Profiles page, which writes what it reads: it shows the damage and writes over it only when the
-operator presses the one button that replaces it, the operator's ruling of 2026-11-08.
+everything here does: a record of a name that will not read stops the store, `STORE.md` §621 and
+§624, and every client is answered `stopped` until it reads again. An addition whose name is no
+name a claim can carry names nothing, and is no damage.
+
+**This reverses the list as a key of the database's own custom data**, `KPG.Profiles`, holding
+`{"profiles":["reader","ops"]}`, and four things that came with it. A merge took that key whole
+from one copy, so a name only the other copy added was lost and a name only the other copy took
+out came back, `CA.md` §204, where records of the store are each carried. The settings tab and
+pairing both wrote the key, so the tab replayed its edit at OK as a difference against the list
+as it stood then; each press is an act of the store now, composed again at OK against the store
+as it stands then, and a pairing writes its addition in the admission's own write. A list that
+would not read was an empty set, every client staying admitted and reaching nothing, and pairing,
+renewal and the Profiles page refused to write over it, the page offering one button that
+replaced it, the operator's ruling of 2026-11-08: a record of the store that will not read stops
+the store, as every record of the store does, so no state is left in which the names alone are
+lost. And the key held at most 32 names, so the Profiles page refused a further name, OK left out
+a name past that ceiling, and a pairing left an approved name off the list, which its dialog
+stated: no write of the plugin's refuses a name for how many the list holds now, and a pairing
+still asks for at most 32 names, which is the request's own limit.
+
+**A name needs the authority first**, which reverses a name written into a database with no
+authority. A name is a record of the store, written under the store key that creating the
+authority writes, so the Profiles page refuses a name until an authority stands or a creation of
+an authority waits for the same dialog's OK, `STORE.md` §627.
 
 The one rule it applies is the issuer's, `AuthorityIssuer.IsUsableProfileName`, because a name that
 cannot travel as a claim is a name no client can ever hold: it would be granted here and refused at
@@ -1656,8 +1675,9 @@ So the rules here:
   back is asked about, the approval and the invitation are spent last, the entries are changed,
   and the database is saved. Afterwards each entry the write added is looked up in the tree with
   the strings it was written with, beside the flag and the file, and a write that did not land is
-  taken back out by the undo its application handed back: the entries added, the entries deleted
-  with their deletion records, and the profile name and the standing answers the same turn
+  taken back out by the undo its application handed back: the entries added, the additions of a
+  name the approval brought among them, the entries deleted with their deletion records, an
+  addition that a removal had defeated among them, and the standing answers the same turn
   changed. **A write whose plan adds no admission is refused before the approval and the
   invitation are spent**: looked up by its own entries, a write that added nothing would find
   nothing missing, and a save of nothing would hand a certificate over with no admission in the
@@ -2257,15 +2277,14 @@ does not come is answered `503 busy`.
 requests cannot interleave mutations of the same entry.
 
 **And whatever a record is written with is read again under that lock**, the operator's ruling R11
-for a value read off KeePass's thread. A pairing and a renewal read the database's list of profiles
-on the connection's thread to build their dialog, and the operator answers what the dialog showed;
-two reads made apart can disagree, and a lookup that meets the list as KeePass's thread changes the
-dictionary it sits in answers a miss rather than an exception. So the write, on KeePass's thread
-and under the writer's lock, reads the list again and compares every name the answer rested on with
-what the dialog showed, a renewal's dropped names included. A name put on or taken off the list
-while the dialog stood, or a read that missed it as the dialog was built, makes the approval stale
-rather than part of a record: it is used up, the request answers `503 busy`, and the next request
-is put to the operator again, `PAIRING.md` §311.
+for a value read off KeePass's thread. A pairing and a renewal read the names the database holds
+from the plugin's store to build their dialog, in a hold of KeePass's thread, and the operator
+answers what the dialog showed; the store can change between that hold and the write. So the
+write, on KeePass's thread and under the writer's lock, reads the store again and compares every
+name the answer rested on with what the dialog showed, a renewal's dropped names included. A name
+put on or taken off the list while the dialog stood makes the approval stale rather than part of a
+record: it is used up, the request answers `503 busy`, and the next request is put to the operator
+again, `PAIRING.md` §311.
 
 **And a write that a dialog would take back is refused rather than raced.** A dialog open on a node
 puts its copy back on OK, so a write to that node answers `503 busy` while it is open. A dialog that
@@ -2288,10 +2307,10 @@ lacks any of them starts no watch, and every write and every pairing is refused.
   from inside its OK, which can be handled part way through a save of the plugin's own (§119), so
   nothing is saved to its database while it is open.
 - **Database Maintenance** puts its copy of the database's own custom data back as it closes,
-  whatever the operator did, so no profile name and no standing answer to a renewal is written
-  while it is open, and neither is a pairing, a renewal or a certificate given up, each of which
-  adds or takes away such a key in the turn that writes its record. The records themselves were
-  keys of that dictionary, and a revocation with them, until they moved into the plugin's store.
+  whatever the operator did, so no standing answer to a renewal is written while it is open, and
+  neither is a pairing, a renewal or a certificate given up, each of which can take such a key
+  away in the turn that writes its record. The records themselves were keys of that dictionary,
+  the profile names and a revocation with them, until they moved into the plugin's store.
 - **Database Settings** puts its recycle bin choice back on OK, so a removal that would make the
   database's first bin is refused.
 - **KeePass's attachment editor** holds an attachment's name and bytes and nothing of the entry,

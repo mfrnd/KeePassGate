@@ -259,10 +259,10 @@ namespace KeePassGate.Bridge
 
             if (_dialogs != null)
             {
-                // One dialog for the custom data: the profile names a pairing adds and the standing
-                // answers to a renewal its write prunes go into the database's own custom data,
-                // which only the maintenance dialog copies. The admission is an entry of the
-                // plugin's group, asked about once the write's plan exists, `STORE.md` §626. No
+                // One dialog for the custom data: the standing answers to a renewal a write prunes
+                // go into the database's own custom data, which only the maintenance dialog copies.
+                // The admission and the profile names a pairing adds are entries of the plugin's
+                // group, asked about once the write's plan exists, `STORE.md` §626. No
                 // group dialog is asked: a group dialog's OK puts back no entry. The TAN wizard is
                 // asked about the save rather than the write, since its OK adds entries inside a
                 // save of its database, and this write ends in a save.
@@ -1703,89 +1703,6 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Adds any profile the operator approved that this database had never named.
-        /// </summary>
-        /// <remarks>
-        /// **Here rather than beside the approval, because it is the same decision as the record
-        /// and has to be the same write**: on this thread, under this lock, kept by the save below,
-        /// and refused by the same open dialog. Written anywhere else it is a change to the
-        /// database's custom data while Database Maintenance may be holding its own copy, and that
-        /// copy's write-back would put the old list back. It would also be a write that can succeed
-        /// while the record fails, leaving a database naming a profile for a client it never
-        /// admitted.
-        ///
-        /// **A name that cannot be added is skipped rather than refused, and what that costs is
-        /// said.** The list holds <see cref="ProfileNames.Most"/> names, and the operator can
-        /// approve a new one while it already holds that many. The client then carries the name in
-        /// its certificate and its record, and since a client reaches only what the list still
-        /// names, it reaches nothing through that one until the operator adds it on the Profiles
-        /// page, which at the ceiling means taking another off first; the grant editor offers no
-        /// name the list does not hold, so no rule can be written for it before then. Refusing the
-        /// approved pairing would cost more: a client holding a certificate for a record nobody
-        /// wrote. So the pairing lands, and the log says that a name was left off and why, without
-        /// naming it, as the pairing's own line does not.
-        /// </remarks>
-        private void Name(CustomDataStore store, IReadOnlyList<string> profiles)
-        {
-            if (profiles == null || profiles.Count == 0)
-            {
-                return;
-            }
-
-            try
-            {
-                var stored = store.Get(ProfileNames.CustomDataKey);
-                if (!ProfileNames.Readable(stored))
-                {
-                    // Never written over. Read, it is a list naming nothing, and a list of only the
-                    // approved names written in its place would drop every name the damaged one
-                    // held, and with it the sign that it was damaged. The pairing and the renewal
-                    // refuse before this while it will not read, so this is a list damaged since.
-                    _log.Warn("the profiles this database names will not read, so a profile the operator " +
-                              "approved was not added to them and the list was left as it is");
-                    return;
-                }
-
-                var names = ProfileNames.Read(stored);
-                var added = false;
-
-                foreach (var profile in profiles)
-                {
-                    if (names.Holds(profile))
-                    {
-                        continue;
-                    }
-
-                    var refused = names.Add(profile);
-                    if (refused != null)
-                    {
-                        _log.Warn("a profile the operator approved was left off the list this database " +
-                                  "names, so the client reaches nothing through it until it is added on " +
-                                  "the Profiles page: " + refused);
-                        continue;
-                    }
-
-                    added = true;
-                }
-
-                if (!added)
-                {
-                    return;
-                }
-
-                var document = names.Write();
-                if (document != null)
-                {
-                    store.Set(ProfileNames.CustomDataKey, document);
-                }
-            }
-            catch (Exception error) when (Expected.OfCustomData(error))
-            {
-                _log.Error("a profile the operator approved could not be named", error);
-            }
-        }
-
-        /// <summary>
         /// The standing answers owed to databases, written by every save KeePass makes of the
         /// database each belongs to, or null for none.
         /// </summary>
@@ -1941,18 +1858,27 @@ namespace KeePassGate.Bridge
         private sealed class Ground : IWriteGround
         {
             private readonly StoreReading _reading;
+            private ProfileNames _named;
 
-            public Ground(StoreReading reading, IKeyValueStore names)
+            public Ground(StoreReading reading)
             {
                 _reading = reading;
-                Names = names;
             }
-
-            public IKeyValueStore Names { get; private set; }
 
             public AdmissionRecord Admission(string admissionKey)
             {
                 return StoreAdmissions.Admitted(_reading, admissionKey);
+            }
+
+            /// <summary>Whether a name is on the list of this turn's reading, worked out once for the condition.</summary>
+            public bool Named(string profile)
+            {
+                if (_named == null)
+                {
+                    _named = ProfileNames.Of(_reading);
+                }
+
+                return _named.Holds(profile);
             }
         }
 
@@ -2099,44 +2025,40 @@ namespace KeePassGate.Bridge
                     // is going ahead, and what it compares, read from the store in this very turn,
                     // cannot move before the write that relies on it. A refusal is answered as a
                     // failure, since the caller that gave the condition knows which part refused.
-                    var withdrawn = condition(new Ground(reading, store));
+                    var withdrawn = condition(new Ground(reading));
                     if (withdrawn != null)
                     {
                         return AdmissionWrite.Failed(withdrawn);
                     }
                 }
 
-                // The name list as it was, so a write that never reaches the disk puts it back: a
-                // profile the pairing created in a database KeePass believes has nothing to save is
-                // a name the operator's next unrelated edit commits with no admission holding it.
-                var namesBefore = store.Get(ProfileNames.CustomDataKey);
                 var wasModified = database.Modified;
 
                 // What the application and the prune took, so a write that does not land puts it
-                // back and the database in memory goes on agreeing with the file. The entries
-                // first: an application that throws has taken itself back, so the profile names
-                // are written only beside entries that are there.
+                // back and the database in memory goes on agreeing with the file: the admission and
+                // the profile names it adds are entries of the plan, and its undo takes them back
+                // out. The entries first: an application that throws has taken itself back, so the
+                // standing answers are pruned only beside entries that are there.
                 var undone = staged.Apply();
                 IReadOnlyList<KeyValuePair<string, string>> pruned = null;
                 Owing owing = null;
 
                 try
                 {
-                    Name(store, record.Profiles);
                     pruned = PruneAnswers(store, reading, staged.Write);
                     database.Modified = true;
                 }
                 catch (Exception error) when (Expected.OfCustomData(error))
                 {
                     _log.Error("an admission could not be put in the database", error);
-                    return Undo(store, database, undone, namesBefore, pruned, owing, wasModified, error.Message);
+                    return Undo(store, database, undone, pruned, owing, wasModified, error.Message);
                 }
 
                 // Everything this write touched, put back as it was, for every ending below that
                 // leaves the admission out of the database. `raised` keeps the flag up whatever the
                 // file then reads as, for the one path that raises it on purpose.
                 Func<string, bool, AdmissionWrite> undo = (reason, raised) => Undo(
-                    store, database, undone, namesBefore, pruned, owing, wasModified || raised, reason);
+                    store, database, undone, pruned, owing, wasModified || raised, reason);
                 var added = staged.Write.Add;
 
                 // True until the save ends in a way this method expects, as in
@@ -2362,9 +2284,10 @@ namespace KeePassGate.Bridge
         ///
         /// **Everything the write applied goes, in this order**: the standing answers owed that the
         /// save carried; the entries, by the undo the application handed back, which removes what
-        /// it added with no deletion record, puts back what it deleted and removes those deletion
-        /// records, and removes the deletion records it added and a group it made; the profile
-        /// names as they were; and the standing answers the prune took away.
+        /// it added with no deletion record, the admission and the profile names it adds among
+        /// them, puts back what it deleted and removes those deletion records, and removes the
+        /// deletion records it added and a group it made; and the standing answers the prune took
+        /// away.
         ///
         /// The modified flag goes back only if this write is what set it. Clearing one that was
         /// already there would tell KeePass it has nothing to save while somebody else's change is
@@ -2378,7 +2301,6 @@ namespace KeePassGate.Bridge
             CustomDataStore store,
             PwDatabase database,
             Action undone,
-            string namesBefore,
             IReadOnlyList<KeyValuePair<string, string>> pruned,
             Owing owing,
             bool wasModified,
@@ -2391,20 +2313,6 @@ namespace KeePassGate.Bridge
                 if (undone != null)
                 {
                     undone();
-                }
-
-                // Only when it actually moved. `StringDictionaryEx.Set` stamps a modification time,
-                // so putting an identical value back is a change of its own.
-                if (!string.Equals(store.Get(ProfileNames.CustomDataKey), namesBefore, StringComparison.Ordinal))
-                {
-                    if (namesBefore == null)
-                    {
-                        store.Remove(ProfileNames.CustomDataKey);
-                    }
-                    else
-                    {
-                        store.Set(ProfileNames.CustomDataKey, namesBefore);
-                    }
                 }
 
                 PutBackAnswers(store, pruned);

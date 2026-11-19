@@ -205,19 +205,20 @@ takes them first, and Approve has no mnemonic, is never the default button and c
 in the tab order, so a click on it, or Space while it has the focus, is the only way to approve. The
 renewal dialog, §312, is built the same way.
 
-**The dialog says what approving a profile brings back.** Pairing writes the approved names onto
-the database's list of profiles in the same write as the record, and that list decides which names
-are in force (`DESIGN.md` §139). A name the database does not name now and no client holds is
-marked "(new)", because approving adds it, and the dialog says that any rule already naming it
-applies at once: a name removed once, whose every holder has since been revoked or has expired,
-looks the same from a connection, which does not walk the tree to count rules. A name the operator
-removed that other clients still hold is marked
-"(removed)", and the dialog names those clients: approving puts the name back, every one of them
-regains it through whichever certificate still holds it, and every rule still naming it applies
-again. A client that renewed while the name was off the list regains it only through its older
-certificate, until it gives that up, since the one it renewed to was recorded without the name.
-Each client is named once, by its client key, `CA.md` §223, however many of its certificates hold
-the name, and two clients that paired under one name are named apart, each with the start of its
+**The dialog shows what approving a profile brings back.** Pairing adds each approved name the
+database does not hold in the same write as the admission, as a record of the plugin's store that
+names every removal of the name the write read, `STORE.md` §616, and the names the database holds
+decide which names are in force (`DESIGN.md` §139). A name the database does not name now and no
+client holds is marked "(new)", because approving adds it, and the dialog states that any rule
+already naming it applies at once: a name removed once, whose every holder has since been revoked
+or has expired, looks the same from a connection, which does not walk the tree to count rules. A
+name the operator removed that other clients still hold is marked "(removed)", and the dialog
+names those clients: approving puts the name back, every one of them regains it through
+whichever certificate still holds it, and every rule still naming it applies again. A client
+that renewed while the name was off the list regains it only through its older certificate,
+until it gives that up, since the certificate it renewed to was recorded without the name. Each
+client is named once, by its client key, `CA.md` §223, however many of its certificates hold the
+name, and two clients that paired under one name are named apart, each with the start of its
 client key as the clients page shows it.
 
 **Every answer is written to the audit**, `DESIGN.md` §120, naming the invitation the request
@@ -378,20 +379,22 @@ holds a signing key.
 
 **The record is an entry of the plugin's store now, and that dialog holds no copy of it**,
 `STORE.md` §615 and §626, which reverses the record as a key of the dictionary the dialog copies.
-Database Maintenance still copies the database's own custom data, where the profile names and the
-standing answers to a renewal are kept, so a pairing, whose write can add a name, is still refused
-while it is open. What can take the admission itself back is KeePass's entry dialog, which puts
-its copy of an entry back at its OK: the write is answered `503 busy`, with the approval held,
-while that dialog holds an entry the write deletes or sets back, the store's summary entry among
-them. Nothing of the order changed. The admission and the summary entry written with it are
-saved, found in the database as they were written, and the file hashed back, before the
-certificate is handed over, and a write that does not land is taken back out whole, the entries
-it added and the entries it deleted alike, `STORE.md` §627. A write whose plan adds no admission
-is refused before the approval is used up or the invitation spent, so no certificate is handed
-over on a save of nothing. A lost admission still makes its certificate inert. Held by
+Database Maintenance still copies the database's own custom data, where the standing answers to a
+renewal are kept, so a pairing, whose write can take such an answer away, is still refused while
+it is open. The profile names are records of the store, as the admission is. What can take the
+admission itself back is KeePass's entry dialog, which puts its copy of an entry back at its OK:
+the write is answered `503 busy`, with the approval held, while that dialog holds an entry the
+write deletes or sets back, the store's summary entry among them. Nothing of the order changed.
+The admission and the summary entry written with it are saved, found in the database as they were
+written, and the file hashed back, before the certificate is handed over, and a write that does
+not land is taken back out whole, the entries it added and the entries it deleted alike, an
+addition of a name among each, `STORE.md` §627. A write whose plan adds no admission is refused
+before the approval is used up or the invitation spent, so no certificate is handed over on a
+save of nothing. A lost admission still makes its certificate inert. Held by
 `PairingInRealDatabaseTests`, whose save failures leave every entry and every deletion record of
 the store as before, among them
-`A_pairing_that_does_not_land_puts_an_admission_that_came_back_back_as_well` and
+`A_pairing_that_does_not_land_puts_an_admission_that_came_back_back_as_well`,
+`A_pairing_whose_save_fails_puts_back_the_addition_its_write_deleted` and
 `A_write_whose_plan_leaves_the_admission_out_is_not_believed_and_spends_nothing`.
 
 The gate against a stale dialog tracks specific `GroupForm` instances through

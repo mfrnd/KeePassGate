@@ -468,13 +468,11 @@ namespace KeePassGate.Pairing
 
             // Held from here until it is written, with the record it renews as the operator saw it,
             // and the list as the dialog showed it: which of the record's names it offered as
-            // listed and which it showed as dropped. The write reads the list again under the
+            // listed and which it showed as dropped. The write reads the store again under the
             // writer's lock and compares each of those names, `DESIGN.md` §124, so a name put on
-            // or taken off the list while the operator decided, or a read that missed the list as
-            // the dialog was built, makes this stale rather than part of the record. A record is
-            // written from the write's read and never from this thread's: a second read here
-            // could miss the list as well, and dropped every profile it did not find, with a
-            // warning blaming the operator.
+            // or taken off the list while the operator decided makes this stale rather than part
+            // of the record. A record is written from the write's read and never from this
+            // thread's.
             return _held.HoldRenewal(
                 approval,
                 target.DatabaseId,

@@ -52,13 +52,15 @@ namespace KeePassGate.Tests
         public void An_admission_is_a_single_record_of_kind_client_holding_its_members_under_the_key_that_stands()
         {
             var store = new ComposedStore(One);
+            store.Add(Addition("reader", string.Empty));
+            store.Add(Addition("ops", string.Empty));
             var record = AdmissionRecord.For(_second, Then, new[] { "reader", "ops" }, Hex('a'), Key(_first), Key(_first));
 
             var act = AdmissionActs.Admit(store.Read(), record);
 
             Assert.That(act.Name, Is.EqualTo(AdmissionActs.AdmitName));
             Assert.That(act.Against, Is.EqualTo(StoreFormat.KeyName(One)));
-            Assert.That(act.Records.Select(written => written.Kind), Is.EqualTo(new[] { "client" }));
+            Assert.That(act.Records.Select(written => written.Kind), Is.EqualTo(new[] { "client" }), "the list holds each name");
             Assert.That(
                 act.Records[0].Members.Where(member => member.Key != "nonce"),
                 Is.EquivalentTo(record.Members()),
@@ -69,6 +71,55 @@ namespace KeePassGate.Tests
             var read = AdmissionRecord.Read(act.Records[0].Hex, act.Records[0].Members);
             Assert.That(read, Is.Not.Null, "read back as it was written");
             Assert.That(read.Members(), Is.EquivalentTo(record.Members()));
+        }
+
+        [Test]
+        public void An_admission_adds_each_approved_name_the_list_does_not_hold_after_its_record()
+        {
+            // `STORE.md` §616: the names and the admission are a single act, planned, saved and
+            // taken back together; an addition names every removal of its name the reading holds.
+            var store = new ComposedStore(One);
+            store.Add(Addition("reader", string.Empty));
+            var removal = store.Add(Removal("ops"));
+            store.Restate(RemovalItem(removal.Hex, "ops"));
+            var record = AdmissionRecord.For(_first, Then, new[] { "writer", "reader", "ops" }, Hex('a'));
+
+            var act = AdmissionActs.Admit(store.Read(), record);
+
+            Assert.That(act.Records.Select(written => written.Kind), Is.EqualTo(new[] { "client", "profile", "profile" }));
+            Assert.That(act.Records.Skip(1).Select(written => written.Member("name")), Is.EqualTo(new[] { "ops", "writer" }),
+                "each name the list does not hold, in ordinal order, and none it holds");
+            Assert.That(act.Records[1].Member("after"), Is.EqualTo(removal.Hex), "the removal of a name that was removed");
+            Assert.That(act.Records[2].Member("after"), Is.Empty);
+        }
+
+        [Test]
+        public void An_admission_adds_every_new_name_however_many_the_list_holds()
+        {
+            // No ceiling on the list, `STORE.md` §616: a pairing adds every name it approves.
+            var store = new ComposedStore(One);
+            foreach (var index in Enumerable.Range(0, 100))
+            {
+                store.Add(Addition("held-" + index.ToString("D3", System.Globalization.CultureInfo.InvariantCulture), string.Empty));
+            }
+
+            var asked = Enumerable.Range(0, 32).Select(index => "new-" + index.ToString("D2", System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+            var act = AdmissionActs.Admit(store.Read(), AdmissionRecord.For(_first, Then, asked, Hex('a')));
+
+            Assert.That(act.Records.Skip(1).Select(written => written.Member("name")), Is.EqualTo(asked));
+        }
+
+        [Test]
+        public void A_plan_that_leaves_the_admission_out_adds_no_name()
+        {
+            var store = new ComposedStore(One);
+            var act = AdmissionActs.Admit(store.Read(), AdmissionRecord.For(_first, Then, new[] { "writer" }, Hex('b')));
+            Assume.That(act.Records.Count(written => written.Kind == "profile"), Is.EqualTo(1));
+
+            var write = StoreWrite.Plan(store.Read(), new[] { act }, GateVersion.Current);
+
+            Assert.That(write.Refused, Is.Not.Null, "its issuer does not stand");
+            Assert.That(write.Add, Is.Empty);
         }
 
         [Test]
@@ -278,6 +329,21 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>A record of kind `withdrawn` taking this certificate away.</summary>
+        private static StoreComposer.Composed Addition(string name, string after)
+        {
+            return StoreComposer.Record(One, "profile", "profile:" + name, StoreComposer.Content(("after", after), ("name", name)));
+        }
+
+        private static StoreComposer.Composed Removal(string name)
+        {
+            return StoreComposer.Record(One, "removed", "profile:" + name, StoreComposer.Content(("name", name)));
+        }
+
+        private static string RemovalItem(string id, string name)
+        {
+            return StoreComposer.Item(("id", id), ("kind", "removed"), ("name", name));
+        }
+
         private static StoreComposer.Composed Withdrawn(X509Certificate2 certificate, string renewed, string from)
         {
             return StoreComposer.Record(

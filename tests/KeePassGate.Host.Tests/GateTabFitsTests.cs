@@ -541,6 +541,44 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_profiles_page_holds_a_hundred_names_scrolling_down_and_never_across()
+        {
+            // The list of profile names keeps no ceiling, `STORE.md` §616: a hundred names are
+            // drawn whole, down the page in the room it has, with every column inside its width.
+            using (var database = TemporaryDatabase.New())
+            {
+                var store = new KdbxStore(database.Database, GateVersion.Current, null);
+                StoreSeeds.Authority(store);
+                for (var index = 0; index < 100; index++)
+                {
+                    StoreSeeds.Name(store, "profile-" + index.ToString("D3", System.Globalization.CultureInfo.InvariantCulture));
+                }
+
+                var opened = Opened(database);
+                using (var panel = new AuthorityPanel(opened, null, NullGateLog.Instance, null, new DatabaseProfiles(opened, null)))
+                {
+                    LayOut(panel, _page.DisplayRectangle.Size);
+                    var list = ControlTree.FindByName<ProfileList>(panel, ProfileList.ControlName);
+                    Show(list);
+                    list.Describe();
+                    list.PerformLayout();
+                    var grid = ControlTree.FindByName<DataGridView>(list, ProfileList.ListName);
+
+                    TestContext.Out.WriteLine("the profile list has " + list.Height + ", showing "
+                                              + grid.DisplayedRowCount(false) + " rows of " + grid.Rows.Count);
+                    Assert.That(grid.Rows.Count, Is.EqualTo(100), "every name is on the page");
+                    Assert.That(grid.DisplayedRowCount(false), Is.LessThan(100), "the list scrolls down through them");
+                    Assert.That(list.Height, Is.GreaterThanOrEqualTo(MinimumListHeight));
+                    Assert.That(
+                        grid.DisplayedColumnCount(false),
+                        Is.EqualTo(grid.Columns.GetColumnCount(DataGridViewElementStates.Visible)),
+                        "and never across");
+                    Assert.That(grid.HorizontalScrollingOffset, Is.Zero);
+                }
+            }
+        }
+
+        [Test]
         public void The_line_about_a_list_that_will_not_read_fits_the_profiles_page_with_its_button()
         {
             // The state a damaged list puts the page in: a line stating so and the button that

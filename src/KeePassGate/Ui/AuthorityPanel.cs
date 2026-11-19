@@ -970,13 +970,12 @@ namespace KeePassGate.Ui
 
         /// <summary>Whether a profile edit is buffered and the list is about to change under a client.</summary>
         /// <remarks>
-        /// `KPG.Profiles` is the one key this tab and pairing both write, and they write it
-        /// differently: the tab holds its version until OK, pairing writes live and saves.
-        /// `PendingStore` reconciles the two, so a name an approval added is no longer thrown away
-        /// by OK. What is left is the direction no merge can decide. An operator who is part way
-        /// through taking a profile out, and approves a client for it in the middle of that,
-        /// presses OK and removes the name from the list: the client is admitted to a profile that
-        /// grants nothing anywhere.
+        /// A pairing writes its approved names into the live store and saves, while the tab holds
+        /// its acts about names until OK. Each act is composed again at OK against the store as it
+        /// stands, so a name an approval added is not thrown away by OK. What is left is the
+        /// direction nothing can decide: an operator who is part way through taking a profile out,
+        /// and approves a client for it in the middle of that, presses OK and removes the name
+        /// from the list, and the client is admitted to a profile that grants nothing anywhere.
         ///
         /// Separate from `AuthorityIsWaiting` rather than folded into it, because that one also
         /// decides whether the notice about invalidated invitations is shown, and a buffered
@@ -987,7 +986,7 @@ namespace KeePassGate.Ui
             get
             {
                 var pending = _database as IPendingChanges;
-                return pending != null && pending.WaitingOn(ProfileNames.CustomDataKey);
+                return pending != null && pending.ProfilesWaiting;
             }
         }
 
@@ -2063,8 +2062,8 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// Read through the tab's own store, so a removal waiting for OK is shown as it will be
-        /// once OK is pressed, the way everything else on the tab is. A list that cannot be read is
-        /// an empty one, which marks every held profile, because that is what the gate grants
+        /// once OK is pressed, the way everything else on the tab is. A store that cannot be read
+        /// names nothing, which marks every held profile, because that is what the gate grants
         /// then: nothing.
         /// </remarks>
         private ICollection<string> NamedProfiles()
@@ -2076,9 +2075,10 @@ namespace KeePassGate.Ui
 
             try
             {
-                return new HashSet<string>(
-                    ProfileNames.Read(_database.PluginCustomData.Get(ProfileNames.CustomDataKey)).Names,
-                    StringComparer.Ordinal);
+                using (var reading = _database.Store.Read())
+                {
+                    return new HashSet<string>(ProfileNames.Of(reading).Names, StringComparer.Ordinal);
+                }
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {

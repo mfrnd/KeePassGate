@@ -173,9 +173,9 @@ namespace KeePassGate.Tests
         [Test]
         public void A_name_a_redraw_takes_off_the_page_is_no_longer_said_to_be_available()
         {
-            // A pairing filling the list to its ceiling while the dialog is open takes
-            // the name added here out of what OK will write, and the line went on saying it was
-            // available to grant.
+            // A removal of the name that the press did not see, as a merge brings it while the
+            // dialog is open, takes the name added here out of what OK will write, and the line
+            // has to stop showing it as available to grant, `STORE.md` §627.
             var database = new FakeProfiles();
 
             using (var page = new ProfileList(database, null))
@@ -185,7 +185,8 @@ namespace KeePassGate.Tests
                 database.Remove("ops");
                 page.Describe();
 
-                Assert.That(page.Result, Does.Contain("ops").And.Contain("no longer fits"));
+                Assert.That(page.Result, Is.EqualTo(
+                    "The profile ops was removed in another copy of this database while this dialog was open, so OK will not add it."));
             }
         }
 

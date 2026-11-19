@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
@@ -32,7 +33,6 @@ namespace KeePassGate.Tests.Fakes
         private readonly MemoryStore _store = new MemoryStore();
         private readonly InMemoryKeyValueStore _answers = new InMemoryKeyValueStore();
         private readonly RenewalAnswers _renewals;
-        private readonly List<string> _named = new List<string>();
 
         private TestAuthority(
             CertifiedKey authority, CertifiedKey host, byte[] gateKey)
@@ -84,51 +84,34 @@ namespace KeePassGate.Tests.Fakes
         public string DatabaseName { get; set; }
 
         /// <summary>
-        /// The profiles this database names. Settable, because what the approval dialog marks as
-        /// new is exactly what is not in here, and a name taken out of it is one no client holds.
+        /// The profiles this database's store names. Settable, because what the approval dialog
+        /// marks as new is exactly what is not in here, and a name taken out of it is a name no
+        /// client holds: setting it adds and removes names through the product's own acts.
         /// </summary>
         /// <remarks>
-        /// Admitting a client names its profiles, because that is what pairing does for real: a
-        /// record is written in the same operation as the names it holds, and a client whose names
-        /// were not on the list would reach nothing.
+        /// Admitting a client names its profiles, because that is what pairing does for real: the
+        /// admission's act adds each name the list does not hold, and a client whose names were not
+        /// on the list would reach nothing.
         /// </remarks>
         public IReadOnlyList<string> KnownProfiles
         {
             get
             {
-                return NamesNow();
+                using (var reading = _store.Read())
+                {
+                    return ProfileNames.Of(reading).Names;
+                }
             }
             set
             {
-                _named.Clear();
-                Name(value);
+                var wanted = new HashSet<string>(value ?? Array.Empty<string>(), StringComparer.Ordinal);
+                foreach (var profile in KnownProfiles.Where(profile => !wanted.Contains(profile)))
+                {
+                    StoreSeeds.Unname(_store, profile);
+                }
+
+                Name(wanted);
             }
-        }
-
-        /// <summary>
-        /// How many of the next reads of the list, by <see cref="KnownProfiles"/> or with an
-        /// admission, miss it and answer it as naming nothing, while the store a write reads under
-        /// the writer's lock still holds it.
-        /// </summary>
-        /// <remarks>
-        /// What a lookup of `KPG.Profiles` meets when it races a change of the database's custom
-        /// data on KeePass's thread: a dictionary lookup that answers a miss rather than throwing,
-        /// which reads as a list that is there and names nothing. Apart from
-        /// <see cref="ProfilesUnreadable"/>, which is the list read and refused, so a test can have
-        /// the read pass the guard and miss afterwards.
-        /// </remarks>
-        public int ListMisses { get; set; }
-
-        /// <summary>The list as a read of it answers now, a miss among them.</summary>
-        private IReadOnlyList<string> NamesNow()
-        {
-            if (ListMisses > 0)
-            {
-                ListMisses--;
-                return Array.Empty<string>();
-            }
-
-            return _named.ToArray();
         }
 
         /// <summary>Set to say the list of profiles will not read, as a damaged value would.</summary>
@@ -137,15 +120,19 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>Takes a name off the list, as the Profiles page does.</summary>
         public void Forget(string profile)
         {
-            _named.Remove(profile);
+            if (KnownProfiles.Contains(profile, StringComparer.Ordinal))
+            {
+                StoreSeeds.Unname(_store, profile);
+            }
         }
 
-        private void Name(IEnumerable<string> profiles)
+        /// <summary>Adds each of these names the list does not hold, as the Profiles page does.</summary>
+        public void Name(IEnumerable<string> profiles)
         {
-            foreach (var profile in (profiles ?? Array.Empty<string>())
-                         .Where(profile => profile != null && !_named.Contains(profile)))
+            var known = new HashSet<string>(KnownProfiles, StringComparer.Ordinal);
+            foreach (var profile in (profiles ?? Array.Empty<string>()).Where(profile => profile != null && known.Add(profile)))
             {
-                _named.Add(profile);
+                StoreSeeds.Name(_store, profile);
             }
         }
 
@@ -193,7 +180,7 @@ namespace KeePassGate.Tests.Fakes
             using (var reading = _store.Read())
             {
                 var record = StoreAdmissions.Admitted(reading, admissionKey);
-                return record == null ? null : new Admitted(record, NamesNow(), ProfilesUnreadable);
+                return record == null ? null : new Admitted(record, ProfileNames.Of(reading).Names, ProfilesUnreadable);
             }
         }
 
@@ -288,74 +275,26 @@ namespace KeePassGate.Tests.Fakes
         public bool Retired { get; set; }
 
         /// <summary>
-        /// What a write's condition is held to: the admissions of this fake's store, and its
-        /// standing answers and its list of profiles as one database's custom data.
+        /// What a write's condition is held to: the admissions and the profile names of this fake's
+        /// store, read in the write's turn.
         /// </summary>
         private sealed class ConditionGround : IWriteGround
         {
             private readonly StoreReading _reading;
 
-            public ConditionGround(TestAuthority authority, StoreReading reading)
+            public ConditionGround(StoreReading reading)
             {
                 _reading = reading;
-                Names = new ConditionStore(authority);
             }
-
-            public IKeyValueStore Names { get; private set; }
 
             public AdmissionRecord Admission(string admissionKey)
             {
                 return StoreAdmissions.Admitted(_reading, admissionKey);
             }
-        }
 
-        /// <summary>
-        /// This fake's standing answers and its list of profiles as one database's custom data.
-        /// </summary>
-        private sealed class ConditionStore : IKeyValueStore
-        {
-            private readonly TestAuthority _authority;
-
-            public ConditionStore(TestAuthority authority)
+            public bool Named(string profile)
             {
-                _authority = authority;
-            }
-
-            public IEnumerable<string> Keys
-            {
-                get { return _authority._answers.Keys; }
-            }
-
-            public string Get(string key)
-            {
-                if (key == KeePassGate.Acl.ProfileNames.CustomDataKey)
-                {
-                    if (_authority.ProfilesUnreadable != null)
-                    {
-                        return "{ not a list";
-                    }
-
-                    var names = KeePassGate.Acl.ProfileNames.Read(null);
-                    foreach (var name in _authority._named)
-                    {
-                        names.Add(name);
-                    }
-
-                    return names.Write();
-                }
-
-
-                return _authority._answers.Get(key);
-            }
-
-            public void Set(string key, string value)
-            {
-                _authority._answers.Set(key, value);
-            }
-
-            public void Remove(string key)
-            {
-                _authority._answers.Remove(key);
+                return ProfileNames.Of(_reading).Holds(profile);
             }
         }
 
@@ -402,7 +341,7 @@ namespace KeePassGate.Tests.Fakes
 
                 if (condition != null)
                 {
-                    var withdrawn = condition(new ConditionGround(this, reading));
+                    var withdrawn = condition(new ConditionGround(reading));
                     if (withdrawn != null)
                     {
                         return AdmissionWrite.Failed(withdrawn);
@@ -426,7 +365,6 @@ namespace KeePassGate.Tests.Fakes
                 }
             }
 
-            Name(record.Profiles);
             Admitted = record;
             Landed(audit);
             return AdmissionWrite.Done();
@@ -567,7 +505,6 @@ namespace KeePassGate.Tests.Fakes
         public void Admit(X509Certificate2 certificate, params string[] profiles)
         {
             StoreSeeds.Admit(_store, AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles, DatabaseId));
-            Name(profiles);
         }
 
         /// <summary>

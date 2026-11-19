@@ -113,6 +113,18 @@ namespace KeePassGate.Testing
             Act(store, "a revocation", reading => AdmissionActs.Revoke(reading, clientKey));
         }
 
+        /// <summary>A profile name added, as the Profiles page writes it at the dialog's OK.</summary>
+        public static void Name(IGateStore store, string name)
+        {
+            Act(store, "a profile added", reading => KeePassGate.Acl.ProfileActs.Add(reading, name));
+        }
+
+        /// <summary>A profile name removed, as the Profiles page writes it at the dialog's OK.</summary>
+        public static void Unname(IGateStore store, string name)
+        {
+            Act(store, "a profile removed", reading => KeePassGate.Acl.ProfileActs.Remove(reading, name));
+        }
+
         /// <summary>This certificate taken away, as a client giving it up writes it.</summary>
         public static void TakeAway(IGateStore store, string admissionKey)
         {

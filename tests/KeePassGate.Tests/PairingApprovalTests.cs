@@ -849,12 +849,12 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void At_the_ceiling_the_dialog_promises_to_add_nothing_and_names_nobody_regaining()
+        public void However_many_names_the_list_holds_the_dialog_promises_what_approving_adds()
         {
-            // The writer skips a name the full list cannot take, and the pairing lands without it,
-            // so promising to create a "(new)" name or to give a "(removed)" one back to its
-            // holders promised what does not happen.
-            var known = Enumerable.Range(0, KeePassGate.Acl.ProfileNames.Most).Select(i => "named-" + i).ToArray();
+            // The list keeps no ceiling, `STORE.md` §616: a pairing writes every name it approves,
+            // so a "(new)" name is created and a "(removed)" name given back to its holders
+            // whatever the list already holds.
+            var known = Enumerable.Range(0, 100).Select(i => "named-" + i).ToArray();
 
             using (var authority = TestAuthority.New())
             using (var runner = authority.IssueClient("ci-runner"))
@@ -865,16 +865,14 @@ namespace KeePassGate.Tests
                     new[] { "named-0", "fresh", "retired" }, known, "127.0.0.1:60001",
                     new Dictionary<string, IReadOnlyList<AdmissionRecord>> { { "retired", holding } });
 
-                Assert.That(request.ListIsFull, Is.True);
-                Assert.That(PairingApprovalForm.Asking(request), Is.EqualTo(PairingApprovalForm.FullProfilesAsked));
-                Assert.That(PairingApprovalForm.FullProfilesAsked, Does.Contain("approving adds none of them"));
-                Assert.That(PairingApprovalForm.Regaining(request), Is.Null);
+                Assert.That(PairingApprovalForm.Asking(request), Is.EqualTo(PairingApprovalForm.NewProfilesAsked));
+                Assert.That(PairingApprovalForm.Regaining(request), Does.Contain("ci-runner"));
 
                 var listed = new PairingRequest(
                     "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
                     new[] { "named-0" }, known, "127.0.0.1:60001");
                 Assert.That(PairingApprovalForm.Asking(listed), Is.EqualTo(PairingApprovalForm.ProfilesAsked),
-                    "a full list says nothing about names already on it");
+                    "a list that names every name asked for marks no name new");
             }
         }
 

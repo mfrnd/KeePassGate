@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using KeePassGate.Acl;
 using KeePassGate.Store;
 
 namespace KeePassGate.Authority
@@ -9,7 +10,8 @@ namespace KeePassGate.Authority
     /// The acts that write admissions, revocations and certificates taken away into a database's
     /// store, `STORE.md` §615 and §648, each composed under the key of the reading it is composed
     /// over: a reading made in the turn of the write, or a read of the KPG tab's buffer, which
-    /// composes the acts it holds again over the store as it stands then.
+    /// composes a revocation and a certificate taken away again over the store as it stands then,
+    /// `StoreAct.Again`; a certificate with nothing left of it to end is composed to nothing.
     /// </summary>
     /// <remarks>
     /// **Composed, not written**: the writer plans and applies an act, and the KPG tab's buffer
@@ -29,55 +31,6 @@ namespace KeePassGate.Authority
 
         /// <summary>What the log calls the act of taking a certificate away.</summary>
         public const string TakeAwayName = "taking a certificate away";
-
-        /// <summary>
-        /// Whether an act of this name is one of the acts composed here, about a client rather
-        /// than about the authority.
-        /// </summary>
-        public static bool Composes(string actName)
-        {
-            return string.Equals(actName, AdmitName, StringComparison.Ordinal)
-                   || string.Equals(actName, RevokeName, StringComparison.Ordinal)
-                   || string.Equals(actName, TakeAwayName, StringComparison.Ordinal);
-        }
-
-        /// <summary>
-        /// An act on a client or a certificate held for a later write, composed again against this
-        /// reading: what is to be done stays, and what it is written as is what the store calls
-        /// for now. The act as it was where the reading holds no store key, and for an act of any
-        /// other name; null where nothing is left to write: a certificate the reading already
-        /// takes away, or a certificate with no record left in force under a client the store
-        /// still admits, as where a revocation ended its client or its records were deleted by
-        /// hand.
-        /// </summary>
-        public static StoreAct Again(StoreReading reading, StoreAct act)
-        {
-            if (act == null)
-            {
-                throw new ArgumentNullException(nameof(act));
-            }
-
-            if (string.Equals(act.Name, RevokeName, StringComparison.Ordinal))
-            {
-                return Revoke(reading, act.Records[0].Member(StoreKinds.ClientMember)) ?? act;
-            }
-
-            if (string.Equals(act.Name, TakeAwayName, StringComparison.Ordinal))
-            {
-                // Taken away before the write, by its client or in another copy, or left with no
-                // record in force under a client still admitted: nothing of it admits, and nothing
-                // is written.
-                var certificate = act.Records[0].Member(StoreKinds.Certificate);
-                if (reading != null && reading.InForce != null && Ended(reading.InForce, certificate))
-                {
-                    return null;
-                }
-
-                return TakeAway(reading, certificate) ?? act;
-            }
-
-            return act;
-        }
 
         /// <summary>
         /// Whether nothing of this certificate is left for a statement to end: a statement took it
@@ -105,9 +58,19 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// An act of a single record of kind `client` holding this admission, held to its issuer
+        /// An act of the record of kind `client` holding this admission and, after it, an addition
+        /// for each profile it holds that the reading does not have on the list, held to its issuer
         /// standing alone, or null where the reading holds no store key.
         /// </summary>
+        /// <remarks>
+        /// **The names are records of the admission's own act**, `STORE.md` §616: the same decision
+        /// as the admission and the same write, so that the names and the admission are planned,
+        /// saved and taken back together, and left out together where the issuer does not stand
+        /// alone. Each addition names every removal of its name the reading holds, so a name the
+        /// operator approved after its removal is back on the list, and it is written whatever the
+        /// list already holds, since the list keeps no ceiling. A renewal's admission holds only
+        /// names the list holds, and adds none.
+        /// </remarks>
         public static StoreAct Admit(StoreReading reading, AdmissionRecord record)
         {
             if (record == null)
@@ -116,15 +79,28 @@ namespace KeePassGate.Authority
             }
 
             var issuer = record.Issuer;
-            return Act(reading, AdmitName, key => new[] { StoreRecord.Compose(key, StoreKinds.Client, record.Members()) },
+            var named = ProfileNames.Of(reading);
+            var adding = (record.Profiles ?? Array.Empty<string>())
+                .Where(profile => AuthorityIssuer.IsUsableProfileName(profile) && !named.Holds(profile))
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(profile => profile, StringComparer.Ordinal)
+                .ToList();
+            return Act(
+                reading,
+                AdmitName,
+                key => new[] { StoreRecord.Compose(key, StoreKinds.Client, record.Members()) }
+                    .Concat(adding.Select(profile => ProfileActs.Addition(key, profile, reading.InForce.RemovalsOf(profile))))
+                    .ToList(),
                 ground => ground.Standing.Count == 1 && ground.Standing.Contains(issuer)
                     ? null
-                    : "the authority that issued its certificate does not stand alone");
+                    : "the authority that issued its certificate does not stand alone",
+                null);
         }
 
         /// <summary>
         /// An act of a single record of kind `revoked` holding the client key alone, with no
-        /// ground, `STORE.md` §615 (S5), or null where the reading holds no store key.
+        /// ground, `STORE.md` §615 (S5), or null where the reading holds no store key. Composed
+        /// again under the key of each later reading.
         /// </summary>
         public static StoreAct Revoke(StoreReading reading, string clientKey)
         {
@@ -139,7 +115,7 @@ namespace KeePassGate.Authority
                 {
                     { StoreKinds.ClientMember, clientKey },
                 }),
-            }, null);
+            }, null, again => Revoke(again, clientKey));
         }
 
         /// <summary>
@@ -215,7 +191,7 @@ namespace KeePassGate.Authority
 
                     return StoreRecord.Compose(key, StoreKinds.Withdrawn, members);
                 })
-                .ToList(), null);
+                .ToList(), null, again => Ended(again.InForce, admissionKey) ? null : TakeAway(again, admissionKey));
         }
 
         /// <summary>
@@ -269,8 +245,13 @@ namespace KeePassGate.Authority
         /// An act of the records these compose under the key the reading holds, against that key,
         /// with the copy of the key made for it overwritten, or null where no key stands.
         /// </summary>
+        /// <param name="again">The act composed again against a later reading, or null for an act composed once.</param>
         private static StoreAct Act(
-            StoreReading reading, string name, Func<byte[], IReadOnlyList<StoreRecord>> records, Func<StoreGround, string> ground)
+            StoreReading reading,
+            string name,
+            Func<byte[], IReadOnlyList<StoreRecord>> records,
+            Func<StoreGround, string> ground,
+            Func<StoreReading, StoreAct> again)
         {
             if (reading == null || reading.InForce == null)
             {
@@ -280,7 +261,7 @@ namespace KeePassGate.Authority
             var key = (byte[])reading.InForce.Key.Bytes.Clone();
             try
             {
-                return new StoreAct(name, key, reading.InForce.Key.Name, records(key), ground);
+                return new StoreAct(name, key, reading.InForce.Key.Name, records(key), ground, again);
             }
             finally
             {

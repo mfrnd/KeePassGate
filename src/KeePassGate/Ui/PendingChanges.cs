@@ -23,8 +23,8 @@ namespace KeePassGate.Ui
         /// <summary>Whether anything at all is waiting for the dialog's OK.</summary>
         bool Waiting { get; }
 
-        /// <summary>Whether this particular key is one of the things waiting.</summary>
-        bool WaitingOn(string key);
+        /// <summary>Whether an act about a profile name is waiting: a name added or removed.</summary>
+        bool ProfilesWaiting { get; }
 
         /// <summary>
         /// Whether an act of the authority's is waiting on the plugin's store: an authority made,
@@ -56,25 +56,19 @@ namespace KeePassGate.Ui
     /// wholesale write would destroy that record without either side noticing. Replaying only the
     /// keys the operator touched leaves it alone.
     ///
-    /// **Replaying only the touched keys is not enough for a key with two writers.** The first is
-    /// `KPG.Profiles`, and the tab and a pairing write it differently: the tab holds its version
-    /// until OK, a pairing writes the live database and saves it, because the profile the operator
-    /// just approved has to be named by the same write as the admission record. Replaying the
-    /// tab's version put an older list over the newer one, which is the same destruction one key
-    /// down. What is replayed for such a key is the operator's difference against what they
-    /// started from, so a name somebody else added survives and a name they removed still goes.
+    /// **Replaying only the touched keys is not enough for a key with two writers**, and a
+    /// standing answer to a renewal is such a key, a key for each certificate. The clients page's
+    /// Allow renewal takes an answer away here, and the renewal dialog writes an answer live: once
+    /// an until-date has passed while this dialog was open, the next renewal is asked again and may
+    /// be refused again. That answer is the newer word on the certificate, so OK keeps it rather
+    /// than replaying the removal over it.
     ///
-    /// **A standing answer to a renewal is the other kind of key with two writers**, one per
-    /// certificate. The clients page's Allow renewal takes one away here, and the renewal dialog
-    /// writes one live: once an until-date has passed while this dialog was open, the next
-    /// renewal is asked again and may be refused again. That answer is the newer word on the
-    /// certificate, so OK keeps it rather than replaying the removal over it.
-    ///
-    /// **The admissions and the revocations are the plugin's store's**, `STORE.md` §615, written by
-    /// the acts the buffer holds, so nothing of them is replayed here: a Recreate, a Delete and a
-    /// revocation delete in their own write every admission they refuse, `STORE.md` §627. At OK the
-    /// standing answers about a certificate no admission names any more go, against the store as
-    /// written.
+    /// **The admissions, the revocations and the profile names are the plugin's store's**,
+    /// `STORE.md` §615 and §616, written by the acts the buffer holds, so nothing of them is
+    /// replayed here: each act is composed again at OK against the store as it stands, a name a
+    /// pairing added under the dialog among it, and a Recreate, a Delete and a revocation delete
+    /// in their own write every admission they refuse, `STORE.md` §627. At OK the standing answers
+    /// about a certificate no admission names any more go, against the store as written.
     /// </remarks>
     public sealed class PendingDatabase : IGateDatabase, IPendingChanges
     {
@@ -104,19 +98,11 @@ namespace KeePassGate.Ui
             // for the same reason.
             _records = new PendingRecords(() => database.Store);
 
-            // **The key with a second writer whose two versions have to be merged.** `KPG.Profiles`
-            // is also written by a pairing, live and saved, because the profile the operator just
-            // approved has to be named by the same write as the admission; replaying a snapshot
-            // taken before that threw the name away and left a client holding a profile this tab
-            // could no longer list or count, and that granted it nothing, since a client holds
-            // only what the list names.
-            //
+            // **The keys with a second writer whose two versions have to be merged**: a standing
+            // answer to a renewal, lifted here and given again on the renewal dialog while this
+            // dialog was open, where the answer given later is the answer that stands.
             // Registered here rather than known by the buffer, because the buffer is a buffer: it
             // holds strings for a dialog and has no business knowing what any of them mean.
-            _store.Reconcile(ProfileNames.CustomDataKey, MergeProfiles);
-
-            // And a standing answer to a renewal, lifted here and given again on the renewal
-            // dialog while this one was open: the answer given later is the one that stands.
             _store.Reconcile(AuthorityKeys.IsRenewalRefusal, KeepTheLaterAnswer);
         }
 
@@ -130,72 +116,9 @@ namespace KeePassGate.Ui
         /// on a landed write, and each of those is a later word on the certificate than the press
         /// on the page.
         /// </remarks>
-        private static string KeepTheLaterAnswer(string baseline, string current, string buffered, bool landing)
+        private static string KeepTheLaterAnswer(string baseline, string current, string buffered)
         {
             return current;
-        }
-
-        /// <summary>
-        /// The operator's edit of the profile list, replayed over what a pairing wrote meanwhile,
-        /// and, at OK, a warning for each name it added that the full list could not take.
-        /// </summary>
-        /// <remarks>
-        /// In the log, because the merge that counts runs at OK, when the dialog that could have
-        /// said so is already closing. The page reads the same merge while the dialog is open, to
-        /// show what OK will write, and says nothing then: a name left out of a list that is still
-        /// being edited can yet be kept. `ProfileNames.Merge` gives the reason the names already on
-        /// the list are the ones kept.
-        ///
-        /// **A list that changed under the dialog into a list that will not read is left alone**, the
-        /// operator's ruling of 2026-11-08, and the log is told at OK. Merged, it read as naming
-        /// nothing, so the edit replaced it, every name it held and the sign that it was damaged.
-        /// The page then shows the damage, and replacing it takes the operator's choice: starting
-        /// a new list there writes against the damaged value the page read, which OK lands only
-        /// while that value is still the value stored, so this is not asked.
-        /// </remarks>
-        private string MergeProfiles(string baseline, string current, string buffered, bool landing)
-        {
-            if (!ProfileNames.Readable(current))
-            {
-                if (landing)
-                {
-                    _log.Warn("the profile list edited on the " + GateName.Product + " tab was not written: "
-                              + "the database's list will not read now, and is left as it is");
-                }
-
-                return current;
-            }
-
-            IReadOnlyList<string> unkept;
-            var merged = ProfileNames.Merge(baseline, current, buffered, out unkept);
-
-            foreach (var name in unkept)
-            {
-                if (landing)
-                {
-                    LeftOut(name);
-                }
-                else
-                {
-                    // Kept for OK, which says it if the name is still left out then. A further
-                    // edit of the list is made against this view, and moves the baseline with it,
-                    // so OK may have nothing to merge and would otherwise say nothing.
-                    _leftOut.Add(name);
-                }
-            }
-
-            return merged;
-        }
-
-        /// <summary>The names the page's view of the list left out while the dialog was open.</summary>
-        private readonly HashSet<string> _leftOut = new HashSet<string>(StringComparer.Ordinal);
-
-        private void LeftOut(string name)
-        {
-            _leftOut.Remove(name);
-            _log.Warn("the profile " + name + " added on the " + GateName.Product + " tab was not kept: "
-                      + "a pairing named another while the dialog was open, and a database names "
-                      + ProfileNames.Most + " profiles at most");
         }
 
         public bool IsOpen
@@ -231,10 +154,10 @@ namespace KeePassGate.Ui
             get { return (_store != null && _store.Waiting) || _records.Waiting; }
         }
 
-        /// <summary>Whether one key in particular is waiting.</summary>
-        public bool WaitingOn(string key)
+        /// <summary>Whether an act about a profile name is waiting on the plugin's store.</summary>
+        public bool ProfilesWaiting
         {
-            return _store != null && _store.WaitingOn(key);
+            get { return _records.Acts.Any(act => ProfileActs.About(act) != null); }
         }
 
         /// <summary>
@@ -245,10 +168,17 @@ namespace KeePassGate.Ui
             get { return _store == null ? Array.Empty<string>() : _store.Taken; }
         }
 
-        /// <summary>Whether an act of the authority's is waiting on the plugin's store.</summary>
+        /// <summary>
+        /// Whether an act of the authority's is waiting on the plugin's store: an act holding an
+        /// authority or a retirement among its records.
+        /// </summary>
         public bool AuthorityWaiting
         {
-            get { return _records.Acts.Any(act => !AdmissionActs.Composes(act.Name)); }
+            get
+            {
+                return _records.Acts.Any(act => act.Records.Any(record =>
+                    record.Kind == StoreKinds.Authority || record.Kind == StoreKinds.Retired));
+            }
         }
 
         /// <summary>Whether an act of this name is waiting on the plugin's store.</summary>
@@ -321,14 +251,31 @@ namespace KeePassGate.Ui
                     // the log names it: a certificate taken away by then, by its client or in a
                     // copy merged in, or with no record left in force under a client the store
                     // does not take away, as after a revocation held before it or a record deleted
-                    // by hand.
+                    // by hand; a name already where the press would put it; and an Add that a
+                    // removal of its name the press did not see overtook.
                     var held = _records.Acts;
                     var composed = _records.Composed();
-                    for (var at = 0; at < composed.Count; at++)
+                    if (composed.Contains(null))
                     {
-                        if (composed[at] == null)
+                        using (var live = _database.Store.Read())
                         {
-                            _log.Info(Described(held[at]) + ": nothing was left to write at OK");
+                            for (var at = 0; at < composed.Count; at++)
+                            {
+                                if (composed[at] != null)
+                                {
+                                    continue;
+                                }
+
+                                if (ProfileActs.Overtaken(live, held[at]))
+                                {
+                                    _log.Warn(Described(held[at]) + ": not written at OK, since a removal of the name "
+                                              + "that the press did not see stands in the database");
+                                }
+                                else
+                                {
+                                    _log.Info(Described(held[at]) + ": nothing was left to write at OK");
+                                }
+                            }
                         }
                     }
 
@@ -387,11 +334,17 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// An act as the log names it: its name, and the clients and certificates its records are
-        /// about, each by the first characters of its key.
+        /// An act as the log names it: its name, and the profile name, or the clients and
+        /// certificates its records are about, each by the first characters of its key.
         /// </summary>
         private static string Described(StoreAct act)
         {
+            var name = ProfileActs.About(act);
+            if (name != null)
+            {
+                return act.Name + " " + name;
+            }
+
             var about = act.Records
                 .Select(record => record.Member(StoreKinds.Certificate) ?? record.Member(StoreKinds.ClientMember))
                 .Where(CertificateDigest.IsDigest)
@@ -402,9 +355,9 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// The custom data half of <see cref="Apply"/>: the keys the tab held, the standing answers
-        /// no admission names once the store's write landed, and the names the page left out, with
-        /// the database marked where anything changed.
+        /// The custom data half of <see cref="Apply"/>: the keys the tab held and the standing
+        /// answers no admission names once the store's write landed, with the database marked
+        /// where anything changed.
         /// </summary>
         /// <param name="changed">Whether the store's write changed the database.</param>
         /// <param name="wrote">Whether the store's write wrote anything.</param>
@@ -424,21 +377,6 @@ namespace KeePassGate.Ui
             if (wrote && live != null)
             {
                 changed |= PruneAnswers(live);
-            }
-
-            // A name the page's view left out that is still not on the list now it is written, which
-            // the merge at OK says nothing about when the list was edited again after it went.
-            if (_leftOut.Count > 0)
-            {
-                var written = ProfileNames.Read(_database.PluginCustomData == null
-                    ? null
-                    : _database.PluginCustomData.Get(ProfileNames.CustomDataKey));
-                foreach (var name in new List<string>(_leftOut).Where(name => !written.Holds(name)))
-                {
-                    LeftOut(name);
-                }
-
-                _leftOut.Clear();
             }
 
             // On what was written, not on what was asked for. A create and a delete on the same
@@ -486,7 +424,6 @@ namespace KeePassGate.Ui
         /// <summary>Throws away everything that was waiting, which is what Cancel means.</summary>
         public void Discard()
         {
-            _leftOut.Clear();
             _records.Discard();
             if (_store != null)
             {
@@ -499,19 +436,16 @@ namespace KeePassGate.Ui
     /// Combines a buffered value with one somebody else wrote while the dialog was open.
     /// </summary>
     /// <remarks>
-    /// Only for a key with a second writer, which is why it is registered per key rather than
-    /// applied to all of them: for every key the dialog is the only writer of, what the operator
-    /// buffered is the answer and comparing it with anything would be inventing a conflict.
+    /// Only for a key with a second writer, which is why it is registered for a kind of key
+    /// rather than applied to all of them: for every key the dialog is the only writer of, what
+    /// the operator buffered is the answer and comparing it with anything would be inventing a
+    /// conflict.
     /// </remarks>
     /// <param name="baseline">What the store held when the dialog's edit of this key was made.</param>
     /// <param name="current">What it holds now, which is not the baseline or this is not called.</param>
     /// <param name="buffered">What the dialog is holding, or null when the dialog removed the key.</param>
-    /// <param name="landing">
-    /// True when the answer is about to be written at OK, false when a page is reading what OK
-    /// would write. Anything a merge has to report belongs to the first.
-    /// </param>
     /// <returns>What to store, or null to take the key away.</returns>
-    public delegate string Reconciler(string baseline, string current, string buffered, bool landing);
+    public delegate string Reconciler(string baseline, string current, string buffered);
 
     /// <summary>
     /// A key value store that remembers what it was told and tells the real one later.
@@ -558,10 +492,7 @@ namespace KeePassGate.Ui
         /// </remarks>
         private readonly Dictionary<string, string> _before = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        private readonly Dictionary<string, Reconciler> _reconcilers =
-            new Dictionary<string, Reconciler>(StringComparer.Ordinal);
-
-        /// <summary>The same for every key of a kind, asked after the keys named one by one.</summary>
+        /// <summary>How each kind of key with a second writer is combined with that writer's.</summary>
         private readonly List<KeyValuePair<Func<string, bool>, Reconciler>> _kinds =
             new List<KeyValuePair<Func<string, bool>, Reconciler>>();
 
@@ -621,12 +552,6 @@ namespace KeePassGate.Ui
         /// </remarks>
         public IReadOnlyList<string> Taken { get; private set; } = Array.Empty<string>();
 
-        /// <summary>Whether one key in particular has been written here and not there.</summary>
-        public bool WaitingOn(string key)
-        {
-            return !string.IsNullOrEmpty(key) && (_written.ContainsKey(key) || _removed.Contains(key));
-        }
-
         public string Get(string key)
         {
             if (string.IsNullOrEmpty(key) || _hidden(key))
@@ -654,10 +579,8 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// The buffered value, unless the key has a second writer and that writer has been since
-        /// the edit, and then the two combined, exactly as OK will combine them. Answering with the
-        /// buffered value alone showed a profile list without the name a pairing had just added,
-        /// on the same tab as a clients page listing the client that holds it, for as long as the
-        /// dialog stayed open.
+        /// the edit, and then the two combined, exactly as OK will combine them, so that a page
+        /// shows what OK would write rather than what the dialog held alone.
         /// </remarks>
         private string Viewed(string key, string buffered)
         {
@@ -667,18 +590,12 @@ namespace KeePassGate.Ui
             }
 
             var store = Underneath;
-            return store == null ? buffered : Reconciled(key, buffered, store.Get(key), false);
+            return store == null ? buffered : Reconciled(key, buffered, store.Get(key));
         }
 
         /// <summary>How this key is combined with a second writer's, or null when it has none.</summary>
         private Reconciler MergeFor(string key)
         {
-            Reconciler merge;
-            if (_reconcilers.TryGetValue(key, out merge))
-            {
-                return merge;
-            }
-
             foreach (var kind in _kinds)
             {
                 if (kind.Key(key))
@@ -691,27 +608,9 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// How to combine this key with whatever somebody else writes to it while the dialog is
-        /// open. One per key, and only for the keys that have a second writer.
-        /// </summary>
-        public void Reconcile(string key, Reconciler merge)
-        {
-            if (string.IsNullOrEmpty(key))
-            {
-                throw new ArgumentException("A key is required.", nameof(key));
-            }
-
-            if (merge == null)
-            {
-                throw new ArgumentNullException(nameof(merge));
-            }
-
-            _reconcilers[key] = merge;
-        }
-
-        /// <summary>
-        /// The same for every key of a kind, for a subject kept under one key per thing it is
-        /// about. A key registered by name is asked about first.
+        /// How to combine every key of a kind with whatever somebody else writes to it while the
+        /// dialog is open, for a subject kept under a key per thing it is about. Only for the keys
+        /// that have a second writer.
         /// </summary>
         public void Reconcile(Func<string, bool> kind, Reconciler merge)
         {
@@ -813,9 +712,8 @@ namespace KeePassGate.Ui
         /// <remarks>
         /// **The page reads such a key combined with what the other writer put there**, so the
         /// operator's next edit is made against that, and the baseline moves with it to what the
-        /// store holds now. Kept at the first edit's, a name a pairing added, shown on the page and
-        /// then taken out there, stayed at OK: the merge replays the difference against the
-        /// baseline, and against the old one there was nothing to take out. What the operator did
+        /// store holds now: a merge replays the difference against the baseline, and against an
+        /// older baseline it would replay what the page never showed. What the operator did
         /// before is not lost by moving it, because the value written now was read with it applied.
         /// </remarks>
         private void Remember(string key)
@@ -877,9 +775,9 @@ namespace KeePassGate.Ui
                 changed |= Land(store, key, value);
             }
 
-            // A removal is an edit like any other, so it is reconciled like one: an operator who
-            // took the last name out of a list a pairing has since added to is asking for their
-            // name to go, not for the pairing's to go with it.
+            // A removal is an edit like any other, so it is reconciled like an edit: a standing
+            // answer lifted here and given again by the renewal dialog since is a later word, and
+            // stays.
             var taken = new List<string>();
             foreach (var key in _removed)
             {
@@ -904,7 +802,7 @@ namespace KeePassGate.Ui
         private bool Land(IKeyValueStore store, string key, string buffered)
         {
             var current = store.Get(key);
-            var wanted = Reconciled(key, buffered, current, true);
+            var wanted = Reconciled(key, buffered, current);
 
             if (wanted == null)
             {
@@ -938,7 +836,7 @@ namespace KeePassGate.Ui
         /// change under the dialog there is nothing to merge, and calling one anyway would put a
         /// merged document where an identical one already sits.
         /// </remarks>
-        private string Reconciled(string key, string buffered, string current, bool landing)
+        private string Reconciled(string key, string buffered, string current)
         {
             var merge = MergeFor(key);
             if (merge == null)
@@ -954,7 +852,7 @@ namespace KeePassGate.Ui
                 return buffered;
             }
 
-            return merge(baseline, current, buffered, landing);
+            return merge(baseline, current, buffered);
         }
 
         public void Discard()

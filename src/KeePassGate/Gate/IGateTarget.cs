@@ -104,15 +104,10 @@ namespace KeePassGate.Gate
         /// empty list included.
         /// </summary>
         /// <remarks>
-        /// For a pairing, for which empty is not the safe direction: it writes the names it
-        /// approves onto the list, which read as empty would replace every name the damaged list
-        /// held. A renewal asks the same of the reading that found the admission it renews,
-        /// `Admitted.Unreadable`.
-        ///
-        /// **Cannot be read is reading losing something**, `ProfileNames.Readable`'s answer: a
-        /// value that does not parse, an object of another shape, or a name the list cannot hold.
-        /// Each of the three reads as fewer names than the list holds, and for a writer fewer is
-        /// the same loss as none.
+        /// For a pairing, which refuses while it answers anything. A renewal asks the same of the
+        /// reading that found the admission it renews, `Admitted.Unreadable`. Every target answers
+        /// null: the names are what the store's records give, `STORE.md` §616, and a damaged record
+        /// stops the store, which is answered its word before anything is read of it.
         /// </remarks>
         string ProfilesUnreadable { get; }
 

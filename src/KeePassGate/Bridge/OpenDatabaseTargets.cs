@@ -1580,8 +1580,8 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>
-            /// The profiles this database names now. Empty when they cannot be read, which marks
-            /// every profile being asked for as new.
+            /// The profiles this database names now, `STORE.md` §616, read from the store in a hold
+            /// of their own. None where the store does not serve this target's authority.
             /// </summary>
             public IReadOnlyList<string> KnownProfiles
             {
@@ -1601,51 +1601,17 @@ namespace KeePassGate.Bridge
                     return Array.Empty<string>();
                 }
 
-                string unreadable;
-                return NamesIn(database, out unreadable);
+                var reading = _store.Now(database, database.RootGroup);
+                return Served(reading) ? ProfileNames.Of(reading).Names : Array.Empty<string>();
             }
 
             /// <summary>
-            /// Why the list of profiles will not read now, or null when it reads or there is no
-            /// database to read it from.
+            /// Nothing: a list of profiles cannot fail to read, since a damaged record of a name
+            /// stops the store, which is answered its word before anything is read of it.
             /// </summary>
             public string ProfilesUnreadable
             {
-                get { return _hold.Hold(UnreadableNow); }
-            }
-
-            private string UnreadableNow()
-            {
-                // Into a local first, for the reason `KnownProfiles` gives.
-                var database = _database;
-                if (database == null || database.RootGroup == null)
-                {
-                    return null;
-                }
-
-                string unreadable;
-                NamesIn(database, out unreadable);
-                return unreadable;
-            }
-
-            /// <summary>
-            /// The profiles a database names, read in the hold the caller is in, with why they
-            /// would not read, or null where they read. Empty when the list cannot be read, and
-            /// without the names it cannot hold when it holds some it can.
-            /// </summary>
-            private static IReadOnlyList<string> NamesIn(PwDatabase database, out string unreadable)
-            {
-                try
-                {
-                    var stored = database.CustomData.Get(ProfileNames.CustomDataKey);
-                    unreadable = ProfileNames.Readable(stored) ? null : "the profiles this database names will not read";
-                    return ProfileNames.Read(stored).Names;
-                }
-                catch (Exception error) when (Expected.OfCustomData(error))
-                {
-                    unreadable = "the profiles this database names could not be read: " + error.Message;
-                    return Array.Empty<string>();
-                }
+                get { return null; }
             }
 
             /// <summary>
@@ -1958,14 +1924,7 @@ namespace KeePassGate.Bridge
 
                 var reading = _store.Now(database, database.RootGroup);
                 var record = Served(reading) ? StoreAdmissions.Admitted(reading, admissionKey) : null;
-                if (record == null)
-                {
-                    return null;
-                }
-
-                string unreadable;
-                var named = NamesIn(database, out unreadable);
-                return new Admitted(record, named, unreadable);
+                return record == null ? null : new Admitted(record, ProfileNames.Of(reading).Names, null);
             }
 
             /// <summary>
