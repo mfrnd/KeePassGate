@@ -620,13 +620,14 @@ namespace KeePassGate.Ui
                 BorderStyle = BorderStyle.None,
             };
 
-            // Sized by the host, for the reason the rule picker gives.
-
+            // Sized by the host, for the reason the rule picker gives, unless it holds more names
+            // than its rows: `Bounded` gives the reason.
             foreach (var profile in free)
             {
                 list.Items.Add(profile);
             }
 
+            Bounded(list, Screen.FromControl(_grid).WorkingArea);
             list.SelectedIndex = 0;
 
             // Only an explicit choice counts. Clicking away leaves the table as it was, which is
@@ -639,7 +640,7 @@ namespace KeePassGate.Ui
             {
                 if (key != Keys.Enter && key != Keys.Escape)
                 {
-                    return false;
+                    return Moved(list, key);
                 }
 
                 chosen = key == Keys.Enter ? Picked(list) : null;
@@ -684,6 +685,40 @@ namespace KeePassGate.Ui
             });
 
             Open(drop, list, ProfileColumn, rowIndex, keys);
+        }
+
+        /// <summary>
+        /// Holds a list of more names than its rows to a whole number of rows, with room beside
+        /// them for the scroll bar it then shows; a list whose names all fit is left to the host.
+        /// </summary>
+        /// <remarks>
+        /// **The list of profile names keeps no ceiling**, `STORE.md` §616, and the host sizes what
+        /// it holds to the list's own preferred size: a hundred names made a drop-down taller than
+        /// the screen, cut at its edge with nothing to scroll, so the names past it could not be
+        /// reached. The rows are <see cref="GrantTab.MostProfileRows"/> at most, and fewer where
+        /// the working area of the table's screen, less a row for the drop-down's own edges, holds
+        /// fewer. The width is the list's own and the scroll bar's beside it, so a name the list
+        /// shows whole without the bound it shows whole with it, and nothing scrolls across.
+        ///
+        /// **Below the bound nothing is set**, so the host sizes the list exactly as it always
+        /// did and the drop-down is the same pixel for pixel. A list of more names scrolls as a
+        /// list box does: the keys that move the choice keep it in view, and so does the wheel.
+        /// </remarks>
+        private static void Bounded(ListBox list, Rectangle area)
+        {
+            var rows = Math.Max(1, Math.Min(GrantTab.MostProfileRows, (area.Height / list.ItemHeight) - 1));
+            if (list.Items.Count <= rows)
+            {
+                return;
+            }
+
+            // Measured with a window of its own, as the host measures it: a list without a window
+            // answers its default size rather than what its names take.
+            list.CreateControl();
+            var natural = list.GetPreferredSize(Size.Empty);
+            var bounded = new Size(natural.Width + SystemInformation.VerticalScrollBarWidth, rows * list.ItemHeight);
+            list.MinimumSize = bounded;
+            list.MaximumSize = bounded;
         }
 
         /// <summary>The profiles the pick list would offer. Public because a test cannot click.</summary>
@@ -1009,6 +1044,99 @@ namespace KeePassGate.Ui
                 message = copy;
                 return answer;
             }
+        }
+
+        /// <summary>
+        /// Moves the profile picker's choice for a key, as a list box moves it, keeping the row
+        /// chosen in view; true where the key moved it.
+        /// </summary>
+        /// <remarks>
+        /// **The keys reach the picker and not its list.** A drop-down opened from the table is not
+        /// made active, so the focus stays on the table and every key is offered to the open
+        /// drop-down, `Picker.ProcessCmdKey`, as the rule picker's letters are; the list box
+        /// never sees them, and its choice could not be moved from the keyboard. So the picker
+        /// moves it: Up and Down a row, Page Up and Page Down a page less a row, Home and End to
+        /// either end, and a letter or a digit to the next name it starts, from the row after the
+        /// choice and round. Setting the choice scrolls it into view. A key held with Alt or
+        /// Control is not a move, and is left to whatever wants it.
+        /// </remarks>
+        private static bool Moved(ListBox list, Keys key)
+        {
+            var count = list.Items.Count;
+            if (count == 0 || (key & (Keys.Alt | Keys.Control)) != 0)
+            {
+                return false;
+            }
+
+            var at = Math.Max(0, list.SelectedIndex);
+            var page = Math.Max(1, (list.ClientSize.Height / list.ItemHeight) - 1);
+            int next;
+            switch (key & Keys.KeyCode)
+            {
+                case Keys.Up:
+                    next = at - 1;
+                    break;
+                case Keys.Down:
+                    next = at + 1;
+                    break;
+                case Keys.PageUp:
+                    next = at - page;
+                    break;
+                case Keys.PageDown:
+                    next = at + page;
+                    break;
+                case Keys.Home:
+                    next = 0;
+                    break;
+                case Keys.End:
+                    next = count - 1;
+                    break;
+                default:
+                    next = Starting(list, key & Keys.KeyCode, at);
+                    if (next < 0)
+                    {
+                        return false;
+                    }
+
+                    break;
+            }
+
+            list.SelectedIndex = Math.Max(0, Math.Min(count - 1, next));
+            return true;
+        }
+
+        /// <summary>
+        /// The next row after this row, and round, whose name starts with the letter or digit of
+        /// this key, ignoring case; -1 where the key is neither or no name starts with it.
+        /// </summary>
+        private static int Starting(ListBox list, Keys key, int after)
+        {
+            char first;
+            if (key >= Keys.A && key <= Keys.Z)
+            {
+                first = (char)('a' + (key - Keys.A));
+            }
+            else if (key >= Keys.D0 && key <= Keys.D9)
+            {
+                first = (char)('0' + (key - Keys.D0));
+            }
+            else
+            {
+                return -1;
+            }
+
+            var count = list.Items.Count;
+            for (var step = 1; step <= count; step++)
+            {
+                var at = (after + step) % count;
+                var name = Convert.ToString(list.Items[at], CultureInfo.InvariantCulture);
+                if (!string.IsNullOrEmpty(name) && char.ToLowerInvariant(name[0]) == first)
+                {
+                    return at;
+                }
+            }
+
+            return -1;
         }
 
         /// <summary>

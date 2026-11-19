@@ -61,6 +61,12 @@ namespace KeePassGate.Ui
         /// <summary>What a screen reader calls the profile picker, for the same reason.</summary>
         public const string ProfilePickerLabel = "Profiles a rule can be written for";
 
+        /// <summary>
+        /// The most rows of names the profile picker shows before it scrolls, where its screen has
+        /// room for that many: the list of names keeps no ceiling, `STORE.md` §616.
+        /// </summary>
+        public const int MostProfileRows = 20;
+
         /// <summary>The dropdown either list is shown in.</summary>
         public const string PickerName = "KpgGrantPicker";
 

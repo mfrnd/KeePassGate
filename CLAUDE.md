@@ -1561,6 +1561,18 @@ either picker, and while a picker is open `Enter` and `Escape` belong to it, whi
 `DialogKeys.Suspend` takes away from the dialog's own OK and Cancel: without that, choosing a verb
 presses OK on the group dialog and closes it with the rule half made.
 
+**The profile picker holds any number of names**, since the list keeps no ceiling, STORE.md §616.
+It shows at most `GrantTab.MostProfileRows` rows, 20, and fewer where the working area of the
+table's screen holds fewer, a whole number of rows less a row for the drop-down's edges, and
+scrolls down past them with a scroll bar, its width the list's own and the scroll bar's beside
+it, so nothing scrolls across and no name is cut. A list whose names all fit is left to the host
+exactly as before. The focus stays on the table while a drop-down is open, so every key is
+offered to the picker and none reaches its list: the picker moves the choice itself, Up and Down
+a row, Page Up and Page Down a page less a row, Home and End to either end, a letter or a digit
+to the next name it starts, and the row chosen is scrolled into view. The wheel scrolls the list.
+`GrantPickerTests` measures it on a shown window with a hundred names, opening downward and
+upward.
+
 A rule is a `CRUSDLAP` mask in a monospaced column rather than a row of check boxes, so two rules
 differ in the place the eye is already looking. Inherited rules are shown among the local ones in
 gray, because a table listing only what this node grants reports nothing for
