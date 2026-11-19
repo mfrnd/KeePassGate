@@ -449,8 +449,11 @@ convention a release checks: nothing enforces it but whoever makes the change.
 **A client works with a gate when their major versions are equal and the client's major and minor
 do not lead the gate's.** Patches are released on each side on their own, so they are not
 compared, and a gate ahead of its client is a working pair, since everything the client relies on
-is still served. A `0.2` client works with a `0.3` gate, and a `0.3` client does not work with a
-`0.2` gate.
+is still served. By that comparison a `0.3` client does not work with a `0.2` gate, and a `0.2`
+client takes a `0.3` gate for a gate it works with. Release 0.3.0 breaks the `0.2` client on a
+single route all the same, as the paragraphs below allow: `GET /gate/whoami` answers no
+`profilesUnreadable`, which that client requires, so its `identity()` and `whoami` fail against a
+`0.3` gate, and the release notes mark it as breaking, `STORE.md` §645.
 
 **And the client refuses any other gate, before it sends anything else.** A paired client asks
 the status route before its first request, and the pairing hello carries the version beside the
