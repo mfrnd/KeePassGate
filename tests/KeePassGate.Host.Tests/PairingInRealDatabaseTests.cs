@@ -72,26 +72,6 @@ namespace KeePassGate.Host.Tests
             _database.Dispose();
         }
 
-        [TestCase("{ not a list", TestName = "a list of profiles that does not parse is never written over")]
-        [TestCase("{\"Profiles\":[\"reader\"]}", TestName = "a list of profiles in another shape is never written over")]
-        [TestCase("{\"profiles\":[\"reader\",\"no such name\"]}", TestName = "a list holding a name it cannot hold is never written over")]
-        public void A_list_of_profiles_that_will_not_read_is_never_written_over(string damaged)
-        {
-            // Read, a damaged list names nothing, or fewer names than it holds, and a list of only
-            // the approved names written in its place drops every name reading left out and the
-            // sign that it was damaged.
-            _database.Database.CustomData.Set(ProfileNames.CustomDataKey, damaged);
-
-            using (var certificate = IssueClient())
-            {
-                var result = _writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
-
-                Assert.That(result.Ok, Is.True, result.Reason);
-                Assert.That(_database.Database.CustomData.Get(ProfileNames.CustomDataKey), Is.EqualTo(damaged));
-                Assert.That(_log.Warnings.Any(line => line.Contains("will not read")), Is.True);
-            }
-        }
-
         [Test]
         public void A_write_whose_plan_leaves_the_admission_out_is_not_believed_and_spends_nothing()
         {
@@ -390,55 +370,126 @@ namespace KeePassGate.Host.Tests
         public void The_profiles_the_record_carries_are_named_in_the_same_write()
         {
             // A profile the operator approved is created by their approval, and it has to exist by
-            // the time anybody opens the tab to write a rule for it. It is done here rather than
-            // beside the approval because it is the same decision as the record: the same thread,
-            // the same lock, the same save, and refused by the same open dialog.
+            // the time anybody opens the tab to write a rule for it: an addition of the admission's
+            // own act, `STORE.md` §616, the same thread, the same lock, the same save, and refused
+            // by the same open dialog.
             using (var certificate = IssueClient())
             {
                 Assume.That(_writer.WriteAdmission(_database.Database, Record(certificate, "invented")).Ok, Is.True);
 
-                var names = ProfileNames.Read(
-                    _database.Database.CustomData.Get(ProfileNames.CustomDataKey));
-
-                Assert.That(names.Holds("invented"), Is.True,
+                Assert.That(Names(), Does.Contain("invented"),
                     "a profile in a record and in no list is a name no rule can be written against");
 
                 _database.SaveCloseAndReopen();
 
-                var kept = ProfileNames.Read(
-                    _database.Database.CustomData.Get(ProfileNames.CustomDataKey));
-
-                Assert.That(kept.Holds("invented"), Is.True, "and the save that keeps the record keeps it");
+                Assert.That(Names(), Does.Contain("invented"), "and the save that keeps the record keeps it");
             }
         }
 
         [Test]
-        public void A_profile_past_what_the_list_holds_is_left_off_it_and_said_so()
+        public void A_pairing_adds_its_new_name_however_many_names_the_list_holds()
         {
-            // An operator can approve a name the database has never held while it already names as
-            // many as the list takes. The pairing stands, since refusing it would leave a client
-            // holding a certificate for a record nobody wrote. What it costs is that the name
-            // grants nothing, a client reaching only what the list names, and the log says so.
-            var names = ProfileNames.Empty();
-            for (var i = 0; i < ProfileNames.Most; i++)
+            // The list keeps no ceiling, `STORE.md` §616.
+            var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+            for (var index = 0; index < 33; index++)
             {
-                Assume.That(names.Add("invented-" + i), Is.Null);
+                StoreSeeds.Name(store, "invented-" + index.ToString("D2", System.Globalization.CultureInfo.InvariantCulture));
             }
-
-            _database.Database.CustomData.Set(ProfileNames.CustomDataKey, names.Write());
 
             using (var certificate = IssueClient())
             {
-                var result = _writer.WriteAdmission(_database.Database, Record(certificate, "one-too-many"));
+                var result = _writer.WriteAdmission(_database.Database, Record(certificate, "one-more"));
 
                 Assert.That(result.Ok, Is.True, result.Reason);
+                Assert.That(Names(), Has.Count.EqualTo(34));
+                Assert.That(Names(), Does.Contain("one-more"));
+            }
+        }
 
-                var kept = ProfileNames.Read(_database.Database.CustomData.Get(ProfileNames.CustomDataKey));
-                Assert.That(kept.Holds("one-too-many"), Is.False);
-                Assert.That(kept.Names.Count, Is.EqualTo(ProfileNames.Most));
-                Assert.That(_log.Warnings, Has.Some.Contains("reaches nothing through it"));
-                Assert.That(_log.Warnings, Has.None.Contains("one-too-many"),
-                    "and it says so without naming what the client may reach");
+        [Test]
+        public void A_pairing_for_a_name_that_was_removed_names_the_removal_and_deletes_the_addition_it_defeated()
+        {
+            // `STORE.md` §616 and §627 step 3: the addition the pairing writes names the removal it
+            // read, and an addition that did not see the removal, as a merge brings from a copy,
+            // is deleted by the same write with a deletion record.
+            var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+            StoreSeeds.Name(store, "ops");
+            StoreSeeds.Unname(store, "ops");
+            string removal;
+            using (var reading = store.Read())
+            {
+                removal = reading.InForce.RemovalsOf("ops").Single();
+                Assume.That(reading.InForce.Additions, Is.Empty, "the removal's own write deleted the addition it defeated");
+            }
+
+            var stale = StaleAddition(store, "ops");
+
+            using (var certificate = IssueClient())
+            {
+                Assert.That(_writer.WriteAdmission(_database.Database, Record(certificate, "ops")).Ok, Is.True);
+            }
+
+            using (var reading = store.Read())
+            {
+                Assert.That(ProfileNames.Of(reading).Holds("ops"), Is.True);
+                var addition = reading.InForce.Additions.Single();
+                Assert.That(addition.Form.Member("after"), Is.EqualTo(removal));
+                Assert.That(reading.Deletions.Select(KeePassGate.Hex.Of), Does.Contain(stale));
+            }
+        }
+
+        [Test]
+        public void A_pairing_whose_save_fails_puts_back_the_addition_its_write_deleted()
+        {
+            // The undo the application hands back puts back what the plan deleted, with its
+            // deletion record taken away, and takes out what it added: the admission and the
+            // pairing's own addition among them, `STORE.md` §627.
+            var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+            StoreSeeds.Name(store, "ops");
+            StoreSeeds.Unname(store, "ops");
+            var stale = StaleAddition(store, "ops");
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, _log);
+
+            using (var certificate = IssueClient())
+            {
+                Assume.That(writer.WriteAdmission(_database.Database, Record(certificate, "ops")).Ok, Is.False,
+                    "a save that writes nothing is not believed");
+            }
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.InForce.Additions.Select(addition => addition.Hex), Is.EqualTo(new[] { stale }),
+                    "the addition the write deleted is back, and the pairing's own is gone");
+                Assert.That(reading.Deletions.Select(KeePassGate.Hex.Of), Does.Not.Contain(stale), "with no deletion record");
+                Assert.That(ProfileNames.Of(reading).Holds("ops"), Is.False);
+            }
+        }
+
+        /// <summary>
+        /// An addition of this name naming no removal, as a copy that never read the removals of
+        /// the name writes it, answering its identifier.
+        /// </summary>
+        private static string StaleAddition(KdbxStore store, string name)
+        {
+            byte[] key;
+            string against;
+            using (var reading = store.Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+                against = reading.InForce.Key.Name;
+            }
+
+            var record = KeePassGate.Acl.ProfileActs.Addition(key, name, Array.Empty<string>());
+            var act = new KeePassGate.Store.StoreAct("an addition from a copy", key, against, new[] { record }, null);
+            try
+            {
+                Assume.That(store.Write(new[] { act }).Taken, Is.True);
+                return record.Hex;
+            }
+            finally
+            {
+                act.Forget();
+                Array.Clear(key, 0, key.Length);
             }
         }
 
@@ -458,10 +509,7 @@ namespace KeePassGate.Host.Tests
                     Assume.That(_writer.WriteAdmission(_database.Database, Record(certificate, "invented")).Ok,
                         Is.False);
 
-                    var names = ProfileNames.Read(
-                        _database.Database.CustomData.Get(ProfileNames.CustomDataKey));
-
-                    Assert.That(names.Holds("invented"), Is.False);
+                    Assert.That(Names(), Does.Not.Contain("invented"));
                 }
                 finally
                 {
@@ -896,24 +944,21 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_save_that_does_not_happen_leaves_no_profile_name_behind_either()
         {
-            // The other half of the same write, and the half that outlives it. `Name` writes the
-            // profile list *before* the record, so a pairing that failed after that point left a
-            // name the operator never typed in a database KeePass had been told has nothing to
-            // save. The next unrelated edit commits it. What is then on the profiles page is
-            // a name no record holds and nobody can account for, and removing it walks every rule
-            // in the database for a profile that never granted anything.
+            // The other half of the same write. The additions of the names a pairing was approved
+            // for are records of the admission's own act, so a save that does not happen takes
+            // them back out with it. A name left behind would be a name the operator never typed,
+            // in a database KeePass had been told has nothing to save, committed by the next
+            // unrelated edit and shown on the profiles page with no record holding it.
             var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, _log);
 
             using (var certificate = IssueClient())
             {
-                var store = new CustomDataStore(_database.Database);
                 _database.Database.Modified = false;
 
                 Assume.That(writer.WriteAdmission(_database.Database, Record(certificate, "invented")).Ok,
                     Is.False);
 
-                Assert.That(ProfileNames.Read(store.Get(ProfileNames.CustomDataKey)).Names,
-                    Does.Not.Contain("invented"),
+                Assert.That(Names(), Does.Not.Contain("invented"),
                     "a name written for a pairing that did not land must not be left in the group");
                 Assert.That(_database.Database.Modified, Is.False,
                     "and the database must not be left asking to be saved for it");
@@ -1332,9 +1377,7 @@ namespace KeePassGate.Host.Tests
 
                 // "ops" taken off the list, as the Profiles page does, so that its holders would
                 // regain it; "audit" left on it.
-                var names = ProfileNames.Read(null);
-                Assume.That(names.Add("audit"), Is.Null);
-                _database.Database.CustomData.Set(ProfileNames.CustomDataKey, names.Write());
+                StoreSeeds.Unname(new KdbxStore(_database.Database, GateVersion.Current, null), "ops");
 
                 using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
                 using (var targets = Targets())
@@ -1523,6 +1566,15 @@ namespace KeePassGate.Host.Tests
                 {
                     held.Dispose();
                 }
+            }
+        }
+
+        /// <summary>The names on the list of the database's store as it stands.</summary>
+        private IReadOnlyList<string> Names()
+        {
+            using (var reading = new KdbxStore(_database.Database, GateVersion.Current, null).Read())
+            {
+                return ProfileNames.Of(reading).Names;
             }
         }
 

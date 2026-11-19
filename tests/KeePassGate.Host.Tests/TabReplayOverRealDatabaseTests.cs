@@ -9,6 +9,7 @@ using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
+using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassGate.Ui;
 using KeePassLib.Collections;
@@ -146,6 +147,35 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        [Test]
+        public void An_Add_a_removal_overtook_under_the_dialog_writes_no_addition_and_the_log_names_it()
+        {
+            // A removal of the name that the press did not see lands under the dialog, as a copy
+            // merged in brings it. The removal wins over the addition that did not see it: OK
+            // writes no addition, the name is off the list in the file, and the log names the
+            // press.
+            var log = new WarningsLog();
+            var pending = new PendingDatabase(Live(), log);
+            Assert.That(new DatabaseProfiles(pending, NullGateLog.Instance).Add("ops"), Is.Null);
+
+            var store = new StoredAdmissions(_database.Database).Store;
+            StoreSeeds.Name(store, "ops");
+            StoreSeeds.Unname(store, "ops");
+
+            pending.Apply();
+            _database.SaveCloseAndReopen();
+
+            using (var reading = new StoredAdmissions(_database.Database).Store.Read())
+            {
+                Assert.That(ProfileNames.Of(reading).Holds("ops"), Is.False, "the name is off the list");
+                Assert.That(reading.InForce.Additions.Where(addition => addition.Form.Member(StoreKinds.NameMember) == "ops"), Is.Empty,
+                    "and no addition of it is written");
+            }
+
+            Assert.That(log.Warnings, Has.Some.Matches<string>(line => line.Contains("adding a profile ops") && line.Contains("not written")),
+                "the log names the press");
+        }
+
         private OpenDatabase Live()
         {
             return new OpenDatabase(_database.Database, delegate { }, _writer, NullGateLog.Instance);
@@ -171,7 +201,10 @@ namespace KeePassGate.Host.Tests
 
         private IReadOnlyList<string> Names()
         {
-            return ProfileNames.Read(_database.Database.CustomData.Get(ProfileNames.CustomDataKey)).Names;
+            using (var reading = new StoredAdmissions(_database.Database).Store.Read())
+            {
+                return ProfileNames.Of(reading).Names;
+            }
         }
 
         private IEnumerable<string> Admitted()
@@ -196,6 +229,31 @@ namespace KeePassGate.Host.Tests
                                 (DateTime?)stamp.Invoke(_database.Database.CustomData, new object[] { pair.Key }))
                 .OrderBy(line => line, StringComparer.Ordinal)
                 .ToList();
+        }
+
+        /// <summary>The warnings logged, every other line dropped.</summary>
+        private sealed class WarningsLog : IGateLog
+        {
+            public List<string> Warnings { get; } = new List<string>();
+
+            public void Info(string message)
+            {
+            }
+
+            public void Warn(string message)
+            {
+                Warnings.Add(message);
+            }
+
+            public void Error(string message, Exception error)
+            {
+                Warnings.Add(message);
+            }
+
+            public void Unexpected(string message, Exception error)
+            {
+                Warnings.Add(message);
+            }
         }
     }
 }

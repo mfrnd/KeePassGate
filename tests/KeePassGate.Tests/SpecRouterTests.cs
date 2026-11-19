@@ -979,7 +979,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(identity.IsPaired, Is.True, "still admitted");
                 Assert.That(identity.Profiles, Is.EqualTo(new[] { "reader" }));
-                Assert.That(_ours.Admission(identity.AdmissionKey).Profiles, Is.EqualTo(new[] { "ops", "reader" }),
+                Assert.That(_ours.Admission(identity.AdmissionKey).Record.Profiles, Is.EqualTo(new[] { "ops", "reader" }),
                     "and the record is exactly what was approved");
             }
         }
@@ -999,16 +999,6 @@ namespace KeePassGate.Tests
 
                 Assert.That(ClientCredentials.For(certificate, _ours, _log).Profiles, Is.EqualTo(new[] { "ops" }));
             }
-        }
-
-        [Test]
-        public void A_list_that_cannot_be_read_leaves_every_client_holding_nothing()
-        {
-            // A target answers an unreadable list as an empty one, and the intersection with an
-            // empty list is empty, so the client is admitted and reaches nothing.
-            Assert.That(ClientCredentials.Effective(new[] { "ops", "reader" }, Array.Empty<string>()), Is.Empty);
-            Assert.That(ClientCredentials.Effective(new[] { "ops", "reader" }, null), Is.Empty);
-            Assert.That(ClientCredentials.Effective(null, new[] { "ops" }), Is.Empty);
         }
 
         [Test]

@@ -1383,25 +1383,9 @@ namespace KeePassGate.Host.Tests.Live
             {
                 database.Open(IOConnectionInfo.FromPath(path), NewKey(), null);
 
+                // Named as well, as pairing names what it approves: the admission's act adds each
+                // name the list does not hold, and a client holds only the names the list holds.
                 WriteAdmission(database, AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles, Served(database)));
-
-                // Named as well, because pairing names what it approves in the same write as the
-                // admission, and a client holds only the names the database still lists: an
-                // admission written without them would be a client reaching nothing.
-                var names = ProfileNames.Read(database.CustomData.Get(ProfileNames.CustomDataKey));
-                foreach (var refused in profiles.Select(names.Add))
-                {
-                    if (refused != null)
-                    {
-                        throw new ArgumentException(refused, nameof(profiles));
-                    }
-                }
-
-                var document = names.Write();
-                if (document != null)
-                {
-                    database.CustomData.Set(ProfileNames.CustomDataKey, document);
-                }
 
                 database.Save(null);
             }
@@ -1508,35 +1492,61 @@ namespace KeePassGate.Host.Tests.Live
         /// <remarks>
         /// Written into the file before KeePass opens it, because a rule can only be made for a
         /// profile the database already names and the editor offers no way to invent one. Pairing
-        /// is the other way they arrive, and it is a whole test of its own.
+        /// is the other way they arrive, and it is a whole test of its own. A name is an entry of
+        /// the plugin's store, which only an authority starts, `STORE.md` §627: an authority is
+        /// seeded first where the file holds no store key, and where it holds a key the names go
+        /// under that key, so that a test seeding a written down authority names after it.
+        ///
+        /// **The additions are written as the seeds are**, the product's own act under nonces
+        /// fixed by what each holds, `WriteSeeded`: the plugin's group is in pictures, and an
+        /// entry made under a random nonce has a different identifier and title at every retake.
         /// </remarks>
         public void NameProfiles(params string[] names)
         {
+            if (names == null || names.Length == 0)
+            {
+                throw new ArgumentException("no profile name was given", nameof(names));
+            }
+
+            // Answered rather than discarded. A name this plugin would refuse is a name the
+            // operator could not have typed, so a test seeding such a name tests a state the
+            // product cannot reach.
+            var refused = names.Select(ProfileNames.Refusal).FirstOrDefault(refusal => refusal != null);
+            if (refused != null)
+            {
+                throw new ArgumentException(refused, nameof(names));
+            }
+
             var database = new PwDatabase();
             try
             {
                 database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
 
-                var profiles = ProfileNames.Read(null);
-                foreach (var refused in names.Select(profiles.Add))
+                var store = new KdbxStore(database, GateVersion.Current, null);
+                using (var reading = store.Read())
                 {
-                    // Answered rather than discarded. A name this plugin would refuse is a name the
-                    // operator could not have typed, so a test seeding one is testing a state the
-                    // product cannot reach. This used to do that silently, then hand `Write`'s
-                    // null to `Set`, which throws about an argument instead.
-                    if (refused != null)
+                    if (reading.InForce == null)
                     {
-                        throw new ArgumentException(refused, nameof(names));
+                        StoreSeeds.Authority(store);
                     }
                 }
 
-                var document = profiles.Write();
-                if (document == null)
-                {
-                    throw new ArgumentException("no profile name was given", nameof(names));
-                }
+                WriteSeeded(database, Served(database), (key, reading) => names
+                    .Distinct(StringComparer.Ordinal)
+                    .SelectMany(name =>
+                    {
+                        var act = ProfileActs.Add(reading, name);
+                        try
+                        {
+                            return act.Records;
+                        }
+                        finally
+                        {
+                            act.Forget();
+                        }
+                    })
+                    .ToList());
 
-                database.CustomData.Set(ProfileNames.CustomDataKey, document);
                 database.Save(null);
             }
             finally
@@ -1790,17 +1800,18 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
-        /// One key of the database's own custom data as the file holds it, read after KeePass has
-        /// exited, or null when the file has no such key: the raw value, as the list of profile
-        /// names is kept.
+        /// The profile names on the list of the file's store, read after KeePass has exited.
         /// </summary>
-        public string ReadCustomData(string key)
+        public IReadOnlyList<string> ReadProfileNames()
         {
             var database = new PwDatabase();
             try
             {
                 database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
-                return new CustomDataStore(database).Get(key);
+                using (var reading = new KdbxStore(database, GateVersion.Current, null).Read())
+                {
+                    return ProfileNames.Of(reading).Names;
+                }
             }
             finally
             {

@@ -95,7 +95,7 @@ namespace KeePassGate.Tests
             var gone = new string('b', 64);
             _answers.RefuseRenewal(kept, RenewalRefusal.Forever());
             _answers.RefuseRenewal(gone, RenewalRefusal.Until(new DateTimeOffset(2026, 10, 9, 22, 0, 0, TimeSpan.Zero)));
-            _values.Set("KPG.Profiles", "{}");
+            _values.Set("KPG.Test.Other", "{}");
 
             var taken = _answers.Prune(new[] { kept });
 
@@ -103,7 +103,7 @@ namespace KeePassGate.Tests
             Assert.That(taken[0].Value, Is.EqualTo(RenewalRefusal.Until(new DateTimeOffset(2026, 10, 9, 22, 0, 0, TimeSpan.Zero)).Write()),
                 "what a write that does not land puts back");
             Assert.That(_answers.StandingRefusal(kept).IsForever, Is.True, "an answer about a certificate an admission names stays");
-            Assert.That(_values.Get("KPG.Profiles"), Is.EqualTo("{}"), "and no key of another kind goes");
+            Assert.That(_values.Get("KPG.Test.Other"), Is.EqualTo("{}"), "and no key of another kind goes");
         }
 
         [Test]

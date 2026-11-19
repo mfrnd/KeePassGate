@@ -95,12 +95,6 @@ namespace KeePassGate.Gate
             get { return Array.Empty<string>(); }
         }
 
-        /// <summary>Nothing to read, which is not a list that would not read.</summary>
-        public string ProfilesUnreadable
-        {
-            get { return null; }
-        }
-
         /// <summary>Nobody, for the same reason.</summary>
         public IReadOnlyList<AdmissionRecord> Holding(string profile)
         {
@@ -141,7 +135,7 @@ namespace KeePassGate.Gate
         }
 
         /// <summary>Nobody is admitted while there is nothing to read records from.</summary>
-        public AdmissionRecord Admission(string admissionKey)
+        public Admitted Admission(string admissionKey)
         {
             return null;
         }

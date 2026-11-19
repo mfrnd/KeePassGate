@@ -426,8 +426,8 @@ paths:
         the operator was deciding, in which case nothing was issued. `503 busy` covers, beside
         what `Unavailable` names, another pairing or renewal in front of the operator, a wait for
         the screen that left the dialog under thirty seconds of the pairing budget, a renewal of
-        this same certificate still being answered, which is told so at once, no screen to ask
-        on, and a list of profiles in the database that will not read. A plugin's store that came
+        this same certificate still being answered, which is told so at once, and no screen to
+        ask on. A plugin's store that came
         to hold the gate back since the connection arrived is answered its word under `503`, as
         a connection is, before the dialog, once the operator has answered, or when the write
         comes to it, and a second authority that arrived meanwhile is answered `503 undecided`
@@ -1911,8 +1911,7 @@ components:
 
     Identity:
       type: object
-      required:
-        [subject, clientKey, admissionKey, expires, profiles, removedProfiles, profilesUnreadable]
+      required: [subject, clientKey, admissionKey, expires, profiles, removedProfiles]
       additionalProperties: false
       description: |
         The audit names a client under these same two names, so a program can find its own lines
@@ -1959,13 +1958,6 @@ components:
           description: |
             The ones its record holds that the database no longer names. They grant nothing, and
             the operator naming one again gives it back.
-        profilesUnreadable:
-          type: boolean
-          description: |
-            Whether the database's list of profiles will not read, which is damage rather than
-            anybody's choice. A list that will not read names fewer profiles than it held, none
-            at all when it does not parse, so `removedProfiles` then holds names nobody removed,
-            and they come back when the list is repaired. False whenever the list reads.
 
     # One mask per profile because a switch belongs to its rule: `A` and `P` say how far the verbs
     # of the same rule reach, so a client holding `.R......` under one profile and `.....L.P` under
@@ -2513,13 +2505,9 @@ components:
         a renewal, as a record that went is, also where several other authorities stand by then.
         A second authority standing beside it is answered `503 undecided`, and a plugin's store
         that came to hold the gate back its word, as `Unavailable` has them. A lock and KeePass
-        exiting let go of
-        every approval held, and a close of a database lets go of that database's, and then the
-        next request raises the dialog again too. And a list of profiles in the database that
-        will not read is answered `503 busy` before the operator is asked, since what either
-        operation writes is taken from it.
-        `heldUntil` is there only while an approval is held; every other `503` here is
-        `Unavailable`'s, or the one for a list that will not read.
+        exiting let go of every approval held, and a close of a database lets go of that
+        database's, and then the next request raises the dialog again too. `heldUntil` is there
+        only while an approval is held; every other `503` here is `Unavailable`'s.
       headers:
         Retry-After:
           $ref: "#/components/headers/RetryAfter"

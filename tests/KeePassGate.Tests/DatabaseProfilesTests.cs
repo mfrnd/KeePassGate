@@ -12,12 +12,13 @@ using NUnit.Framework;
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// The profiles page against a database: the list in its custom data, and the rules everywhere.
+    /// The profiles page against a database: the list in the plugin's store, and the rules
+    /// everywhere.
     /// </summary>
     /// <remarks>
-    /// The symmetry is the thing worth pinning. Adding a name and removing one each touch one
-    /// value, the list, and neither writes a rule: a client holds only the names the list still
-    /// names, so the list is what decides whether the rules for a name are in force.
+    /// The symmetry is the thing worth pinning. Adding a name and removing a name each write a
+    /// record of the store, and neither writes a rule: a client holds only the names the list
+    /// still names, so the list is what decides whether the rules for a name are in force.
     /// </remarks>
     [TestFixture]
     public sealed class DatabaseProfilesTests
@@ -78,28 +79,69 @@ namespace KeePassGate.Tests
         [Test]
         public void A_profile_added_is_written_where_the_database_keeps_them()
         {
-            var database = new FakeGateDatabase();
+            var database = Serving(new FakeGateDatabase());
             var profiles = new DatabaseProfiles(database, null);
 
             Assert.That(profiles.Add("ops"), Is.Null);
 
             Assert.That(profiles.Names(), Is.EqualTo(new[] { "ops" }));
-            Assert.That(
-                ProfileNames.Read(database.PluginCustomData.Get(ProfileNames.CustomDataKey)).Holds("ops"),
-                Is.True);
-            Assert.That(database.MarkedModifiedCount, Is.EqualTo(1), "or KeePass has nothing to save");
+            using (var reading = database.Records.Read())
+            {
+                Assert.That(ProfileNames.Of(reading).Holds("ops"), Is.True, "an addition in the plugin's store");
+                Assert.That(reading.InForce.Additions, Has.Count.EqualTo(1));
+            }
         }
 
         [Test]
-        public void Adding_the_same_name_twice_says_so_rather_than_marking_the_database_again()
+        public void Adding_the_same_name_twice_says_so_rather_than_writing_again()
         {
-            var database = new FakeGateDatabase();
+            var database = Serving(new FakeGateDatabase());
             var profiles = new DatabaseProfiles(database, null);
 
             profiles.Add("ops");
+            var writes = database.Records.Writes;
 
             Assert.That(profiles.Add("ops"), Does.Contain("already named"));
-            Assert.That(database.MarkedModifiedCount, Is.EqualTo(1), "the second one wrote nothing");
+            Assert.That(database.Records.Writes, Is.EqualTo(writes), "the second press wrote nothing");
+        }
+
+        [Test]
+        public void A_name_is_added_only_where_a_store_key_stands()
+        {
+            // Only an authority starts a store, `STORE.md` §627: a database with no authority takes
+            // no name, and the page states what it lacks.
+            var database = new FakeGateDatabase();
+            var profiles = new DatabaseProfiles(database, null);
+
+            Assert.That(profiles.Add("ops"), Is.EqualTo(DatabaseProfiles.NoAuthorityRefusal));
+            Assert.That(profiles.Names(), Is.Empty);
+            Assert.That(database.Records.Writes, Is.Zero);
+        }
+
+        [Test]
+        public void A_name_no_claim_could_carry_is_refused_with_the_issuer_s_rule()
+        {
+            var profiles = new DatabaseProfiles(Serving(new FakeGateDatabase()), null);
+
+            Assert.That(profiles.Add("not a name"), Is.EqualTo(ProfileNames.Refusal("not a name")));
+            Assert.That(profiles.Names(), Is.Empty);
+        }
+
+        [Test]
+        public void A_list_takes_a_further_name_however_many_it_holds()
+        {
+            // The list keeps no ceiling, `STORE.md` §616.
+            var profiles = new DatabaseProfiles(Serving(new FakeGateDatabase()), null);
+            var names = Enumerable.Range(0, 100)
+                .Select(index => "profile-" + index.ToString("D3", System.Globalization.CultureInfo.InvariantCulture))
+                .ToList();
+
+            foreach (var name in names)
+            {
+                Assert.That(profiles.Add(name), Is.Null, name);
+            }
+
+            Assert.That(profiles.Names(), Is.EqualTo(names));
         }
 
         [Test]
@@ -110,10 +152,10 @@ namespace KeePassGate.Tests
             // back is a full undo rather than a fresh start.
             var group = new TestRuledNode("a group", "{\"ops\":[\"read\"]}");
             var entry = new TestRuledNode("an entry", "{\"ops\":[\"read\"],\"reader\":[\"list\"]}");
-            var database = new FakeGateDatabase
+            var database = Serving(new FakeGateDatabase
             {
                 Nodes = new TestRuledNodes(group, entry, new TestRuledNode("another", "{\"reader\":[\"list\"]}"))
-            };
+            });
 
             var profiles = new DatabaseProfiles(database, null);
             profiles.Add("ops");
@@ -124,14 +166,13 @@ namespace KeePassGate.Tests
             Assert.That(profiles.LastRemoval, Does.Contain("grants nothing").And.Contain("2 rules naming it stay"));
             Assert.That(group.Current, Is.EqualTo("{\"ops\":[\"read\"]}"), "untouched");
             Assert.That(entry.Current, Is.EqualTo("{\"ops\":[\"read\"],\"reader\":[\"list\"]}"));
-            Assert.That(database.MarkedModifiedCount, Is.EqualTo(2), "the add and the removal, each one write");
         }
 
         [Test]
         public void A_removal_no_rule_named_says_only_what_the_name_does_now()
         {
             // Because "gone" and "gone, with rules waiting for it" are different pieces of news.
-            var database = new FakeGateDatabase { Nodes = new TestRuledNodes() };
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes() });
             var profiles = new DatabaseProfiles(database, null);
             profiles.Add("ops");
 
@@ -157,7 +198,7 @@ namespace KeePassGate.Tests
             // force the moment the name is listed again.
             var group = new TestRuledNode("a group", "{\"ops\":[\"read\"]}");
             var entry = new TestRuledNode("an entry", "{\"ops\":[],\"reader\":[\"list\"]}");
-            var database = new FakeGateDatabase { Nodes = new TestRuledNodes(group, entry) };
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(group, entry) });
             var profiles = new DatabaseProfiles(database, null);
 
             profiles.Add("ops");
@@ -171,6 +212,23 @@ namespace KeePassGate.Tests
             Assert.That(profiles.Names(), Is.EqualTo(new[] { "ops" }));
             Assert.That(group.Current, Is.EqualTo("{\"ops\":[\"read\"]}"));
             Assert.That(entry.Current, Is.EqualTo("{\"ops\":[],\"reader\":[\"list\"]}"));
+        }
+
+        [Test]
+        public void Asking_what_a_name_brings_back_reads_the_store_once()
+        {
+            // The list and the clients holding the name from a single reading, on KeePass's
+            // thread, before an Add the operator pressed.
+            var group = new TestRuledNode("a group", "{\"ops\":[\"read\"]}");
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(group) });
+            var profiles = new DatabaseProfiles(database, null);
+            profiles.Add("ops");
+            profiles.Remove("ops");
+            var reads = database.Records.Reads;
+
+            Assert.That(profiles.Returning("ops"), Is.Not.Null);
+
+            Assert.That(database.Records.Reads - reads, Is.EqualTo(1));
         }
 
         [Test]
@@ -203,35 +261,19 @@ namespace KeePassGate.Tests
         public void A_write_that_fails_with_a_long_message_is_answered_with_the_message_cut()
         {
             // The page does not scroll, and the other two pages cut a foreign message the same way.
-            var database = new FakeGateDatabase();
-            database.Values.ThrowOnWrite = new InvalidOperationException(new string('m', 5000));
+            var database = Serving(new FakeGateDatabase());
+            database.Records.ThrowOnWrite = new InvalidOperationException(new string('m', 5000));
 
             var refused = new DatabaseProfiles(database, null).Add("ops");
 
             Assert.That(refused, Does.StartWith("That could not be written: "));
             Assert.That(refused.Length, Is.LessThan(300));
-        }
 
-        [Test]
-        public void A_stored_list_that_will_not_read_is_left_as_it_is_until_a_new_list_is_started()
-        {
-            // Read as naming nothing, the page took an Add or a Remove and wrote the result over
-            // the damaged list at OK, which pairing, renewal and the writer all refuse to do.
-            var database = new FakeGateDatabase();
-            database.Values.Plant(ProfileNames.CustomDataKey, "{not json");
-            var profiles = new DatabaseProfiles(database, null);
-
-            Assert.That(profiles.Unreadable, Is.True);
-            Assert.That(profiles.Add("agent"), Is.EqualTo(DatabaseProfiles.UnreadableRefusal));
-            Assert.That(profiles.Remove("reader"), Is.EqualTo(DatabaseProfiles.UnreadableRefusal));
-            Assert.That(database.Values.Get(ProfileNames.CustomDataKey), Is.EqualTo("{not json"), "nothing replaced it by accident");
-
-            Assert.That(profiles.StartNew(), Is.Null);
-
-            Assert.That(profiles.Unreadable, Is.False);
-            Assert.That(profiles.Add("agent"), Is.Null);
-            Assert.That(profiles.Names(), Is.EqualTo(new[] { "agent" }));
-            Assert.That(new DatabaseProfiles(new FakeGateDatabase(), null).StartNew(), Does.Contain("nothing to replace"));
+            database.Records.ThrowOnWrite = null;
+            database.Records.RefuseWrites = new string('r', 5000);
+            refused = new DatabaseProfiles(database, null).Add("ops");
+            Assert.That(refused, Does.StartWith("That could not be written: "), "a write the store refuses");
+            Assert.That(refused.Length, Is.LessThan(300));
         }
 
         [Test]
@@ -437,7 +479,7 @@ namespace KeePassGate.Tests
         public void Rules_nobody_can_read_are_not_counted()
         {
             var node = new TestRuledNode("a group", "{this will not read");
-            var database = new FakeGateDatabase { Nodes = new TestRuledNodes(node) };
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(node) });
             var profiles = new DatabaseProfiles(database, null);
             profiles.Add("ops");
 

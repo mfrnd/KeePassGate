@@ -1907,7 +1907,6 @@ def _whoami(arguments: argparse.Namespace) -> int:
         "expires": _moment(found.expires),
         "profiles": list(found.profiles),
         "removedProfiles": list(found.removed_profiles),
-        "profilesUnreadable": found.profiles_unreadable,
     }
     lines = [
         f"subject:          {found.subject}",
@@ -1917,13 +1916,6 @@ def _whoami(arguments: argparse.Namespace) -> int:
         f"profiles:         {_listed(found.profiles)}",
         f"removed profiles: {_listed(found.removed_profiles)}",
     ]
-    # Only when it is so: it is why a person reading this finds every profile removed, and a line
-    # for a list that reads would be a line nobody acts on.
-    if found.profiles_unreadable:
-        lines.append(
-            "profile list:     will not read, so every profile is removed until the operator "
-            "repairs it"
-        )
 
     _emit(arguments, document, lines)
     return 0

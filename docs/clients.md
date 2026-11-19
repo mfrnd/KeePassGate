@@ -187,12 +187,13 @@ and nothing on this page is managed by editing that group.
 **All of that was measured in KeePass with the plugin in it, which is 2.62 or later.** Other
 programs can open the database, KeePassXC, KeePass before 2.48 and programs on Android among
 them, and what follows is what was measured of them for what the plugin keeps outside its own
-group: the profile names, the standing answers to a renewal and the access rules. **Merging an
-older copy into the database in KeePassXC quietly brings back every removed profile and standing
-answer** the older copy still had, and a merge either way keeps a group's access rules as they
-were in the database merged into, however the other copy narrowed them. Saving in KeePassXC,
-from 2.4.1 to 2.8.0, or in KeePass 2.47 keeps what the plugin wrote but usually drops the times
-it was written at, and a later synchronize in KeePass can then bring back a removed profile.
+group: the standing answers to a renewal and the access rules. **Merging an older copy into the
+database in KeePassXC quietly brings back every standing answer** the older copy still had, and
+a merge either way keeps a group's access rules as they were in the database merged into, however
+the other copy narrowed them. Saving in KeePassXC, from 2.4.1 to 2.8.0, or in KeePass 2.47 keeps
+what the plugin wrote there but usually drops the times it was written at, and a later
+synchronize in KeePass can then put an older standing answer back over a later answer about the
+same certificate.
 
 **A save in KeePassDroid 2.7 was measured to delete the access rules on every group and entry**,
 and a save in KeePassDX 3.2.0 or 3.3.0 the rules on every group, while a save in KeePassDX 4.5.8 or
@@ -210,10 +211,9 @@ a save in a program that deletes rules, also look at the
 rule for it.
 
 **Nor is anything here managed from KeePass's own Database Maintenance dialog.** Its **Plugin Data**
-tab lists what the plugin keeps outside its own group, the profile names and the standing answers
-to a renewal, and deletes a row on request. Deleting the profile names there leaves every client
-reaching nothing, and deleting a standing answer puts that certificate's next renewal to the
-operator again. The dialog also writes its own copy of those rows back as it closes, over
+tab lists the standing answers to a renewal, which the plugin keeps outside its own group, and
+deletes a row on request. Deleting a standing answer there puts that certificate's next renewal to
+the operator again. The dialog also writes its own copy of those rows back as it closes, over
 whatever was written while it was open, which is why a pairing, a renewal and a program giving a
 certificate up are refused until it is closed. Manage clients on this page, and leave that tab
 alone.

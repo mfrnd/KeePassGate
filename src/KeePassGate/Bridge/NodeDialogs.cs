@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Windows.Forms;
 using KeePassGate.Acl;
 using KeePassGate.Diagnostics;
+using KeePassGate.Store;
 using KeePassGate.Ui;
 using KeePassLib;
 
@@ -58,9 +59,10 @@ namespace KeePassGate.Bridge
         /// record left behind by a recreated authority would likewise add a name this database
         /// never kept.
         ///
-        /// Empty rather than wrong when the list cannot be read. An editor offering nothing still
-        /// shows the rules that are there, where an invented list would offer names that grant
-        /// nobody anything.
+        /// Read from the plugin's store at each redraw of the tab, `STORE.md` §616, so the list
+        /// never offers a name removed since, and empty rather than wrong when the store names
+        /// nothing or cannot be read. An editor offering nothing still shows the rules that are
+        /// there, where an invented list would offer names that grant nobody anything.
         /// </remarks>
         private IEnumerable<string> ProfilesOf(PwDatabase database)
         {
@@ -71,8 +73,10 @@ namespace KeePassGate.Bridge
 
             try
             {
-                return ProfileNames.Read(
-                    database.CustomData.Get(ProfileNames.CustomDataKey)).Names;
+                using (var reading = new KdbxStore(database, GateVersion.Current, _log).Read())
+                {
+                    return ProfileNames.Of(reading).Names;
+                }
             }
             catch (Exception error) when (Expected.OfReflection(error) || Expected.OfCustomData(error))
             {

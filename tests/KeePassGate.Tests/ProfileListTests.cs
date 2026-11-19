@@ -40,6 +40,34 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_page_over_a_store_that_takes_no_write_offers_no_Add_and_no_X()
+        {
+            // `STORE.md` §636: no command on the store where nothing is written into it in the
+            // session, as the clients page shows no X, rather than a press refused once made.
+            var database = new FakeProfiles();
+            database.Add("reader");
+
+            using (var page = new ProfileList(database, null))
+            {
+                var row = ControlTree.FindByName<Control>(page, ProfileList.AddingRowName);
+                var grid = ControlTree.FindByName<DataGridView>(page, ProfileList.ListName);
+                Assume.That(page.Writable, Is.True);
+                Assume.That(row.Visible, Is.True);
+
+                page.Writable = false;
+
+                Assert.That(row.Visible, Is.False, "no row that adds a name");
+                Assert.That(grid.Columns[ProfileList.RemoveColumnName].Visible, Is.False, "and no X");
+                Assert.That(page.Shown, Is.EqualTo(new[] { "reader" }), "the names are still shown");
+
+                page.Writable = true;
+
+                Assert.That(row.Visible, Is.True);
+                Assert.That(grid.Columns[ProfileList.RemoveColumnName].Visible, Is.True);
+            }
+        }
+
+        [Test]
         public void Enter_on_a_dialog_with_an_accept_button_adds_the_name_rather_than_pressing_it()
         {
             // The way anybody confirms a one-line form, and it was the way to lose one. A form with
@@ -173,9 +201,29 @@ namespace KeePassGate.Tests
         [Test]
         public void A_name_a_redraw_takes_off_the_page_is_no_longer_said_to_be_available()
         {
-            // A pairing filling the list to its ceiling while the dialog is open takes
-            // the name added here out of what OK will write, and the line went on saying it was
-            // available to grant.
+            // A removal of the name that the press did not see, as a merge brings it while the
+            // dialog is open, takes the name added here out of what OK will write, and the line
+            // has to stop showing it as available to grant, `STORE.md` §627.
+            var database = new FakeProfiles();
+
+            using (var page = new ProfileList(database, null))
+            {
+                Assume.That(page.Add("ops"), Does.Contain("available to grant"));
+
+                database.Remove("ops");
+                database.OvertakenNames.Add("ops");
+                page.Describe();
+
+                Assert.That(page.Result, Is.EqualTo(
+                    "The profile ops was removed in another copy of this database while this dialog was open, so OK will not add it."));
+            }
+        }
+
+        [Test]
+        public void A_name_a_redraw_takes_off_the_page_for_another_reason_is_not_said_to_be_removed_elsewhere()
+        {
+            // The authority it was added under gone, or the store stopped or split under the
+            // dialog: no removal made apart, and the line states only what holds.
             var database = new FakeProfiles();
 
             using (var page = new ProfileList(database, null))
@@ -185,7 +233,8 @@ namespace KeePassGate.Tests
                 database.Remove("ops");
                 page.Describe();
 
-                Assert.That(page.Result, Does.Contain("ops").And.Contain("no longer fits"));
+                Assert.That(page.Result, Is.EqualTo(
+                    "The profile ops cannot be added to the store as it stands now, so OK will not add it."));
             }
         }
 
@@ -332,35 +381,6 @@ namespace KeePassGate.Tests
             {
                 Assert.That(page.Add("ops"), Does.Contain("available to grant"));
                 Assert.That(prompt.Asked, Is.Zero);
-            }
-        }
-
-        [Test]
-        public void A_list_that_will_not_read_is_shown_as_that_and_takes_no_edit_until_it_is_replaced()
-        {
-            // The operator's ruling of 2026-11-08: the page states that the stored list will not
-            // read, Add stays off, and a button that states it replaces the damaged list is the
-            // one way to name profiles again.
-            var profiles = new FakeProfiles { Unreadable = true };
-
-            using (var page = new ProfileList(profiles, null))
-            {
-                Assert.That(ControlTree.FindByName<Control>(page, ProfileList.DamagedRowName).Visible, Is.True);
-                Assert.That(ControlTree.FindByName<Label>(page, ProfileList.DamagedLabelName).Text, Does.Contain("will not read"));
-                Assert.That(ControlTree.FindByName<Button>(page, ProfileList.StartNewButtonName).Text, Does.Contain("Replace"));
-                Assert.That(ControlTree.FindByName<Control>(page, "KpgProfileEmptyLabel").Visible, Is.False,
-                    "a list that will not read is not a list naming nothing yet");
-                Assert.That(ControlTree.FindByName<Button>(page, ProfileList.AddButtonName).Enabled, Is.False);
-                Assert.That(ControlTree.FindByName<TextBox>(page, ProfileList.NameBoxName).Enabled, Is.False);
-
-                Assert.That(page.Add("ops"), Is.EqualTo(DatabaseProfiles.UnreadableRefusal));
-                Assert.That(profiles.Added, Is.Empty);
-
-                Assert.That(page.StartNew(), Is.EqualTo(ProfileList.StartedText));
-
-                Assert.That(profiles.Started, Is.EqualTo(1));
-                Assert.That(ControlTree.FindByName<Control>(page, ProfileList.DamagedRowName).Visible, Is.False);
-                Assert.That(ControlTree.FindByName<Button>(page, ProfileList.AddButtonName).Enabled, Is.True);
             }
         }
 
@@ -566,17 +586,12 @@ namespace KeePassGate.Tests
                 return null;
             }
 
-            /// <summary>Whether the list is to read as damaged, until a new list is started.</summary>
-            public bool Unreadable { get; set; }
+            /// <summary>The names whose Add a removal made apart overtakes.</summary>
+            public List<string> OvertakenNames { get; } = new List<string>();
 
-            public int Started { get; private set; }
-
-            public string StartNew()
+            public bool Overtaken(string name)
             {
-                Started++;
-                Unreadable = false;
-                _names.Clear();
-                return null;
+                return OvertakenNames.Contains(name);
             }
         }
     }

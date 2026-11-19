@@ -1,9 +1,8 @@
 namespace KeePassGate.Authority
 {
     /// <summary>
-    /// What an admission's write is held to in its own turn on KeePass's thread: the admissions the
-    /// database's store holds, read from that store in that turn, and where the profile names are
-    /// kept.
+    /// What an admission's write is held to in its own turn on KeePass's thread: the admissions and
+    /// the profile names the database's store holds, read from that store in that turn.
     /// </summary>
     /// <remarks>
     /// Asked by the condition a pairing or a renewal hands the writer, last of the questions and
@@ -20,7 +19,10 @@ namespace KeePassGate.Authority
         /// </summary>
         AdmissionRecord Admission(string admissionKey);
 
-        /// <summary>The database's own custom data, which holds the profile names.</summary>
-        IKeyValueStore Names { get; }
+        /// <summary>
+        /// Whether this profile is on the list, read from the store in the write's own turn,
+        /// `STORE.md` §616: what a held approval is compared with, name by name.
+        /// </summary>
+        bool Named(string profile);
     }
 }

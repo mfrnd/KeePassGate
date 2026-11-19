@@ -214,9 +214,9 @@ namespace KeePassGate.Host.Tests
             // test skipped by building its request by hand.
             using (var renewal = new RealRenewal(this))
             {
-                var names = ProfileNames.Read(null);
-                Assume.That(names.Add("audit"), Is.Null);
-                _database.Database.CustomData.Set(ProfileNames.CustomDataKey, names.Write());
+                var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+                StoreSeeds.Unname(store, "ops");
+                StoreSeeds.Name(store, "audit");
 
                 Assume.That(renewal.Ask(RenewalApproval.Refused(null), null).Status, Is.EqualTo(403));
 
@@ -569,6 +569,36 @@ namespace KeePassGate.Host.Tests
                 Assert.That(hold.Armed, Is.False, "the store stopped between two holds");
                 Assert.That(context.Status, Is.EqualTo(503), context.Json);
                 Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(StoreWords.Stopped)));
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+            }
+        }
+
+        [Test]
+        public void The_dialog_offers_the_names_read_in_the_hold_that_read_the_admission_it_renews()
+        {
+            // The names are read with the admission, from the same reading. Taken off the list once
+            // that hold has ended, a name is still offered as the reading had it, and the write,
+            // which reads the list again in its own turn, finds the list is not what the dialog
+            // showed: nothing is written, and the operator is asked again.
+            var hold = new StopsAfterAHold();
+            using (var renewal = new RealRenewal(this, hold))
+            {
+                var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+                using (var reading = store.Read())
+                {
+                    Assume.That(ProfileNames.Of(reading).Holds("ops"), Is.True, "the admission's act added the name");
+                }
+
+                hold.Between = () => StoreSeeds.Unname(store, "ops");
+                hold.Armed = true;
+
+                var context = renewal.Ask(RenewalApproval.Approved(new[] { "ops" }), null);
+
+                Assert.That(hold.Armed, Is.False, "the name went between two holds");
+                Assert.That(renewal.LastRequest.Profiles, Is.EqualTo(new[] { "ops" }), "the names of the admission's own reading");
+                Assert.That(renewal.LastRequest.Dropped, Is.Empty);
+                Assert.That(context.Status, Is.EqualTo(503), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
                 Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
             }
         }

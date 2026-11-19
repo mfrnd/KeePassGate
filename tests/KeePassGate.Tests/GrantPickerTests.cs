@@ -139,6 +139,137 @@ namespace KeePassGate.Tests
             });
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void A_profile_picker_of_a_hundred_names_scrolls_inside_its_screen_and_reaches_the_last_name(bool nearTheBottom)
+        {
+            // The list of profile names keeps no ceiling, `STORE.md` §616: the picker offers every
+            // name, holds its height to whole rows inside the working area whether it opens
+            // downward or upward, and scrolls down through the rest, never across.
+            var names = Enumerable.Range(0, 99)
+                .Select(index => "p" + index.ToString("D3", System.Globalization.CultureInfo.InvariantCulture))
+                .Concat(new[] { "zulu" })
+                .ToArray();
+
+            OnScreen(names, nearTheBottom, (form, panel, grid, open, list) =>
+            {
+                var area = Screen.FromControl(grid).WorkingArea;
+                TestContext.Out.WriteLine("list " + list.Size + " client " + list.ClientSize + " rows of " + list.ItemHeight
+                                          + ", drop-down " + open.Bounds + ", working area " + area);
+
+                Assert.That(list.Items.Cast<string>(), Is.EqualTo(names), "every name is offered");
+                Assert.That(area.Contains(open.Bounds), Is.True, "the drop-down lies inside the working area");
+                Assert.That(list.ClientSize.Height % list.ItemHeight, Is.Zero, "a whole number of rows");
+                Assert.That(list.ClientSize.Height / list.ItemHeight, Is.LessThanOrEqualTo(GrantTab.MostProfileRows));
+                Assert.That(list.ClientSize.Height, Is.LessThan(list.ItemHeight * names.Length), "it scrolls down");
+                Assert.That(list.Width - list.ClientSize.Width, Is.EqualTo(SystemInformation.VerticalScrollBarWidth), "with a scroll bar");
+                Assert.That(
+                    names.Max(name => TextRenderer.MeasureText(name, list.Font).Width),
+                    Is.LessThanOrEqualTo(list.ClientSize.Width),
+                    "and never across: no name is cut by it");
+
+                // The keyboard keeps the chosen row in view.
+                foreach (var (key, index) in new[] { (Keys.Down, 1), (Keys.End, 99), (Keys.Home, 0), (Keys.Next, -1), (Keys.Down, -1), (Keys.Prior, -1), (Keys.Z, 99), (Keys.Up, 98) })
+                {
+                    PressKey(open, key);
+                    if (index >= 0)
+                    {
+                        Assert.That(list.SelectedIndex, Is.EqualTo(index), key.ToString());
+                    }
+
+                    Assert.That(list.ClientRectangle.Contains(list.GetItemRectangle(list.SelectedIndex)), Is.True, key + " leaves the row chosen out of view");
+                }
+
+                Assert.That(panel.Picking, Is.True, "and the picker stays open");
+
+                // The wheel scrolls it, and the last name is a click away.
+                PressKey(list, Keys.Home);
+                TestNativeMethods.PostMessage(list.Handle, WheelMessage, (IntPtr)(-120 << 16), IntPtr.Zero);
+                OffScreenForm.Pump();
+                Assert.That(list.TopIndex, Is.GreaterThan(0), "the wheel scrolls the list");
+
+                for (var turn = 0; turn < names.Length && !list.ClientRectangle.Contains(list.GetItemRectangle(names.Length - 1)); turn++)
+                {
+                    TestNativeMethods.PostMessage(list.Handle, WheelMessage, (IntPtr)(-120 << 16), IntPtr.Zero);
+                    OffScreenForm.Pump();
+                }
+
+                PressAt(list, list.GetItemRectangle(names.Length - 1));
+                Assert.That(PumpUntil(() => panel.Lines.Any(line => line.StartsWith("zulu", StringComparison.Ordinal)), TimeSpan.FromSeconds(2)), Is.True,
+                    "the last name was chosen by the mouse");
+                Assert.That(_loop, Is.Empty);
+            });
+        }
+
+        [TestCase(3)]
+        [TestCase(GrantTab.MostProfileRows)]
+        public void A_profile_picker_of_as_many_names_as_fit_is_the_list_it_was(int count)
+        {
+            // Where every name fits, nothing bounds the list: the host sizes it to the list's own
+            // preferred size with no constraint on it, as it always did, so the drop-down is the
+            // same pixel for pixel, with no scroll bar, as every picture of it shows.
+            var names = Enumerable.Range(0, count)
+                .Select(index => "profile-" + index.ToString("D2", System.Globalization.CultureInfo.InvariantCulture))
+                .ToArray();
+
+            OnScreen(names, false, (form, panel, grid, open, list) =>
+            {
+                Assert.That(list.MinimumSize, Is.EqualTo(Size.Empty), "nothing bounds the list");
+                Assert.That(list.MaximumSize, Is.EqualTo(Size.Empty));
+                Assert.That(list.Size, Is.EqualTo(list.GetPreferredSize(Size.Empty)), "the size the host gives a list it does not bound");
+                Assert.That(list.Width, Is.EqualTo(list.ClientSize.Width), "no scroll bar");
+                Assert.That(list.ClientSize.Height, Is.EqualTo(list.ItemHeight * count), "every name shown");
+                Assert.That(_loop, Is.Empty);
+            });
+        }
+
+        /// <summary>
+        /// The profile picker opened over these names, on a window shown on the screen, near its
+        /// top or near its bottom, where the drop-down has to open upward.
+        /// </summary>
+        private void OnScreen(string[] names, bool nearTheBottom, Action<Form, GrantPanel, DataGridView, ToolStripDropDown, ListBox> work)
+        {
+            var store = new FakeGrantStore(null);
+            using (var form = OffScreenForm.New())
+            using (var panel = new GrantPanel(new GrantSheet(store.Read(), null, names, null), store, GrantTab.GroupScope, null))
+            {
+                var area = Screen.PrimaryScreen.WorkingArea;
+                form.ClientSize = new Size(420, 220);
+                form.Location = nearTheBottom
+                    ? new Point(area.Left + 40, area.Bottom - form.Height - 4)
+                    : new Point(area.Left + 40, area.Top + 40);
+                panel.Dock = DockStyle.Fill;
+                form.Controls.Add(panel);
+                form.Show();
+                OffScreenForm.Pump();
+
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                panel.Press(grid.NewRowIndex, ProfileColumn);
+                OffScreenForm.Pump();
+                Assume.That(panel.Picking, Is.True);
+
+                var open = (ToolStripDropDown)typeof(GrantPanel)
+                    .GetField("_open", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(panel);
+                var list = (ListBox)open.Items.OfType<ToolStripControlHost>().Select(host => host.Control)
+                    .Single(control => control.Name == GrantTab.ProfilePickerName);
+                try
+                {
+                    work(form, panel, grid, open, list);
+                }
+                finally
+                {
+                    if (panel.Picking)
+                    {
+                        panel.ClosePicker();
+                        OffScreenForm.Pump();
+                    }
+
+                    form.Close();
+                    OffScreenForm.Pump();
+                }
+            }
+        }
+
         [Test]
         public void Closing_a_picker_leaves_the_window_open()
         {
@@ -264,9 +395,21 @@ namespace KeePassGate.Tests
                 PressKey(open, Keys.Down);
                 PressKey(open, Keys.Enter);
 
-                Assert.That(panel.Picking, Is.False, "Enter did not close the picker");
-                Assert.That(panel.Lines, Is.EqualTo(new[] { "ops ........" }), "nor chose what was highlighted");
+                Assert.That(PumpUntil(() => open.IsDisposed, TimeSpan.FromSeconds(2)), Is.True, "Enter did not close the picker");
+                Assert.That(panel.Lines, Is.EqualTo(new[] { "reader ........" }), "nor chose what Down highlighted");
                 Assert.That(pressed, Is.Zero, "Enter pressed a button of the dialog under the picker");
+
+                // The rule picker opens straight after a profile is chosen, and holds the keys
+                // while it is open; Escape leaves it, and the dialog has its keys back.
+                if (panel.Picking)
+                {
+                    var rules = (ToolStripDropDown)typeof(GrantPanel)
+                        .GetField("_open", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(panel);
+                    PressKey(rules, Keys.Escape);
+                    PumpUntil(() => !panel.Picking, TimeSpan.FromSeconds(2));
+                }
+
+                Assert.That(pressed, Is.Zero, "Escape pressed a button of the dialog under the picker");
                 Assert.That(form.AcceptButton, Is.SameAs(accept), "and the dialog has its keys back");
                 Assert.That(_loop, Is.Empty);
             });

@@ -59,19 +59,25 @@ namespace KeePassGate.Gate
         CertifiedKey AuthorityKey { get; }
 
         /// <summary>
-        /// The admission of this certificate where it counts, or null when there is none,
-        /// `STORE.md` §615.
+        /// The admission of this certificate where it counts, with the profiles this database
+        /// names, or null when there is none, `STORE.md` §615.
         /// </summary>
         /// <remarks>
         /// Read from the database's store on every call rather than cached with the certificates,
         /// because a revocation has to take effect on the next connection rather than on the next
         /// time something else changed.
         ///
+        /// **The names in the same hold, from the same reading**, which is what a client's
+        /// profiles are made of: the admission's names less every name the list does not hold, so
+        /// taking a name off the list takes it from every client without touching an admission. A
+        /// renewal offers the admission's names the list still holds from the same answer, so the
+        /// dialog shows the list as the reading that found the admission had it.
+        ///
         /// **Throws `VaultUnsettled` when KeePass's thread could not be held for the reading**,
         /// which is not the same as there being none. **And `DatabaseShut` when the database closed
         /// under the caller**, a lock nearly always, which is answered as one.
         /// </remarks>
-        AdmissionRecord Admission(string admissionKey);
+        Admitted Admission(string admissionKey);
 
         /// <summary>
         /// Why a record cannot be written right now, or null when one can. Checked before an
@@ -84,35 +90,14 @@ namespace KeePassGate.Gate
         /// The profiles this database names now, read on every call rather than cached.
         /// </summary>
         /// <remarks>
-        /// Three readers. A client's profiles are its record's less every name missing from here, so
-        /// taking a name off the list takes it from every client without touching a record. The
-        /// pairing dialog says which of the profiles being asked for are new. And a renewal offers
-        /// only the record's names the list still holds, and says which it no longer does.
+        /// For the pairing dialog, which shows which of the profiles being asked for are new. A
+        /// client's profiles and a renewal's are read with the admission, <see cref="Admission"/>.
         ///
-        /// Empty when the list cannot be read, and without the names it cannot hold when it holds
-        /// some it can, which is the safe direction for the first reader: a client reaches no
-        /// profile reading left out. Not for the other two, which write the list or a record from
-        /// it, so both ask <see cref="ProfilesUnreadable"/> first and refuse.
+        /// The names are what the store's records give, `STORE.md` §616, and a damaged record of a
+        /// name stops the store, which is answered its word before anything is read of it: so
+        /// there is no list that fails to read on its own. Empty where the store serves nothing.
         /// </remarks>
         IReadOnlyList<string> KnownProfiles { get; }
-
-        /// <summary>
-        /// Why the profiles this database names cannot be read now, or null when they can, an
-        /// empty list included.
-        /// </summary>
-        /// <remarks>
-        /// For the readers for which empty is not the safe direction: a renewal writes a record from
-        /// the names on the list, so a list that would not read would have been written into the
-        /// record as no names at all, and the client would have lost them for good; and a pairing
-        /// writes the names it approves onto the list, which read as empty would have replaced
-        /// every name the damaged list held.
-        ///
-        /// **Cannot be read is reading losing something**, `ProfileNames.Readable`'s answer: a
-        /// value that does not parse, an object of another shape, or a name the list cannot hold.
-        /// Each of the three reads as fewer names than the list holds, and for these two readers
-        /// fewer is the same loss as none.
-        /// </remarks>
-        string ProfilesUnreadable { get; }
 
         /// <summary>
         /// The admitted clients whose admissions hold a profile, read now. Empty where none do, and

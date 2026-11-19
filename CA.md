@@ -124,34 +124,33 @@ made a 4.1 file. Once the authority was entries of the plugin's store, which nee
 4.0, a database with an authority alone was a 4.0 file, and the first admission record took it
 to 4.1, being a key of the dictionary still. An admission is an entry of the store as well now,
 so a saved database that holds an authority and an admission, and nothing of the plugin's in
-its custom data, is a 4.0 file. What takes the file to 4.1 is what the plugin still keeps in
-this dictionary: a profile name, measured beside an authority alone and beside an authority and
-an admission, and a standing answer to a renewal, measured beside an authority and a client
-paired for no profile. `AdmissionInRealDatabaseTests` holds the measurements, in
-`An_admission_leaves_the_file_KDBX_4_0_and_a_profile_name_beside_it_takes_it_to_4_1`,
-`A_profile_name_takes_the_file_to_KDBX_4_1_before_anything_is_paired` and, through the pairing's
-own write and KeePass's save, with the version read from the file's header,
-`A_pairing_leaves_the_file_KDBX_4_0_and_a_profile_it_names_or_a_standing_answer_takes_it_to_4_1`.
-A pairing that approves a profile the list does not hold writes that name in the same write, so
-such a pairing leaves a 4.1 file, for the name and not for the admission, and a client paired
-for no profile leaves a 4.0 file.
+its custom data, is a 4.0 file. **Nor does a profile name**, which took the file to 4.1 while
+it was a key of this dictionary and is an entry of the store as well now. What takes the file
+to 4.1 is what the plugin still keeps in this dictionary, a standing answer to a renewal,
+measured beside an authority and a client paired for no profile. `AdmissionInRealDatabaseTests`
+holds the measurements, in `An_admission_and_a_profile_name_in_the_store_leave_the_file_KDBX_4_0`
+and, through the pairing's own write and KeePass's save, with the version read from the file's
+header,
+`A_pairing_leaves_the_file_KDBX_4_0_whatever_it_names_and_a_standing_answer_takes_it_to_4_1`. A
+pairing that approves a profile the list does not hold adds that name in the same write, and
+leaves a 4.0 file as a client paired for no profile does.
 
 **The rest of this store is decided to be replaced in 0.3.0 as those parts were.** What
 other programs do to custom data, in the paragraphs on them below, is what reopened it: the
 plugin's data is to move into entries in a group of the plugin's own, with no custom data
 anywhere. [`STORE.md`](STORE.md) §601 holds that store and §604 lists what of this section it
-reverses. The standing answers to a renewal, the profile names and the rules on groups and
-entries are not moved yet, so for them this section remains the account of what the plugin does.
+reverses. The standing answers to a renewal and the rules on groups and entries are not moved
+yet, so for them this section remains the account of what the plugin does.
 
 | Key | Contents | Written |
 | --- | --- | --- |
 | `KPG.RenewalRefused.<sha256>` | the operator's standing answer to renewing one certificate: `forever`, or the moment renewals are asked about again | when the operator refuses a renewal forever or until a date, and again when a later answer replaces it, which the dialog takes only once an until-date has passed, or a merge brings in; removed once no admission in force names that certificate, by the next pairing, renewal or certificate given up, or by a settings dialog's OK that writes into the store, or when the operator allows renewal on the clients page and accepts the dialog |
-| `KPG.Profiles` | the set of profile names this database knows | when the Profiles page is accepted, and at a pairing that approves a name it does not hold, in the same write as the admission |
 
-**The admission and the revocation were keys of this dictionary**, `KPG.Client.<sha256>` for each
-certificate admitted and `KPG.Revoked.<sha256>` for each certificate revoked, and the paragraphs
-below record what each reversal was and why. A database that holds such keys is not read for
-them: they admit and refuse nobody, and nothing removes them, `STORE.md` §645.
+**The admission, the revocation and the profile names were keys of this dictionary**,
+`KPG.Client.<sha256>` for each certificate admitted, `KPG.Revoked.<sha256>` for each certificate
+revoked and `KPG.Profiles` for the set of names, and the paragraphs below record what each
+reversal was and why. A database that holds such keys is not read for them: they admit, refuse
+and name nobody, and nothing removes them, `STORE.md` §645.
 
 **Not the root group, and the group dialog is why.** `GroupForm` copies a group's `CustomData` when
 it opens and writes the copy back on OK, so anything written to the root group while an Edit Group
@@ -181,15 +180,16 @@ whole as the paragraph above describes, which the same tests still measure. A si
 last-writer-wins in either, and would lose pairings silently. What reversed the key is what
 reversed the authority's, below.
 
-**The profile list is one key, so a merge takes it whole.** `KPG.Profiles` holds every name in one
-value, and a merge keeps one side's list, which for a synchronize is whichever copy wrote it last: a
-name only the other copy added is lost, and a name only the other copy took out comes back. Two hosts
-that each approve a pairing for a name the database has never named therefore keep both records and
-one list. The list decides which names are in force (`DESIGN.md` §139), so a lost name grants
-nothing until it is added again, and the clients page shows it as removed on every client holding
-it, while a name that came back is in force again, its rules and its clients with it, as though it
-had been added on the Profiles page without the question that page asks first. After merging two
-copies that both changed their profiles, the Profiles page is where to look.
+**A profile name is added and taken off by records of its own**, an addition and a removal,
+`STORE.md` §616, and a merge brings each record the other copy lacks, so two hosts that each
+approve a pairing for a name the database has never named keep both records and both names. A
+removal wins over every addition of its name that did not see it, whichever copy wrote either, and
+a name added again after it, naming it, stands. **This reverses the list as one key**,
+`KPG.Profiles`, holding every name in one value, which a merge kept from one side only, for a
+synchronize whichever copy wrote it last: a name only the other copy added was lost, granting
+nothing and shown as removed on every client holding it, and a name only the other copy took out
+came back into force, its rules and its clients with it, without the question the Profiles page
+asks first.
 
 **A revocation is a record that names the client's key, and it is never removed.** Revoking a
 client on the clients page writes a record of kind `revoked` holding the client key, §217, and
@@ -413,14 +413,15 @@ to 2.8.0 and KeePass 2.47. **Saving in any of them keeps every key and its value
 the times**: the file goes back to an older format, 4.0 or even 3.1, unless something else in it is
 4.1 as well, such as the previous parent a KeePass delete or move records, and only KeePassXC 2.7.0
 or later keeps the times even then. A revocation survived that while it was a key, being only
-ever added, while the profile list and a standing answer to a renewal go to whichever copy still
-carries a time at the next synchronize in KeePass. **A KeePassXC merge, from 2.4.2, replaces the
-custom data of the database it merges into with the other copy's, whole**, whenever the other copy
-was read in a later second, which a copy chosen to merge from nearly always is. Merging an older
-copy into the paired database therefore takes away every key written since, which was every
-revocation and admission record while those were keys, and puts back the older value of every key
-changed since, the profile list among them, stamped, where the file keeps times, with the time of
-the merge, which a later synchronize in KeePass takes as the newest. A group both copies hold
+ever added, while a standing answer to a renewal goes to whichever copy still carries a time at
+the next synchronize in KeePass, as the profile list did while it was a key. **A KeePassXC merge,
+from 2.4.2, replaces the custom data of the database it merges into with the other copy's,
+whole**, whenever the other copy was read in a later second, which a copy chosen to merge from
+nearly always is. Merging an older copy into the paired database therefore takes away every key
+written since, which was every revocation, admission record and profile list while those were
+keys, and puts back the older value of every key changed since, a standing answer among them,
+stamped, where the file keeps times, with the time of the merge, which a later synchronize in
+KeePass takes as the newest. A group both copies hold
 keeps the rules of the database merged into, however the other copy changed them, and takes the
 newer of the two times, so a narrowing made in the other copy is lost without looking older.
 Merging the other way, the paired database into an older copy, gives that copy the paired
@@ -446,16 +447,16 @@ the rules, so wherever they narrowed what a group above grants, a client now rea
 Nothing here detects any of it. After any change made outside KeePass, the clients page, the
 Profiles page and the authority are where to look, and after a save in a program that deletes
 rules, the rules on every group and entry that had any. What the same programs do to the entries
-that the authority, the admissions and the revocations are kept in is `STORE.md` §603 and §637.
+that the authority, the admissions, the revocations and the profile names are kept in is
+`STORE.md` §603 and §637.
 
 **KeePass's own Database Maintenance dialog lists every one of these keys on its Plugin Data tab,
 and deletes any of them on request.** None of that is a way to manage what this plugin keeps.
-The keys are the profile list and the standing answers to a renewal. Deleting the list there
-leaves every client admitted and reaching nothing, `DESIGN.md` §139, and deleting a standing
-answer puts that certificate's next renewal to the operator again. The authority, its
-retirements, the admissions and the revocations are not among these keys: they are entries of the
-plugin's store, and what deleting or editing such an entry in KeePass does is `STORE.md` §628 and
-§642. While a revocation was a key, deleting it there left the client refused only by its emptied
+The keys are the standing answers to a renewal, and deleting an answer puts that certificate's
+next renewal to the operator again. The authority, its retirements, the admissions, the
+revocations and the profile names are not among these keys: they are entries of the plugin's
+store, and what deleting or editing such an entry in KeePass does is `STORE.md` §628 and §642.
+While a revocation was a key, deleting it there left the client refused only by its emptied
 record, which a stale copy merged in afterwards could beat. Revoking, recreating and deleting are
 done on the KPG tab, which writes each of them the way this section describes.
 

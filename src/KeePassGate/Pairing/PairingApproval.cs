@@ -143,20 +143,6 @@ namespace KeePassGate.Pairing
         }
 
         /// <summary>
-        /// Whether the database already names as many profiles as its list holds, so that approving
-        /// adds no name to it, new or removed.
-        /// </summary>
-        /// <remarks>
-        /// The writer skips a name that does not fit and says so in the log, and the pairing lands
-        /// without it, so a dialog promising to create one or to put one back would promise what
-        /// does not happen.
-        /// </remarks>
-        public bool ListIsFull
-        {
-            get { return _known.Count >= KeePassGate.Acl.ProfileNames.Most; }
-        }
-
-        /// <summary>
         /// The clients that regain a profile if it is approved, because it was removed and their
         /// records still hold it. Empty for every other profile.
         /// </summary>

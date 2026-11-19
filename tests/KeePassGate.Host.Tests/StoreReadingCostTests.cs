@@ -23,8 +23,8 @@ namespace KeePassGate.Host.Tests
     /// <summary>
     /// What reading the plugin's store holds KeePass's thread for, through the real router and
     /// vault, `STORE.md` §620 and §644, with the admission of a connection read by meaning,
-    /// §615 and §648, and what a write of the operator's and a pairing's write into it hold the
-    /// thread for, §627, recorded in `FINDINGS.md` section 22.
+    /// §615 and §648, and the names read beside it, §616, and what a write of the operator's and
+    /// a pairing's write into it hold the thread for, §627, recorded in `FINDINGS.md` section 22.
     /// </summary>
     /// <remarks>
     /// **A measurement to read, and not a gate to pass**, since a time on a shared machine is no
@@ -197,6 +197,56 @@ namespace KeePassGate.Host.Tests
                         ? "the hold a connection is judged in, at the end of a chain as long as the statements"
                         : "the hold a connection is judged in, beside the ceiling of statements");
             }
+        }
+
+        [TestCase(0, false)]
+        [TestCase(0, true)]
+        [TestCase(10, false)]
+        [TestCase(10, true)]
+        public void What_a_connection_s_hold_costs_with_the_names_it_reads(int history, bool removedOften)
+        {
+            // The hold a connection is judged in reads the names beside the admission, `STORE.md`
+            // §616 and §620: beside the store the growth run left and a pairing's admission, with
+            // 32 names on the list; or with a single name removed and added again as often as the
+            // room allows, so that its addition names all those removals, each known as an item
+            // of the summary entry.
+            using (var database = TemporaryDatabase.New())
+            {
+                Fill(database.Database, history);
+                var served = new StoredAdmissions(database.Database);
+                var authority = StoreSeeds.Authority(served.Store);
+                var key = served.KeyInForce();
+                var revoked = new PwGroup(true, true, "Revoked", PwIcon.Folder);
+                database.RootGroup.AddGroup(revoked, true);
+                served.Restated(Revocations(revoked, key));
+                var admitted = Admit(database.Database, key, authority, null, null);
+                var removals = removedOften ? Renamed(database.Database, served, key) : Named(database.Database, key, 32);
+
+                using (var reading = served.Store.Read())
+                {
+                    Assert.That(reading.Room.HasRoom, Is.True, "the store has room");
+                    Assert.That(ProfileNames.Of(reading).Names, Has.Count.EqualTo(removedOften ? 1 : 32), "the names are on the list");
+                }
+
+                Measured(
+                    database.Database,
+                    admitted,
+                    "the hold a connection is judged in, "
+                    + (removedOften ? "beside a name added again after " + removals + " removals" : "beside 32 names")
+                    + (history == 0 ? ", entries without history" : ", entries with " + history + " history items"));
+            }
+        }
+
+        [TestCase(0)]
+        [TestCase(10)]
+        public void What_a_pairing_s_write_approving_32_new_names_holds_the_thread_for(int history)
+        {
+            // A pairing whose approval adds 32 names the list does not hold, each an addition in
+            // the admission's own write, `STORE.md` §627, beside the figure of a pairing that adds
+            // none: the store's own part with the file hashed back.
+            Print(
+                "a pairing's write approving 32 new names, the store's own part with the file hashed back",
+                Pairings(history, saved => saved.Modified = false, 32));
         }
 
         [TestCase(0)]
@@ -463,6 +513,49 @@ namespace KeePassGate.Host.Tests
         }
 
         /// <summary>
+        /// This many names on the list, each an addition naming no removal, in the root group;
+        /// answers the removals the names were added after, none.
+        /// </summary>
+        private static int Named(PwDatabase database, byte[] key, int count)
+        {
+            for (var index = 0; index < count; index++)
+            {
+                var name = "named-" + index.ToString("D2", CultureInfo.InvariantCulture);
+                database.RootGroup.AddEntry(KeePassGate.Bridge.StoreEntries.Of(ProfileActs.Addition(key, name, Array.Empty<string>())), true);
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// The fixture's profile removed as often as the room allows, each removal an item of the
+        /// summary entry, and added again by an addition naming all those removals; answers how
+        /// many removals there are.
+        /// </summary>
+        /// <remarks>
+        /// As many as leave the summary entry an item name beside the revocations it restates, and
+        /// as fit the addition's content, which lists each removal's identifier.
+        /// </remarks>
+        private static int Renamed(PwDatabase database, StoredAdmissions served, byte[] key)
+        {
+            var listed = StoreComposer.HexOf(StoreComposer.IdentifierOf(key, "removed", "profile:" + Profile, 0, new string('0', 64))).Length + 1;
+            var count = Math.Min(StoreFormat.MaxItems - Decisions - 3, (StoreFormat.MaxWritten - 256) / listed);
+            var identifiers = new List<string>();
+            var items = new List<string>();
+            for (var index = 0; index < count; index++)
+            {
+                var identifier = StoreComposer.HexOf(StoreComposer.IdentifierOf(
+                    key, "removed", "profile:" + Profile, 0, index.ToString("x64", CultureInfo.InvariantCulture)));
+                identifiers.Add(identifier);
+                items.Add(StoreComposer.Item(("id", identifier), ("kind", "removed"), ("name", Profile)));
+            }
+
+            served.Restated(items);
+            database.RootGroup.AddEntry(KeePassGate.Bridge.StoreEntries.Of(ProfileActs.Addition(key, Profile, identifiers)), true);
+            return count;
+        }
+
+        /// <summary>
         /// The hold a connection is judged in, timed: the gate's own target for the database asked
         /// for the admission of this certificate, which it reads in a hold of its own.
         /// </summary>
@@ -481,12 +574,13 @@ namespace KeePassGate.Host.Tests
         /// Pairings written in turn on a database of their own beside the entries given, each
         /// timed from its call to its answer.
         /// </summary>
-        private static List<double> Pairings(int history, Action<PwDatabase> save)
+        private static List<double> Pairings(int history, Action<PwDatabase> save, int newNames = 0)
         {
             using (var database = TemporaryDatabase.New())
             {
                 Fill(database.Database, history);
                 var served = StoreSeeds.Authority(new KdbxStore(database.Database, GateVersion.Current, null));
+                StoreSeeds.Name(new KdbxStore(database.Database, GateVersion.Current, null), Profile);
                 database.Save();
 
                 var writer = new DatabaseWriter(CurrentThread.Instance, save, null, null, null);
@@ -495,7 +589,14 @@ namespace KeePassGate.Host.Tests
                 {
                     using (var certificate = Minted.Named("CN=agent-fictitious").SelfSigned().Read())
                     {
-                        var admission = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { Profile }, served);
+                        // Each pairing approves names no pairing before it named, where it is asked
+                        // to add names at all.
+                        var profiles = newNames == 0
+                            ? new[] { Profile }
+                            : Enumerable.Range(0, newNames)
+                                .Select(index => string.Format(CultureInfo.InvariantCulture, "new-{0:D2}-{1:D2}", run, index))
+                                .ToArray();
+                        var admission = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles, served);
                         var clock = Stopwatch.StartNew();
                         var written = writer.WriteAdmission(database.Database, admission);
                         times.Add(clock.Elapsed.TotalMilliseconds);

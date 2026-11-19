@@ -774,7 +774,7 @@ namespace KeePassGate.Ui
                 var reaches = Reaches(admitted, reading, DateTimeOffset.UtcNow);
 
                 DescribeAuthority(reading, stored, admitted, reaches);
-                DescribeClients(admitted, reaches);
+                DescribeClients(admitted, reaches, NamedProfiles(stored, reading != null));
             }
         }
 
@@ -858,7 +858,10 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>The clients page, the profiles page and the notice, from the same reading.</summary>
-        private void DescribeClients(AdmissionListing admitted, IDictionary<string, ClientReach> reaches)
+        /// <param name="named">
+        /// The profiles the database names, from that reading: see <see cref="NamedProfiles"/>.
+        /// </param>
+        private void DescribeClients(AdmissionListing admitted, IDictionary<string, ClientReach> reaches, ICollection<string> named)
         {
             // Apart from the first page's catch, because a tab that failed to describe its
             // authority and went on showing the clients it listed a minute ago would be lying about
@@ -873,9 +876,15 @@ namespace KeePassGate.Ui
             try
             {
                 // No command on the store where nothing is written into it in the session, as the
-                // first page turns its buttons off, `STORE.md` §636.
-                _clients.Writable = _database == null || !_database.IsOpen || _database.Store.Unwritable == null;
-                _clients.Fill(admitted, reaches, NamedProfiles(), StandingAnswers(admitted, DateTimeOffset.UtcNow));
+                // first page turns its buttons off, `STORE.md` §636: no X on the clients page, and
+                // neither the row that adds a name nor an X on the profiles page. And no command
+                // about a name where the store cannot be judged, under several keys or in a form
+                // the plugin does not read: the clients page lists nobody there and so offers
+                // nothing, and the first page states why.
+                var writable = _database == null || !_database.IsOpen || _database.Store.Unwritable == null;
+                _clients.Writable = writable;
+                _profiles.Writable = writable && admitted.Complete;
+                _clients.Fill(admitted, reaches, named, StandingAnswers(admitted, DateTimeOffset.UtcNow));
 
                 // The profiles page only while it is the page in front. It counts every rule in the
                 // tree and every record, which on a large database is the slowest thing on the tab,
@@ -970,13 +979,12 @@ namespace KeePassGate.Ui
 
         /// <summary>Whether a profile edit is buffered and the list is about to change under a client.</summary>
         /// <remarks>
-        /// `KPG.Profiles` is the one key this tab and pairing both write, and they write it
-        /// differently: the tab holds its version until OK, pairing writes live and saves.
-        /// `PendingStore` reconciles the two, so a name an approval added is no longer thrown away
-        /// by OK. What is left is the direction no merge can decide. An operator who is part way
-        /// through taking a profile out, and approves a client for it in the middle of that,
-        /// presses OK and removes the name from the list: the client is admitted to a profile that
-        /// grants nothing anywhere.
+        /// A pairing writes its approved names into the live store and saves, while the tab holds
+        /// its acts about names until OK. Each act is composed again at OK against the store as it
+        /// stands, so a name an approval added is not thrown away by OK. What is left is the
+        /// direction nothing can decide: an operator who is part way through taking a profile out,
+        /// and approves a client for it in the middle of that, presses OK and removes the name
+        /// from the list, and the client is admitted to a profile that grants nothing anywhere.
         ///
         /// Separate from `AuthorityIsWaiting` rather than folded into it, because that one also
         /// decides whether the notice about invalidated invitations is shown, and a buffered
@@ -987,7 +995,7 @@ namespace KeePassGate.Ui
             get
             {
                 var pending = _database as IPendingChanges;
-                return pending != null && pending.WaitingOn(ProfileNames.CustomDataKey);
+                return pending != null && pending.ProfilesWaiting;
             }
         }
 
@@ -2062,29 +2070,25 @@ namespace KeePassGate.Ui
         /// profile against.
         /// </summary>
         /// <remarks>
-        /// Read through the tab's own store, so a removal waiting for OK is shown as it will be
-        /// once OK is pressed, the way everything else on the tab is. A list that cannot be read is
-        /// an empty one, which marks every held profile, because that is what the gate grants
-        /// then: nothing.
+        /// From the reading the redraw made of the tab's own store, so a removal waiting for OK is
+        /// shown as it will be once OK is pressed, the way everything else on the tab is, and the
+        /// store is not read again for it. A store that could not be read names nothing, which
+        /// marks every held profile, because that is what the gate grants then: nothing. Null where
+        /// no database was read.
         /// </remarks>
-        private ICollection<string> NamedProfiles()
+        /// <param name="stored">The redraw's reading of the store, or null.</param>
+        /// <param name="read">
+        /// Whether the redraw read a database, whose store could not be read where no reading came
+        /// of it.
+        /// </param>
+        private static ICollection<string> NamedProfiles(StoreReading stored, bool read)
         {
-            if (_database == null || !_database.IsOpen)
+            if (!read)
             {
                 return null;
             }
 
-            try
-            {
-                return new HashSet<string>(
-                    ProfileNames.Read(_database.PluginCustomData.Get(ProfileNames.CustomDataKey)).Names,
-                    StringComparer.Ordinal);
-            }
-            catch (Exception error) when (Expected.OfCustomData(error))
-            {
-                _log.Warn("the profiles this database names could not be read: " + error.Message);
-                return new HashSet<string>(StringComparer.Ordinal);
-            }
+            return new HashSet<string>(ProfileNames.Of(stored).Names, StringComparer.Ordinal);
         }
 
         /// <summary>

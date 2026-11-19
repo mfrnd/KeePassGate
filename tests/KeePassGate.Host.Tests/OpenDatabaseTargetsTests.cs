@@ -203,21 +203,47 @@ namespace KeePassGate.Host.Tests
             Assert.That(target.GateKey.Any(b => b != 0), Is.True);
         }
 
-        [TestCase("not a list at all", TestName = "a list of profiles that does not parse is unreadable rather than empty")]
-        [TestCase("{\"Profiles\":[\"reader\"]}", TestName = "a list of profiles in another shape is unreadable rather than empty")]
-        public void A_list_of_profiles_that_will_not_read_is_said_to_be_unreadable_rather_than_empty(string damaged)
+        [Test]
+        public void The_names_a_target_answers_are_the_store_s_read_at_every_hold()
         {
-            // What pairing and renewal ask before they put a list in front of the operator, and
-            // refuse on: each writes a list or a record from what it read.
+            // `STORE.md` §616: a name is on the list by its records, read from the store as it
+            // stands, so a name added after the gate started serving is read with no reload.
             CreateAuthorityIn(_first);
             var target = _targets.Current()[0];
+            Assume.That(target.KnownProfiles, Is.Empty);
 
-            Assert.That(target.ProfilesUnreadable, Is.Null, "no list is a list naming nothing");
+            StoreSeeds.Name(new KdbxStore(_first.Database, GateVersion.Current, null), "ops");
 
-            _first.Database.CustomData.Set(KeePassGate.Acl.ProfileNames.CustomDataKey, damaged);
+            Assert.That(target.KnownProfiles, Is.EqualTo(new[] { "ops" }));
+        }
 
-            Assert.That(target.ProfilesUnreadable, Is.Not.Null);
-            Assert.That(target.KnownProfiles, Is.Empty, "while every other reader still sees nothing named");
+        [Test]
+        public void A_connection_is_judged_in_a_hold_for_its_word_and_a_single_hold_for_its_admission_and_its_names()
+        {
+            // The names a client holds are read in the hold that reads its admission, from the
+            // same reading, so the names granted and the names withheld are two halves of a single
+            // list and no lock lands between the names and the admission. A hold of its own for
+            // the names would hold KeePass's thread again at every connection.
+            CreateAuthorityIn(_first);
+            StoreSeeds.Name(new KdbxStore(_first.Database, GateVersion.Current, null), "ops");
+            var hold = new CountedHolds();
+            using (var targets = new OpenDatabaseTargets(delegate { return _open; }, null, hold, _log))
+            using (var target = targets.Current().Single())
+            using (var client = new AuthorityIssuer().IssueClient(
+                       target.AuthorityKey, "agent-fictitious", new[] { "ops", "retired" }).Read())
+            {
+                var admissions = new StoredAdmissions(_first.Database);
+                admissions.Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops", "retired" }, target.DatabaseId));
+                StoreSeeds.Unname(admissions.Store, "retired");
+                var before = hold.Taken;
+
+                var identity = KeePassGate.Pipeline.ClientCredentials.For(client, target, _log);
+
+                Assert.That(identity.IsPaired, Is.True);
+                Assert.That(identity.Profiles, Is.EqualTo(new[] { "ops" }));
+                Assert.That(identity.Removed, Is.EqualTo(new[] { "retired" }));
+                Assert.That(hold.Taken - before, Is.EqualTo(2), "a hold for the word, and a hold for the admission with the names");
+            }
         }
 
         [Test]
@@ -708,6 +734,43 @@ namespace KeePassGate.Host.Tests
             {
                 _stamp++;
                 return read();
+            }
+        }
+
+        /// <summary>
+        /// Holds on the calling thread, each outermost hold under a stamp of its own, and counts
+        /// the outermost holds taken.
+        /// </summary>
+        private sealed class CountedHolds : KeePassGate.Ui.IReadHold
+        {
+            private long _stamp;
+            private int _depth;
+
+            public int Taken { get; private set; }
+
+            public long Stamp
+            {
+                get { return _depth > 0 ? _stamp : 0; }
+            }
+
+            public T Hold<T>(Func<T> read)
+            {
+                if (_depth > 0)
+                {
+                    return read();
+                }
+
+                Taken++;
+                _depth++;
+                _stamp = Taken;
+                try
+                {
+                    return read();
+                }
+                finally
+                {
+                    _depth--;
+                }
             }
         }
 

@@ -63,6 +63,9 @@ namespace KeePassGate.Store
         /// </summary>
         private readonly HashSet<(string Name, string Id)> _removals = new HashSet<(string Name, string Id)>();
 
+        /// <summary>The identifiers of <see cref="_removals"/>, by name.</summary>
+        private readonly Dictionary<string, HashSet<string>> _removalsOf = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
         /// <summary>The versions a summary entry carries, by identifier, each with its item's members.</summary>
         private readonly Dictionary<string, IReadOnlyDictionary<string, string>> _versions =
             new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal);
@@ -128,6 +131,28 @@ namespace KeePassGate.Store
         /// as an admission, `STORE.md` §615: each with the texts the core keeps of it, §658.
         /// </summary>
         public IReadOnlyList<FoundRecord> Admissions { get; private set; }
+
+        /// <summary>
+        /// Every record of kind `profile` under the key, in force or not and whatever its name,
+        /// `STORE.md` §616: each with the texts the core keeps of it, §658.
+        /// </summary>
+        public IReadOnlyList<FoundRecord> Additions { get; private set; }
+
+        /// <summary>
+        /// The identifiers of the removals of this name that the reading holds, `STORE.md` §616:
+        /// a record of kind `removed` by its identifier, an item `removed` by its `id`, and a
+        /// deletion record that tells of a removal by its own identifier, a removal known in
+        /// several of these ways counted once. None for a name no removal names; names are
+        /// compared exactly.
+        /// </summary>
+        /// <remarks>
+        /// Worked out as the reading is made, so that no caller builds an index in a hold.
+        /// </remarks>
+        public IReadOnlyCollection<string> RemovalsOf(string name)
+        {
+            HashSet<string> removals;
+            return name != null && _removalsOf.TryGetValue(name, out removals) ? removals : Nothing;
+        }
 
         /// <summary>The summary entries present, `STORE.md` §611.</summary>
         public IReadOnlyList<FoundRecord> Heads { get; private set; }
@@ -305,6 +330,7 @@ namespace KeePassGate.Store
             made.HeadsInForce = made.Heads.Where(head => head.InForce).ToList();
             made.Items = made.Heads.SelectMany(head => head.Form.Items).ToList();
             made.Admissions = records.Where(record => record.Is(StoreKinds.Client)).ToList();
+            made.Additions = records.Where(record => record.Is(StoreKinds.Profile)).ToList();
             foreach (var admission in made.Admissions)
             {
                 var certificate = admission.Form.Member(StoreKinds.Certificate);
@@ -460,7 +486,7 @@ namespace KeePassGate.Store
         /// <summary>
         /// What each kind a summary entry restates by a member takes away: its records, its items,
         /// and the deletion records that tell of it about a subject the file knows, `STORE.md`
-        /// §623 step 2.
+        /// §623 step 2; and the identifiers of the removals of each name.
         /// </summary>
         private void Take(FoundKey key, IReadOnlyDictionary<string, List<string>> byKind)
         {
@@ -496,6 +522,18 @@ namespace KeePassGate.Store
                 }
 
                 _taken[row.Name] = values;
+            }
+
+            foreach (var removal in _removals.Where(removal => removal.Name != null && removal.Id != null))
+            {
+                HashSet<string> of;
+                if (!_removalsOf.TryGetValue(removal.Name, out of))
+                {
+                    of = new HashSet<string>(StringComparer.Ordinal);
+                    _removalsOf[removal.Name] = of;
+                }
+
+                of.Add(removal.Id);
             }
 
             TakeStatements(key, byKind);

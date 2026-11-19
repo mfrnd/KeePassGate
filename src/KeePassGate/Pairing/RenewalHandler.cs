@@ -221,8 +221,8 @@ namespace KeePassGate.Pairing
             // connection's among them, is told as such and not as a record that went. Several
             // without this connection's are a record that went, which no decision brings back.
             string word;
-            AdmissionRecord record;
-            if (!Read(context, target, key, out word, out record))
+            Admitted admitted;
+            if (!Read(context, target, key, out word, out admitted))
             {
                 return;
             }
@@ -234,7 +234,7 @@ namespace KeePassGate.Pairing
                 return;
             }
 
-            if (record == null)
+            if (admitted == null)
             {
                 // Revoked between this connection and now. What it is told is what every connection
                 // with this certificate is told from here on.
@@ -242,6 +242,7 @@ namespace KeePassGate.Pairing
                 return;
             }
 
+            var record = admitted.Record;
             var held = _held.Find(approval, target.DatabaseId);
             if (held != null)
             {
@@ -271,7 +272,7 @@ namespace KeePassGate.Pairing
             }
             else
             {
-                held = Approve(context, target, key, record, lifetime, approval, arrived);
+                held = Approve(context, target, key, admitted, lifetime, approval, arrived);
                 if (held == null)
                 {
                     return;
@@ -304,7 +305,7 @@ namespace KeePassGate.Pairing
             // several authorities with this connection's among them**, is answered its word as a
             // connection made now is and as the write would answer it, `undecided` for the second,
             // with the approval let go.
-            AdmissionRecord still;
+            Admitted still;
             if (!Read(context, target, key, out word, out still))
             {
                 return;
@@ -318,7 +319,7 @@ namespace KeePassGate.Pairing
                 return;
             }
 
-            var name = still == null ? null : NameIn(still.Subject);
+            var name = still == null ? null : NameIn(still.Record.Subject);
             if (still == null || name == null)
             {
                 _held.Take(held);
@@ -327,18 +328,22 @@ namespace KeePassGate.Pairing
                 return;
             }
 
-            Issue(context, target, key, name, still.ClientKey, held);
+            Issue(context, target, key, name, still.Record.ClientKey, held);
         }
 
         /// <summary>
         /// Puts the renewal to the operator, and holds their approval, or answers and says null
         /// when there is none.
         /// </summary>
+        /// <param name="admitted">
+        /// The admission being renewed, with the profiles the database names in the reading that
+        /// found it, which is the list the dialog shows.
+        /// </param>
         private HeldApproval Approve(
             IGateContext context,
             IGateTarget target,
             string key,
-            AdmissionRecord record,
+            Admitted admitted,
             TimeSpan? lifetime,
             string approval,
             PairingMoment arrived)
@@ -347,6 +352,7 @@ namespace KeePassGate.Pairing
             // this database between the question and the answer lets the answer go.
             var mark = _held.Mark();
 
+            var record = admitted.Record;
             RenewalRefusal stored;
             var standing = Standing(context, target, key, record, out stored);
             if (standing == StandingAnswer.Unreadable)
@@ -370,18 +376,7 @@ namespace KeePassGate.Pairing
                 return null;
             }
 
-            // A renewal writes its record from the names on the list, so a list that will not read
-            // is not offered as one naming nothing: the client would carry no profile from here on,
-            // whatever the list says once it reads again.
-            var unreadable = ProfilesUnreadable(target);
-            if (unreadable != null)
-            {
-                _log.Warn("a renewal was refused for now: " + unreadable);
-                context.Respond(503, HttpResponse.ErrorBody("busy"));
-                return null;
-            }
-
-            var request = Request(context, target, key, record, lifetime);
+            var request = Request(context, target, key, admitted, lifetime);
             if (request == null)
             {
                 context.Respond(500, HttpResponse.ErrorBody("internal error"));
@@ -462,13 +457,11 @@ namespace KeePassGate.Pairing
 
             // Held from here until it is written, with the record it renews as the operator saw it,
             // and the list as the dialog showed it: which of the record's names it offered as
-            // listed and which it showed as dropped. The write reads the list again under the
+            // listed and which it showed as dropped. The write reads the store again under the
             // writer's lock and compares each of those names, `DESIGN.md` §124, so a name put on
-            // or taken off the list while the operator decided, or a read that missed the list as
-            // the dialog was built, makes this stale rather than part of the record. A record is
-            // written from the write's read and never from this thread's: a second read here
-            // could miss the list as well, and dropped every profile it did not find, with a
-            // warning blaming the operator.
+            // or taken off the list while the operator decided makes this stale rather than part
+            // of the record. A record is written from the write's read and never from this
+            // thread's.
             return _held.HoldRenewal(
                 approval,
                 target.DatabaseId,
@@ -650,11 +643,13 @@ namespace KeePassGate.Pairing
         /// <summary>
         /// What the operator is shown, read from the record and the database rather than from the
         /// request, or null when the record cannot tell. With the certificate that asked and its
-        /// client, which the screen names when a lock or a close takes the dialog away.
+        /// client, which the screen names when a lock or a close takes the dialog away, and the
+        /// record's names as the reading that found it lists them.
         /// </summary>
         private RenewalRequest Request(
-            IGateContext context, IGateTarget target, string key, AdmissionRecord record, TimeSpan? lifetime)
+            IGateContext context, IGateTarget target, string key, Admitted admitted, TimeSpan? lifetime)
         {
+            var record = admitted.Record;
             var name = NameIn(record.Subject);
             if (name == null)
             {
@@ -677,7 +672,7 @@ namespace KeePassGate.Pairing
                 return null;
             }
 
-            var known = new HashSet<string>(target.KnownProfiles ?? Array.Empty<string>(), StringComparer.Ordinal);
+            var known = new HashSet<string>(admitted.Named, StringComparer.Ordinal);
             var held = record.Profiles ?? Array.Empty<string>();
 
             return new RenewalRequest(
@@ -914,15 +909,15 @@ namespace KeePassGate.Pairing
 
         /// <summary>
         /// The word a connection to the database is answered with under `503` now, or null where
-        /// it is served, `IGateTarget.Unavailable`, and where it is served the record, read in a
-        /// single hold of the database, so that both are of the same store. Answers `503 locked`
-        /// or `503 busy` and returns false when they could not be read, which tells nothing about
-        /// whether the record is there.
+        /// it is served, `IGateTarget.Unavailable`, and where it is served the record with the
+        /// profiles the database names, read in a single hold of the database, so that all of it
+        /// is of the same store. Answers `503 locked` or `503 busy` and returns false when they
+        /// could not be read, which tells nothing about whether the record is there.
         /// </summary>
-        private bool Read(IGateContext context, IGateTarget target, string key, out string word, out AdmissionRecord record)
+        private bool Read(IGateContext context, IGateTarget target, string key, out string word, out Admitted record)
         {
             string heldWord = null;
-            AdmissionRecord heldRecord = null;
+            Admitted heldRecord = null;
             Func<bool> both = () =>
             {
                 heldWord = target.Unavailable;
@@ -961,18 +956,6 @@ namespace KeePassGate.Pairing
                 word = null;
                 record = null;
                 return false;
-            }
-        }
-
-        private static string ProfilesUnreadable(IGateTarget target)
-        {
-            try
-            {
-                return target.ProfilesUnreadable;
-            }
-            catch (Exception error) when (Expected.OfCustomData(error))
-            {
-                return "the profiles this database names could not be read: " + error.Message;
             }
         }
 

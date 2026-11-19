@@ -205,19 +205,20 @@ takes them first, and Approve has no mnemonic, is never the default button and c
 in the tab order, so a click on it, or Space while it has the focus, is the only way to approve. The
 renewal dialog, §312, is built the same way.
 
-**The dialog says what approving a profile brings back.** Pairing writes the approved names onto
-the database's list of profiles in the same write as the record, and that list decides which names
-are in force (`DESIGN.md` §139). A name the database does not name now and no client holds is
-marked "(new)", because approving adds it, and the dialog says that any rule already naming it
-applies at once: a name removed once, whose every holder has since been revoked or has expired,
-looks the same from a connection, which does not walk the tree to count rules. A name the operator
-removed that other clients still hold is marked
-"(removed)", and the dialog names those clients: approving puts the name back, every one of them
-regains it through whichever certificate still holds it, and every rule still naming it applies
-again. A client that renewed while the name was off the list regains it only through its older
-certificate, until it gives that up, since the one it renewed to was recorded without the name.
-Each client is named once, by its client key, `CA.md` §223, however many of its certificates hold
-the name, and two clients that paired under one name are named apart, each with the start of its
+**The dialog shows what approving a profile brings back.** Pairing adds each approved name the
+database does not hold in the same write as the admission, as a record of the plugin's store that
+names every removal of the name the write read, `STORE.md` §616, and the names the database holds
+decide which names are in force (`DESIGN.md` §139). A name the database does not name now and no
+client holds is marked "(new)", because approving adds it, and the dialog states that any rule
+already naming it applies at once: a name removed once, whose every holder has since been revoked
+or has expired, looks the same from a connection, which does not walk the tree to count rules. A
+name the operator removed that other clients still hold is marked "(removed)", and the dialog
+names those clients: approving puts the name back, every one of them regains it through
+whichever certificate still holds it, and every rule still naming it applies again. A client
+that renewed while the name was off the list regains it only through its older certificate,
+until it gives that up, since the certificate it renewed to was recorded without the name. Each
+client is named once, by its client key, `CA.md` §223, however many of its certificates hold the
+name, and two clients that paired under one name are named apart, each with the start of its
 client key as the clients page shows it.
 
 **Every answer is written to the audit**, `DESIGN.md` §120, naming the invitation the request
@@ -378,20 +379,22 @@ holds a signing key.
 
 **The record is an entry of the plugin's store now, and that dialog holds no copy of it**,
 `STORE.md` §615 and §626, which reverses the record as a key of the dictionary the dialog copies.
-Database Maintenance still copies the database's own custom data, where the profile names and the
-standing answers to a renewal are kept, so a pairing, whose write can add a name, is still refused
-while it is open. What can take the admission itself back is KeePass's entry dialog, which puts
-its copy of an entry back at its OK: the write is answered `503 busy`, with the approval held,
-while that dialog holds an entry the write deletes or sets back, the store's summary entry among
-them. Nothing of the order changed. The admission and the summary entry written with it are
-saved, found in the database as they were written, and the file hashed back, before the
-certificate is handed over, and a write that does not land is taken back out whole, the entries
-it added and the entries it deleted alike, `STORE.md` §627. A write whose plan adds no admission
-is refused before the approval is used up or the invitation spent, so no certificate is handed
-over on a save of nothing. A lost admission still makes its certificate inert. Held by
+Database Maintenance still copies the database's own custom data, where the standing answers to a
+renewal are kept, so a pairing, whose write can take such an answer away, is still refused while
+it is open. The profile names are records of the store, as the admission is. What can take the
+admission itself back is KeePass's entry dialog, which puts its copy of an entry back at its OK:
+the write is answered `503 busy`, with the approval held, while that dialog holds an entry the
+write deletes or sets back, the store's summary entry among them. Nothing of the order changed.
+The admission and the summary entry written with it are saved, found in the database as they were
+written, and the file hashed back, before the certificate is handed over, and a write that does
+not land is taken back out whole, the entries it added and the entries it deleted alike, an
+addition of a name among each, `STORE.md` §627. A write whose plan adds no admission is refused
+before the approval is used up or the invitation spent, so no certificate is handed over on a
+save of nothing. A lost admission still makes its certificate inert. Held by
 `PairingInRealDatabaseTests`, whose save failures leave every entry and every deletion record of
 the store as before, among them
-`A_pairing_that_does_not_land_puts_an_admission_that_came_back_back_as_well` and
+`A_pairing_that_does_not_land_puts_an_admission_that_came_back_back_as_well`,
+`A_pairing_whose_save_fails_puts_back_the_addition_its_write_deleted` and
 `A_write_whose_plan_leaves_the_admission_out_is_not_believed_and_spends_nothing`.
 
 The gate against a stale dialog tracks specific `GroupForm` instances through
@@ -642,7 +645,7 @@ What a refusal says, and deliberately no more:
 | `400 name` / `400 profile` / `400 malformed` | it could never have been issued as asked |
 | `403 refused` | the operator said no, and the invitation is spent |
 | `504 unanswered` | nobody was at the screen. **Nothing is spent** |
-| `503 busy` | a dialog is open that would take the write back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing or a renewal is already in front of the operator, so little of the pairing's time is left once the request reaches the screen that the dialog would stand for under thirty seconds, a save this plugin is making for another client outlasts the wait for the screen, there is no screen to ask, or the database's list of profiles will not read; or the operator approved and KeePass was still busy a moment later, and then the body carries `heldUntil`, the moment the approval stops being held; or the operator approved and, when the write came to it, the list of profiles no longer held a name the answer rested on as the dialog showed it, and then the approval is used up and the next request is put to the operator again. **Nothing is spent**, and the client is never told which |
+| `503 busy` | a dialog is open that would take the write back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing or a renewal is already in front of the operator, so little of the pairing's time is left once the request reaches the screen that the dialog would stand for under thirty seconds, a save this plugin is making for another client outlasts the wait for the screen, or there is no screen to ask; or the operator approved and KeePass was still busy a moment later, and then the body carries `heldUntil`, the moment the approval stops being held; or the operator approved and, when the write came to it, the list of profiles no longer held a name the answer rested on as the dialog showed it, and then the approval is used up and the next request is put to the operator again. **Nothing is spent**, and the client is never told which |
 | `500 not recorded` | the operator approved and the record did not reach the disk. **The invitation is spent** |
 | `500 internal error` | the operator approved and no certificate could be issued: the authority's key would not sign, or the authority has outlived its hundred years. **The invitation is not spent**, and the client starts again from a hello |
 | `503 undecided` | the database holds more than one authority and the operator has not yet kept any of them. Answered before the request is read, as `503 locked` is; or, where a second authority arrived while the operator was deciding, when the write comes to it, and then the approval is used up. It is answered only while the authority the invitation was made under is among the authorities standing: an invitation whose authority is gone is answered `409 no invitation`, above. **Nothing is spent** either way |
@@ -737,14 +740,15 @@ POST /gate/renew
 **What the operator is shown is read from the record, not from the request.** Who is asking is the
 name the record was issued under, with when it was admitted and when the certificate it holds now
 expires, where the request came from, and the profiles its record holds that the database still
-names, all checked. The operator may uncheck any of them and can add none: the new certificate is
-never wider than the record. Unchecking narrows the new certificate alone, since the old record is
-left valid with everything it held until the client gives it up, and the dialog says so. A name the
-database no longer holds is not offered, and a line under the list says it is not carried over,
-since a renewed record is written from the names on the list. The list is read again once the
-operator has answered, so a name taken off it while they decided is not carried over either, and the
-renewal never puts a name back on the list. The lifetime is a proposal, as on a pairing: preselected
-among the presets when one is asked for, and a year when none is.
+names, read with the record in a single hold, all checked. The operator may uncheck any of them
+and can add none: the new certificate is never wider than the record. Unchecking narrows the new
+certificate alone, since the old record is left valid with everything it held until the client
+gives it up, and the dialog states as much. A name the database no longer holds is not offered, and
+a line under the list states that it is not carried over, since a renewed record is written from
+the names on the list. The list is read again once the operator has answered, so a name taken off
+it while they decided is not carried over either, and the renewal never puts a name back on the
+list. The lifetime is a proposal, as on a pairing: preselected among the presets when a lifetime is
+asked for, and a year when no lifetime is.
 
 **Refusing can answer more than this request**, which is the operator's ruling. Refuse is a split
 button. Pressing it refuses once, which keeps nothing, and so do Enter, Escape, the close box and
@@ -814,16 +818,16 @@ issued in its place once its record is saved; refused, with which of the four an
 refused without the dialog, by an answer given before; or unanswered.
 
 **The order is pairing's, kept exactly.** Refused with `503 busy` before anybody is disturbed while
-a dialog would take the record back or the list of profiles will not read, asked again once the
-operator has answered, then issued, written and saved, and only then handed over. Refused `503 busy`
-the second time, when KeePass is still busy a moment after the answer, the approval is held, as a
-pairing's is, keyed by the admission key and the lifetime as written, and the answer carries
-`heldUntil`: nothing is issued yet, the audit has its line when the write lands, and the renewal
-asked again before then is written without the dialog, **unless an answer refusing it stands by
-then**: a merge can bring one in, and so can the dialog of a renewal of the same certificate that
-asked for another lifetime. That answer is what the retry is told, as it would be told before any
-dialog, and the approval is let go. A stored answer that will not read is no answer: the approval
-stays held, and the retry is told `503 busy` with `heldUntil` again. What pairing asks again about
+a dialog would take the record back, asked again once the operator has answered, then issued,
+written and saved, and only then handed over. Refused `503 busy` the second time, when KeePass is
+still busy a moment after the answer, the approval is held, as a pairing's is, keyed by the
+admission key and the lifetime as written, and the answer carries `heldUntil`: nothing is issued
+yet, the audit has its line when the write lands, and the renewal asked again before then is
+written without the dialog, **unless an answer refusing it stands by then**: a merge can bring
+one in, and so can the dialog of a renewal of the same certificate that asked for another
+lifetime. That answer is what the retry is told, as it would be told before any dialog, and the
+approval is let go. A stored answer that will not read is no answer: the approval stays held, and
+the retry is told `503 busy` with `heldUntil` again. What pairing asks again about
 its invitation a renewal asks about its record: one revoked while the operator was deciding, or left
 behind by an authority recreated or deleted in that time, is answered `401 unpaired` and nothing is
 issued. **And the write asks it once more, under the writer's lock**, in the store as the write's

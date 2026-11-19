@@ -135,11 +135,9 @@ whose record still holds a profile this database no longer names, and that profi
 allowed the request, `reason` is `profile removed`, `decidedAt` is the node whose rule would have
 allowed it, and one more member, `removedProfiles`, lists the removed profiles that would have.
 Every other line leaves that member out. A removed profile grants nothing, so naming it states why a
-request failed without stating what anybody can reach. A profile list the database cannot read
-names fewer profiles than it held, none at all when it does not read, and nobody removed the
-profiles it lost, so a refusal they would have allowed has `reason` `profile list unreadable`
-instead, with `removedProfiles` naming them all the same:
-[Naming profiles](access-control.md#naming-profiles) covers what to do then.
+request failed without stating what anybody can reach. That is the reason whatever took the name
+off the list, the operator on the Profiles page or a removal that a synchronize brought from
+another copy of the database: [Naming profiles](access-control.md#naming-profiles) covers each.
 
 **A revoked client is still written down.** A certificate this database issued and the gate
 refuses, because its record has been taken away, it has expired, or it is not a client certificate,

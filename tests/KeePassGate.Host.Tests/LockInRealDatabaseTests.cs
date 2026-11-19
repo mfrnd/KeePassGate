@@ -418,11 +418,12 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_lock_between_reading_the_record_and_the_profiles_is_answered_as_a_lock()
+        public void A_lock_between_reading_the_word_and_the_admission_is_answered_as_a_lock()
         {
-            // Each read holds KeePass's thread on its own, so a lock can land between the two. The
-            // list read from a database already shut names nothing, and a client told that was
-            // told every profile it holds had been taken away, on the one route that reads no node.
+            // Each read holds KeePass's thread on its own, so a lock can land between the two. An
+            // admission looked up in a database already shut is not missing, and a client told it
+            // was would be told to pair again. The profiles are read with the admission, so no
+            // lock lands between those.
             using (var certificate = IssueAndAdmit())
             {
                 var hold = new LockAfterFirstRead(() => _database.Database.Close());
@@ -937,8 +938,9 @@ namespace KeePassGate.Host.Tests
         }
 
         /// <summary>
-        /// Runs every read where it is asked, and closes the database once the first read of a
-        /// record or of the profiles has returned, as a lock landing between the two would.
+        /// Runs every read where it is asked, and closes the database once the first read of the
+        /// word a connection is answered with has returned, as a lock landing between that read
+        /// and the admission's would.
         /// </summary>
         private sealed class LockAfterFirstRead : IReadHold
         {
@@ -959,7 +961,7 @@ namespace KeePassGate.Host.Tests
             public T Hold<T>(Func<T> read)
             {
                 var value = read();
-                if (Armed && (typeof(T) == typeof(AdmissionRecord) || typeof(T) == typeof(IReadOnlyList<string>)))
+                if (Armed && typeof(T) == typeof(string))
                 {
                     Armed = false;
                     _lock();

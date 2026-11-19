@@ -86,13 +86,13 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void An_admission_leaves_the_file_KDBX_4_0_and_a_profile_name_beside_it_takes_it_to_4_1()
+        public void An_admission_and_a_profile_name_in_the_store_leave_the_file_KDBX_4_0()
         {
             // What the store costs, written down where it cannot be forgotten. KeePass stamps each
             // key of the database's own custom data with a modification time, and a file carrying
-            // such a stamp is KDBX 4.1: `PwDatabase.GetMinKdbxVersion` holds so. The authority and
-            // the admissions are entries of the plugin's store, which need nothing above 4.0, so
-            // what moves the file is what the plugin keeps in custom data, a profile name here.
+            // such a stamp is KDBX 4.1: `PwDatabase.GetMinKdbxVersion` holds so. The authority, the
+            // admissions and the profile names are entries of the plugin's store, which need
+            // nothing above 4.0.
             using (var untouched = TemporaryDatabase.New())
             {
                 untouched.Save();
@@ -107,40 +107,22 @@ namespace KeePassGate.Host.Tests
             Assert.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040000),
                 "an authority and an admission in the store leave it a 4.0 file");
 
-            var names = ProfileNames.Empty();
-            Assume.That(names.Add("ops"), Is.Null);
-            new CustomDataStore(_database.Database).Set(ProfileNames.CustomDataKey, names.Write());
+            StoreSeeds.Name(_admissions.Store, "ops");
             _database.Save();
 
-            Assert.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040001), "and a profile name beside them takes it to 4.1");
+            Assert.That(_database.Database.CustomData.Count, Is.Zero, "the name is no custom data either");
+            Assert.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040000), "and a profile name beside them leaves it 4.0");
         }
 
         [Test]
-        public void A_profile_name_takes_the_file_to_KDBX_4_1_before_anything_is_paired()
-        {
-            // The list of profiles is the database's own custom data, stamped with a modification
-            // time by key, and an invitation names a profile: a database with an authority and a
-            // profile name is a 4.1 file before any program has paired.
-            _database.Save();
-            Assume.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040000), "the authority alone leaves it a 4.0 file");
-
-            var names = ProfileNames.Empty();
-            Assume.That(names.Add("ops"), Is.Null);
-            new CustomDataStore(_database.Database).Set(ProfileNames.CustomDataKey, names.Write());
-            _database.Save();
-
-            Assert.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040001), "a profile name takes it to 4.1");
-        }
-
-        [Test]
-        public void A_pairing_leaves_the_file_KDBX_4_0_and_a_profile_it_names_or_a_standing_answer_takes_it_to_4_1()
+        public void A_pairing_leaves_the_file_KDBX_4_0_whatever_it_names_and_a_standing_answer_takes_it_to_4_1()
         {
             // Measured over the product's own pairing write and KeePass's save, each in a database
             // of its own: a client paired for no profile; a client paired for a profile, which the
-            // write names in the list of profiles; and a client paired for no profile with a
-            // standing answer to its renewal written beside it. The store's entries need nothing
-            // above 4.0, `STORE.md` §612, and each key of the database's own custom data carries a
-            // modification time, which is a 4.1 field, `CA.md` §204.
+            // write adds to the list as an entry of the store; and a client paired for no profile
+            // with a standing answer to its renewal written beside it. The store's entries need
+            // nothing above 4.0, `STORE.md` §612, and each key of the database's own custom data
+            // carries a modification time, which is a 4.1 field, `CA.md` §204.
             var none = VersionAfterPairing(Array.Empty<string>(), false);
             var profile = VersionAfterPairing(new[] { "ops" }, false);
             var answer = VersionAfterPairing(Array.Empty<string>(), true);
@@ -152,7 +134,7 @@ namespace KeePassGate.Host.Tests
                 answer));
 
             Assert.That(none, Is.EqualTo(0x00040000), "a client paired for no profile leaves a 4.0 file");
-            Assert.That(profile, Is.EqualTo(0x00040001), "a client paired for a profile the list then names, a 4.1 file");
+            Assert.That(profile, Is.EqualTo(0x00040000), "a client paired for a profile the list then names, a 4.0 file");
             Assert.That(answer, Is.EqualTo(0x00040001), "and a standing answer beside a client paired for none, a 4.1 file");
         }
 

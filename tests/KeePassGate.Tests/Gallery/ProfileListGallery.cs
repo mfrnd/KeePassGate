@@ -178,14 +178,10 @@ namespace KeePassGate.Tests.Gallery
                 return null;
             }
 
-            public bool Unreadable
+            /// <summary>Nothing: no removal is made apart under these pictures.</summary>
+            public bool Overtaken(string name)
             {
-                get { return false; }
-            }
-
-            public string StartNew()
-            {
-                return null;
+                return false;
             }
         }
     }

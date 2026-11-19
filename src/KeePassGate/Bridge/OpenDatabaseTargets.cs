@@ -1580,8 +1580,8 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>
-            /// The profiles this database names now. Empty when they cannot be read, which leaves
-            /// every client reaching nothing and marks every profile being asked for as new.
+            /// The profiles this database names now, `STORE.md` §616, read from the store in a hold
+            /// of their own. None where the store does not serve this target's authority.
             /// </summary>
             public IReadOnlyList<string> KnownProfiles
             {
@@ -1601,44 +1601,8 @@ namespace KeePassGate.Bridge
                     return Array.Empty<string>();
                 }
 
-                try
-                {
-                    return ProfileNames.Read(database.CustomData.Get(ProfileNames.CustomDataKey)).Names;
-                }
-                catch (Exception error) when (Expected.OfCustomData(error))
-                {
-                    return Array.Empty<string>();
-                }
-            }
-
-            /// <summary>
-            /// Why the list of profiles will not read now, or null when it reads or there is no
-            /// database to read it from.
-            /// </summary>
-            public string ProfilesUnreadable
-            {
-                get { return _hold.Hold(UnreadableNow); }
-            }
-
-            private string UnreadableNow()
-            {
-                // Into a local first, for the reason `KnownProfiles` gives.
-                var database = _database;
-                if (database == null || database.RootGroup == null)
-                {
-                    return null;
-                }
-
-                try
-                {
-                    return ProfileNames.Readable(database.CustomData.Get(ProfileNames.CustomDataKey))
-                        ? null
-                        : "the profiles this database names will not read";
-                }
-                catch (Exception error) when (Expected.OfCustomData(error))
-                {
-                    return "the profiles this database names could not be read: " + error.Message;
-                }
+                var reading = _store.Now(database, database.RootGroup);
+                return Served(reading) ? ProfileNames.Of(reading).Names : Array.Empty<string>();
             }
 
             /// <summary>
@@ -1904,7 +1868,8 @@ namespace KeePassGate.Bridge
 
             /// <summary>
             /// The admission of this certificate where it counts, read now from the store the
-            /// database holds now, `STORE.md` §615.
+            /// database holds now, `STORE.md` §615, with the profiles the database names in the
+            /// same hold.
             /// </summary>
             /// <remarks>
             /// **Read from the reading of this hold**, the very reading every other question of the
@@ -1924,17 +1889,18 @@ namespace KeePassGate.Bridge
             /// Answered as no admission, so a renewal asking again after its dialog issues nothing
             /// under an authority the database has let go of.
             ///
-            /// **One read step, so the authority, its retirement and the admission are read from
-            /// one tree.** Read with nothing held, a lookup on a connection thread racing KeePass's
-            /// thread could miss an entry that was there: a missed authority refused an admitted
-            /// client `401`, and a missed retirement served an authority the database had retired.
+            /// **One read step, so the authority, its retirement, the admission and the profiles
+            /// the database names are read from one tree.** Read with nothing held, a lookup on a
+            /// connection thread racing KeePass's thread could miss an entry that was there: a
+            /// missed authority refused an admitted client `401`, and a missed retirement served an
+            /// authority the database had retired.
             /// </remarks>
-            public AdmissionRecord Admission(string admissionKey)
+            public Admitted Admission(string admissionKey)
             {
                 return _hold.Hold(() => AdmissionNow(admissionKey));
             }
 
-            private AdmissionRecord AdmissionNow(string admissionKey)
+            private Admitted AdmissionNow(string admissionKey)
             {
                 // Into a local first, for the reason `KnownProfiles` gives.
                 var database = _database;
@@ -1948,7 +1914,8 @@ namespace KeePassGate.Bridge
                 }
 
                 var reading = _store.Now(database, database.RootGroup);
-                return Served(reading) ? StoreAdmissions.Admitted(reading, admissionKey) : null;
+                var record = Served(reading) ? StoreAdmissions.Admitted(reading, admissionKey) : null;
+                return record == null ? null : new Admitted(record, ProfileNames.Of(reading).Names);
             }
 
             /// <summary>

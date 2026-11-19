@@ -9,13 +9,13 @@ mutual TLS, so that automation and AI agents can each be given a narrow, revocab
 a database.
 
 **Status: released, and changed through pull requests into `master`.** The plugin makes each
-database its own certificate authority, kept with the admissions and the revocations as entries
-of a group of the plugin's own in that database, `STORE.md`, and serves a gate on loopback over
-mutual TLS 1.3, on Windows only. A client is served only while the database holds an admission
-record for its certificate that nothing refuses. A stranger becomes a client by pairing, on an
-invitation from the KPG tab and an approval dialog the operator answers, and a client's
-certificate is renewed on a dialog of the same kind, given up by the client, taken away alone
-by the operator, or revoked by the operator with every other certificate of its client. The
+database its own certificate authority, kept with the admissions, the revocations and the
+profile names as entries of a group of the plugin's own in that database, `STORE.md`, and serves a
+gate on loopback over mutual TLS 1.3, on Windows only. A client is served only while the database
+holds an admission record for its certificate that nothing refuses. A stranger becomes a client
+by pairing, on an invitation from the KPG tab and an approval dialog the operator answers, and a
+client's certificate is renewed on a dialog of the same kind, given up by the client, taken away
+alone by the operator, or revoked by the operator with every other certificate of its client. The
 OpenAPI document is the routing table, and every route declares the verb it needs: the router
 intersects the record's profiles with the rules kept on groups and entries, which the KPG tab
 of their dialogs edits as a `CRUSDLAP` mask, and writes every decision the rules make, and
@@ -34,7 +34,7 @@ account of all of it.
 | [`API.md`](API.md) | the reasoning behind the routes and what is deliberately absent, with the per-route detail in [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) |
 | [`CA.md`](CA.md) | the certificate authority: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
-| [`STORE.md`](STORE.md) | the store decided for 0.3.0: where the plugin's data lives in a database, how it is written and read, and a section attacking it. **Decided, and built only in part**, the guard, the reading, the authority, and the admissions and revocations: 0.2.0 ships the store of `CA.md` §204 |
+| [`STORE.md`](STORE.md) | the store decided for 0.3.0: where the plugin's data lives in a database, how it is written and read, and a section attacking it. **Decided, and built only in part**, the guard, the reading, the authority, the admissions and revocations, and the profile names: 0.2.0 ships the store of `CA.md` §204 |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
 | [`TESTING.md`](TESTING.md) | the four test tiers, what each one buys, and how to run them |
 | [`RELEASING.md`](RELEASING.md) | how a version is published, and the settings a release needs |
@@ -96,7 +96,7 @@ designing around them.
   which an attacker-supplied file could forge. **Do not re-propose a host-level authority or
   registry.**
 - **The database's own `CustomData`, never the root group's**, for what the plugin still keeps in
-  custom data, the profile names and the standing answers to a renewal. It was the root group's
+  custom data, the standing answers to a renewal. It was the root group's
   until a merge was measured: KeePass merges `PwDatabase.CustomData` key by key and a group's
   dictionary whole, CA.md §204. Records shaped one-per-client to survive a merge did not.
 - **An admission and a revocation are records of the plugin's store**, STORE.md §615. An admission
@@ -140,23 +140,23 @@ designing around them.
   and STORE.md §614.
 - **What the plugin keeps in custom data takes the file to KDBX 4.1**, because a per-key
   modification time is a 4.1 field. **This reverses "the authority takes the file to KDBX 4.1"**,
-  and after it "an admission record takes the file to 4.1": the authority and the admissions are
-  entries now, which need nothing above 4.0, so a saved database with an authority and an
-  admission in the store, and nothing of the plugin's in its custom data, is a 4.0 file, measured,
-  and a profile name or a standing answer to a renewal beside them takes it to 4.1, measured
-  too, and keeps it there, `AdmissionInRealDatabaseTests`. Measured through the pairing's own
-  write as well: a client paired for no profile leaves a 4.0 file, and a pairing that approves a
-  name the list does not hold writes that name, so it leaves a 4.1 file, for the name. That is a
-  format and not a gate: other programs open it, and what saving and merging in them does to it
-  is measured and stated in CA.md §204. A revocation is no key of that dictionary any more,
-  STORE.md §615, so what a KeePassXC merge can still undo there is the profile list and a
-  standing answer to a renewal.
+  and after it "an admission record takes the file to 4.1", and then "a profile name takes it to
+  4.1": the authority, the admissions and the profile names are entries now, which need nothing
+  above 4.0, so a saved database with an authority, an admission and a profile name in the store,
+  and nothing of the plugin's in its custom data, is a 4.0 file, measured, and a standing answer
+  to a renewal beside them takes it to 4.1, measured too, and keeps it there,
+  `AdmissionInRealDatabaseTests`. Measured through the pairing's own write as well: a client
+  paired for no profile and a client paired for a name the list did not hold each leave a 4.0
+  file. That is a format and not a gate: other programs open it, and what saving and merging in
+  them does to it is measured and stated in CA.md §204. A revocation and a profile name are no
+  keys of that dictionary any more, STORE.md §615 and §616, so what a KeePassXC merge can still
+  undo there is a standing answer to a renewal.
 - **That store is decided to be replaced in 0.3.0, and is what 0.2.0 ships until then.** The entries
   above about `CustomData` and KDBX 4.1 describe the plugin as released, but for the authority, the
-  admissions and the revocations. What replaces them is decided and built in part: the plugin's
-  data as entries in a group of its own, each written once under a check keyed by a secret the
-  database holds, with no custom data anywhere and nothing on the operator's own entries or
-  groups. [`STORE.md`](STORE.md) §601 is the contract,
+  admissions, the revocations and the profile names. What replaces them is decided and built in
+  part: the plugin's data as entries in a group of its own, each written once under a check keyed
+  by a secret the database holds, with no custom data anywhere and nothing on the operator's own
+  entries or groups. [`STORE.md`](STORE.md) §601 is the contract,
   §604 what it reverses and on which measurements, and `spikes/storage-survival` holds those
   measurements with the evaluation they were decided from. **Do not build anything new on custom
   data, and do not re-propose what those decisions closed**, which §612, §630 and §634 list with the
@@ -175,8 +175,10 @@ designing around them.
   hold, `StoreAdmissions`, written by a pairing's, a renewal's and a given up certificate's
   write, each saved, read back and taken back out whole where it did not land, §627, and by the
   clients page's revocation of a client and its removal of a single certificate at the settings
-  dialog's OK. The profile names, the rules and the standing answers to a renewal are still
-  where CA.md §204 keeps them.
+  dialog's OK. And the profile names, §616, an addition and a removal for each name: read with a
+  client's admission in its hold, `ProfileNames`, added by a pairing in the admission's own write
+  and added and removed by the Profiles page at the settings dialog's OK, `ProfileActs`. The rules
+  and the standing answers to a renewal are still where CA.md §204 keeps them.
 - **The admission record is load bearing.** A certificate that chains, passes its EKU check and has
   no record in the database is refused, and so is a certificate whose client is revoked, that was
   itself taken away, or that more than a single record admits, STORE.md §615. The
@@ -270,26 +272,26 @@ designing around them.
   refuse the tab's OK there. The measured fact is below, and `STORE.md` §627.
 
   **Replayed key by key, never wholesale**, because a snapshot written back would be this plugin
-  doing to itself exactly what `GroupForm` does to it: a pairing that lands while the dialog is open
-  can write a profile name to the live database, and only touching the keys the operator changed
-  leaves it alone. **What the tab holds for the plugin's store is acts and not keys**,
-  `PendingRecords`: each composed at its press and all planned at OK against the store as it
-  stands then, so an admission that landed meanwhile, or a certificate a client gave up, is in
-  what they are planned against.
+  doing to itself exactly what `GroupForm` does to it: a renewal dialog that answers while the
+  settings dialog is open can write a standing answer to the live database, and only touching the
+  keys the operator changed leaves it alone. **What the tab holds for the plugin's store is acts
+  and not keys**, `PendingRecords`: each composed at its press and all composed again and planned
+  at OK against the store as it stands then, so an admission that landed meanwhile, or a
+  certificate a client gave up, is in what they are planned against.
 
-  **And `KPG.Profiles` is replayed as a difference**, because it is a key whose second writer
-  has to be merged with the tab: a pairing names an approved profile in the same write as the
-  admission record, so the tab's own list is not the only version of it. Record and revocation keys
-  had second writers too while they were keys of the custom data, and are records of the store
-  now, which a write only ever adds to. Key by key is no help for the list, since the tab did
-  touch that key, and the older list went over the newer one. `PendingStore.Reconcile` registers a
-  merge through `ProfileNames.Merge` for it, so a name an approval added survives and a name the
-  operator removed still goes, and at the ceiling a name the operator added that no longer fits is
-  left out, said on the page as it goes and named in the log at OK, however the list was edited in
-  between. What no merge can decide is left where it is: a client approved for
-  a profile the operator is part way through removing is admitted to a name OK takes off the list,
-  where it grants nothing, which is why a buffered profile edit kills the invite button and
-  withdraws the code made on the dialog, as Cancel does.
+  **A profile name is an act of the store as well**, an addition or a removal, `STORE.md` §616,
+  and the buffer holds only the last press for each name, so a name added and removed on a single
+  dialog writes nothing. A pairing adds an approved name in the admission's own write, so composing
+  again at OK is what keeps both: an Add over a name a pairing added meanwhile writes nothing more,
+  and a Remove deletes that addition. An Add composed again over a removal of the name the press
+  never saw is not written, since the removal is a later word than the press, and the log names it.
+  What no composing can decide is left where it is: a client approved for a profile the operator
+  is part way through removing is admitted to a name OK takes off the list, where it grants
+  nothing, which is why a buffered profile edit kills the invite button and withdraws the code
+  made on the dialog, as Cancel does.
+  **This reverses `KPG.Profiles` replayed as a difference**, a key of the custom data merged at OK
+  with what a pairing wrote into it, which also left out at OK a name past the list's ceiling; the
+  list keeps no ceiling now.
 
   **A standing answer to a renewal is the other key with a second writer that matters.** The
   clients page's **Allow renewal** takes one away in the buffer, and the renewal dialog writes one
@@ -1192,14 +1194,14 @@ reopen the dialog, and only then believe it. Do the same after saving and reload
 those are two different failures.
 
 **`DatabaseOperationsForm`, under Tools then Database Maintenance, does the same to
-`PwDatabase.CustomData`**, which is where this plugin's own keys live: the profile names and the
-standing answers to a renewal, now that the authority, the admissions and the revocations are
+`PwDatabase.CustomData`**, which is where this plugin's own keys live: the standing answers to a
+renewal, now that the authority, the admissions, the revocations and the profile names are
 entries. Worse in two ways than the group dialog. Its write-back is conditional on the key count
-differing rather than on anything the operator did, so a key landing while it is open, as the
-profile name a pairing adds, is destroyed with the Plugin Data tab never opened. And the copy is
-written back as the dialog closes, whichever way it is closed: its one button, which is both the
-accept and the cancel button, Enter, Escape, the close box and Alt+F4 alike, so there is no way
-to decline it. `GroupDialogs` watches for it and `DatabaseWriter`
+differing rather than on anything the operator did, so a key landing while it is open, as a
+standing answer the renewal dialog writes would, is destroyed with the Plugin Data tab never
+opened. And the copy is written back as the dialog closes, whichever way it is closed: its single
+button, which is both the accept and the cancel button, Enter, Escape, the close box and Alt+F4
+alike, so there is no way to decline it. `GroupDialogs` watches for it and `DatabaseWriter`
 refuses while it is open.
 
 **A dialog that is adding something is about a group it does not hold**, which a watch keyed on the
@@ -1531,14 +1533,21 @@ inherited alike**, because a profile is one row however it got there and narrowi
 one is done on the row that is already there.
 
 **And the list decides what a client holds.** A client is given the profiles its record holds less
-every name not on the list, read beside the record on every request, so removing a profile touches
-the list and nothing else: a rule still naming it grants nothing and the grant editor strikes it
-through, and adding the name back restores every rule and every client holding it, which the
-Profiles page and the approval dialog both say before it happens. This reverses a purge that took a
-removed name out of every rule, revisions included, and still lost to a stale copy merged in; see
-DESIGN.md §139. An unreadable list is an empty one, so every client stays admitted and reaches
-nothing, and the Profiles page shows it as damaged and writes over it only when the operator
-replaces it there.
+every name not on the list, read with the record in its hold on every request, so removing a
+profile touches the list and nothing else: a rule still naming it grants nothing and the grant
+editor strikes it through, and adding the name back restores every rule and every client holding
+it, which the Profiles page and the approval dialog both state before it happens. This reverses a
+purge that took a removed name out of every rule, revisions included, and still lost to a stale
+copy merged in; see DESIGN.md §139. **The names are records of the plugin's store**, an addition
+and a removal for each name, which a merge carries apart, STORE.md §616: a record of a name that
+will not read stops the store as any record of it does, and every client is answered `stopped`.
+This reverses an unreadable list read as an empty list, which left every client admitted and
+reaching nothing, with the Profiles page showing it as damaged and writing over it only when the
+operator replaced it there. A name needs the authority first, since its record is written under
+the store key, and the list keeps no ceiling. Where nothing is written into the store in the
+session, the Profiles page offers neither the row that adds a name nor an X, as the clients page
+offers no X, and neither under a store that is split or outdated, where the clients page lists
+nobody, STORE.md §636.
 
 ### The grant editor
 
@@ -1556,6 +1565,18 @@ nothing and nobody opened the list to say that. `F2` and `Alt+Down` are the keyb
 either picker, and while a picker is open `Enter` and `Escape` belong to it, which is what
 `DialogKeys.Suspend` takes away from the dialog's own OK and Cancel: without that, choosing a verb
 presses OK on the group dialog and closes it with the rule half made.
+
+**The profile picker holds any number of names**, since the list keeps no ceiling, STORE.md §616.
+It shows at most `GrantTab.MostProfileRows` rows, 20, and fewer where the working area of the
+table's screen holds fewer, a whole number of rows less a row for the drop-down's edges, and
+scrolls down past them with a scroll bar, its width the list's own and the scroll bar's beside
+it, so nothing scrolls across and no name is cut. A list whose names all fit is left to the host
+exactly as before. The focus stays on the table while a drop-down is open, so every key is
+offered to the picker and none reaches its list: the picker moves the choice itself, Up and Down
+a row, Page Up and Page Down a page less a row, Home and End to either end, a letter or a digit
+to the next name it starts, and the row chosen is scrolled into view. The wheel scrolls the list.
+`GrantPickerTests` measures it on a shown window with a hundred names, opening downward and
+upward.
 
 A rule is a `CRUSDLAP` mask in a monospaced column rather than a row of check boxes, so two rules
 differ in the place the eye is already looking. Inherited rules are shown among the local ones in

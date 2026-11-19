@@ -1,156 +1,288 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using KeePassGate.Acl;
+using KeePassGate.Diagnostics;
+using KeePassGate.Store;
+using KeePassGate.Testing;
+using KeePassGate.Tests.Fakes;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using static KeePassGate.Tests.StoreRecords;
 
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// The set of profiles a database names: what it reads, what it refuses, and what it stores.
+    /// The profile names a store keeps, `STORE.md` §616: which names are on the list, each rule
+    /// alone, in every order of the entries, and as the measured reading answered them.
     /// </summary>
-    /// <remarks>
-    /// This list is the only place a profile exists as a thing rather than as a coincidence of
-    /// spelling, so what it will not hold matters as much as what it will. A name it accepts that
-    /// the authority would not is a profile that can be granted and can never be issued.
-    /// </remarks>
     [TestFixture]
     public sealed class ProfileNamesTests
     {
-        [Test]
-        public void A_list_that_will_not_read_is_told_apart_from_one_naming_nothing()
+        private static IEnumerable<TestCaseData> Measured()
         {
-            // Read answers both as naming nothing, which is safe for every reader that only asks
-            // what is named; a renewal writes what it reads, and must not write that nothing.
-            var names = ProfileNames.Empty();
-            Assume.That(names.Add("reader"), Is.Null);
-
-            Assert.That(ProfileNames.Readable(null), Is.True);
-            Assert.That(ProfileNames.Readable(string.Empty), Is.True);
-            Assert.That(ProfileNames.Readable(names.Write()), Is.True);
-            Assert.That(ProfileNames.Readable("not a list at all"), Is.False);
-            Assert.That(ProfileNames.Read("not a list at all").Names, Is.Empty);
+            foreach (var meaning in ((JObject)Vectors()["meanings"]).Properties())
+            {
+                yield return new TestCaseData(meaning.Name).SetArgDisplayNames(meaning.Name);
+            }
         }
 
-        [TestCase("{\"Profiles\":[\"reader\"]}", TestName = "a list under a name spelled with a capital")]
-        [TestCase("{\"profiles\":\"reader\"}", TestName = "a list that is a string")]
-        [TestCase("{\"profiles\":[\"reader\"],\"more\":\"x\"}", TestName = "a list with a member beside it")]
-        [TestCase("{\"profiles\":[\"reader\",\"no such name\"]}", TestName = "a list holding a name it cannot hold")]
-        [TestCase("{\"profiles\":[\"reader\",\"default\"]}", TestName = "a list holding the name rules keep for themselves")]
-        [TestCase("{\"other\":\"x\"}", TestName = "an object holding no list at all")]
-        public void A_list_reading_would_lose_part_of_will_not_read(string stored)
+        [TestCaseSource(nameof(Measured))]
+        public void The_names_on_the_list_are_what_the_measured_reading_answered(string name)
         {
-            // A flat object of another shape parses, and read it names nothing or fewer names than
-            // it holds. Written back, what reading left out is gone, so the reader that writes what
-            // it reads is told the list will not read, as it is told about a list that does not parse.
-            Assert.That(ProfileNames.Readable(stored), Is.False);
-        }
+            // `tests/Shared/StoreMeaningVectors.json` holds what `probe/read.py` answered as
+            // `names` for stores composed by `probe/store.py`.
+            var store = (JObject)Vectors()["meanings"][name];
+            var versions = new StoreVersions();
+            var candidates = new List<StoreCandidate>();
+            foreach (var entry in (JObject)store["entries"])
+            {
+                var current = Strings((JObject)entry.Value["strings"]);
+                var history = ((JArray)entry.Value["history"]).Select(item => Strings((JObject)item)).Reverse();
+                candidates.Add(versions.Candidate(StoreComposer.BytesOf(entry.Key), new[] { current }.Concat(history).ToArray()));
+            }
 
-        [TestCase("{\"profiles\":[]}", TestName = "a list naming nothing")]
-        [TestCase("{\"profiles\":[\"reader\",\"reader\"]}", TestName = "a list naming a profile twice")]
-        [TestCase("{\"profiles\":[\"reader\",\"ops\"]}", TestName = "a list in an order of its own")]
-        public void A_list_reading_loses_nothing_of_reads(string stored)
-        {
-            Assert.That(ProfileNames.Readable(stored), Is.True);
+            var deletions = ((JArray)store["deletions"]).Select(identifier => StoreComposer.BytesOf((string)identifier)).ToList();
+            using (var reading = StoreReading.Of(candidates, deletions, null, new StoreKept()))
+            {
+                Assert.That(ProfileNames.Of(reading).Names, Is.EqualTo(((JArray)store["names"]).Select(named => (string)named)));
+            }
         }
 
         [Test]
-        public void A_database_with_no_list_names_no_profiles()
+        public void A_name_added_is_on_the_list()
         {
-            Assert.That(ProfileNames.Read(null).Names, Is.Empty);
-            Assert.That(ProfileNames.Read(string.Empty).Names, Is.Empty);
+            var store = new ComposedStore(One);
+            store.Add(Addition("reader", string.Empty));
+
+            Assert.That(Names(store), Is.EqualTo(new[] { "reader" }));
         }
 
         [Test]
-        public void The_names_are_read_back_in_one_order_whatever_order_they_were_written_in()
+        public void A_name_removed_is_off_the_list_by_record_by_item_and_by_deletion_record()
         {
-            // A list somebody reads twice has to read the same way twice, and the operator did not
-            // choose the order they were added in.
-            var names = ProfileNames.Read("{\"profiles\":[\"ops\",\"agent\",\"reader\"]}");
+            var byRecord = new ComposedStore(One);
+            byRecord.Add(Addition("reader", string.Empty));
+            var removal = byRecord.Add(Removal("reader"));
+            byRecord.Restate(RemovalItem(removal.Hex, "reader"));
+            Assert.That(Names(byRecord), Is.Empty, "its record");
 
-            Assert.That(names.Names, Is.EqualTo(new[] { "agent", "ops", "reader" }));
+            var byItem = new ComposedStore(One);
+            byItem.Add(Addition("reader", string.Empty));
+            byItem.Restate(RemovalItem(new string('7', 32), "reader"));
+            Assert.That(Names(byItem), Is.Empty, "an item");
+
+            var byDeletion = new ComposedStore(One);
+            byDeletion.Add(Addition("reader", string.Empty));
+            byDeletion.Deleted.Add(StoreComposer.IdentifierOf(One, "removed", "profile:reader", 0, new string('5', 64)));
+            Assert.That(Names(byDeletion), Is.Empty, "a deletion record");
         }
 
         [Test]
-        public void A_document_that_will_not_read_names_nothing_rather_than_refusing()
+        public void A_name_added_again_is_on_the_list_only_where_the_addition_names_every_removal()
         {
-            // Nothing is granted without this list, so losing it costs every client its access
-            // until it reads again: every client stays admitted and reaches nothing. That is the
-            // direction to fail in, where reading a damaged list as some other list would grant
-            // on a guess.
-            Assert.That(ProfileNames.Read("{not a document").Names, Is.Empty);
-            Assert.That(ProfileNames.Read("[\"ops\"]").Names, Is.Empty);
+            var store = new ComposedStore(One);
+            var first = store.Add(Removal("reader"));
+            var second = store.Add(Removal("reader"));
+            store.RestateAll(new[] { RemovalItem(first.Hex, "reader"), RemovalItem(second.Hex, "reader") });
+            store.Add(Addition("reader", first.Hex));
+            Assume.That(Names(store), Is.Empty, "an addition that names a single removal of two");
+
+            store.Add(Addition("reader", Listed(first.Hex, second.Hex)));
+
+            Assert.That(Names(store), Is.EqualTo(new[] { "reader" }), "and an addition that names both");
         }
 
         [Test]
-        public void A_name_no_certificate_could_carry_is_refused_here_as_well()
+        public void A_removal_known_only_by_an_item_whose_id_is_no_identifier_keeps_its_name_off_the_list()
         {
-            // Or it would be a profile that can be granted from the editor and never issued to a
-            // client, which is a rule that silently means nothing.
-            var names = ProfileNames.Empty();
+            // No addition can name an `id` that is no identifier, `after` being a list of them.
+            var store = new ComposedStore(One);
+            store.Add(Addition("reader", string.Empty));
+            store.Restate(RemovalItem("not an identifier", "reader"));
 
-            Assert.That(names.Add("has a space"), Is.Not.Null);
-            Assert.That(names.Add(string.Empty), Is.Not.Null);
-            Assert.That(names.Add(null), Is.Not.Null);
-            Assert.That(names.Names, Is.Empty);
+            Assert.That(Names(store), Is.Empty);
         }
 
         [Test]
-        public void The_word_a_rule_reserves_cannot_be_a_profile()
+        public void An_addition_beside_a_deletion_record_naming_it_puts_nothing_on_the_list()
         {
-            // Refused by the one rule this list applies, which is the issuer's: the reservation
-            // lives there because a claim carrying it could never mean a profile either. Written
-            // here as well it would be a second rule to disagree with the first.
-            var names = ProfileNames.Empty();
+            var store = new ComposedStore(One);
+            store.Delete(store.Add(Addition("reader", string.Empty)));
 
-            Assert.That(names.Add(AclDocument.DefaultKey), Does.Contain(AclDocument.DefaultKey));
-            Assert.That(names.Add("DEFAULT"), Is.Not.Null, "in any case, as the claim is");
-            Assert.That(names.Names, Is.Empty);
+            Assert.That(Names(store), Is.Empty);
         }
 
         [Test]
-        public void Adding_a_name_twice_is_not_an_error_and_does_not_make_two()
+        public void Two_additions_of_a_name_keep_it_on_the_list_where_a_single_addition_names_every_removal()
         {
-            var names = ProfileNames.Empty();
+            var store = new ComposedStore(One);
+            var removal = store.Add(Removal("reader"));
+            store.Restate(RemovalItem(removal.Hex, "reader"));
+            store.Add(Addition("reader", string.Empty));
+            store.Add(Addition("reader", removal.Hex));
 
-            Assert.That(names.Add("ops"), Is.Null);
-            Assert.That(names.Add("ops"), Is.Null);
-
-            Assert.That(names.Names, Is.EqualTo(new[] { "ops" }));
+            Assert.That(Names(store), Is.EqualTo(new[] { "reader" }));
         }
 
         [Test]
-        public void A_set_with_nothing_in_it_stores_nothing_at_all()
+        public void A_name_no_claim_could_carry_is_on_no_list_and_stops_nothing()
         {
-            // The absent key rather than an empty document, so a database that never named a
-            // profile and one that stopped naming any are the same database.
-            Assert.That(ProfileNames.Empty().Write(), Is.Null);
+            var store = new ComposedStore(One);
+            store.Add(Addition("not a name", string.Empty));
+            store.Add(Addition("default", string.Empty));
+            store.Add(Addition("reader", string.Empty));
 
-            var names = ProfileNames.Read("{\"profiles\":[\"ops\"]}");
-            Assert.That(names.Remove("ops"), Is.True);
-            Assert.That(names.Write(), Is.Null);
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(ProfileNames.Of(reading).Names, Is.EqualTo(new[] { "reader" }));
+            }
         }
 
         [Test]
-        public void What_is_written_reads_back_as_what_was_written()
+        public void Two_names_that_differ_in_case_are_two_names()
         {
-            var names = ProfileNames.Empty();
-            names.Add("reader");
-            names.Add("ops-2");
-            names.Add("agent_one");
+            var store = new ComposedStore(One);
+            store.Add(Addition("reader", string.Empty));
+            store.Add(Addition("Reader", string.Empty));
+            var removal = store.Add(Removal("reader"));
+            store.Restate(RemovalItem(removal.Hex, "reader"));
 
-            var again = ProfileNames.Read(names.Write());
-
-            Assert.That(again.Names, Is.EqualTo(new[] { "agent_one", "ops-2", "reader" }));
-            Assert.That(again.Holds("reader"), Is.True);
-            Assert.That(again.Holds("Reader"), Is.False, "compared exactly, as a claim is");
+            Assert.That(Names(store), Is.EqualTo(new[] { "Reader" }), "the removal of a name takes nothing from the other");
         }
 
         [Test]
-        public void Removing_a_name_that_is_not_there_says_so()
+        public void A_store_with_no_key_names_nothing()
         {
-            var names = ProfileNames.Read("{\"profiles\":[\"ops\"]}");
+            using (var reading = new MemoryStore().Read())
+            {
+                Assert.That(ProfileNames.Of(reading).Names, Is.Empty);
+                Assert.That(ProfileNames.Of(reading).Holds("reader"), Is.False);
+            }
 
-            Assert.That(names.Remove("reader"), Is.False);
-            Assert.That(names.Remove(null), Is.False);
-            Assert.That(names.Names, Is.EqualTo(new[] { "ops" }));
+            Assert.That(ProfileNames.Of(null).Names, Is.Empty);
+        }
+
+        [Test]
+        public void A_list_of_more_names_than_a_pairing_can_ask_for_is_read_whole()
+        {
+            // No ceiling on the list, `STORE.md` §616: what a merge of copies that each added names
+            // brings is read, every name of it.
+            var store = new ComposedStore(One);
+            var names = Enumerable.Range(0, 100)
+                .Select(index => "profile-" + index.ToString("D3", System.Globalization.CultureInfo.InvariantCulture))
+                .ToList();
+            foreach (var name in names)
+            {
+                store.Add(Addition(name, string.Empty));
+            }
+
+            Assert.That(Names(store), Is.EqualTo(names));
+        }
+
+        [Test]
+        public void Every_order_of_the_entries_names_the_same()
+        {
+            // The entries of a database are walked in the order KeePass holds them, which a merge
+            // or a move changes; no step reads an order, `STORE.md` §623.
+            var probe = new ComposedStore(One);
+            var reader = probe.Add(Removal("reader"));
+            var auditor = probe.Add(Removal("auditor"));
+            var records = new List<StoreComposer.Composed>
+            {
+                reader,
+                auditor,
+                Addition("reader", string.Empty),
+                Addition("writer", string.Empty),
+                Addition("auditor", string.Empty),
+                Addition("auditor", auditor.Hex),
+            };
+            var items = new[] { RemovalItem(reader.Hex, "reader"), RemovalItem(auditor.Hex, "auditor") };
+
+            foreach (var order in Orders(records.Count))
+            {
+                var store = new ComposedStore(One);
+                foreach (var at in order)
+                {
+                    store.Add(records[at]);
+                }
+
+                store.RestateAll(items);
+                Assert.That(Names(store), Is.EqualTo(new[] { "auditor", "writer" }), string.Join(" ", order));
+            }
+        }
+
+        [Test]
+        public void A_name_is_refused_by_the_issuer_s_rule_and_nothing_else()
+        {
+            Assert.That(ProfileNames.Refusal("reader"), Is.Null);
+            Assert.That(ProfileNames.Refusal("ops_2-eu"), Is.Null);
+            Assert.That(ProfileNames.Refusal("not a name"), Is.Not.Null);
+            Assert.That(ProfileNames.Refusal(new string('a', 65)), Is.Not.Null);
+            Assert.That(ProfileNames.Refusal("Default"), Is.Not.Null, "the word a rule reserves, in any case");
+            Assert.That(ProfileNames.Refusal(null), Is.Not.Null);
+        }
+
+        /// <summary>The names on the list of the store as it stands.</summary>
+        private static IReadOnlyList<string> Names(ComposedStore store)
+        {
+            using (var reading = store.Read())
+            {
+                Assume.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                return ProfileNames.Of(reading).Names;
+            }
+        }
+
+        private static StoreComposer.Composed Addition(string name, string after)
+        {
+            return StoreComposer.Record(One, "profile", "profile:" + name, StoreComposer.Content(("after", after), ("name", name)));
+        }
+
+        private static StoreComposer.Composed Removal(string name)
+        {
+            return StoreComposer.Record(One, "removed", "profile:" + name, StoreComposer.Content(("name", name)));
+        }
+
+        private static string RemovalItem(string id, string name)
+        {
+            return StoreComposer.Item(("id", id), ("kind", "removed"), ("name", name));
+        }
+
+        private static string Listed(params string[] identifiers)
+        {
+            return string.Join(" ", identifiers.OrderBy(identifier => identifier, StringComparer.Ordinal));
+        }
+
+        /// <summary>Every rotation of this many entries and each rotation reversed: each entry before and after each.</summary>
+        private static IEnumerable<int[]> Orders(int count)
+        {
+            for (var start = 0; start < count; start++)
+            {
+                var rotated = Enumerable.Range(0, count).Select(index => (index + start) % count).ToArray();
+                yield return rotated;
+                yield return rotated.Reverse().ToArray();
+            }
+        }
+
+        private static JObject Vectors()
+        {
+            for (var at = new DirectoryInfo(TestContext.CurrentContext.TestDirectory); at != null; at = at.Parent)
+            {
+                var path = Paths.Join(at.FullName, "tests", "Shared", "StoreMeaningVectors.json");
+                if (File.Exists(path))
+                {
+                    return JObject.Parse(File.ReadAllText(path));
+                }
+            }
+
+            throw new FileNotFoundException("tests/Shared/StoreMeaningVectors.json is not above the test's directory");
+        }
+
+        private static IReadOnlyDictionary<string, string> Strings(JObject strings)
+        {
+            return strings.Properties().ToDictionary(property => property.Name, property => (string)property.Value);
         }
     }
 }

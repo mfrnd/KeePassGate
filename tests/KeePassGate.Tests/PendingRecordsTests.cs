@@ -381,9 +381,9 @@ namespace KeePassGate.Tests
         [Test]
         public void A_revocation_held_while_the_store_lost_its_key_stays_as_pressed_and_writes_nothing()
         {
-            // Composed at OK over a store that holds no key, the act is the act pressed,
-            // `AdmissionActs.Again`, under a key that no longer stands, and the plan leaves it out
-            // for that: OK writes nothing under it.
+            // Composed at OK over a store that holds no key, the act is the act pressed, under a
+            // key that no longer stands, and the plan leaves it out for that: OK writes nothing
+            // under it.
             var live = new FakeGateDatabase();
             var served = StoreSeeds.Authority(live.Store);
             var client = Admitted(live, served);
@@ -578,6 +578,196 @@ namespace KeePassGate.Tests
             Assert.That(live.Values.Get("KPG.Fictitious"), Is.EqualTo("held for OK"), "the custom data half ran");
             Assert.That(held.Key(), Is.All.EqualTo((byte)0), "and the buffer is let go whatever the lines threw");
             Assert.That(pending.AuthorityWaiting, Is.False);
+        }
+
+        [Test]
+        public void A_name_added_and_removed_on_a_dialog_writes_nothing_and_neither_does_a_name_removed_and_added_again()
+        {
+            // `STORE.md` §627: the buffer holds the operator's last press for each name, and a
+            // press with nothing left to write against the store holds nothing. Written as records,
+            // either pair would leave an item in every later summary entry for good.
+            var live = Keyed("held");
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            var page = new DatabaseProfiles(pending, null);
+
+            Assert.That(page.Add("fresh"), Is.Null);
+            Assert.That(page.Names(), Does.Contain("fresh"), "the page reads a name added as on the list before OK");
+            Assert.That(page.Remove("fresh"), Is.Null);
+            Assert.That(page.Remove("held"), Is.Null);
+            Assert.That(page.Names(), Does.Not.Contain("held"), "and a name removed as off it");
+            Assert.That(page.Add("held"), Is.Null);
+
+            Assert.That(Held(pending), Is.Empty, "the last press for each name has nothing left to write");
+            Assert.That(pending.ProfilesWaiting, Is.False);
+            var writes = live.Records.Writes;
+
+            pending.Apply();
+
+            Assert.That(live.Records.Writes, Is.EqualTo(writes), "nothing reached the store");
+            Assert.That(NamesOf(live), Is.EqualTo(new[] { "held" }));
+        }
+
+        [Test]
+        public void An_Add_of_a_name_a_pairing_puts_on_the_list_under_the_dialog_writes_nothing_more()
+        {
+            var live = Keyed();
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            Assert.That(new DatabaseProfiles(pending, null).Add("ops"), Is.Null);
+            Assume.That(pending.ProfilesWaiting, Is.True);
+
+            // A pairing approved for the name lands on the live store while the dialog stands.
+            StoreSeeds.Name(live.Store, "ops");
+
+            pending.Apply();
+
+            using (var reading = live.Records.Read())
+            {
+                Assert.That(KeePassGate.Acl.ProfileNames.Of(reading).Names, Is.EqualTo(new[] { "ops" }));
+                Assert.That(reading.InForce.Additions, Has.Count.EqualTo(1), "the pairing's addition, and no second");
+            }
+        }
+
+        [Test]
+        public void A_Remove_pressed_on_a_name_a_pairing_added_under_the_dialog_is_written_and_deletes_that_addition()
+        {
+            var live = Keyed();
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            var page = new DatabaseProfiles(pending, null);
+            StoreSeeds.Name(live.Store, "ops");
+            Assume.That(page.Names(), Does.Contain("ops"), "the page shows the name the pairing added");
+
+            Assert.That(page.Remove("ops"), Is.Null);
+            pending.Apply();
+
+            using (var reading = live.Records.Read())
+            {
+                Assert.That(KeePassGate.Acl.ProfileNames.Of(reading).Names, Is.Empty);
+                Assert.That(reading.InForce.Additions, Is.Empty, "the addition that did not see the removal is deleted");
+                Assert.That(reading.InForce.RemovalsOf("ops"), Has.Count.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void An_Add_a_removal_merged_in_under_the_dialog_overtook_writes_nothing_and_the_log_names_it()
+        {
+            // An addition names the removals the page showed at its press: a removal made apart,
+            // which the operator never saw, is not overruled by a press made before it arrived.
+            var live = Keyed();
+            StoreSeeds.Name(live.Store, "ops");
+            StoreSeeds.Unname(live.Store, "ops");
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            var page = new DatabaseProfiles(pending, null);
+            Assert.That(page.Add("ops"), Is.Null);
+
+            var copy = live.Records.Copy();
+            StoreSeeds.Name(copy, "ops");
+            StoreSeeds.Unname(copy, "ops");
+            live.Records.Synchronize(copy);
+            Assert.That(page.Names(), Does.Not.Contain("ops"), "the page reads what OK would write");
+            Assert.That(page.Overtaken("ops"), Is.True, "and tells why");
+            var writes = live.Records.Writes;
+            Assert.That(pending.OvertakenNow(), Is.EqualTo(new[] { "ops" }), "found before OK");
+            Assert.That(live.Records.Writes, Is.EqualTo(writes), "by reading alone");
+            Assert.That(pending.ProfilesWaiting, Is.True, "with the press still held");
+
+            pending.Apply();
+
+            Assert.That(NamesOf(live), Is.Empty, "the name is off the list");
+            using (var reading = live.Records.Read())
+            {
+                Assert.That(reading.InForce.Additions.Where(addition => addition.Form.Member(StoreKinds.NameMember) == "ops"), Is.Empty,
+                    "and no addition of it is written");
+            }
+
+            Assert.That(log.Warnings.Any(entry => entry.Message.Contains("adding a profile ops")), Is.True, "the log names it");
+        }
+
+        [Test]
+        public void An_Add_a_store_split_under_the_dialog_leaves_out_is_not_overtaken()
+        {
+            // An authority under a key of its own, as a copy that made a store of its own leaves
+            // after a synchronize: the page lists no name, and no removal made apart is why.
+            var live = Keyed();
+            var page = new DatabaseProfiles(new PendingDatabase(live, NullGateLog.Instance), null);
+            Assert.That(page.Add("ops"), Is.Null);
+
+            live.Records.Put(StoreRecords.Authority(StoreRecords.Two, 'b'));
+
+            Assert.That(page.Names(), Does.Not.Contain("ops"));
+            Assert.That(page.Overtaken("ops"), Is.False);
+        }
+
+        [Test]
+        public void An_Add_a_pairing_made_good_under_the_dialog_is_not_overtaken()
+        {
+            // Nothing is left of the press to write, since the name is on the list already: not a
+            // removal the page's line names.
+            var live = Keyed();
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            Assert.That(new DatabaseProfiles(pending, null).Add("ops"), Is.Null);
+
+            StoreSeeds.Name(live.Store, "ops");
+
+            Assert.That(pending.OvertakenNow(), Is.Empty);
+        }
+
+        [Test]
+        public void A_name_added_beside_a_Create_held_on_the_dialog_is_written_under_the_key_the_Create_brings()
+        {
+            var live = new FakeGateDatabase();
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            Assert.That(Service(pending).Create().Succeeded, Is.True);
+            Assert.That(new DatabaseProfiles(pending, null).Add("ops"), Is.Null);
+
+            Assert.That(pending.Apply(), Is.True);
+
+            Assert.That(StoreSeeds.Served(live.Store), Is.Not.Null);
+            Assert.That(NamesOf(live), Is.EqualTo(new[] { "ops" }));
+        }
+
+        [Test]
+        public void A_name_added_beside_a_Create_folded_away_on_the_dialog_is_left_out_and_named()
+        {
+            // Only an authority starts a store, `STORE.md` §627: with the Create taken back by a
+            // Delete on the same dialog, the name has no key to be written under.
+            var live = new FakeGateDatabase();
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            var page = new DatabaseProfiles(pending, null);
+            Assert.That(Service(pending).Create().Succeeded, Is.True);
+            Assert.That(page.Add("ops"), Is.Null);
+            Assert.That(Service(pending).Delete().Succeeded, Is.True, "the Delete is taken");
+            Assert.That(page.Names(), Does.Not.Contain("ops"), "the page reads what OK would write");
+            Assert.That(page.Overtaken("ops"), Is.False, "and no removal made apart is why");
+
+            pending.Apply();
+
+            Assert.That(live.Records.Candidates, Is.Empty, "nothing reached the store");
+            Assert.That(log.Warnings.Any(entry => entry.Message.Contains(KeePassGate.Acl.ProfileActs.AddName)), Is.True,
+                "the log names the press left out");
+        }
+
+        /// <summary>A database whose store holds an authority and these names.</summary>
+        private static FakeGateDatabase Keyed(params string[] names)
+        {
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            foreach (var name in names)
+            {
+                StoreSeeds.Name(live.Store, name);
+            }
+
+            return live;
+        }
+
+        /// <summary>The names on the list of the live store.</summary>
+        private static IReadOnlyList<string> NamesOf(FakeGateDatabase live)
+        {
+            using (var reading = live.Records.Read())
+            {
+                return KeePassGate.Acl.ProfileNames.Of(reading).Names;
+            }
         }
 
         private static AuthorityService Service(PendingDatabase pending)

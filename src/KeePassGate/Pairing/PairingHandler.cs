@@ -502,18 +502,6 @@ namespace KeePassGate.Pairing
                 return null;
             }
 
-            // A list that will not read is not offered as one naming nothing, as a renewal's is
-            // not: every name would be shown as "(new)", names the damaged list holds among them,
-            // and approving would write a list of only the approved names over it, dropping every
-            // other client's for good and the sign that the list was damaged with them.
-            var unreadable = ProfilesUnreadable(target);
-            if (unreadable != null)
-            {
-                _log.Warn("pairing refused for now: " + unreadable);
-                context.Respond(503, HttpResponse.ErrorBody("busy"));
-                return null;
-            }
-
             // Named as well as fingerprinted. The operator is being asked to let a stranger into
             // one of possibly several open databases, and sixteen hexadecimal characters is not
             // something anybody recognizes under time pressure.
@@ -1116,18 +1104,6 @@ namespace KeePassGate.Pairing
             }
 
             return answer;
-        }
-
-        private static string ProfilesUnreadable(IGateTarget target)
-        {
-            try
-            {
-                return target.ProfilesUnreadable;
-            }
-            catch (Exception error) when (Expected.OfCustomData(error))
-            {
-                return "the profiles this database names could not be read: " + error.Message;
-            }
         }
 
         private string Blocked(IGateTarget target)

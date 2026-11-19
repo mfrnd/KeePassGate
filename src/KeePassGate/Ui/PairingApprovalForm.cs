@@ -87,17 +87,6 @@ namespace KeePassGate.Ui
             "at once. Uncheck any it should not get:";
 
         /// <summary>
-        /// Said under the list when any of them would be added and the database's list is already
-        /// full, so approving adds none of them.
-        /// </summary>
-        public static readonly string FullProfilesAsked =
-            "Profiles it asks for. This database already names as many profiles as it can hold, " +
-            KeePassGate.Acl.ProfileNames.Most.ToString(CultureInfo.InvariantCulture) + ", so for " +
-            "those marked" + NewSuffix + " or" + RemovedSuffix + " approving adds none of them: the " +
-            "client holds them and reaches nothing through them until one is added on the Profiles " +
-            "page, after another is taken off. Uncheck any it should not get:";
-
-        /// <summary>
         /// What marks a profile this database named once and removed, which clients still hold.
         /// Approving one gives it back to all of them.
         /// </summary>
@@ -140,10 +129,8 @@ namespace KeePassGate.Ui
         /// </remarks>
         public static string Regaining(PairingRequest request)
         {
-            if (request == null || request.ListIsFull)
+            if (request == null)
             {
-                // A full list takes no name back, so nobody regains anything: `FullProfilesAsked`
-                // says that instead.
                 return null;
             }
 
@@ -250,20 +237,7 @@ namespace KeePassGate.Ui
                 return NoProfilesAsked;
             }
 
-            var adding = false;
-            var anyNew = false;
-            foreach (var profile in request.Profiles)
-            {
-                var isNew = request.IsNew(profile);
-                anyNew |= isNew;
-                adding |= isNew || request.Returning(profile).Count > 0;
-            }
-
-            if (adding && request.ListIsFull)
-            {
-                return FullProfilesAsked;
-            }
-
+            var anyNew = request.Profiles.Any(request.IsNew);
             return anyNew ? NewProfilesAsked : ProfilesAsked;
         }
 

@@ -1,5 +1,5 @@
 {
-  "about": "Records in the forms STORE.md 614, 615 and 648 fix, and summary entries in the form of 611, composed by dumps, mac and ident of probe/store.py of spikes/storage/probes/store-as-a-whole on spikes/storage-survival, as rec of vectors.py beside the probe composes them, and never from this side. Each record holds the store key, its kind, the members it was composed from, its content text, its check, the subject and the number in bytes 9 and 10 its identifier was made of, its identifier, and every string of its entry. A summary entry also holds its items in the order they were given; its strings number them in ordinal order of their text, as the probe's Encoder numbers them. The store key is keybytes('one') of store.py. The values are invented. In an authority, ca and host are 96 invented bytes each in base64 and no PKCS#12, sniKey is 32 invented bytes in base64, and id is 32 invented bytes in hexadecimal and the digest of nothing in ca: the core reads such a record as an authority, and the reading of STORE.md 614 finds the authority not whole. Every der is a certificate in DER made here that decodes, with the base point of P-256 as its key and a signature nobody checks, and every admission key is the SHA-256 of a der, so an admission reads as STORE.md 615 has it. The client paired with the first certificate, renewed it to the second, and renewed the second to the third and the fourth. Every list, in profiles, renewed and after, is sorted, as the probe writes every list. No record holds v, as STORE.md 607 has it. An item withdrawn is in the form that S29 settles for STORE.md 611, 648 and 658: it restates a single withdrawn record of this file, holding that record's identifier as id and its certificate, renewed and from text for text, and no from where the record holds none. The second summary entry of height 2 restates both withdrawn records of this file.",
+  "about": "Records in the forms STORE.md 614, 615 and 648 fix, and summary entries in the form of 611, composed by dumps, mac and ident of probe/store.py of spikes/storage/probes/store-as-a-whole on spikes/storage-survival, as rec of vectors.py beside the probe composes them, and never from this side. Each record holds the store key, its kind, the members it was composed from, its content text, its check, the subject and the number in bytes 9 and 10 its identifier was made of, its identifier, and every string of its entry. A summary entry also holds its items in the order they were given; its strings number them in ordinal order of their text, as the probe's Encoder numbers them. The store key is keybytes('one') of store.py. The values are invented. In an authority, ca and host are 96 invented bytes each in base64 and no PKCS#12, sniKey is 32 invented bytes in base64, and id is 32 invented bytes in hexadecimal and the digest of nothing in ca: the core reads such a record as an authority, and the reading of STORE.md 614 finds the authority not whole. Every der is a certificate in DER made here that decodes, with the base point of P-256 as its key and a signature nobody checks, and every admission key is the SHA-256 of a der, so an admission reads as STORE.md 615 has it. The client paired with the first certificate, renewed it to the second, and renewed the second to the third and the fourth. Every list, in profiles, renewed and after, is sorted, as the probe writes every list. No record holds v, as STORE.md 607 has it. An item withdrawn is in the form that S29 settles for STORE.md 611, 648 and 658: it restates a single withdrawn record of this file, holding that record's identifier as id and its certificate, renewed and from text for text, and no from where the record holds none. The second summary entry of height 2 restates both withdrawn records of this file. An addition and a removal of a profile name are in the form STORE.md 616 fixes, each naming reader: the addition holds name and after, and the removal name alone. The second addition names the removal of this file in after, and the summary entry that restates a removal holds the item removed of STORE.md 611, with the removal's name and its identifier as id.",
   "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
   "records": {
     "authority": {
@@ -127,6 +127,39 @@
       },
       "subject": "store"
     },
+    "head of height 1, restating a removal": {
+      "check": "38b1edb1f975299b399bc8de0373b37622a8153c46a067872699e3c0d0f3a809",
+      "content": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+      "id": "e34b4d9d4d36de78000138b1edb1f975",
+      "items": [
+        {
+          "format": "1",
+          "kind": "format",
+          "plugin": "0.3.0"
+        },
+        {
+          "id": "3f3cb0f2b5a1afa0000077b5cbd11779",
+          "kind": "removed",
+          "name": "reader"
+        }
+      ],
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "head",
+      "members": {
+        "after": "",
+        "height": "1",
+        "nonce": "00112233445566778899aabbccddeeff"
+      },
+      "number": 1,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+        "KPG.Kind": "head",
+        "KPG.Mac": "38b1edb1f975299b399bc8de0373b37622a8153c46a067872699e3c0d0f3a809",
+        "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}",
+        "KPG.S.0002": "{\"id\":\"3f3cb0f2b5a1afa0000077b5cbd11779\",\"kind\":\"removed\",\"name\":\"reader\"}"
+      },
+      "subject": "store"
+    },
     "head of height 2": {
       "check": "853edf0b9c7bc3fd862b3ebae3ee980e591569705eb4b704aa62811fd1cbe7b8",
       "content": "{\"after\":\"e34b4d9d4d36de78000193e143624c3a e34b4d9d4d36de780001c78dbdfcf143\",\"height\":\"2\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
@@ -213,6 +246,62 @@
         "KPG.S.0003": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
       },
       "subject": "store"
+    },
+    "profile": {
+      "check": "60e90dedbbbc82b4c4927104a8c3fb3e6ef65bc958765d0de8e1d9822911f2c4",
+      "content": "{\"after\":\"\",\"name\":\"reader\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+      "id": "64017cf2b5a1afa0000060e90dedbbbc",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "profile",
+      "members": {
+        "after": "",
+        "name": "reader",
+        "nonce": "00112233445566778899aabbccddeeff"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"name\":\"reader\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+        "KPG.Kind": "profile",
+        "KPG.Mac": "60e90dedbbbc82b4c4927104a8c3fb3e6ef65bc958765d0de8e1d9822911f2c4"
+      },
+      "subject": "profile:reader"
+    },
+    "profile, naming a removal": {
+      "check": "c3fb89e037639dc36f5cf773de2eb6cf49ecbade27eaa5e3c7ff3f9ef214b30d",
+      "content": "{\"after\":\"3f3cb0f2b5a1afa0000077b5cbd11779\",\"name\":\"reader\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+      "id": "64017cf2b5a1afa00000c3fb89e03763",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "profile",
+      "members": {
+        "after": "3f3cb0f2b5a1afa0000077b5cbd11779",
+        "name": "reader",
+        "nonce": "00112233445566778899aabbccddeeff"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"after\":\"3f3cb0f2b5a1afa0000077b5cbd11779\",\"name\":\"reader\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+        "KPG.Kind": "profile",
+        "KPG.Mac": "c3fb89e037639dc36f5cf773de2eb6cf49ecbade27eaa5e3c7ff3f9ef214b30d"
+      },
+      "subject": "profile:reader"
+    },
+    "removed": {
+      "check": "77b5cbd11779266cc2a65cd69cd831f05c393dae32e4550e241a323a52c4b3b4",
+      "content": "{\"name\":\"reader\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+      "id": "3f3cb0f2b5a1afa0000077b5cbd11779",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "removed",
+      "members": {
+        "name": "reader",
+        "nonce": "00112233445566778899aabbccddeeff"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"name\":\"reader\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+        "KPG.Kind": "removed",
+        "KPG.Mac": "77b5cbd11779266cc2a65cd69cd831f05c393dae32e4550e241a323a52c4b3b4"
+      },
+      "subject": "profile:reader"
     },
     "retired": {
       "check": "0ffba18098bb6aba05cabfd09340503cea96f94509139a644931219348859fba",

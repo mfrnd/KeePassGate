@@ -20,32 +20,49 @@ Open **File**, **Database Settings**, pick the **KPG** tab, then the **Profiles*
 | **Clients** | how many admitted clients hold it, counting only those the gate lets in: the clients page marks the rest |
 | **X** | removes it |
 
+**The database needs its certificate authority before a profile is named.** On a database with no
+authority the page refuses a name, and the line under the list reads "This database has no
+certificate authority yet. Create it on the Certificate Authority page first." Once
+[**Create authority**](getting-started.md#create-the-authority) has been pressed, a name can be
+added on the same visit to the dialog, and **OK** writes the authority and the name.
+
 Type a name and press **Add**. A name is ASCII letters, digits, hyphens and underscores, up to 64
 of them, so the letters are A to Z without accents, and it is not `default` in any mix of capitals,
 which the stored rules keep for a meaning of their own. It grants nothing until a rule names it.
+A database holds as many names as are added, and past the rows the page has room for the list
+scrolls down.
 
 The other way one arrives is pairing: a program asks for profiles by name, and any this database does
 not name now and no client holds is marked "(new)" on the approval dialog. Approving adds it, and
 a rule still naming it from before it was removed applies at once.
 
 A pairing writes that name straight to the database, where every other change on this tab waits for
-**OK**, because the name has to be written by the same operation as the record it belongs to. A name
-created that way while this page is holding an edit is kept: what **OK** writes is the difference
-this page made, not the list it was showing, so a name added here goes in, a name removed here goes
-out, and a name somebody else added stays. The one exception is a full list: a database names 32
-profiles at most, and when a pairing's name fills it first, a name added here that no longer fits is
-left out: the line under the list states so as soon as the page shows it gone, and the plugin's log
-names it when **OK** is pressed, whatever was edited in between. The invite button is dead for as
-long as the edit is waiting all the same, because a program approved for a profile that is part way
-through being removed would be admitted to a name **OK** takes off the list, where it grants
-nothing.
+**OK**, because the name is written by the same operation as the record it belongs to. A name
+created that way while this page is holding an edit is kept. What **OK** writes is the last press
+made here for each name, held against the list as it stands when **OK** is pressed: a name added
+here goes on the list, a name removed here goes off it, and a name a pairing added in the meantime
+stays. A name added here and removed again before **OK**, or removed and added again, writes
+nothing. The invite button is dead for as long as an edit is waiting all the same, because a
+program approved for a profile that is part way through being removed would be admitted to a name
+**OK** takes off the list, where it grants nothing.
 
-**A stored list that will not read is shown as that**, and left as it is: every client stays admitted
-and reaches nothing, as while the list is missing, but nothing on this page adds to it or takes from
-it. **Replace it with a new list** starts a list naming nothing in its place, which loses the damaged
-value when **OK** is pressed; names can be added after that. A list that turns unreadable under the
-dialog, from a merge while it is open, is left alone too, and the plugin's log names the edit that
-was not written over it.
+**A name removed in another copy of the database is not added over that removal.** Copies can be
+synchronized while this dialog is open, by a trigger on a timer for instance, and a synchronize
+can bring in a removal of a name that was added on this page a moment before. A removal counts
+against every addition made without knowing of it, so **OK** does not write that name. Once the
+page shows the name gone, the line under the list reads "The profile reader was removed in another
+copy of this database while this dialog was open, so OK will not add it." Everything else on the
+tab is written at **OK** all the same, and the plugin's log names the name that was left out. To
+have the name after all, add it on this page again: that is adding a profile back, below, where
+the page asks first.
+
+A name added here that will not be added for any other reason gets a line of its own, "The profile
+reader cannot be added to the store as it stands now, so OK will not add it."
+
+**Where the plugin cannot write into its own group in this session, the page shows neither the row
+that adds a name nor the X**, and neither while the gate answers `503 split` or `503 outdated` for
+the database: the plugin's group then holds the records of more than a single store, or records
+that only a later release of the plugin reads. The Certificate Authority page states why.
 
 **Removing a profile takes it off this list and touches nothing else**, and from then on it grants
 nothing. A program is given only the profiles its record holds that this list still names, so a
@@ -57,22 +74,19 @@ removed and is then accepted, an old version of an entry restored from its histo
 database merged in. None of them can bring a removed profile back into force through its rules, so
 none of them has to be closed or checked first.
 
-What can is the list itself. It is kept as one value, and merging two copies of the database keeps
-one copy's list whole, for a synchronize whichever was changed last, and drops the other's. A
-profile removed only on the dropped copy comes back into force, and a profile added only on the
-dropped copy is lost, which the clients page then shows as removed on every client holding it.
-After merging two copies that both changed their profiles, check this page.
+**Copies of the database that each changed their profiles keep every change once they are
+synchronized.** Each name added and each name removed is an entry of its own in the plugin's
+group, and a synchronize in KeePass brings each copy the entries it lacks. A name added in a copy
+is on the list in every copy it is synchronized with. A name removed in a copy is off the list in
+each, including where another copy still named it, or had removed it and added it again without
+knowing of this removal: a removal counts against every addition made without knowing of it.
+Adding the name again after the synchronize puts it back, and the clients page shows it as removed
+on every client holding it until then. After synchronizing copies that each changed their
+profiles, check this page.
 
-**A damaged list takes profiles away that nobody removed.** The list is one value in the
-database's own data, and a hand edit, or another program writing under its key, can leave it
-unreadable. A list that does not read at all names nothing, and a list holding a name it cannot
-hold names only the rest. Either way every client stays admitted and reaches only the profiles
-still named: a program asking who the gate takes it for is told the others are removed and that
-the list will not read, and the audit writes each refusal they would have allowed as
-`profile list unreadable`, since nobody took a name off. Pairing and renewal are answered
-`503 busy` until the list reads again, so that neither writes over it, and the plugin's log has a
-warning naming the damage each time. A copy of the database from before the damage holds the names
-the list held.
+**The names are entries of the plugin's own group**, `KeePassGate`, and this page is where they
+are added and removed: [The plugin's group](getting-started.md#the-plugins-group) covers what
+editing or deleting an entry there by hand does.
 
 **Adding a profile back is a full undo.** Every rule still naming it applies again, and every client
 still holding it regains it, so the page asks first: it states how many rules come back into force
@@ -108,7 +122,8 @@ bottom of the table and pick a profile from the list, then pick what it may do f
 
 The profiles offered are the ones this database names, less any that already have a rule here. A
 profile a group above grants is already on the table in gray, and the way to change that one is to
-pick a rule on the row that is already there.
+pick a rule on the row that is already there. A list of profiles too long to show whole scrolls
+down.
 
 Nothing here can be typed because both halves are exact. A mask spelled by hand is a rule nobody
 meant, and a profile spelled by hand is a rule for a name that may not exist, which grants nobody

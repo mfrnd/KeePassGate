@@ -11,10 +11,12 @@ namespace KeePassGate.Store
     /// <remarks>
     /// **Composed when it is asked for, and held to its ground at the write.** The tab buffers an
     /// act until its dialog's OK, and the store can change meanwhile: an act whose ground went is
-    /// left out and named, as a Recreate of an authority that no longer stands. An act on a client
-    /// or a certificate is composed again over the store as it stands at each read of the buffer
-    /// and at OK, and has no ground: a revocation is always written, and a certificate taken away
-    /// is written unless nothing of it is left to end by then.
+    /// left out and named, as a Recreate of an authority that no longer stands. An act on a client,
+    /// on a certificate or about a profile name holds what is to be done, <see cref="Again"/>: it
+    /// is composed again over the store as it stands at each read of the buffer and at OK, and has
+    /// no ground: a revocation is always written, a certificate taken away is written unless
+    /// nothing of it is left to end by then, and a name is written where the store still calls
+    /// for it.
     /// </remarks>
     public sealed class StoreAct
     {
@@ -33,12 +35,17 @@ namespace KeePassGate.Store
         /// Why the act no longer applies to a store as it stands, or null where it applies; null
         /// for an act with no ground.
         /// </param>
+        /// <param name="again">
+        /// The act composed again against a reading that holds a store key, or null where nothing
+        /// is left of it to write there; null for an act composed once, at its press.
+        /// </param>
         internal StoreAct(
             string name,
             byte[] key,
             string against,
             IReadOnlyList<StoreRecord> records,
-            Func<StoreGround, string> ground)
+            Func<StoreGround, string> ground,
+            Func<StoreReading, StoreAct> again = null)
         {
             if (key == null)
             {
@@ -61,6 +68,7 @@ namespace KeePassGate.Store
             Against = against;
             Records = records.ToList();
             _ground = ground;
+            Again = again;
         }
 
         /// <summary>What the log calls the act.</summary>
@@ -77,6 +85,18 @@ namespace KeePassGate.Store
         /// stood and the act brings a new key.
         /// </summary>
         internal string Against { get; private set; }
+
+        /// <summary>
+        /// What is to be done, composed again: the act as a reading that holds a store key calls
+        /// for it, under that key, or null where nothing is left of it to write there. Null for an
+        /// act composed once, at its press, as an act of the authority's is.
+        /// </summary>
+        /// <remarks>
+        /// The act's composer gives it, so that whoever holds an act composes it again without
+        /// knowing the family it comes from. A reading that holds no store key is not asked: an act
+        /// held there stays as it was pressed, and the write leaves it out for its key.
+        /// </remarks>
+        internal Func<StoreReading, StoreAct> Again { get; private set; }
 
         /// <summary>A copy of the key its records are under, for a write that starts a store with it.</summary>
         internal byte[] Key()

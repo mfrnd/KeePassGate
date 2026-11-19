@@ -194,9 +194,8 @@ which a renewal changes. A renewed identity no longer holds the certificate it p
 client key is stored beside it when it is paired and copied at every renewal, and `identity`
 prints the stored one. `profiles` are the ones the rules are asked about now, and `removed
 profiles` are the ones its record holds that the database no longer names, which grant nothing
-until the operator names them again, or until a damaged list reads again, which
-[Naming profiles](access-control.md#naming-profiles) is about; `profiles_unreadable` is true while
-it does not, and `whoami` prints a `profile list` line then. What `identity` prints is what the
+until the operator names them again, which
+[Naming profiles](access-control.md#naming-profiles) is about. What `identity` prints is what the
 operator approved when this identity was issued, at pairing or at its last renewal, so the two
 differ once a profile has been removed since then.
 
@@ -999,7 +998,7 @@ except api.RouteRefused:
 | Exception | What it means, and what to do |
 | --- | --- |
 | `DatabaseLocked` | The database is locked. Wait, and try again. Raised two ways. Before the request is sent, when the certificate the handshake was answered with is the one only a locked database has, so nothing is handed over first. And as the gate's `503 locked`, which it answers to every request while the database is locked, and to one whose database locked while the request was on its way, at whichever step the request met the lock, a read or a write alike: the nodes are still there, and nothing was done. |
-| `GateBusy` | The gate cannot serve this right now. A write meets it while a dialog is open on what the write would change, while KeePass waits for an answer to a message box or another window of Windows' own, when KeePass is still part way through something of its own, such as saving, importing, exporting or running XML Replace, after the 30 seconds a write waits for it, when its save would stop to ask the operator something, such as a database file changed on disk, or when other writes kept it waiting more than 20 seconds. A read meets it when KeePass's own thread could not be held still for it within ten seconds, which is KeePass busy with something it does not pause in, such as deriving a key. Retry. A pairing or a renewal meets it as well while the database's list of profiles will not read, which does not end on its own: the operator repairs the list, and `whoami` names it, as `profilesUnreadable`. From `pair` or `renew`, `held_until` set means the operator approved and the gate held the approval until that moment, which has passed: asking again shows the dialog again. |
+| `GateBusy` | The gate cannot serve this right now. A write meets it while a dialog is open on what the write would change, while KeePass waits for an answer to a message box or another window of Windows' own, when KeePass is still part way through something of its own, such as saving, importing, exporting or running XML Replace, after the 30 seconds a write waits for it, when its save would stop to ask the operator something, such as a database file changed on disk, or when other writes kept it waiting more than 20 seconds. A read meets it when KeePass's own thread could not be held still for it within ten seconds, which is KeePass busy with something it does not pause in, such as deriving a key. Retry. From `pair` or `renew`, `held_until` set means the operator approved and the gate held the approval until that moment, which has passed: asking again shows the dialog again. |
 | `AuthorityUndecided` | The database holds more than one certificate authority, because copies of it that each made an authority of their own met in a synchronize, and the operator has not yet kept any of them. The gate answers this to every request until somebody chooses at KeePass, which asks on its own screen, so it waits on a person rather than ending on its own. It is answered to a client whose own authority is among them. A client whose authority is gone cannot connect to the database any more, and a request of its own that was already under way meets `NotAdmitted`, or `PairingError` on an invitation made under that authority; it pairs again on a new invitation. A client of an authority that is not kept stops reaching the database once another authority is kept, and pairs again. |
 | `StoreLost` | The database's file holds no store key any more, as the entry that carried it, deleted for good in KeePass or by a synchronize, leaves it. Only a gate that was serving the database when the key went answers this, with the host certificate it served with, and only until the database is locked or closed; after that nothing answers. It ends when the operator creates an authority again at KeePass, after which this client pairs again, so nothing here waits it out. |
 | `StoreSplit` | The database holds the plugin's store under more than one store key, because a copy that made a store of its own met this one in a synchronize, and the operator has not yet kept one. The gate answers this to every request, pairing included, until somebody chooses at KeePass, so it waits on a person and nothing here waits it out. A client of the store that is not kept reaches nothing afterwards and pairs again. |
@@ -1120,9 +1119,7 @@ database file changed on disk, which KeePass asks about at the next save. **That
 a `500 not verified` leaves behind**, since such a write leaves the file disagreeing with what
 KeePass wrote, so until the operator saves the database in KeePass and answers what it asks, every
 write to that database is `GateBusy`, from whichever client, a write that would otherwise have been
-a `404` or a `409` included, and no busy budget outlasts that. Nor does a busy budget outlast a
-pairing's or a renewal's busy while the database's list of profiles will not read, which only the
-operator repairs. A locked KeePass is waiting for a
+a `404` or a `409` included, and no busy budget outlasts that. A locked KeePass is waiting for a
 person to come back to their desk, and the lock can have arrived on its own from an idle timeout, a
 minimize, a Windows lock or a suspend. An undecided database is waiting for a person to keep one of
 several authorities, which is rare, and can end with this client's authority not kept, after which
@@ -1302,7 +1299,7 @@ def entry(path: str, body: str, client: bytes | None) -> tuple[int, str]:
 pairing or a renewal whose approval it holds until a moment, `503 busy` with `heldUntil`, for a
 handler to return while a test watches `pair` or `renew` ask again. `identified(...)` is its
 answer to `whoami`, from the subject, the admission key, the expiry and the profiles, with
-`profiles_unreadable=True` for a database whose list of profiles will not read.
+`removed_profiles` for the names its record holds that the database does not name.
 **It frames an answer as the plugin does**: a `GET` answered `200` goes out in chunks wherever
 the plugin writes the answer as it is sent, which is every listing and a read of an entry, of a
 single field or of an attachment, whatever query the path carries, and every other answer under

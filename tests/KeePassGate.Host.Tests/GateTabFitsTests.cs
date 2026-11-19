@@ -520,58 +520,78 @@ namespace KeePassGate.Host.Tests
                     var list = ControlTree.FindByName<ProfileList>(panel, ProfileList.ControlName);
                     Assert.That(list, Is.Not.Null, "the profiles page has no list on it");
 
-                    // With the longest thing a removal says under it, which is a band this page
-                    // does not otherwise have: the longest name a profile can have, and counts
-                    // four digits wide, because the sentence names both.
+                    // With each of the longest things the page's line holds under it, which is a
+                    // band this page does not otherwise have: what a removal answers, with the
+                    // longest name a profile can have and counts four digits wide, because the
+                    // sentence names both; the refusal of a name where no store key stands; a name
+                    // removed in another copy under the dialog, and a name the store as it stands
+                    // cannot take; and a write the store refuses, as long as a reason is let be.
+                    var name = new string('p', 64);
+                    var sentences = new[]
+                    {
+                        DatabaseProfiles.Said(name, 9999, 9999),
+                        DatabaseProfiles.NoAuthorityRefusal,
+                        ProfileList.RemovedMeanwhile(name),
+                        ProfileList.CannotBeAdded(name),
+                        "That could not be written: " + Clipped.Message(new string('w', 4096)),
+                    };
+
                     var said = ControlTree.FindByName<Label>(list, ProfileList.ResultLabelName);
                     Assert.That(said, Is.Not.Null);
-                    said.Text = DatabaseProfiles.Said(new string('p', 64), 9999, 9999);
-                    said.Visible = true;
+                    foreach (var sentence in sentences)
+                    {
+                        said.Text = sentence;
+                        said.Visible = true;
 
-                    // Its own page in front, for the reason the clients page needs it: a page
-                    // behind another is never laid out.
-                    Show(list);
+                        // Its own page in front, for the reason the clients page needs it: a page
+                        // behind another is never laid out.
+                        Show(list);
+                        list.PerformLayout();
 
-                    TestContext.Out.WriteLine(state.Description + ": the profile list has " + list.Height);
-                    Assert.That(list.Height, Is.GreaterThanOrEqualTo(MinimumListHeight),
-                        state.Description + " leaves the profile list " + list.Height +
-                        " pixels, which is not a list.");
+                        TestContext.Out.WriteLine(state.Description + ": the profile list has " + list.Height
+                                                  + " under " + sentence.Length + " characters");
+                        Assert.That(list.Height, Is.GreaterThanOrEqualTo(MinimumListHeight),
+                            state.Description + " leaves the profile list " + list.Height +
+                            " pixels under \"" + sentence + "\", which is not a list.");
+                    }
                 }
             }
         }
 
         [Test]
-        public void The_line_about_a_list_that_will_not_read_fits_the_profiles_page_with_its_button()
+        public void The_profiles_page_holds_a_hundred_names_scrolling_down_and_never_across()
         {
-            // The state a damaged list puts the page in: a line stating so and the button that
-            // replaces it, above the row that adds a profile, with a refusal under the list.
-            foreach (var state in States())
+            // The list of profile names keeps no ceiling, `STORE.md` §616: a hundred names are
+            // drawn whole, down the page in the room it has, with every column inside its width.
+            using (var database = TemporaryDatabase.New())
             {
-                using (var panel = state.Panel)
+                var store = new KdbxStore(database.Database, GateVersion.Current, null);
+                StoreSeeds.Authority(store);
+                for (var index = 0; index < 100; index++)
+                {
+                    StoreSeeds.Name(store, "profile-" + index.ToString("D3", System.Globalization.CultureInfo.InvariantCulture));
+                }
+
+                var opened = Opened(database);
+                using (var panel = new AuthorityPanel(opened, null, NullGateLog.Instance, null, new DatabaseProfiles(opened, null)))
                 {
                     LayOut(panel, _page.DisplayRectangle.Size);
-
                     var list = ControlTree.FindByName<ProfileList>(panel, ProfileList.ControlName);
-                    var row = ControlTree.FindByName<Control>(list, ProfileList.DamagedRowName);
-                    var said = ControlTree.FindByName<Label>(list, ProfileList.ResultLabelName);
-                    row.Visible = true;
-                    said.Text = DatabaseProfiles.UnreadableRefusal;
-                    said.Visible = true;
-
                     Show(list);
+                    list.Describe();
                     list.PerformLayout();
+                    var grid = ControlTree.FindByName<DataGridView>(list, ProfileList.ListName);
 
-                    var line = ControlTree.FindByName<Label>(list, ProfileList.DamagedLabelName);
-                    var button = ControlTree.FindByName<Button>(list, ProfileList.StartNewButtonName);
-                    var wanted = line.GetPreferredSize(new Size(line.Width, 0));
-
-                    TestContext.Out.WriteLine(state.Description + ": the line is " + line.Size + ", the row " +
-                                              row.Bounds + ", the refusal " + said.Bounds);
-
-                    Assert.That(line.Right, Is.LessThanOrEqualTo(row.ClientSize.Width), state.Description + ": the line runs off the page");
-                    Assert.That(line.Height, Is.GreaterThanOrEqualTo(wanted.Height), state.Description + ": the line is cut off");
-                    Assert.That(button.Right, Is.LessThanOrEqualTo(row.ClientSize.Width), state.Description + ": the button runs off the page");
-                    Assert.That(row.Bottom, Is.LessThanOrEqualTo(said.Top), state.Description + ": the row runs into the refusal");
+                    TestContext.Out.WriteLine("the profile list has " + list.Height + ", showing "
+                                              + grid.DisplayedRowCount(false) + " rows of " + grid.Rows.Count);
+                    Assert.That(grid.Rows.Count, Is.EqualTo(100), "every name is on the page");
+                    Assert.That(grid.DisplayedRowCount(false), Is.LessThan(100), "the list scrolls down through them");
+                    Assert.That(list.Height, Is.GreaterThanOrEqualTo(MinimumListHeight));
+                    Assert.That(
+                        grid.DisplayedColumnCount(false),
+                        Is.EqualTo(grid.Columns.GetColumnCount(DataGridViewElementStates.Visible)),
+                        "and never across");
+                    Assert.That(grid.HorizontalScrollingOffset, Is.Zero);
                 }
             }
         }

@@ -24,17 +24,21 @@ takes access away is a further entry, never an entry deleted or changed.
 > next write (§627, §643), and the words `split`, `outdated` and `stopped` of §656; the
 > authority and its retirements of §614, written by the plugin's own writes of §627, with the
 > records set back of §628 and what a write asks of KeePass's windows (§626), and served from what
-> stands, with `lost` (§656) answered from what the gate last served with; and the admissions and
+> stands, with `lost` (§656) answered from what the gate last served with; the admissions and
 > the revocations of §615, with a single certificate taken away (§648), by its own client or by
 > the operator, and the rule about renewals made from it: read by their meaning at every hold,
 > written by the writes of a pairing, a renewal and a certificate given up, each saved before it
 > is answered, and by the clients page at the settings dialog's OK, where the X revokes a client
-> and a row's menu takes a single certificate away (§636). §614, §615, §620, §626, §627,
+> and a row's menu takes a single certificate away (§636); and the profile names of §616, each
+> name added by a record and taken off by a record: read by their meaning with a client's
+> admission in the hold that reads it, added by a pairing in the admission's own write, and
+> added and removed on the Profiles page at the settings dialog's OK, which leaves out an Add
+> that a removal of its name overtook (§627). §614, §615, §616, §620, §626, §627,
 > §628, §633, §636, §643, §648 and §656 state which parts those are, and nothing else below
-> describes what the plugin does today. **Not built**: the profile names (§616), the rules
-> (§617) and the standing answers to a renewal as records of this store, which this build
-> keeps in custom data as 0.2.0 does; the page that seals a store again (§625) and the command
-> that starts it again (§632); the guard over KeePass's own windows, with its switch (§635);
+> describes what the plugin does today. **Not built**: the rules (§617) and the standing
+> answers to a renewal as records of this store, which this build keeps in custom data as
+> 0.2.0 does; the page that seals a store again (§625) and the command that starts it again
+> (§632); the guard over KeePass's own windows, with its switch (§635);
 > the tab's listing of the store (§636); the raising of the format, with `frozen` (§647,
 > §656); and the dialog that keeps a store among several (§649). §644 lists what is not
 > measured, with what each pull request ran of it. Each pull request that builds a part of
@@ -578,17 +582,16 @@ against 2 with it (evaluation 4.1).
   holds it: a database that 0.2 wrote keeps its custom data keys, each with a time, and stays a
   4.1 file for as long as they are in it (§645), and so does a file for anything else in it that
   is 4.1, `CA.md` §204. **Measured in the product for the parts that are built**: a saved database
-  that holds an authority and an admission in the store, and nothing of the plugin's in its
-  custom data, is a KDBX 4.0 file, and a profile name beside them takes it to 4.1, since the
-  profile names are still kept in the custom data (§616). **And through the pairing's own
+  that holds an authority, an admission and a profile name in the store, and nothing of the
+  plugin's in its custom data, is a KDBX 4.0 file (§616). **And through the pairing's own
   write**, saved by KeePass, with the version read from the file's header: an authority and a
-  client paired for no profile is a 4.0 file; paired for a profile, which the write names in the
-  list, a 4.1 file; and paired for no profile with a standing answer to its renewal beside it, a
-  4.1 file. So an admission does not move the file's version, and what the plugin still keeps
-  in custom data does, until that has moved into the store as well. *Held by*
-  `AdmissionInRealDatabaseTests.An_admission_leaves_the_file_KDBX_4_0_and_a_profile_name_beside_it_takes_it_to_4_1`
+  client paired for no profile is a 4.0 file; paired for a profile, which the write adds to the
+  list, a 4.0 file; and paired for no profile with a standing answer to its renewal beside it, a
+  4.1 file. So neither an admission nor a name moves the file's version, and what the plugin still
+  keeps in custom data does, until that has moved into the store as well. *Held by*
+  `AdmissionInRealDatabaseTests.An_admission_and_a_profile_name_in_the_store_leave_the_file_KDBX_4_0`
   and
-  `AdmissionInRealDatabaseTests.A_pairing_leaves_the_file_KDBX_4_0_and_a_profile_it_names_or_a_standing_answer_takes_it_to_4_1`.
+  `AdmissionInRealDatabaseTests.A_pairing_leaves_the_file_KDBX_4_0_whatever_it_names_and_a_standing_answer_takes_it_to_4_1`.
 
 ---
 
@@ -612,7 +615,7 @@ is left to the pull request that brings its meaning, under the item the last col
 | `client` | `client:` and `client` | `client`, and `certificate`, `der`, `issuer`, `profiles`, `subject`, `admitted` and `from` where it holds them | out of force | nothing | nothing: §615, §648 |
 | `revoked` | `client:` and `client` | `client` | counts | an item `revoked` with the same `client` | nothing: §615 |
 | `withdrawn` | `certificate:` and `certificate` | `certificate`, and `renewed` and `from` where it holds them | counts | an item `withdrawn` whose `id` is the record's identifier, with the same `certificate`, `renewed` and `from` | nothing: §648 |
-| `profile` | `profile:` and `name` | `name`, `after` | out of force | nothing | S21 |
+| `profile` | `profile:` and `name` | `name`, `after` | out of force | nothing | nothing: §616 |
 | `removed` | `profile:` and `name` | `name` | counts | an item `removed` with the same `name`, whose `id` is the record's identifier | nothing |
 | `version` | the `object` | `object`, `after`, `doc` | out of force | an item `version` whose `id` is the record's identifier, where no version in force names the record in `after` | S7, S8 |
 | `kept` | `key:` and `key` | `key`, `after` | counts | an item `kept` whose `id` is the record's identifier | nothing |
@@ -1540,7 +1543,74 @@ copies meet, and the operator adds it again (evaluation 6, row 23).
 with a deletion record at the plugin's next write (§627). A removal is never deleted, as
 measured; the design paper deleted a removal once an addition in force named it. What a name
 means is unchanged: a name the list does not hold grants nothing, whatever rule still names it,
-`DESIGN.md` §139. Whether the list keeps a ceiling is S21.
+`DESIGN.md` §139.
+
+**Which records count** (this document's own). A record of kind `profile` is an addition where it
+is in force, reads as its kind, and its `name` is a name the issuer could issue as a claim,
+`AuthorityIssuer.IsUsableProfileName`, the single rule of a name in `DESIGN.md` §139. Names are
+compared exactly, by ordinal. A record whose `name` is no such name is no addition anywhere: it
+puts nothing on the list and stops nothing, since §658 has the core hold `name` as a text it does
+not look into. `after` names each identifier once, in ordinal order, separated by single spaces,
+and is empty where the writer read no removal of the name; it is read as a set. **The removals an
+addition has to name** are every pair of a name and an identifier that the reading holds: a
+record of kind `removed` by its identifier, an item `removed` by its `id`, and a deletion record
+that tells of a removal by its own identifier (§623 step 2), a removal known in several of those
+ways counted once. A removal whose `name` is no name an addition can carry is a removal of nothing
+on the list, and an item whose `id` is no identifier can be named by no addition, so its name
+stays off the list. It rules out a second rule for a name beside the issuer's, a comparison
+without case, and a store stopped for a name out of form.
+
+**What the plugin writes** (this document's own, as the measured code writes an addition and a
+removal).
+An addition names every removal of its name that the reading it is composed over holds, and is
+composed only where the name is not on the list. A removal holds `name` alone, and is composed
+only where the name is on the list, so no removal is written for a name already off it, which
+would add an item for good with nothing to take away. **A pairing's additions are records of the
+admission's own act**, after its record of kind `client`: an addition for each approved name the
+list does not hold in the reading of the write's turn, so that the names and the admission are
+planned, saved and taken back together, and left out together where the admission's issuer does
+not stand alone (§627). **A name is added only where a store key stands** (§627 step 1): where
+none stands, the Profiles page refuses the press and states that the database has no certificate
+authority yet, and with a Create held by the same dialog the act is composed under the key that
+Create brings and written in the same write, after it.
+
+**The list keeps no ceiling** (S21). No write of the plugin's own refuses a name for the count of
+names the list holds, and the reading cuts nothing short. What stays is a rule of a request and
+not of the list: a pairing asks for 32 names at most, which is what the wire takes.
+
+**Where a name is read** (this document's own). The gate reads a client's names in the hold that
+reads its admission, from the same reading, and a reading that serves no authority gives the gate
+no names: a hold of its own for the names would hold KeePass's thread again at every request. A
+held approval is compared at its write, name by name, with the names on the list in the reading of
+the write's turn, `PAIRING.md` §311. The log names an act about a name by the name at the settings
+dialog's OK, and the audit holds no line for a name added or removed, `DESIGN.md` §120. The grant
+editor's pick list is read from the store at each redraw of its tab, and is empty where the store
+names nothing or cannot be read, so it never offers a name removed since. The Profiles page
+offers no Add and no removal where nothing is written into the store in the session, as the
+clients page offers no revocation, and the first page of the tab states why (§636); nor where the
+store cannot be judged, under several keys or in a form the plugin does not read, where the
+clients page lists nobody and so offers nothing.
+
+**What is built.** The records, their reading and their writes as this section has them:
+`ProfileNames` reads the names from a reading of the store, `ProfileActs` composes an addition and
+a removal and composes each again over the store as it stands at OK, and a pairing's act carries
+its additions after the admission. The gate reads a client's names with its admission, a held
+approval is compared name by name in the write's turn, the Profiles page writes each name through
+the store, refuses a name where no store key stands and offers no Add and no removal where
+nothing is written into the store or the store cannot be judged (§636), and the grant editor's
+pick list is read from the store. An Add that a removal of its name overtook before OK is not
+written: the page's line states it while the dialog is open, the log names the name at OK, and
+the name comes back by being added on the page again (§627). The names over copies that are
+synchronized are run over real databases, with what of that run stays owed in §644 item 32.
+*Held by* `ProfileNamesTests`,
+against the store's meanings of the measured code (`tests/Shared/StoreMeaningVectors.json`), and
+by every rule of this section over the product's reading, a hundred names among them;
+`ProfileActsTests`, against its records (`StoreRecordVectors.json`); `AdmissionActsTests`;
+`PendingRecordsTests` for the buffer, its fold and the additions it leaves out; `ProfileListTests`
+and `DatabaseProfilesTests` for the page; `GateTabFitsTests` for the page with a hundred
+names, and with the longest of each sentence its line holds, the refusal where no store key
+stands among them; and `StoreProfileMergeTests` for names added and removed in copies of a real
+database, each merged into the other under each of KeePass's methods.
 
 ### Rules §617
 
@@ -1858,9 +1928,17 @@ entries without history, the hold measured 16.9 ms for a pairing's admission bes
 statements, and 27.2 ms for the renewal at the end of a chain of `from` as long as the
 statements, each renewed from the certificate before it and naming the next (§648 rule 4):
 following a chain as long as the store can hold costs about 10 ms over the statements alone.
-So the estimate holds in its shape, the walk somewhat dearer in the product, and reading every
-entry at every request stays well within the five seconds a hold is let run, with a full
-history on every entry the case that shows. *Held by*
+**With the names read in that hold as well** (§616), beside the same store, a single admission
+and 32 names on the list, the hold measured 2.78 ms at the median and 3.95 at worst, against
+2.72 ms for the admission alone in the same run; where every entry holds ten history items,
+57.3 ms against 58.4. Beside a single name removed and added again 7,936 times, the most that
+fit the addition's content, each removal an item of the summary entry and the addition naming
+all those removals, it measured 8.85 ms, 14.7 at worst, and 64.3 ms with the history: the names
+cost about 6 ms at that bound and nothing a run can tell at 32 names (`StoreReadingCostTests`,
+explicit, in Release, the median of 21 after a first). So the estimate holds in its shape, the
+walk somewhat dearer in the product, and reading every entry at every request stays well within
+the five seconds a hold is let run, with a full history on every entry the case that shows.
+*Held by*
 `StoreReadingBoundTests`, `StoreReadingTests` and
 `StoreInRealDatabaseTests`: a string replaced by an object of another text is read at the next
 hold with the entry's times left as they were; a second question inside a hold walks nothing;
@@ -1877,7 +1955,12 @@ present, in force and told of by deletion records, what the retirements, the rev
 removals take away by record, by item and by deletion record, and the statements that took
 certificates away by record, by item and by a deletion record of an admission key the file knows
 (steps 1, 2, 4 and 7), the highest format number and plugin version (step 6), the authorities that
-stand, and the room of §627. The admission keys the file knows are those of step 2: the
+stand, and the room of §627. The records of kind `profile` under the key are kept, in force or
+not, with the texts of §658, and the removals of each name by their identifiers, a removal known
+as a record, an item and a deletion record counted once: what the write of §627 step 3 deletes
+additions by. Which names are on the list (§616) is worked out from those by `ProfileNames`, from
+the reading of each hold that asks, and kept nowhere. The admission keys the file
+knows are those of step 2: the
 `certificate` and the `from` of every record of kind `client` present under the key, in force or
 not, each where it is an admission key, and what the records and the items that took certificates
 away name; they are gathered only where a deletion record under the key carries the tag of a
@@ -1888,11 +1971,11 @@ connection is parsed there and kept nowhere, and every admission is parsed only 
 dialog that lists them. The authorities that stand under each key that stands are worked out for
 every state but no key and a store past `StoreFormat.MaxKeys`, of which no key is judged, as a
 word is answered under them (§656). What each kind means for access beyond that (steps 3 and 5)
-is built by the pull requests that bring each kind's meaning, the authority's (§614) and the
-admission's (§615) among them. The authority a database is served with is the single authority
-that stands in a store that is whole, read from the version that passed, and every admission
-holds the target it is made on to what the store then reads: the authority's entry, the version
-of it that passed, and that it still stands alone, so a retirement
+is built by the pull requests that bring each kind's meaning, the authority's (§614), the
+admission's (§615) and a profile name's (§616) among them. The authority a database is served
+with is the single authority that stands in a store that is whole, read from the version that
+passed, and every admission holds the target it is made on to what the store then reads: the
+authority's entry, the version of it that passed, and that it still stands alone, so a retirement
 written under a target already handed out refuses from that target's next admission on. A database
 whose store holds no key is served nothing, and a gate that was serving it when the key went answers
 `lost` from what it served with (§656). *Held by* `StoreReadingTests`, `StoreReadingStatesTests`,
@@ -1903,7 +1986,8 @@ and `LiveAuthorityTests`; the admission keys by `StoreInForceTests`: a deletion 
 certificate taken away tells of it by the `certificate` of an admission, in force or not, and by
 the `from` of a renewal, as a statement of its own that the room counts; a text that is no
 admission key adds no key; and a store with admissions hashes no subject for them until a
-deletion record carries that tag.
+deletion record carries that tag; and the removals of a name, by record, by item and by deletion
+record, a removal known all three ways counted once, and the additions, in force or not.
 
 ### Which entries are records §621
 
@@ -2423,10 +2507,10 @@ holds no copy of an entry. The store write of the settings dialog's OK is refuse
 Maintenance and under the TAN wizard as a whole, every act of it with it, while the tab's changes to
 custom data beside that write are asked nothing; neither window can stand beside the settings
 dialog, each being modal. A pairing's and a renewal's write, and a certificate given up, are
-refused under Database Maintenance for what each still writes into the custom data: a profile
-name that a pairing adds, and the standing answers to a renewal that each of them takes away once
-no admission names their certificate (§618). The admission itself is an entry, asked about once
-the plan exists, as above. *Held by* `StoreWritesUnderDialogsTests`,
+refused under Database Maintenance for what each still writes into the custom data: the standing
+answers to a renewal that each of them takes away once no admission names their certificate
+(§618). A profile name that a pairing adds is an entry of the store (§616), and so is the
+admission itself, each asked about once the plan exists, as above. *Held by* `StoreWritesUnderDialogsTests`,
 `AuthorityChooserInRealDatabaseTests` and
 `PairingInRealDatabaseTests.A_pairing_while_an_entry_dialog_holds_the_summary_entry_is_busy_and_spends_nothing`.
 
@@ -2453,8 +2537,10 @@ step names another source:
 2. **The records of the act are added** to the plugin's group, and with them a version record
    where §650 has the write carry it (proposed).
 3. **What a record present replaces is deleted, with a deletion record**: every version that a
-   present version names; every profile addition that does not name every known removal of its
-   name; every admission whose client key is revoked or whose issuer is retired; every authority
+   present version names; every profile addition, in force or not and whatever its `name`, whose
+   `after` does not hold every removal of its name that the store or the write's own records know
+   (§616), and no other addition, none that the write adds among them; every admission whose
+   client key is revoked or whose issuer is retired; every authority
    that is retired; and every summary entry present, with every summary entry those name. A
    deletion record is written as well for a replaced record that this copy does not hold, so
    that the record stays out of force when a merge brings it. An admission whose certificate was
@@ -2686,11 +2772,44 @@ it; **Allow renewal** is an answer whose `after` is what the page showed when it
 an answer the renewal dialog wrote underneath is made apart and the refusal stands; and a
 revocation is an addition that cannot fail in the buffer.
 
+**What the buffer holds for a name** (this document's own). An act about a name, an addition or a
+removal, holds what is to be done, as an act on a client does: it is composed again wherever the
+buffer is read and at OK, under the key that stands then. **The buffer holds the operator's last
+press for each name and no earlier press**: a press about a name takes every act held about that
+name out of the buffer, and is held itself only where it still has something to write against
+the store with the acts left. So a name added and removed on a single dialog, or removed and
+added again, writes nothing; written as records, the pair would leave an item in every later
+summary entry for good. **An addition names the removals of its name that the page's reading held
+at the press.** Where the store at OK knows a removal of the name beyond those, or has the name
+on the list, nothing is written for the press, and the log names it. A removal is written where
+the name is on the list at OK. That is the reading this section gives **Allow renewal**: a
+removal made apart, which the operator never saw, is not overruled by a press made before it
+arrived, as §610 has records made apart give the narrower answer. It rules out an addition
+composed at OK against whatever stands then, and an act composed once under a key that went.
+
+| Under the dialog | Held on the tab | At OK |
+| --- | --- | --- |
+| a pairing adds the name `x` | nothing about `x` | `x` stays: nothing of the tab's is written over anything |
+| a pairing adds `x` | Add `x` | nothing is written for the press; `x` is on the list by the pairing's addition |
+| a pairing adds `x`, and the page then shows it | Remove `x`, pressed on that row | a removal is written, and the same write deletes the pairing's addition, which did not see it |
+| a merge brings a removal of `x` that no addition names | Add `x`, pressed before | nothing is written, and the log names the press |
+| nothing | Add `x`, then Remove `x` | nothing is written |
+| nothing | Remove `x`, then Add `x` | nothing is written, and `x` stays as it was |
+
+**The Profiles page's line names a removal made apart** (this document's own) as why a name the
+last press added does not show, and only where that is why: `PendingDatabase.OvertakenNow` finds
+the additions held that a removal the press never saw leaves out, as the OK's write finds them,
+by reading alone. For any other cause, the authority the name was added under gone or the store
+split or stopped under the dialog, the line states only that the store as it stands cannot take
+the name. Either way OK writes nothing for the press and the log names it; the name comes back by
+being added on the page again. *Held by* `ProfileListTests` and `PendingRecordsTests`.
+
 **What the buffer holds, and what OK does with it** (this document's own). Each press on the
 tab puts its act into the buffer. An act of the authority's, a retirement or an authority with
 its certificates and its keys, is composed at the press, from the store as the page showed it.
-**An act on a client or on a certificate holds what is to be done**, the client to revoke or
-the certificate to take away, and its records are composed wherever the buffer is read and in
+**An act on a client, on a certificate or about a name holds what is to be done**, the client to
+revoke, the certificate to take away or the name to add or remove, and its records are composed
+wherever the buffer is read and in
 the write at OK, against the store as it stands then with the acts pressed before it planned
 over it together, as the single write OK makes of them. So a revocation is written under the
 store key that OK finds, a certificate taken away names the renewals the store holds at OK, a
@@ -2786,7 +2905,7 @@ then the save, and the write believed or taken back as this section has it. An a
 back by its own entries, and a certificate given up is believed on the flag and the file. Taken
 back are the entries added, the entries deleted with their deletion records, the deletion records
 added, the records set back and a group made, and with them what the same turn wrote into the
-custom data or took out of it: a profile name, and the standing answers to a renewal. A database
+custom data or took out of it, the standing answers to a renewal. A database
 that closed inside the save is taken nothing back from, and no certificate is handed over. A write
 that stands has KeePass's group tree and entry list rebuilt, since it adds and deletes entries of
 the plugin's group, `DESIGN.md` §119. **What a pairing's write holds KeePass's thread for**
@@ -2798,11 +2917,30 @@ reading with every entry, the plan, the entries asked about, the application, th
 back and the file hashed back, took 13 ms, and 73 ms where every entry holds ten history
 items. With KeePass's own save of the database the turn took 127 ms, and 4.8 seconds, 10.8 at
 worst, where every entry holds ten history items. So the save is what grows, and the store's
-part of a pairing's turn is what its reading costs (§620). **The operator's revocation is an
+part of a pairing's turn is what its reading costs (§620). **A pairing that approves 32 names
+the list does not hold**, each an addition of the admission's own write, took 24.0 ms at the
+median and 38.0 at worst against 12.8 ms in the same run for a pairing whose name the list held,
+and 89.7 against 74.0 ms where every entry holds ten history items
+(`StoreReadingCostTests.What_a_pairing_s_write_approving_32_new_names_holds_the_thread_for`):
+about 11 to 16 ms for the most names a pairing can ask for. Each figure was measured with no
+settings, group or entry dialog open. The KPG tab of each such dialog open as the record lands
+reads its own database's store again inside the same turn, the settings tab for its redraw and
+the grant editor for its pick list (`GrantPanel.Resync`), since the notice that a record landed
+names no database and each tab shows what its own database holds: each adds a reading of a store
+(§620) to the turn. **The operator's revocation is an
 act**, held by the buffer beside the authority's acts and written at OK. Every write deletes
 the records of kind `client` that step 3 names, by the texts §658 keeps, the write's own
 records counting as present, so a revocation, a certificate taken away, a Recreate and a Delete
-each delete in their own write the admissions they refuse. **A client's write is answered the
+each delete in their own write the admissions they refuse. **Every write deletes the profile
+additions that step 3 names** as well: each record of kind `profile` present under the key, in
+force or not and whatever its `name`, whose `after` does not hold every removal of its name that
+the store or the write's own records know, a removal known as a record by its identifier, as an
+item by its `id` and as a deletion record by its own identifier; no other addition, and none the
+write adds. So what this deletes is an addition a merge brought, or an addition that a removal
+arrived after. **The acts about a name are built as the buffer holds them**: the last press for each
+name, composed again at OK, the additions of a pairing in the admission's own act, and an
+addition left out at OK for a removal the press never saw named in the log.
+**A client's write is answered the
 store's word** where the store holds the gate back in the writer's turn, above (§644 item 26).
 **The tab's OK meets no save of the plugin's own**, above (§644 item 30), so nothing was built
 for it. **The single removal on the clients page is written as the revocation is**, by the
@@ -2819,14 +2957,19 @@ once among them, and a record of kind `client` deleted where its client is revok
 retired or its certificate taken away, by a record, an item, a deletion record and the write's
 own record, in force or not and read or not, and left where it names nothing refused
 (`An_admission_that_reads_is_deleted_by_what_refuses_it_and_one_nothing_refuses_is_left` for an
-admission that reads);
+admission that reads), and a profile addition deleted where a removal of its name that it does
+not name is known by a record, an item, a deletion record and the write's own record, in force
+or not and whatever its name, and left where it names every removal of its name or is the
+write's own;
 `PendingRecordsTests`; `StoreWritesInRealDatabaseTests`, the group a write goes into and a
 write applied to a database read as the same write applied in memory among them; and the writes
 that save by `PairingInRealDatabaseTests` and `RenewalInRealDatabaseTests`, among them
 `A_pairing_deletes_an_admission_that_came_back_beside_its_revocation`,
-`A_pairing_leaves_the_admission_of_an_expired_certificate_where_it_is` and
-`A_pairing_that_lands_rebuilds_the_tree_and_the_entry_list`, and by `GiveUpInRealDatabaseTests`
-for a certificate given up.
+`A_pairing_leaves_the_admission_of_an_expired_certificate_where_it_is`,
+`A_pairing_that_lands_rebuilds_the_tree_and_the_entry_list`,
+`A_pairing_for_a_name_that_was_removed_names_the_removal_and_deletes_the_addition_it_defeated`
+and `A_pairing_whose_save_fails_puts_back_the_addition_its_write_deleted`, and by
+`GiveUpInRealDatabaseTests` for a certificate given up.
 
 ### A record written again §628
 
@@ -3807,6 +3950,12 @@ guard as product code, with its setting, was not run (§644).
   yet or is about to lose. A client revoked on the page, or a certificate taken away there,
   changes nothing about which authority a code pairs with. *Held by*
   `AuthorityPanelTests.A_revocation_waiting_for_OK_leaves_inviting_as_it_was`.
+- **Its Profiles page adds a name and takes a name off the list** (§616), each an act of the
+  store that waits for OK (§627). Built: the row that adds a name, which refuses a name where
+  no store key stands and states that the database has no certificate authority yet; the X on
+  each row; and the line stating that OK will not add a name the last press added, in the form
+  for a name removed in another copy while the dialog stood and in the form for every other
+  cause (§627). *Held by* `ProfileListTests`, `DatabaseProfilesTests` and `GateTabFitsTests`.
 - **It shows entries that are passed over**: an entry with `KPG.` strings that is not the
   store's (§621). It lists no copy as taking anything away.
 - **It states a database that keeps little or no history** (decision 20), since in such a
@@ -3826,9 +3975,12 @@ guard as product code, with its setting, was not run (§644).
   where the dialogs that would take a write back are not watched (§627), and states that and
   why, as under a word. The clients page then shows no X, and its rows' menus neither
   **Revoke** nor **Take certificate away**; **Allow renewal** stays, since the standing answers
-  are kept apart from the store. Built, and held by `AuthorityPanelTests`, `OpenDatabaseTests`,
-  `ClientListTests.Where_the_store_takes_no_write_no_row_carries_the_X` and
-  `ClientListMenuTests.Where_the_store_takes_no_write_the_menu_offers_Allow_renewal_alone`.
+  are kept apart from the store. The Profiles page then shows neither the row that adds a name
+  nor an X (§616), and shows neither under a store that cannot be judged either, where the
+  clients page lists nobody. Built, and held by `AuthorityPanelTests`, `OpenDatabaseTests`,
+  `ClientListTests.Where_the_store_takes_no_write_no_row_carries_the_X`,
+  `ClientListMenuTests.Where_the_store_takes_no_write_the_menu_offers_Allow_renewal_alone` and
+  `ProfileListTests.A_page_over_a_store_that_takes_no_write_offers_no_Add_and_no_X`.
 
 Nothing of the tab was run.
 
@@ -4735,7 +4887,33 @@ that finds a measurement against a decision reports it and does not design aroun
     since it fits, and from then on every write is refused for the ceiling while the store is
     served, against §627. No record of kind `version` is written yet. Owed by the pull request that
     builds the rules: the room holds the longest item it would carry to the ceiling, or a rule's
-    version is composed only where its item fits.
+    version is composed only where its item fits. An item `removed` holds a name of 64
+    characters at most and an identifier, far below the ceiling, so the names owe nothing here.
+32. **A name added in a copy and removed in another** (§642 row 23), measured in the model alone:
+    over real databases the product wrote, brought together by `PwDatabase.MergeIn` under each
+    method, in each direction and whatever became of the entries' times; and the same merged by
+    KeePassXC, between two KeePass instances with the plugin, and on a device. *Run* over real
+    databases the product wrote, merged by `PwDatabase.MergeIn` under each of KeePass's methods in
+    each direction, by `StoreProfileMergeTests`: a name added in each copy apart is on the list;
+    a name both copies hold, removed in a copy, is off it; removed in each copy and added again in
+    a copy, it is off it until added again after the copies met, when the addition names both
+    removals and it is on it; a pairing's new name arrives on the list, and a pairing that put a
+    removed name back is overruled by a removal in the other copy; a removal deleted for good
+    still takes the name off by the summary entry that restates it; twenty names added in each
+    copy are all on the list; a name removed in a copy stays off with the removal's entry dated
+    back a year and the other copy's addition stamped a day ahead; an addition deleted by hand
+    takes the name off wherever its deletion record is, which only a Synchronize carries, so a
+    copy merged into by another method keeps the name (row 24); an addition duplicated and
+    deduplicated by KeePass's Delete Duplicate Entries, which kept the duplicate under another
+    identifier, takes the name off as the deletion of the entry written as the addition does
+    (row 24); and a removal both copies hold, edited in a copy past the history limit, stops the
+    store wherever the edited entry is kept, which is every method but OverwriteExisting into
+    that copy and KeepExisting into the other, and the name stays off where the version written
+    is kept (§622). Under Create new IDs each copy names what it named before. The next write of
+    the plugin's own leaves every answer as it was and no addition a removal defeated. And the
+    model's sequence of names is played through the product's acts and held to the model's file
+    by shape, `StoreWriteShapeTests`. *Still owed*: KeePassXC's merge, two KeePass instances
+    with the plugin, and a device.
 
 ---
 
@@ -4781,19 +4959,24 @@ store's group by the rule of the root, and with no rule at the root it serves no
 `docs/`, as a short section "Moving from 0.2" on the getting-started page (§654). The breaking
 item is written with the code (below). The section in `docs/`, with the steps in this order,
 is written by the pull request that writes the operator's documentation of the store, once
-every part of the store is built. Until then a build still reads the profile names and the
-rules where they were kept before, so the steps would not hold of that build, and the path of
-the last step can be verified only against a plugin that reads nothing of what is cleared
-(§644).
+every part of the store is built. Until then a build still reads the rules and the standing
+answers to a renewal where they were kept before, so the steps would not hold of that build, and
+the path of the last step can be verified only against a plugin that reads nothing of what is
+cleared (§644).
 
-**No client program has to change for 0.3.0 but a program that named fields of its own with the
-prefix `KPG.`**, which is why it is a minor release. Such a field is out of every route from
-0.3.0 on (§633), so such a program renames those fields before the upgrade, and the release
-notes mark that as breaking, as `API.md` §411 records. `API.md` §411 has a change break a client
-when a program that worked before has to change. Pairing again is
-the operator's act and the client's ordinary command. A word that §656 adds is answered under
-`503`, and a 0.2 client takes a word it does not know for the gate being unavailable (read from
-the client). So a 0.2 client works with a 0.3 gate, as §411 has it. §411 also counts what a
+**Two client programs have to change for 0.3.0**, which a 0.x minor release may ask (`API.md`
+§411). **A program that named fields of its own with the prefix `KPG.`**: such a field is out of
+every route from 0.3.0 on (§633), so such a program renames those fields before the upgrade. **And
+a program that reads the identity route through the 0.2 client**: with the names in the store,
+a list of profiles that will not read is no state, since a damaged record of a name stops the
+store (§621, §624), so `GET /gate/whoami` answers no `profilesUnreadable`. The 0.2 client
+refuses an identity without that member, so its `identity()` and `whoami` fail against a 0.3
+gate until the client is updated. The release notes mark both as breaking, as `API.md` §411
+records. `API.md` §411 has a change break a client when a program that worked before has to
+change. Pairing again is the operator's act and the client's ordinary command. A word that §656
+adds is answered under `503`, and a 0.2 client takes a word it does not know for the gate being
+unavailable (read from the client). So a 0.2 client works with a 0.3 gate on every route but the
+identity route. §411 also counts what a
 certificate or an admission record carries: the admission changes where it is stored and what
 it names (S4, S29), and that holds only while nothing of it changes what a client is sent. The
 admission is built that way (§615): the bundle that a pairing and a renewal answer with is as it
@@ -5004,12 +5187,13 @@ fixed, and the list above names where: S1, S12, S13, S16, S20, S23, S26, S31 and
   discards; a row that was not changed adds nothing; and a rule narrowed while a save runs does
   not leave the file with the older rule (row 15 of §639, whose cover names the plugin's group
   written last in the file).
-- **S21. A ceiling on profile names, and on the profiles ruled at a node.** Today the list holds
-  at most 32 names, which is `JsonBody`'s ceiling for an array, and a rule document holds at
-  most 31 profiles, `DESIGN.md` §136. With an entry for each addition and a record for each node
-  and profile, the format has neither ceiling. Not fixed: whether a ceiling is kept for either.
-  Has to satisfy: what a ceiling refuses denies and never cuts short; and the grant editor's
-  table and the summary entry's item names (S13) hold what the ceiling allows.
+- **S21. A ceiling on the profiles ruled at a node.** The list of profile names keeps no ceiling
+  (§616), the project's answer: no write of the plugin's own refuses a name for the count of names
+  on the list, and a pairing asks for 32 names at most, which is what the wire takes. A rule
+  document holds at most 31 profiles, `DESIGN.md` §136, and with a record for each node and
+  profile the format has no ceiling. Not fixed: whether a ceiling is kept for the profiles ruled
+  at a node. Has to satisfy: what a ceiling refuses denies and never cuts short; and the grant
+  editor's table and the summary entry's item names (S13) hold what the ceiling allows.
 - **S28. The command that starts the store again, in its texts and its place** (§632). Decided:
   the command, its warning, a store under a new key, every other key set aside. Proposed: what
   it writes. Not fixed: its caption, the words of its warning, and on which page of the tab and

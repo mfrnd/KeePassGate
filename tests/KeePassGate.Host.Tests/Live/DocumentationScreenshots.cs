@@ -128,12 +128,6 @@ namespace KeePassGate.Host.Tests.Live
             // and driving a dropdown to produce one would screenshot the automation instead.
             _session.KeePass.Grant(Rules.Granting((Profile, "RLA")));
 
-            // And the names that rule is written against, which is what the profiles page lists.
-            // The second one carries no rule anywhere and is held by the same client, so the page
-            // shows the two counts beside a name disagreeing, which is the pair of numbers it
-            // exists to tell apart.
-            _session.KeePass.NameProfiles(Profile, SecondProfile);
-
             Capture();
         }
 
@@ -205,6 +199,14 @@ namespace KeePassGate.Host.Tests.Live
             _session.KeePass.Stop();
             Thread.Sleep(1000);
             _session.KeePass.SeedAuthority();
+
+            // And the names the rule is written against, which is what the profiles page lists:
+            // records of the plugin's store, so under the store key the authority just started,
+            // and after the picture above, of a database holding nothing of the plugin's. The
+            // second carries no rule anywhere and is held by the same client, so the page shows
+            // the two counts beside a name disagreeing, which is the pair of numbers it exists to
+            // tell apart.
+            _session.KeePass.NameProfiles(Profile, SecondProfile);
 
             driver = KeePassDriver.Start(_session.KeePass);
             WaitUntilServing(driver, 1, 0);

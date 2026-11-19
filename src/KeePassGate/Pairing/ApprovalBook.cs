@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
@@ -109,8 +108,9 @@ namespace KeePassGate.Pairing
         /// **This is the read a record's names are written from**, `DESIGN.md` §124: what the
         /// handler read on its connection thread built the dialog and nothing more. A renewal's
         /// decision rests on every name its record carries, those the dialog offered and those it
-        /// showed as dropped, so a read that missed the list while the dialog was built, and
-        /// offered nothing, is caught here rather than written as a record with no profiles.
+        /// showed as dropped, so a dialog built from a reading the list changed after, which
+        /// offered fewer names than the write's reading holds, is caught here rather than written
+        /// as a record with fewer profiles.
         ///
         /// **The admission**, for a renewal: still admitting, and still the entry the operator
         /// approved against. A revocation or a certificate taken away that landed after the
@@ -121,8 +121,7 @@ namespace KeePassGate.Pairing
         /// </remarks>
         public HeldStaleness Stale(IWriteGround ground, string admissionKey)
         {
-            var store = ground == null ? null : ground.Names;
-            if (store == null)
+            if (ground == null)
             {
                 return HeldStaleness.Unpaired;
             }
@@ -136,16 +135,9 @@ namespace KeePassGate.Pairing
                 }
             }
 
-            var stored = store.Get(ProfileNames.CustomDataKey);
-            if (!ProfileNames.Readable(stored))
-            {
-                return HeldStaleness.Profiles;
-            }
-
-            var names = ProfileNames.Read(stored);
             foreach (var profile in _asked)
             {
-                if (names.Holds(profile) != _listed.Contains(profile))
+                if (ground.Named(profile) != _listed.Contains(profile))
                 {
                     return HeldStaleness.Profiles;
                 }

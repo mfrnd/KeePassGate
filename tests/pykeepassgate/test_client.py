@@ -1222,7 +1222,6 @@ BOUNDED: dict[str, tuple[Callable[[GateClient], object], dict[str, Any]]] = {
             "expires": "2027-02-03T04:05:06Z",
             "profiles": ["reader"],
             "removedProfiles": [],
-            "profilesUnreadable": False,
         },
     ),
     "group_access": (lambda client: client.group_access(), {"grants": {}}),

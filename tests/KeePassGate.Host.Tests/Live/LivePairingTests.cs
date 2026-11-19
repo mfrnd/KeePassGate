@@ -103,7 +103,7 @@ namespace KeePassGate.Host.Tests.Live
 
             _exited = driver.ShutDown();
             _recordsInTheFile = keePass.ReadAdmissions();
-            _profilesInTheFile = ProfileNames.Read(keePass.ReadCustomData(ProfileNames.CustomDataKey)).Names;
+            _profilesInTheFile = keePass.ReadProfileNames();
 
             _pluginLog = keePass.ReadPluginLog();
             TestContext.Out.WriteLine("Plugin log:");

@@ -20,8 +20,10 @@ none, since it releases both.
   database's custom data, and that is reversed rather than migrated: 0.3 reads nothing there about
   the authority and changes nothing there, so a database 0.2 paired shows no authority on the tab
   and is served nothing until **Create authority** and OK, from which it is served; a save puts the
-  authority in the file. Each program then pairs again. The admission records and the revocations
-  0.2 wrote stay where they were, are read by nothing, and admit and refuse nobody. A
+  authority in the file. Each program then pairs again, and the profile names are entered again
+  once the authority is created, on the Profiles page or by approving a pairing that asks for
+  them, below. The admission records, the revocations and the list of profile names 0.2 wrote
+  stay where they were, are read by nothing, and admit, refuse and name nobody. A
   database whose store holds no key is served nothing, but for `503 lost` below. An edit to what the
   plugin wrote in an entry of the store is undone at the plugin's next write into the store, with
   the edit kept in the entry's history; in a database that keeps no history such an edit stops the
@@ -59,12 +61,58 @@ none, since it releases both.
   them, as before. A pairing, a renewal or a certificate given up is answered `503 busy` while
   KeePass's entry dialog is open on an entry of the plugin's group that the write would delete or
   put back, and while Database Maintenance is open, as before. Nothing a program is sent changes.
-  **A paired database is a KDBX 4.0 file until a profile is named.** A saved database that holds
-  an authority and a program paired for no profile is a 4.0 file, where the first program paired
-  used to make it a 4.1 file. A profile name still takes the file to 4.1, on the Profiles page or
-  by approving a program for a name the database does not hold yet, and so does a renewal
-  refused forever or until a day, since the profile names and those answers are kept in the
-  database's custom data. `STORE.md` §612, §615, §626, §627 and §648.
+  **A paired database is a KDBX 4.0 file until a renewal is refused forever or until a day.** A
+  saved database that holds an authority, a profile name and a program paired, and nothing of
+  the plugin's in its custom data, is a 4.0 file, where the first program paired and the first
+  profile named each used to make it a 4.1 file. A renewal refused forever or until a day still
+  takes the file to 4.1, since those answers are kept in the database's custom data, and a
+  database that 0.2 wrote stays a 4.1 file for as long as what 0.2 kept there is in it.
+  `STORE.md` §612, §615, §626, §627 and §648.
+- **Breaking: the profile names are records in the plugin's store, and a database is given its
+  names again.** Each name is added by an entry of the group `KeePassGate` and taken off the list
+  by a further entry. 0.2 kept the whole list as a single value in the database's custom data,
+  `KPG.Profiles`, and that is reversed rather than migrated: 0.3 reads nothing of that value, so
+  in a database whose profiles 0.2 named, the Profiles page lists no name, and each name is
+  entered again there or comes back when a pairing that asks for it is approved. The rules on
+  groups and entries stay where they were, and a rule applies again once the name it is for is
+  on the list.
+  **A name needs the authority first.** On a database with no authority the Profiles page
+  refuses a name with "This database has no certificate authority yet. Create it on the
+  Certificate Authority page first."; a name added after **Create authority** on the same visit
+  to the dialog is written with the authority at OK. 0.2 took a name before any authority.
+  **The list has no ceiling.** 0.2 held 32 names at most: the page refused a further name, and
+  a name that a pairing or the dialog's OK brought to a full list was left off. A pairing still
+  asks for 32 names at most. **Copies of a database that each changed their names keep every
+  change once they are synchronized in KeePass.** A name added in a copy is on the list in
+  every copy it is synchronized with, and a name removed in a copy is off the list in each,
+  including where another copy had added it again without knowing of that removal, until it is
+  added again; 0.2 kept the list of the copy changed last and dropped every other copy's. A
+  pairing approved for a name the list does not hold adds the name in the same write as the
+  admission, saved with it and taken back out with it where the save fails, as before. A name
+  added and removed again on a single visit to the settings dialog writes nothing. Where
+  nothing can be written into the plugin's group in the session, and where the database is
+  answered `503 split` or `503 outdated`, below, the Profiles page shows neither the row that
+  adds a name nor the X. `STORE.md` §616, §627 and §636.
+- **A name added on the Profiles page is not written over a removal that arrived before OK.** A
+  removal wins over an addition made without knowing of it, on the settings dialog as between
+  copies: where a removal of the name, made in another copy of the database, is synchronized in
+  while the dialog is open, OK does not add the name. The line under the list states so while
+  the dialog is open, and the plugin's log names the name at OK. Everything else on the tab is
+  written, and the name comes back by being added on the page again. `STORE.md` §627.
+- **Breaking: `GET /gate/whoami` answers no `profilesUnreadable`, and PyKeePassGate has no
+  `Identity.profiles_unreadable`.** A list of profiles that will not read is no state of a 0.3
+  database: a record of a name that will not read stops the store, as any record of the store
+  that will not read does, and every request is then answered `503 stopped`, below. So the
+  member is gone from the route and from the routing document, `whoami` prints no `profile list`
+  line and no `profilesUnreadable` under `-o json`, and `testing.identified` takes no
+  `profiles_unreadable`. A program that reads `Identity.profiles_unreadable`, or passes
+  `profiles_unreadable` to the stand-in gate, removes that. **A 0.2 client's `identity()` and
+  `whoami` fail against a 0.3 gate**, with a `ProtocolError`, since that client requires the
+  member; update the client with the plugin. What went with the state: a pairing and a renewal
+  are never answered `503 busy` for the list, the audit writes no `reason` of `profile list
+  unreadable`, so a refusal that a name off the list would have allowed is `profile removed`
+  whatever took the name off, and the Profiles page has neither its line for a list that will
+  not read nor **Replace it with a new list**. `STORE.md` §616 and §645, and `API.md` §411.
 - **The row of an expired certificate stays on the clients page**, reading `expired`, until the
   certificate is taken away, its client is revoked or the authority is recreated or deleted. It
   used to go with the plugin's next change to the database, on the clock of the computer that
@@ -95,8 +143,7 @@ none, since it releases both.
   as the recycle bin is, and a group holding such an entry cannot be removed. An entry of the
   operator's is taken for such an entry only where its identifier begins with a tag the store's
   key gives, which a random identifier meets about once in one and a half million entries.
-  Nothing else changes for a program, and a 0.2 client works with a 0.3 gate, `API.md` §411.
-  `STORE.md` §633.
+  Nothing else about fields changes for a program. `STORE.md` §633.
 - **A gate answers `503 lost`, `503 split`, `503 outdated` or `503 stopped` to every request for a
   database whose store holds it back, and PyKeePassGate raises `StoreLost`, `StoreSplit`,
   `StoreOutdated` and `StoreStopped` for them.** `lost` is a database whose file holds no store key

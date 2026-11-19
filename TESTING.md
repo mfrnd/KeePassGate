@@ -152,19 +152,24 @@ JSON file is that command's output with `--readings`, byte for byte, so a reader
 the one command. The three words of the measured reading's status are written as the product's
 states by the script's `STATES` table. `tests/Shared/StoreMeaningVectors.json`, small stores and
 what the measured reading found in force in each, is the same script's output with `--meanings`,
-byte for byte, at its commit `30a595a7`, which reads the same two files. It keeps the measured
+byte for byte, at its commit `663384cc`, which reads the same two files. It keeps the measured
 reading's own words for a store's status, and `StoreInForceTests` names the state it holds each
-to. `tests/Shared/StoreRecordVectors.json`, records composed by the measured code, and
-`tests/Shared/StoreWriteVectors.json`, the file after each act of sequences the measured model
-played, are the same script's output with `--records` and `--writes`, byte for byte, the first
-at `e002013f` and the second at `a3c9c828`. `StoreRecordTests` composes every record of the
+to, while `ProfileNamesTests` holds the names the product reads in each store to the names the
+measured reading found. `tests/Shared/StoreRecordVectors.json`, records composed by the measured
+code, and `tests/Shared/StoreWriteVectors.json`, the file after each act of sequences the measured
+model played, are the same script's output with `--records` and `--writes`, byte for byte, the
+first at `663384cc` and the second at `b9d0ab03`. `StoreRecordTests` composes every record of the
 first through the product and holds the content, the check, the identifier and every string to
-it; `StoreWriteShapeTests` holds the product's writes to the second by shape, since its records
-hold stand-ins the product does not compose. It plays each sequence through the product's own
-acts, `AuthorityService` and `AdmissionActs`, with the admissions compared as every other kind
-is; the third sequence, a revocation in a copy and a renewal of the same client in the other,
-synchronized, was printed at that commit, `a3c9c828` on `spikes/storage-survival`, and ends
-with the same records in both copies and the renewed certificate refused in each.
+it, and `ProfileActsTests` holds the members of the additions and removals the product's acts
+compose to it; `StoreWriteShapeTests` holds the product's writes to the second by shape, since
+its records hold stand-ins the product does not compose. It plays each sequence through the
+product's own acts, `AuthorityService`, `AdmissionActs` and `ProfileActs`, with the admissions
+compared as every other kind is; the third sequence, a revocation in a copy and a renewal of the
+same client in the other, synchronized, ends with the same records in both copies and the renewed
+certificate refused in each; the fourth, names added and removed in two copies and synchronized,
+ends with the names the model named and the same records in both copies. A merge in the fourth
+is held by what is present after it rather than by what it deleted, since the model derives a
+summary entry's identifier from its height and the product does not.
 
 **It writes the store into real databases.** `StoreWritesInRealDatabaseTests` writes through the
 product's own commands into a real tree and holds the entries KeePass keeps, the group a write
@@ -190,6 +195,17 @@ some sequences take a certificate away in the copy merged into after the merge, 
 sequence leaves a store stopped, that state is held. The edits of a record past the history
 limit are run a second apart and within the second the record was written, since KeePass
 compares modification times to the second and the two merge otherwise, `STORE.md` §622.
+
+**Which names a store lists is held as who it admits is**, `STORE.md` §616. In the unit tier
+`ProfileNamesTests` reads stores the test composes, each rule of that section on its own,
+`ProfileActsTests` holds what an addition and a removal are composed of and what each comes to
+composed again at OK, and `PendingRecordsTests` what the tab's buffer keeps of the presses about
+a name, an Add that a removal overtook left out at OK among them. In this tier
+`PairingInRealDatabaseTests` holds the name a pairing adds in its admission's own write, and
+`StoreProfileMergeTests` runs names over copies: each copy written apart by the product's own
+acts, each merged into the other from its file opened afresh, under each of KeePass's merge
+methods, with the copy merged into asked which names its list holds, and asked again after its
+next write, which deletes every addition a removal defeated.
 
 `StoreReadingCostTests` is explicit, as `Headroom_at_one_room_size` is: it times what reading the
 store holds KeePass's thread for through the real router and vault, with a connection's admission
