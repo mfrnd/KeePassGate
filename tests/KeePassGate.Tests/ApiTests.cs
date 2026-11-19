@@ -1016,16 +1016,18 @@ namespace KeePassGate.Tests
         [Test]
         public void A_protected_value_arriving_during_a_request_is_never_covered_by_the_tag_it_hands_out(
             [Values("entry", "field", "fields", "attachments", "attachment", "write")] string route,
-            [Range(0, 6)] int lookups)
+            [Values("as its hold is let go", "nowhere")] string moment)
         {
             // This rule reads everything but protected values, so the tag it is handed covers no
             // protected value. A read decides that inside one hold of KeePass's thread and
             // takes an entry's tag of the view it took there, so a protected value asked for
             // under the read lands once the hold is let go and is in neither the view nor its
             // tag, and a change decides it inside its own turn. Either way no value landing
-            // during the request goes out under a tag that covers it. Tried at every moment of
-            // each route rather than at a moment counted, so that what is pinned is the tag handed
-            // out, not where the question is asked.
+            // during the request goes out under a tag that covers it. Nothing lands inside a
+            // hold, so the moment a value can arrive during each of these requests is as the
+            // hold the request is asked about in is let go: after a read has taken its view, and
+            // after a change's first asking and before its turn. The first lookup of each is
+            // inside that hold, so a value due there lands then. Tried there and nowhere.
             //
             // The entry holds a password from the start, so the tag of this caller's view and
             // the tag of the whole entry differ at every moment, and a tag taken with a wider
@@ -1036,11 +1038,14 @@ namespace KeePassGate.Tests
             var entry = "/entries/" + _entry;
 
             var landed = false;
-            _vault.After(lookups, () =>
+            if (moment != "nowhere")
             {
-                landed = true;
-                _vault.CreateField(_entry, "PIN", "not-a-real-pin", true, VaultAskings.Free);
-            });
+                _vault.After(0, () =>
+                {
+                    landed = true;
+                    _vault.CreateField(_entry, "PIN", "not-a-real-pin", true, VaultAskings.Free);
+                });
+            }
 
             Answer answer;
             switch (route)
@@ -1066,6 +1071,7 @@ namespace KeePassGate.Tests
             }
 
             _vault.After(0, null);
+            Assert.That(landed, Is.EqualTo(moment != "nowhere"), "the value arrives at the moment named");
             var handed = route == "write" ? answer.Written : answer.Tag;
 
             // The tag handed out is the tag of this caller's view of the entry, as the entry
@@ -1125,28 +1131,38 @@ namespace KeePassGate.Tests
                 "a dialog open on the node comes before the condition, as it does for any update");
         }
 
-        [TestCase("entry", 0)]
-        [TestCase("entry", 1)]
-        [TestCase("field", 0)]
-        [TestCase("field", 1)]
-        public void A_change_landing_anywhere_before_the_write_is_still_refused(string route, int lookups)
+        [TestCase("entry", "before the first asking")]
+        [TestCase("entry", "between the first asking and the write")]
+        [TestCase("field", "before the first asking")]
+        [TestCase("field", "between the first asking and the write")]
+        public void A_change_landing_anywhere_before_the_write_is_still_refused(string route, string moment)
         {
             // The condition is asked inside the write, of the node as the write finds it. Asked of
             // a handler's own read instead, a change landing between that read and the write was
-            // carried straight over, and answered 200. Both routes ask the vault once before they
-            // write, which is the router's lookup, and the write is the second, so these are every
-            // moment before it.
+            // carried straight over, and answered 200. Nothing lands inside the hold the router
+            // asks a change in, so the moments before the write are two: before that hold, and
+            // between it and the write. The router's lookup is the first, inside the hold, so a
+            // change due there lands as the hold is let go.
             _vault.Granting(_group, AllButProtected);
             var entry = "/entries/" + _entry;
             var tag = Get(entry).Tag;
             var landed = false;
 
-            _vault.After(lookups, () =>
+            Action change = () =>
             {
                 landed = true;
                 _vault.UpdateEntry(
                     _entry, new Dictionary<string, string> { { "Title", "changed by somebody else" } }, VaultAskings.Free);
-            });
+            };
+
+            if (moment == "before the first asking")
+            {
+                change();
+            }
+            else
+            {
+                _vault.After(0, change);
+            }
 
             var answer = route == "entry"
                 ? Conditioned("PUT", entry, "{\"Title\":\"what the first client meant\"}", tag)
@@ -1160,24 +1176,42 @@ namespace KeePassGate.Tests
         [Test]
         public void A_write_that_landed_is_never_answered_busy(
             [Values("entry", "field", "new field")] string route,
-            [Range(0, 6)] int lookups)
+            [Values(
+                "as the first asking's hold is let go",
+                "at the write's own lookup",
+                "at the read that confirms the tag",
+                "nowhere")] string unsettled)
         {
-            // A write answered with its tag reads the entry again once the change is saved, to
+            // A write answered with its tag reads the entry again once the change is made, to
             // confirm this client may still be handed the tag. That read meeting KeePass's thread
             // unable to be held answered `503 busy` for a change already on the disk, and the
-            // client's retry met its own work. Tried at every moment of the request, so that
-            // whatever the count, a change that landed is answered as a change that landed.
+            // client's retry met its own work. Each route looks the entry up three times: the
+            // router, inside the hold it asks the change in, so that a failure due there is the
+            // hold not lasting; the write, inside its turn, before it changes anything; and the
+            // read that confirms the tag, once the change is made. Tried at each of those and at
+            // none, so that a change that landed is answered as a change that landed whichever
+            // it met, and a tag that could not be confirmed is left out of the answer.
             _vault.Granting(_group, AllButProtected);
             var entry = "/entries/" + _entry;
             var tag = Get(entry).Tag;
-            Assume.That(tag, Is.Not.Null, "this client is handed the tag, which is what this is about");
+            Assert.That(tag, Is.Not.Null, "this client is handed the tag, which is what this is about");
 
-            var thrown = false;
-            _vault.After(lookups, () =>
+            // The moments in the order the request reaches them, each the lookup of that index.
+            var moments = new[]
             {
-                thrown = true;
-                throw new KeePassGate.Diagnostics.VaultUnsettled("KeePass's thread could not be held");
-            });
+                "as the first asking's hold is let go",
+                "at the write's own lookup",
+                "at the read that confirms the tag",
+            };
+            var thrown = false;
+            if (unsettled != "nowhere")
+            {
+                _vault.After(Array.IndexOf(moments, unsettled), () =>
+                {
+                    thrown = true;
+                    throw new KeePassGate.Diagnostics.VaultUnsettled("KeePass's thread could not be held");
+                });
+            }
 
             Answer answer;
             switch (route)
@@ -1199,14 +1233,23 @@ namespace KeePassGate.Tests
                 ? _vault.Field(_entry, "Added") != null
                 : _vault.Field(_entry, "Title") == "what the client meant";
 
+            Assert.That(thrown, Is.EqualTo(unsettled != "nowhere"), "the request reaches the moment named");
+            Assert.That(
+                landed,
+                Is.EqualTo(unsettled == "nowhere" || unsettled == "at the read that confirms the tag"),
+                "a write lands unless KeePass's thread could not be held before it was made");
             if (landed)
             {
                 Assert.That(answer.Status, Is.EqualTo(route == "new field" ? VaultHandlers.Created : 200), answer.Json);
+                Assert.That(
+                    answer.Written,
+                    unsettled == "nowhere" ? Is.Not.Null : Is.Null,
+                    "the tag is in the answer where the read confirming it could be made, and only there");
             }
             else
             {
-                Assert.That(thrown, Is.True, "nothing but the throw keeps the write from landing");
                 Assert.That(answer.Status, Is.EqualTo(503), answer.Json);
+                Assert.That(answer.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
             }
         }
 

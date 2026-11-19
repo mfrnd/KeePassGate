@@ -1184,8 +1184,9 @@ handed either: a route added later reaches neither without code of its own, whic
 **It asks where the database stands still**, §119, which reverses asking once before any handler
 ran: a rule taken away between that answer and the handler's read was served regardless. A
 request that changes nothing is asked about inside the hold its handler reads in. A change is
-asked about before its body is checked and before anything is queued, where the answer can only
-refuse, and again inside the change's own turn, where the answer is acted on.
+asked about inside a hold of its own before its body is checked and before anything is queued,
+where the answer can only refuse, and again inside the change's own turn, where the answer is
+acted on.
 
 **HEAD is decided, and the decision is that every GET declares one.** The two are declared
 separately and bound to one handler, which is what makes RFC 9110 section 9.3.2's "identical to
@@ -1373,9 +1374,10 @@ So the rules here:
   queued for the log's own writer, as a line logged on KeePass's own thread is.
 
   **Liveness now depends on KeePass's thread, which is the cost the earlier rule existed to
-  avoid**, and it is bounded rather than denied: a read whose turn has not come in ten seconds,
-  and one that outlasts five, is answered `503 busy` rather than trusted. A turn is normally under
-  a millisecond away, and half a second with every connection the gate allows reading at once.
+  avoid**, and it is bounded rather than denied: a hold whose turn has not come in ten seconds,
+  and a hold that outlasts five, is answered `503 busy` rather than trusted, a read's and a
+  change's asking before its turn alike. A turn is normally under a millisecond away, and half a
+  second with every connection the gate allows reading at once.
 
   **An in-memory mutation travels with its save**, which is a correction to an earlier draft of
   this list rather than a refinement of it: the objects belong to no thread, as the reads show,
@@ -1391,9 +1393,14 @@ So the rules here:
   had left. So the caller's record, the profile list and the rules are asked again in the turn,
   against the node as the change finds it, and that answer is the answer acted on. The router
   still asks before the change is queued, and that answer can only refuse: a request nothing
-  permits is turned away before its body is checked and before it waits for the writer. A
-  caller no longer admitted by the turn is answered there as a read's is, and rules that cannot
-  be read there are `503 busy`.
+  permits is turned away before its body is checked and before it waits for the writer. **That
+  asking is a single hold**, as a read's decision is: the node is found and the rules are asked,
+  both sides of a removal among them, of one tree, where a lookup and each walk up the rules
+  would otherwise be a hold of its own with the tree free to move between them. Its answer is
+  kept until the hold has ended. A hold that cannot be taken is answered `503 busy` with nothing
+  decided, and a hold that does not last is answered `503 busy` with the line of what was
+  decided in it kept, §120. A caller no longer admitted by the turn is answered there as a
+  read's is, and rules that cannot be read there are `503 busy`.
 
   **So a read sees a change before its save does.** Reads take no lock against the writer, and
   the writer's save pumps, so a read can be served in the middle of a write's turn: a change is
@@ -1976,9 +1983,14 @@ A write failure is reported, not fatal, so a full disk cannot silently revoke ev
 access, and its end is reported too, with how many decisions went unrecorded while it lasted.
 A line records the authorization and not what the request then did, so a permitted line also
 stands for a request answered afterwards with a malformed body, a conflict, `503 busy` or a
-failure, none of which gets a line of its own. **A line is composed where the decision is made and
-written once KeePass's thread is free again**, which reverses writing it before the handler ran:
-a request is decided inside the hold of its read or the turn its change is made in,
+failure, none of which gets a line of its own. **A refused line can stand beside `503 busy` as
+well.** A request decided in a hold that does not last is answered `busy` whatever was decided
+there, and keeps the line of what was decided: a request the rules refuse, a read or a change
+asked about before its turn alike, leaves a `refused` line while its client is told `busy`, and
+asked again it leaves a second `refused` line beside the `404` it is answered with. **A line is
+composed where the decision is made and written once KeePass's thread is free again**, which
+reverses writing it before the handler ran: a request is decided inside the hold of its read, or
+inside the hold a change is asked about in before its turn and again in the turn it is made in,
 §119, and the audit's file and the pace a client's lines are held to are waits that belong on the
 caller's connection. So a line carries the moment of its decision and reaches the file after the
 handler, before the answer goes out. **A request is still one decision.** A change is asked about

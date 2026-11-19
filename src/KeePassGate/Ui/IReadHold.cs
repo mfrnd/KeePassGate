@@ -17,12 +17,12 @@ namespace KeePassGate.Ui
     /// sees a tree standing still.
     ///
     /// **Held for one read step**: a sweep, a lookup, a walk up the rules, an admission record,
-    /// or the whole of a request that changes nothing, which the router holds once so that all of
-    /// those are read from one database. Nothing that waits belongs inside one, because KeePass's
-    /// window waits with it: not the writer, not the audit's pacing or its file, not a dialog,
-    /// and not the network. **What is logged inside a hold is queued**, as a line logged on
-    /// KeePass's own thread is, and written by the log's own writer:
-    /// `ControlUiThread.MayNotWait`.
+    /// the whole of a request that changes nothing, or a change's asking before its turn, each of
+    /// which the router holds once so that all of those are read from one database. Nothing that
+    /// waits belongs inside a hold, because KeePass's window waits with it: not the writer, not the
+    /// audit's pacing or its file, not a dialog, and not the network. **What is logged inside a
+    /// hold is queued**, as a line logged on KeePass's own thread is, and written by the log's
+    /// own writer: `ControlUiThread.MayNotWait`.
     /// </remarks>
     public interface IReadHold
     {

@@ -1607,7 +1607,8 @@ that changes nothing is held once: inside one hold of KeePass's thread the calle
 list of profiles are read again, the node is found, the rules are asked and the handler reads and
 makes its answer, which goes out once the hold has ended, and a hold that could not be taken or did
 not last answers `503 busy`. No rule is asked about such a request before its hold. A change is
-asked on arrival, where the answer can only refuse, and again inside its own turn on KeePass's
+asked on arrival, in a single hold that finds its node and asks the rules, both sides of a
+removal among them, where the answer can only refuse, and again inside its own turn on KeePass's
 thread, where the vault asks the router's question, left as a `DecidedInside` and passed in a
 `VaultAsking`, of the node it finds before anything else about that node is answered. A caller the
 database stopped admitting while its request waited is answered there as its next request would be:

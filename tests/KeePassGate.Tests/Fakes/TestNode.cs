@@ -15,10 +15,13 @@ namespace KeePassGate.Tests.Fakes
     /// </remarks>
     public sealed class TestNode : IAclNode
     {
-        private TestNode(string name, TestNode parent)
+        private readonly Action _walked;
+
+        private TestNode(string name, TestNode parent, Action walked)
         {
             Name = name;
             Parent = parent;
+            _walked = walked;
         }
 
         public string Document { get; private set; }
@@ -34,19 +37,29 @@ namespace KeePassGate.Tests.Fakes
         public T Held<T>(Func<T> walk)
         {
             Walks++;
+            _walked?.Invoke();
             return walk();
         }
 
         /// <summary>The top of a tree, which is what a database's root group is.</summary>
         public static TestNode Root(string name)
         {
-            return new TestNode(name, null);
+            return new TestNode(name, null, null);
+        }
+
+        /// <summary>
+        /// The top of a tree that tells <paramref name="walked"/> of every walk made from any of
+        /// its nodes, for a fake database that counts where it is walked.
+        /// </summary>
+        public static TestNode Root(string name, Action walked)
+        {
+            return new TestNode(name, null, walked);
         }
 
         /// <summary>A group or an entry under this one.</summary>
         public TestNode Child(string name)
         {
-            return new TestNode(name, this);
+            return new TestNode(name, this, _walked);
         }
 
         /// <summary>Writes a document here, exactly as given, including a broken one.</summary>

@@ -89,6 +89,13 @@ change was refused is in the plugin's log, a warning per refusal, a change's `41
 is where to look when a program's writes keep coming back `busy`: some of the reasons, a dialog
 left open or a database file changed on disk, clear only when somebody at the desk acts.
 
+**`refused` can stand beside `busy` as well.** A read is decided while KeePass is held still for
+it, and a change is asked about the same way as it arrives, before it waits for its turn. When
+KeePass could not be held still for long enough, the program is answered `503 busy` whatever the
+rules answered, and the line is written all the same: a request the rules refused leaves its
+`refused` line while the program is told `busy`, and asked again it leaves a second `refused` line
+beside the `404` it is answered with.
+
 **A request is decided at the moment it is served, and its line carries that moment.** A read is
 decided as KeePass is held still for it, and a change as it is made, so a rule taken away, a
 profile removed or a client revoked while a request waited for KeePass is what the line shows. A

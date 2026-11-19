@@ -146,7 +146,11 @@ a period of inactivity. A read that KeePass cannot make room for within ten seco
 busy with something it does not pause in, answers "busy". **And no read starts inside a merge**:
 while KeePass imports, synchronizes or runs XML Replace, what it holds is part of one database and
 part of another, so a read asked for then waits for the merge to end and is answered from what it
-leaves, or "busy" when the merge takes more than ten seconds.
+leaves, or "busy" when the merge takes more than ten seconds. A change is asked about the same way
+as it arrives, before it waits for its turn: KeePass is held still while the group or entry it
+names is found and the rules are asked, and that waits, and answers "busy", as a read does. KeePass
+is free again while the change waits, so the change is asked about once more as it is made, and
+that answer is the answer acted on.
 
 **A program can ask not to write over what changed since it read.** Reading a group or an entry
 hands back a tag of what it holds, and a program that hands the tag back with its write is
