@@ -873,8 +873,14 @@ namespace KeePassGate.Ui
             try
             {
                 // No command on the store where nothing is written into it in the session, as the
-                // first page turns its buttons off, `STORE.md` §636.
-                _clients.Writable = _database == null || !_database.IsOpen || _database.Store.Unwritable == null;
+                // first page turns its buttons off, `STORE.md` §636: no X on the clients page, and
+                // neither the row that adds a name nor an X on the profiles page. And no command
+                // about a name where the store cannot be judged, under several keys or in a form
+                // the plugin does not read: the clients page lists nobody there and so offers
+                // nothing, and the first page states why.
+                var writable = _database == null || !_database.IsOpen || _database.Store.Unwritable == null;
+                _clients.Writable = writable;
+                _profiles.Writable = writable && admitted.Complete;
                 _clients.Fill(admitted, reaches, NamedProfiles(), StandingAnswers(admitted, DateTimeOffset.UtcNow));
 
                 // The profiles page only while it is the page in front. It counts every rule in the

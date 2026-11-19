@@ -520,22 +520,39 @@ namespace KeePassGate.Host.Tests
                     var list = ControlTree.FindByName<ProfileList>(panel, ProfileList.ControlName);
                     Assert.That(list, Is.Not.Null, "the profiles page has no list on it");
 
-                    // With the longest thing a removal says under it, which is a band this page
-                    // does not otherwise have: the longest name a profile can have, and counts
-                    // four digits wide, because the sentence names both.
+                    // With each of the longest things the page's line holds under it, which is a
+                    // band this page does not otherwise have: what a removal answers, with the
+                    // longest name a profile can have and counts four digits wide, because the
+                    // sentence names both; the refusal of a name where no store key stands; a name
+                    // removed in another copy under the dialog; and a write the store refuses, as
+                    // long as a reason is let be.
+                    var name = new string('p', 64);
+                    var sentences = new[]
+                    {
+                        DatabaseProfiles.Said(name, 9999, 9999),
+                        DatabaseProfiles.NoAuthorityRefusal,
+                        ProfileList.RemovedMeanwhile(name),
+                        "That could not be written: " + Clipped.Message(new string('w', 4096)),
+                    };
+
                     var said = ControlTree.FindByName<Label>(list, ProfileList.ResultLabelName);
                     Assert.That(said, Is.Not.Null);
-                    said.Text = DatabaseProfiles.Said(new string('p', 64), 9999, 9999);
-                    said.Visible = true;
+                    foreach (var sentence in sentences)
+                    {
+                        said.Text = sentence;
+                        said.Visible = true;
 
-                    // Its own page in front, for the reason the clients page needs it: a page
-                    // behind another is never laid out.
-                    Show(list);
+                        // Its own page in front, for the reason the clients page needs it: a page
+                        // behind another is never laid out.
+                        Show(list);
+                        list.PerformLayout();
 
-                    TestContext.Out.WriteLine(state.Description + ": the profile list has " + list.Height);
-                    Assert.That(list.Height, Is.GreaterThanOrEqualTo(MinimumListHeight),
-                        state.Description + " leaves the profile list " + list.Height +
-                        " pixels, which is not a list.");
+                        TestContext.Out.WriteLine(state.Description + ": the profile list has " + list.Height
+                                                  + " under " + sentence.Length + " characters");
+                        Assert.That(list.Height, Is.GreaterThanOrEqualTo(MinimumListHeight),
+                            state.Description + " leaves the profile list " + list.Height +
+                            " pixels under \"" + sentence + "\", which is not a list.");
+                    }
                 }
             }
         }

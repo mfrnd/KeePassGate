@@ -1583,21 +1583,25 @@ dialog's OK, and the audit holds no line for a name added or removed, `DESIGN.md
 editor's pick list is read from the store at each redraw of its tab, and is empty where the store
 names nothing or cannot be read, so it never offers a name removed since. The Profiles page
 offers no Add and no removal where nothing is written into the store in the session, as the
-clients page offers no revocation, and the first page of the tab states why (§636).
+clients page offers no revocation, and the first page of the tab states why (§636); nor where the
+store cannot be judged, under several keys or in a form the plugin does not read, where the
+clients page lists nobody and so offers nothing.
 
 **What is built.** The records, their reading and their writes as this section has them:
 `ProfileNames` reads the names from a reading of the store, `ProfileActs` composes an addition and
 a removal and composes each again over the store as it stands at OK, and a pairing's act carries
 its additions after the admission. The gate reads a client's names with its admission, a held
 approval is compared name by name in the write's turn, the Profiles page writes each name through
-the store and refuses a name where no store key stands, and the grant editor's pick list is read
-from the store. Not built yet are the page offering no Add and no removal where nothing is
-written into the store (§636) and the run over synchronized copies (§644). *Held by*
-`ProfileNamesTests`, against the store's meanings of the measured code
-(`tests/Shared/StoreMeaningVectors.json`), and by every rule of this section over the product's
-reading, a hundred names among them; `ProfileActsTests`, against its records
-(`StoreRecordVectors.json`); `AdmissionActsTests`; and `PendingRecordsTests` for the buffer, its
-fold and the additions it leaves out.
+the store, refuses a name where no store key stands and offers no Add and no removal where
+nothing is written into the store (§636), and the grant editor's pick list is read from the
+store. Not built yet is the run over synchronized copies (§644). *Held by* `ProfileNamesTests`,
+against the store's meanings of the measured code (`tests/Shared/StoreMeaningVectors.json`), and
+by every rule of this section over the product's reading, a hundred names among them;
+`ProfileActsTests`, against its records (`StoreRecordVectors.json`); `AdmissionActsTests`;
+`PendingRecordsTests` for the buffer, its fold and the additions it leaves out; `ProfileListTests`
+and `DatabaseProfilesTests` for the page; and `GateTabFitsTests` for the page with a hundred
+names, and with the longest of each sentence its line holds, the refusal where no store key
+stands among them.
 
 ### Rules §617
 
@@ -3929,9 +3933,12 @@ guard as product code, with its setting, was not run (§644).
   where the dialogs that would take a write back are not watched (§627), and states that and
   why, as under a word. The clients page then shows no X, and its rows' menus neither
   **Revoke** nor **Take certificate away**; **Allow renewal** stays, since the standing answers
-  are kept apart from the store. Built, and held by `AuthorityPanelTests`, `OpenDatabaseTests`,
-  `ClientListTests.Where_the_store_takes_no_write_no_row_carries_the_X` and
-  `ClientListMenuTests.Where_the_store_takes_no_write_the_menu_offers_Allow_renewal_alone`.
+  are kept apart from the store. The Profiles page then shows neither the row that adds a name
+  nor an X (§616), and shows neither under a store that cannot be judged either, where the
+  clients page lists nobody. Built, and held by `AuthorityPanelTests`, `OpenDatabaseTests`,
+  `ClientListTests.Where_the_store_takes_no_write_no_row_carries_the_X`,
+  `ClientListMenuTests.Where_the_store_takes_no_write_the_menu_offers_Allow_renewal_alone` and
+  `ProfileListTests.A_page_over_a_store_that_takes_no_write_offers_no_Add_and_no_X`.
 
 Nothing of the tab was run.
 

@@ -52,6 +52,9 @@ namespace KeePassGate.Ui
 
         public const string NameLabelName = "KpgProfileNameLabel";
 
+        /// <summary>The row the label, the box and the Add button sit in.</summary>
+        public const string AddingRowName = "KpgProfileAddingRow";
+
         /// <summary>
         /// What a profile is, said where one is made.
         /// </summary>
@@ -131,6 +134,8 @@ namespace KeePassGate.Ui
 
         private bool _filling;
 
+        private bool _writable = true;
+
         /// <summary>The Profiles page, over one database's list of names.</summary>
         /// <param name="prompt">
         /// Asks the operator before a name comes back that rules still name. Null answers no, so a
@@ -206,7 +211,7 @@ namespace KeePassGate.Ui
 
             var adding = _adding = new FlowLayoutPanel
             {
-                Name = "KpgProfileAddingRow",
+                Name = AddingRowName,
                 Dock = DockStyle.Top,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
@@ -281,6 +286,31 @@ namespace KeePassGate.Ui
         {
             get { return _name.Text; }
             set { _name.Text = value ?? string.Empty; }
+        }
+
+        /// <summary>
+        /// Whether the database's store takes a write of the operator's in this session, which
+        /// adding and removing a name need, `STORE.md` §636. Where it does not, the row that adds
+        /// a name and the column of X are off the page, as the clients page shows no X, and the
+        /// first page of the tab states why.
+        /// </summary>
+        /// <remarks>
+        /// Off rather than refused once pressed: a command offered and then refused is a press the
+        /// operator is made to spend to learn what the first page already states.
+        /// </remarks>
+        public bool Writable
+        {
+            get
+            {
+                return _writable;
+            }
+
+            set
+            {
+                _writable = value;
+                _adding.Visible = value;
+                _grid.Columns[RemoveColumn].Visible = value;
+            }
         }
 
         /// <summary>
@@ -446,9 +476,18 @@ namespace KeePassGate.Ui
             // removal the operator was not shown, `STORE.md` §627.
             if (_added != null && !_shown.Contains(_added))
             {
-                Said("The profile " + _added + " was removed in another copy of this database while this dialog " +
-                     "was open, so OK will not add it.");
+                Said(RemovedMeanwhile(_added));
             }
+        }
+
+        /// <summary>
+        /// What the line holds once a name the last gesture added has been removed in another copy
+        /// while the dialog stood, so that OK will not add it.
+        /// </summary>
+        public static string RemovedMeanwhile(string name)
+        {
+            return "The profile " + name + " was removed in another copy of this database while this dialog "
+                   + "was open, so OK will not add it.";
         }
 
         /// <summary>One profile's count, which is none when the count does not name it.</summary>

@@ -119,6 +119,52 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Where_nothing_can_be_written_the_profiles_page_offers_no_Add_and_no_X()
+        {
+            // The profiles page follows the clients page, `STORE.md` §636.
+            StoreSeeds.Authority(_database.Store);
+            _database.Records.Unwritable = "the dialogs that would take a write back could not be watched";
+
+            using (var panel = NewPanel(true))
+            {
+                var page = ControlTree.FindByName<ProfileList>(panel, ProfileList.ControlName);
+                Assert.That(page.Writable, Is.False);
+
+                _database.Records.Unwritable = null;
+                panel.Describe();
+
+                Assert.That(page.Writable, Is.True, "read again at each description");
+            }
+        }
+
+        [TestCase("split")]
+        [TestCase("outdated")]
+        public void Under_a_store_that_cannot_be_judged_the_profiles_page_offers_no_Add_and_no_X(string word)
+        {
+            // As the clients page, which lists nobody there and so offers no command: an Add
+            // pressed there was refused for a database with no authority yet, which is false of
+            // a database whose store stands under several keys.
+            _database = HeldBack.Database(word);
+            Assume.That(_database.Store.Read().State.ToString(), Is.EqualTo(word).IgnoreCase);
+
+            using (var panel = NewPanel(true))
+            {
+                Assert.That(ControlTree.FindByName<ProfileList>(panel, ProfileList.ControlName).Writable, Is.False);
+            }
+        }
+
+        [Test]
+        public void With_no_store_key_the_profiles_page_offers_Add_and_states_what_is_missing()
+        {
+            using (var panel = new AuthorityPanel(_database, new FakePrompt(true), _log, null, new DatabaseProfiles(_database, _log)))
+            {
+                var page = ControlTree.FindByName<ProfileList>(panel, ProfileList.ControlName);
+                Assert.That(page.Writable, Is.True);
+                Assert.That(page.Add("ops"), Is.EqualTo(DatabaseProfiles.NoAuthorityRefusal));
+            }
+        }
+
+        [Test]
         public void A_store_past_half_its_room_adds_its_line_and_leaves_the_commands_as_they_are()
         {
             _database = HeldBack.Database(HeldBack.Half);

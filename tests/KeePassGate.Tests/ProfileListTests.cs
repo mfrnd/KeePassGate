@@ -40,6 +40,34 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_page_over_a_store_that_takes_no_write_offers_no_Add_and_no_X()
+        {
+            // `STORE.md` §636: no command on the store where nothing is written into it in the
+            // session, as the clients page shows no X, rather than a press refused once made.
+            var database = new FakeProfiles();
+            database.Add("reader");
+
+            using (var page = new ProfileList(database, null))
+            {
+                var row = ControlTree.FindByName<Control>(page, ProfileList.AddingRowName);
+                var grid = ControlTree.FindByName<DataGridView>(page, ProfileList.ListName);
+                Assume.That(page.Writable, Is.True);
+                Assume.That(row.Visible, Is.True);
+
+                page.Writable = false;
+
+                Assert.That(row.Visible, Is.False, "no row that adds a name");
+                Assert.That(grid.Columns[ProfileList.RemoveColumnName].Visible, Is.False, "and no X");
+                Assert.That(page.Shown, Is.EqualTo(new[] { "reader" }), "the names are still shown");
+
+                page.Writable = true;
+
+                Assert.That(row.Visible, Is.True);
+                Assert.That(grid.Columns[ProfileList.RemoveColumnName].Visible, Is.True);
+            }
+        }
+
+        [Test]
         public void Enter_on_a_dialog_with_an_accept_button_adds_the_name_rather_than_pressing_it()
         {
             // The way anybody confirms a one-line form, and it was the way to lose one. A form with
