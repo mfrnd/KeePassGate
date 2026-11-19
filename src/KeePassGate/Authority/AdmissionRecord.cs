@@ -4,13 +4,14 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using KeePassGate.Diagnostics;
+using KeePassGate.Store;
 
 namespace KeePassGate.Authority
 {
     /// <summary>
-    /// One client, admitted. This is what a certificate is worth: without a record, a certificate
+    /// One certificate, admitted: the content of a record of kind `client` in the plugin's store,
+    /// `STORE.md` §615. This is what a certificate is worth: without an admission, a certificate
     /// that chains and carries the right usage opens nothing at all.
     /// </summary>
     /// <remarks>
@@ -18,31 +19,27 @@ namespace KeePassGate.Authority
     /// and what lets the tab say something useful about a client nobody remembers issuing.
     ///
     /// **The profiles here are the ones that count.** A certificate carries the same names as
-    /// claims, but only as a convenience for a human reading it. `CA.md` §209 says why: a
-    /// record is what a lost snapshot takes away, so reading a ceiling from the certificate would
-    /// leave a credential nobody can see and nobody can revoke.
+    /// claims, but only as a convenience for a human reading it. `CA.md` §209 explains: an
+    /// admission is what a lost record takes away, so reading a ceiling from the certificate
+    /// would leave a credential nobody can see and nobody can revoke.
     ///
-    /// **A record names the client as well as the certificate**, by its <see cref="ClientKey"/>:
-    /// the admission key of the first certificate the client was issued, the one it paired with.
-    /// A renewal writes a second record for the same client and leaves the first valid until the
-    /// client gives it up, and a client chooses its own name, so neither the name nor the
-    /// certificate tells one client from another; the client key does, and every count and naming
-    /// of clients goes by it, which is the operator's ruling of 2026-10-16.
+    /// **An admission names the client as well as the certificate**, by its
+    /// <see cref="ClientKey"/>: the admission key of the first certificate the client was issued,
+    /// the one it paired with. A renewal writes a second admission for the same client, naming the
+    /// certificate it was renewed from in <see cref="From"/>, and a client chooses its own name, so
+    /// neither the name nor the certificate tells one client from another; the client key does, and
+    /// every count and naming of clients goes by it.
+    ///
+    /// **A member for each field**, `STORE.md` §615 (S4): <see cref="Members"/> writes them and
+    /// <see cref="Read"/> reads them, and a content that is not exactly an admission reads as none.
     /// </remarks>
     public sealed class AdmissionRecord
     {
-        /// <summary>The format marker. A record that does not say this is refused, never guessed at.</summary>
-        public const string Version = "1";
-
-        /// <summary>Every field name a record may carry, and nothing else is one.</summary>
-        private static readonly HashSet<string> Fields =
-            new HashSet<string>(StringComparer.Ordinal)
-            {
-                "v", "subject", "client", "admitted", "profiles", "certificate"
-            };
-
         private static readonly IReadOnlyList<string> Nothing =
             new ReadOnlyCollection<string>(Array.Empty<string>());
+
+        /// <summary>What separates the names of `profiles`, `STORE.md` §615.</summary>
+        private static readonly char[] Space = { ' ' };
 
         private readonly string _admissionKey;
         private readonly string _subject;
@@ -50,43 +47,69 @@ namespace KeePassGate.Authority
         private readonly DateTimeOffset _admitted;
         private readonly IReadOnlyList<string> _profiles;
         private readonly byte[] _certificateDer;
+        private readonly string _issuer;
+        private readonly string _from;
+        private readonly string _entry;
 
         /// <summary>
-        /// A record is a certificate, the digest it is filed under, and what was approved.
+        /// An admission is a certificate, the digest it is filed under, what was approved, the
+        /// authority that issued it, and for a renewal the certificate it was renewed from.
         /// </summary>
         /// <remarks>
-        /// **The key has to be the digest of the certificate, and that is checked here.** Only
-        /// <see cref="Load"/> checked it before, so a record whose two halves disagreed could be
-        /// written, saved and never read back: pairing would report success and the client it
-        /// admitted would be refused forever, with nothing but a warning in the log to say why.
-        /// Refusing at construction makes that unwritable rather than unreadable.
+        /// **The key has to be the digest of the certificate, and that is checked here**, so an
+        /// admission whose two halves disagree cannot be composed, written and then read back as
+        /// none: pairing would report success and the client it admitted would be refused for good.
         ///
-        /// The client key is held to the shape of a digest for the same reason: one that is not
-        /// would be written, and then read back as no record at all.
+        /// The client key, the issuer and the certificate renewed from are held to the shape of a
+        /// digest for the same reason: one that is not would be written, and then read back as no
+        /// admission at all.
         /// </remarks>
+        /// <param name="entry">
+        /// The identifier of the entry it was read from, or null for an admission composed.
+        /// </param>
         public AdmissionRecord(
             string admissionKey,
             string subject,
             string clientKey,
             DateTimeOffset admitted,
             IEnumerable<string> profiles,
-            byte[] certificateDer)
+            byte[] certificateDer,
+            string issuer,
+            string from = null,
+            string entry = null)
         {
             KeyedBy(admissionKey, certificateDer);
 
             if (!CertificateDigest.IsDigest(clientKey))
             {
                 throw new ArgumentException(
-                    "A record names its client by the digest of the certificate it paired with.",
+                    "An admission names its client by the digest of the certificate it paired with.",
                     nameof(clientKey));
             }
 
+            if (!CertificateDigest.IsDigest(issuer))
+            {
+                throw new ArgumentException(
+                    "An admission names the authority that issued its certificate by that authority's id.",
+                    nameof(issuer));
+            }
+
+            if (from != null && !CertificateDigest.IsDigest(from))
+            {
+                throw new ArgumentException(
+                    "A renewal names the certificate it was renewed from by its admission key.",
+                    nameof(from));
+            }
+
             _admissionKey = admissionKey;
-            _subject = Storable(subject);
+            _subject = subject ?? string.Empty;
             _clientKey = clientKey;
             _admitted = admitted;
             _profiles = Clean(profiles);
             _certificateDer = (byte[])certificateDer.Clone();
+            _issuer = issuer;
+            _from = from;
+            _entry = entry;
         }
 
         /// <summary>SHA-256 over the certificate's DER, lowercase hex.</summary>
@@ -97,10 +120,11 @@ namespace KeePassGate.Authority
 
         /// <summary>The subject as issued, which is what names this client to the operator.</summary>
         /// <remarks>
-        /// Stored beside the certificate rather than read off it, and not compared with it when a
-        /// record is read. Only whoever can write the file can make the two disagree, and whoever
-        /// can do that can write a whole record for a certificate of their own, since the authority
-        /// that signs one is kept in the same file, so a comparison would stop nobody.
+        /// Stored beside the certificate rather than read off it, and not compared with it when an
+        /// admission is read. Only whoever holds the store key can make the two disagree, and
+        /// whoever can do that can write a whole admission for a certificate of their own, since
+        /// the authority that signs such a certificate is kept in the same file, so a comparison
+        /// would stop nobody.
         /// </remarks>
         public string Subject
         {
@@ -113,15 +137,9 @@ namespace KeePassGate.Authority
         /// </summary>
         /// <remarks>
         /// Pairing writes the new certificate's own key here, and a renewal copies it from the
-        /// record that asked, so every certificate a client has held carries the same one. Two
-        /// records with one client key are one client, however many certificates it holds; two
-        /// with one name and different client keys are two, which a name chosen by the client
-        /// cannot tell apart. Written once with the record and never changed, so a merge, which
-        /// never reads a value, has nothing to decide about it.
-        ///
-        /// Not checked against anything when a record is read, for the reason the subject is not:
-        /// whoever can write the file can write a whole record of their own. It names a client and
-        /// grants nothing.
+        /// admission that asked, so every certificate a client has held carries the same one. Two
+        /// admissions with one client key are one client, however many certificates it holds; two
+        /// with one name and different client keys are two. A revocation names it, `STORE.md` §615.
         /// </remarks>
         public string ClientKey
         {
@@ -133,21 +151,40 @@ namespace KeePassGate.Authority
             get { return _admitted; }
         }
 
-        /// <summary>What the operator approved. The only place a ceiling comes from.</summary>
+        /// <summary>
+        /// What the operator approved, each name once and in ordinal order. The only place a
+        /// ceiling comes from.
+        /// </summary>
         public IReadOnlyList<string> Profiles
         {
             get { return _profiles; }
         }
 
-        public byte[] CertificateDer
+        /// <summary>
+        /// The `id` of the authority that issued the certificate, `STORE.md` §614.
+        /// </summary>
+        public string Issuer
         {
-            get { return (byte[])_certificateDer.Clone(); }
+            get { return _issuer; }
         }
 
-        /// <summary>The custom data key this record lives under.</summary>
-        public string StorageKey
+        /// <summary>
+        /// For an admission a renewal wrote, the admission key of the certificate it was renewed
+        /// from, `STORE.md` §648; null for a pairing's.
+        /// </summary>
+        public string From
         {
-            get { return AuthorityKeys.ClientRecordKey(_admissionKey); }
+            get { return _from; }
+        }
+
+        /// <summary>
+        /// The identifier of the entry it was read from, as lowercase hexadecimal, or null for an
+        /// admission composed and not read: what an approval held for a renewal is compared with,
+        /// since a record is written once and the same entry is the same content, `STORE.md` §627.
+        /// </summary>
+        public string Entry
+        {
+            get { return _entry; }
         }
 
         /// <summary>
@@ -156,7 +193,7 @@ namespace KeePassGate.Authority
         /// <remarks>
         /// `EphemeralKeySet`, kept so that no key this plugin loads could reach the disk, though
         /// these bytes cannot carry one: the constructor refuses anything but a bare certificate,
-        /// however a record is built.
+        /// however an admission is built.
         /// </remarks>
         public X509Certificate2 Certificate()
         {
@@ -169,8 +206,7 @@ namespace KeePassGate.Authority
         /// </summary>
         /// <remarks>
         /// For the screens that say who regains a removed profile: an expired certificate regains
-        /// nothing, since the gate refuses it before any record is read, and the next write the
-        /// plugin makes prunes its record.
+        /// nothing, since the gate refuses it on its dates before any admission is read.
         /// </remarks>
         public bool HasExpired(DateTimeOffset now)
         {
@@ -188,26 +224,36 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// The record a pairing writes: a new client, whose client key is this certificate's own
+        /// The admission a pairing writes: a new client, whose client key is this certificate's own
         /// admission key.
         /// </summary>
+        /// <param name="issuer">The `id` of the authority that issued the certificate.</param>
         public static AdmissionRecord For(
-            X509Certificate2 certificate, DateTimeOffset admitted, IEnumerable<string> profiles)
+            X509Certificate2 certificate, DateTimeOffset admitted, IEnumerable<string> profiles, string issuer)
         {
             if (certificate == null)
             {
                 throw new ArgumentNullException(nameof(certificate));
             }
 
-            return For(certificate, admitted, profiles, CertificateDigest.Of(certificate));
+            return For(certificate, admitted, profiles, issuer, CertificateDigest.Of(certificate), null);
         }
 
         /// <summary>
-        /// The record a renewal writes: the same client under a new certificate, its client key
-        /// copied from the record that asked.
+        /// The admission a renewal writes: the same client under a new certificate, its client key
+        /// copied from the admission that asked, naming the certificate it was renewed from.
         /// </summary>
+        /// <param name="issuer">The `id` of the authority that issued the certificate.</param>
+        /// <param name="from">
+        /// The admission key of the certificate renewed from, or null for a pairing's.
+        /// </param>
         public static AdmissionRecord For(
-            X509Certificate2 certificate, DateTimeOffset admitted, IEnumerable<string> profiles, string clientKey)
+            X509Certificate2 certificate,
+            DateTimeOffset admitted,
+            IEnumerable<string> profiles,
+            string issuer,
+            string clientKey,
+            string from)
         {
             if (certificate == null)
             {
@@ -220,132 +266,79 @@ namespace KeePassGate.Authority
                 clientKey,
                 admitted,
                 profiles,
-                certificate.RawData);
+                certificate.RawData,
+                issuer,
+                from);
         }
 
         /// <summary>
-        /// The stored form: one field per line, name and value either side of the first equals
-        /// sign.
+        /// The members of the admission's content, `STORE.md` §615, without the nonce, which the
+        /// record is composed with: `profiles` in ordinal order and separated by single spaces,
+        /// `admitted` as `Moments.Wire` writes a moment, and `from` only for a renewal's.
         /// </summary>
-        /// <remarks>
-        /// Small and strict rather than general. A record is written by this plugin and read by
-        /// this plugin, and everything in it has already been through issuance, which refuses a
-        /// subject or a profile that is not a plain name. That leaves a reader that can be total in
-        /// eighty lines, which is a smaller liability than a parser that has to be right about
-        /// somebody else's grammar. A JSON dependency has since arrived for the access control
-        /// document, so this could move to it, and deliberately has not: a record read before
-        /// anything is trusted is worth a reader with no third-party grammar underneath it.
-        /// </remarks>
-        public string Save()
+        public IReadOnlyDictionary<string, string> Members()
         {
-            var text = new StringBuilder();
-            text.Append("v=" + Version).Append('\n');
-            text.Append("subject=").Append(_subject).Append('\n');
-            text.Append("client=").Append(_clientKey).Append('\n');
-            text.Append("admitted=").Append(Moments.Wire(_admitted)).Append('\n');
-            text.Append("profiles=").Append(string.Join(",", _profiles)).Append('\n');
-            text.Append("certificate=").Append(Convert.ToBase64String(_certificateDer)).Append('\n');
-            return text.ToString();
+            var members = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                { StoreKinds.Certificate, _admissionKey },
+                { StoreKinds.Der, Convert.ToBase64String(_certificateDer) },
+                { StoreKinds.ClientMember, _clientKey },
+                { StoreKinds.Issuer, _issuer },
+                { StoreKinds.Profiles, string.Join(" ", _profiles) },
+                { StoreKinds.IssuedSubject, _subject },
+                { StoreKinds.Admitted, Moments.Wire(_admitted) },
+            };
+
+            if (_from != null)
+            {
+                members[StoreKinds.From] = _from;
+            }
+
+            return members;
         }
 
         /// <summary>
-        /// Reads one back. Null for anything that is not a record: a missing field, an unknown
-        /// field or version, a repeated field, a subject with a line ending in it, a client key
-        /// that is not a digest, a date that will not parse, a certificate that will not decode,
-        /// and one that decodes to something other than the bytes it was stored as. A record that
-        /// cannot be read admits nobody, which is the whole point of keeping this strict.
+        /// The admission a record of kind `client` holds, or null for whatever is no admission,
+        /// `STORE.md` §615: a member but `from` absent; `certificate`, `client`, `issuer` or `from`
+        /// not 64 lowercase hexadecimal characters; a `der` that is no base64 of a bare certificate
+        /// whose digest is `certificate`; a moment that does not parse in the form it is written
+        /// in. A member it does not name is passed over, `STORE.md` §607.
         /// </summary>
         /// <remarks>
-        /// **Strict about what a record holds, not about how it is spelled.** Fields in another
-        /// order, blank lines, either line ending, whitespace inside the certificate's base64 and a
-        /// profile list that repeats a name or holds one that is not a profile name all read, and
-        /// <see cref="Save"/> writes each back in its own form: `Save(Load(x))` is the record `x`
-        /// spells, written canonically, and not always `x`.
+        /// **Total.** Nothing a content holds makes it throw: an admission that does not read
+        /// admits nobody, which is the answer for no admission at all.
         /// </remarks>
-        public static AdmissionRecord Load(string admissionKey, string stored)
+        /// <param name="entry">The identifier of the entry the record was read from.</param>
+        /// <param name="members">The members the core kept of the record's content.</param>
+        public static AdmissionRecord Read(string entry, IReadOnlyDictionary<string, string> members)
         {
-            if (string.IsNullOrEmpty(admissionKey) || string.IsNullOrEmpty(stored))
+            if (members == null)
             {
                 return null;
             }
 
-            var fields = new Dictionary<string, string>(StringComparer.Ordinal);
+            var certificate = Text(members, StoreKinds.Certificate);
+            var der = Text(members, StoreKinds.Der);
+            var client = Text(members, StoreKinds.ClientMember);
+            var issuer = Text(members, StoreKinds.Issuer);
+            var profiles = Text(members, StoreKinds.Profiles);
+            var subject = Text(members, StoreKinds.IssuedSubject);
+            var admitted = Text(members, StoreKinds.Admitted);
+            var from = Text(members, StoreKinds.From);
 
-            foreach (var trimmed in stored.Split('\n').Select(line => line.TrimEnd('\r')))
-            {
-                if (trimmed.Length == 0)
-                {
-                    continue;
-                }
-
-                var equals = trimmed.IndexOf('=');
-                if (equals <= 0)
-                {
-                    return null;
-                }
-
-                var name = trimmed.Substring(0, equals);
-                if (fields.ContainsKey(name))
-                {
-                    return null;
-                }
-
-                fields[name] = trimmed.Substring(equals + 1);
-            }
-
-            // A name this reader does not know is refused rather than skipped. The version marker
-            // exists so that a later writer can add a field which narrows what a record grants, and
-            // a reader that walked past one would go on admitting on the strength of the fields it
-            // did recognize. Refusing here is also what keeps every field a record holds in what
-            // `Save(Load(x))` writes, though not every spelling of it, as the remarks above set out.
-            foreach (var name in fields.Keys)
-            {
-                if (!Fields.Contains(name))
-                {
-                    return null;
-                }
-            }
-
-            string version;
-            if (!fields.TryGetValue("v", out version) || !string.Equals(version, Version, StringComparison.Ordinal))
+            if (der == null || profiles == null || subject == null || admitted == null)
             {
                 return null;
             }
 
-            string subject;
-            string client;
-            string admitted;
-            string profiles;
-            string certificate;
-            if (!fields.TryGetValue("subject", out subject) ||
-                !fields.TryGetValue("client", out client) ||
-                !fields.TryGetValue("admitted", out admitted) ||
-                !fields.TryGetValue("profiles", out profiles) ||
-                !fields.TryGetValue("certificate", out certificate))
+            if (!CertificateDigest.IsDigest(certificate) || !CertificateDigest.IsDigest(client)
+                || !CertificateDigest.IsDigest(issuer) || (from != null && !CertificateDigest.IsDigest(from)))
             {
                 return null;
             }
 
-            // The stored form is one field per line, so a subject carrying a line ending is one
-            // this could never have written. Refused rather than read, for the reason the
-            // constructor gives.
-            if (!IsStorableSubject(subject))
-            {
-                return null;
-            }
-
-            // A record that does not say which client it is cannot be counted as one, and is
-            // refused like any other that is not exactly a record.
-            if (!CertificateDigest.IsDigest(client))
-            {
-                return null;
-            }
-
-            // `Moments.WireFormat` is RFC 3339 with a `Z` offset and no fractional seconds:
-            // https://www.rfc-editor.org/rfc/rfc3339#section-5.6. One spelling of it for the whole
-            // plugin, because a record written on one machine is read on another, and because the
-            // separators have to stay quoted: a bare `:` in a custom format string means whatever
-            // the current culture uses for one.
+            // `Moments.WireFormat` alone, RFC 3339 with a `Z` and no fractional seconds: the single
+            // form an admission is written in, `STORE.md` §615.
             DateTimeOffset when;
             if (!DateTimeOffset.TryParseExact(
                     admitted,
@@ -357,54 +350,38 @@ namespace KeePassGate.Authority
                 return null;
             }
 
-            byte[] der;
+            byte[] bytes;
             try
             {
-                der = Convert.FromBase64String(certificate);
+                bytes = Convert.FromBase64String(der);
             }
             catch (FormatException)
             {
                 return null;
             }
 
-            if (der.Length == 0)
+            if (bytes.Length == 0 || !IsKeyedBareCertificate(certificate, bytes))
             {
                 return null;
             }
 
-            try
-            {
-                if (!IsKeyedBareCertificate(admissionKey, der))
-                {
-                    return null;
-                }
-            }
-            catch (Exception error) when (Expected.OfCryptography(error))
-            {
-                // A record whose certificate will not decode admits nobody, which is the same
-                // answer as no record at all.
-                return null;
-            }
-
-            // Checked once more by the constructor, which is the price of there being one place
-            // that decides what a record is. It is asked here as well so that a stored value which
-            // is not a record is refused rather than thrown about.
-            return new AdmissionRecord(admissionKey, subject, client, when, Split(profiles), der);
+            return new AdmissionRecord(
+                certificate,
+                subject,
+                client,
+                when,
+                profiles.Split(Space, StringSplitOptions.RemoveEmptyEntries),
+                bytes,
+                issuer,
+                from,
+                entry);
         }
 
-        /// <summary>
-        /// A subject the stored form can hold, which is any that carries no line ending.
-        /// </summary>
-        /// <remarks>
-        /// The format leans on issuance refusing a subject that is not a plain name, and
-        /// `AuthorityIssuer.IsUsableSubjectName` does refuse one. The invariant the format depends
-        /// on lived in that other class, though, so a record built from any other certificate could
-        /// write a `subject=` line with a newline in it and read back as a different record or as
-        /// none at all. This is that invariant, at the boundary that needs it.
-        /// </remarks>
-        public static bool IsStorableSubject(string subject)
+        /// <summary>A member's text, or null where the content does not hold it.</summary>
+        private static string Text(IReadOnlyDictionary<string, string> members, string name)
         {
-            return subject != null && subject.IndexOf('\n') < 0 && subject.IndexOf('\r') < 0;
+            string value;
+            return members.TryGetValue(name, out value) ? value : null;
         }
 
         /// <summary>
@@ -413,17 +390,13 @@ namespace KeePassGate.Authority
         /// <remarks>
         /// **A bare certificate and nothing else.** Measured on .NET Framework 4.8:
         /// `X509Certificate2(byte[])` sniffs the blob, so a password-less PKCS#12 and a PEM both
-        /// load through it and come back re-encoded. The certificate a record carries need
+        /// load through it and come back re-encoded. The certificate an admission carries need
         /// therefore not be the bytes it is keyed on, and a digest check alone cannot see that,
         /// because the key is a digest of whatever was stored.
         ///
         /// `EphemeralKeySet`, because a PKCS#12 reaching here would otherwise write its private
         /// key into the operator's key store, from bytes a `.kdbx` chose, on whichever thread
-        /// happened to read the record.
-        ///
-        /// Here rather than in `Load` alone, because the constructor is what decides what a record
-        /// is and it was deciding less: a record built from a PKCS#12 and its digest passed every
-        /// check the constructor made, stored, and then read back as nothing for ever after.
+        /// happened to read the admission.
         /// </remarks>
         private static bool IsKeyedBareCertificate(string admissionKey, byte[] certificateDer)
         {
@@ -450,60 +423,33 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// The three checks that make a record one, and the reason the constructor is where they
-        /// live: a record that admits nobody should be impossible to write rather than merely
-        /// impossible to read.
+        /// The checks that make a record an admission, and the reason the constructor is where they
+        /// live: an admission that admits nobody should be impossible to compose rather than
+        /// merely impossible to read.
         /// </summary>
         private static void KeyedBy(string admissionKey, byte[] certificateDer)
         {
             if (string.IsNullOrEmpty(admissionKey))
             {
-                throw new ArgumentException("A record is keyed on the certificate's digest.", nameof(admissionKey));
+                throw new ArgumentException("An admission is keyed on the certificate's digest.", nameof(admissionKey));
             }
 
             if (certificateDer == null || certificateDer.Length == 0)
             {
-                throw new ArgumentException("A record carries the certificate it admits.", nameof(certificateDer));
+                throw new ArgumentException("An admission carries the certificate it admits.", nameof(certificateDer));
             }
 
             if (!IsKeyedBareCertificate(admissionKey, certificateDer))
             {
                 throw new ArgumentException(
-                    "A record's key is the digest of the bare certificate it carries.",
+                    "An admission's key is the digest of the bare certificate it carries.",
                     nameof(admissionKey));
             }
         }
 
-        private static string Storable(string subject)
-        {
-            if (subject == null)
-            {
-                return string.Empty;
-            }
-
-            if (!IsStorableSubject(subject))
-            {
-                throw new ArgumentException(
-                    "A subject cannot carry a line ending: the stored form is one field per line.",
-                    nameof(subject));
-            }
-
-            return subject;
-        }
-
-        private static IEnumerable<string> Split(string profiles)
-        {
-            if (string.IsNullOrEmpty(profiles))
-            {
-                return Nothing;
-            }
-
-            return profiles.Split(',');
-        }
-
         /// <summary>
-        /// Only names that could have been issued as claims survive, so a record edited by hand
-        /// into something strange grants nothing strange.
+        /// Only names that could have been issued as claims survive, each once, in ordinal order,
+        /// so an admission edited by hand into something strange grants nothing strange.
         /// </summary>
         private static IReadOnlyList<string> Clean(IEnumerable<string> profiles)
         {
@@ -512,20 +458,14 @@ namespace KeePassGate.Authority
                 return Nothing;
             }
 
-            var kept = new List<string>();
-            foreach (var profile in profiles)
-            {
-                if (!AuthorityIssuer.IsUsableProfileName(profile) || kept.Contains(profile))
-                {
-                    continue;
-                }
-
-                kept.Add(profile);
-            }
+            var kept = profiles.Where(AuthorityIssuer.IsUsableProfileName)
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(profile => profile, StringComparer.Ordinal)
+                .ToList();
 
             // Wrapped rather than merely typed as read only. `IReadOnlyList<T>` is a view of the
             // same list, so a caster could raise a client's ceiling for the life of a connection,
-            // and this is the one field in a record that grants anything.
+            // and this is the one field in an admission that grants anything.
             return new ReadOnlyCollection<string>(kept);
         }
     }

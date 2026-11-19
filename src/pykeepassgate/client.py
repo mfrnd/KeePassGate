@@ -335,19 +335,23 @@ class GateClient:
         return Identity.of(self._request("GET", IDENTITY_PATH, None, _refuse))
 
     def revoke_certificate(self) -> None:
-        """Give up this client's admission, by the certificate it presents.
+        """Give up the certificate this client presents.
 
         `DELETE /gate/certificate` takes no body and names nothing, because the certificate on
-        the connection is what is revoked: a client can revoke itself and nobody else. The gate
-        writes what its Clients page writes, saves, and reads the file back before it answers,
-        and from the next connection on every call here raises `NotAdmitted`.
+        the connection is what is given up: a client can give up its own certificate and nobody
+        else's. The gate takes that single certificate away by a record of its store, saves, and
+        reads the file back before it answers, and from the next connection on every call made
+        with that certificate raises `NotAdmitted`. A certificate renewed from it stays
+        admitted; revoking the client, which the gate's Clients page does, is another act and
+        refuses every certificate the client holds. A write that does not land is taken back
+        out.
 
-        **A failure says what it left behind, in the gate's word on the `RouteRefused`.** `not
+        **A failure names what it left behind, in the gate's word on the `RouteRefused`.** `not
         saved` kept nothing, so the client is still admitted and asking again is safe. `not
-        verified` is a revocation KeePass holds in memory and may not have in the file: the
-        certificate is already refused, so asking again raises `NotAdmitted`, and whether the
-        file keeps it is the operator's to settle. A `503` is answered before anything is
-        written, so it is waited out as on every route.
+        verified` is a certificate given up that KeePass holds in memory and may not have in the
+        file: the certificate is already refused, so asking again raises `NotAdmitted`, and
+        whether the file keeps it is the operator's to settle. A `503` is answered before
+        anything is written, so it is waited out as on every route.
 
         What is stored for this client is left as it is, since files are the caller's business:
         `forget` is the call that takes them away, and the command line's `revoke` makes it once

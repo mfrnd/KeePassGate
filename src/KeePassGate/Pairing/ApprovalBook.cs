@@ -14,11 +14,12 @@ namespace KeePassGate.Pairing
     /// One approval the operator gave that has not been written yet, and what it was given against.
     /// </summary>
     /// <remarks>
-    /// Built by <see cref="ApprovalBook.Hold"/> and nowhere else. What the operator decided, the
-    /// profiles and the lifetime, and the state they decided it against: the authority being
-    /// served, which of the names the decision rested on the database's list held as the dialog
-    /// showed it, and for a renewal the record being renewed. <see cref="Stale"/> compares that
-    /// state with the database's own under the writer's lock, at the moment of writing.
+    /// Built by <see cref="ApprovalBook.Hold"/> and <see cref="ApprovalBook.HoldRenewal"/> and
+    /// nowhere else. What the operator decided, the profiles and the lifetime, and the state they
+    /// decided it against: the authority being served, which the write's plan holds the admission
+    /// to, which of the names the decision rested on the database's list held as the dialog showed
+    /// it, and for a renewal the record being renewed. <see cref="Stale"/> compares the last two
+    /// with the database's own under the writer's lock, at the moment of writing.
     /// </remarks>
     public sealed class HeldApproval
     {
@@ -59,8 +60,9 @@ namespace KeePassGate.Pairing
         public TimeSpan Lifetime { get; private set; }
 
         /// <summary>
-        /// The digest of the record a renewal renews, as it was when the operator approved, or null
-        /// for a pairing.
+        /// The identifier of the entry of the admission a renewal renews, as it was when the
+        /// operator approved, or null for a pairing: a record is written once, so the same entry
+        /// under the same store key is the same content, `STORE.md` §627.
         /// </summary>
         public string Record { get; private set; }
 
@@ -93,8 +95,9 @@ namespace KeePassGate.Pairing
         /// does. Asked under the writer's lock, on KeePass's thread, as part of the write.
         /// </summary>
         /// <remarks>
-        /// **The authority** has to be the one served and not retired: a record written under any other
-        /// is one that chains to nothing the gate serves.
+        /// **The authority is not asked here**: the write's plan holds the admission to the
+        /// authority that issued its certificate, which is the authority this was approved under,
+        /// standing alone, before this is asked, and answers a write it leaves out for that.
         ///
         /// **The profiles**, name by name: each name the decision rested on has to be on the list
         /// exactly when the dialog showed it there. A name the operator took off the list since
@@ -109,9 +112,12 @@ namespace KeePassGate.Pairing
         /// showed as dropped, so a read that missed the list while the dialog was built, and
         /// offered nothing, is caught here rather than written as a record with no profiles.
         ///
-        /// **The record**, for a renewal: still there, unrevoked and unchanged. A revocation that
-        /// landed after the operator answered, or after the handler last read it, is what this
-        /// catches, under the same lock the revocation is written under.
+        /// **The admission**, for a renewal: still admitting, and still the entry the operator
+        /// approved against. A revocation or a certificate taken away that landed after the
+        /// operator answered, or after the handler last read it, is what this catches, read from
+        /// the store in the write's own turn, under the lock every such write is made under. A
+        /// retirement of the authority it was issued under is answered by the write before this
+        /// is asked, in its plan, or before it plans anything where several authorities stand.
         /// </remarks>
         public HeldStaleness Stale(IWriteGround ground, string admissionKey)
         {
@@ -121,15 +127,10 @@ namespace KeePassGate.Pairing
                 return HeldStaleness.Unpaired;
             }
 
-            if (!string.Equals(ground.Served, DatabaseId, StringComparison.Ordinal))
-            {
-                return HeldStaleness.Authority;
-            }
-
             if (Record != null)
             {
-                var record = new AdmissionStore(store, NullGateLog.Instance).Find(admissionKey);
-                if (record == null || !string.Equals(ApprovalBook.Digest(record.Save()), Record, StringComparison.Ordinal))
+                var admission = ground.Admission(admissionKey);
+                if (admission == null || !string.Equals(admission.Entry, Record, StringComparison.Ordinal))
                 {
                     return HeldStaleness.Unpaired;
                 }
@@ -159,9 +160,6 @@ namespace KeePassGate.Pairing
     {
         /// <summary>Nothing: it can be written.</summary>
         None,
-
-        /// <summary>The authority it was given under is no longer the one served.</summary>
-        Authority,
 
         /// <summary>The record a renewal renews has gone, been revoked or changed.</summary>
         Unpaired,
@@ -314,9 +312,9 @@ namespace KeePassGate.Pairing
         }
 
         /// <summary>
-        /// Holds what the operator approved, until <paramref name="until"/>, replacing anything
-        /// held under the same key, unless its database was locked or closed since
-        /// <paramref name="mark"/>.
+        /// Holds what the operator approved for a pairing, until <paramref name="until"/>,
+        /// replacing anything held under the same key, unless its database was locked or closed
+        /// since <paramref name="mark"/>.
         /// </summary>
         /// <param name="listed">
         /// Which of the names the decision rested on the list held as the dialog showed it.
@@ -326,12 +324,33 @@ namespace KeePassGate.Pairing
         /// database a lock or a close let go of since then is answered as an approval that clear
         /// took away: <see cref="HeldApproval.Cleared"/>, and not held.
         /// </param>
+        public HeldApproval Hold(
+            string key,
+            string databaseId,
+            IReadOnlyList<string> profiles,
+            TimeSpan lifetime,
+            IEnumerable<string> listed,
+            PairingMoment until,
+            long mark)
+        {
+            return Held(new HeldApproval(key, databaseId, profiles, lifetime, null, listed, null, until), mark);
+        }
+
+        /// <summary>
+        /// Holds what the operator approved for a renewal, as <see cref="Hold"/> holds a pairing's,
+        /// with the entry of the admission it renews, which the write compares.
+        /// </summary>
+        /// <param name="record">
+        /// The identifier of the admission's entry, `STORE.md` §627. Required: an approval held
+        /// without it would be compared as a pairing's, with no admission asked about.
+        /// </param>
         /// <param name="asked">
         /// The names the decision rested on beyond the approved ones, which the write compares as
-        /// well, or null for none: a renewal's record carries names the operator was shown as
-        /// dropped and did not approve.
+        /// well: a renewal's record carries names the operator was shown as dropped and did not
+        /// approve.
         /// </param>
-        public HeldApproval Hold(
+        /// <exception cref="ArgumentException">No entry was given.</exception>
+        public HeldApproval HoldRenewal(
             string key,
             string databaseId,
             IReadOnlyList<string> profiles,
@@ -340,9 +359,23 @@ namespace KeePassGate.Pairing
             string record,
             PairingMoment until,
             long mark,
-            IEnumerable<string> asked = null)
+            IEnumerable<string> asked)
         {
-            var held = new HeldApproval(key, databaseId, profiles, lifetime, asked, listed, record, until);
+            if (string.IsNullOrEmpty(record))
+            {
+                throw new ArgumentException("A renewal is held with the entry of the admission it renews.", nameof(record));
+            }
+
+            return Held(new HeldApproval(key, databaseId, profiles, lifetime, asked, listed, record, until), mark);
+        }
+
+        /// <summary>
+        /// Holds an approval, unless its database was locked or closed since the mark.
+        /// </summary>
+        private HeldApproval Held(HeldApproval held, long mark)
+        {
+            var databaseId = held.DatabaseId;
+            var key = held.Key;
             lock (_lock)
             {
                 if (ClearedSince(databaseId, mark))

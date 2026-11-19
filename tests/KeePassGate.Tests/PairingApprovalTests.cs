@@ -172,7 +172,7 @@ namespace KeePassGate.Tests
                     new[] { "reader", added, returned }, new[] { "reader" }, "127.0.0.1:60001",
                     new Dictionary<string, IReadOnlyList<AdmissionRecord>>
                     {
-                        { returned, new[] { AdmissionRecord.For(holder, DateTimeOffset.UtcNow, new[] { returned }) } }
+                        { returned, new[] { AdmissionRecord.For(holder, DateTimeOffset.UtcNow, new[] { returned }, InventedIssuer.Id) } }
                     });
 
                 using (var dialog = new PairingApprovalForm(request, Timeout, larger))
@@ -746,8 +746,8 @@ namespace KeePassGate.Tests
             {
                 var holding = new[]
                 {
-                    AdmissionRecord.For(runner, DateTimeOffset.UtcNow, new[] { "retired" }),
-                    AdmissionRecord.For(seven, DateTimeOffset.UtcNow, new[] { "retired", "ops" })
+                    AdmissionRecord.For(runner, DateTimeOffset.UtcNow, new[] { "retired" }, InventedIssuer.Id),
+                    AdmissionRecord.For(seven, DateTimeOffset.UtcNow, new[] { "retired", "ops" }, InventedIssuer.Id)
                 };
 
                 var request = new PairingRequest(
@@ -786,13 +786,13 @@ namespace KeePassGate.Tests
             using (var one = authority.IssueClient("agent"))
             using (var other = authority.IssueClient("agent"))
             {
-                var paired = AdmissionRecord.For(older, DateTimeOffset.UtcNow, new[] { "retired" });
-                var first = AdmissionRecord.For(one, DateTimeOffset.UtcNow, new[] { "retired" });
-                var second = AdmissionRecord.For(other, DateTimeOffset.UtcNow, new[] { "retired" });
+                var paired = AdmissionRecord.For(older, DateTimeOffset.UtcNow, new[] { "retired" }, InventedIssuer.Id);
+                var first = AdmissionRecord.For(one, DateTimeOffset.UtcNow, new[] { "retired" }, InventedIssuer.Id);
+                var second = AdmissionRecord.For(other, DateTimeOffset.UtcNow, new[] { "retired" }, InventedIssuer.Id);
                 var holding = new[]
                 {
                     paired,
-                    AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "retired" }, paired.ClientKey),
+                    AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "retired" }, InventedIssuer.Id, paired.ClientKey, paired.AdmissionKey),
                     first,
                     second
                 };
@@ -825,7 +825,7 @@ namespace KeePassGate.Tests
                 try
                 {
                     var removed = Enumerable.Range(0, 12).Select(i => "gone-" + i).ToArray();
-                    var records = holders.Select(c => AdmissionRecord.For(c, DateTimeOffset.UtcNow, removed)).ToList();
+                    var records = holders.Select(c => AdmissionRecord.For(c, DateTimeOffset.UtcNow, removed, InventedIssuer.Id)).ToList();
                     var returning = removed.ToDictionary(
                         name => name, name => (IReadOnlyList<AdmissionRecord>)records, StringComparer.Ordinal);
 
@@ -859,7 +859,7 @@ namespace KeePassGate.Tests
             using (var authority = TestAuthority.New())
             using (var runner = authority.IssueClient("ci-runner"))
             {
-                var holding = new[] { AdmissionRecord.For(runner, DateTimeOffset.UtcNow, new[] { "retired" }) };
+                var holding = new[] { AdmissionRecord.For(runner, DateTimeOffset.UtcNow, new[] { "retired" }, InventedIssuer.Id) };
                 var request = new PairingRequest(
                     "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
                     new[] { "named-0", "fresh", "retired" }, known, "127.0.0.1:60001",

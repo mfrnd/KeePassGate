@@ -301,6 +301,98 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_deletion_record_tells_of_a_certificate_taken_away_by_the_certificate_an_admission_names_in_force_or_not()
+        {
+            // `STORE.md` §623 step 2: the record that took the certificate away and its item are
+            // gone, and the admission of that certificate still holds its content in the file.
+            foreach (var inForce in new[] { true, false })
+            {
+                var store = new ComposedStore(One);
+                var admission = store.Add(Admission(Hex('d')));
+                if (!inForce)
+                {
+                    store.Delete(admission);
+                }
+
+                var told = Told(One, "withdrawn", "certificate:" + Hex('d'));
+                store.Deleted.Add(told);
+
+                var reading = store.Read();
+
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(reading.InForce.Taken("withdrawn"), Is.EquivalentTo(new[] { Hex('d') }), "in force: " + inForce);
+                Assert.That(reading.InForce.Room.Items, Is.EqualTo(2), "the item format and a statement for the deletion record");
+                Assert.That(
+                    reading.InForce.Restated().Single(item => item.Kind == "withdrawn").Members,
+                    Is.EquivalentTo(new Dictionary<string, string>
+                    {
+                        { "id", KeePassGate.Hex.Of(told) },
+                        { "certificate", Hex('d') },
+                        { "renewed", string.Empty },
+                    }),
+                    "a statement of its own, which names no renewal");
+            }
+        }
+
+        [Test]
+        public void A_deletion_record_tells_of_a_certificate_taken_away_by_the_certificate_a_renewal_names_as_its_origin()
+        {
+            // The admission of the certificate taken away went with the write that took it away:
+            // only the renewal's `from` still names it, `STORE.md` §623 step 2.
+            var store = new ComposedStore(One);
+            store.Add(Admission(Hex('e'), Hex('d')));
+            store.Deleted.Add(Told(One, "withdrawn", "certificate:" + Hex('d')));
+
+            var reading = store.Read();
+
+            Assert.That(reading.InForce.Taken("withdrawn"), Is.EquivalentTo(new[] { Hex('d') }));
+            Assert.That(reading.InForce.Room.Items, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void A_text_an_admission_holds_that_is_no_admission_key_tells_of_nothing()
+        {
+            var store = new ComposedStore(One);
+            store.Add(Admission(Hex('D'), "short"));
+            store.Deleted.Add(Told(One, "withdrawn", "certificate:" + Hex('D')));
+            store.Deleted.Add(Told(One, "withdrawn", "certificate:short"));
+
+            var reading = store.Read();
+
+            Assert.That(reading.InForce.Taken("withdrawn"), Is.Empty);
+            Assert.That(reading.InForce.Room.Items, Is.EqualTo(1), "the item format alone");
+        }
+
+        [Test]
+        public void A_reading_hashes_the_keys_admissions_name_only_where_a_deletion_record_carries_the_tag_of_a_certificate_taken_away()
+        {
+            // A deletion record of another kind's tag, which names no admission key.
+            var store = new ComposedStore(One);
+            store.Add(Admission(Hex('d')));
+            store.Add(Admission(Hex('e'), Hex('d')));
+            store.Deleted.Add(Told(One, "authority", "authority:" + Hex('9')));
+
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(Hashed(reading), Is.EqualTo(0), "no deletion record carries the tag of a certificate taken away");
+
+            store.Deleted.Add(Told(One, "withdrawn", "certificate:" + Hex('9')));
+            Assert.That(Hashed(store.Read()), Is.EqualTo(2), "each admission key the admissions name, once");
+        }
+
+        /// <summary>A record of kind `client` of the client `c`, for a renewal with the certificate it was renewed from.</summary>
+        private static StoreComposer.Composed Admission(string certificate, string from = null)
+        {
+            var members = new List<(string Name, string Value)> { ("certificate", certificate), ("client", Hex('c')) };
+            if (from != null)
+            {
+                members.Add(("from", from));
+            }
+
+            return StoreComposer.Record(One, "client", "client:" + Hex('c'), StoreComposer.Content(members.ToArray()));
+        }
+
+        [Test]
         public void A_statement_is_restated_with_every_member_it_holds_and_none_it_lacks()
         {
             var store = new ComposedStore(One);

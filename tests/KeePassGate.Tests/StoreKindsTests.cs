@@ -36,7 +36,7 @@ namespace KeePassGate.Tests
             "ceiling: the items of a summary entry the plugin writes, 9999",
             "kind authority: subject authority: and id; number none; members id text, storeKey hex; beside a deletion record out of force; restated not",
             "kind retired: subject authority: and authority; number none; members authority text, storeKey hex where present; beside a deletion record counts; restated by an item with the same authority; item authority text",
-            "kind client: subject client: and client; number none; members client text; beside a deletion record out of force; restated not",
+            "kind client: subject client: and client; number none; members client text, certificate text where present, der text where present, issuer text where present, profiles text where present, subject text where present, admitted text where present, from text where present; beside a deletion record out of force; restated not",
             "kind revoked: subject client: and client; number none; members client text; beside a deletion record counts; restated by an item with the same client; item client text",
             "kind withdrawn: subject certificate: and certificate; number none; members certificate hex, renewed text where present, from text where present; beside a deletion record counts; restated by an item whose id is its identifier, with the same certificate, renewed and from; item id text, certificate hex, renewed text where present, from text where present",
             "kind profile: subject profile: and name; number none; members name text, after identifiers; beside a deletion record out of force; restated not",

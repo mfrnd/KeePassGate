@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
@@ -9,13 +10,15 @@ using NUnit.Framework;
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// The record that decides whether a certificate is worth anything. Reading one has to be
-    /// total: anything that is not exactly a record admits nobody.
+    /// The admission that decides whether a certificate is worth anything, `STORE.md` §615: its
+    /// members as a record of kind `client` holds them, written and read back. Reading an
+    /// admission has to be total: anything that is not exactly an admission admits nobody.
     /// </summary>
     [TestFixture]
     public sealed class AdmissionRecordTests
     {
         private static readonly DateTimeOffset Admitted = new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.Zero);
+        private static readonly string Issuer = new string('b', 64);
 
         private TestAuthority _authority;
         private CertifiedKey _issued;
@@ -37,79 +40,83 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_record_is_keyed_on_the_certificates_digest()
+        public void An_admission_is_keyed_on_the_certificates_digest_and_names_its_issuer()
         {
-            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" });
+            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" }, Issuer);
 
             Assert.That(record.AdmissionKey, Is.EqualTo(CertificateDigest.Of(_certificate)));
-            Assert.That(record.StorageKey, Is.EqualTo(AuthorityKeys.ClientPrefix + record.AdmissionKey));
+            Assert.That(record.Issuer, Is.EqualTo(Issuer));
+            Assert.That(record.From, Is.Null, "a pairing's names no certificate it was renewed from");
+            Assert.That(record.Entry, Is.Null, "composed, and not read from an entry");
         }
 
         [Test]
         public void It_carries_the_certificate_so_expiry_is_knowable_later()
         {
-            var record = AdmissionRecord.For(_certificate, Admitted, null);
+            var record = AdmissionRecord.For(_certificate, Admitted, null, Issuer);
 
             using (var carried = record.Certificate())
             {
                 Assert.That(carried.RawData, Is.EqualTo(_certificate.RawData));
                 Assert.That(carried.NotAfter, Is.EqualTo(_certificate.NotAfter));
-                Assert.That(carried.HasPrivateKey, Is.False, "a record has no business holding a key");
+                Assert.That(carried.HasPrivateKey, Is.False, "an admission has no business holding a key");
             }
         }
 
         [Test]
-        public void A_field_this_reader_does_not_know_is_refused()
-        {
-            // Not skipped. The version marker is there so a later writer can add a field that
-            // narrows what a record grants; a reader that ignored it would keep admitting on the
-            // strength of the fields it did recognize.
-            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" });
-
-            Assert.That(AdmissionRecord.Load(record.AdmissionKey, record.Save()), Is.Not.Null);
-            Assert.That(AdmissionRecord.Load(record.AdmissionKey, record.Save() + "\nnote=x"), Is.Null);
-        }
-
-        [Test]
-        public void A_record_carrying_a_pkcs12_rather_than_a_certificate_cannot_be_built()
+        public void An_admission_carrying_a_pkcs12_rather_than_a_certificate_cannot_be_built()
         {
             // `X509Certificate2(byte[])` sniffs the blob, so a password-less PFX loads and reports
-            // a `RawData` of the certificate inside it. A record keyed on the digest of the PFX
-            // therefore used to construct, store, and read back as nothing for ever after.
+            // a `RawData` of the certificate inside it.
             var pfx = _issued.ToPkcs12();
 
             Assert.That(pfx, Is.Not.EqualTo(_certificate.RawData));
             Assert.Throws<ArgumentException>(() => new AdmissionRecord(
-                CertificateDigest.Of(pfx), "CN=agent-fictitious", CertificateDigest.Of(pfx), Admitted, new[] { "ops" }, pfx));
+                CertificateDigest.Of(pfx), "CN=agent-fictitious", CertificateDigest.Of(pfx), Admitted, new[] { "ops" }, pfx, Issuer));
         }
 
         [Test]
-        public void It_survives_the_round_trip()
+        public void Its_members_are_those_of_the_table_and_read_back_as_they_were_written()
         {
-            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops", "readonly" });
+            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "readonly", "ops" }, Issuer);
 
-            var read = AdmissionRecord.Load(record.AdmissionKey, record.Save());
+            var members = record.Members();
+
+            Assert.That(members.Keys, Is.EquivalentTo(new[] { "certificate", "der", "client", "issuer", "profiles", "subject", "admitted" }));
+            Assert.That(members["certificate"], Is.EqualTo(record.AdmissionKey));
+            Assert.That(members["der"], Is.EqualTo(Convert.ToBase64String(_certificate.RawData)));
+            Assert.That(members["client"], Is.EqualTo(record.AdmissionKey), "a paired client is known by its own certificate");
+            Assert.That(members["issuer"], Is.EqualTo(Issuer));
+            Assert.That(members["profiles"], Is.EqualTo("ops readonly"), "each once, in ordinal order");
+            Assert.That(members["subject"], Is.EqualTo("CN=agent-fictitious"));
+            Assert.That(members["admitted"], Is.EqualTo("2026-03-04T05:06:07Z"));
+
+            var read = AdmissionRecord.Read("0011", members);
 
             Assert.That(read, Is.Not.Null);
-            Assert.That(read.AdmissionKey, Is.EqualTo(record.AdmissionKey));
-            Assert.That(read.Subject, Is.EqualTo("CN=agent-fictitious"));
-            Assert.That(read.ClientKey, Is.EqualTo(record.ClientKey));
+            Assert.That(read.Entry, Is.EqualTo("0011"));
+            Assert.That(read.Members(), Is.EquivalentTo(members));
             Assert.That(read.Admitted, Is.EqualTo(Admitted));
             Assert.That(read.Profiles, Is.EqualTo(new[] { "ops", "readonly" }));
-            Assert.That(read.CertificateDer, Is.EqualTo(_certificate.RawData));
+            using (var carried = read.Certificate())
+            {
+                Assert.That(carried.RawData, Is.EqualTo(_certificate.RawData));
+            }
         }
 
         [Test]
-        public void The_stored_form_is_text_a_kdbx_can_hold()
+        public void A_renewal_keeps_the_client_key_it_was_given_and_names_its_origin()
         {
-            var stored = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" }).Save();
+            var first = new string('c', 64);
+            var origin = new string('d', 64);
+            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" }, Issuer, first, origin);
 
-            Assert.That(stored, Does.StartWith("v=1"));
-            Assert.That(stored, Does.Not.Contain("\0"));
-            foreach (var line in stored.Split('\n').Where(l => l.Length > 0))
-            {
-                Assert.That(line, Does.Contain("="));
-            }
+            Assert.That(record.ClientKey, Is.EqualTo(first));
+            Assert.That(record.Members()["from"], Is.EqualTo(origin));
+
+            var read = AdmissionRecord.Read(null, record.Members());
+            Assert.That(read.ClientKey, Is.EqualTo(first));
+            Assert.That(read.From, Is.EqualTo(origin));
         }
 
         [Test]
@@ -119,10 +126,10 @@ namespace KeePassGate.Tests
             try
             {
                 System.Threading.Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("de-DE");
-                var record = AdmissionRecord.For(_certificate, Admitted, null);
+                var record = AdmissionRecord.For(_certificate, Admitted, null, Issuer);
 
-                Assert.That(record.Save(), Does.Contain("admitted=2026-03-04T05:06:07Z"));
-                Assert.That(AdmissionRecord.Load(record.AdmissionKey, record.Save()).Admitted, Is.EqualTo(Admitted));
+                Assert.That(record.Members()["admitted"], Is.EqualTo("2026-03-04T05:06:07Z"));
+                Assert.That(AdmissionRecord.Read(null, record.Members()).Admitted, Is.EqualTo(Admitted));
             }
             finally
             {
@@ -131,49 +138,22 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_record_with_no_profiles_is_a_client_that_can_reach_nothing()
+        public void An_admission_with_no_profiles_is_a_client_that_can_reach_nothing()
         {
-            var record = AdmissionRecord.For(_certificate, Admitted, null);
+            var record = AdmissionRecord.For(_certificate, Admitted, null, Issuer);
 
-            Assert.That(record.Profiles, Is.Empty);
-            Assert.That(AdmissionRecord.Load(record.AdmissionKey, record.Save()).Profiles, Is.Empty);
+            Assert.That(record.Members()["profiles"], Is.Empty);
+            Assert.That(AdmissionRecord.Read(null, record.Members()).Profiles, Is.Empty);
         }
 
         [Test]
-        public void Profile_names_that_could_not_have_been_issued_are_dropped()
+        public void Profile_names_that_could_not_have_been_issued_are_dropped_and_the_rest_read_as_a_set()
         {
-            // A record edited by hand into something strange grants nothing strange.
-            var record = new AdmissionRecord(
-                CertificateDigest.Of(_certificate),
-                "CN=agent-fictitious",
-                CertificateDigest.Of(_certificate),
-                Admitted,
-                new[] { "ops", "default", "with space", string.Empty, "ops" },
-                _certificate.RawData);
+            // An admission edited by hand into something strange grants nothing strange.
+            var members = Members();
+            members["profiles"] = "ops default with  ops readonly";
 
-            Assert.That(record.Profiles, Is.EqualTo(new[] { "ops" }));
-        }
-
-        [Test]
-        public void A_paired_client_is_known_by_its_own_certificate()
-        {
-            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" });
-
-            Assert.That(record.ClientKey, Is.EqualTo(record.AdmissionKey));
-            Assert.That(record.Save(), Does.Contain("\nclient=" + record.AdmissionKey + "\n"));
-        }
-
-        [Test]
-        public void A_renewed_record_keeps_the_client_key_it_was_given()
-        {
-            // A renewal is the same client under a new certificate: its record carries the key of
-            // the certificate the client paired with, not its own, and reads back with it.
-            var first = new string('c', 64);
-            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" }, first);
-
-            Assert.That(record.ClientKey, Is.EqualTo(first));
-            Assert.That(record.AdmissionKey, Is.EqualTo(CertificateDigest.Of(_certificate)));
-            Assert.That(AdmissionRecord.Load(record.AdmissionKey, record.Save()).ClientKey, Is.EqualTo(first));
+            Assert.That(AdmissionRecord.Read(null, members).Profiles, Is.EqualTo(new[] { "ops", "readonly", "with" }));
         }
 
         [TestCase(null)]
@@ -181,189 +161,118 @@ namespace KeePassGate.Tests
         [TestCase("abc")]
         [TestCase("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")]
         [TestCase("gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg")]
-        public void A_client_key_that_is_not_a_digest_is_refused_both_ways(string clientKey)
+        public void A_key_that_is_not_a_digest_is_refused_both_ways(string key)
         {
-            // Nothing was ever distributed, so a record with no client key, or one that is not a
-            // digest, is not an older record to be read kindly: it is not a record, and like any
-            // other that is not, it admits nobody.
-            Assert.Throws<ArgumentException>(() =>
-                AdmissionRecord.For(_certificate, Admitted, new[] { "ops" }, clientKey));
-
-            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" });
-            var damaged = record.Save().Replace("client=" + record.ClientKey, "client=" + clientKey);
-
-            Assert.That(AdmissionRecord.Load(record.AdmissionKey, damaged), Is.Null);
-        }
-
-        [Test]
-        public void A_record_whose_certificate_does_not_match_its_key_is_refused()
-        {
-            // Two things stapled together rather than a record.
-            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" });
-            var somebodyElse = new string('a', 64);
-
-            Assert.That(AdmissionRecord.Load(somebodyElse, record.Save()), Is.Null);
-        }
-
-        [TestCase("v")]
-        [TestCase("subject")]
-        [TestCase("client")]
-        [TestCase("admitted")]
-        [TestCase("profiles")]
-        [TestCase("certificate")]
-        public void A_record_missing_any_field_is_refused(string field)
-        {
-            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" });
-            var without = string.Join("\n",
-                record.Save().Split('\n').Where(line => !line.StartsWith(field + "=", StringComparison.Ordinal)));
-
-            Assert.That(AdmissionRecord.Load(record.AdmissionKey, without), Is.Null);
-        }
-
-        [Test]
-        public void A_record_from_a_version_we_do_not_know_is_refused()
-        {
-            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" });
-
-            Assert.That(AdmissionRecord.Load(record.AdmissionKey, record.Save().Replace("v=1", "v=2")), Is.Null);
-        }
-
-        [Test]
-        public void A_record_with_a_field_twice_is_refused()
-        {
-            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" });
-
-            Assert.That(AdmissionRecord.Load(record.AdmissionKey, record.Save() + "profiles=admin\n"), Is.Null);
-        }
-
-        [TestCase("admitted=yesterday")]
-        [TestCase("admitted=2026-03-04")]
-        [TestCase("certificate=not base64")]
-        [TestCase("certificate=")]
-        public void A_field_that_will_not_parse_is_refused(string replacement)
-        {
-            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" });
-            var name = replacement.Split('=')[0];
-            var damaged = string.Join("\n", record.Save().Split('\n')
-                .Select(line => line.StartsWith(name + "=", StringComparison.Ordinal) ? replacement : line));
-
-            Assert.That(AdmissionRecord.Load(record.AdmissionKey, damaged), Is.Null);
-        }
-
-        [Test]
-        public void A_line_that_is_not_a_field_is_refused()
-        {
-            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" });
-
-            Assert.That(AdmissionRecord.Load(record.AdmissionKey, record.Save() + "nonsense\n"), Is.Null);
-            Assert.That(AdmissionRecord.Load(record.AdmissionKey, "=value\n" + record.Save()), Is.Null);
-        }
-
-        [Test]
-        public void No_truncation_of_a_record_can_produce_a_different_one()
-        {
-            // The property that matters is not that every prefix is refused: a record missing only
-            // its last newline is still that record. It is that no prefix can ever be read as
-            // admitting something other than what was written.
-            var original = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" });
-            var stored = original.Save();
-            var key = original.AdmissionKey;
-
-            for (var length = 0; length < stored.Length; length++)
+            Assert.Throws<ArgumentException>(() => AdmissionRecord.For(_certificate, Admitted, new[] { "ops" }, Issuer, key, null));
+            Assert.Throws<ArgumentException>(() => AdmissionRecord.For(_certificate, Admitted, new[] { "ops" }, key));
+            if (key != null)
             {
-                var truncated = stored.Substring(0, length);
+                Assert.Throws<ArgumentException>(
+                    () => AdmissionRecord.For(_certificate, Admitted, new[] { "ops" }, Issuer, CertificateDigest.Of(_certificate), key));
+            }
 
-                AdmissionRecord read = null;
-                Assert.DoesNotThrow(() => read = AdmissionRecord.Load(key, truncated),
-                    "threw on a " + length + " character prefix");
-
-                if (read == null)
+            foreach (var member in new[] { "client", "issuer", "certificate", "from" })
+            {
+                var members = Members();
+                if (key == null)
                 {
-                    continue;
+                    members.Remove(member);
+                }
+                else
+                {
+                    members[member] = key;
                 }
 
-                Assert.That(read.AdmissionKey, Is.EqualTo(original.AdmissionKey), "at " + length);
-                Assert.That(read.CertificateDer, Is.EqualTo(original.CertificateDer), "at " + length);
-                Assert.That(read.Profiles, Is.EqualTo(original.Profiles), "at " + length);
-                Assert.That(read.Subject, Is.EqualTo(original.Subject), "at " + length);
-                Assert.That(read.ClientKey, Is.EqualTo(original.ClientKey), "at " + length);
+                Assert.That(AdmissionRecord.Read(null, members), member == "from" && key == null ? Is.Not.Null : Is.Null, member);
             }
         }
 
-        [Test]
-        public void A_record_missing_only_its_last_newline_is_still_that_record()
+        [TestCase("der")]
+        [TestCase("client")]
+        [TestCase("issuer")]
+        [TestCase("profiles")]
+        [TestCase("subject")]
+        [TestCase("admitted")]
+        [TestCase("certificate")]
+        public void An_admission_missing_any_member_but_its_origin_reads_as_none(string member)
         {
-            var original = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" });
+            var members = Members();
+            members.Remove(member);
 
-            var read = AdmissionRecord.Load(original.AdmissionKey, original.Save().TrimEnd('\n'));
-
-            Assert.That(read, Is.Not.Null);
-            Assert.That(read.Profiles, Is.EqualTo(original.Profiles));
+            Assert.That(AdmissionRecord.Read(null, members), Is.Null);
         }
 
-        [TestCase(null)]
-        [TestCase("")]
-        [TestCase("rubbish")]
-        public void Anything_that_is_not_a_record_at_all_is_refused(string stored)
+        [TestCase("admitted", "yesterday")]
+        [TestCase("admitted", "2026-03-04")]
+        [TestCase("admitted", "2026-03-04T05:06:07.000Z")]
+        [TestCase("admitted", "2026-03-04T05:06:07+01:00")]
+        [TestCase("der", "not base64")]
+        [TestCase("der", "")]
+        public void A_member_out_of_its_form_reads_as_none(string member, string value)
         {
-            Assert.That(AdmissionRecord.Load(CertificateDigest.Of(_certificate), stored), Is.Null);
+            var members = Members();
+            members[member] = value;
+
+            Assert.That(AdmissionRecord.Read(null, members), Is.Null);
         }
 
         [Test]
-        public void A_certificate_field_that_is_not_a_bare_certificate_is_refused()
+        public void An_admission_whose_certificate_is_not_the_one_its_key_names_reads_as_none()
         {
-            // Measured: `X509Certificate2(byte[])` sniffs the blob, so a password-less PKCS#12 loads
-            // through it and comes back as the leaf inside. A record carrying one would be keyed on
-            // the digest of the container while describing something else, and reading it would
-            // import a private key from bytes a `.kdbx` chose.
-            var pkcs12 = _issued.ToPkcs12();
-            var key = CertificateDigest.Of(pkcs12);
-            var stored = Carrying(pkcs12);
-
-            using (var sniffed = new X509Certificate2(pkcs12, (string)null, X509KeyStorageFlags.EphemeralKeySet))
+            // Two things stapled together rather than an admission, and a PKCS#12 carried in place
+            // of a bare certificate.
+            using (var other = _authority.IssueClient("agent-invented"))
             {
-                Assume.That(sniffed.RawData, Is.Not.EqualTo(pkcs12),
-                    "this test is about a blob that parses as something other than itself");
+                var members = Members();
+                members["der"] = Convert.ToBase64String(other.RawData);
+                Assert.That(AdmissionRecord.Read(null, members), Is.Null);
             }
 
-            Assert.That(AdmissionRecord.Load(key, stored), Is.Null);
+            // The PKCS#12 keyed by its own digest, so that the digest matches and what refuses it
+            // is the bare certificate a `der` has to be.
+            var pkcs12 = _issued.ToPkcs12();
+            var pfx = Members();
+            pfx["der"] = Convert.ToBase64String(pkcs12);
+            pfx["certificate"] = CertificateDigest.Of(pkcs12);
+            Assert.That(AdmissionRecord.Read(null, pfx), Is.Null);
         }
 
         [Test]
         [NonParallelizable]
-        public void Refusing_a_record_that_carries_a_private_key_writes_no_key_to_the_disk()
+        public void Reading_an_admission_that_carries_a_private_key_writes_no_key_to_the_disk()
         {
-            // Locked against every other test process this account runs, so that a key one of
-            // them writes never lands inside this window: `PrivateKeyFiles.Lock` says why.
+            // Locked against every other test process this account runs, so that a key any of
+            // them writes never lands inside this window: `PrivateKeyFiles.Lock` gives the reason.
             using (PrivateKeyFiles.Lock())
             {
-                Refusing_a_record_that_carries_a_private_key_writes_no_key_to_the_disk_while_locked();
+                Reading_an_admission_that_carries_a_private_key_writes_no_key_to_the_disk_while_locked();
             }
         }
 
-        private void Refusing_a_record_that_carries_a_private_key_writes_no_key_to_the_disk_while_locked()
+        private void Reading_an_admission_that_carries_a_private_key_writes_no_key_to_the_disk_while_locked()
         {
-            // The PKCS#12 a `.kdbx` could carry here has a key in it, and parsing one without
+            // The PKCS#12 a `.kdbx` could carry in `der` has a key in it, and parsing it without
             // `EphemeralKeySet` writes that key into the operator's profile, from bytes the file
-            // chose. The parse is inside a `using`, which deletes the file again before `Load`
-            // returns, so comparing the key files before and after sees nothing either way. A
-            // watcher sees one arrive.
+            // chose. Every listing and every hold reads admissions. The parse is inside a `using`,
+            // which deletes the file again before `Read` returns, so comparing the key files before
+            // and after sees nothing either way. A watcher sees a key arrive.
             //
             // **Asked more than once, because the directories are not ours.** They belong to the
             // whole logon session, so a key any other process writes inside the window, the other
-            // test assembly `dotnet test` runs beside this one among them, reads exactly like a
-            // regression: this failed once that way and passed on the rerun. A parse that writes a
-            // key writes one every time, so one attempt that sees nothing acquits it, and only
-            // every attempt seeing something accuses it. A quiet moment afterwards then tells a
-            // machine writing keys throughout from the parse, and says so rather than guessing.
+            // test assembly `dotnet test` runs beside this assembly among them, reads exactly like
+            // a regression. A parse that writes a key writes a key every time, so an attempt that
+            // sees nothing acquits it, and only every attempt seeing something accuses it. A quiet
+            // moment afterwards then tells a machine writing keys throughout from the parse.
             var pkcs12 = _issued.ToPkcs12();
-            var stored = Carrying(pkcs12);
-            var seen = new System.Collections.Generic.List<string>();
+            var members = Members();
+            members["der"] = Convert.ToBase64String(pkcs12);
+            members["certificate"] = CertificateDigest.Of(pkcs12);
+            var seen = new List<string>();
 
             for (var attempt = 0; attempt < KeyAttempts; attempt++)
             {
                 var created = PrivateKeyFiles.CreatedDuring(
-                    () => Assert.That(AdmissionRecord.Load(CertificateDigest.Of(pkcs12), stored), Is.Null));
+                    () => Assert.That(AdmissionRecord.Read(null, members), Is.Null));
 
                 if (created.Length == 0)
                 {
@@ -377,85 +286,57 @@ namespace KeePassGate.Tests
             {
                 Assert.Inconclusive(
                     "something else on this machine is writing private keys throughout, so this run " +
-                    "cannot tell whether refusing the record wrote one");
+                    "cannot tell whether reading the admission wrote a key");
             }
 
             Assert.Fail("a private key reached the disk on every attempt: " + string.Join(", ", seen));
         }
 
-        /// <summary>How many parses in a row have to write a key before the parse is accused.</summary>
+        /// <summary>
+        /// How many parses in a row have to write a key before the parse is accused.
+        /// </summary>
         private const int KeyAttempts = 3;
 
-        /// <summary>How long nothing is done while the key directories are watched for anybody else.</summary>
+        /// <summary>
+        /// How long nothing is done while the key directories are watched for anybody else.
+        /// </summary>
         private static readonly TimeSpan KeyQuietWindow = TimeSpan.FromMilliseconds(250);
 
-        private static string Carrying(byte[] certificate)
+        [Test]
+        public void What_an_admission_grants_cannot_be_added_to_by_whoever_holds_it()
         {
-            return string.Join("\n", new[]
-            {
-                "v=1",
-                "subject=CN=agent-fictitious",
-                "client=" + CertificateDigest.Of(certificate),
-                "admitted=2026-03-04T05:06:07Z",
-                "profiles=ops",
-                "certificate=" + Convert.ToBase64String(certificate)
-            });
+            // `IReadOnlyList<T>` is a view of a list, not a copy of a list, and the profiles are
+            // the member of an admission that grants anything.
+            var read = AdmissionRecord.Read(null, Members());
+
+            Assert.That(read.Profiles as List<string>, Is.Null);
+            Assert.That(read.Profiles, Is.InstanceOf<System.Collections.ObjectModel.ReadOnlyCollection<string>>());
+            Assert.That(AdmissionRecord.For(_certificate, Admitted, new[] { "ops" }, Issuer).Profiles,
+                Is.InstanceOf<System.Collections.ObjectModel.ReadOnlyCollection<string>>());
         }
 
         [Test]
-        public void A_subject_that_the_stored_form_cannot_hold_is_refused_both_ways()
+        public void A_member_the_table_does_not_name_is_passed_over()
         {
-            // The format is one field per line, so a newline in a subject writes a record that reads
-            // back as a different one or as none. Refused where the record is made, rather than
-            // relied on being kept out by whoever issued the certificate.
-            Assert.Throws<ArgumentException>(() => new AdmissionRecord(
-                CertificateDigest.Of(_certificate),
-                "CN=agent\nprofiles=admin",
-                CertificateDigest.Of(_certificate),
-                Admitted,
-                new[] { "ops" },
-                _certificate.RawData));
+            var members = Members();
+            members["note"] = "anything";
 
-            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" });
-            var injected = record.Save().Replace(
-                "subject=CN=agent-fictitious", "subject=CN=agent\rnote=x");
-
-            Assert.That(AdmissionRecord.Load(record.AdmissionKey, injected), Is.Null);
+            Assert.That(AdmissionRecord.Read(null, members), Is.Not.Null);
         }
 
         [Test]
-        public void A_record_keyed_on_something_other_than_its_certificate_cannot_be_made()
+        public void Nothing_at_all_reads_as_none()
         {
-            // The other half of `A_record_whose_certificate_does_not_match_its_key_is_refused`.
-            // Refusing it only on the way in would let pairing write a record, report success, and
-            // leave a client that is admitted by nothing and revocable by nobody.
-            Assert.Throws<ArgumentException>(() => new AdmissionRecord(
-                new string('a', 64), "CN=agent-fictitious", new string('a', 64), Admitted, null, _certificate.RawData));
+            Assert.That(AdmissionRecord.Read(null, null), Is.Null);
+            Assert.That(AdmissionRecord.Read(null, new Dictionary<string, string>()), Is.Null);
         }
 
-        [Test]
-        public void What_it_grants_cannot_be_added_to_by_whoever_holds_it()
+        /// <summary>The members of a pairing's admission of the certificate, to change.</summary>
+        private Dictionary<string, string> Members()
         {
-            // `IReadOnlyList<T>` is a view of a list, not a copy of one, and this is the one field
-            // in a record that grants anything.
-            var record = AdmissionRecord.For(_certificate, Admitted, new[] { "ops" });
-
-            Assert.That(record.Profiles as System.Collections.Generic.List<string>, Is.Null);
-            Assert.That(record.Profiles, Is.InstanceOf<System.Collections.ObjectModel.ReadOnlyCollection<string>>());
-        }
-
-        [Test]
-        public void A_record_without_the_things_that_make_it_one_is_refused_at_construction()
-        {
-            Assert.Throws<ArgumentException>(() =>
-                new AdmissionRecord(null, "CN=x", new string('a', 64), Admitted, null, _certificate.RawData));
-            Assert.Throws<ArgumentException>(() =>
-                new AdmissionRecord("aa", "CN=x", new string('a', 64), Admitted, null, null));
-            Assert.Throws<ArgumentException>(() =>
-                new AdmissionRecord("aa", "CN=x", new string('a', 64), Admitted, null, Array.Empty<byte>()));
-            Assert.Throws<ArgumentException>(() => new AdmissionRecord(
-                CertificateDigest.Of(_certificate), "CN=x", null, Admitted, null, _certificate.RawData));
-            Assert.Throws<ArgumentNullException>(() => AdmissionRecord.For(null, Admitted, null));
+            return AdmissionRecord.For(_certificate, Admitted, new[] { "ops" }, Issuer)
+                .Members()
+                .ToDictionary(member => member.Key, member => member.Value, StringComparer.Ordinal);
         }
     }
 }

@@ -1,4 +1,6 @@
 using System;
+using System.Globalization;
+using KeePassGate.Authority;
 
 namespace KeePassGate.Testing
 {
@@ -29,8 +31,8 @@ namespace KeePassGate.Testing
     /// that issues on its own: a certificate issued at it does not begin until then.
     ///
     /// **No `.kdbx` is committed.** What is here is an authority's three parts, which the plugin
-    /// writes as one record in its store, and one client's admission record, which it keeps under
-    /// a `KPG` key in the database's own custom data. A database that holds them is crafted when a
+    /// writes as one record in its store, and one client's certificate with what its admission
+    /// holds, which the plugin writes as another. A database that holds them is crafted when a
     /// test runs, and nothing binary goes into the repository. The tests that only need an
     /// authority mint a fresh one per run, because what they assert is that a request is answered
     /// rather than what a fingerprint reads; these are for the ones that need the same bytes every
@@ -87,28 +89,37 @@ namespace KeePassGate.Testing
         /// </summary>
         public static readonly DateTimeOffset During = new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
-        /// <summary>The admission key that one client is recorded under.</summary>
-        public const string ClientKey =
-            "KPG.Client.c9d74273af508a25252797f2ceb18288a38bd3ea7aab43bc500629ddb5b5452c";
+        /// <summary>The certificate of the one admitted client, base64 of its DER.</summary>
+        public const string ClientCertificate =
+            "MIIBrTCCAVKgAwIBAgIQfUczW38muXkJ2k4smPkY+jAKBggqhkjOPQQDAjAgMR4wHAYDVQQDExVLZWVQYXNzR2F0ZSBhdXRob3JpdHkwHhcNMjYwODIyMDgzMzAxWhcNMjcwODIyMDgzODAxWjAZMRcwFQYDVQQDEw5hZ2VudC1pbnZlbnRlZDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABAS78Qqi28/5+7BQmpuOt0QCKeOcPrmdVHdRmXmpguis3LmxeQIknOvn2iFyynH/v9hZF2fYOXc/u0Qs+eys7/qjdTBzMAwGA1UdEwEB/wQCMAAwDgYDVR0PAQH/BAQDAgeAMBMGA1UdJQQMMAoGCCsGAQUFBwMCMB0GA1UdDgQWBBTDHz21u+WoPt0vbC9Z07n/tUe06zAfBgNVHSMEGDAWgBT495o5wolADbrniyVCndXKANXsazAKBggqhkjOPQQDAgNJADBGAiEA/iYw9xJmUgLvzmPZsj1QfFzFqAFthDoVK30EpcYjQ8sCIQCb2ww2hGHccyKgogLTv7X5K6hVtBF1+jcX88CPV92G1A==";
+
+        /// <summary>That client's admission, admitted at a moment that does not move.</summary>
+        public static AdmissionRecord Client()
+        {
+            return Admission(ClientCertificate, "CN=agent-invented", "2026-08-22T08:38:01Z", "ops reader", Authority);
+        }
 
         /// <summary>
-        /// That client's record, admitted at a date that does not move.
+        /// The admission a pairing writes for a written down certificate, issued by a written down
+        /// authority, at a written down moment.
         /// </summary>
-        /// <remarks>
-        /// Joined from its lines rather than written as one string with escapes in it, because the
-        /// separator matters and an escape is the thing most likely to be got wrong by whatever
-        /// writes this file next.
-        /// </remarks>
-        public static readonly string ClientRecord = string.Join(
-            "\n",
-            new[]
-            {
-                "v=1",
-                "subject=CN=agent-invented",
-                "client=c9d74273af508a25252797f2ceb18288a38bd3ea7aab43bc500629ddb5b5452c",
-                "admitted=2026-08-22T08:38:01Z",
-                "profiles=reader,ops",
-                "certificate=MIIBrTCCAVKgAwIBAgIQfUczW38muXkJ2k4smPkY+jAKBggqhkjOPQQDAjAgMR4wHAYDVQQDExVLZWVQYXNzR2F0ZSBhdXRob3JpdHkwHhcNMjYwODIyMDgzMzAxWhcNMjcwODIyMDgzODAxWjAZMRcwFQYDVQQDEw5hZ2VudC1pbnZlbnRlZDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABAS78Qqi28/5+7BQmpuOt0QCKeOcPrmdVHdRmXmpguis3LmxeQIknOvn2iFyynH/v9hZF2fYOXc/u0Qs+eys7/qjdTBzMAwGA1UdEwEB/wQCMAAwDgYDVR0PAQH/BAQDAgeAMBMGA1UdJQQMMAoGCCsGAQUFBwMCMB0GA1UdDgQWBBTDHz21u+WoPt0vbC9Z07n/tUe06zAfBgNVHSMEGDAWgBT495o5wolADbrniyVCndXKANXsazAKBggqhkjOPQQDAgNJADBGAiEA/iYw9xJmUgLvzmPZsj1QfFzFqAFthDoVK30EpcYjQ8sCIQCb2ww2hGHccyKgogLTv7X5K6hVtBF1+jcX88CPV92G1A=="
-            });
+        /// <param name="certificate">The certificate, base64 of its DER.</param>
+        /// <param name="admitted">The moment of the approval, as an admission writes it.</param>
+        /// <param name="profiles">The approved names, separated by single spaces.</param>
+        /// <param name="authority">The issuing authority and its key, base64 of a PKCS#12.</param>
+        public static AdmissionRecord Admission(
+            string certificate, string subject, string admitted, string profiles, string authority)
+        {
+            var der = Convert.FromBase64String(certificate);
+            var key = CertificateDigest.Of(der);
+            var moment = DateTimeOffset.ParseExact(
+                admitted,
+                Moments.WireFormat,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+            return new AdmissionRecord(
+                key, subject, key, moment, profiles.Split(' '), der,
+                CertificateDigest.Of(CertificateBlob.Load(authority).CertificateDer));
+        }
     }
 }

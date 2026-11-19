@@ -278,16 +278,14 @@ namespace KeePassGate.Ui
             switch (reading.Presence)
             {
                 case AuthorityPresence.None:
-                    // Delete is offered when records outlived the authority that admitted
-                    // them, which happens after a merge or a partial restore. They can never
-                    // validate again, and with the button disabled the only way to be rid of
-                    // them was to create an authority and immediately recreate it. A database
-                    // that retired every authority it held is told apart from a database that
-                    // never had an authority, since "no authority yet" sent the operator looking
-                    // for a step they had missed rather than at what retired it.
+                    // A database that retired every authority it held is told apart from a
+                    // database that never had an authority, since "no authority yet" sent the
+                    // operator looking for a step they had missed rather than at what retired it.
+                    // Nothing is offered to delete: no authority stands, and the records a
+                    // retired store still holds are left by every write of the plugin's own
+                    // because they name nothing a decision refuses, `STORE.md` §627.
                     return new AuthorityDescription(
-                        reading.IsRetired ? RetiredHeadline : AbsentHeadline, null, Absence(reading), true, false,
-                        reading.ClientRecordCount > 0);
+                        reading.IsRetired ? RetiredHeadline : AbsentHeadline, null, Absence(reading), true, false, false);
 
                 case AuthorityPresence.Damaged:
                     return new AuthorityDescription(
@@ -332,14 +330,20 @@ namespace KeePassGate.Ui
                    GateTab.ChooseButtonText + " below.";
         }
 
+        /// <summary>
+        /// What is shown under a database that serves no authority: nothing where it never had a
+        /// store key, which can hold no admission; under a retirement, that it was retired, and the
+        /// records it still holds as inert.
+        /// </summary>
         private static IEnumerable<string> Absence(AuthorityReading reading)
         {
             var lines = new List<string>();
-            if (reading.IsRetired)
+            if (!reading.IsRetired)
             {
-                lines.Add(RetiredLine);
+                return lines;
             }
 
+            lines.Add(RetiredLine);
             if (reading.ClientRecordCount > 0)
             {
                 lines.Add(RecordsOnlyLine(reading.ClientRecordCount));
@@ -412,8 +416,17 @@ namespace KeePassGate.Ui
             IDictionary<string, ClientReach> reaches,
             DateTimeOffset now)
         {
+            // The admissions that admit, as the clients page lists its clients: an admission of
+            // another authority, a certificate listed twice and a renewal that does not count
+            // admit nobody, so none of them is a client about to stop being admitted.
             var warnings = new List<string>();
-            Clients(warnings, clients == null ? null : clients.Records, reaches, now);
+            Clients(
+                warnings,
+                clients == null
+                    ? null
+                    : clients.Records.Where(record => clients.StandingOf(record) == AdmissionStanding.Admitted).ToList(),
+                reaches,
+                now);
             Unreadable(warnings, clients, reading.ClientRecordCount);
 
             return OneLine(warnings);
@@ -463,7 +476,7 @@ namespace KeePassGate.Ui
             var most = Counts.Max();
 
             List<string> damage;
-            using (var damaged = AuthorityReading.Damaged(AuthorityRecord.LongestProblems(Thrown), most, true))
+            using (var damaged = AuthorityReading.Damaged(AuthorityRecord.LongestProblems(Thrown), most))
             {
                 damage = Damage(damaged).ToList();
             }
@@ -500,8 +513,8 @@ namespace KeePassGate.Ui
                 {
                     CanChoose = true
                 },
-                new AuthorityDescription(AbsentHeadline, null, new[] { Longest(RecordsOnlyLine) }, true, false, true),
-                new AuthorityDescription(RetiredHeadline, null, new[] { RetiredLine, Longest(RecordsOnlyLine) }, true, false, true)
+                new AuthorityDescription(AbsentHeadline, null, Array.Empty<string>(), true, false, false),
+                new AuthorityDescription(RetiredHeadline, null, new[] { RetiredLine, Longest(RecordsOnlyLine) }, true, false, false)
             };
         }
 

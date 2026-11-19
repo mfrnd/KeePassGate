@@ -240,22 +240,25 @@ argument already written means.
 pykeepassgate revoke
 ```
 
-`revoke` asks the gate to revoke the certificate this client presents, and once the gate states the
-revocation is saved, removes what is stored for it, by pairing or the last renewal: the key, the
-certificate, the gate key and `client.json`, and the directory as well if that empties it. Nothing
-can use them afterwards, since the database refuses the certificate from the next connection on,
-and a private key kept for a certificate nobody accepts protects nothing. Pairing again is the way
-back, into the same place.
+`revoke` asks the gate to take away the certificate this client presents, that certificate and no
+other: a certificate renewed from it stays admitted, which is how `renew` lets go of the
+certificate it renewed from. Once the gate states that this is saved, `revoke` removes what is
+stored for the certificate, by pairing or the last renewal: the key, the certificate, the gate
+key and `client.json`, and the directory as well if that empties it. Nothing can use them
+afterwards, since the database refuses the certificate from the next connection on, and a
+private key kept for a certificate nobody accepts protects nothing. Pairing again is the way
+back, into the same place. Revoking a client on the Clients page is another act, the operator's:
+it refuses every certificate the client holds.
 
-When the gate does not confirm it, nothing is removed. `not saved` means the revocation was taken
+When the gate does not confirm it, nothing is removed. `not saved` means the change was taken
 back out and this client is still admitted, so running `revoke` again is safe. `not verified` means
-KeePass holds the revocation in memory and may not have it in the file, so the certificate is
+KeePass holds the change in memory and may not have it in the file, so the certificate is
 already refused, `status` states so, and what the file keeps is the operator's to settle.
 
 A certificate the gate already refuses counts as given up, since that is what `revoke` asks for:
-one the operator revoked on the Clients page, one an earlier `not verified` left refused, and one
-that has expired, which is not dialed at all. `revoke` then removes the files as well, states the
-gate already refused it, and exits 0.
+a certificate of a client the operator revoked on the Clients page, a certificate an earlier
+`not verified` left refused, and a certificate that has expired, which is not dialed at all.
+`revoke` then removes the files as well, states the gate already refused it, and exits 0.
 
 A file that will not go once the certificate is given up, such as a file held open on Windows,
 leaves the revocation standing: `revoke` prints what it gave up and the admission key all the
@@ -958,8 +961,12 @@ line `interrupted` and exit code 130, as a shell has it, and a reader that stops
 **Ctrl+C ends only this side of that wait.** The request still stands at KeePass, and approving it
 after the client has gone spends the invitation, or grants the renewal, all the same: the
 [clients page](clients.md) then lists a certificate this client never received. Ask the operator
-to refuse it instead, or to revoke that row once it is there; after `renew`, the certificate this
-client already holds goes on working.
+to refuse it instead. A pairing approved that way leaves a client on the list that the operator
+can revoke. After `renew`, the certificate this client already holds goes on working, and the
+certificate it never received is the first row of this client on the list: **Take certificate
+away** in that row's menu
+[takes it away alone](clients.md#taking-a-single-certificate-away), where revoking there
+revokes the client with both.
 
 ## What to catch
 
@@ -993,7 +1000,7 @@ except api.RouteRefused:
 | --- | --- |
 | `DatabaseLocked` | The database is locked. Wait, and try again. Raised two ways. Before the request is sent, when the certificate the handshake was answered with is the one only a locked database has, so nothing is handed over first. And as the gate's `503 locked`, which it answers to every request while the database is locked, and to one whose database locked while the request was on its way, at whichever step the request met the lock, a read or a write alike: the nodes are still there, and nothing was done. |
 | `GateBusy` | The gate cannot serve this right now. A write meets it while a dialog is open on what the write would change, while KeePass waits for an answer to a message box or another window of Windows' own, when KeePass is still part way through something of its own, such as saving, importing, exporting or running XML Replace, after the 30 seconds a write waits for it, when its save would stop to ask the operator something, such as a database file changed on disk, or when other writes kept it waiting more than 20 seconds. A read meets it when KeePass's own thread could not be held still for it within ten seconds, which is KeePass busy with something it does not pause in, such as deriving a key. Retry. A pairing or a renewal meets it as well while the database's list of profiles will not read, which does not end on its own: the operator repairs the list, and `whoami` names it, as `profilesUnreadable`. From `pair` or `renew`, `held_until` set means the operator approved and the gate held the approval until that moment, which has passed: asking again shows the dialog again. |
-| `AuthorityUndecided` | The database holds more than one certificate authority, because copies of it that each made an authority of their own met in a synchronize, and the operator has not yet kept any of them. The gate answers this to every request until somebody chooses at KeePass, which asks on its own screen, so it waits on a person rather than ending on its own. A client of an authority that is not kept stops reaching the database once another authority is kept, and pairs again. |
+| `AuthorityUndecided` | The database holds more than one certificate authority, because copies of it that each made an authority of their own met in a synchronize, and the operator has not yet kept any of them. The gate answers this to every request until somebody chooses at KeePass, which asks on its own screen, so it waits on a person rather than ending on its own. It is answered to a client whose own authority is among them. A client whose authority is gone cannot connect to the database any more, and a request of its own that was already under way meets `NotAdmitted`, or `PairingError` on an invitation made under that authority; it pairs again on a new invitation. A client of an authority that is not kept stops reaching the database once another authority is kept, and pairs again. |
 | `StoreLost` | The database's file holds no store key any more, as the entry that carried it, deleted for good in KeePass or by a synchronize, leaves it. Only a gate that was serving the database when the key went answers this, with the host certificate it served with, and only until the database is locked or closed; after that nothing answers. It ends when the operator creates an authority again at KeePass, after which this client pairs again, so nothing here waits it out. |
 | `StoreSplit` | The database holds the plugin's store under more than one store key, because a copy that made a store of its own met this one in a synchronize, and the operator has not yet kept one. The gate answers this to every request, pairing included, until somebody chooses at KeePass, so it waits on a person and nothing here waits it out. A client of the store that is not kept reaches nothing afterwards and pairs again. |
 | `StoreOutdated` | The plugin serving the database does not read its store: a later release raised the store, or wrote a record of a kind this release does not know. The gate answers this to every request until the plugin on that machine is updated, or the operator starts the store again. Nothing here waits it out. |
@@ -1039,6 +1046,16 @@ exactly that request, and `held_until` states until when. Both ask again by them
 every `Retry-After`, whatever the busy budget states and within the six minutes the gate gives them,
 and the approval is written without the dialog. A `GateBusy` with `held_until` that reaches a caller
 is one whose moment passed: asking again puts the dialog in front of the operator a second time.
+
+**`pair`, `renew` and `revoke_certificate` can meet a store's refusal after the gate accepted the
+request.** Each writes into the database, and the gate looks at the plugin's store again as it
+writes. Where the store came to hold the gate back meanwhile, as while the operator was reading
+the dialog, the call raises `StoreLost`, `StoreSplit`, `StoreOutdated` or `StoreStopped` there,
+and `AuthorityUndecided` where a second authority arrived in the database meanwhile: nothing was
+issued or written, an invitation is not spent, and the operator's approval is used up, so once
+the operator has put the store right or kept an authority, asking again raises the dialog again.
+`renew` meets the same before its dialog and after it. `NotAdmitted` from `renew` is left for a
+certificate the database no longer admits, as after its authority was recreated or deleted.
 
 **A node that may not be reached and a node that is not there answer the same way**, so an absent entry
 and a forbidden one are not distinguishable from here. That is deliberate: telling them apart would

@@ -6,6 +6,7 @@ using KeePassGate.Diagnostics;
 using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
+using KeePassGate.Ui;
 using NUnit.Framework;
 
 namespace KeePassGate.Tests
@@ -17,7 +18,6 @@ namespace KeePassGate.Tests
     [TestFixture]
     public sealed class AuthorityServiceTests
     {
-        private InMemoryKeyValueStore _values;
         private MemoryStore _records;
         private RecordingGateLog _log;
         private AuthorityService _service;
@@ -25,10 +25,9 @@ namespace KeePassGate.Tests
         [SetUp]
         public void SetUp()
         {
-            _values = new InMemoryKeyValueStore();
             _records = new MemoryStore();
             _log = new RecordingGateLog();
-            _service = new AuthorityService(_records, _values, _log);
+            _service = new AuthorityService(_records, _log);
         }
 
         [Test]
@@ -54,6 +53,52 @@ namespace KeePassGate.Tests
             Assert.That(_service.Create().Message, Is.Empty);
             Assert.That(_service.Recreate().Message, Is.Empty);
             Assert.That(_service.Delete().Message, Is.Empty);
+        }
+
+        [Test]
+        public void A_press_that_waits_for_the_dialog_s_OK_logs_nothing_that_reads_as_done()
+        {
+            // On the tab every command's act waits in the dialog's buffer, and a Cancel drops it:
+            // a line that the authority was created, recreated or deleted would then stand in the
+            // log over an authority that was never touched.
+            StoreSeeds.Authority(_records);
+            var buffer = new PendingRecords(() => _records);
+            var pressed = new AuthorityService(buffer, _log);
+
+            Assume.That(pressed.Recreate().Succeeded, Is.True);
+            Assume.That(pressed.Delete().Succeeded, Is.True);
+            Assume.That(pressed.Create().Succeeded, Is.True);
+            buffer.Discard();
+
+            Assert.That(
+                _log.Entries.Select(entry => entry.Message).Where(line =>
+                    line.StartsWith("authority created", StringComparison.Ordinal)
+                    || line.StartsWith("authority recreated", StringComparison.Ordinal)
+                    || line.StartsWith("authority deleted", StringComparison.Ordinal)),
+                Is.Empty);
+
+            Assert.That(_service.Recreate().Succeeded, Is.True);
+            Assert.That(_log.Entries.Select(entry => entry.Message), Has.Some.StartsWith("authority recreated"),
+                "a command written at once is logged as done");
+        }
+
+        [Test]
+        public void Keeping_an_authority_through_the_dialog_s_buffer_logs_nothing_that_reads_as_done()
+        {
+            // The chooser on the tab keeps an authority through the dialog's buffer as well, and a
+            // Cancel drops it: a line that the authority was kept would then stand over
+            // authorities nobody kept.
+            var candidates = StoreSeeds.Undecided(_records);
+            var buffer = new PendingRecords(() => _records);
+
+            Assume.That(new AuthorityService(buffer, _log).Keep(candidates[0], candidates).Succeeded, Is.True);
+            buffer.Discard();
+
+            Assert.That(_log.Entries.Select(entry => entry.Message), Has.None.Contains("kept, others retired"));
+
+            Assert.That(_service.Keep(candidates[0], candidates).Succeeded, Is.True);
+            Assert.That(_log.Entries.Select(entry => entry.Message), Has.Some.Contains("kept, others retired"),
+                "a choice written at once is logged as done");
         }
 
         [Test]
@@ -138,16 +183,22 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Recreating_revokes_every_client_and_logs_how_many_records_went()
+        public void Recreating_deletes_every_admission_of_the_authority_it_retires_in_the_same_write()
         {
             _service.Create();
-            _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
-            _values.Plant(AuthorityKeys.ClientPrefix + "bbb", "record");
+            using (var issuer = TestAuthority.New())
+            using (var first = issuer.IssueClient("agent-fictitious"))
+            using (var second = issuer.IssueClient("agent-invented"))
+            {
+                StoreSeeds.Admit(_records, first, DateTimeOffset.UtcNow, "ops");
+                StoreSeeds.Admit(_records, second, DateTimeOffset.UtcNow, "ops");
+            }
 
+            var writes = _records.Writes;
             var result = _service.Recreate();
 
             Assert.That(result.Succeeded, Is.True, result.Message);
-            Assert.That(_log.Entries.Any(e => e.Message.Contains("admission records removed: 2")), Is.True);
+            Assert.That(_records.Writes, Is.EqualTo(writes + 1), "a single write");
             using (var reading = _service.Read())
             {
                 Assert.That(reading.ClientRecordCount, Is.Zero);
@@ -159,15 +210,20 @@ namespace KeePassGate.Tests
         {
             _service.Create();
             var deleted = Digest();
-            _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
-            _values.Plant("SomebodyElse", "left alone");
+            using (var issuer = TestAuthority.New())
+            using (var client = issuer.IssueClient("agent-fictitious"))
+            {
+                StoreSeeds.Admit(_records, client, DateTimeOffset.UtcNow, "ops");
+            }
 
             var result = _service.Delete();
 
             Assert.That(result.Succeeded, Is.True, result.Message);
-            Assert.That(_log.Entries.Any(e => e.Message.Contains("admission records removed: 1")), Is.True);
-            Assert.That(_values.Keys, Is.EqualTo(new[] { "SomebodyElse" }),
-                "the admission records go with the authority, and what is somebody else's stays");
+            using (var reading = _service.Read())
+            {
+                Assert.That(reading.ClientRecordCount, Is.Zero, "the admissions go with the authority");
+            }
+
             Assert.That(Retired(), Does.Contain(deleted),
                 "the retirement is what keeps a stale copy of the file from bringing it back");
         }
@@ -311,7 +367,7 @@ namespace KeePassGate.Tests
         /// </summary>
         private string[] Undecided()
         {
-            return StoreSeeds.Undecided(_records, _values);
+            return StoreSeeds.Undecided(_records);
         }
 
         /// <summary>The `id` of every authority the store holds a retirement of.</summary>
@@ -336,7 +392,7 @@ namespace KeePassGate.Tests
             var result = _service.Delete();
 
             Assert.That(result.Succeeded, Is.True, result.Message);
-            Assert.That(_log.Entries.Any(e => e.Message.Contains("admission records removed: 0")), Is.True);
+            Assert.That(_log.Warnings, Is.Empty);
         }
 
         [Test]
@@ -381,7 +437,6 @@ namespace KeePassGate.Tests
             // recreation had worked, and told how many clients it had revoked, while the authority
             // and all of those clients were untouched.
             _service.Create();
-            _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
             string before;
             using (var reading = _service.Read())
             {
@@ -408,7 +463,6 @@ namespace KeePassGate.Tests
             // reported, and reporting it as a change that changed nothing sends the operator away
             // from a database that needs looking at.
             _service.Create();
-            _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
             _records.SwallowWrites = true;
 
             var result = _service.Delete();
@@ -434,7 +488,7 @@ namespace KeePassGate.Tests
         public void Reading_a_store_that_throws_reports_damage_rather_than_absence()
         {
             var store = new MemoryStore { ThrowOnRead = new DatabaseShut("the database refused it") };
-            var service = new AuthorityService(store, _values, _log);
+            var service = new AuthorityService(store, _log);
 
             using (var reading = service.Read())
             {
@@ -466,7 +520,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_missing_store_is_refused_at_construction()
         {
-            Assert.Throws<ArgumentNullException>(() => new AuthorityService(null, _values, _log));
+            Assert.Throws<ArgumentNullException>(() => new AuthorityService(null, _log));
         }
     }
 }

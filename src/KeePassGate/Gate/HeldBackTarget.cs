@@ -17,13 +17,19 @@ namespace KeePassGate.Gate
     /// would be choosing for the operator. So nothing is served, and a client told so can wait
     /// rather than be left with a connection that fails for no reason it can see: a target per
     /// candidate, each under that candidate's own gate key, so the clients of either authority
-    /// reach an answer.
+    /// reach an answer. A candidate whose own authority does not stand among several by the time
+    /// a connection asks is answered `busy`, as what the gate last served with is: there is no
+    /// decision left to wait for, and a connection made now is answered by what the store holds
+    /// then.
     ///
     /// **And what the gate last served a database with**, where the store gives no authority to
     /// answer with and holds the gate back: the host certificate and the gate key of the
-    /// authority it was serving, kept since, answering the store's word, `lost` where the file
-    /// holds no store key, and `busy` once the store holds nothing back, to a connection that
-    /// took the target before the reading changed and asks again.
+    /// authority it was serving, kept since, answering what the store is read as now, to a
+    /// connection that took the target before the reading changed and asks again: the store's
+    /// word, `lost` where the file holds no store key, `undecided` where the store is whole and
+    /// several authorities stand, the authority it was serving among them, and `busy` once the
+    /// store holds nothing back and that authority does not stand among several: a single
+    /// authority stands, or none, or several without it.
     ///
     /// **It presents a host certificate it was handed and mints nothing.** The responder a
     /// locked database answers with is minted from an authority, and minting from one of several
@@ -41,16 +47,30 @@ namespace KeePassGate.Gate
         public const string Undecided = "undecided";
 
         /// <summary>
-        /// What a target kept from the last served is answered with where its store holds nothing
-        /// back by the time a connection asks: worth trying again, since what is held is read anew.
+        /// What a target held back is answered with where its store holds nothing back and its
+        /// own authority does not stand among several by the time a connection asks: a single
+        /// authority stands, or none, or several without it. A connection made now is answered by
+        /// what the store holds then: served where the authority standing alone is its own, and
+        /// given no target where another stands alone, none stands, or several stand without it.
         /// </summary>
         public const string Busy = "busy";
+
+        /// <summary>
+        /// Why a database is answered this word under `503`, for the log: several authorities
+        /// standing for <see cref="Undecided"/>, and the plugin's store holding the gate back for
+        /// the store's own words.
+        /// </summary>
+        public static string Why(string word)
+        {
+            return word == Undecided
+                ? "several authorities stand and the operator has kept none"
+                : "the plugin's store holds the gate back: " + word;
+        }
 
         private readonly string _databaseId;
         private readonly byte[] _gateKey;
         private readonly CertifiedKey _host;
         private readonly Func<string> _store;
-        private readonly string _otherwise;
 
         // The cache holds the first of these; every caller `Current` hands it to takes one more,
         // exactly as `LockedTarget` counts them.
@@ -58,24 +78,16 @@ namespace KeePassGate.Gate
 
         /// <summary>A target answering under this gate key and host certificate.</summary>
         /// <param name="store">
-        /// The word the database's store holds the gate back with, read now, or null where it
-        /// holds nothing back.
+        /// The word a connection to the database under this target's authority is answered with,
+        /// read now: the store's word, or <see cref="Undecided"/> where the store is whole and
+        /// several authorities stand, this target's among them; null where neither holds, which
+        /// is answered <see cref="Busy"/>.
         /// </param>
-        /// <param name="otherwise">
-        /// What is answered where the store holds nothing back: <see cref="Undecided"/> for a
-        /// candidate among several authorities, <see cref="Busy"/> for what the gate last served
-        /// with.
-        /// </param>
-        public HeldBackTarget(string databaseId, byte[] gateKey, CertifiedKey host, Func<string> store, string otherwise)
+        public HeldBackTarget(string databaseId, byte[] gateKey, CertifiedKey host, Func<string> store)
         {
             if (string.IsNullOrEmpty(databaseId))
             {
                 throw new ArgumentException("A target held back is still named by its authority.", nameof(databaseId));
-            }
-
-            if (string.IsNullOrEmpty(otherwise))
-            {
-                throw new ArgumentException("A target held back answers a word.", nameof(otherwise));
             }
 
             if (gateKey == null)
@@ -97,18 +109,15 @@ namespace KeePassGate.Gate
             _gateKey = (byte[])gateKey.Clone();
             _host = host;
             _store = store;
-            _otherwise = otherwise;
         }
 
-        /// <summary>Why this target refuses, for the log and for the write it turns away.</summary>
-        private string Reason
+        /// <summary>
+        /// Why this target refuses a write, true of every target of the kind: the word a
+        /// connection is answered with tells why the database is held back.
+        /// </summary>
+        private static string Reason
         {
-            get
-            {
-                return _otherwise == Undecided
-                    ? "the database holds more than one authority and the operator has chosen none of them"
-                    : "the database's store holds the gate back";
-            }
+            get { return "the gate holds the database back"; }
         }
 
         /// <summary>Nothing: the name is only read onto an approval dialog, and pairing is refused here.</summary>
@@ -175,13 +184,13 @@ namespace KeePassGate.Gate
 
         public AdmissionWrite Admit(AdmissionRecord record, Func<IWriteGround, string> condition, Action audit)
         {
-            // Busy rather than failed, for the reason a locked database gives: the operator
-            // choosing is all it takes, and the invitee should try again rather than start over.
+            // Busy rather than failed, for the reason a locked database gives: what is held back
+            // is read anew, and the invitee should try again rather than start over.
             return AdmissionWrite.Busy(Reason);
         }
 
-        /// <summary>Busy, for the same reason: the operator choosing is all it takes.</summary>
-        public KeePassGate.Vault.VaultWrite Revoke(string admissionKey, Action audit)
+        /// <summary>Busy, for the same reason: what is held back is read anew.</summary>
+        public KeePassGate.Vault.VaultWrite GiveUp(string admissionKey, Action audit)
         {
             return KeePassGate.Vault.VaultWrite.Busy(Reason);
         }
@@ -192,7 +201,7 @@ namespace KeePassGate.Gate
             return null;
         }
 
-        /// <summary>Busy, for the same reason: the operator choosing is all it takes.</summary>
+        /// <summary>Busy, for the same reason: what is held back is read anew.</summary>
         public KeePassGate.Vault.VaultWrite RefuseRenewal(string admissionKey, RenewalRefusal refusal)
         {
             return KeePassGate.Vault.VaultWrite.Busy(Reason);
@@ -209,8 +218,8 @@ namespace KeePassGate.Gate
         }
 
         /// <summary>
-        /// The store's word where the store holds the gate back, and what this target was made to
-        /// answer otherwise.
+        /// The store's word where the store holds the gate back, `undecided` where it is whole and
+        /// several authorities stand, this target's among them, and `busy` otherwise.
         /// </summary>
         /// <remarks>
         /// **The store first, as `STORE.md` §656 orders the words**: which authority is served is
@@ -221,7 +230,7 @@ namespace KeePassGate.Gate
         /// </remarks>
         public string Unavailable
         {
-            get { return _store() ?? _otherwise; }
+            get { return _store() ?? Busy; }
         }
 
         public void Retain()

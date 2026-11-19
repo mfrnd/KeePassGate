@@ -65,6 +65,16 @@ namespace KeePassGate.Bridge
             return Read(false);
         }
 
+        /// <summary>
+        /// The store as the database holds it now, with every entry of the tree, which a write is
+        /// planned against, `STORE.md` §627: for the caller to let go at the end of its turn.
+        /// </summary>
+        /// <exception cref="DatabaseShut">The database has no tree: locked or closed.</exception>
+        public StoreReading ForWrite()
+        {
+            return Read(true);
+        }
+
         /// <summary>The same, and with every entry of the tree where a write is planned against it.</summary>
         private StoreReading Read(bool everyEntry)
         {
@@ -79,41 +89,50 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
+        /// Plans these acts against a reading <see cref="ForWrite"/> made in this turn, and asks
+        /// whether a window holds any entry the plan deletes, sets back or protects again,
+        /// `STORE.md` §626: refused, held, or staged to be applied.
+        /// </summary>
+        public StagedWrite Stage(StoreReading reading, IReadOnlyList<StoreAct> acts)
+        {
+            var write = StoreWrite.Plan(reading, acts, _plugin);
+            if (write.Refused != null)
+            {
+                return new StagedWrite(_database, write, reading, null);
+            }
+
+            // Asked once the plan exists, of what it deletes, sets back and protects: an entry
+            // dialog puts its copy of an entry back at its OK, `STORE.md` §626, which would take
+            // back what this write did to that entry.
+            var held = write.Empty || _holding == null
+                ? null
+                : StoreEntries.Touched(_database, write, reading).Select(_holding).FirstOrDefault(why => why != null);
+            return new StagedWrite(_database, write, reading, held);
+        }
+
+        /// <summary>
         /// Plans the write against the store as it stands and applies it, marking the database:
-        /// whole, or nothing and why.
+        /// whole, or nothing and why. Nothing of it is saved, so nothing is taken back.
         /// </summary>
         public StoreWritten Write(IReadOnlyList<StoreAct> acts)
         {
-            using (var reading = Read(true))
+            using (var reading = ForWrite())
             {
-                var write = StoreWrite.Plan(reading, acts, _plugin);
-                if (write.Refused != null)
+                var staged = Stage(reading, acts);
+                var refused = staged.Refused ?? staged.Held;
+                if (refused != null)
                 {
-                    return StoreWritten.Refused(write.Refused, write.LeftOut);
+                    return StoreWritten.Refused(refused, staged.Write.LeftOut);
                 }
 
-                // Asked once the plan exists, of what it deletes, sets back and protects: an entry
-                // dialog puts its copy of an entry back at its OK, `STORE.md` §626, which would take
-                // back what this write did to that entry.
-                var held = write.Empty || _holding == null
-                    ? null
-                    : StoreEntries.Touched(_database, write, reading).Select(_holding).FirstOrDefault(why => why != null);
-                if (held != null)
-                {
-                    return StoreWritten.Refused(held, write.LeftOut);
-                }
+                staged.Apply();
 
-                if (!write.Empty)
-                {
-                    StoreEntries.Apply(_database, write, reading);
-                }
-
-                foreach (var left in write.LeftOut)
+                foreach (var left in staged.Write.LeftOut)
                 {
                     _log.Warn("an act on the plugin's store was left out, because what it was composed against went: " + left);
                 }
 
-                return StoreWritten.Done(write.Taken, write.LeftOut, !write.Empty);
+                return StoreWritten.Done(staged.Write.Taken, staged.Write.LeftOut, !staged.Write.Empty);
             }
         }
 
@@ -121,6 +140,52 @@ namespace KeePassGate.Bridge
         public string Unwritable
         {
             get { return null; }
+        }
+    }
+
+    /// <summary>
+    /// A write of the plugin's own planned against a database in this turn, `STORE.md` §627:
+    /// refused, held by a window, or ready to apply.
+    /// </summary>
+    internal sealed class StagedWrite
+    {
+        private readonly PwDatabase _database;
+        private readonly StoreReading _reading;
+
+        public StagedWrite(PwDatabase database, StoreWrite write, StoreReading reading, string held)
+        {
+            _database = database;
+            _reading = reading;
+            Write = write;
+            Held = held;
+        }
+
+        /// <summary>The plan.</summary>
+        public StoreWrite Write { get; private set; }
+
+        /// <summary>Why the plan refuses the write, or null where it does not.</summary>
+        public string Refused
+        {
+            get { return Write.Refused; }
+        }
+
+        /// <summary>
+        /// Why a window holds an entry the write touches, or null where none does.
+        /// </summary>
+        public string Held { get; private set; }
+
+        /// <summary>
+        /// Applies the write to the database and answers its undo, which takes back everything it
+        /// did but the database's mark; nothing to take back for a write that leaves nothing.
+        /// </summary>
+        public Action Apply()
+        {
+            if (Refused != null || Held != null)
+            {
+                throw new InvalidOperationException("A write refused or held is applied to nothing.");
+            }
+
+            return Write.Empty ? () => { } : StoreEntries.Apply(_database, Write, _reading);
         }
     }
 }

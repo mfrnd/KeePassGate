@@ -14,14 +14,14 @@ namespace KeePassGate.Host.Tests
     /// A revocation reaching the file, rather than only the database in memory.
     /// </summary>
     /// <remarks>
-    /// The panel's own tests prove that the record leaves the store and that KeePass is told there
-    /// is something to save. Neither of those is the property that matters to the operator, who is
-    /// told at approval time that a client can be revoked later and then walks away.
+    /// The panel's own tests prove that the store refuses the client and that KeePass is told
+    /// there is something to save. Neither of those is the property that matters to the operator,
+    /// who is told at approval time that a client can be revoked later and then walks away.
     ///
     /// **The dangerous case is a revocation that only happened in memory**, because the client is
     /// back the next time KeePass opens that file and nothing said so. That is what this asks: the
-    /// panel revokes, KeePass saves, the file is closed and opened again, and the record has to
-    /// still be gone. It is the same question the pairing side already asks of a write.
+    /// panel revokes, KeePass saves, the file is closed and opened again, and the client has to
+    /// still be refused. It is the same question the pairing side already asks of a write.
     /// </remarks>
     [TestFixture]
     [Apartment(ApartmentState.STA)]
@@ -52,14 +52,14 @@ namespace KeePassGate.Host.Tests
             using (var panel = NewPanel())
             {
                 Assume.That(panel.AdmittedClients().Records.Count, Is.EqualTo(1));
-                Assert.That(panel.Revoke(record.AdmissionKey), Is.Null);
+                Assert.That(panel.Revoke(record.ClientKey), Is.Null);
             }
 
             // What the tab does is change the database and say there is something to save. This is
             // the operator doing the saving, which is the half the tab deliberately leaves to them.
             _database.SaveCloseAndReopen();
 
-            var found = new AdmissionStore(new CustomDataStore(_database.Database), null)
+            var found = new StoredAdmissions(_database.Database)
                 .Find(record.AdmissionKey);
 
             Assert.That(found, Is.Null, "the client is admitted again tomorrow");
@@ -76,28 +76,106 @@ namespace KeePassGate.Host.Tests
 
             using (var panel = NewPanel())
             {
-                Assume.That(panel.Revoke(record.AdmissionKey), Is.Null);
+                Assume.That(panel.Revoke(record.ClientKey), Is.Null);
             }
 
             _database.CloseAndReopenWithoutSaving();
 
-            var found = new AdmissionStore(new CustomDataStore(_database.Database), null)
+            var found = new StoredAdmissions(_database.Database)
                 .Find(record.AdmissionKey);
 
             Assert.That(found, Is.Not.Null, "an unsaved revocation must not read as a saved one");
         }
 
-        private AuthorityPanel NewPanel()
+        [Test]
+        public void A_certificate_taken_away_on_the_tab_is_gone_from_the_file_after_OK_and_a_save()
         {
-            return new AuthorityPanel(new OpenDatabase(_database.Database), null, NullGateLog.Instance);
+            var record = Admit();
+            var pending = new PendingDatabase(Live(), NullGateLog.Instance);
+            using (var panel = new AuthorityPanel(pending, null, NullGateLog.Instance))
+            {
+                Assert.That(panel.TakeAway(record.AdmissionKey), Is.Null);
+            }
+
+            Assert.That(pending.Apply(), Is.True);
+            _database.SaveCloseAndReopen();
+
+            var admissions = new StoredAdmissions(_database.Database);
+            Assert.That(admissions.Find(record.AdmissionKey), Is.Null, "the certificate is admitted again tomorrow");
+            Assert.That(admissions.Holds(KeePassGate.Store.StoreKinds.Withdrawn, KeePassGate.Store.StoreKinds.Certificate, record.AdmissionKey), Is.True);
         }
 
-        private AdmissionRecord Admit()
+        [Test]
+        public void A_certificate_taken_away_on_the_tab_that_is_never_saved_stays_admitted()
+        {
+            var record = Admit();
+            var pending = new PendingDatabase(Live(), NullGateLog.Instance);
+            using (var panel = new AuthorityPanel(pending, null, NullGateLog.Instance))
+            {
+                Assume.That(panel.TakeAway(record.AdmissionKey), Is.Null);
+            }
+
+            Assume.That(pending.Apply(), Is.True);
+            _database.CloseAndReopenWithoutSaving();
+
+            Assert.That(new StoredAdmissions(_database.Database).Find(record.AdmissionKey), Is.Not.Null);
+        }
+
+        [Test]
+        public void A_certificate_given_up_by_its_client_and_the_certificate_before_it_taken_away_on_the_tab_leave_the_newest_admitted()
+        {
+            // A client paired, renewed twice and gave the certificate between up, while giving up
+            // the first never landed. The operator then takes the first away on the tab: the
+            // record OK writes names the certificate between, which its client's own record holds
+            // as renewed from the first, and the newest certificate keeps admitting.
+            var paired = Admit();
+            var between = Admit(paired);
+            var newest = Admit(between);
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => database.Save(null), null, null, NullGateLog.Instance);
+            Assume.That(writer.GiveUp(_database.Database, between.AdmissionKey, Served()).Ok, Is.True);
+
+            var pending = new PendingDatabase(Live(), NullGateLog.Instance);
+            using (var panel = new AuthorityPanel(pending, null, NullGateLog.Instance))
+            {
+                Assert.That(panel.TakeAway(paired.AdmissionKey), Is.Null);
+            }
+
+            Assert.That(pending.Apply(), Is.True);
+            _database.SaveCloseAndReopen();
+
+            var admissions = new StoredAdmissions(_database.Database);
+            Assert.That(admissions.Find(newest.AdmissionKey), Is.Not.Null);
+            Assert.That(admissions.Find(paired.AdmissionKey), Is.Null);
+            Assert.That(admissions.Find(between.AdmissionKey), Is.Null);
+        }
+
+        private AuthorityPanel NewPanel()
+        {
+            return new AuthorityPanel(Live(), null, NullGateLog.Instance);
+        }
+
+        /// <summary>The database as the gate serves it, written through the writer.</summary>
+        private OpenDatabase Live()
+        {
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => database.Save(null), null, null, NullGateLog.Instance);
+            return new OpenDatabase(_database.Database, null, writer, NullGateLog.Instance);
+        }
+
+        private string Served()
+        {
+            return StoreSeeds.Served(new StoredAdmissions(_database.Database).Store);
+        }
+
+        /// <summary>A pairing's admission, or a renewal's from the origin given, saved.</summary>
+        private AdmissionRecord Admit(AdmissionRecord origin = null)
         {
             using (var certificate = IssueClient())
             {
-                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" });
-                new AdmissionStore(new CustomDataStore(_database.Database), null).Write(record);
+                var record = origin == null
+                    ? AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer)
+                    : AdmissionRecord.For(
+                        certificate, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer, origin.ClientKey, origin.AdmissionKey);
+                new StoredAdmissions(_database.Database).Write(record);
                 _database.Save();
                 return record;
             }

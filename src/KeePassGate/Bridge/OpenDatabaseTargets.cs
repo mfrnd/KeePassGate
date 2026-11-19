@@ -910,7 +910,7 @@ namespace KeePassGate.Bridge
             // with its last holder. Every other way out lets go of whichever holds it here, in a
             // `finally` rather than a `catch` for the reason `Current` gives.
             // codeql[cs/missed-using-statement] disposed only when it is not cached, which no `using` can do
-            var authority = AuthorityReading.Whole(material, 0, true);
+            var authority = AuthorityReading.Whole(material, 0);
             // codeql[cs/missed-using-statement] let go by the cached entry, or disposed below when it is not cached
             MaterialTarget target = null;
             var kept = false;
@@ -965,11 +965,12 @@ namespace KeePassGate.Bridge
 
         /// <summary>
         /// Answers a database whose store holds the gate back and gives no authority to answer
-        /// with, from what the gate last served it with, `STORE.md` §656: the store's word, `lost`
-        /// for a file with no store key, and `busy` once the store holds nothing back, to a
-        /// connection that took the target before the reading changed and asks again. Called with
-        /// the lock held; the entry takes what is remembered once it is made, and the caller lets
-        /// go of it otherwise.
+        /// with, from what the gate last served it with, `STORE.md` §656, answering what the store
+        /// is read as now to a connection that took the target before the reading changed and asks
+        /// again: the store's word, `lost` for a file with no store key, `undecided` where the
+        /// store is whole and several authorities stand, the authority it was served with among
+        /// them, and `busy` otherwise, as once that authority went. Called with the lock held; the
+        /// entry takes what is remembered once it is made, and the caller lets go of it otherwise.
         /// </summary>
         /// <remarks>
         /// **No responder**, since minting a responder needs the authority's key, which nothing
@@ -984,7 +985,7 @@ namespace KeePassGate.Bridge
             var kept = false;
             try
             {
-                target = new HeldBackTarget(remembered.DatabaseId, gateKey, remembered.Host, () => readings.Word, HeldBackTarget.Busy);
+                target = new HeldBackTarget(remembered.DatabaseId, gateKey, remembered.Host, () => readings.WordFor(remembered.DatabaseId));
 
                 var path = PathOf(database);
                 Discard(path);
@@ -1035,7 +1036,8 @@ namespace KeePassGate.Bridge
         /// **Cached like any other state**, so the log line and the parsing happen once per change
         /// rather than once per connection, and so that the chooser can ask which databases are in
         /// this state without reading any of them again. Each candidate asks the database's
-        /// readings for the store's word first, `STORE.md` §656.
+        /// readings for the store's word for its own authority first, `STORE.md` §656, and
+        /// answers `busy` where that authority no longer stands among several.
         ///
         /// **The same authorities, in other objects, are the same question.** The entry is held to
         /// the very objects KeePass keeps the store's text in, and a synchronize hands KeePass that
@@ -1061,7 +1063,6 @@ namespace KeePassGate.Bridge
             var ids = new HashSet<string>(standing.Select(record => record.Form.Member(StoreKinds.Id)), StringComparer.Ordinal);
             var same = before != null && before.IsUndecided && before.Standing.SetEquals(ids) && before.State == state;
             var targets = new List<HeldBackTarget>();
-            Func<string> word = () => readings.Word;
 
             // Each candidate holds a copy of its gate key until it is disposed, and nothing owns
             // them before the cache does, so a throw on the way there gives back every target built.
@@ -1084,7 +1085,7 @@ namespace KeePassGate.Bridge
                         var gateKey = material.SniKey;
                         try
                         {
-                            targets.Add(new HeldBackTarget(id, gateKey, material.HostKey, word, HeldBackTarget.Undecided));
+                            targets.Add(new HeldBackTarget(id, gateKey, material.HostKey, () => readings.WordFor(id)));
                         }
                         finally
                         {
@@ -1641,9 +1642,10 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>
-            /// The admitted clients whose records hold a profile, read now. Nobody when the
-            /// database has gone or the records cannot be read, which leaves the approval dialog
-            /// with no warning to give rather than a wrong one.
+            /// The admitted clients whose admissions hold a profile, read now. Nobody where the
+            /// database has gone or its store cannot be judged, since such a store admits nobody,
+            /// which leaves the approval dialog with no warning to give rather than a wrong
+            /// warning.
             /// </summary>
             public IReadOnlyList<AdmissionRecord> Holding(string profile)
             {
@@ -1659,30 +1661,17 @@ namespace KeePassGate.Bridge
                     return Array.Empty<AdmissionRecord>();
                 }
 
-                try
-                {
-                    var holding = new List<AdmissionRecord>();
-                    var now = DateTimeOffset.UtcNow;
-
-                    // Not one whose certificate has expired: it regains nothing, being refused
-                    // before its record is read, and the pairing's own write prunes it.
-                    foreach (var record in new AdmissionStore(new CustomDataStore(database), _log).All().Records
-                                 .Where(record => record != null && record.Profiles != null
-                                                  && record.Profiles.Contains(profile, StringComparer.Ordinal)
-                                                  && !record.HasExpired(now)))
-                    {
-                        holding.Add(record);
-                    }
-
-                    return holding;
-                }
-                catch (Exception error) when (Expected.OfCustomData(error))
-                {
-                    _log.Warn("the clients holding a profile being approved could not be listed: " + error.Message);
-                    return Array.Empty<AdmissionRecord>();
-                }
+                // The admissions of the store as this hold read it that admit their certificate,
+                // and not an admission whose certificate has expired: it regains nothing, being
+                // refused on its dates before its admission is read.
+                var now = DateTimeOffset.UtcNow;
+                var listing = StoreAdmissions.Listing(_store.Now(database, database.RootGroup));
+                return listing.Records
+                    .Where(record => listing.StandingOf(record) == AdmissionStanding.Admitted
+                                     && record.Profiles.Contains(profile, StringComparer.Ordinal)
+                                     && !record.HasExpired(now))
+                    .ToList();
             }
-
 
             public byte[] GateKey
             {
@@ -1780,37 +1769,37 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>
-            /// Revokes a client at its own request, through the writer, and says in the log what
-            /// came of it.
+            /// Takes a certificate away at its own client's request, through the writer, and logs
+            /// what came of it.
             /// </summary>
             /// <remarks>
-            /// The line names the client by the start of its admission key, as the Clients page
-            /// and the audit do, and never by the name it chose, which is somebody's own word.
+            /// The line names the certificate by the start of its admission key, as the Clients
+            /// page and the audit do, and never by the name it chose, which is somebody's own word.
             /// </remarks>
-            public VaultWrite Revoke(string admissionKey, Action audit)
+            public VaultWrite GiveUp(string admissionKey, Action audit)
             {
                 if (_writer == null)
                 {
                     return VaultWrite.Failed("this database is served without a way to write to it");
                 }
 
-                var written = _writer.Revoke(_database, admissionKey, audit);
+                var written = _writer.GiveUp(_database, admissionKey, _databaseId, audit);
                 if (written.Ok)
                 {
-                    _log.Info("a client revoked its own certificate: " + CertificateDigest.Shorten(admissionKey));
+                    _log.Info("a client gave up its own certificate: " + CertificateDigest.Shorten(admissionKey));
                 }
                 else if (written.IsUnverified)
                 {
                     // In force in the database KeePass holds, and refused from the next request:
                     // only whether the file kept it is unknown. Or the database closed inside the
-                    // save, and the audit holds a line only where KeePass reported a save of the
-                    // revocation that landed.
-                    _log.Warn("a client revoked its own certificate, and the file was not verified to hold it: " +
+                    // save, and the audit holds a line only where KeePass reported a save of it
+                    // that landed.
+                    _log.Warn("a client gave up its own certificate, and the file was not verified to hold it: " +
                               CertificateDigest.Shorten(admissionKey) + ": " + written.Reason);
                 }
                 else
                 {
-                    _log.Warn("a client asked to revoke its own certificate and it was not done: " +
+                    _log.Warn("a client asked to give up its own certificate and it was not done: " +
                               CertificateDigest.Shorten(admissionKey) + ": " + written.Reason);
                 }
 
@@ -1839,7 +1828,7 @@ namespace KeePassGate.Bridge
                         return null;
                     }
 
-                    return new AdmissionStore(new CustomDataStore(database), _log).StandingRefusal(admissionKey);
+                    return new RenewalAnswers(new CustomDataStore(database), _log).StandingRefusal(admissionKey);
                 });
             }
 
@@ -1870,8 +1859,12 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>
-            /// The word the store holds the gate back with, read now in a hold of KeePass's thread,
-            /// or null while it holds nothing back, `STORE.md` §656.
+            /// The word a connection to the database is answered with, read now in a hold of
+            /// KeePass's thread, `STORE.md` §656, or null while it is served: the store's word, and
+            /// `undecided` where a second authority came to stand after this target was built
+            /// beside this target's, as a connection made now is answered, `StoreReadings.WordOf`.
+            /// Where several stand and this target's authority is not among them there is no word,
+            /// and its admission is found by nobody, as under an authority that went.
             /// </summary>
             /// <remarks>
             /// **Answered under the authority this target serves**, with its host certificate and
@@ -1882,7 +1875,7 @@ namespace KeePassGate.Bridge
             /// </remarks>
             public string Unavailable
             {
-                get { return _store.Word; }
+                get { return _store.WordFor(_databaseId); }
             }
 
             /// <summary>
@@ -1910,17 +1903,14 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>
-            /// The record admitting this certificate, read now and from the custom data the
-            /// database holds now.
+            /// The admission of this certificate where it counts, read now from the store the
+            /// database holds now, `STORE.md` §615.
             /// </summary>
             /// <remarks>
-            /// **The store reads through the `PwDatabase`, and that is the whole of it.** A target
-            /// is cached while the authority is unchanged, and a database that is locked and opened
-            /// again comes back with its custom data replaced behind the same `PwDatabase`, so
-            /// anything holding the dictionary itself would go on reading the one that was
-            /// replaced: a revoked client would keep being admitted and a newly paired one would
-            /// never be. `CustomDataStore` asks the database for its dictionary on every access,
-            /// and is built per call besides, as `OpenDatabase` builds its own per read.
+            /// **Read from the reading of this hold**, the very reading every other question of the
+            /// hold is answered from, `STORE.md` §620, and kept nowhere: a decision that is in the
+            /// gate's copy when the hold begins holds in that hold, and an admission that lands
+            /// takes effect with nothing to be told.
             ///
             /// **What it does not do is keep the database out of the cache.** The target holds the
             /// `PwDatabase` and the cache is keyed on it, so a target that outlives its usefulness
@@ -1931,14 +1921,12 @@ namespace KeePassGate.Bridge
             /// **Nothing while the database no longer serves this target's authority.** A
             /// connection holds its target for as long as it lasts, and a renewal's lasts as long
             /// as the operator takes, so the authority can be recreated or deleted underneath it.
-            /// Every record goes with the authority, and a record that comes back afterwards, by a
-            /// merge or by a pairing that landed while the authority went, chains to an authority
-            /// that is retired. Answered as no record, so a renewal asking again after its dialog
-            /// issues nothing under an authority the database has let go of.
+            /// Answered as no admission, so a renewal asking again after its dialog issues nothing
+            /// under an authority the database has let go of.
             ///
-            /// **One read step, so the authority, its retirement and the record are read from one
-            /// tree.** Read with nothing held, a lookup on a connection thread racing KeePass's
-            /// thread could miss a key that was there: a missed authority refused an admitted
+            /// **One read step, so the authority, its retirement and the admission are read from
+            /// one tree.** Read with nothing held, a lookup on a connection thread racing KeePass's
+            /// thread could miss an entry that was there: a missed authority refused an admitted
             /// client `401`, and a missed retirement served an authority the database had retired.
             /// </remarks>
             public AdmissionRecord Admission(string admissionKey)
@@ -1959,25 +1947,8 @@ namespace KeePassGate.Bridge
                     throw new DatabaseShut("the database closed under this connection");
                 }
 
-                if (!Served(_store.Now(database, database.RootGroup)))
-                {
-                    return null;
-                }
-
-                var store = new CustomDataStore(database);
-
-                // A listing that failed is not an answer, because the one it would give is that
-                // this client was never admitted. KeePass's thread changing the dictionary
-                // underneath was what made one fail, and the hold rules that out; whatever else
-                // stops a listing is answered the same way.
-                bool listed;
-                var found = new AdmissionStore(store, _log).Find(admissionKey, out listed);
-                if (!listed)
-                {
-                    throw new VaultUnsettled("the admission records could not be listed");
-                }
-
-                return found;
+                var reading = _store.Now(database, database.RootGroup);
+                return Served(reading) ? StoreAdmissions.Admitted(reading, admissionKey) : null;
             }
 
             /// <summary>

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Store;
@@ -19,37 +20,47 @@ namespace KeePassGate.Tests
     /// items it holds, how many store keys stand, and what the store answers.
     /// </summary>
     /// <remarks>
-    /// `tests/Shared/StoreWriteVectors.json` holds the file after each act of two sequences that
+    /// `tests/Shared/StoreWriteVectors.json` holds the file after each act of sequences that
     /// `model/crdt_model.py` played, written out by `probe/store.py`'s `Encoder`. Its records hold
     /// stand-ins, short names and nonces of the model's own, so the product is held by shape and
     /// never by bytes: by kind, by the number a summary entry carries, and by count.
     ///
-    /// **Both sequences are played.** The commands of the authority are the product's own. A
-    /// pairing and a revocation are written as an act with no ground that adds the record the
-    /// model added, a client's record and a revocation of its client key, since this build keeps
-    /// the admissions beside the store; what the model deleted of the admissions is therefore not
-    /// compared, and neither are the kinds this build does not write: the admissions, the profile
-    /// name and the version of the root's rule the model's start holds, where the product's start
-    /// holds the version record a Create writes, restated by the item `format` in the place of the
-    /// version's item. The store the sequence starts from is the product's Create.
+    /// **Every sequence is played, through the product's own acts.** The commands of the authority
+    /// are `AuthorityService`'s, and a pairing, a renewal and a revocation are `AdmissionActs`'s,
+    /// each written as the store writes an act: a certificate is issued for each of the model's
+    /// clients, a pairing admits it under the authority served, a renewal admits a further
+    /// certificate under the same client key, and a revocation names that client key. The
+    /// admission the model's start holds is put into the store beside the product's Create, so
+    /// the records of kind `client` are compared like every other kind: what each write deletes of
+    /// them because a revocation or a retirement refuses them, `STORE.md` §627, and what stays. Not
+    /// compared are the kinds this build does not write: the profile name and the version of the
+    /// root's rule the model's start holds, where the product's start holds the version record a
+    /// Create writes, restated by the item `format` in the place of the version's item. Where the
+    /// model writes otherwise than `STORE.md` fixes, as a renewal's admission without `from`, the
+    /// shape is the same and the members are left to the product's own tests.
     /// </remarks>
     [TestFixture]
     public sealed class StoreWriteShapeTests
     {
         /// <summary>The kinds compared: every kind this build writes or the sequences add.</summary>
-        private static readonly string[] Compared = { "authority", "head", "retired", "revoked" };
+        private static readonly string[] Compared = { "authority", "client", "head", "retired", "revoked" };
+
+        private static readonly DateTimeOffset Then = new DateTimeOffset(2026, 8, 15, 9, 14, 22, TimeSpan.Zero);
 
         [Test]
         public void One_copy_paired_revoked_recreated_deleted_and_created_again_writes_what_the_model_wrote()
         {
             var steps = (JArray)Vectors()["sequences"]["one copy"]["steps"];
-            var store = new MemoryStore();
-            StoreSeeds.Authority(store, new InMemoryKeyValueStore());
-
-            foreach (var step in steps)
+            using (var clients = new Clients())
             {
-                var act = (JArray)step["act"];
-                AssertShape(step, store, () => Played(store, (string)step["command"], act));
+                var store = new MemoryStore();
+                StoreSeeds.Authority(store);
+                Started(store, clients);
+
+                foreach (var step in steps)
+                {
+                    AssertShape(step, store, () => Played(store, step, clients));
+                }
             }
         }
 
@@ -57,29 +68,74 @@ namespace KeePassGate.Tests
         public void Two_copies_that_each_recreate_synchronized_and_kept_write_what_the_model_wrote()
         {
             var steps = (JArray)Vectors()["sequences"]["two copies"]["steps"];
-
-            var first = new MemoryStore();
-            StoreSeeds.Authority(first, new InMemoryKeyValueStore());
-            var second = first.Copy();
-
-            AssertShape(steps[0], first, () => Service(first).Recreate());
-            AssertShape(steps[1], second, () => Service(second).Recreate());
-            AssertShape(steps[2], first, () =>
+            using (var clients = new Clients())
             {
-                first.Synchronize(second);
-                return AuthorityChange.Done();
-            });
+                var first = new MemoryStore();
+                StoreSeeds.Authority(first);
+                Started(first, clients);
+                var second = first.Copy();
 
-            var standing = first.Read().Answering.Select(record => record.Form.Member("id")).ToList();
-            Assume.That(standing, Has.Count.EqualTo(2));
-            AssertShape(steps[3], first, () => Service(first).Keep(standing[0], standing));
+                AssertShape(steps[0], first, () => Service(first).Recreate());
+                AssertShape(steps[1], second, () => Service(second).Recreate());
+                AssertShape(steps[2], first, () =>
+                {
+                    first.Synchronize(second);
+                    return AuthorityChange.Done();
+                });
 
-            Assert.That(StoreAuthorities.Served(first.Read()), Is.EqualTo(standing[0]), "the answer the model read: the authority kept is served");
+                var standing = first.Read().Answering.Select(record => record.Form.Member("id")).ToList();
+                Assume.That(standing, Has.Count.EqualTo(2));
+                AssertShape(steps[3], first, () => Service(first).Keep(standing[0], standing));
+
+                Assert.That(StoreAuthorities.Served(first.Read()), Is.EqualTo(standing[0]), "the answer the model read: the authority kept is served");
+            }
         }
 
-        /// <summary>A command of the sequence, played by the product.</summary>
-        private static AuthorityChange Played(MemoryStore store, string command, JArray act)
+        [Test]
+        public void Two_copies_one_revoking_a_client_the_other_renews_synchronized_admit_nobody_of_that_client()
         {
+            // `STORE.md` §615: the revocation names the client key, so the certificate renewed in a
+            // copy that had not read it is refused once the copies meet, in each of them.
+            var steps = (JArray)Vectors()["sequences"]["two copies, revoked in the first and renewed in the second"]["steps"];
+            using (var clients = new Clients())
+            {
+                var first = new MemoryStore();
+                StoreSeeds.Authority(first);
+                Started(first, clients);
+                var second = first.Copy();
+
+                AssertShape(steps[0], first, () => Played(first, steps[0], clients));
+                AssertShape(steps[1], second, () => Played(second, steps[1], clients));
+                AssertShape(steps[2], first, () =>
+                {
+                    first.Synchronize(second);
+                    return AuthorityChange.Done();
+                });
+                AssertShape(steps[3], second, () =>
+                {
+                    second.Synchronize(first);
+                    return AuthorityChange.Done();
+                });
+
+                foreach (var copy in new[] { first, second })
+                {
+                    using (var reading = copy.Read())
+                    {
+                        Assert.That(StoreAdmissions.Admitted(reading, clients.Admission("c0.1").AdmissionKey), Is.Null,
+                            "the certificate renewed in the copy that had not read the revocation is refused");
+                        Assert.That(StoreAdmissions.Admitted(reading, clients.Admission("c0").AdmissionKey), Is.Null);
+                    }
+                }
+
+                Assert.That(Held(first), Is.EquivalentTo(Held(second)), "and both copies hold the same records");
+            }
+        }
+
+        /// <summary>A command of a sequence, played by the product.</summary>
+        private static AuthorityChange Played(MemoryStore store, JToken step, Clients clients)
+        {
+            var command = (string)step["command"];
+            var act = (JArray)step["act"];
             switch (command)
             {
                 case "Recreate":
@@ -89,34 +145,41 @@ namespace KeePassGate.Tests
                 case "Create":
                     return Service(store).Create();
                 case "Pair":
-                    return Added(store, "client", "client" + store.Writes.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                    StoreSeeds.Admit(store, clients.Paired(StoreSeeds.Served(store)));
+                    return AuthorityChange.Done();
+                case "Renew":
+                    StoreSeeds.Admit(store, clients.Renewed((string)act[2], StoreSeeds.Served(store)));
+                    return AuthorityChange.Done();
                 case "Revoke":
-                    return Added(store, "revoked", (string)act[2]);
+                    StoreSeeds.Revoke(store, clients.Admission((string)act[2]).ClientKey);
+                    return AuthorityChange.Done();
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(command), command, "a command this test does not play");
+                    throw new ArgumentOutOfRangeException(nameof(step), command, "a command this test does not play");
             }
         }
 
-        /// <summary>A record of a kind this build does not write yet, added by an act with no ground.</summary>
-        private static AuthorityChange Added(MemoryStore store, string kind, string client)
+        /// <summary>
+        /// The admission the model's start holds beside its first summary entry, `c0`, put into the
+        /// store as an entry and not by a write, since the start's summary entry is its first.
+        /// </summary>
+        private static void Started(MemoryStore store, Clients clients)
         {
-            byte[] key;
-            string against;
             using (var reading = store.Read())
             {
-                key = (byte[])reading.InForce.Key.Bytes.Clone();
-                against = reading.InForce.Key.Name;
-            }
-
-            try
-            {
-                var record = StoreRecord.Compose(key, kind, new Dictionary<string, string> { { "client", client } });
-                var written = store.Write(new[] { new StoreAct(kind, key, against, new[] { record }, null) });
-                return written.Taken ? AuthorityChange.Done() : AuthorityChange.Refused(written.Reason);
-            }
-            finally
-            {
-                Array.Clear(key, 0, key.Length);
+                var admission = clients.Started(StoreAuthorities.Served(reading));
+                var key = (byte[])reading.InForce.Key.Bytes.Clone();
+                try
+                {
+                    store.Put(StoreComposer.Record(
+                        key,
+                        "client",
+                        "client:" + admission.ClientKey,
+                        StoreComposer.Content(admission.Members().Select(member => (member.Key, member.Value)).ToArray())));
+                }
+                finally
+                {
+                    Array.Clear(key, 0, key.Length);
+                }
             }
         }
 
@@ -167,10 +230,10 @@ namespace KeePassGate.Tests
 
             var heads = reading.InForce.Heads
                 .Select(head => (Height: head.Form.Number, After: Count(head.Form.Member("after")), Items: head.Form.Items.Count))
-                .OrderBy(head => head.Height).ThenBy(head => head.After).ToList();
+                .OrderBy(head => head.Height).ThenBy(head => head.After).ThenBy(head => head.Items).ToList();
             var modelHeads = ((JArray)step["heads"])
                 .Select(head => (Height: (int)head["height"], After: (int)head["after"], Items: ((JArray)head["items"]).Count))
-                .OrderBy(head => head.Height).ThenBy(head => head.After).ToList();
+                .OrderBy(head => head.Height).ThenBy(head => head.After).ThenBy(head => head.Items).ToList();
             Assert.That(heads, Is.EqualTo(modelHeads), command + ": each summary entry's height, names and items");
 
             Assert.That(((JArray)step["keys"]).Count, Is.EqualTo(1), command + ": the model's file holds a single store key");
@@ -233,6 +296,17 @@ namespace KeePassGate.Tests
                 : reading.InForce.Records.ToDictionary(record => record.Hex, record => record.Form.Kind, StringComparer.Ordinal);
         }
 
+        /// <summary>
+        /// Every record present and every deletion record of a store, by identifier.
+        /// </summary>
+        private static IEnumerable<string> Held(MemoryStore store)
+        {
+            using (var reading = store.Read())
+            {
+                return Kinds(reading).Keys.Concat(reading.Deletions.Select(deleted => "deleted " + KeePassGate.Hex.Of(deleted))).ToList();
+            }
+        }
+
         private static int Count(string after)
         {
             return string.IsNullOrEmpty(after) ? 0 : after.Split(' ').Length;
@@ -240,7 +314,7 @@ namespace KeePassGate.Tests
 
         private static AuthorityService Service(MemoryStore store)
         {
-            return new AuthorityService(store, new InMemoryKeyValueStore(), NullGateLog.Instance);
+            return new AuthorityService(store, NullGateLog.Instance);
         }
 
         private static JObject Vectors()
@@ -255,6 +329,72 @@ namespace KeePassGate.Tests
             }
 
             throw new FileNotFoundException("tests/Shared/StoreWriteVectors.json is not above the test's directory");
+        }
+
+        /// <summary>
+        /// The model's clients as the product admits them: a certificate issued for each of the
+        /// model's names, `c0` the client the start holds, `c1` and on the clients that pair in the
+        /// order they pair, and a name and `.1` the certificate a renewal of that client issued.
+        /// </summary>
+        private sealed class Clients : IDisposable
+        {
+            private readonly Dictionary<string, AdmissionRecord> _admitted = new Dictionary<string, AdmissionRecord>(StringComparer.Ordinal);
+            private readonly List<X509Certificate2> _issued = new List<X509Certificate2>();
+
+            /// <summary>The admission of the model's name.</summary>
+            public AdmissionRecord Admission(string name)
+            {
+                return _admitted[name];
+            }
+
+            /// <summary>
+            /// The admission of `c0`, with the profile the model's start gives it.
+            /// </summary>
+            public AdmissionRecord Started(string issuer)
+            {
+                return Admit("c0", AdmissionRecord.For(Issue("c0"), Then, new[] { "pf" }, issuer));
+            }
+
+            /// <summary>
+            /// A pairing's admission of the next client, with the profiles a model's pairing gives.
+            /// </summary>
+            public AdmissionRecord Paired(string issuer)
+            {
+                var name = "c" + _admitted.Keys.Count(known => known.IndexOf('.') < 0).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return Admit(name, AdmissionRecord.For(Issue(name), Then, new[] { "pf", "pg" }, issuer));
+            }
+
+            /// <summary>
+            /// A renewal's admission of the client of this name, from its admission and with its
+            /// profiles.
+            /// </summary>
+            public AdmissionRecord Renewed(string name, string issuer)
+            {
+                var from = _admitted[name];
+                var renewed = name + ".1";
+                return Admit(renewed, AdmissionRecord.For(Issue(renewed), Then, from.Profiles, issuer, from.ClientKey, from.AdmissionKey));
+            }
+
+            public void Dispose()
+            {
+                foreach (var certificate in _issued)
+                {
+                    certificate.Reset();
+                }
+            }
+
+            private AdmissionRecord Admit(string name, AdmissionRecord admission)
+            {
+                _admitted[name] = admission;
+                return admission;
+            }
+
+            private X509Certificate2 Issue(string name)
+            {
+                var certificate = Minted.Named("CN=" + name).Lasting(Then.AddDays(-1), Then.AddYears(1)).SelfSigned().Read();
+                _issued.Add(certificate);
+                return certificate;
+            }
         }
     }
 }

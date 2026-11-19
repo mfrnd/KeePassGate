@@ -38,7 +38,7 @@ namespace KeePassGate.Host.Tests
         public void An_authority_is_an_entry_as_KeePass_keeps_one_with_its_content_protected_and_marked()
         {
             var database = Database();
-            var id = StoreSeeds.Authority(Store(database), Admissions(database));
+            var id = StoreSeeds.Authority(Store(database));
 
             var group = database.RootGroup.Groups.Single(found => StoreFormat.IsGroupIdentifier(found.Uuid.UuidBytes));
             Assert.That(group.Name, Is.EqualTo("KeePassGate"));
@@ -69,7 +69,7 @@ namespace KeePassGate.Host.Tests
             // deletion record lost, is neither deleted by the next write nor named by a deletion
             // record of its own, which a merge would take as the entry deleted.
             var database = Database();
-            StoreSeeds.Authority(Store(database), Admissions(database));
+            StoreSeeds.Authority(Store(database));
             var first = PluginGroup(database).Entries.Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "head").Uuid;
             Assert.That(NameWritten(database), Is.True);
 
@@ -89,7 +89,7 @@ namespace KeePassGate.Host.Tests
         public void A_second_group_with_the_prefix_that_holds_no_record_is_not_written_into()
         {
             var database = Database();
-            StoreSeeds.Authority(Store(database), Admissions(database));
+            StoreSeeds.Authority(Store(database));
             var group = PluginGroup(database);
             var stranger = new PwGroup(true, true, "KeePassGate", PwIcon.Folder)
             {
@@ -107,7 +107,7 @@ namespace KeePassGate.Host.Tests
         public void A_store_whose_group_was_deleted_into_the_bin_gets_a_new_group_and_every_record_in_the_bin_counts()
         {
             var database = Database();
-            var first = StoreSeeds.Authority(Store(database), Admissions(database));
+            var first = StoreSeeds.Authority(Store(database));
             var bin = new PwGroup(true, true, "Recycle Bin", PwIcon.TrashBin);
             database.RootGroup.AddGroup(bin, true);
             database.Database.RecycleBinEnabled = true;
@@ -133,7 +133,7 @@ namespace KeePassGate.Host.Tests
         {
             // `STORE.md` §607: no text is covered by the check or read by the plugin.
             var database = Database();
-            var id = StoreSeeds.Authority(Store(database), Admissions(database));
+            var id = StoreSeeds.Authority(Store(database));
             var authority = PluginGroup(database).Entries.Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "authority");
 
             authority.Strings.Set(PwDefs.TitleField, new ProtectedString(false, "renamed by hand"));
@@ -156,12 +156,12 @@ namespace KeePassGate.Host.Tests
             var database = Database();
             if (command == "Delete")
             {
-                StoreSeeds.Authority(Store(database), Admissions(database));
+                StoreSeeds.Authority(Store(database));
                 Assert.That(Service(database).Delete().Succeeded, Is.True);
             }
             else
             {
-                var both = StoreSeeds.Undecided(Store(database), Admissions(database));
+                var both = StoreSeeds.Undecided(Store(database));
                 Assert.That(Service(database).Keep(both[0], both).Succeeded, Is.True);
             }
 
@@ -180,7 +180,7 @@ namespace KeePassGate.Host.Tests
             // entry in a group of the plugin's own; some are moved into a second such group, and
             // the rest stay or go to the root, which no write is put into.
             var database = Database();
-            StoreSeeds.Authority(Store(database), Admissions(database));
+            StoreSeeds.Authority(Store(database));
             var first = PluginGroup(database);
             var second = new PwGroup(true, true, StoreFormat.GroupName, PwIcon.TerminalEncrypted)
             {
@@ -218,7 +218,7 @@ namespace KeePassGate.Host.Tests
             // writes what `StoreEntries.Apply` makes of it: the two are read alike, a record set
             // back by its history and a retired authority's entry deleted among them.
             var database = Database();
-            StoreSeeds.Authority(Store(database), Admissions(database));
+            StoreSeeds.Authority(Store(database));
             var format = PluginGroup(database).Entries.Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "format");
             Edit(database, format, "{\"format\":\"1\"}", false);
 
@@ -256,7 +256,7 @@ namespace KeePassGate.Host.Tests
         public void A_retired_authority_s_entry_is_deleted_with_a_deletion_record()
         {
             var database = Database();
-            StoreSeeds.Authority(Store(database), Admissions(database));
+            StoreSeeds.Authority(Store(database));
             var authority = PluginGroup(database).Entries.Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "authority");
 
             Assert.That(Service(database).Recreate().Succeeded, Is.True);
@@ -271,7 +271,7 @@ namespace KeePassGate.Host.Tests
         {
             var database = Database();
             database.Database.HistoryMaxItems = limit;
-            StoreSeeds.Authority(Store(database), Admissions(database));
+            StoreSeeds.Authority(Store(database));
             var authority = PluginGroup(database).Entries.Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "authority");
             var written = authority.Strings.Get("KPG.Data").ReadString();
             Edit(database, authority, "{\"id\":\"edited\"}");
@@ -292,7 +292,7 @@ namespace KeePassGate.Host.Tests
         {
             var database = Database();
             database.Database.HistoryMaxItems = 0;
-            StoreSeeds.Authority(Store(database), Admissions(database));
+            StoreSeeds.Authority(Store(database));
             var authority = PluginGroup(database).Entries.Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "authority");
 
             Edit(database, authority, "{\"id\":\"edited\"}");
@@ -304,7 +304,7 @@ namespace KeePassGate.Host.Tests
         public void An_authority_s_content_with_its_protection_taken_off_is_protected_again_at_the_next_write()
         {
             var database = Database();
-            StoreSeeds.Authority(Store(database), Admissions(database));
+            StoreSeeds.Authority(Store(database));
             var authority = PluginGroup(database).Entries.Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "authority");
             var content = authority.Strings.Get("KPG.Data");
             authority.CreateBackup(database.Database);
@@ -322,7 +322,7 @@ namespace KeePassGate.Host.Tests
         public void A_store_written_is_read_the_same_after_a_save_and_a_reload()
         {
             var database = Database();
-            var id = StoreSeeds.Authority(Store(database), Admissions(database));
+            var id = StoreSeeds.Authority(Store(database));
 
             database.SaveCloseAndReopen();
 
@@ -340,7 +340,7 @@ namespace KeePassGate.Host.Tests
         {
             // `STORE.md` §614 (S11), item 28 of §644, by KeePass's own Synchronize.
             var first = Database();
-            var ids = StoreSeeds.Undecided(Store(first), Admissions(first));
+            var ids = StoreSeeds.Undecided(Store(first));
             var key = Store(first).Read().InForce.Key.Name;
             var second = CopyOf(first);
 
@@ -363,8 +363,8 @@ namespace KeePassGate.Host.Tests
         {
             var first = Database();
             var second = CopyOf(first);
-            StoreSeeds.Authority(Store(first), Admissions(first));
-            StoreSeeds.Authority(Store(second), Admissions(second));
+            StoreSeeds.Authority(Store(first));
+            StoreSeeds.Authority(Store(second));
 
             first.Database.MergeIn(second.Database, PwMergeMethod.Synchronize);
 
@@ -387,7 +387,7 @@ namespace KeePassGate.Host.Tests
             // takes a failed application back is the undo of each part, run in reverse,
             // `StoreEntries.Undo`.
             var database = Database();
-            var ids = StoreSeeds.Undecided(Store(database), Admissions(database));
+            var ids = StoreSeeds.Undecided(Store(database));
             var kept = PluginGroup(database).Entries.Single(entry => entry.Strings.ReadSafe("KPG.Data").Contains(ids[0]));
             Edit(database, kept, "{\"id\":\"edited\"}", false);
             database.Database.Modified = false;
@@ -469,14 +469,9 @@ namespace KeePassGate.Host.Tests
             return new KdbxStore(database.Database, GateVersion.Current, NullGateLog.Instance);
         }
 
-        private static CustomDataStore Admissions(TemporaryDatabase database)
-        {
-            return new CustomDataStore(database.Database);
-        }
-
         private static AuthorityService Service(TemporaryDatabase database)
         {
-            return new AuthorityService(Store(database), Admissions(database), NullGateLog.Instance);
+            return new AuthorityService(Store(database), NullGateLog.Instance);
         }
 
         private static PwGroup PluginGroup(TemporaryDatabase database)

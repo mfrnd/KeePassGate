@@ -40,7 +40,7 @@ namespace KeePassGate.Tests
             // the act a command composes among them, once the write was planned and applied,
             // refused or thrown.
             var store = new MemoryStore();
-            StoreSeeds.Authority(store, new InMemoryKeyValueStore());
+            StoreSeeds.Authority(store);
             store.Offered.Clear();
             if (outcome == "refused")
             {
@@ -67,7 +67,7 @@ namespace KeePassGate.Tests
         public void Recreate_retires_the_authority_deletes_its_entry_and_carries_the_key()
         {
             var store = new MemoryStore();
-            var first = StoreSeeds.Authority(store, new InMemoryKeyValueStore());
+            var first = StoreSeeds.Authority(store);
             var key = store.Read().InForce.Key.Name;
 
             Assert.That(Service(store).Recreate().Succeeded, Is.True);
@@ -83,7 +83,7 @@ namespace KeePassGate.Tests
         public void Delete_writes_a_retirement_holding_the_key_and_a_Create_after_it_keeps_that_key()
         {
             var store = new MemoryStore();
-            StoreSeeds.Authority(store, new InMemoryKeyValueStore());
+            StoreSeeds.Authority(store);
             var key = store.Read().InForce.Key.Name;
 
             Assert.That(Service(store).Delete().Succeeded, Is.True);
@@ -100,7 +100,7 @@ namespace KeePassGate.Tests
         public void Keeping_an_authority_retires_each_of_the_others_each_retirement_holding_the_key()
         {
             var store = new MemoryStore();
-            var ids = StoreSeeds.Undecided(store, new InMemoryKeyValueStore());
+            var ids = StoreSeeds.Undecided(store);
 
             var kept = Service(store).Keep(ids[0], ids);
 
@@ -116,7 +116,7 @@ namespace KeePassGate.Tests
         public void Keeping_an_authority_among_a_set_that_changed_is_overtaken_and_writes_nothing()
         {
             var store = new MemoryStore();
-            var ids = StoreSeeds.Undecided(store, new InMemoryKeyValueStore());
+            var ids = StoreSeeds.Undecided(store);
             StoreSeeds.Beside(store);
             var before = store.Writes;
 
@@ -130,7 +130,7 @@ namespace KeePassGate.Tests
         public void Create_on_a_stopped_store_is_refused_and_writes_nothing()
         {
             var store = new MemoryStore();
-            StoreSeeds.Authority(store, new InMemoryKeyValueStore());
+            StoreSeeds.Authority(store);
             Assert.That(Service(store).Delete().Succeeded, Is.True);
             var head = store.Read().InForce.Heads.Single().Hex;
             store.Drop(head);
@@ -144,30 +144,43 @@ namespace KeePassGate.Tests
             Assert.That(store.Writes, Is.EqualTo(before));
         }
 
-        [Test]
-        public void Deleting_takes_the_admission_records_and_the_revocations_with_it_and_leaves_what_is_somebody_else_s()
+        [TestCase("Recreate")]
+        [TestCase("Delete")]
+        public void A_command_that_retires_the_authority_deletes_the_records_of_kind_client_it_issued_and_no_other(string command)
         {
-            // The retirement refuses every certificate the deleted authority issued, revoked or
-            // not, so a revocation beside it refuses nothing more.
+            // `STORE.md` §627 step 3, the write's own retirement counting as present.
             var store = new MemoryStore();
-            var admissions = new InMemoryKeyValueStore();
-            StoreSeeds.Authority(store, admissions);
-            admissions.Plant(AuthorityKeys.ClientRecordKey(new string('a', 64)), "record");
-            admissions.Plant(AuthorityKeys.ClientRecordKey(new string('b', 64)), string.Empty);
-            admissions.Plant(AuthorityKeys.RevocationKey(new string('b', 64)), "2999-01-01T00:00:00Z");
-            admissions.Plant(AuthorityKeys.RevocationKey(new string('c', 64)), string.Empty);
-            admissions.Plant("AnotherPlugin.Something", "not this plugin's");
+            var first = StoreSeeds.Authority(store);
+            var key = (byte[])store.Read().InForce.Key.Bytes.Clone();
+            var issued = Client(key, 'c', first);
+            var other = Client(key, 'e', new string('9', 64));
+            store.Put(issued);
+            store.Put(other);
 
-            Assert.That(new AuthorityService(store, admissions, NullGateLog.Instance).Delete().Succeeded, Is.True);
+            var service = Service(store);
+            Assert.That((command == "Recreate" ? service.Recreate() : service.Delete()).Succeeded, Is.True);
 
-            Assert.That(admissions.Keys, Is.EqualTo(new[] { "AnotherPlugin.Something" }), "only what is somebody else's is left");
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(store.Candidates.Select(candidate => candidate.Hex), Does.Not.Contain(issued.Hex));
+            Assert.That(store.Deletions.Select(KeePassGate.Hex.Of), Does.Contain(issued.Hex), "deleted with a deletion record");
+            Assert.That(store.Candidates.Select(candidate => candidate.Hex), Does.Contain(other.Hex));
+        }
+
+        /// <summary>A record of kind `client` under a store key, of a certificate this authority issued.</summary>
+        private static StoreComposer.Composed Client(byte[] key, char client, string issuer)
+        {
+            var clientKey = new string(client, 64);
+            return StoreComposer.Record(
+                key, "client", "client:" + clientKey,
+                StoreComposer.Content(("certificate", clientKey), ("client", clientKey), ("issuer", issuer)));
         }
 
         [Test]
         public void A_record_written_twice_is_in_the_file_once()
         {
             var store = new MemoryStore();
-            StoreSeeds.Authority(store, new InMemoryKeyValueStore());
+            StoreSeeds.Authority(store);
             var key = (byte[])store.Read().InForce.Key.Bytes.Clone();
             var name = StoreRecord.Compose(key, "profile", new System.Collections.Generic.Dictionary<string, string>
             {
@@ -196,7 +209,7 @@ namespace KeePassGate.Tests
 
         private static AuthorityService Service(MemoryStore store)
         {
-            return new AuthorityService(store, new InMemoryKeyValueStore(), NullGateLog.Instance);
+            return new AuthorityService(store, NullGateLog.Instance);
         }
     }
 }

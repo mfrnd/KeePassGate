@@ -26,7 +26,6 @@ namespace KeePassGate.Tests
         private static readonly DateTimeOffset Admitted = new DateTimeOffset(2026, 9, 1, 8, 0, 0, TimeSpan.Zero);
         private static readonly DateTimeOffset Requested = new DateTimeOffset(2026, 9, 20, 10, 30, 0, TimeSpan.Zero);
 
-        private InMemoryKeyValueStore _values;
         private MemoryStore _records;
         private AuthorityService _service;
         private string[] _candidates;
@@ -35,9 +34,8 @@ namespace KeePassGate.Tests
         [SetUp]
         public void SetUp()
         {
-            _values = new InMemoryKeyValueStore();
             _records = new MemoryStore();
-            _service = new AuthorityService(_records, _values, null);
+            _service = new AuthorityService(_records, null);
             _candidates = Undecided();
             _clientKey = AdmitUnder(_candidates[0], "agent-fictitious", "ops", "reader");
         }
@@ -63,20 +61,78 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_candidate_s_clients_are_the_admissions_naming_it_as_their_issuer()
+        {
+            // A certificate the second candidate issued, admitted under an admission naming the
+            // first as its issuer: the gate admits only under the authority an admission names, so
+            // it is no client of the second, and the first would not let it in.
+            var authority = StoreSeeds.KeyOf(_records, _candidates[1]);
+            using (var client = new AuthorityIssuer().IssueClient(authority, "agent-crossed", new[] { "ops" }).Read())
+            {
+                StoreSeeds.Client(_records, AdmissionRecord.For(client, Admitted, new[] { "ops" }, _candidates[0]).Members());
+            }
+
+            var choice = Choice(null);
+
+            Assert.That(choice.Options.Single(o => o.Fingerprint == _candidates[1]).Clients, Is.Empty);
+            Assert.That(
+                choice.Options.Single(o => o.Fingerprint == _candidates[0]).Clients.Select(c => c.Name),
+                Is.EqualTo(new[] { "agent-fictitious" }));
+        }
+
+        [Test]
+        public void A_certificate_two_admissions_name_is_a_client_of_no_candidate()
+        {
+            // Admitted by none of them, `STORE.md` §615, so it is no evidence of which copy is in
+            // use.
+            var authority = StoreSeeds.KeyOf(_records, _candidates[1]);
+            using (var client = new AuthorityIssuer().IssueClient(authority, "agent-twice", new[] { "ops" }).Read())
+            {
+                StoreSeeds.Client(_records, AdmissionRecord.For(client, Admitted, new[] { "ops" }, _candidates[1]).Members());
+                StoreSeeds.Client(
+                    _records, AdmissionRecord.For(client, Admitted, new[] { "ops" }, _candidates[1], new string('d', 64), null).Members());
+            }
+
+            Assert.That(Choice(null).Options.Single(o => o.Fingerprint == _candidates[1]).Clients, Is.Empty);
+        }
+
+        [Test]
+        public void A_renewal_that_would_not_count_were_its_issuer_kept_is_no_client_of_it()
+        {
+            // Renewed from a certificate nothing admits, it admits nobody whichever authority is
+            // kept, `STORE.md` §648, so it is no evidence of which copy is in use.
+            Admit(_candidates[1], "agent-renewed", new string('e', 64), "ops");
+
+            Assert.That(Choice(null).Options.Single(o => o.Fingerprint == _candidates[1]).Clients, Is.Empty);
+        }
+
+        [Test]
+        public void A_renewal_that_would_count_were_its_issuer_kept_is_a_client_of_it()
+        {
+            // Renewed from a certificate the same candidate admits, it counts once that candidate
+            // is kept, as the first certificate does.
+            var first = Admit(_candidates[1], "agent-first", null, "ops");
+            Admit(_candidates[1], "agent-renewed", first, "ops");
+
+            Assert.That(
+                Choice(null).Options.Single(o => o.Fingerprint == _candidates[1]).Clients.Select(c => c.Name),
+                Is.EquivalentTo(new[] { "agent-first", "agent-renewed" }));
+        }
+
+        [Test]
         public void A_record_its_authority_would_not_let_in_is_no_client_of_it()
         {
             // The clients a candidate admitted are the evidence of which copy is in use, and the
             // clients page marks a record the gate refuses: one not for a client to present, or
             // one not valid yet, was listed and counted as a client all the same.
             var authority = StoreSeeds.KeyOf(_records, _candidates[1]);
-            var store = new AdmissionStore(_values, null);
 
             using (var host = new AuthorityIssuer().IssueHost(authority).Read())
             using (var later = new AuthorityIssuer(() => DateTimeOffset.UtcNow.AddDays(2))
                        .IssueClient(authority, "agent-later", new[] { "ops" }).Read())
             {
-                store.Write(AdmissionRecord.For(host, Admitted, new[] { "ops" }));
-                store.Write(AdmissionRecord.For(later, Admitted, new[] { "ops" }));
+                StoreSeeds.Client(_records, AdmissionRecord.For(host, Admitted, new[] { "ops" }, _candidates[1]).Members());
+                StoreSeeds.Client(_records, AdmissionRecord.For(later, Admitted, new[] { "ops" }, _candidates[1]).Members());
             }
 
             var second = Choice(null).Options.Single(o => o.Fingerprint == _candidates[1]);
@@ -146,8 +202,8 @@ namespace KeePassGate.Tests
             using (var certificate = new System.Security.Cryptography.X509Certificates.X509Certificate2(
                        Reshaped.Naming(issued, named, named, authority)))
             {
-                var record = AdmissionRecord.For(certificate, Admitted, new[] { "ops" });
-                new AdmissionStore(_values, null).Write(record);
+                var record = AdmissionRecord.For(certificate, Admitted, new[] { "ops" }, _candidates[1]);
+                StoreSeeds.Client(_records, record.Members());
                 crafted = record.ClientKey;
             }
 
@@ -447,7 +503,7 @@ namespace KeePassGate.Tests
             using (var reading = _service.Read())
             {
                 Assume.That(reading.Presence, Is.EqualTo(AuthorityPresence.Undecided));
-                return AuthorityChoice.From(reading, new AdmissionStore(_values, null).All(), lastSeen, null);
+                return AuthorityChoice.From(reading, candidate => StoreSeeds.Listed(_records, candidate), lastSeen, null);
             }
         }
 
@@ -458,7 +514,7 @@ namespace KeePassGate.Tests
         /// </summary>
         private string[] Undecided()
         {
-            return StoreSeeds.Undecided(_records, _values);
+            return StoreSeeds.Undecided(_records);
         }
 
         /// <summary>Admits a client whose certificate the named candidate issued, answering with its key.</summary>
@@ -477,10 +533,9 @@ namespace KeePassGate.Tests
 
             using (var client = new AuthorityIssuer().IssueClient(authority, name, profiles).Read())
             {
-                var record = clientKey == null
-                    ? AdmissionRecord.For(client, Admitted, profiles)
-                    : AdmissionRecord.For(client, Admitted, profiles, clientKey);
-                new AdmissionStore(_values, null).Write(record);
+                var key = CertificateDigest.Of(client);
+                var record = AdmissionRecord.For(client, Admitted, profiles, fingerprint, clientKey ?? key, clientKey);
+                StoreSeeds.Client(_records, record.Members());
                 return record.AdmissionKey;
             }
         }

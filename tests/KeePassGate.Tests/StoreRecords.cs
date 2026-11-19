@@ -64,5 +64,18 @@ namespace KeePassGate.Tests
         {
             return new string(digit, 64);
         }
+
+        /// <summary>
+        /// The members of a record of kind `client` that does not read as an admission, holding a
+        /// client key and a certificate and nothing a decision refuses.
+        /// </summary>
+        internal static System.Collections.Generic.Dictionary<string, string> Unread(char digit)
+        {
+            return new System.Collections.Generic.Dictionary<string, string>
+            {
+                { "client", Hex(digit) },
+                { "certificate", Hex(digit) },
+            };
+        }
     }
 }

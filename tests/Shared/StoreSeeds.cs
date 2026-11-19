@@ -27,16 +27,129 @@ namespace KeePassGate.Testing
         public static readonly string DamagedId = new string('d', 64);
 
         /// <summary>An authority created by Create, answering its `id`.</summary>
-        /// <param name="admissions">The custom data the database keeps its admissions in.</param>
-        public static string Authority(IGateStore store, IKeyValueStore admissions)
+        public static string Authority(IGateStore store)
         {
-            var made = new AuthorityService(store, admissions, NullGateLog.Instance).Create();
+            var made = new AuthorityService(store, NullGateLog.Instance).Create();
             if (!made.Succeeded)
             {
                 throw new InvalidOperationException("An authority could not be seeded: " + made.Message);
             }
 
-            return StoreAuthorities.Served(store.Read());
+            using (var reading = store.Read())
+            {
+                return StoreAuthorities.Served(reading);
+            }
+        }
+
+        /// <summary>
+        /// A record of kind `client` holding these members, as whoever holds the store key can
+        /// write such a record, whether or not it reads as an admission.
+        /// </summary>
+        public static void Client(IGateStore store, IReadOnlyDictionary<string, string> members)
+        {
+            Stand(store, "a record of kind client", StoreKinds.Client, key => members);
+        }
+
+        /// <summary>
+        /// The admissions of the store as a page lists them, from a reading let go at once.
+        /// </summary>
+        public static AdmissionListing Listed(IGateStore store)
+        {
+            using (var reading = store.Read())
+            {
+                return StoreAdmissions.Listing(reading);
+            }
+        }
+
+        /// <summary>
+        /// The same, as it would stand were the authority of this `id` the authority served, which
+        /// is what the choice between several authorities lists a candidate's clients from.
+        /// </summary>
+        public static AdmissionListing Listed(IGateStore store, string served)
+        {
+            using (var reading = store.Read())
+            {
+                return StoreAdmissions.Listing(reading, served);
+            }
+        }
+
+        /// <summary>
+        /// The `id` of the authority the store serves, or null where it serves none.
+        /// </summary>
+        public static string Served(IGateStore store)
+        {
+            using (var reading = store.Read())
+            {
+                return StoreAuthorities.Served(reading);
+            }
+        }
+
+        /// <summary>
+        /// An admission written as a pairing or a renewal writes it, through the product's own act
+        /// and held to the same ground: its issuer the authority served alone.
+        /// </summary>
+        public static void Admit(IGateStore store, AdmissionRecord admission)
+        {
+            Act(store, "an admission", reading => AdmissionActs.Admit(reading, admission));
+        }
+
+        /// <summary>
+        /// A pairing's admission of this certificate under the authority the store serves, written
+        /// as <see cref="Admit(IGateStore, AdmissionRecord)"/> writes it, and answered.
+        /// </summary>
+        public static AdmissionRecord Admit(
+            IGateStore store, System.Security.Cryptography.X509Certificates.X509Certificate2 certificate, DateTimeOffset admitted, params string[] profiles)
+        {
+            var admission = AdmissionRecord.For(certificate, admitted, profiles, Served(store));
+            Admit(store, admission);
+            return admission;
+        }
+
+        /// <summary>
+        /// A revocation of this client, as the clients page writes it at the dialog's OK.
+        /// </summary>
+        public static void Revoke(IGateStore store, string clientKey)
+        {
+            Act(store, "a revocation", reading => AdmissionActs.Revoke(reading, clientKey));
+        }
+
+        /// <summary>This certificate taken away, as a client giving it up writes it.</summary>
+        public static void TakeAway(IGateStore store, string admissionKey)
+        {
+            Act(store, "a certificate taken away", reading => AdmissionActs.TakeAway(reading, admissionKey));
+        }
+
+        /// <summary>The act composed from the store as it stands, written by itself.</summary>
+        private static void Act(IGateStore store, string name, Func<StoreReading, StoreAct> compose)
+        {
+            StoreAct act;
+            using (var reading = store.Read())
+            {
+                act = compose(reading);
+            }
+
+            if (act == null)
+            {
+                throw new InvalidOperationException(name + " is seeded only in a store that has a key.");
+            }
+
+            // A buffer that holds the act for a dialog's OK lets it go itself.
+            StoreWritten written = null;
+            try
+            {
+                written = store.Write(new[] { act });
+                if (!written.Taken)
+                {
+                    throw new InvalidOperationException(name + " could not be seeded: " + written.Reason);
+                }
+            }
+            finally
+            {
+                if (written == null || !written.Waits)
+                {
+                    act.Forget();
+                }
+            }
         }
 
         /// <summary>
@@ -114,9 +227,9 @@ namespace KeePassGate.Testing
         }
 
         /// <summary>Two authorities standing and none chosen, in the order of their `id`.</summary>
-        public static string[] Undecided(IGateStore store, IKeyValueStore admissions)
+        public static string[] Undecided(IGateStore store)
         {
-            return new[] { Authority(store, admissions), Beside(store) }.OrderBy(id => id, StringComparer.Ordinal).ToArray();
+            return new[] { Authority(store), Beside(store) }.OrderBy(id => id, StringComparer.Ordinal).ToArray();
         }
 
         /// <summary>

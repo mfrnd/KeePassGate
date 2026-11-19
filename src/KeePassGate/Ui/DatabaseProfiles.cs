@@ -4,6 +4,7 @@ using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
+using KeePassGate.Store;
 
 namespace KeePassGate.Ui
 {
@@ -185,13 +186,17 @@ namespace KeePassGate.Ui
         /// </remarks>
         private List<AdmissionRecord> GettingIn()
         {
-            using (var reading = new AuthorityService(_database.Store, _database.PluginCustomData, _log).Read())
+            StoreReading stored;
+            using (var reading = new AuthorityService(_database.Store, _log).Read(out stored))
+            using (stored)
             {
                 var authority = reading.IsPresent ? reading.Material.Authority : null;
                 var now = DateTimeOffset.UtcNow;
+                var listing = StoreAdmissions.Listing(stored);
 
-                return new AdmissionStore(_database.PluginCustomData, _log).All().Records
-                    .Where(record => record != null && ClientReaches.GetsIn(record, authority, now))
+                return listing.Records
+                    .Where(record => listing.StandingOf(record) == AdmissionStanding.Admitted
+                                     && ClientReaches.GetsIn(record, authority, now))
                     .ToList();
             }
         }

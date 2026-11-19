@@ -105,18 +105,18 @@ namespace KeePassGate.Tests.Gallery
         private static IGateDatabase Retired(int records)
         {
             var database = new FakeGateDatabase();
-            var candidates = StoreSeeds.Undecided(database.Store, database.Values);
+            var candidates = StoreSeeds.Undecided(database.Store);
 
             // Each copy keeps the authority the other retires, and synchronizing them leaves both
             // retirements standing.
             var other = database.Records.Copy();
-            new AuthorityService(database.Store, database.Values, null).Keep(candidates[0], candidates);
-            new AuthorityService(other, new InMemoryKeyValueStore(), null).Keep(candidates[1], candidates);
+            new AuthorityService(database.Store, null).Keep(candidates[0], candidates);
+            new AuthorityService(other, null).Keep(candidates[1], candidates);
             database.Records.Synchronize(other);
 
             for (var i = 0; i < records; i++)
             {
-                database.Values.Plant(AuthorityKeys.ClientRecordKey(new string((char)('c' + i), 64)), "record");
+                StoreSeeds.Client(database.Store, StoreRecords.Unread((char)('c' + i)));
             }
 
             return database;

@@ -31,6 +31,11 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>How many writes were made.</summary>
         public int Writes { get; private set; }
 
+        /// <summary>
+        /// How many readings were asked for, the reading a write plans over apart.
+        /// </summary>
+        public int Reads { get; private set; }
+
         /// <summary>When true, a write is planned and answered as made, and nothing is kept.</summary>
         public bool SwallowWrites { get; set; }
 
@@ -52,6 +57,12 @@ namespace KeePassGate.Tests.Fakes
 
         /// <summary>What a read throws, or null for reads that work.</summary>
         public Exception ThrowOnRead { get; set; }
+
+        /// <summary>
+        /// What the next read throws, once, or null: a defect in one step of something that reads
+        /// the store several times.
+        /// </summary>
+        public Exception NextReadThrows { get; set; }
 
         /// <summary>What a write throws, or null for writes that answer.</summary>
         public Exception ThrowOnWrite { get; set; }
@@ -125,14 +136,44 @@ namespace KeePassGate.Tests.Fakes
             _deletions = deletions;
         }
 
+        /// <summary>
+        /// Another copy brought into this store as a merge that carries no deletion record brings
+        /// it, as KeePassXC's does: every entry of both, and the deletion records this copy held.
+        /// </summary>
+        public void MergeWithoutDeletions(MemoryStore other)
+        {
+            _candidates = _candidates.Concat(other._candidates)
+                .GroupBy(candidate => candidate.Hex)
+                .Select(group => group.First())
+                .ToList();
+        }
+
         public StoreReading Read()
+        {
+            Reads++;
+            return Reading();
+        }
+
+        /// <summary>
+        /// The store as it holds it now, over lists of its own, as `KdbxStore` builds every
+        /// reading afresh: a put, a drop, a deletion record or a write after it changes nothing a
+        /// reading already handed out holds.
+        /// </summary>
+        private StoreReading Reading()
         {
             if (ThrowOnRead != null)
             {
                 throw ThrowOnRead;
             }
 
-            return StoreReading.Afresh(_candidates, _deletions);
+            var once = NextReadThrows;
+            if (once != null)
+            {
+                NextReadThrows = null;
+                throw once;
+            }
+
+            return StoreReading.Afresh(_candidates.ToList(), _deletions.ToList());
         }
 
         public StoreWritten Write(IReadOnlyList<StoreAct> acts)
@@ -154,7 +195,7 @@ namespace KeePassGate.Tests.Fakes
             }
 
             StoreWrite plan;
-            using (var reading = Read())
+            using (var reading = Reading())
             {
                 plan = StoreWrite.Plan(reading, acts, Plugin);
             }
@@ -198,7 +239,7 @@ namespace KeePassGate.Tests.Fakes
                     return StoreRecord.Compose(key, StoreKinds.Authority, members);
                 }).ToList();
 
-                return new StoreAct(act.Name, key, act.Against, records, act.Why, act.EndsAdmissions);
+                return new StoreAct(act.Name, key, act.Against, records, act.Why);
             }
             finally
             {

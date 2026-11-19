@@ -27,16 +27,14 @@ namespace KeePassGate.Tests
 
         private static readonly DateTimeOffset Now = new DateTimeOffset(2026, 3, 4, 0, 0, 0, TimeSpan.Zero);
 
-        private InMemoryKeyValueStore _values;
         private MemoryStore _records;
         private AuthorityService _service;
 
         [SetUp]
         public void SetUp()
         {
-            _values = new InMemoryKeyValueStore();
             _records = new MemoryStore();
-            _service = new AuthorityService(_records, _values, null);
+            _service = new AuthorityService(_records, null);
         }
 
         [Test]
@@ -61,19 +59,6 @@ namespace KeePassGate.Tests
                 Assert.That(description.CanCreate, Is.True);
                 Assert.That(description.CanRecreate, Is.False);
                 Assert.That(description.CanDelete, Is.False);
-            }
-        }
-
-        [Test]
-        public void Records_without_an_authority_are_called_inert()
-        {
-            _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
-
-            using (var reading = _service.Read())
-            {
-                var description = AuthorityDescription.Of(reading, null, null, Now);
-
-                Assert.That(string.Join(" ", description.Details), Does.Contain("inert"));
             }
         }
 
@@ -103,7 +88,7 @@ namespace KeePassGate.Tests
         {
             _service.Create();
             _service.Delete();
-            _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
+            StoreSeeds.Client(_records, StoreRecords.Unread('a'));
 
             using (var reading = _service.Read())
             {
@@ -113,7 +98,7 @@ namespace KeePassGate.Tests
                 Assert.That(description.Details.Count, Is.EqualTo(2));
                 Assert.That(description.Details[0], Is.EqualTo(AuthorityDescription.RetiredLine));
                 Assert.That(description.Details[1], Does.Contain("inert"));
-                Assert.That(description.CanDelete, Is.True, "the records can still be taken away");
+                Assert.That(description.CanDelete, Is.False, "no authority stands to be deleted, and no write deletes these records");
             }
         }
 
@@ -232,7 +217,7 @@ namespace KeePassGate.Tests
         public void Damage_is_shown_with_what_is_wrong_and_what_it_costs()
         {
             StoreSeeds.Damaged(_records);
-            _values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
+            StoreSeeds.Client(_records, StoreRecords.Unread('a'));
 
             using (var reading = _service.Read())
             {
@@ -253,7 +238,7 @@ namespace KeePassGate.Tests
         [Test]
         public void Several_authorities_say_that_nothing_is_served_and_offer_no_creation()
         {
-            StoreSeeds.Undecided(_records, _values);
+            StoreSeeds.Undecided(_records);
 
             using (var reading = _service.Read())
             {
@@ -293,7 +278,7 @@ namespace KeePassGate.Tests
             using (var authority = TestAuthority.New())
             using (var certificate = authority.IssueClient("agent-fictitious"))
             {
-                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null);
+                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null, InventedIssuer.Id);
                 var almostExpired = new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero)
                     .AddDays(-10);
 
@@ -338,7 +323,7 @@ namespace KeePassGate.Tests
             using (var authority = TestAuthority.New())
             using (var certificate = authority.IssueClient("agent-fictitious", TimeSpan.FromDays(days)))
             {
-                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null);
+                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null, InventedIssuer.Id);
                 var end = new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero);
                 var starts = end - AuthorityDescription.ClientWarning(certificate);
 
@@ -358,7 +343,7 @@ namespace KeePassGate.Tests
             using (var authority = TestAuthority.New())
             using (var certificate = authority.IssueClient("agent-fictitious", TimeSpan.FromDays(7)))
             {
-                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null);
+                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null, InventedIssuer.Id);
 
                 using (var reading = _service.Read())
                 {
@@ -378,8 +363,8 @@ namespace KeePassGate.Tests
             {
                 var records = new[]
                 {
-                    AdmissionRecord.For(day, DateTimeOffset.UtcNow, null),
-                    AdmissionRecord.For(week, DateTimeOffset.UtcNow, null)
+                    AdmissionRecord.For(day, DateTimeOffset.UtcNow, null, InventedIssuer.Id),
+                    AdmissionRecord.For(week, DateTimeOffset.UtcNow, null, InventedIssuer.Id)
                 };
 
                 var dayEnd = new DateTimeOffset(day.NotAfter.ToUniversalTime(), TimeSpan.Zero);
@@ -415,10 +400,10 @@ namespace KeePassGate.Tests
             using (var older = authority.IssueClient("agent-renewing", TimeSpan.FromDays(7)))
             using (var renewed = authority.IssueClient("agent-renewing", TimeSpan.FromDays(365)))
             {
-                var paired = AdmissionRecord.For(older, DateTimeOffset.UtcNow.AddDays(-1), null);
+                var paired = AdmissionRecord.For(older, DateTimeOffset.UtcNow.AddDays(-1), null, InventedIssuer.Id);
                 var records = new[]
                 {
-                    AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, null, paired.ClientKey),
+                    AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, null, InventedIssuer.Id, paired.ClientKey, paired.AdmissionKey),
                     paired
                 };
 
@@ -450,8 +435,8 @@ namespace KeePassGate.Tests
             {
                 var records = new[]
                 {
-                    AdmissionRecord.For(longer, DateTimeOffset.UtcNow, null),
-                    AdmissionRecord.For(shorter, DateTimeOffset.UtcNow.AddDays(-1), null)
+                    AdmissionRecord.For(longer, DateTimeOffset.UtcNow, null, InventedIssuer.Id),
+                    AdmissionRecord.For(shorter, DateTimeOffset.UtcNow.AddDays(-1), null, InventedIssuer.Id)
                 };
 
                 var shorterEnd = new DateTimeOffset(shorter.NotAfter.ToUniversalTime(), TimeSpan.Zero);
@@ -471,6 +456,36 @@ namespace KeePassGate.Tests
             return string.Join(" ", AuthorityDescription.Of(reading, Listed(record), null, now).Details);
         }
 
+        [TestCase(AdmissionStanding.NotServed)]
+        [TestCase(AdmissionStanding.Twice)]
+        [TestCase(AdmissionStanding.Uncounted)]
+        public void An_admission_that_admits_nobody_is_not_warned_about(AdmissionStanding standing)
+        {
+            // As the clients page lists it: not a client, so not a client about to stop being
+            // admitted either.
+            _service.Create();
+
+            using (var authority = TestAuthority.New())
+            using (var certificate = authority.IssueClient("agent-fictitious"))
+            {
+                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null, InventedIssuer.Id);
+                var almostExpired = new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero)
+                    .AddDays(-10);
+                var listing = new AdmissionListing(
+                    new[] { record },
+                    new Dictionary<AdmissionRecord, AdmissionStanding> { { record, standing } },
+                    null,
+                    0,
+                    true);
+
+                using (var reading = _service.Read())
+                {
+                    Assert.That(string.Join(" ", AuthorityDescription.Of(reading, listing, null, almostExpired).Details),
+                        Does.Not.Contain("expire"));
+                }
+            }
+        }
+
         [TestCase(ClientReach.Stranger)]
         [TestCase(ClientReach.NotForClients)]
         [TestCase(ClientReach.NotYetValid)]
@@ -484,7 +499,7 @@ namespace KeePassGate.Tests
             using (var authority = TestAuthority.New())
             using (var certificate = authority.IssueClient("agent-fictitious"))
             {
-                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null);
+                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null, InventedIssuer.Id);
                 var almostExpired = new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero)
                     .AddDays(-10);
                 var afterwards = almostExpired.AddDays(11);
@@ -516,7 +531,7 @@ namespace KeePassGate.Tests
             using (var authority = TestAuthority.New())
             using (var certificate = authority.IssueClient("agent-fictitious"))
             {
-                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null);
+                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null, InventedIssuer.Id);
                 var afterwards = new DateTimeOffset(certificate.NotAfter.ToUniversalTime(), TimeSpan.Zero)
                     .AddDays(1);
 
@@ -537,7 +552,7 @@ namespace KeePassGate.Tests
             using (var authority = TestAuthority.New())
             using (var certificate = authority.IssueClient("agent-fictitious"))
             {
-                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null);
+                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, null, InventedIssuer.Id);
 
                 using (var reading = _service.Read())
                 {
@@ -559,7 +574,7 @@ namespace KeePassGate.Tests
             // Otherwise the tab counts one thing and warns about another, with nothing on screen to
             // reconcile them: the fact is every stored key and only a readable record can be checked.
             _service.Create();
-            _values.Plant(AuthorityKeys.ClientPrefix + new string('a', 64), "not a record");
+            StoreSeeds.Client(_records, StoreRecords.Unread('a'));
 
             using (var reading = _service.Read())
             {
@@ -572,7 +587,7 @@ namespace KeePassGate.Tests
 
             // K024: the sentence says where the operator can act, which is the clients page and
             // its X, and says it in the plural once there is more than one.
-            _values.Plant(AuthorityKeys.ClientPrefix + new string('b', 64), "not a record either");
+            StoreSeeds.Client(_records, StoreRecords.Unread('b'));
 
             using (var reading = _service.Read())
             {

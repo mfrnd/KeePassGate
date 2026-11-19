@@ -67,6 +67,24 @@ namespace KeePassGate.Tests
             Assert.That(Hex.Of(StoreFormat.Tag(Two, kind)), Is.EqualTo(underTwo));
         }
 
+        [Test]
+        public void A_new_store_key_is_drawn_again_while_the_tags_of_two_kinds_meet_under_it()
+        {
+            // `STORE.md` §632. Found by a search run once, over the SHA-256 of `kinds meet ` and a
+            // counter: under this key the tags of `retired` and `client` are both `0070fd`.
+            var meeting = StoreComposer.BytesOf("3b477ffcedd2a8b8abd61f5591247aeb97230efea6b7e1402d60c8d654ce50e5");
+            Assume.That(StoreFormat.Tag(meeting, StoreKinds.Retired), Is.EqualTo(StoreFormat.Tag(meeting, StoreKinds.Client)));
+
+            var draws = new Queue<byte[]>(new[] { (byte[])meeting.Clone(), (byte[])One.Clone() });
+            var key = StoreFormat.NewKey(() => draws.Dequeue());
+
+            Assert.That(key, Is.EqualTo(One), "the next draw, under which every kind's tag differs");
+            Assert.That(draws, Is.Empty);
+            Assert.That(
+                StoreKinds.All.Select(kind => Hex.Of(StoreFormat.Tag(One, kind.Name))).Distinct().Count(),
+                Is.EqualTo(StoreKinds.All.Count));
+        }
+
         // Kinds the measured code never wrote, `STORE.md` §658, under the measured function.
         [TestCase("withdrawn", "e3e857", "9b775f")]
         [TestCase("kept", "67c05e", "a53262")]

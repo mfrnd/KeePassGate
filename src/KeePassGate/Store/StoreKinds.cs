@@ -202,10 +202,16 @@ namespace KeePassGate.Store
         /// <summary>The member of a retirement, and of its item, naming the authority it retires.</summary>
         public const string AuthorityMember = "authority";
 
+        /// <summary>The member of an admission and of a revocation, and of its item, holding the client key.</summary>
+        public const string ClientMember = "client";
+
         /// <summary>The member of a profile addition and of a removal, and of its item, holding the name.</summary>
         public const string NameMember = "name";
 
-        /// <summary>The member of a record taking a certificate away, and of its item, naming the certificate.</summary>
+        /// <summary>
+        /// The member of a record taking a certificate away, and of its item, naming the
+        /// certificate; and of an admission, naming the certificate it admits, `STORE.md` §615.
+        /// </summary>
         public const string Certificate = "certificate";
 
         /// <summary>
@@ -216,9 +222,25 @@ namespace KeePassGate.Store
 
         /// <summary>
         /// The member of a record taking a certificate away, and of its item, naming the
-        /// certificate the certificate taken away was renewed from, `STORE.md` §648.
+        /// certificate the certificate taken away was renewed from, `STORE.md` §648; and of an
+        /// admission a renewal writes, naming the certificate it was renewed from, `STORE.md` §615.
         /// </summary>
         public const string From = "from";
+
+        /// <summary>The member of an admission holding the certificate itself, base64 of its DER, `STORE.md` §615.</summary>
+        public const string Der = "der";
+
+        /// <summary>The member of an admission naming the authority that issued its certificate, `STORE.md` §615.</summary>
+        public const string Issuer = "issuer";
+
+        /// <summary>The member of an admission holding the approved profile names, `STORE.md` §615.</summary>
+        public const string Profiles = "profiles";
+
+        /// <summary>The member of an admission holding the certificate's subject as issued, `STORE.md` §615.</summary>
+        public const string IssuedSubject = "subject";
+
+        /// <summary>The member of an admission holding the moment of the approval, `STORE.md` §615.</summary>
+        public const string Admitted = "admitted";
 
         /// <summary>The subject of a summary entry, `STORE.md` §609.</summary>
         public const string StoreSubject = "store";
@@ -244,9 +266,19 @@ namespace KeePassGate.Store
                 Members(new StoreMember("authority", StoreForm.Text), new StoreMember(StoreKey, StoreForm.Hex, true)),
                 true, StoreRestated.BySameMember, "authority",
                 Members(new StoreMember("authority", StoreForm.Text))),
+            // What an admission's meaning reads is held where present and as a text, so a member
+            // out of the form `STORE.md` §615 gives it admits nobody and stops nothing, §658.
             new StoreKind(
                 Client, "client:", "client", StoreNumber.None,
-                Members(new StoreMember("client", StoreForm.Text)),
+                Members(
+                    new StoreMember("client", StoreForm.Text),
+                    new StoreMember(Certificate, StoreForm.Text, true),
+                    new StoreMember(Der, StoreForm.Text, true),
+                    new StoreMember(Issuer, StoreForm.Text, true),
+                    new StoreMember(Profiles, StoreForm.Text, true),
+                    new StoreMember(IssuedSubject, StoreForm.Text, true),
+                    new StoreMember(Admitted, StoreForm.Text, true),
+                    new StoreMember(From, StoreForm.Text, true)),
                 false, StoreRestated.Not, null, null),
             new StoreKind(
                 Revoked, "client:", "client", StoreNumber.None,

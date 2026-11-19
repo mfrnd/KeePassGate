@@ -14,7 +14,7 @@ namespace KeePassGate.Host.Tests
         public static AuthorityService Of(PwDatabase database, IGateLog log)
         {
             return new AuthorityService(
-                new KdbxStore(database, GateVersion.Current, null), new CustomDataStore(database), log);
+                new KdbxStore(database, GateVersion.Current, null), log);
         }
     }
 }

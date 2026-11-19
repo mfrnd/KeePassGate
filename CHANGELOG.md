@@ -20,14 +20,67 @@ none, since it releases both.
   database's custom data, and that is reversed rather than migrated: 0.3 reads nothing there about
   the authority and changes nothing there, so a database 0.2 paired shows no authority on the tab
   and is served nothing until **Create authority** and OK, from which it is served; a save puts the
-  authority in the file. Each program then pairs again. The admission records 0.2 wrote stay where
-  they were and admit nobody, since each certificate they admit chains to the authority 0.2 made. A
+  authority in the file. Each program then pairs again. The admission records and the revocations
+  0.2 wrote stay where they were, are read by nothing, and admit and refuse nobody. A
   database whose store holds no key is served nothing, but for `503 lost` below. An edit to what the
   plugin wrote in an entry of the store is undone at the plugin's next write into the store, with
   the edit kept in the entry's history; in a database that keeps no history such an edit stops the
   store, and a title or notes changed on such an entry are not put back. **Keep this authority** is
   refused while KeePass's entry dialog is open on an entry the choice would delete or put back,
   since that dialog's OK writes its own copy over it. `STORE.md` §614, §626, §627, §628 and §645.
+- **The X on the clients page revokes the client, with every certificate it holds.** The page
+  lists a client's certificates as a group of rows: the certificate admitted last carries the
+  client's name and the X, and each earlier certificate is indented under it as `earlier
+  certificate`, with no X. Pressing the X, or **Revoke** on that row's menu, takes every row of
+  the client away at OK. It used to take away the certificate of the row pressed and leave the
+  client's other certificates working. A revoked client is refused whatever a copy of the database
+  from before the revocation still holds, and wherever and whenever a certificate of that client
+  was issued, a certificate renewed on another machine before it learned of the revocation among
+  them; it pairs again, as a new client. The audit holds a `revoked` line for each certificate of
+  the client that the database held, and a single line with `admissionKey` as `null` where it held
+  none. The row's menu names the certificate of its row on its first line. `STORE.md` §615.
+- **The clients page takes a single certificate away.** **Take certificate away** in a row's
+  menu takes that row's certificate and no other, at OK: the client keeps every other
+  certificate it holds, whichever of its certificates was taken away first, and is not revoked.
+  Where the row was the client's first row, the next row becomes its first row, with the name
+  and the X; where it was the client's only certificate, the client leaves the list. It is how
+  a certificate is removed that a renewal issued and the program never received, or that a
+  program renewed from and did not give up. It ends that certificate alone and not what was
+  already renewed from it, so a certificate that may have been stolen and renewed from is ended
+  by revoking the client. The audit holds a single `revoked` line for the certificate, with its
+  client's key, or with no client's key where the certificate admitted nobody. `STORE.md` §648.
+- **An admission, a revocation and a certificate taken away are records in the plugin's
+  store**, entries of the group `KeePassGate`, as the authority is. A pairing and a renewal write
+  the admission there and save the database before the certificate is handed over, as before, and
+  KeePass's group tree and entry list are rebuilt once the write has landed, which puts the selected
+  group's entries in place of search results the operator was looking at. `DELETE
+  /gate/certificate`, `pykeepassgate revoke`, gives up the certificate it is called with and no
+  other, so a program's other certificates keep working, the certificate a renewal issued among
+  them, as before. A pairing, a renewal or a certificate given up is answered `503 busy` while
+  KeePass's entry dialog is open on an entry of the plugin's group that the write would delete or
+  put back, and while Database Maintenance is open, as before. Nothing a program is sent changes.
+  **A paired database is a KDBX 4.0 file until a profile is named.** A saved database that holds
+  an authority and a program paired for no profile is a 4.0 file, where the first program paired
+  used to make it a 4.1 file. A profile name still takes the file to 4.1, on the Profiles page or
+  by approving a program for a name the database does not hold yet, and so does a renewal
+  refused forever or until a day, since the profile names and those answers are kept in the
+  database's custom data. `STORE.md` §612, §615, §626, §627 and §648.
+- **The row of an expired certificate stays on the clients page**, reading `expired`, until the
+  certificate is taken away, its client is revoked or the authority is recreated or deleted. It
+  used to go with the plugin's next change to the database, on the clock of the computer that
+  made the change. A standing answer to a renewal of such a certificate stays with it. Nothing
+  the plugin keeps about clients is removed for its age, so the plugin's group grows with every
+  pairing and renewal. A record of a client that does not read is listed as `not counted`, and
+  a certificate that more than one record admits as `listed twice` on each of its rows; neither
+  admits anybody. `STORE.md` §615 and §643.
+- **A renewal made from a certificate that was already taken away is refused.** Where a
+  certificate is given up by its program, or taken away on the clients page, on a copy of the
+  database and renewed on another copy that had not learned of it, the renewed certificate stops
+  working once the copies are synchronized, and so does whatever was renewed onward from it.
+  The clients page lists such a certificate as `not counted`, with the reason in its tooltip,
+  and the program pairs again. A renewal made before the older certificate was taken away, on
+  the copy where it was taken away, keeps working, as `renew` followed by giving the old
+  certificate up does. `STORE.md` §648.
 - **Breaking: a field whose name begins `KPG.` is out of every program's reach, on whichever
   entry it is.** A program that made fields of its own whose names begin with `KPG.` renames them
   before the upgrade, in KeePass or through the API under 0.2, since 0.3 neither serves nor
@@ -57,10 +110,16 @@ none, since it releases both.
   again, and a store that has no room left for its next write, which the plugin's log warns of once
   the store has grown past half its room, `STORE.md` §643. Each is answered before a route is
   chosen, in the body and in `KPG-Unavailable`, as `locked` and `undecided` are, and ahead of
-  `undecided`. None is waited out, since each ends by an act of the operator's. The routing document
-  declares `frozen` beside them, which a later gate sends and this gate never does, and the client
-  raises `StoreFrozen` for it. A 0.2 client takes each for the gate being unavailable, `API.md`
-  §411. `STORE.md` §656.
+  `undecided`. A pairing, a renewal and a certificate given up are answered the word as well where
+  the store came to hold the gate back by the time of their write, as while the operator read the
+  dialog: nothing is issued or written, an invitation is not spent, and the approval is used up.
+  Where a second authority arrived in the database by then, they are answered `503 undecided` the
+  same way, and a request already under way when it arrived is answered `503 undecided` as well,
+  each only while the request's own authority is among the authorities standing: a request whose
+  authority is gone is answered `409 no invitation` or `401 unpaired`. None is waited out, since
+  each ends by an act of the operator's. The routing document declares `frozen` beside them,
+  which a later gate sends and this gate never does, and the client raises `StoreFrozen` for it.
+  A 0.2 client takes each for the gate being unavailable, `API.md` §411. `STORE.md` §656.
 - **Fixed: a press on a heading of the clients list no longer puts its rows in another order.**
   The list sorted itself at such a press, as a grid's text columns do unless told otherwise, while
   each row was still acted on by its place before the press. The X beside a client then took

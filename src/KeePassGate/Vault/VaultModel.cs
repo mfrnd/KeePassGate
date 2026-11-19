@@ -475,6 +475,14 @@ namespace KeePassGate.Vault
         /// </remarks>
         public bool IsPreconditionFailed { get; private set; }
 
+        /// <summary>
+        /// The word the write met the database with, or null: the word the plugin's store holds
+        /// the gate back with, `STORE.md` §656, or `undecided` where several authorities stand,
+        /// the connection's own among them, answered under `503` as a connection is, with nothing
+        /// changed.
+        /// </summary>
+        public string Word { get; private set; }
+
         /// <summary>What was created, when something was.</summary>
         public string Uuid { get; private set; }
 
@@ -526,6 +534,16 @@ namespace KeePassGate.Vault
         public static VaultWrite Busy(string reason)
         {
             return new VaultWrite(false, true, false, null, reason);
+        }
+
+        /// <summary>
+        /// The database is answered this word as a connection is, `STORE.md` §656, the store's
+        /// word or `undecided` where several authorities stand, the connection's own among them,
+        /// and nothing was changed.
+        /// </summary>
+        public static VaultWrite Unavailable(string word)
+        {
+            return new VaultWrite(false, false, false, null, "the database is answered " + word) { Word = word };
         }
 
         public static VaultWrite Conflict(string reason)

@@ -10,6 +10,7 @@ using KeePassGate.Diagnostics;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Pairing;
 using KeePassGate.Acl;
+using KeePassGate.Store;
 using KeePassGate.Ui;
 using KeePassGate.Testing;
 using NUnit.Framework;
@@ -84,7 +85,7 @@ namespace KeePassGate.Tests
         {
             // As where the dialogs that would take a write back are not watched: the log at load
             // names it, and the tab took presses that every OK then dropped.
-            StoreSeeds.Authority(_database.Store, _database.Values);
+            StoreSeeds.Authority(_database.Store);
             _database.Records.Unwritable = "the dialogs that would take a write back could not be watched";
 
             using (var panel = NewPanel(true))
@@ -98,33 +99,23 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_revocation_on_the_tab_takes_a_revocation_away_only_for_an_authority_the_live_store_no_longer_holds()
+        public void Where_nothing_can_be_written_the_clients_page_offers_no_X()
         {
-            // An authority kept on the tab retires the other in the page's reading, and OK may
-            // yet leave that keep out: the prune a revocation rides on is judged by the store as
-            // the database holds it.
-            var both = StoreSeeds.Undecided(_database.Store, _database.Values);
-            var kept = both[0];
-            var other = both[1];
-            var ofOther = AdmittedBy(other);
-            Assume.That(new AdmissionStore(_database.Values, _database.Store, _log).Remove(ofOther), Is.True);
-            var ofKept = AdmittedBy(kept);
-            var pending = new PendingDatabase(_database, _log);
+            // The clients page follows the first page: no command on the store where nothing is
+            // written into it in the session, `STORE.md` §636.
+            Admit("agent-fictitious", DateTimeOffset.UtcNow);
+            _database.Records.Unwritable = "the dialogs that would take a write back could not be watched";
 
-            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            using (var panel = NewPanel(true))
             {
-                Assert.That(new AuthorityService(pending.Store, pending.PluginCustomData, _log).Keep(kept, both).Succeeded, Is.True);
-                Assert.That(panel.Revoke(ofKept), Is.Null);
-                Assert.That(pending.PluginCustomData.Get(AuthorityKeys.RevocationKey(ofOther)), Is.Not.Null,
-                    "the authority that issued it still stands in the database");
+                var list = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
+                Assert.That(list.Rows.Single().Revocable, Is.False);
 
-                // A third authority arrives under the dialog, and the keep is left out at OK.
-                StoreSeeds.Beside(_database.Store);
-                pending.Apply();
+                _database.Records.Unwritable = null;
+                panel.Describe();
+
+                Assert.That(list.Rows.Single().Revocable, Is.True, "read again at each description");
             }
-
-            Assert.That(_database.Values.Get(AuthorityKeys.RevocationKey(ofOther)), Is.Not.Null);
-            Assert.That(_database.Values.Get(AuthorityKeys.RevocationKey(ofKept)), Is.Not.Null);
         }
 
         [Test]
@@ -189,7 +180,7 @@ namespace KeePassGate.Tests
             {
                 panel.CreateAuthority();
 
-                using (var reading = new AuthorityService(_database.Store, _database.Values, null).Read())
+                using (var reading = new AuthorityService(_database.Store, null).Read())
                 {
                     Assert.That(reading.Presence, Is.EqualTo(AuthorityPresence.Present));
                 }
@@ -270,12 +261,12 @@ namespace KeePassGate.Tests
             using (var panel = NewPanel(prompt))
             {
                 panel.CreateAuthority();
-                var store = new AdmissionStore(_database.PluginCustomData, null);
+                var store = new Admissions(_database);
                 using (var first = IssueOwnClient("agent-one"))
                 using (var second = IssueOwnClient("agent-two"))
                 {
-                    store.Write(AdmissionRecord.For(first, DateTimeOffset.UtcNow, new[] { "ops" }));
-                    store.Write(AdmissionRecord.For(second, DateTimeOffset.UtcNow, new[] { "ops" }));
+                    store.Write(AdmissionRecord.For(first, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
+                    store.Write(AdmissionRecord.For(second, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
                 }
 
                 panel.RecreateAuthority();
@@ -292,13 +283,13 @@ namespace KeePassGate.Tests
             // would keep the clients of the authority kept, and recreating keeps none.
             var candidates = Undecided();
             var prompt = new FakePrompt(false);
-            var store = new AdmissionStore(_database.PluginCustomData, null);
+            var store = new Admissions(_database);
             foreach (var candidate in candidates)
             {
                 var key = StoreSeeds.KeyOf(_database.Store, candidate);
                 using (var client = new AuthorityIssuer().IssueClient(key, "agent-" + candidate.Substring(0, 4), new[] { "ops" }).Read())
                 {
-                    store.Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }));
+                    store.Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }, candidate));
                 }
             }
 
@@ -307,6 +298,59 @@ namespace KeePassGate.Tests
                 panel.RecreateAuthority();
 
                 Assert.That(prompt.LastQuestion, Does.Contain("2 clients are admitted"));
+            }
+        }
+
+        [Test]
+        public void Recreating_between_undecided_authorities_costs_no_renewal_that_would_not_count_were_its_issuer_kept()
+        {
+            // A renewal from a certificate nothing admits admits nobody whichever authority is
+            // kept, `STORE.md` §648, so recreating takes nobody's admission away with it.
+            var candidates = Undecided();
+            var prompt = new FakePrompt(false);
+            var store = new Admissions(_database);
+            var key = StoreSeeds.KeyOf(_database.Store, candidates[0]);
+            using (var client = new AuthorityIssuer().IssueClient(key, "agent-counted", new[] { "ops" }).Read())
+            using (var renewed = new AuthorityIssuer().IssueClient(key, "agent-renewed", new[] { "ops" }).Read())
+            {
+                store.Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }, candidates[0]));
+                store.Write(AdmissionRecord.For(
+                    renewed, DateTimeOffset.UtcNow, new[] { "ops" }, candidates[0], new string('e', 64), new string('e', 64)));
+            }
+
+            using (var panel = NewPanel(prompt))
+            {
+                panel.RecreateAuthority();
+
+                Assert.That(prompt.LastQuestion, Does.Contain("One client is admitted"));
+            }
+        }
+
+        [Test]
+        public void A_renewal_that_does_not_count_and_a_certificate_listed_twice_cost_nothing_to_recreate()
+        {
+            // Counted as the clients page judges its rows: neither admits anybody, `STORE.md` §615
+            // and §648, so recreating takes nobody's admission away with them.
+            var prompt = new FakePrompt(false);
+            using (var panel = NewPanel(prompt))
+            {
+                panel.CreateAuthority();
+                var store = new Admissions(_database);
+                using (var counted = IssueOwnClient("agent-counted"))
+                using (var renewed = IssueOwnClient("agent-renewed"))
+                using (var twice = IssueOwnClient("agent-twice"))
+                {
+                    store.Write(AdmissionRecord.For(counted, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
+                    store.Write(AdmissionRecord.For(
+                        renewed, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id, new string('e', 64), new string('e', 64)));
+                    store.Write(AdmissionRecord.For(twice, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
+                    store.Write(AdmissionRecord.For(
+                        twice, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id, new string('d', 64), null));
+                }
+
+                panel.RecreateAuthority();
+
+                Assert.That(prompt.LastQuestion, Does.Contain("One client is admitted"));
             }
         }
 
@@ -323,46 +367,19 @@ namespace KeePassGate.Tests
             using (var foreign = elsewhere.IssueClient("agent-elsewhere", "ops"))
             {
                 panel.CreateAuthority();
-                var store = new AdmissionStore(_database.PluginCustomData, null);
-                store.Write(AdmissionRecord.For(foreign, DateTimeOffset.UtcNow, new[] { "ops" }));
+                var store = new Admissions(_database);
+                store.Write(AdmissionRecord.For(foreign, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
                 using (var host = new AuthorityIssuer().IssueHost(OwnAuthority()).Read())
                 {
-                    store.Write(AdmissionRecord.For(host, DateTimeOffset.UtcNow, new[] { "ops" }));
+                    store.Write(AdmissionRecord.For(host, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
                 }
 
-                _database.Values.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
+                StoreSeeds.Client(_database.Store, StoreRecords.Unread('a'));
                 Assume.That(panel.AdmittedClients().Records, Has.Count.EqualTo(2));
 
                 panel.RecreateAuthority();
 
                 Assert.That(prompt.LastQuestion, Does.Contain("No client has been admitted yet"));
-            }
-        }
-
-        [Test]
-        public void Deleting_records_left_without_an_authority_says_they_admit_nobody()
-        {
-            // Delete is offered with no authority when records outlived it, and the question
-            // written for a live authority told the operator that deleting stops the database
-            // being served and that its clients would pair again, beside a page calling the
-            // records inert.
-            var prompt = new FakePrompt(false);
-            using (var elsewhere = TestAuthority.New())
-            using (var client = elsewhere.IssueClient("agent-left", "ops"))
-            {
-                new AdmissionStore(_database.PluginCustomData, null)
-                    .Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }));
-            }
-
-            using (var panel = NewPanel(prompt))
-            {
-                Assume.That(Button(panel, GateTab.DeleteButtonName).Enabled, Is.True);
-
-                panel.DeleteAuthority();
-
-                Assert.That(prompt.LastQuestion, Does.Contain("admit nobody"));
-                Assert.That(prompt.LastQuestion, Does.Not.Contain("stops this database being served"));
-                Assert.That(prompt.LastQuestion, Does.Not.Contain("pair again"));
             }
         }
 
@@ -378,10 +395,9 @@ namespace KeePassGate.Tests
                 using (var older = IssueOwnClient("agent-renewing"))
                 using (var renewed = IssueOwnClient("agent-renewing"))
                 {
-                    var store = new AdmissionStore(_database.PluginCustomData, null);
-                    var paired = AdmissionRecord.For(older, DateTimeOffset.UtcNow.AddDays(-1), new[] { "ops" });
-                    store.Write(paired);
-                    store.Write(AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "ops" }, paired.ClientKey));
+                    var paired = StoreSeeds.Admit(_database.Store, older, DateTimeOffset.UtcNow.AddDays(-1), "ops");
+                    StoreSeeds.Admit(_database.Store, AdmissionRecord.For(
+                        renewed, DateTimeOffset.UtcNow, new[] { "ops" }, paired.Issuer, paired.ClientKey, paired.AdmissionKey));
                 }
 
                 panel.RecreateAuthority();
@@ -398,12 +414,12 @@ namespace KeePassGate.Tests
             using (var panel = NewPanel(prompt))
             {
                 panel.CreateAuthority();
-                var store = new AdmissionStore(_database.PluginCustomData, null);
+                var store = new Admissions(_database);
                 using (var first = IssueOwnClient("agent"))
                 using (var second = IssueOwnClient("agent"))
                 {
-                    store.Write(AdmissionRecord.For(first, DateTimeOffset.UtcNow.AddDays(-1), new[] { "ops" }));
-                    store.Write(AdmissionRecord.For(second, DateTimeOffset.UtcNow, new[] { "ops" }));
+                    store.Write(AdmissionRecord.For(first, DateTimeOffset.UtcNow.AddDays(-1), new[] { "ops" }, InventedIssuer.Id));
+                    store.Write(AdmissionRecord.For(second, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
                 }
 
                 panel.RecreateAuthority();
@@ -423,7 +439,7 @@ namespace KeePassGate.Tests
                 panel.DeleteAuthority();
 
                 Assert.That(prompt.Asked, Is.EqualTo(1));
-                Assert.That(StoreAuthorities.Standing(_database.Store.Read()), Is.Empty,
+                Assert.That(_database.Store.Read().Answering, Is.Empty,
                     "nothing stands but the retirement that keeps it deleted");
                 Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.RetiredHeadline),
                     "and the page shows the authority as retired rather than as never made");
@@ -939,24 +955,6 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_record_stored_with_no_certificate_after_its_prefix_can_be_taken_away()
-        {
-            // Listed as an unreadable record with an empty key, and its X answered that there was
-            // no client to revoke, so the row could never go.
-            using (var panel = NewPanel(true))
-            {
-                _database.Values.Plant(AuthorityKeys.ClientPrefix, "x");
-                Assume.That(panel.AdmittedClients().Unreadable, Is.EqualTo(new[] { string.Empty }));
-
-                Assert.That(panel.Revoke(string.Empty), Is.Null);
-
-                Assert.That(_database.Values.Get(AuthorityKeys.ClientPrefix), Is.Null);
-                Assert.That(panel.AdmittedClients().Unreadable, Is.Empty);
-                Assert.That(panel.Revoke(string.Empty), Is.EqualTo("there is no client to revoke"));
-            }
-        }
-
-        [Test]
         public void A_revocation_pressed_on_the_tab_is_not_logged_before_OK_lands_it()
         {
             // The log said an admission record was removed as X was pressed, and a Cancel left the
@@ -972,44 +970,370 @@ namespace KeePassGate.Tests
                 Assert.That(_log.Entries.Skip(before).Select(entry => entry.Message), Is.Empty);
 
                 pending.Discard();
-                Assert.That(new AdmissionStore(_database.Values, null).All().Records, Has.Count.EqualTo(1),
+                Assert.That(new Admissions(_database).All().Records, Has.Count.EqualTo(1),
                     "and the client is still admitted");
             }
         }
 
         [Test]
-        public void A_revocation_the_store_swallows_is_reported_rather_than_announced()
+        public void Taking_a_certificate_away_waits_for_OK_and_leaves_the_client_s_other_certificate()
         {
-            // The one wrong answer on this page that nothing notices until the client connects
-            // again. `AdmissionStore.Remove` reads the key back before it says yes, precisely so
-            // this cannot happen, and the panel used to throw that answer away and report success
-            // whatever it said: the row vanished, the operator was told the client could no longer
-            // reach the database, and the certificate went on opening it.
-            using (var panel = NewPanel(true))
+            // `STORE.md` §648: a record of kind `withdrawn` for that certificate alone, held by the
+            // dialog's buffer as a revocation is, so the page reads it gone at once and Cancel
+            // takes it back. The certificate renewed from it is named by the record and keeps
+            // admitting its client.
+            var first = Admit("agent-fictitious", DateTimeOffset.UtcNow.AddDays(-1));
+            AdmissionRecord renewed;
+            using (var certificate = SelfSigned("agent-fictitious"))
             {
-                var record = Admit("agent-fictitious", DateTimeOffset.UtcNow);
-                _database.Values.SwallowWrites = true;
+                renewed = Admitted(AdmissionRecord.For(
+                    certificate, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id, first.ClientKey, first.AdmissionKey));
+            }
 
-                var refused = panel.Revoke(record.AdmissionKey);
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                var list = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
+                Assume.That(
+                    list.Clients.Select(record => record.AdmissionKey), Is.EqualTo(new[] { renewed.AdmissionKey, first.AdmissionKey }));
 
-                Assert.That(refused, Is.Not.Null,
-                    "a removal that did not land must not be reported as one that did");
-                Assert.That(panel.AdmittedClients().Records, Is.Not.Empty,
-                    "and the client is still admitted");
+                Assert.That(list.TakeAway(1), Is.Null);
+
+                Assert.That(list.Clients.Select(record => record.AdmissionKey), Is.EqualTo(new[] { renewed.AdmissionKey }),
+                    "the earlier certificate went alone");
+                Assert.That(new Admissions(_database).Find(first.AdmissionKey), Is.Not.Null, "nothing lands before OK");
+            }
+
+            pending.Apply();
+
+            Assert.That(new Admissions(_database).Find(first.AdmissionKey), Is.Null, "the certificate is taken away");
+            Assert.That(new Admissions(_database).Find(renewed.AdmissionKey), Is.Not.Null, "and its renewal still admits its client");
+            using (var reading = _database.Store.Read())
+            {
+                Assert.That(reading.InForce.Taken(StoreKinds.Withdrawn), Has.Member(first.AdmissionKey));
+                Assert.That(reading.InForce.Taken(StoreKinds.Revoked), Is.Empty, "the client is not revoked");
             }
         }
 
         [Test]
-        public void A_record_that_will_not_read_is_listed_and_its_X_takes_it_away_at_OK()
+        public void Taking_a_certificate_away_and_canceling_leaves_it_admitted()
+        {
+            var record = Admit("agent-fictitious", DateTimeOffset.UtcNow);
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                Assert.That(panel.TakeAway(record.AdmissionKey), Is.Null);
+                Assert.That(panel.AdmittedClients().Records, Is.Empty, "the page reads it gone at once");
+            }
+
+            pending.Discard();
+
+            Assert.That(new Admissions(_database).Find(record.AdmissionKey), Is.Not.Null);
+        }
+
+        [Test]
+        public void A_renewal_landing_between_the_press_and_OK_is_named_by_the_record_OK_writes()
+        {
+            // The buffer holds the certificate to take away, and the record is composed at OK: a
+            // renewal from it the operator approved while the dialog stood keeps admitting.
+            var first = Admit("agent-fictitious", DateTimeOffset.UtcNow.AddDays(-1));
+            AdmissionRecord renewed;
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                Assert.That(panel.TakeAway(first.AdmissionKey), Is.Null);
+                renewed = Renewal(first);
+            }
+
+            pending.Apply();
+
+            Assert.That(new Admissions(_database).Find(renewed.AdmissionKey), Is.Not.Null);
+            Assert.That(new Admissions(_database).Find(first.AdmissionKey), Is.Null);
+        }
+
+        [Test]
+        public void A_record_that_will_not_read_taken_away_is_written_with_the_origin_an_admission_of_its_certificate_brings_before_OK()
+        {
+            // The record that does not read names no origin here, so the press composes none. An
+            // admission of the same certificate renewed from another arrives before OK, and the
+            // record OK writes holds that origin, so it is asked.
+            var origin = Admit("agent-fictitious", DateTimeOffset.UtcNow.AddDays(-2));
+            using (var certificate = SelfSigned("agent-fictitious"))
+            {
+                var key = CertificateDigest.Of(certificate);
+                var unread = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id)
+                    .Members().ToDictionary(member => member.Key, member => member.Value);
+                unread["der"] = "not base64";
+                StoreSeeds.Client(_database.Store, unread);
+
+                var pending = new PendingDatabase(_database, _log);
+                using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+                {
+                    Assert.That(panel.TakeAway(key), Is.Null);
+                    Admitted(AdmissionRecord.For(
+                        certificate, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id, origin.ClientKey, origin.AdmissionKey));
+                }
+
+                pending.Apply();
+
+                using (var reading = _database.Store.Read())
+                {
+                    Assert.That(reading.InForce.StatementsOf(key).Select(statement => statement.From), Has.Member(origin.AdmissionKey));
+                }
+            }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void A_record_that_will_not_read_taken_away_holds_the_origin_its_own_record_names_and_admits_nobody(bool originTakenAway)
+        {
+            // The row of a record that does not read is cleared by taking its certificate away. The
+            // statement holds the origin that record names and names nothing, so the renewal
+            // onward from it stays refused, with its origin admitted and with its origin taken
+            // away.
+            var origin = Admit("agent-fictitious", DateTimeOffset.UtcNow.AddDays(-3));
+            using (var between = SelfSigned("agent-fictitious"))
+            using (var onward = SelfSigned("agent-fictitious"))
+            {
+                var key = CertificateDigest.Of(between);
+                var unread = AdmissionRecord.For(
+                        between, DateTimeOffset.UtcNow.AddDays(-2), new[] { "ops" }, InventedIssuer.Id, origin.ClientKey, origin.AdmissionKey)
+                    .Members().ToDictionary(member => member.Key, member => member.Value);
+                unread["der"] = "not base64";
+                StoreSeeds.Client(_database.Store, unread);
+                var renewed = Admitted(AdmissionRecord.For(
+                    onward, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id, origin.ClientKey, key));
+                if (originTakenAway)
+                {
+                    StoreSeeds.TakeAway(_database.Store, origin.AdmissionKey);
+                }
+
+                Assume.That(new Admissions(_database).Find(renewed.AdmissionKey), Is.Null, "renewed from a certificate that admits nobody");
+
+                var pending = new PendingDatabase(_database, _log);
+                using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+                {
+                    Assert.That(panel.TakeAway(key), Is.Null);
+                }
+
+                pending.Apply();
+
+                using (var reading = _database.Store.Read())
+                {
+                    Assert.That(reading.InForce.StatementsOf(key).Select(statement => statement.From), Is.EqualTo(new[] { origin.AdmissionKey }));
+                    Assert.That(reading.InForce.StatementsOf(key).Select(statement => statement.Names(renewed.AdmissionKey)), Is.All.False);
+                }
+
+                Assert.That(new Admissions(_database).Find(renewed.AdmissionKey), Is.Null, "taking a row away admits nobody");
+            }
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void Two_certificates_of_a_client_taken_away_on_one_dialog_in_either_order_leave_its_newest_admitted(bool betweenFirst)
+        {
+            // Each press sees the press before it, and so does the record each is written as at
+            // OK: whichever went first, the newest certificate is named on its way back to the
+            // pairing, and the page reads it admitted before OK as OK leaves it.
+            var paired = Admit("agent-fictitious", DateTimeOffset.UtcNow.AddDays(-2));
+            var between = Renewal(paired);
+            var newest = Renewal(between);
+
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                foreach (var taken in betweenFirst ? new[] { between, paired } : new[] { paired, between })
+                {
+                    Assert.That(panel.TakeAway(taken.AdmissionKey), Is.Null);
+                }
+
+                var listing = panel.AdmittedClients();
+                Assert.That(listing.Records.Select(record => record.AdmissionKey), Is.EqualTo(new[] { newest.AdmissionKey }));
+                Assert.That(listing.StandingOf(listing.Records.Single()), Is.EqualTo(AdmissionStanding.Admitted),
+                    "no row reads not counted that OK leaves admitting");
+            }
+
+            pending.Apply();
+
+            Assert.That(new Admissions(_database).Find(newest.AdmissionKey), Is.Not.Null);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void A_certificate_taken_away_beside_a_revocation_and_a_command_on_the_authority_lands_with_them(bool recreate)
+        {
+            var taken = Admit("agent-fictitious", DateTimeOffset.UtcNow.AddDays(-1));
+            var revoked = Admit("agent-invented", DateTimeOffset.UtcNow);
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                Assert.That(panel.TakeAway(taken.AdmissionKey), Is.Null);
+                Assert.That(panel.Revoke(revoked.ClientKey), Is.Null);
+                if (recreate)
+                {
+                    panel.RecreateAuthority();
+                }
+                else
+                {
+                    panel.DeleteAuthority();
+                }
+
+                Assume.That(pending.AuthorityWaiting, Is.True);
+            }
+
+            Assert.That(pending.Apply(), Is.True);
+
+            using (var reading = _database.Store.Read())
+            {
+                Assert.That(reading.InForce.Taken(StoreKinds.Withdrawn), Has.Member(taken.AdmissionKey));
+                Assert.That(reading.InForce.Taken(StoreKinds.Revoked), Has.Member(revoked.ClientKey));
+                Assert.That(reading.InForce.Admissions, Is.Empty, "and every admission of the authority retired went");
+                Assert.That(StoreAuthorities.Served(reading) != null, Is.EqualTo(recreate));
+            }
+        }
+
+        [Test]
+        public void Taking_a_certificate_away_is_refused_with_its_reason_and_nothing_held()
+        {
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                Assert.That(panel.TakeAway("not a certificate"), Is.EqualTo("there is no certificate to take away"));
+                Assert.That(panel.TakeAway(new string('a', 64)), Is.EqualTo("the database holds no store to write a certificate taken away into"));
+
+                StoreSeeds.Authority(_database.Store);
+                _database.Records.Unwritable = "the dialogs that would take a write back could not be watched";
+                Assert.That(panel.TakeAway(new string('a', 64)), Does.Contain("could not be watched"));
+
+                _database.IsOpen = false;
+                Assert.That(panel.TakeAway(new string('a', 64)), Is.EqualTo("the database is not open"));
+            }
+
+            Assert.That(pending.Waiting, Is.False, "nothing is held");
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void A_certificate_taken_away_after_a_revocation_of_its_client_comes_to_nothing_and_before_it_lands_first(bool revokedFirst)
+        {
+            // The revocation ends every certificate of the client. A certificate pressed after it
+            // has nothing left to end, and is refused with nothing held; pressed before it, its
+            // statement is written, then the revocation.
+            var taken = Admit("agent-fictitious", DateTimeOffset.UtcNow.AddDays(-1));
+            var renewed = Renewal(taken);
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                if (revokedFirst)
+                {
+                    Assert.That(panel.Revoke(taken.ClientKey), Is.Null);
+                    Assert.That(panel.TakeAway(taken.AdmissionKey), Is.Not.Null, "the revocation ended it");
+                    Assert.That(pending.ActWaiting(AdmissionActs.TakeAwayName), Is.False, "nothing held for it");
+                }
+                else
+                {
+                    Assert.That(panel.TakeAway(taken.AdmissionKey), Is.Null);
+                    Assert.That(panel.Revoke(taken.ClientKey), Is.Null);
+                }
+            }
+
+            Assert.That(pending.Apply(), Is.True);
+
+            using (var reading = _database.Store.Read())
+            {
+                Assert.That(reading.InForce.Taken(StoreKinds.Revoked), Has.Member(taken.ClientKey));
+                Assert.That(reading.InForce.Taken(StoreKinds.Withdrawn).Contains(taken.AdmissionKey), Is.EqualTo(!revokedFirst));
+                if (!revokedFirst)
+                {
+                    var statement = reading.InForce.StatementsOf(taken.AdmissionKey).Single();
+                    Assert.That(statement.Names(renewed.AdmissionKey), Is.True, "written as the store stood before the revocation");
+                }
+            }
+        }
+
+        [Test]
+        public void A_press_on_a_certificate_taken_away_since_the_page_was_drawn_is_refused_with_nothing_held()
+        {
+            // Its client gave it up after the page was drawn: the press is composed over the store
+            // as it stands, has nothing left to end, and is refused.
+            var taken = Admit("agent-fictitious", DateTimeOffset.UtcNow.AddDays(-1));
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                StoreSeeds.TakeAway(_database.Store, taken.AdmissionKey);
+
+                Assert.That(panel.TakeAway(taken.AdmissionKey), Is.EqualTo("the act no longer applies to the store as it stands"));
+            }
+
+            Assert.That(pending.ActWaiting(AdmissionActs.TakeAwayName), Is.False, "nothing is held");
+        }
+
+        [Test]
+        public void An_OK_at_which_some_certificates_were_taken_away_by_then_writes_the_others()
+        {
+            var givenUp = Admit("agent-fictitious", DateTimeOffset.UtcNow.AddDays(-1));
+            var taken = Admit("agent-invented", DateTimeOffset.UtcNow.AddDays(-1));
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                Assert.That(panel.TakeAway(givenUp.AdmissionKey), Is.Null);
+                Assert.That(panel.TakeAway(taken.AdmissionKey), Is.Null);
+            }
+
+            StoreSeeds.TakeAway(_database.Store, givenUp.AdmissionKey);
+            Assert.That(pending.Apply(), Is.True);
+
+            using (var reading = _database.Store.Read())
+            {
+                Assert.That(reading.InForce.StatementsOf(givenUp.AdmissionKey), Has.Count.EqualTo(1), "its client's statement alone");
+                Assert.That(reading.InForce.StatementsOf(taken.AdmissionKey), Has.Count.EqualTo(1), "the OK's");
+            }
+
+            Assert.That(pending.Landed.SelectMany(act => act.Records).Select(record => record.Member(StoreKinds.Certificate)), Is.EqualTo(new[] { taken.AdmissionKey }));
+        }
+
+        [Test]
+        public void The_page_reads_the_store_as_it_is_where_every_act_held_comes_to_nothing()
+        {
+            var taken = Admit("agent-fictitious", DateTimeOffset.UtcNow.AddDays(-1));
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                Assert.That(panel.TakeAway(taken.AdmissionKey), Is.Null);
+            }
+
+            StoreSeeds.TakeAway(_database.Store, taken.AdmissionKey);
+
+            using (var reading = pending.Store.Read())
+            {
+                Assert.That(reading.InForce.StatementsOf(taken.AdmissionKey), Has.Count.EqualTo(1), "its client's statement alone");
+            }
+
+            Assert.That(pending.Apply(), Is.False, "an OK with nothing left to write changes nothing");
+        }
+
+        /// <summary>A renewal from this admission, admitted in the live store now.</summary>
+        private AdmissionRecord Renewal(AdmissionRecord from)
+        {
+            using (var certificate = SelfSigned("agent-fictitious"))
+            {
+                return Admitted(AdmissionRecord.For(
+                    certificate, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id, from.ClientKey, from.AdmissionKey));
+            }
+        }
+
+        [Test]
+        public void A_record_that_will_not_read_is_listed_and_its_X_revokes_its_client_at_OK()
         {
             // K024: such a record admits nobody, the first page counted it and warned about it, and
             // nothing on the tab could take it away short of recreating the authority, which makes
-            // every client pair again.
-            new AuthorityService(_database.Store, _database.Values, null).Create();
+            // every client pair again. It is listed by the certificate it names, and where it names
+            // a client of its own, its X revokes that client: the write deletes it with every
+            // other record of that client, `STORE.md` §627.
+            new AuthorityService(_database.Store, null).Create();
             Admit("agent-fictitious", DateTimeOffset.UtcNow);
+            StoreSeeds.Client(_database.Store, StoreRecords.Unread('d'));
             var damaged = new string('d', 64);
-            var stored = AuthorityKeys.ClientRecordKey(damaged);
-            _database.Values.Plant(stored, "v=1\nsubject=x\n");
 
             var pending = new PendingDatabase(_database, _log);
 
@@ -1017,7 +1341,7 @@ namespace KeePassGate.Tests
             {
                 var list = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
 
-                Assert.That(list.Unreadable, Is.EqualTo(new[] { damaged }), "listed, by its key");
+                Assert.That(list.Unreadable.Select(row => row.Certificate), Is.EqualTo(new[] { damaged }), "listed, by its certificate");
                 Assert.That(Label(panel, GateTab.DetailLabelName).Text,
                     Does.Contain("cannot be read and admits nobody. The Clients page lists it."));
                 Assert.That(Fact(panel, "Admission records"), Is.EqualTo("2"));
@@ -1025,45 +1349,25 @@ namespace KeePassGate.Tests
                 Assert.That(list.Revoke(list.Clients.Count), Is.Null);
 
                 Assert.That(list.Unreadable, Is.Empty);
+                panel.Describe();
                 Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Not.Contain("cannot be read"));
                 Assert.That(Fact(panel, "Admission records"), Is.EqualTo("1"));
-                Assert.That(_database.Values.Get(stored), Is.Not.Empty, "nothing lands before OK");
+                Assert.That(new Admissions(_database).All().Unreadable, Has.Count.EqualTo(1), "nothing lands before OK");
             }
 
             pending.Apply();
 
-            Assert.That(_database.Values.Get(stored), Is.Empty);
-            Assert.That(_database.Values.Get(AuthorityKeys.RevocationKey(damaged)), Is.Empty,
-                "revoked with the empty value a record with no date is given");
-
-            var left = new AdmissionStore(_database.Values, null).All();
+            var left = new Admissions(_database).All();
             Assert.That(left.Unreadable, Is.Empty);
             Assert.That(left.Records.Count, Is.EqualTo(1), "and the client beside it is still admitted");
         }
 
         [Test]
-        public void A_removal_of_a_record_that_will_not_read_the_store_swallows_is_reported()
+        public void Revoking_a_client_already_revoked_is_not_a_failure()
         {
-            // `Find` answers null for such a record, so a read back asking only it would call a
-            // removal that did not land one that did, and the row would go while the record stayed.
-            var damaged = new string('d', 64);
-            _database.Values.Plant(AuthorityKeys.ClientRecordKey(damaged), "v=1\nsubject=x\n");
-
-            using (var panel = NewPanel(true))
-            {
-                _database.Values.SwallowWrites = true;
-
-                Assert.That(panel.Revoke(damaged), Is.EqualTo("the record is still in the database"));
-                Assert.That(panel.AdmittedClients().Unreadable, Is.EqualTo(new[] { damaged }));
-            }
-        }
-
-        [Test]
-        public void Revoking_a_record_that_was_already_gone_is_not_a_failure()
-        {
-            // False from the store also means it was not there to begin with, which is a stale list
-            // rather than a write that did not land. The operator asked for it to be gone and it is
-            // gone, so this is not something to refuse.
+            // A revocation has no ground, so a client revoked again gets a further record of the
+            // same subject rather than a refusal, `STORE.md` §615. The operator asked for the
+            // client to be gone and it is gone, so this is not something to refuse.
             using (var panel = NewPanel(true))
             {
                 var record = Admit("agent-fictitious", DateTimeOffset.UtcNow);
@@ -1074,134 +1378,159 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_revocation_and_the_prune_it_carries_wait_for_OK()
+        public void A_revocation_the_store_refuses_is_reported_and_marks_nothing()
         {
-            // The revocation is a key of its own now, and it lands the way every other key on the
-            // tab does: replayed at OK, and not at all on Cancel. So does the prune riding on it,
-            // which is what keeps a dialog somebody only looked at from changing the database.
-            var expired = AuthorityKeys.RevocationKey(new string('a', 64));
-            _database.Values.Plant(expired, "2020-01-01T00:00:00Z");
+            using (var panel = NewPanel(true))
+            {
+                var record = Admit("agent-fictitious", DateTimeOffset.UtcNow);
+                _database.Records.RefuseWrites = "the database refused it";
 
+                Assert.That(panel.Revoke(record.ClientKey), Does.Contain("the database refused it"));
+                Assert.That(_database.MarkedModifiedCount, Is.Zero);
+                Assert.That(new Admissions(_database).Find(record.AdmissionKey), Is.Not.Null, "the client is still admitted");
+            }
+        }
+
+        [Test]
+        public void A_revocation_in_a_database_whose_file_holds_no_store_is_reported_and_marks_nothing()
+        {
+            using (var panel = NewPanel(true))
+            {
+                Assume.That(_database.Store.Read().InForce, Is.Null);
+
+                Assert.That(panel.Revoke(new string('a', 64)), Is.EqualTo("the database holds no store to write a revocation into"));
+                Assert.That(_database.MarkedModifiedCount, Is.Zero);
+                Assert.That(_database.Records.Written, Is.Empty, "nothing was offered to the store");
+            }
+        }
+
+        [Test]
+        public void A_revocation_and_the_deletion_it_carries_wait_for_OK()
+        {
+            // The revocation is an act on the store, and it lands the way everything on the tab
+            // does: at OK, and not at all on Cancel. So does the deletion of the admissions it
+            // refuses, which is what keeps a dialog somebody only looked at from changing the
+            // database.
             var record = Admit("agent-fictitious", DateTimeOffset.UtcNow);
-            var revocation = AuthorityKeys.RevocationKey(record.AdmissionKey);
 
             foreach (var accepted in new[] { false, true })
             {
                 // Through the store the tab's pages write to, which is what the panel's `Revoke`
                 // does, so this holds whichever way the panel happens to be constructed.
                 var pending = new PendingDatabase(_database, null);
-                var held = new AdmissionStore(pending.PluginCustomData, null);
+                var held = new Admissions(pending);
 
                 Assume.That(held.Remove(record.AdmissionKey), Is.True);
                 Assume.That(held.All().Records, Is.Empty, "the page reads what it is holding");
 
-                Assert.That(_database.Values.Get(revocation), Is.Null, "nothing lands before OK");
-                Assert.That(_database.Values.Get(expired), Is.Not.Null);
+                Assert.That(new Admissions(_database).Find(record.AdmissionKey), Is.Not.Null, "nothing lands before OK");
 
                 if (accepted)
                 {
                     pending.Apply();
 
-                    Assert.That(_database.Values.Get(revocation), Is.Not.Null);
-                    Assert.That(_database.Values.Get(record.StorageKey), Is.Empty);
-                    Assert.That(_database.Values.Get(expired), Is.Null, "and the prune landed with it");
+                    Assert.That(new Admissions(_database).Find(record.AdmissionKey), Is.Null);
+                    Assert.That(_database.Records.Read().InForce.Admissions, Is.Empty, "and its admission is deleted with it");
                 }
                 else
                 {
                     pending.Discard();
 
-                    Assert.That(new AdmissionStore(_database.Values, null).Find(record.AdmissionKey),
+                    Assert.That(new Admissions(_database).Find(record.AdmissionKey),
                         Is.Not.Null, "Cancel means Cancel");
-                    Assert.That(_database.Values.Get(expired), Is.Not.Null);
                 }
             }
         }
 
         [Test]
-        public void Deleting_the_authority_takes_the_revocations_with_it_and_waits_for_OK()
+        public void Deleting_the_authority_deletes_its_admissions_at_OK_and_not_on_Cancel()
         {
             // Through the store the tab's pages write to, like the revocation above: the delete's
-            // removals of revocation keys land at OK with the rest of it, and not at all on Cancel.
-            new AuthorityService(_database.Store, _database.Values, null).Create();
+            // deletions of the admissions its authority issued land at OK with the rest of it.
+            new AuthorityService(_database.Store, null).Create();
             var record = Admit("agent-fictitious", DateTimeOffset.UtcNow);
-            Assume.That(new AdmissionStore(_database.Values, null).Remove(record.AdmissionKey), Is.True);
-            var revocation = AuthorityKeys.RevocationKey(record.AdmissionKey);
 
             foreach (var accepted in new[] { false, true })
             {
                 var pending = new PendingDatabase(_database, null);
-                Assume.That(new AuthorityService(pending.Store, pending.PluginCustomData, null).Delete().Succeeded, Is.True);
+                Assume.That(new AuthorityService(pending.Store, null).Delete().Succeeded, Is.True);
 
-                Assert.That(pending.PluginCustomData.Get(revocation), Is.Null, "the page reads what it is holding");
-                Assert.That(_database.Values.Get(revocation), Is.Not.Null, "nothing lands before OK");
+                Assert.That(new Admissions(pending).All().Records, Is.Empty, "the page reads what it is holding");
+                Assert.That(new Admissions(_database).Find(record.AdmissionKey), Is.Not.Null, "nothing lands before OK");
 
                 if (accepted)
                 {
                     pending.Apply();
 
-                    Assert.That(_database.Values.Get(revocation), Is.Null);
-                    Assert.That(_database.Values.Get(record.StorageKey), Is.Null, "and the record it emptied");
+                    Assert.That(_database.Records.Read().InForce.Admissions, Is.Empty);
                 }
                 else
                 {
                     pending.Discard();
 
-                    Assert.That(_database.Values.Get(revocation), Is.Not.Null, "Cancel means Cancel");
+                    Assert.That(new Admissions(_database).Find(record.AdmissionKey), Is.Not.Null, "Cancel means Cancel");
                 }
             }
         }
 
         [Test]
-        public void A_record_that_came_back_is_counted_apart_from_the_clients()
+        public void A_client_revoked_in_a_copy_merged_in_is_counted_apart_from_the_clients()
         {
             using (var panel = NewPanel(true))
             {
                 var record = Admit("agent-fictitious", DateTimeOffset.UtcNow);
                 Admit("agent-invented", DateTimeOffset.UtcNow);
-                Assume.That(panel.Revoke(record.AdmissionKey), Is.Null);
-
-                // What a stale copy merged in does.
-                _database.Values.Plant(record.StorageKey, record.Save());
+                RevokedInACopyMergedIn(record);
 
                 var listing = panel.AdmittedClients();
 
                 Assert.That(listing.Records.Single().Subject, Does.Contain("agent-invented"));
-                Assert.That(listing.CameBack, Is.EqualTo(1));
-                Assert.That(_database.Values.Get(record.StorageKey), Is.Not.Empty,
+                Assert.That(listing.Waiting, Is.EqualTo(1));
+                Assert.That(_database.Records.Read().InForce.Admissions.Count(admission => admission.InForce), Is.EqualTo(2),
                     "reading the page changes nothing in the database");
             }
         }
 
         [Test]
-        public void A_record_that_came_back_goes_with_the_next_revocation_and_waits_for_OK_like_it()
+        public void An_admission_a_merge_brought_back_goes_with_the_next_revocation_and_waits_for_OK_like_it()
         {
-            // The same rule as every prune: only inside a write this plugin makes anyway, which on
-            // this tab is replayed at OK and not at all on Cancel.
+            // Deleted only inside a write this plugin makes anyway, which on this tab is made at
+            // OK and not at all on Cancel.
             var revoked = Admit("agent-fictitious", DateTimeOffset.UtcNow);
             var other = Admit("agent-invented", DateTimeOffset.UtcNow);
-            Assume.That(new AdmissionStore(_database.Values, null).Remove(revoked.AdmissionKey), Is.True);
-            _database.Values.Plant(revoked.StorageKey, revoked.Save());
+            RevokedInACopyMergedIn(revoked);
 
             foreach (var accepted in new[] { false, true })
             {
                 var pending = new PendingDatabase(_database, null);
-                var held = new AdmissionStore(pending.PluginCustomData, null);
+                var held = new Admissions(pending);
 
                 Assume.That(held.Remove(other.AdmissionKey), Is.True);
-                Assert.That(held.All().CameBack, Is.Zero, "the page reads what it is holding");
-                Assert.That(_database.Values.Get(revoked.StorageKey), Is.Not.Empty, "nothing lands before OK");
+                Assert.That(held.All().Waiting, Is.Zero, "the page reads what it is holding");
+                Assert.That(new Admissions(_database).All().Waiting, Is.EqualTo(1), "nothing lands before OK");
 
                 if (accepted)
                 {
                     pending.Apply();
-                    Assert.That(_database.Values.Get(revoked.StorageKey), Is.Null, "and the record went with OK");
+                    Assert.That(new Admissions(_database).All().Waiting, Is.Zero, "and the admission went with OK");
                 }
                 else
                 {
                     pending.Discard();
-                    Assert.That(_database.Values.Get(revoked.StorageKey), Is.Not.Empty, "Cancel means Cancel");
+                    Assert.That(new Admissions(_database).All().Waiting, Is.EqualTo(1), "Cancel means Cancel");
                 }
             }
+        }
+
+        /// <summary>
+        /// The client of an admission revoked in another copy, merged into this one by a program
+        /// that carries no deletion record: the revocation arrives and the admission stays.
+        /// </summary>
+        private void RevokedInACopyMergedIn(AdmissionRecord record)
+        {
+            var copy = _database.Records.Copy();
+            StoreSeeds.Revoke(copy, record.ClientKey);
+            _database.Records.MergeWithoutDeletions(copy);
         }
 
         [Test]
@@ -1216,7 +1545,7 @@ namespace KeePassGate.Tests
                 var stranger = Admit("agent-fictitious", DateTimeOffset.UtcNow);
                 panel.CreateAuthority();
 
-                using (var reading = new AuthorityService(_database.Store, _database.Values, null).Read())
+                using (var reading = new AuthorityService(_database.Store, null).Read())
                 using (var certificate = stranger.Certificate())
                 {
                     Assume.That(reading.IsPresent, Is.True);
@@ -1230,8 +1559,8 @@ namespace KeePassGate.Tests
                     using (var issued = new AuthorityIssuer().IssueClient(
                         reading.Material.AuthorityKey, "agent-invented", new[] { "ops" }).Read())
                     {
-                        new AdmissionStore(_database.Values, null).Write(
-                            AdmissionRecord.For(issued, DateTimeOffset.UtcNow, new[] { "ops" }));
+                        new Admissions(_database).Write(
+                            AdmissionRecord.For(issued, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
                     }
                 }
 
@@ -1261,26 +1590,26 @@ namespace KeePassGate.Tests
                 AdmissionRecord ordinary;
                 var now = DateTimeOffset.UtcNow;
 
-                using (var reading = new AuthorityService(_database.Store, _database.Values, null).Read())
+                using (var reading = new AuthorityService(_database.Store, null).Read())
                 {
                     Assume.That(reading.IsPresent, Is.True);
                     var authority = reading.Material.AuthorityKey;
 
-                    host = AdmissionRecord.For(reading.Material.Host, now, new[] { "ops" });
+                    host = AdmissionRecord.For(reading.Material.Host, now, new[] { "ops" }, InventedIssuer.Id);
 
                     using (var issued = new AuthorityIssuer(() => now.AddDays(10)).IssueClient(
                         authority, "agent-early", new[] { "ops" }).Read())
                     {
-                        early = AdmissionRecord.For(issued, now, new[] { "ops" });
+                        early = AdmissionRecord.For(issued, now, new[] { "ops" }, InventedIssuer.Id);
                     }
 
                     using (var issued = new AuthorityIssuer().IssueClient(authority, "agent-invented", new[] { "ops" }).Read())
                     {
-                        ordinary = AdmissionRecord.For(issued, now, new[] { "ops" });
+                        ordinary = AdmissionRecord.For(issued, now, new[] { "ops" }, InventedIssuer.Id);
                     }
                 }
 
-                var store = new AdmissionStore(_database.Values, null);
+                var store = new Admissions(_database);
                 store.Write(host);
                 store.Write(early);
                 store.Write(ordinary);
@@ -1354,14 +1683,14 @@ namespace KeePassGate.Tests
         public void A_pairing_that_lands_while_a_recreate_or_delete_waits_goes_with_every_admission_at_OK(bool recreating)
         {
             // The tab holds the recreate or the delete; a pairing then lands on the live database,
-            // a record under the authority the gate still serves and the profile it approved named
-            // in the same write; and OK takes every admission out of the custom data as it stands
-            // then, once the write took the act.
-            Assume.That(new AuthorityService(_database.Store, _database.Values, null).Create().Succeeded, Is.True);
+            // an admission under the authority the gate still serves and the profile it approved
+            // named in the same write; and OK's write retires that authority and deletes every
+            // admission it issued as the store stands then, `STORE.md` §627.
+            Assume.That(new AuthorityService(_database.Store, null).Create().Succeeded, Is.True);
             var before = IssuedAndAdmitted("agent-before");
 
             var pending = new PendingDatabase(_database, null);
-            var held = new AuthorityService(pending.Store, pending.PluginCustomData, null);
+            var held = new AuthorityService(pending.Store, null);
             Assume.That((recreating ? held.Recreate() : held.Delete()).Succeeded, Is.True);
 
             var landed = IssuedAndAdmitted("agent-landed");
@@ -1371,10 +1700,11 @@ namespace KeePassGate.Tests
 
             pending.Apply();
 
-            var admissions = new AdmissionStore(_database.Values, null);
-            Assert.That(admissions.Find(before.AdmissionKey), Is.Null, "the records there were went with it");
-            Assert.That(_database.Values.Get(AuthorityKeys.ClientRecordKey(landed.AdmissionKey)), Is.Null,
-                "and so did the record that landed meanwhile, whose authority is retired");
+            var admissions = new Admissions(_database);
+            Assert.That(admissions.Find(before.AdmissionKey), Is.Null, "the admissions there were went with it");
+            Assert.That(admissions.Find(landed.AdmissionKey), Is.Null,
+                "and so did the admission that landed meanwhile, whose authority is retired");
+            Assert.That(_database.Records.Read().InForce.Admissions, Is.Empty);
             Assert.That(ProfileNames.Read(_database.Values.Get(ProfileNames.CustomDataKey)).Names,
                 Does.Contain("reader"), "while the name it brought stays");
         }
@@ -1382,11 +1712,11 @@ namespace KeePassGate.Tests
         /// <summary>A client of the authority the database holds now, admitted in the live store.</summary>
         private AdmissionRecord IssuedAndAdmitted(string name)
         {
-            using (var reading = new AuthorityService(_database.Store, _database.Values, null).Read())
+            using (var reading = new AuthorityService(_database.Store, null).Read())
             using (var issued = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, name, new[] { "ops" }).Read())
             {
-                var record = AdmissionRecord.For(issued, DateTimeOffset.UtcNow, new[] { "ops" });
-                new AdmissionStore(_database.Values, null).Write(record);
+                var record = AdmissionRecord.For(issued, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id);
+                new Admissions(_database).Write(record);
                 return record;
             }
         }
@@ -1399,7 +1729,7 @@ namespace KeePassGate.Tests
             // whole list ended it there, so every older record had no answer, and the page shows a
             // record with no answer as a client admitted until its date: this authority's own host
             // certificate and a foreign authority's client among them.
-            var service = new AuthorityService(_database.Store, _database.Values, null);
+            var service = new AuthorityService(_database.Store, null);
             Assume.That(service.Create().Succeeded, Is.True);
 
             var now = DateTimeOffset.UtcNow;
@@ -1407,16 +1737,16 @@ namespace KeePassGate.Tests
             using (var reading = service.Read())
             {
                 var key = reading.Material.AuthorityKey;
-                host = Admitted(AdmissionRecord.For(reading.Material.Host, now.AddDays(-3), new[] { "ops" }));
+                host = Admitted(AdmissionRecord.For(reading.Material.Host, now.AddDays(-3), new[] { "ops" }, InventedIssuer.Id));
 
                 using (var elsewhere = new AuthorityIssuer().IssueClient(new AuthorityIssuer().CreateAuthority(), "agent-elsewhere", new[] { "ops" }).Read())
                 {
-                    foreign = Admitted(AdmissionRecord.For(elsewhere, now.AddDays(-2), new[] { "ops" }));
+                    foreign = Admitted(AdmissionRecord.For(elsewhere, now.AddDays(-2), new[] { "ops" }, InventedIssuer.Id));
                 }
 
                 using (var issued = new AuthorityIssuer().IssueClient(key, "agent-fictitious", new[] { "ops" }).Read())
                 {
-                    healthy = Admitted(AdmissionRecord.For(issued, now.AddDays(-1), new[] { "ops" }));
+                    healthy = Admitted(AdmissionRecord.For(issued, now.AddDays(-1), new[] { "ops" }, InventedIssuer.Id));
                 }
 
                 crafted = AdmitReshaped(key, now, der => Reshaped.SignedAgain(der, key, tbs => Reshaped.WithExtensionValue(
@@ -1452,8 +1782,11 @@ namespace KeePassGate.Tests
             // just made, and the pin threw `InvalidCastException` for a record naming Ed25519 out
             // of the button's handler, which has no catch, into WinForms' own dialog: the page went
             // on reading as though there were no authority while the dialog held a new one, and
-            // every page switch threw the same.
-            // Issued by an authority the database does not hold, so the page is built with none.
+            // every page switch threw the same. A database holds a record only under a store key,
+            // so its authority was made and deleted, and the record is of an authority it never
+            // held, which no write deletes.
+            Assume.That(new AuthorityService(_database.Store, null).Create().Succeeded, Is.True);
+            Assume.That(new AuthorityService(_database.Store, null).Delete().Succeeded, Is.True);
             var key = new AuthorityIssuer().CreateAuthority();
             var crafted = AdmitReshaped(key, DateTimeOffset.UtcNow, der => NamingEd25519(der, key));
 
@@ -1501,7 +1834,7 @@ namespace KeePassGate.Tests
             // The panel draws itself as it is built, and the pin threw `InvalidCastException` out
             // of that for such a record, which the injector took for an attach that failed: the
             // database's settings dialog had no tab, and nothing was counted anywhere.
-            var service = new AuthorityService(_database.Store, _database.Values, null);
+            var service = new AuthorityService(_database.Store, null);
             Assume.That(service.Create().Succeeded, Is.True);
 
             AdmissionRecord crafted;
@@ -1522,7 +1855,7 @@ namespace KeePassGate.Tests
         /// <summary>The record, written to the live store.</summary>
         private AdmissionRecord Admitted(AdmissionRecord record)
         {
-            new AdmissionStore(_database.Values, null).Write(record);
+            new Admissions(_database).Write(record);
             return record;
         }
 
@@ -1535,7 +1868,7 @@ namespace KeePassGate.Tests
             var issued = new AuthorityIssuer().IssueClient(authority, "agent-crafted", new[] { "ops" }).CertificateDer;
             using (var certificate = new System.Security.Cryptography.X509Certificates.X509Certificate2(reshape(issued)))
             {
-                return Admitted(AdmissionRecord.For(certificate, when, new[] { "ops" }));
+                return Admitted(AdmissionRecord.For(certificate, when, new[] { "ops" }, InventedIssuer.Id));
             }
         }
 
@@ -1693,10 +2026,16 @@ namespace KeePassGate.Tests
 
         private AdmissionRecord Admit(string name, DateTimeOffset when)
         {
+            // An admission lives in the store, so a database holding none is given an authority.
+            if (_database.Store.Read().InForce == null)
+            {
+                StoreSeeds.Authority(_database.Store);
+            }
+
             using (var certificate = SelfSigned(name))
             {
-                var record = AdmissionRecord.For(certificate, when, new[] { "ops" });
-                new AdmissionStore(_database.Values, null).Write(record);
+                var record = AdmissionRecord.For(certificate, when, new[] { "ops" }, InventedIssuer.Id);
+                new Admissions(_database).Write(record);
                 return record;
             }
         }
@@ -1715,7 +2054,7 @@ namespace KeePassGate.Tests
             // The notice written for a create told the operator to press OK and reopen the dialog
             // to pair, under a line stating that the database has no authority: after the delete
             // there is nothing to pair with.
-            new AuthorityService(_database.Store, _database.Values, null).Create();
+            new AuthorityService(_database.Store, null).Create();
             var pending = new PendingDatabase(_database, null);
 
             using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, new InvitationBook(_log)))
@@ -1725,6 +2064,33 @@ namespace KeePassGate.Tests
                 Assert.That(panel.AuthorityIsWaiting, Is.True);
                 Assert.That(Label(panel, GateTab.InviteNoticeName).Text, Is.EqualTo(GateTab.PendingDeleteNotice));
                 Assert.That(GateTab.PendingDeleteNotice, Does.Not.Contain("pair"));
+            }
+        }
+
+        [Test]
+        public void A_revocation_waiting_for_OK_leaves_inviting_as_it_was()
+        {
+            // The notice and the dead button are about an authority the gate cannot see yet. A
+            // client revoked on the clients page leaves the authority a pairing is answered by as
+            // it is, so inviting another client stays as it was while the revocation waits.
+            var pending = new PendingDatabase(_database, null);
+
+            using (var panel = new AuthorityPanel(
+                pending, new FakePrompt(true), _log, new InvitationBook(_log), null))
+            {
+                panel.CreateAuthority();
+                pending.Apply();
+                var record = Admit("agent-fictitious", DateTimeOffset.UtcNow);
+                panel.Describe();
+                Assume.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.True,
+                    "so what the assertion below reads is the revocation and not the authority");
+
+                Assume.That(panel.Revoke(record.ClientKey), Is.Null);
+                panel.Describe();
+
+                Assert.That(panel.AuthorityIsWaiting, Is.False);
+                Assert.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.True);
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Text, Is.Empty);
             }
         }
 
@@ -2043,8 +2409,8 @@ namespace KeePassGate.Tests
             string admission;
             using (var client = new AuthorityIssuer().IssueClient(key, "agent-audited", new[] { "ops" }).Read())
             {
-                var record = AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" });
-                new AdmissionStore(_database.PluginCustomData, null).Write(record);
+                var record = AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }, candidates[0]);
+                StoreSeeds.Client(_database.Store, record.Members());
                 admission = record.AdmissionKey;
             }
 
@@ -2136,7 +2502,7 @@ namespace KeePassGate.Tests
         /// </summary>
         private string[] Undecided()
         {
-            return StoreSeeds.Undecided(_database.Store, _database.Values);
+            return StoreSeeds.Undecided(_database.Store);
         }
 
         private AuthorityPanel NewPanel(bool confirm)
@@ -2158,7 +2524,7 @@ namespace KeePassGate.Tests
         {
             using (var client = new AuthorityIssuer().IssueClient(StoreSeeds.KeyOf(_database.Store, authority), "agent-fictitious", new[] { "reader" }).Read())
             {
-                new AdmissionStore(_database.Values, _log).Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "reader" }));
+                StoreSeeds.Client(_database.Store, AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "reader" }, authority).Members());
                 return CertificateDigest.Of(client);
             }
         }
@@ -2177,7 +2543,7 @@ namespace KeePassGate.Tests
 
         private string Digest()
         {
-            using (var reading = new AuthorityService(_database.Store, _database.Values, null).Read())
+            using (var reading = new AuthorityService(_database.Store, null).Read())
             {
                 return reading.IsPresent ? reading.Material.AuthorityDigest : null;
             }

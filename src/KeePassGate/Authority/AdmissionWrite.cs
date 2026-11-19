@@ -17,14 +17,14 @@ namespace KeePassGate.Authority
     {
         private readonly bool _ok;
         private readonly bool _busy;
-        private readonly bool _withdrawn;
+        private readonly bool _unserved;
         private readonly string _reason;
 
-        private AdmissionWrite(bool ok, bool busy, bool withdrawn, string reason)
+        private AdmissionWrite(bool ok, bool busy, bool unserved, string reason)
         {
             _ok = ok;
             _busy = busy;
-            _withdrawn = withdrawn;
+            _unserved = unserved;
             _reason = reason ?? string.Empty;
         }
 
@@ -44,14 +44,27 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// True when the write's own condition refused it, under the writer's lock and before
-        /// anything was touched: what it was for no longer stands. The caller that gave the
-        /// condition knows which part of it refused.
+        /// True when the authority that issued the certificate is not served and no decision of
+        /// the operator's can serve it, found before anything was touched or asked: the store is
+        /// whole and serves another authority or none, or several authorities stand and it is not
+        /// among them. The authority the operator answered under was retired since, by a Recreate,
+        /// a Delete or a choice between authorities, here or in a copy merged in, and no retry
+        /// under it can be written, `PAIRING.md` §311. A store holding the gate back, and several
+        /// authorities standing with the issuer among them, are answered <see cref="Word"/>
+        /// instead.
         /// </summary>
-        public bool IsWithdrawn
+        public bool IsUnserved
         {
-            get { return _withdrawn; }
+            get { return _unserved; }
         }
+
+        /// <summary>
+        /// The word the write met the database with, or null: the word the plugin's store holds
+        /// the gate back with, `STORE.md` §656, or `undecided` where several authorities stand,
+        /// the issuer among them, answered under `503` as a connection is, with nothing touched
+        /// or asked.
+        /// </summary>
+        public string Word { get; private set; }
 
         public string Reason
         {
@@ -73,9 +86,18 @@ namespace KeePassGate.Authority
             return new AdmissionWrite(false, true, false, reason);
         }
 
-        public static AdmissionWrite Withdrawn(string reason)
+        public static AdmissionWrite Unserved(string reason)
         {
             return new AdmissionWrite(false, false, true, reason);
+        }
+
+        /// <summary>
+        /// The database is answered this word as a connection is, `STORE.md` §656: the store's
+        /// word, or `undecided` where several authorities stand, the issuer among them.
+        /// </summary>
+        public static AdmissionWrite Unavailable(string word)
+        {
+            return new AdmissionWrite(false, false, false, "the database is answered " + word) { Word = word };
         }
     }
 }

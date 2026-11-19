@@ -1046,7 +1046,6 @@ namespace KeePassGate.Host.Tests
         /// <summary>Admits an invented client into these profiles, the way pairing does.</summary>
         private void Admit(params string[] profiles)
         {
-            var store = new CustomDataStore(_database.Database);
             var authority = DatabaseAuthority.Of(_database.Database, null);
 
             var created = authority.Create();
@@ -1057,8 +1056,8 @@ namespace KeePassGate.Host.Tests
                 using (var client = new AuthorityIssuer().IssueClient(
                     reading.Material.AuthorityKey, "agent-fictitious", profiles).Read())
                 {
-                    new AdmissionStore(store, null).Write(
-                        AdmissionRecord.For(client, System.DateTimeOffset.UtcNow, profiles));
+                    new StoredAdmissions(_database.Database).Write(
+                        AdmissionRecord.For(client, System.DateTimeOffset.UtcNow, profiles, StoredAdmissions.AnyIssuer));
                 }
             }
         }

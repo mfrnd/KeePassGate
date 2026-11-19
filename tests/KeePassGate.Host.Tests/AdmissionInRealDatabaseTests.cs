@@ -5,26 +5,28 @@ using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Store;
 using KeePassGate.Testing;
+using KeePassGate.Ui;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests
 {
     /// <summary>
-    /// Admission records against a real KeePass database, written to a real KDBX4 file and read
-    /// back out of it.
+    /// Admissions against a real KeePass database, written into its store, saved to a real KDBX4
+    /// file and read back out of it, `STORE.md` §615.
     /// </summary>
     /// <remarks>
-    /// The unit tests prove the record survives a dictionary. Only this proves it survives KeePass:
-    /// a record is a multi-line string in custom data, which is the part of a KDBX most likely to
-    /// come back with different line endings or not at all.
+    /// The unit tests prove an admission survives a store held in memory. Only this proves it
+    /// survives KeePass: an admission is an entry of the plugin's group whose content is a string
+    /// KeePass writes into the file and reads back, which is where a format loses things.
     /// </remarks>
     [TestFixture]
     public sealed class AdmissionInRealDatabaseTests
     {
         private TemporaryDatabase _database;
         private AuthorityService _authority;
-        private AdmissionStore _admissions;
+        private StoredAdmissions _admissions;
         private X509Certificate2 _client;
 
         [SetUp]
@@ -32,9 +34,8 @@ namespace KeePassGate.Host.Tests
         {
             _database = TemporaryDatabase.New();
 
-            var store = new CustomDataStore(_database.Database);
             _authority = DatabaseAuthority.Of(_database.Database, NullGateLog.Instance);
-            _admissions = new AdmissionStore(store, NullGateLog.Instance);
+            _admissions = new StoredAdmissions(_database.Database);
 
             var created = _authority.Create();
             Assume.That(created.Succeeded, Is.True, created.Message);
@@ -65,31 +66,33 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_record_lands_under_its_own_key_in_the_databases_own_custom_data()
+        public void An_admission_is_an_entry_of_the_plugin_s_group_with_its_content_unprotected_and_unmarked()
         {
-            _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }));
+            var record = AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer);
+            _admissions.Write(record);
 
-            var key = AuthorityKeys.ClientPrefix + CertificateDigest.Of(_client);
+            var group = _database.RootGroup.Groups.Single(found => StoreFormat.IsGroupIdentifier(found.Uuid.UuidBytes));
+            var admission = group.Entries.Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "client");
 
-            Assert.That(_database.Database.CustomData.Exists(key), Is.True,
-                "records live in the one dictionary KeePass merges key by key");
-            Assert.That(_database.RootGroup.CustomData.Exists(key), Is.False,
-                "and no copy is left where a merge would take them all from one replica");
+            Assert.That(admission.Strings.Get("KPG.Data").IsProtected, Is.False, "an admission holds no secret");
+            Assert.That(admission.Strings.ReadSafe("KPG.Data"), Does.Contain(record.AdmissionKey));
+            Assert.That(admission.Strings.ReadSafe(KeePassLib.PwDefs.TitleField),
+                Is.EqualTo("KPG client " + admission.Uuid.ToHexString().Substring(0, 8).ToLowerInvariant()));
+            Assert.That(admission.Strings.ReadSafe(KeePassLib.PwDefs.NotesField), Does.Not.StartWith("Do not delete"),
+                "and it carries no mark, holding no store key");
+            Assert.That(admission.Strings.Get(KeePassLib.PwDefs.PasswordField).IsProtected, Is.True);
+            Assert.That(admission.AutoType.Enabled, Is.False);
+            Assert.That(_database.Database.CustomData.Count, Is.Zero, "and nothing of it is kept in the custom data");
         }
 
         [Test]
-        public void An_admission_record_takes_the_file_from_KDBX_4_0_to_4_1_and_the_authority_alone_does_not()
+        public void An_admission_leaves_the_file_KDBX_4_0_and_a_profile_name_beside_it_takes_it_to_4_1()
         {
-            // What the dictionary costs, written down where it cannot be forgotten. KeePass stamps each
+            // What the store costs, written down where it cannot be forgotten. KeePass stamps each
             // key of the database's own custom data with a modification time, and a file carrying
-            // one of those stamps is KDBX 4.1: `PwDatabase.GetMinKdbxVersion` says so. A database
-            // that has been paired with is therefore a 4.1 file, and nothing on the tab shows it
-            // happened. That is a format and not a gate: other programs open such a file, and what
-            // their saves do to the stamps is measured and stated in `CA.md` §204.
-            //
-            // The authority is entries of the plugin's store, which need nothing above 4.0, so a
-            // database with an authority alone stays a 4.0 file: what is kept in custom data moves
-            // it, a record here and a profile name in the test below.
+            // such a stamp is KDBX 4.1: `PwDatabase.GetMinKdbxVersion` holds so. The authority and
+            // the admissions are entries of the plugin's store, which need nothing above 4.0, so
+            // what moves the file is what the plugin keeps in custom data, a profile name here.
             using (var untouched = TemporaryDatabase.New())
             {
                 untouched.Save();
@@ -97,23 +100,27 @@ namespace KeePassGate.Host.Tests
                     "a database with nothing of this plugin's in it is a 4.0 file");
             }
 
+            _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
             _database.Save();
+
+            Assume.That(_database.Database.CustomData.Count, Is.Zero, "no custom data of the plugin's");
             Assert.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040000),
-                "and the authority alone leaves it a 4.0 file");
+                "an authority and an admission in the store leave it a 4.0 file");
 
-            _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }));
+            var names = ProfileNames.Empty();
+            Assume.That(names.Add("ops"), Is.Null);
+            new CustomDataStore(_database.Database).Set(ProfileNames.CustomDataKey, names.Write());
             _database.Save();
 
-            Assert.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040001),
-                "a record takes it to 4.1");
+            Assert.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040001), "and a profile name beside them takes it to 4.1");
         }
 
         [Test]
         public void A_profile_name_takes_the_file_to_KDBX_4_1_before_anything_is_paired()
         {
-            // The list of profiles is the database's own custom data too, stamped with a
-            // modification time as a record is, and an invitation names a profile: a database
-            // with an authority and a profile name is a 4.1 file before any program has paired.
+            // The list of profiles is the database's own custom data, stamped with a modification
+            // time by key, and an invitation names a profile: a database with an authority and a
+            // profile name is a 4.1 file before any program has paired.
             _database.Save();
             Assume.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040000), "the authority alone leaves it a 4.0 file");
 
@@ -123,6 +130,64 @@ namespace KeePassGate.Host.Tests
             _database.Save();
 
             Assert.That(FileVersionOf(_database.Path), Is.EqualTo(0x00040001), "a profile name takes it to 4.1");
+        }
+
+        [Test]
+        public void A_pairing_leaves_the_file_KDBX_4_0_and_a_profile_it_names_or_a_standing_answer_takes_it_to_4_1()
+        {
+            // Measured over the product's own pairing write and KeePass's save, each in a database
+            // of its own: a client paired for no profile; a client paired for a profile, which the
+            // write names in the list of profiles; and a client paired for no profile with a
+            // standing answer to its renewal written beside it. The store's entries need nothing
+            // above 4.0, `STORE.md` §612, and each key of the database's own custom data carries a
+            // modification time, which is a 4.1 field, `CA.md` §204.
+            var none = VersionAfterPairing(Array.Empty<string>(), false);
+            var profile = VersionAfterPairing(new[] { "ops" }, false);
+            var answer = VersionAfterPairing(Array.Empty<string>(), true);
+            TestContext.Out.WriteLine(string.Format(
+                System.Globalization.CultureInfo.InvariantCulture,
+                "paired for no profile {0:x8}, for a profile {1:x8}, for no profile beside a standing answer {2:x8}",
+                none,
+                profile,
+                answer));
+
+            Assert.That(none, Is.EqualTo(0x00040000), "a client paired for no profile leaves a 4.0 file");
+            Assert.That(profile, Is.EqualTo(0x00040001), "a client paired for a profile the list then names, a 4.1 file");
+            Assert.That(answer, Is.EqualTo(0x00040001), "and a standing answer beside a client paired for none, a 4.1 file");
+        }
+
+        /// <summary>
+        /// The KDBX version of a database with an authority once a client is paired for these
+        /// profiles through the product's own write and KeePass's save, and, where asked, once a
+        /// standing answer to its renewal is written beside it and the database saved again.
+        /// </summary>
+        private static int VersionAfterPairing(string[] profiles, bool withAnswer)
+        {
+            using (var database = TemporaryDatabase.New())
+            {
+                var authority = DatabaseAuthority.Of(database.Database, NullGateLog.Instance);
+                Assume.That(authority.Create().Succeeded, Is.True);
+                database.Save();
+
+                AdmissionRecord admission;
+                using (var reading = authority.Read())
+                using (var certificate = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, "agent-fictitious", profiles).Read())
+                {
+                    admission = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles, reading.Material.AuthorityDigest);
+                }
+
+                var written = new DatabaseWriter(CurrentThread.Instance, saved => saved.Save(null), null, null, null)
+                    .WriteAdmission(database.Database, admission);
+                Assert.That(written.Ok, Is.True, "the pairing was written: " + written.Reason);
+
+                if (withAnswer)
+                {
+                    new StoredAdmissions(database.Database).Answers.RefuseRenewal(admission.AdmissionKey, RenewalRefusal.Forever());
+                    database.Save();
+                }
+
+                return FileVersionOf(database.Path);
+            }
         }
 
         /// <summary>The KDBX version out of the file header: two signatures, then minor and major.</summary>
@@ -143,26 +208,29 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void It_survives_being_saved_and_opened_again()
         {
-            _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops", "readonly" }));
+            _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops", "readonly" }, StoredAdmissions.AnyIssuer));
 
             _database.SaveCloseAndReopen();
 
-            var afterwards = new AdmissionStore(new CustomDataStore(_database.Database), NullGateLog.Instance);
+            var afterwards = new StoredAdmissions(_database.Database);
             var record = afterwards.Find(CertificateDigest.Of(_client));
 
             Assert.That(record, Is.Not.Null, "a record that does not survive a save admits nobody tomorrow");
             Assert.That(record.Subject, Is.EqualTo("CN=agent-fictitious"));
             Assert.That(record.Profiles, Is.EqualTo(new[] { "ops", "readonly" }));
-            Assert.That(record.CertificateDer, Is.EqualTo(_client.RawData));
+            using (var carried = record.Certificate())
+            {
+                Assert.That(carried.RawData, Is.EqualTo(_client.RawData));
+            }
         }
 
         [Test]
         public void The_certificate_in_it_still_reads_after_the_round_trip()
         {
-            _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, null));
+            _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, null, StoredAdmissions.AnyIssuer));
             _database.SaveCloseAndReopen();
 
-            var afterwards = new AdmissionStore(new CustomDataStore(_database.Database), NullGateLog.Instance);
+            var afterwards = new StoredAdmissions(_database.Database);
 
             using (var certificate = afterwards.All().Records.Single().Certificate())
             {
@@ -174,39 +242,41 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void Revoking_survives_the_file_as_well()
         {
-            _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }));
+            _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
             _database.Save();
 
             _admissions.Remove(CertificateDigest.Of(_client));
             _database.SaveCloseAndReopen();
 
-            var afterwards = new AdmissionStore(new CustomDataStore(_database.Database), NullGateLog.Instance);
+            var afterwards = new StoredAdmissions(_database.Database);
             Assert.That(afterwards.Find(CertificateDigest.Of(_client)), Is.Null);
         }
 
         [Test]
         public void Recreating_the_authority_takes_the_records_with_it()
         {
-            _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }));
+            _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
 
             var result = _authority.Recreate();
 
             Assert.That(result.Succeeded, Is.True, result.Message);
-            Assert.That(_admissions.Count(out _), Is.Zero, "a record issued under an authority that is gone admits nobody");
+            var listed = _admissions.All();
+            Assert.That(listed.Records, Is.Empty, "an admission issued under an authority that is gone admits nobody");
+            Assert.That(listed.Waiting, Is.Zero, "and the write that retired the authority deleted it");
         }
 
         [Test]
-        public void Two_clients_are_two_keys_so_a_replicated_database_can_merge_them()
+        public void Two_clients_are_two_entries_so_a_replicated_database_can_merge_them()
         {
             using (var reading = _authority.Read())
             using (var second = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, "agent-two", null).Read())
             {
-                _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }));
-                _admissions.Write(AdmissionRecord.For(second, DateTimeOffset.UtcNow, null));
+                _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
+                _admissions.Write(AdmissionRecord.For(second, DateTimeOffset.UtcNow, null, StoredAdmissions.AnyIssuer));
 
                 _database.SaveCloseAndReopen();
 
-                var afterwards = new AdmissionStore(new CustomDataStore(_database.Database), NullGateLog.Instance);
+                var afterwards = new StoredAdmissions(_database.Database);
                 Assert.That(afterwards.All().Records.Select(r => r.Subject).OrderBy(s => s),
                     Is.EqualTo(new[] { "CN=agent-fictitious", "CN=agent-two" }));
             }
@@ -227,7 +297,7 @@ namespace KeePassGate.Host.Tests
                 {
                     Assume.That(target.Admission(CertificateDigest.Of(_client)), Is.Null);
 
-                    _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }));
+                    _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
 
                     Assert.That(target.Admission(CertificateDigest.Of(_client)), Is.Not.Null);
 
@@ -248,7 +318,7 @@ namespace KeePassGate.Host.Tests
             var databases = new[] { _database.Database }.ToList();
             using (var targets = new OpenDatabaseTargets(delegate { return databases; }, NullGateLog.Instance))
             {
-                var record = AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" });
+                var record = AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer);
                 _admissions.Write(record);
 
                 using (var held = targets.Current().Single())
@@ -274,7 +344,7 @@ namespace KeePassGate.Host.Tests
             var databases = new[] { _database.Database }.ToList();
             using (var targets = new OpenDatabaseTargets(delegate { return databases; }, NullGateLog.Instance))
             {
-                _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }));
+                _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
 
                 using (var held = targets.Current().Single())
                 {
@@ -292,17 +362,17 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void The_gate_reads_the_custom_data_a_locked_and_unlocked_database_came_back_with()
+        public void The_gate_reads_the_store_a_locked_and_unlocked_database_came_back_with()
         {
             // The lock cycle a cached target survives. Nothing prunes the cache but a connection,
             // so a workspace locked and unlocked with none arriving in between leaves the target in
             // place, and the authority it is compared against is byte for byte the same. A target
-            // holding a store built at construction would answer from the dictionary that was replaced,
+            // holding a store built at construction would answer from the tree that was replaced,
             // and a revoked client would go on being served for the rest of the session.
             var databases = new[] { _database.Database }.ToList();
             using (var targets = new OpenDatabaseTargets(delegate { return databases; }, NullGateLog.Instance))
             {
-                _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }));
+                _admissions.Write(AdmissionRecord.For(_client, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
 
                 using (var before = targets.Current().Single())
                 {
@@ -311,13 +381,13 @@ namespace KeePassGate.Host.Tests
 
                 _database.LockAndUnlock();
 
-                var live = new AdmissionStore(new CustomDataStore(_database.Database), NullGateLog.Instance);
+                var live = new StoredAdmissions(_database.Database);
                 Assume.That(live.Remove(CertificateDigest.Of(_client)), Is.True);
 
                 using (var afterwards = targets.Current().Single())
                 {
                     Assert.That(afterwards.Admission(CertificateDigest.Of(_client)), Is.Null,
-                        "the record was revoked in the custom data the database came back with");
+                        "the client was revoked in the store the database came back with");
                 }
             }
         }

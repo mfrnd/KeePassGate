@@ -101,38 +101,57 @@ pin compares bytes, §214.
 
 ## 4. What the database holds §204
 
-**The authority is a record in the plugin's store**: an entry in a group of the plugin's own,
-written once, under a check keyed by the store's key, with a retirement written beside it as a
-further record once it is recreated, deleted or not kept. [`STORE.md`](STORE.md) §614 holds the
-record and §627 the writes, and the paragraphs on the authority below hold of it there.
+**The authority, every admission and every revocation are records in the plugin's store**: each
+an entry in a group of the plugin's own, written once, under a check keyed by the store's key.
+What takes an authority out of service is a retirement, written beside it as a further record
+once it is recreated, deleted or not kept; what takes a client away is a revocation that names
+its client key; and what takes a single certificate away is a record of a kind of its own.
+[`STORE.md`](STORE.md) §614, §615 and §648 hold the records and §627 the writes, and the
+paragraphs on them below hold of them there.
 
 Everything else under `KPG` keys in the **database's own** `CustomData`, which is the one dictionary
 KeePass stamps key by key and merges the same way. A node's access rule is the exception and lives
 on that node, where it belongs and travels. Everything requires KDBX 4, and this requires KDBX 4.1,
-because a per-key modification time is a 4.1 field: a database with a profile name or an admission
-record in it is a 4.1 file. That is a format and not a gate: other programs open the file, and the
-paragraph on them below has what saving and merging in them was measured to do. Nothing that has to
-survive a merge turns on the times any more, which is what the revocation paragraph below is about.
+because a per-key modification time is a 4.1 field: a database with a profile name in that
+dictionary is a 4.1 file. That is a format and not a gate: other programs open the file, and the
+paragraph on them below has what saving and merging in them was measured to do. Nothing that takes
+access away is kept in that dictionary any more, which is what the paragraphs on a revocation below
+are about.
 
-**The authority alone no longer takes the file to 4.1**, and that reverses a rule this section
-held while the authority was a key of the dictionary: its record is entries of the plugin's
-store, which need nothing above 4.0, so a database with an authority alone is a 4.0 file, and what
-is kept in this dictionary takes it to 4.1: a profile name, which an invitation needs before
-anything pairs, or the first admission record, each measured by `AdmissionInRealDatabaseTests`.
+**Neither the authority nor an admission takes the file to 4.1**, and that reverses a rule this
+section held twice over. While the authority was a key of the dictionary, the authority alone
+made a 4.1 file. Once the authority was entries of the plugin's store, which need nothing above
+4.0, a database with an authority alone was a 4.0 file, and the first admission record took it
+to 4.1, being a key of the dictionary still. An admission is an entry of the store as well now,
+so a saved database that holds an authority and an admission, and nothing of the plugin's in
+its custom data, is a 4.0 file. What takes the file to 4.1 is what the plugin still keeps in
+this dictionary: a profile name, measured beside an authority alone and beside an authority and
+an admission, and a standing answer to a renewal, measured beside an authority and a client
+paired for no profile. `AdmissionInRealDatabaseTests` holds the measurements, in
+`An_admission_leaves_the_file_KDBX_4_0_and_a_profile_name_beside_it_takes_it_to_4_1`,
+`A_profile_name_takes_the_file_to_KDBX_4_1_before_anything_is_paired` and, through the pairing's
+own write and KeePass's save, with the version read from the file's header,
+`A_pairing_leaves_the_file_KDBX_4_0_and_a_profile_it_names_or_a_standing_answer_takes_it_to_4_1`.
+A pairing that approves a profile the list does not hold writes that name in the same write, so
+such a pairing leaves a 4.1 file, for the name and not for the admission, and a client paired
+for no profile leaves a 4.0 file.
 
-**The rest of this store is decided to be replaced in 0.3.0 as the authority's part was.** What
+**The rest of this store is decided to be replaced in 0.3.0 as those parts were.** What
 other programs do to custom data, in the paragraphs on them below, is what reopened it: the
 plugin's data is to move into entries in a group of the plugin's own, with no custom data
 anywhere. [`STORE.md`](STORE.md) §601 holds that store and §604 lists what of this section it
-reverses. The admissions, the revocations, the standing answers and the profile names are not
-moved yet, so for them this section remains the account of what the plugin does.
+reverses. The standing answers to a renewal, the profile names and the rules on groups and
+entries are not moved yet, so for them this section remains the account of what the plugin does.
 
 | Key | Contents | Written |
 | --- | --- | --- |
-| `KPG.Client.<sha256>` | one admission record per certificate admitted, naming the client it belongs to by its client key, §223 | at every pairing and every renewal, and written empty when the certificate is revoked; removed once its certificate has expired, and an emptied one with its revocation, unless that revocation is empty |
-| `KPG.Revoked.<sha256>` | the revoked certificate's `notAfter` and, after a space, the digest of the authority that issued it; the date alone where no authority the database holds issued it, and nothing for a record that would not read and so gave no date | once, when the client is revoked, and never changed; removed once that moment has passed or the authority it names is retired or gone, and an empty one never |
-| `KPG.RenewalRefused.<sha256>` | the operator's standing answer to renewing one certificate: `forever`, or the moment renewals are asked about again | when the operator refuses a renewal forever or until a date, and again when a later answer replaces it, which the dialog takes only once an until-date has passed, or a merge brings in; removed once no record admits that certificate, or when the operator allows renewal on the clients page and accepts the dialog |
-| `KPG.Profiles` | the set of profile names this database knows | when the Profiles page is accepted, and at a pairing that approves a name it does not hold, in the same write as the record |
+| `KPG.RenewalRefused.<sha256>` | the operator's standing answer to renewing one certificate: `forever`, or the moment renewals are asked about again | when the operator refuses a renewal forever or until a date, and again when a later answer replaces it, which the dialog takes only once an until-date has passed, or a merge brings in; removed once no admission in force names that certificate, by the next pairing, renewal or certificate given up, or by a settings dialog's OK that writes into the store, or when the operator allows renewal on the clients page and accepts the dialog |
+| `KPG.Profiles` | the set of profile names this database knows | when the Profiles page is accepted, and at a pairing that approves a name it does not hold, in the same write as the admission |
+
+**The admission and the revocation were keys of this dictionary**, `KPG.Client.<sha256>` for each
+certificate admitted and `KPG.Revoked.<sha256>` for each certificate revoked, and the paragraphs
+below record what each reversal was and why. A database that holds such keys is not read for
+them: they admit and refuse nobody, and nothing removes them, `STORE.md` §645.
 
 **Not the root group, and the group dialog is why.** `GroupForm` copies a group's `CustomData` when
 it opens and writes the copy back on OK, so anything written to the root group while an Edit Group
@@ -153,12 +172,14 @@ that replaced a purge which rewrote every rule naming a removed profile, and mov
 entries nobody had edited to make the rewrite carry. A write that says nothing new stays a no-op, so
 reading a rule is never an unsaved change.
 
-**One key per certificate, never one blob, and in the dictionary that merges per key.**
-`PwDatabase.CustomData` keeps a modification time for each key and a merge decides key by key, while
-a node's dictionary is taken whole as the paragraph above describes; `MergeInRealDatabaseTests`
-measures both against the KeePass this builds with. Two hosts pairing different clients keep both
-only in the first. A single blob would be last-writer-wins in either, and would lose pairings
-silently.
+**An admission is a record for each certificate, never one blob.** Each is an entry of its own, and
+a merge brings an entry the other copy lacks, so two hosts pairing different clients keep both;
+`MergeInRealDatabaseTests` measures it against the KeePass this builds with. It was a key of
+`PwDatabase.CustomData` for each certificate, on the same argument: that dictionary keeps a
+modification time for each key and a merge decides key by key, while a node's dictionary is taken
+whole as the paragraph above describes, which the same tests still measure. A single blob would be
+last-writer-wins in either, and would lose pairings silently. What reversed the key is what
+reversed the authority's, below.
 
 **The profile list is one key, so a merge takes it whole.** `KPG.Profiles` holds every name in one
 value, and a merge keeps one side's list, which for a synchronize is whichever copy wrote it last: a
@@ -170,63 +191,83 @@ it, while a name that came back is in force again, its rules and its clients wit
 had been added on the Profiles page without the question that page asks first. After merging two
 copies that both changed their profiles, the Profiles page is where to look.
 
-**A revocation is a key of its own, only ever added and never changed.** Revoking adds
-`KPG.Revoked.<sha256>` beside the record, holding the certificate's `notAfter` and the authority
-that issued it, and writes the
-record empty, and a client is admitted only by a record that is not empty and has no revocation
-beside it. What makes that hold was measured on KeePass 2.61.1 on `spikes/revocation-merge`, and
-`CustomDataMergeRuleTests` pins it method by method against the KeePass this builds with:
+**A revocation is a record that names the client's key, and it is never removed.** Revoking a
+client on the clients page writes a record of kind `revoked` holding the client key, §217, and
+every certificate whose admission carries that key is refused from then on, in whichever copy and
+at whichever time it was issued: a certificate renewed at a machine that had not read the
+revocation is refused once the copies meet. Every write of the plugin's restates the revocation
+in the store's summary entry, and a deletion record of its entry still tells of it, so deleting
+that entry for good, in any program that leaves a deletion record, changes nothing. A revocation
+has no end and is not pruned, since a client key has no date at which it expires. `STORE.md` §615
+and §623 hold the record and its three carriers. Measured over copies brought together by
+`PwDatabase.MergeIn`, in `MergeInRealDatabaseTests`:
+`A_revoked_client_stays_revoked_when_the_other_copy_still_holds_the_admission`, and
+`A_revoked_client_stays_refused_whatever_happened_to_the_times`, where the other copy's
+admission was touched after the revocation and the revocation's entry dated back.
+
+**A single certificate is taken away by a record of its own**, of kind `withdrawn`, which names
+that certificate by its admission key: what a client writes for the certificate on its connection
+with `DELETE /gate/certificate`, §217. It refuses that certificate and leaves the client's other
+certificates admitted, the certificate a renewal has just issued among them, which a revocation
+by the client's key would refuse. It is restated and told of as a revocation is, and is as final.
+The record names every certificate its copy holds as renewed from that certificate when it is
+written, by an admission in force or by a record that has since taken the renewal away, so what
+a client keeps does not turn on which of its certificates was taken away first. A renewal made
+from that certificate that the record does not name, as at a gate whose copy was from before,
+does not count: its certificate is refused once the copies meet, and so is whatever is renewed
+onward from it. `STORE.md` §648, held by `StoreAdmissionChainTests`.
+
+**This reverses the revocation as a custom data key of its own**, `KPG.Revoked.<sha256>` beside an
+emptied record, added once and never changed, and the argument for it is kept because the fact it
+rested on still holds. It was measured on KeePass 2.61.1 on `spikes/revocation-merge`, and
+`CustomDataMergeRuleTests` still pins it method by method against the KeePass this builds with:
 `PwDatabase.MergeInDbProperties` visits the source's keys and no others, so **a KeePass merge never
 removes a key the target holds**, and it decides a key both sides hold by modification time, the
 merge method and `SettingsChanged`, so **it never reads a value**. A key that is added once and
 never changed survives every KeePass merge and import, whatever the clocks read and whether or not
-a program in between dropped the times.
+a program in between dropped the times. Two things reversed it. A KeePassXC merge from an older
+copy replaces the whole dictionary, in the paragraphs on other programs below, which took away
+every revocation written since with nothing in the file to tell that it happened, where an entry
+written once arrived in every merge that was run, `STORE.md` §603. And that key named a single
+certificate, so a renewal made at a gate not yet told of the revocation escaped it once the
+copies met, which a revocation by the client's key refuses, `STORE.md` §615.
 
-**This reverses the empty record as the revocation**, and the argument for it is kept because it was
-right about the merge and wrong about what the merge would be given. A merge carries a newer value
-and carries nothing at all for a key that went, so the empty value was the removal in a form the
-merge could carry. It carried only while the file kept the time the mark was written at, which a
-save in another program usually does not, as the paragraph on other programs below has it, after
-which KeePass 2.61.1 keeps whichever side is stamped or already holds the key. The time was also
-the revoking host's clock, compared with the pairing host's record, so a revocation made sooner
-after the pairing than the two clocks disagree by lost the same way. And **File > Import** with
-*Overwrite existing* put back every record the imported copy held. In each of those the client was
-admitted again with everything it had, and the plugin, which cannot see the times or an import,
-could only revoke it again. The emptied record is still written, and is still that losing kind of
-mark: a stale copy can bring it back, and the revocation beside it is what refuses it when it does.
+**That key had itself reversed the empty record as the revocation**, and the argument for that is
+kept because it was right about the merge and wrong about what the merge would be given. A merge
+carries a newer value and carries nothing at all for a key that went, so the empty value was the
+removal in a form the merge could carry. It carried only while the file kept the time the mark was
+written at, which a save in another program usually does not, as the paragraph on other programs
+below has it, after which KeePass 2.61.1 kept whichever side was stamped or already held the key.
+The time was also the revoking host's clock, compared with the pairing host's record, so a
+revocation made sooner after the pairing than the two clocks disagree by lost the same way. And
+**File > Import** with *Overwrite existing* put back every record the imported copy held. In each of
+those the client was admitted again with everything it had, and the plugin, which cannot see the
+times or an import, could only revoke it again.
 
-**A record that comes back is taken away by the plugin's next write.** It admits nobody meanwhile,
-since admission reads the revocation rather than waiting for this, and the clients page counts it
-under the list rather than listing it as a client. The write it rides on is one this plugin makes
-anyway: a revocation, a client's own included, a pairing or a renewal, keeping one authority,
-recreating or deleting it. Opening or reading a database changes nothing in it.
+**An admission that a decision refuses is deleted by the plugin's next write**, with a deletion
+record: an admission whose client is revoked, whose certificate was taken away or whose issuer is
+retired. It admits nobody before that write and after it, since admission reads the decision and
+never waits for the deletion, and an admission that a stale copy brings back arrives beside the
+decision that refuses it. The clients page counts such an admission under the list and does not
+list it as a client. The write it goes with is a write this plugin makes anyway: a revocation, a
+certificate given up, a pairing or a renewal, keeping an authority, recreating or deleting it.
+Opening or reading a database changes nothing in it. `STORE.md` §627. Held over a real database by
+`PairingInRealDatabaseTests.A_pairing_deletes_an_admission_that_came_back_beside_its_revocation`.
 
-**A revocation goes once its certificate has expired**, during the next revocation, because past
-`notAfter` the gate refuses that certificate on its dates and the key has nothing left to refuse,
-and the emptied record beside it goes with it, having nothing left to refuse either. A stale copy
-that brings a pruned one back does no harm, and it is pruned again. A record that cannot be read
-gives no date, and its revocation is written empty and kept.
-
-**And once the authority it names is retired or gone**, on the same writes as a record that came
-back, because the retirement refuses everything that authority issued. The authority is found when
-the revocation is written, by the anchor pin against each authority the database holds and has not
-retired, and is written into the value then, so the key is still written once and never changed. A
-revocation that names none, one written before revocations named their authority or one for a
-certificate no authority there issued, is left to expire.
-
-**So does the record of a certificate that has expired**, by the same argument and on the same
-writes as a record that came back. Past its `notAfter` the record admits nobody, since the gate
-reads the certificate's dates, and kept it would be a key for every certificate the database ever
-issued, which a client given a week at a time, renewing as each runs out, makes a number with no
-bound. A stale copy that brings one back brings back a record of a certificate the gate refuses,
-and the next write takes it away again. A record that cannot be read gives no date, and is kept,
-named on the clients page so that the operator can take it away. Until the next write, an expired
-record stays on the clients page, saying so.
-
-**Both are decided on this machine's clock, and each one taken away is said in the log**, with the
-moment its certificate ended and the moment the clock read. A clock that is wrong makes the gate
-refuse a client that setting the clock right admits again; a key taken out of the file is not
-put back by anything, so the log is where a client lost to a wrong clock is found.
+**Nothing is removed for its age, and that reverses the prune of expired records.** The admission
+of a certificate that has expired stays, and the clients page lists it as expired, until the
+certificate is taken away, its client revoked or its authority retired. Past its `notAfter` it
+admits nobody, since the gate reads the certificate's dates. Such a record used to go with the
+plugin's next write of its own, and a revocation once its certificate had expired or the authority
+it named was retired or gone, on the argument that kept they were a key for every certificate the
+database ever issued, which a client given a week at a time, renewing as each runs out, makes a
+number with no bound. That growth is real and is accepted until a compaction exists, `STORE.md`
+§643. What reversed the prune is what it was decided on: this machine's clock, where no time
+decides anything in the store, and a removal, where nothing in a file tells which copies have seen
+a record. A clock that was wrong took a client's record out of the file, and setting the clock
+right did not bring it back. Held by
+`PairingInRealDatabaseTests.A_pairing_leaves_the_admission_of_an_expired_certificate_where_it_is`
+and `MergeInRealDatabaseTests.An_expired_admission_a_merge_brings_stays_and_admits_nobody`.
 
 **A standing answer to a renewal is changed rather than only added**, unlike a revocation, because a
 later answer about the same certificate replaces an earlier one. That makes it a key a merge can
@@ -236,13 +277,17 @@ copy's whatever its time. The direction is safe, since a renewal still waits on 
 it, and no standing answer admits anybody, but the price is not always a dialog: a forever that wins
 over a newer until a date answers every renewal `409 forever`, and the client's name is red on the
 clients page until the operator lifts it there. A standing answer that will not read counts as
-forever, and the log names it. It goes on the writes the other prunes ride on, once no record admits
-the certificate: revoked, expired, or gone; and when the operator presses **Allow renewal** on that
-client's row and accepts the settings dialog, which removes the key. A removal is the one thing a
-KeePass merge never carries, so a copy of the file from before the lift brings the answer back, red
-on the page again, and the operator lifts it again. **A refusal in this session has no key at all**:
-the plugin holds it in memory, per certificate, until KeePass exits, because an answer about one
-session written into the file would outlast that session in every copy of it, `PAIRING.md` §312.
+forever, and the log names it. It goes once no admission in force names the certificate, its
+client revoked, the certificate taken away or its authority retired, with the next pairing,
+renewal or certificate given up, or with a settings dialog's OK that writes into the store; it
+does not go for the certificate having expired, since that admission stays, and this reverses its
+going by the clock with the expired record. And it goes when the operator presses **Allow
+renewal** on that certificate's row and accepts the settings dialog, which removes the key. A
+removal is the one thing a KeePass merge never carries, so a copy of the file from before the
+lift brings the answer back, red on the page again, and the operator lifts it again. **A refusal
+in this session has no key at all**: the plugin holds it in memory, per certificate, until
+KeePass exits, because an answer about one session written into the file would outlast that
+session in every copy of it, `PAIRING.md` §312.
 
 **Each authority is one record, and that is the same argument the other way.** A merge that took
 its parts separately could take the certificate from one replica and the private key from another,
@@ -287,8 +332,9 @@ first time the plugin sees the state: when the database is opened or unlocked, o
 ends a synchronize, and never from a connection. For each authority it shows the fingerprint, when
 it was made, and every client chaining to it with its profiles, when it was admitted and, where the
 audit holds it, when it last made a request. Keeping an authority retires every other authority,
-through the single writer's guard, and marks the database modified without saving it; the records of
-the authorities not kept stay, admitting nobody, and the clients page names them for what they are.
+through the single writer's guard, and marks the database modified without saving it; the
+admissions that the authorities not kept issued are deleted in that write, `STORE.md` §627, where
+they used to stay in the custom data, admitting nobody, for the clients page to name.
 Cancel serves nothing, and the KPG tab's authority page asks again, waiting for the settings
 dialog's OK like everything else there. **A choice the writer refuses is tried again** before the
 operator is told to choose again, which is the operator's rulings of 2026-10-14 and 2026-11-08:
@@ -341,45 +387,49 @@ KPG tab then shows every authority the database has held as retired, rather than
 authority yet, as it does after a delete, which retires an authority too. **So the chooser warns,
 before anything is chosen**, to answer on one copy and synchronize before answering on another.
 
-**Recreating and deleting both remove every admission record, and every revocation with the records
-it emptied.** Each certificate they name chains to the authority just retired, and the retirement
-refuses it whatever a stale copy brings back, so a revocation beside it would refuse nothing more.
-They go with the retirement and never without it: both wait for the settings dialog's OK, and the
-custom data loses them there only where the store write took the act, `STORE.md` §614. This
-reverses recreation emptying the records rather than removing them, which it did while the
+**Recreating and deleting both delete every admission the retired authority issued, and no
+revocation.** Each such admission names that authority as its issuer, and the retirement refuses
+its certificate whatever a stale copy brings back. The admissions go with the retirement and
+never without it: both commands wait for the settings dialog's OK, and the write that takes the
+act deletes them, with a deletion record each, as the store stands then, `STORE.md` §614 and
+§627. A revocation stays, since it names a client key and no authority, and it is what refuses
+that client's admissions wherever a copy still holds an authority that issued them. This
+reverses removing every revocation with the records, which was done while a revocation named the
+authority that issued its certificate and so refused nothing the retirement did not; and that
+had reversed recreation emptying the records rather than removing them, which it did while the
 replacement went under the same key and an emptied record was the only mark a merge with an older
-copy would carry.
+copy would carry. Held in a saved file by
+`AuthorityInRealDatabaseTests.Deleting_deletes_the_admissions_of_the_authority_it_retires_from_the_file_and_keeps_every_revocation`.
 
-**A merge with a copy from before brings those revocations back, and the next write takes them
-away.** Each names the authority that issued its certificate, which is retired, so the plugin's next
-write of its own drops it with the emptied record beside it. A revocation written before revocations
-named their authority holds its certificate's end alone and stays until the first revocation after
-that end, which is at most a year after it was issued, or the next recreation or deletion, or until
-it is removed by hand under Database Maintenance. It has no row on the clients page, and it refuses
-nothing the retirement does not refuse already and admits nobody.
+**A merge with a copy from before brings none of those admissions back into force.** Each was
+deleted with a deletion record, and an admission present beside a deletion record that names it
+is out of force, `STORE.md` §623. An admission of that authority that this copy never held, as a
+pairing made in the other copy leaves, names a retired issuer: it admits nobody, the clients page
+counts it under the list, and the plugin's next write of its own deletes it.
 
 **All of this is a claim about KeePass 2.48 or later with the plugin in it.** Other programs open
 the database, and what they do to it was measured on `spikes/revocation-merge`, for KeePassXC 2.4.1
 to 2.8.0 and KeePass 2.47. **Saving in any of them keeps every key and its value, and usually not
 the times**: the file goes back to an older format, 4.0 or even 3.1, unless something else in it is
 4.1 as well, such as the previous parent a KeePass delete or move records, and only KeePassXC 2.7.0
-or later keeps the times even then. A revocation survives that, being a key only ever added,
-while the profile list and a standing answer to a renewal go to whichever copy still
+or later keeps the times even then. A revocation survived that while it was a key, being only
+ever added, while the profile list and a standing answer to a renewal go to whichever copy still
 carries a time at the next synchronize in KeePass. **A KeePassXC merge, from 2.4.2, replaces the
 custom data of the database it merges into with the other copy's, whole**, whenever the other copy
 was read in a later second, which a copy chosen to merge from nearly always is. Merging an older
-copy into the paired database therefore takes away every key written since, revocations and
-records alike, and puts back the older value of every key changed since, the
-profile list among them, stamped, where the file keeps times, with the time of the merge, which a
-later synchronize in KeePass takes as the newest. A group both copies hold keeps the rules of the
-database merged into, however the other copy changed them, and takes the newer of the two times,
-so a narrowing made in the other copy is lost without looking older. Merging the other way, the
-paired database into an older copy, gives that copy the paired database's keys.
+copy into the paired database therefore takes away every key written since, which was every
+revocation and admission record while those were keys, and puts back the older value of every key
+changed since, the profile list among them, stamped, where the file keeps times, with the time of
+the merge, which a later synchronize in KeePass takes as the newest. A group both copies hold
+keeps the rules of the database merged into, however the other copy changed them, and takes the
+newer of the two times, so a narrowing made in the other copy is lost without looking older.
+Merging the other way, the paired database into an older copy, gives that copy the paired
+database's keys.
 
 **Android programs that open KDBX 4 files were measured on the same branch**, in an emulator of
 Android 11: Keepass2Android 1.15-r6 and 1.08d-r5, KeePassDX 4.5.8, 3.2.0 and 3.3.0, and
 KeePassDroid 2.7. No save and no merge in any of them removed a key from the database's custom
-data, so a revocation holds there. **A save in KeePassDroid 2.7 deletes the rules
+data, so a revocation held there while it was a key. **A save in KeePassDroid 2.7 deletes the rules
 on every group and entry, and a save in KeePassDX 3.2.0 or 3.3.0 the rules on every group**,
 without moving the modification time of the group or entry, so nothing on the node shows that its
 rules went. A save in KeePassDX 4.5.8 keeps the rules and the times, and a save in Keepass2Android
@@ -395,17 +445,19 @@ the rules, so wherever they narrowed what a group above grants, a client now rea
 
 Nothing here detects any of it. After any change made outside KeePass, the clients page, the
 Profiles page and the authority are where to look, and after a save in a program that deletes
-rules, the rules on every group and entry that had any.
+rules, the rules on every group and entry that had any. What the same programs do to the entries
+that the authority, the admissions and the revocations are kept in is `STORE.md` §603 and §637.
 
 **KeePass's own Database Maintenance dialog lists every one of these keys on its Plugin Data tab,
 and deletes any of them on request.** None of that is a way to manage what this plugin keeps.
-Deleting an emptied record there changes nothing, since the revocation beside it still refuses the
-certificate. Deleting a revocation leaves the client refused only by its emptied record, which a
-stale copy merged in afterwards can beat, the way a dropped time, a slow clock or an import beat it
-before revocations had keys of their own. The authority and its retirements are not among these
-keys: they are entries of the plugin's store, and what deleting or editing such an entry in
-KeePass does is `STORE.md` §628 and §642. Revoking, recreating and deleting are done on the KPG
-tab, which writes each of them the way this section describes.
+The keys are the profile list and the standing answers to a renewal. Deleting the list there
+leaves every client admitted and reaching nothing, `DESIGN.md` §139, and deleting a standing
+answer puts that certificate's next renewal to the operator again. The authority, its
+retirements, the admissions and the revocations are not among these keys: they are entries of the
+plugin's store, and what deleting or editing such an entry in KeePass does is `STORE.md` §628 and
+§642. While a revocation was a key, deleting it there left the client refused only by its emptied
+record, which a stale copy merged in afterwards could beat. Revoking, recreating and deleting are
+done on the KPG tab, which writes each of them the way this section describes.
 
 ### How each value is written §222
 
@@ -498,9 +550,10 @@ belongs to whatever writes while somebody has a *group* open. Nothing in the cus
 store holds is in a group, since §204 keeps it in the database's own dictionary, so what a group
 dialog can destroy is a node's rule. The dialog that copies that dictionary is Database
 Maintenance, which writes it back the same way, and [`PAIRING.md`](PAIRING.md) §307 is where
-pairing answers that dialog. The authority is in a group, as entries of the plugin's store, and no
-group dialog copies an entry: an entry edited in KeePass's entry dialog is set back at the
-plugin's next write of its own, `STORE.md` §628.
+pairing answers that dialog. The authority, the admissions and the revocations are in a group, as
+entries of the plugin's store, and no group dialog copies an entry: an entry edited in KeePass's
+entry dialog is set back at the plugin's next write of its own, `STORE.md` §628, and a write is
+refused while that dialog holds an entry it would delete or set back, `STORE.md` §626.
 
 Here the consequence is worse than a lost setting, so the design does not merely try to prevent it:
 
@@ -754,7 +807,9 @@ Order matters, and every failure is a refusal.
    the certificate rather than in this check: everything the authority issues starts five minutes
    before the moment it was issued, so a client checking the host's dates is given the same five
    minutes, and only on `notBefore`.
-7. **The admission record is looked up** by SHA-256 over the certificate DER. Absent means refused.
+7. **The admission record is looked up** by SHA-256 over the certificate DER. Absent means refused,
+   and so does an admission that a revocation, a certificate taken away or a retirement refuses,
+   §217.
 8. **The profiles come from that record.**
 
 ### The anchor pin, which the obvious code does not do §214
@@ -882,37 +937,72 @@ which one.
 CRL adds a refresh window in which a revoked client still works.
 
 The admission record does both jobs. A certificate that chains, passes its EKU check and has no
-record is refused, and so is one with a revocation beside it. Revoking adds that revocation and
-empties the record, §204, which takes effect on the next connection,
-offline and immediately: the record is read from the live database per connection and never cached
-beside the certificates, so nothing has to be reloaded for a revocation to bite.
+record is refused, and so is a certificate whose client is revoked or that was itself taken away.
+Either is a record of the plugin's store written beside the admission, §204, and takes effect on
+the next connection, offline and immediately: the store is read from the live database at every
+request and no answer is kept beside the certificates, so nothing has to be reloaded for a
+revocation to bite. A certificate that several admissions name is admitted by none of them,
+`STORE.md` §615.
 
 [`docs/clients.md`](docs/clients.md) is the same thing said to whoever presses the button.
 
 **The operator revokes from the KPG tab's clients page**, which lists every client the database has
-admitted with what each one may reach, and takes one away. It is a list rather than a bare set of
-names because revoking is a decision about access, and a name on its own does not say what is being
-taken. It sits under the widgets that hand an invitation out, on the same page, because a list of
-clients is what an invitation turns into and the operator letting somebody in is the one who should
-see who is already in. It writes the way the rest of that tab writes: the row goes at once, the
-revocation lands when the dialog is accepted, and saving is what keeps it. Cancel discards it.
+admitted with the certificates it holds and what each may reach, and takes a client away. It is a
+list rather than a bare set of names because revoking is a decision about access, and a name on
+its own does not name what is being taken. It sits under the widgets that hand an invitation
+out, on the same page, because a list of clients is what an invitation turns into and the
+operator letting somebody in is the person who should see who is already in. It writes the way
+the rest of that tab writes: the client's rows go at once, the revocation lands when the dialog
+is accepted, and saving is what keeps it. Cancel discards it.
 
-**A client revokes itself with `DELETE /gate/certificate`**,
+**The operator's revocation names the client and not a certificate.** A client's certificates are
+a group of rows under its name, and the X on the first of them revokes the client with every
+certificate it holds, by its client key. This reverses a row's X taking that row's certificate
+away and no other: a client that had renewed kept its other certificate, and a certificate it
+renewed to at another machine, or before the dialog was accepted, stayed admitted, where a
+revocation by the client key refuses each of them wherever it was issued, `STORE.md` §615.
+**The page takes a single certificate away as well**, with **Take certificate away** in a row's
+menu: it writes the record a client's own giving up writes, of kind `withdrawn`, for that row's
+certificate alone, so the client keeps every other certificate it holds and is not revoked,
+`STORE.md` §648. That is how a record that a lost answer to a renewal left behind is cleared,
+`PAIRING.md` §312, and it waits for the dialog's OK as the revocation does.
+
+**A client gives its own certificate up with `DELETE /gate/certificate`**,
 [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) §509. It takes no body and names nothing,
-because the certificate on the connection is what is revoked, so a client can give up its own
-admission and nobody else's. It writes what the clients page writes, the
-revocation and the emptied record, through the single writer every change goes through, refused
+because the certificate on the connection is what is given up, so a client can give up its own
+certificate and nobody else's. It writes a record of kind `withdrawn` that names that single
+certificate, `STORE.md` §648, through the single writer every change goes through, refused
 while Database Maintenance is open on the database, and answers once the database is saved and the
-file read back. Nobody presses OK on it, so it does not wait for a dialog the way the page does, and
-a settings dialog open at the time leaves it alone, since that dialog's OK replays only the keys the
-operator changed. A client wants this for a key it no longer trusts or a certificate it no longer
+file read back. The client's other certificates stay admitted, the certificate a renewal issued
+among them, which the record names. **This reverses a client's own act writing what the clients
+page writes**: the reference client calls the route with the old certificate after every renewal,
+`PAIRING.md` §312, and a renewal copies the client key, so written as a revocation by that key the
+call would refuse the certificate the renewal had just issued. Nobody presses OK on it, so it does
+not wait for a dialog the way the page does, and a settings dialog open at the time leaves it
+alone, since what that dialog holds for the store is written at its OK against the store as it
+stands then. A client wants this for a key it no longer trusts or a certificate it no longer
 needs; it grants nothing a client did not already have, since a client that holds a certificate can
-already stop using it.
+already stop using it. Held over a real database by `GiveUpInRealDatabaseTests`, among them
+`The_certificate_a_renewal_issued_is_still_admitted_after_the_old_certificate_is_given_up` and
+`A_certificate_given_up_that_no_save_kept_puts_back_what_its_write_deleted`.
 
-**Both are written to the audit**, `DESIGN.md` §120, by the key they took away and the client key
-its record carried, at the moment they take effect: the operator's when the dialog's OK lands it,
-its client key read from the record just before OK empties it, and a client's own once its
-revocation is in the database.
+**Both are written to the audit**, `DESIGN.md` §120, at the moment they take effect. A client's own
+is a line by the key it gave up and the client key its admission carried, once the record is in the
+database. The operator's revocation names no certificate, so it is a line for each certificate of
+that client that the dialog's OK ended in this copy, each with its key and the client key, read
+from the store just before OK is applied, and a single line with the client key alone where the
+copy admitted no certificate of the client. An admission that admitted nobody before the OK,
+under an authority that is not served, of a certificate several admissions name, or that does
+not read, gets no line. A certificate that the operator took away is a single line by its key,
+where the OK wrote its record: with the client key of the admission that admitted it before the
+OK, or with the certificate's key alone where it admitted nobody then. It gets no second line
+where the same OK revokes its client, and no line where it was given up or taken away before
+the OK. Held by
+`GateWiringTests.A_revocation_writes_a_line_for_each_certificate_of_the_client_and_the_client_key_alone_where_the_copy_holds_none`,
+`GateWiringTests.A_revocation_writes_lines_only_for_the_certificates_this_copy_admitted`,
+`GateWiringTests.A_revocation_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel`
+and
+`GateWiringTests.A_certificate_taken_away_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel`.
 
 Recreating the authority is the other way, and it is the blunt one: it revokes every client at once
 and each has to pair again. That is a recovery from a compromised authority, not a way to remove one
@@ -923,7 +1013,8 @@ hex. `X509Certificate2.Thumbprint` is **SHA-1**, measured at 40 hex characters, 
 says SHA-256 throughout should not key its allowlist on it.
 
 Each record holds that key, the certificate itself so expiry is knowable, the subject as issued, the
-**client key**, the **approved profiles**, and the issuance date.
+**client key**, the **approved profiles**, the issuance date, the authority that issued the
+certificate and, where a renewal wrote the record, the certificate it was renewed from, §223.
 
 **The client key says which client a record belongs to**, and it is the operator's ruling of
 2026-10-16. It is the admission key of the client's first certificate, the one it paired with:
@@ -934,9 +1025,10 @@ client gives it up, `PAIRING.md` §312; and a client chooses its own name, so tw
 under one, such as one program on two machines. Neither the name nor the certificate tells clients
 apart, and the client key does: **every count and naming of clients goes by it**, so a renewal never
 counts twice and two programs under one name are two clients. Names need not be unique, and nothing
-is ever revoked by name. Written once with the record and never changed, so a merge, which never
-reads a value, has nothing to decide about it. It names a client and grants nothing, so it is not
-checked against anything: whoever can write the file can write a whole record.
+is ever revoked by name: a revocation names the client key, and refuses every certificate whose
+record carries it. Written once with the record and never changed, so no merge has anything to
+decide about it. It grants nothing, so it is not checked against anything: whoever holds the
+store's key can write a whole record.
 
 This reverses counting clients by name, which made a renewal one client again, after counting by
 record had made it two, and merged every program that chose the same name into one. It also
@@ -946,36 +1038,47 @@ and let a merge bring a revoked one back.
 
 ### The stored form §223
 
-One field per line, name and value either side of the first equals sign, with a version marker
-first:
+An admission is the content of a record of kind `client` in the plugin's store, `STORE.md` §615:
+one flat object of strings, a member for each field, under the record's check.
 
-```text
-v=1
-subject=CN=agent-fictitious
-client=<sha256 of the certificate it paired with>
-admitted=2026-08-15T09:14:22Z
-profiles=ops,readonly
-certificate=<base64 DER>
-```
+| Member | Holds |
+| --- | --- |
+| `certificate` | the admission key: the SHA-256 over the certificate, as 64 lowercase hexadecimal characters |
+| `der` | the certificate itself, base64 of its DER |
+| `client` | the client key, in the form of an admission key |
+| `issuer` | the digest the authority that issued the certificate is filed under, §204 |
+| `profiles` | the approved names, separated by single spaces, each once and in ordinal order |
+| `subject` | the subject as issued |
+| `admitted` | the moment of the approval, RFC 3339 in UTC to the second |
+| `from` | on a record that a renewal writes, the admission key of the certificate it was renewed from |
 
-Small and strict rather than general, and that is a decision rather than laziness. Everything in a
-record has already been through issuance, which refuses a subject or a profile that is not a plain
-name, so a reader can be total in eighty lines. **Anything that is not a record is refused**:
-a missing field, a repeated one, an unknown version, a client key that is not a digest, a date that
-will not parse, a certificate that will not decode, or a certificate whose digest is not the key the
-record is filed under. A record that cannot be read admits nobody, which is the same answer as no
-record at all. A record with no `client` line is one of those: the field arrived with no record
-written before it anywhere, so there is no older record to read kindly. The reader is strict about
-what a record holds and not about how it is spelled: fields in another order, blank lines, either
-line ending and whitespace inside the certificate's base64 all read, and the plugin writes a record
-back in its own form.
+Strict rather than general, and that is a decision rather than laziness. Everything in a record has
+already been through issuance, which refuses a subject or a profile that is not a plain name, so
+the reader can be total. **Anything that is not an admission reads as none**: a member but `from`
+missing, an admission key, a client key, an issuer or a `from` that is not a digest, a date that
+will not parse, a certificate that will not decode or is anything but a bare certificate, or a
+certificate whose digest is not the record's `certificate`. A record that does not read admits
+nobody, which is the same answer as no record at all, and it is counted among no admissions of a
+certificate. A member the table does not name is passed over.
 
 Profile names that could not have been issued as claims are dropped when a record is read, so a
 record edited by hand into something strange grants nothing strange.
 
-A JSON dependency has since arrived for the access control document, so this could move to it, and
-deliberately has not: a record is read before anything is trusted, and that is worth a reader with no
-third-party grammar underneath it.
+**An admission is held to its issuer.** The gate judges a certificate against the authority it
+serves by the anchor pin, §214, before any record is looked up, and admits it only where its
+record's `issuer` is that authority's digest.
+
+**This reverses the record as lines of text under a custom data key**, a field to a line with a
+version marker first, and three things about it. Its reader refused a field and a version it did
+not know, where a member that no reader names is now passed over: the store's format number is the
+only statement of the store's form, `STORE.md` §607. The record was filed under
+`KPG.Client.<sha256>` and held no issuer, so which authority had issued a certificate was worked
+out by the anchor pin against each authority the database held. And it stayed off the JSON
+dependency on purpose, on the ground that a record is read before anything is trusted, which was
+worth a reader with no third-party grammar underneath it. That ground went with the store's check:
+a record's content is held to a keyed digest under the store's key, every other record of the
+store is the same flat object of strings, and a text of lines inside a string would have been a
+second grammar for the same fields.
 
 ---
 
@@ -1067,3 +1170,9 @@ Recorded because a reader seeing only this version will not know which parts wer
 | A client about to expire paired again, with an invitation the operator handed out | it renews, on a dialog like the pairing one with no invitation, and gives the old certificate up itself | an admitted client is already known, so an invitation proved nothing new and cost the operator a step; the old record is left valid so that a lost answer costs nothing |
 | The record of an expired certificate kept until somebody removed it, and an emptied one kept for good | both taken away by the plugin's next write of its own, an emptied one with its revocation | a client may ask for a day, and renewing leaves the old record behind until the client gives it up, so kept they were a key for every certificate ever issued; past its end the gate refuses a certificate on its dates, so neither record had anything left to say |
 | Clients counted by record, then by the name they paired under | by the client key every record carries, the digest of the client's first certificate | by record a renewal was two clients, and by name two programs that chose one name were one; names need not be unique, and a name is never what is revoked |
+| An admission as a custom data key for each certificate, `KPG.Client.<sha256>`, holding lines of text | a record of the plugin's store for each certificate, a member for each field, naming the authority that issued it | a KeePassXC merge replaces the whole of the custom data with the other copy's, which took the records written since away, measured; an entry written once arrived in every merge that was run, `STORE.md` §603 |
+| A revocation as a custom data key for each certificate revoked, `KPG.Revoked.<sha256>`, beside an emptied record | a record of the plugin's store that names the client's key, restated by every summary entry and never removed | the same merge took the revocations away; and a renewal made at a gate not yet told of a revocation by certificate escaped it once the copies met, `STORE.md` §615 |
+| A client's own `DELETE /gate/certificate` wrote what the operator's revocation writes | a record of a kind of its own that names that single certificate | the reference client gives the old certificate up after every renewal, and a revocation by the client's key would refuse the certificate the renewal had just issued, `STORE.md` §648 |
+| The X on a row of the clients page took that row's certificate away | the X on a client's first row revokes the client, with every certificate it holds | a certificate the client renewed to elsewhere, or before the dialog was accepted, stayed admitted |
+| Recreating and deleting removed every revocation with the records | they delete the admissions the retired authority issued, in the write that retires it, and no revocation | a revocation names a client key and no authority, and it is what refuses that client wherever a copy still serves an authority that issued to it |
+| The record of an expired certificate, and a revocation whose certificate had expired or whose authority was gone, taken away by the plugin's next write of its own | nothing removed for its age: an expired admission stays listed until its certificate is taken away, its client revoked or its authority retired, and a revocation stays for good | no time decides anything in the store, and nothing in a file tells which copies have seen a record; a wrong clock took out a record that setting it right did not bring back. The growth is accepted until a compaction exists, `STORE.md` §643 |

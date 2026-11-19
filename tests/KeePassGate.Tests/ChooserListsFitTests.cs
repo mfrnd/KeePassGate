@@ -129,16 +129,15 @@ namespace KeePassGate.Tests
         {
             Application.EnableVisualStyles();
 
-            var values = new InMemoryKeyValueStore();
             var records = new MemoryStore();
-            var service = new AuthorityService(records, values, null);
-            var chosen = Authorities(records, values, authorities);
-            Admit(records, values, chosen, clients);
+            var service = new AuthorityService(records, null);
+            var chosen = Authorities(records, authorities);
+            Admit(records, chosen, clients);
 
             AuthorityChoice choice;
             using (var reading = service.Read())
             {
-                choice = AuthorityChoice.From(reading, new AdmissionStore(values, null).All(), null, null);
+                choice = AuthorityChoice.From(reading, candidate => StoreSeeds.Listed(records, candidate), null, null);
             }
 
             using (var dialog = new AuthorityChooserForm(choice, "Invented Vault"))
@@ -183,9 +182,9 @@ namespace KeePassGate.Tests
         /// This many authorities side by side and none retired, answering with the first, which is
         /// the one the clients are admitted under.
         /// </summary>
-        private static string Authorities(MemoryStore records, InMemoryKeyValueStore values, int count)
+        private static string Authorities(MemoryStore records, int count)
         {
-            var first = StoreSeeds.Authority(records, values);
+            var first = StoreSeeds.Authority(records);
             for (var i = 1; i < count; i++)
             {
                 StoreSeeds.Beside(records);
@@ -194,7 +193,7 @@ namespace KeePassGate.Tests
             return first;
         }
 
-        private static void Admit(MemoryStore records, InMemoryKeyValueStore values, string fingerprint, int count)
+        private static void Admit(MemoryStore records, string fingerprint, int count)
         {
             var authority = StoreSeeds.KeyOf(records, fingerprint);
             for (var i = 0; i < count; i++)
@@ -202,8 +201,7 @@ namespace KeePassGate.Tests
                 var name = "agent-" + i.ToString("00", CultureInfo.InvariantCulture);
                 using (var client = new AuthorityIssuer().IssueClient(authority, name, new[] { "ops" }).Read())
                 {
-                    new AdmissionStore(values, null).Write(
-                        AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }));
+                    StoreSeeds.Client(records, AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }, fingerprint).Members());
                 }
             }
         }

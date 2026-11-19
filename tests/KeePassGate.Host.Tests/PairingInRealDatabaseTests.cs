@@ -93,6 +93,149 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_write_whose_plan_leaves_the_admission_out_is_not_believed_and_spends_nothing()
+        {
+            // An act the plan leaves out: an admission whose issuer is not the authority standing
+            // alone, which the plan then writes nothing for. Believed on a save of nothing, a
+            // pairing would hand a certificate over with no admission in the file. Refused before
+            // the condition is asked, and answered for what left it out.
+            using (var certificate = IssueClient())
+            {
+                var lines = 0;
+                var asked = 0;
+                var before = Snapshot();
+                var record = AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer);
+
+                var result = _writer.WriteAdmission(_database.Database, record, () => lines++, ground =>
+                {
+                    asked++;
+                    return null;
+                });
+
+                Assert.That(result.Ok, Is.False, "a certificate would go out for an admission nobody wrote");
+                Assert.That(result.IsUnserved, Is.True, "its issuer is not the authority served");
+                Assert.That(asked, Is.Zero, "the approval and the invitation are left as a refused write leaves them");
+                Assert.That(lines, Is.Zero);
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+                Assert.That(Snapshot(), Is.EqualTo(before));
+            }
+        }
+
+        [Test]
+        public void An_admission_missing_from_the_tree_after_its_save_is_taken_back_out_and_hands_nothing_over()
+        {
+            // The read back of a pairing's write is of its own entries: each entry the plan added
+            // is in the tree under its identifier, with the strings it was composed with, once the
+            // save has ended. A save that loses the admission and writes the rest is not believed.
+            using (var certificate = IssueClient())
+            {
+                var lines = 0;
+                var before = Snapshot();
+                var record = Record(certificate, "ops");
+                var writer = new DatabaseWriter(
+                    CurrentThread.Instance,
+                    database =>
+                    {
+                        var admission = new StoredAdmissions(database).Entries("client")
+                            .Single(entry => entry.Strings.ReadSafe("KPG.Data").Contains(record.AdmissionKey));
+                        admission.ParentGroup.Entries.Remove(admission);
+                        database.Save(null);
+                    },
+                    null,
+                    _dialogs,
+                    _log);
+
+                var result = writer.WriteAdmission(_database.Database, record, () => lines++);
+
+                Assert.That(result.Ok, Is.False, "a certificate would go out for an admission the tree does not hold");
+                Assert.That(result.Reason, Does.Contain("did not survive"));
+                Assert.That(lines, Is.Zero);
+                Assert.That(Snapshot(), Is.EqualTo(before), "everything the write did is taken back out");
+            }
+        }
+
+        [Test]
+        public void A_pairing_into_a_store_whose_group_is_in_the_recycle_bin_makes_a_group_and_takes_it_back_with_the_write()
+        {
+            // `STORE.md` §606: a write puts nothing into a group in the recycle bin, where Empty
+            // Recycle Bin would delete it, and makes a group of the plugin's own under the root. A
+            // pairing whose save does not land takes that group back out with everything else it
+            // did; a pairing that lands leaves its admission there, with the records in the bin
+            // still counting.
+            var bin = new PwGroup(true, true, "Recycle Bin", PwIcon.TrashBin);
+            _database.RootGroup.AddGroup(bin, true);
+            _database.Database.RecycleBinEnabled = true;
+            _database.Database.RecycleBinUuid = bin.Uuid;
+            var group = PluginGroups().Single();
+            _database.RootGroup.Groups.Remove(group);
+            bin.AddGroup(group, true);
+
+            using (var refused = IssueClient())
+            using (var admitted = IssueClient())
+            {
+                var failing = new DatabaseWriter(
+                    CurrentThread.Instance,
+                    delegate { throw new System.IO.IOException("the disk is full"); },
+                    null,
+                    _dialogs,
+                    _log);
+
+                Assume.That(failing.WriteAdmission(_database.Database, Record(refused, "ops")).Ok, Is.False);
+                Assert.That(PluginGroups(), Is.EqualTo(new[] { group }), "the group the write made is taken back with it");
+                Assert.That(group.ParentGroup, Is.SameAs(bin));
+
+                var written = _writer.WriteAdmission(_database.Database, Record(admitted, "ops"));
+
+                Assert.That(written.Ok, Is.True, written.Reason);
+                var made = PluginGroups().Single(found => found != group);
+                Assert.That(made.ParentGroup, Is.SameAs(_database.RootGroup));
+                Assert.That(made.Entries.Count(entry => entry.Strings.ReadSafe("KPG.Kind") == "client"), Is.EqualTo(1),
+                    "the admission is outside the bin");
+                Assert.That(new StoredAdmissions(_database.Database).Find(CertificateDigest.Of(admitted)), Is.Not.Null,
+                    "and admits, the authority in the bin still counting");
+            }
+        }
+
+        [Test]
+        public void A_pairing_while_an_entry_dialog_holds_the_summary_entry_is_busy_and_spends_nothing()
+        {
+            // `STORE.md` §626: every write deletes the summary entry it finds, and an entry dialog
+            // puts its copy of an entry back at its OK, so a pairing is refused for as long as that
+            // dialog stands, before its condition is asked.
+            using (var icons = new System.Windows.Forms.ImageList())
+            using (var form = new PwEntryForm())
+            using (var certificate = IssueClient())
+            {
+                var summary = _database.RootGroup.GetEntries(true).Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "head");
+                form.InitEx(summary, PwEditMode.EditExistingEntry, _database.Database, icons, false, false);
+                var asked = 0;
+                var before = Snapshot();
+
+                GlobalWindowManager.AddWindow(form);
+                try
+                {
+                    var result = _writer.WriteAdmission(_database.Database, Record(certificate, "ops"), null, ground =>
+                    {
+                        asked++;
+                        return null;
+                    });
+
+                    Assert.That(result.IsBusy, Is.True, result.Reason);
+                    Assert.That(asked, Is.Zero, "the approval and the invitation are left for a retry");
+                    Assert.That(_saves, Is.Zero);
+                    Assert.That(Snapshot(), Is.EqualTo(before));
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+
+                Assert.That(_writer.WriteAdmission(_database.Database, Record(certificate, "ops")).Ok, Is.True,
+                    "and the same write goes through once the dialog closes");
+            }
+        }
+
+        [Test]
         public void A_record_is_written_and_the_database_is_saved()
         {
             using (var certificate = IssueClient())
@@ -179,7 +322,7 @@ namespace KeePassGate.Host.Tests
                 _database.SaveCloseAndReopen();
 
                 Assert.That(
-                    new AdmissionStore(new CustomDataStore(_database.Database), null).Find(record.AdmissionKey),
+                    new StoredAdmissions(_database.Database).Find(record.AdmissionKey),
                     Is.Not.Null,
                     "and the record the line is about is in the file");
             }
@@ -235,7 +378,7 @@ namespace KeePassGate.Host.Tests
 
                 _database.SaveCloseAndReopen();
 
-                var found = new AdmissionStore(new CustomDataStore(_database.Database), null)
+                var found = new StoredAdmissions(_database.Database)
                     .Find(record.AdmissionKey);
 
                 Assert.That(found, Is.Not.Null, "a record that is not in the file admits nobody tomorrow");
@@ -346,7 +489,7 @@ namespace KeePassGate.Host.Tests
                     Assert.That(result.Ok, Is.False);
                     Assert.That(result.IsBusy, Is.True, "it is worth trying again once that dialog is gone");
                     Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
-                    Assert.That(_database.Database.CustomData.Exists(record.StorageKey), Is.False);
+                    Assert.That(Stored(record.AdmissionKey), Is.False);
                 }
                 finally
                 {
@@ -356,17 +499,18 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_pairing_takes_away_a_record_that_came_back_beside_its_revocation()
+        public void A_pairing_deletes_an_admission_that_came_back_beside_its_revocation()
         {
             // Reading the database, which is all the gate does when that client connects, changes
-            // nothing in it; the next write this plugin makes anyway takes the record with it.
-            var cameBack = PlantCameBackRecord();
+            // nothing in it; the next write this plugin makes anyway deletes the admission, with a
+            // deletion record, so a merge that brings it again finds it out of force.
+            var cameBack = PlantCameBackAdmission();
             _database.Database.Modified = false;
 
-            var store = new AdmissionStore(new CustomDataStore(_database.Database), null);
+            var store = new StoredAdmissions(_database.Database);
             Assume.That(store.Find(cameBack), Is.Null, "the revocation beside it refuses it meanwhile");
-            Assume.That(store.All().CameBack, Is.EqualTo(1));
-            Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.ClientRecordKey(cameBack)), Is.True);
+            Assume.That(store.All().Waiting, Is.EqualTo(1));
+            Assert.That(Stored(cameBack), Is.True);
             Assert.That(_database.Database.Modified, Is.False, "reading it marks nothing modified");
 
             using (var certificate = IssueClient())
@@ -376,39 +520,41 @@ namespace KeePassGate.Host.Tests
 
                 _database.SaveCloseAndReopen();
 
-                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.ClientRecordKey(cameBack)), Is.False,
-                    "gone from the file, not only from memory");
-                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RevocationKey(cameBack)), Is.True,
+                Assert.That(Stored(cameBack), Is.False, "gone from the file, not only from memory");
+                Assert.That(new StoredAdmissions(_database.Database).Entries("revoked"), Is.Not.Empty,
                     "and the revocation stays, for a stale copy that brings it back again");
+                Assert.That(new StoredAdmissions(_database.Database).All().Waiting, Is.Zero);
             }
         }
 
         [Test]
-        public void A_pairing_that_does_not_land_puts_a_record_that_came_back_back_as_well()
+        public void A_pairing_that_does_not_land_puts_an_admission_that_came_back_back_as_well()
         {
             var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, _log);
-            var cameBack = PlantCameBackRecord();
+            var cameBack = PlantCameBackAdmission();
             _database.Database.Modified = false;
+            var before = Snapshot();
 
             using (var certificate = IssueClient())
             {
                 Assume.That(writer.WriteAdmission(_database.Database, Record(certificate, "ops")).Ok, Is.False);
 
-                Assert.That(_database.Database.CustomData.Get(AuthorityKeys.ClientRecordKey(cameBack)),
-                    Is.EqualTo("a record that came back"),
-                    "memory has to go on agreeing with the file the write never reached");
+                Assert.That(Stored(cameBack), Is.True, "memory has to go on agreeing with the file the write never reached");
+                Assert.That(Snapshot(), Is.EqualTo(before), "and the store is as it was, deletion records and all");
                 Assert.That(_database.Database.Modified, Is.False);
             }
         }
 
         [Test]
-        public void A_pairing_takes_away_the_record_of_an_expired_certificate()
+        public void A_pairing_leaves_the_admission_of_an_expired_certificate_where_it_is()
         {
-            var expired = PlantExpiredRecord();
+            // Nothing is deleted for its age, `STORE.md` §643: the gate refuses an expired
+            // certificate on its dates before any admission is read.
+            var expired = PlantExpiredAdmission();
             _database.Database.Modified = false;
 
-            var store = new AdmissionStore(new CustomDataStore(_database.Database), null);
-            Assume.That(store.Find(expired), Is.Not.Null, "the record is there, and its dates are what refuse it");
+            var store = new StoredAdmissions(_database.Database);
+            Assume.That(store.Find(expired), Is.Not.Null, "the admission is there, and its dates are what refuse it");
             Assert.That(_database.Database.Modified, Is.False, "reading it marks nothing modified");
 
             using (var certificate = IssueClient())
@@ -418,36 +564,16 @@ namespace KeePassGate.Host.Tests
 
                 _database.SaveCloseAndReopen();
 
-                Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.ClientRecordKey(expired)), Is.False,
-                    "gone from the file, not only from memory");
-                Assert.That(_database.Database.CustomData.Exists(Record(certificate, "ops").StorageKey), Is.True,
-                    "and the record the pairing wrote is the one left");
-            }
-        }
-
-        [Test]
-        public void A_pairing_that_does_not_land_puts_the_record_of_an_expired_certificate_back()
-        {
-            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, _log);
-            var expired = PlantExpiredRecord();
-            var stored = _database.Database.CustomData.Get(AuthorityKeys.ClientRecordKey(expired));
-            _database.Database.Modified = false;
-
-            using (var certificate = IssueClient())
-            {
-                Assume.That(writer.WriteAdmission(_database.Database, Record(certificate, "ops")).Ok, Is.False);
-
-                Assert.That(_database.Database.CustomData.Get(AuthorityKeys.ClientRecordKey(expired)), Is.EqualTo(stored),
-                    "memory has to go on agreeing with the file the write never reached");
-                Assert.That(_database.Database.Modified, Is.False);
+                Assert.That(Stored(expired), Is.True, "still in the file");
+                Assert.That(Stored(CertificateDigest.Of(certificate)), Is.True, "beside the admission the pairing wrote");
             }
         }
 
         [Test]
         public void A_group_dialog_open_on_the_root_group_refuses_nothing()
         {
-            // A record touches no group, so there is nothing of this write for a group dialog's OK
-            // to put back. The root group was asked about while the authority lived on it.
+            // An admission touches no group that dialog holds a copy of, so there is nothing of
+            // this write for a group dialog's OK to put back.
             using (var certificate = IssueClient())
             using (var form = GroupDialogOnTheRoot())
             {
@@ -459,7 +585,7 @@ namespace KeePassGate.Host.Tests
 
                     Assert.That(_writer.Blocked(_database.Database), Is.Null);
                     Assert.That(_writer.WriteAdmission(_database.Database, record).Ok, Is.True);
-                    Assert.That(_database.Database.CustomData.Exists(record.StorageKey), Is.True);
+                    Assert.That(Stored(record.AdmissionKey), Is.True);
                 }
                 finally
                 {
@@ -469,23 +595,21 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_record_does_not_redraw_a_window_that_never_showed_it()
+        public void A_pairing_that_lands_rebuilds_the_tree_and_the_entry_list()
         {
-            // A database write rebuilds KeePass's group tree and entry list, because it changes
-            // what they are showing. A record does not: it lives in the database's own custom data,
-            // which the main window has no view of, and the save has already refreshed the title
-            // bar. Rebuilding anyway would take an operator's entry list away from them because
-            // somebody paired.
-            var redraws = 0;
+            // An admission and its summary entry are entries of the plugin's group, so the tree
+            // and the entry list are out of date once the write stands, as for every change that
+            // adds an entry.
+            var redraws = new List<bool>();
             var writer = new DatabaseWriter(
-                CurrentThread.Instance, Save, (database, lists) => redraws++, _dialogs, _log);
+                CurrentThread.Instance, Save, (database, lists) => redraws.Add(lists), _dialogs, _log);
 
             using (var certificate = IssueClient())
             {
                 var result = writer.WriteAdmission(_database.Database, Record(certificate, "ops"));
 
                 Assert.That(result.Ok, Is.True, result.Reason);
-                Assert.That(redraws, Is.Zero);
+                Assert.That(redraws, Is.EqualTo(new[] { true }));
             }
         }
 
@@ -587,8 +711,8 @@ namespace KeePassGate.Host.Tests
                 var result = writer.WriteAdmission(_database.Database, record);
 
                 Assert.That(result.Ok, Is.False, "or a certificate goes out for a record nobody can see");
-                Assert.That(new CustomDataStore(_database.Database).Get(record.StorageKey), Is.Null,
-                    "and the record is taken back out of the database in memory as well");
+                Assert.That(Stored(record.AdmissionKey), Is.False,
+                    "and the admission is taken back out of the database in memory as well");
                 Assert.That(_database.Database.Modified, Is.True,
                     "which leaves KeePass asking before it discards the copy that holds the truth");
             }
@@ -622,7 +746,7 @@ namespace KeePassGate.Host.Tests
                 var result = writer.WriteAdmission(_database.Database, record);
 
                 Assert.That(result.Ok, Is.False);
-                Assert.That(new CustomDataStore(_database.Database).Get(record.StorageKey), Is.Null);
+                Assert.That(Stored(record.AdmissionKey), Is.False);
                 Assert.That(_database.Database.Modified, Is.True,
                     "memory lost a record the file may hold, so KeePass asks before discarding it");
             }
@@ -656,8 +780,8 @@ namespace KeePassGate.Host.Tests
                 Assert.That(result.Ok, Is.True, result.Reason);
 
                 _database.CloseAndReopenWithoutSaving();
-                Assert.That(new CustomDataStore(_database.Database).Get(record.StorageKey), Is.Not.Null,
-                    "and the record the client was admitted by is the one on the disk");
+                Assert.That(new StoredAdmissions(_database.Database).Find(record.AdmissionKey), Is.Not.Null,
+                    "and the admission the client was admitted by is the one on the disk");
             }
         }
 
@@ -690,8 +814,8 @@ namespace KeePassGate.Host.Tests
 
                 _database.CloseAndReopenWithoutSaving();
 
-                Assert.That(new CustomDataStore(_database.Database).Get(record.StorageKey), Is.Not.Null,
-                    "and the record the line is about is in the file");
+                Assert.That(new StoredAdmissions(_database.Database).Find(record.AdmissionKey), Is.Not.Null,
+                    "and the admission the line is about is in the file");
             }
         }
 
@@ -713,12 +837,13 @@ namespace KeePassGate.Host.Tests
             {
                 var record = Record(certificate, "ops");
                 _database.Database.Modified = false;
+                var before = Snapshot();
 
                 Assert.Throws<NullReferenceException>(
                     () => writer.WriteAdmission(_database.Database, record, () => lines++));
 
-                Assert.That(lines, Is.Zero, "a record taken back out admitted nobody");
-                Assert.That(new CustomDataStore(_database.Database).Get(record.StorageKey), Is.Null);
+                Assert.That(lines, Is.Zero, "an admission taken back out admitted nobody");
+                Assert.That(Snapshot(), Is.EqualTo(before), "the store is as it was, the summary entry and the deletion records among it");
                 Assert.That(_database.Database.Modified, Is.False, "and the database agrees with the file");
             }
         }
@@ -751,16 +876,18 @@ namespace KeePassGate.Host.Tests
             using (var certificate = IssueClient())
             {
                 var record = Record(certificate, "ops");
-                var store = new CustomDataStore(_database.Database);
 
                 // From a database with nothing outstanding, so that anything left over afterwards
                 // is this write's doing and nobody else's.
                 _database.Database.Modified = false;
+                var before = Snapshot();
 
                 Assume.That(writer.WriteAdmission(_database.Database, record).Ok, Is.False);
 
-                Assert.That(store.Get(record.StorageKey), Is.Null,
-                    "a record that did not land must not be left in the group");
+                Assert.That(Stored(record.AdmissionKey), Is.False,
+                    "an admission that did not land must not be left in the group");
+                Assert.That(Snapshot(), Is.EqualTo(before),
+                    "and every entry and deletion record of the store is as it was");
                 Assert.That(_database.Database.Modified, Is.False,
                     "and the database must not be left asking to be saved for it");
             }
@@ -806,11 +933,12 @@ namespace KeePassGate.Host.Tests
             using (var certificate = IssueClient())
             {
                 var record = Record(certificate, "ops");
-                var store = new CustomDataStore(_database.Database);
+                var before = Snapshot();
 
                 Assume.That(writer.WriteAdmission(_database.Database, record).Ok, Is.False);
 
-                Assert.That(store.Get(record.StorageKey), Is.Null);
+                Assert.That(Stored(record.AdmissionKey), Is.False);
+                Assert.That(Snapshot(), Is.EqualTo(before));
             }
         }
 
@@ -851,12 +979,11 @@ namespace KeePassGate.Host.Tests
             using (var certificate = IssueClient())
             {
                 var record = Record(certificate, "ops");
-                var store = new CustomDataStore(_database.Database);
 
                 var result = writer.WriteAdmission(_database.Database, record);
 
                 Assert.That(result.Ok, Is.False);
-                Assert.That(store.Get(record.StorageKey), Is.Null);
+                Assert.That(Stored(record.AdmissionKey), Is.False);
             }
         }
 
@@ -979,6 +1106,204 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_pairing_whose_authority_is_recreated_before_its_write_is_told_its_invitation_is_gone()
+        {
+            // A Recreate landing while the operator reads the dialog retires the authority the
+            // invitation was made under. The write's plan leaves the admission out before anything
+            // is asked or spent, and the answer is the answer for that authority going: no retry
+            // under it can be written, so a `503` would invite a retry that cannot work.
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            {
+                var target = targets.Current().Single();
+                var invitation = book.Invite(target.DatabaseId);
+                string before = null;
+                var operatorAt = new AgreeingAfter(() =>
+                {
+                    var recreated = DatabaseAuthority.Of(_database.Database, null).Recreate();
+                    Assume.That(recreated.Succeeded, Is.True, recreated.Message);
+                    before = Snapshot();
+                });
+
+                var context = Pair(book, target, invitation, "agent-fictitious", new[] { "ops" }, operatorAt);
+
+                Assert.That(context.Status, Is.EqualTo(409), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("no invitation")));
+                Assert.That(book.Outstanding().Count, Is.EqualTo(1), "the invitation is not spent");
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+                Assert.That(Snapshot(), Is.EqualTo(before));
+            }
+        }
+
+        [Test]
+        public void A_summary_entry_deleted_for_good_while_the_dialog_stands_is_answered_stopped_with_nothing_spent()
+        {
+            // The store asked again in the write's own turn, `STORE.md` §627: a store that came to
+            // hold the gate back while the operator read the dialog is answered its word, as a
+            // connection is, with nothing written and the invitation unspent.
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            {
+                var target = targets.Current().Single();
+                var invitation = book.Invite(target.DatabaseId);
+                string before = null;
+                var operatorAt = new AgreeingAfter(() =>
+                {
+                    var store = new StoredAdmissions(_database.Database).Store;
+                    StoreSeeds.Revoke(store, new string('e', 64));
+                    var head = _database.RootGroup.GetEntries(true).Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "head");
+                    head.ParentGroup.Entries.Remove(head);
+                    _database.Database.DeletedObjects.Add(new PwDeletedObject(head.Uuid, DateTime.UtcNow));
+                    before = Snapshot();
+                });
+
+                var context = Pair(book, target, invitation, "agent-fictitious", new[] { "ops" }, operatorAt);
+
+                Assert.That(context.Status, Is.EqualTo(503), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("stopped")));
+                Assert.That(book.Outstanding().Count, Is.EqualTo(1), "the invitation is not spent");
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+                Assert.That(Snapshot(), Is.EqualTo(before));
+            }
+        }
+
+        [TestCase("lost")]
+        [TestCase("split")]
+        [TestCase("outdated")]
+        public void An_admission_over_a_store_that_holds_the_gate_back_is_answered_its_word_before_anything_is_asked(
+            string word)
+        {
+            // The store read in the write's own turn, `STORE.md` §627, and answered as a connection
+            // to the database is answered, `STORE.md` §656: before the plan, the condition and the
+            // save, so an approval and an invitation are spent on nothing.
+            AnsweredBeforeAnythingIsAsked(word);
+        }
+
+        [Test]
+        public void An_admission_while_several_authorities_stand_is_answered_undecided_before_anything_is_asked()
+        {
+            // A second authority standing beside the first serves nothing until the operator keeps
+            // an authority, and is answered as a connection to the database is.
+            AnsweredBeforeAnythingIsAsked(HeldBackTarget.Undecided);
+        }
+
+        /// <summary>
+        /// An admission written once the database is brought to be answered with this word, and
+        /// what came of it.
+        /// </summary>
+        private void AnsweredBeforeAnythingIsAsked(string word)
+        {
+            using (var certificate = IssueClient())
+            {
+                var record = Record(certificate, "ops");
+                var lines = 0;
+                var asked = 0;
+                new StoredAdmissions(_database.Database).HoldBack(word);
+                var before = Snapshot();
+
+                var result = _writer.WriteAdmission(_database.Database, record, () => lines++, ground =>
+                {
+                    asked++;
+                    return null;
+                });
+
+                Assert.That(result.Ok, Is.False);
+                Assert.That(result.Word, Is.EqualTo(word), result.Reason);
+                Assert.That(asked, Is.Zero, "the condition spends nothing");
+                Assert.That(lines, Is.Zero);
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+                Assert.That(Snapshot(), Is.EqualTo(before));
+            }
+        }
+
+        [Test]
+        public void An_admission_whose_authority_was_retired_beside_several_others_is_answered_unserved_before_anything_is_asked()
+        {
+            // Several authorities stand and the authority the invitation was made under is not
+            // among them: no decision of the operator's can serve it, so the plan refuses the write
+            // and it is answered as under an authority that went, with nothing asked or spent.
+            using (var certificate = IssueClient())
+            {
+                var record = Record(certificate, "ops");
+                var lines = 0;
+                var asked = 0;
+                new StoredAdmissions(_database.Database).RetiredBesideOthers();
+                var before = Snapshot();
+
+                var result = _writer.WriteAdmission(_database.Database, record, () => lines++, ground =>
+                {
+                    asked++;
+                    return null;
+                });
+
+                Assert.That(result.Ok, Is.False);
+                Assert.That(result.Word, Is.Null, result.Reason);
+                Assert.That(result.IsUnserved, Is.True, result.Reason);
+                Assert.That(asked, Is.Zero, "the condition spends nothing");
+                Assert.That(lines, Is.Zero);
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+                Assert.That(Snapshot(), Is.EqualTo(before));
+            }
+        }
+
+        [Test]
+        public void An_authority_retired_beside_several_others_while_the_dialog_stands_is_answered_no_invitation_with_nothing_spent()
+        {
+            // Beside the case of a second authority arriving: the authority the invitation was made
+            // under is retired and two others stand, so the pairing is told as an invitation that
+            // went, and the invitation itself is not spent.
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            {
+                var target = targets.Current().Single();
+                var invitation = book.Invite(target.DatabaseId);
+                string before = null;
+                var operatorAt = new AgreeingAfter(() =>
+                {
+                    new StoredAdmissions(_database.Database).RetiredBesideOthers();
+                    before = Snapshot();
+                });
+
+                var context = Pair(book, target, invitation, "agent-fictitious", new[] { "ops" }, operatorAt);
+
+                Assert.That(context.Status, Is.EqualTo(409), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("no invitation")));
+                Assert.That(book.Outstanding().Count, Is.EqualTo(1), "the invitation is not spent");
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+                Assert.That(Snapshot(), Is.EqualTo(before));
+            }
+        }
+
+        [Test]
+        public void A_second_authority_arriving_while_the_dialog_stands_is_answered_undecided_with_nothing_spent()
+        {
+            // A synchronize bringing a copy that made an authority of its own, while the operator
+            // reads the dialog: a connection to the database is answered `undecided` from then on,
+            // and so is the pairing at its write, with its invitation good once the operator keeps
+            // the authority it was made under.
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            {
+                var target = targets.Current().Single();
+                var invitation = book.Invite(target.DatabaseId);
+                string before = null;
+                var operatorAt = new AgreeingAfter(() =>
+                {
+                    new StoredAdmissions(_database.Database).HoldBack(HeldBackTarget.Undecided);
+                    before = Snapshot();
+                });
+
+                var context = Pair(book, target, invitation, "agent-fictitious", new[] { "ops" }, operatorAt);
+
+                Assert.That(context.Status, Is.EqualTo(503), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(HeldBackTarget.Undecided)));
+                Assert.That(book.Outstanding().Count, Is.EqualTo(1), "the invitation is not spent");
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+                Assert.That(Snapshot(), Is.EqualTo(before));
+            }
+        }
+
+        [Test]
         public void The_dialog_is_built_from_the_request_the_handler_made_out_of_the_database()
         {
             // Every other dialog test builds its request by hand, so what the real target answers
@@ -993,7 +1318,7 @@ namespace KeePassGate.Host.Tests
                 Assume.That(_writer.WriteAdmission(_database.Database, Record(revoked, "ops")).Ok, Is.True);
                 Assume.That(_writer.WriteAdmission(_database.Database, Record(elsewhere, "audit")).Ok, Is.True);
 
-                var admissions = new AdmissionStore(new CustomDataStore(_database.Database), null);
+                var admissions = new StoredAdmissions(_database.Database);
                 Assume.That(admissions.Remove(CertificateDigest.Of(revoked)), Is.True);
 
                 // And a holder whose certificate has expired, which regains nothing.
@@ -1002,7 +1327,7 @@ namespace KeePassGate.Host.Tests
                            .SelfSigned()
                            .Read())
                 {
-                    admissions.Write(AdmissionRecord.For(ended, DateTimeOffset.UtcNow.AddDays(-30), new[] { "ops" }));
+                    admissions.Write(AdmissionRecord.For(ended, DateTimeOffset.UtcNow.AddDays(-30), new[] { "ops" }, StoredAdmissions.AnyIssuer));
                 }
 
                 // "ops" taken off the list, as the Profiles page does, so that its holders would
@@ -1210,9 +1535,21 @@ namespace KeePassGate.Host.Tests
             }
         }
 
-        private static AdmissionRecord Record(X509Certificate2 certificate, params string[] profiles)
+        /// <summary>A pairing's admission under the authority the database serves.</summary>
+        private AdmissionRecord Record(X509Certificate2 certificate, params string[] profiles)
         {
-            return AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, profiles);
+            return AdmissionRecord.For(
+                certificate, DateTimeOffset.UtcNow, profiles, StoreSeeds.Served(new StoredAdmissions(_database.Database).Store));
+        }
+
+        /// <summary>
+        /// The groups of the plugin's own the tree holds, the recycle bin searched as well.
+        /// </summary>
+        private List<PwGroup> PluginGroups()
+        {
+            return _database.RootGroup.GetGroups(true)
+                .Where(found => KeePassGate.Store.StoreFormat.IsGroupIdentifier(found.Uuid.UuidBytes))
+                .ToList();
         }
 
         private GroupForm GroupDialogOnTheRoot()
@@ -1223,27 +1560,42 @@ namespace KeePassGate.Host.Tests
         }
 
         /// <summary>
-        /// What a stale copy merged in after a revocation leaves: the record back beside the
-        /// revocation that refuses it.
+        /// Whether the tree holds an admission's entry for this certificate, in force or not.
         /// </summary>
-        private string PlantCameBackRecord()
+        private bool Stored(string admissionKey)
         {
-            var revoked = new string('d', 64);
-            _database.Database.CustomData.Set(AuthorityKeys.ClientRecordKey(revoked), "a record that came back");
-            _database.Database.CustomData.Set(AuthorityKeys.RevocationKey(revoked), "2999-01-01T00:00:00Z");
-            return revoked;
+            return new StoredAdmissions(_database.Database).Holds("client", admissionKey);
+        }
+
+        private string Snapshot()
+        {
+            return new StoredAdmissions(_database.Database).Snapshot();
         }
 
         /// <summary>
-        /// The record of a client certificate that ended days ago, answering with its admission
+        /// What a stale copy merged in after a revocation leaves: the admission back in the tree
+        /// beside the revocation that refuses it, answering with its admission key.
+        /// </summary>
+        private string PlantCameBackAdmission()
+        {
+            using (var certificate = IssueClient())
+            {
+                var record = Record(certificate, "ops");
+                new StoredAdmissions(_database.Database).BackBesideItsRevocation(record);
+                return record.AdmissionKey;
+            }
+        }
+
+        /// <summary>
+        /// The admission of a client certificate that ended days ago, answering with its admission
         /// key.
         /// </summary>
         /// <remarks>
         /// From an authority of its own made a week ago, because nothing can be issued from before
         /// its authority began and this database's was made a moment ago. Whose authority it is
-        /// does not matter to the prune, which reads the certificate's dates and nothing else.
+        /// does not matter here, where its dates are what refuse it.
         /// </remarks>
-        private string PlantExpiredRecord()
+        private string PlantExpiredAdmission()
         {
             var then = DateTimeOffset.UtcNow.AddDays(-7);
             var issuer = new AuthorityIssuer(() => then);
@@ -1251,8 +1603,8 @@ namespace KeePassGate.Host.Tests
             var authorityKey = issuer.CreateAuthority();
             using (var certificate = issuer.IssueClient(authorityKey, "agent-nonexistent", new[] { "ops" }, TimeSpan.FromDays(1)).Read())
             {
-                var record = AdmissionRecord.For(certificate, then, new[] { "ops" });
-                _database.Database.CustomData.Set(record.StorageKey, record.Save());
+                var record = AdmissionRecord.For(certificate, then, new[] { "ops" }, StoredAdmissions.AnyIssuer);
+                new StoredAdmissions(_database.Database).Write(record);
                 return record.AdmissionKey;
             }
         }
@@ -1275,6 +1627,25 @@ namespace KeePassGate.Host.Tests
         {
             public PairingApproval Ask(PairingRequest request, TimeSpan timeout, TimeSpan left)
             {
+                return PairingApproval.Approved(request.Profiles);
+            }
+        }
+
+        /// <summary>
+        /// An operator who agrees to exactly what was asked for, once something else has happened.
+        /// </summary>
+        private sealed class AgreeingAfter : IPairingApproval
+        {
+            private readonly Action _meanwhile;
+
+            public AgreeingAfter(Action meanwhile)
+            {
+                _meanwhile = meanwhile;
+            }
+
+            public PairingApproval Ask(PairingRequest request, TimeSpan timeout, TimeSpan left)
+            {
+                _meanwhile();
                 return PairingApproval.Approved(request.Profiles);
             }
         }

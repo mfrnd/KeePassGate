@@ -71,12 +71,19 @@ namespace KeePassGate.Tests
         [TestCase("unverified", 500, "not verified")]
         [TestCase("failed", 500, "internal error")]
         [TestCase("missing", 401, "unpaired")]
+        [TestCase("split", 503, "split")]
+        [TestCase("outdated", 503, "outdated")]
+        [TestCase("stopped", 503, "stopped")]
+        [TestCase("lost", 503, "lost")]
+        [TestCase("undecided", 503, "undecided")]
         public void What_the_write_came_to_is_what_the_client_is_told(string outcome, int status, string error)
         {
             // In the vault writes' words. A record that went before the write could make it is the
             // one case of its own: the operator revoked it in between, so the answer is the one
-            // this certificate will get on every connection from now on.
-            _authority.RevokeAnswers = Outcome(outcome);
+            // this certificate will get on every connection from now on. A store that holds the
+            // gate back at the write is answered its word, as a connection is, and several
+            // authorities standing are answered `undecided`.
+            _authority.GiveUpAnswers = Outcome(outcome);
 
             using (var certificate = _authority.IssueAdmittedClient("reader"))
             {
@@ -129,7 +136,7 @@ namespace KeePassGate.Tests
         {
             // The database KeePass holds refuses the certificate from then on, whatever the file
             // turns out to say, so the revocation took.
-            _authority.RevokeAnswers = Outcome("unverified");
+            _authority.GiveUpAnswers = Outcome("unverified");
 
             using (var certificate = _authority.IssueAdmittedClient("reader"))
             {
@@ -152,7 +159,7 @@ namespace KeePassGate.Tests
             var router = GateOperations.Router("9.9.9", null, check);
             if (outcome != "ok")
             {
-                _authority.RevokeAnswers = Outcome(outcome);
+                _authority.GiveUpAnswers = Outcome(outcome);
             }
 
             using (var certificate = _authority.IssueAdmittedClient("reader"))
@@ -197,7 +204,7 @@ namespace KeePassGate.Tests
         {
             // Taken back out, never made, or made by somebody else first: none of these revoked
             // anything here, and the operator's own revocation is written down where it lands.
-            _authority.RevokeAnswers = Outcome(outcome);
+            _authority.GiveUpAnswers = Outcome(outcome);
 
             using (var certificate = _authority.IssueAdmittedClient("reader"))
             {
@@ -227,7 +234,7 @@ namespace KeePassGate.Tests
             var context = new GateContext(
                 Head("DELETE", 0), string.Empty, ClientIdentity.Stranger(_authority.DatabaseId));
             new ServedDatabase(null, _authority).PutOn(context);
-            _authority.RevokeAnswers = VaultWrite.Failed("nothing should have asked");
+            _authority.GiveUpAnswers = VaultWrite.Failed("nothing should have asked");
 
             _router.Handle(context);
 
@@ -303,8 +310,10 @@ namespace KeePassGate.Tests
                     return VaultWrite.Unverified("the file does not hold what was written");
                 case "failed":
                     return VaultWrite.Failed("the database closed");
-                default:
+                case "missing":
                     return VaultWrite.Missing();
+                default:
+                    return VaultWrite.Unavailable(outcome);
             }
         }
     }

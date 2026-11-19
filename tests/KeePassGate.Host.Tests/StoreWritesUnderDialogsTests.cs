@@ -109,7 +109,7 @@ namespace KeePassGate.Host.Tests
             // The behavior, reproduced: the dialog copies the entry's strings as it opens, and its
             // OK assigns the copy, so content the plugin protected again while it was open is
             // unprotected again, `STORE.md` §628 (S18).
-            StoreSeeds.Authority(Store(), Admissions());
+            StoreSeeds.Authority(Store());
             var authority = Entry("authority");
             var content = authority.Strings.Get(StoreFormat.DataField);
             authority.CreateBackup(_database.Database);
@@ -135,7 +135,7 @@ namespace KeePassGate.Host.Tests
         {
             // Every write deletes the summary entry it finds, `STORE.md` §627 step 4, so that entry
             // is asked about each time, and nothing the write only adds.
-            StoreSeeds.Authority(Store(), Admissions());
+            StoreSeeds.Authority(Store());
             var asked = new List<PwEntry>();
             var store = new KdbxStore(_database.Database, GateVersion.Current, NullGateLog.Instance, entry =>
             {
@@ -164,7 +164,7 @@ namespace KeePassGate.Host.Tests
             Assert.That(authority.Strings.ReadSafe(StoreFormat.DataField), Is.EqualTo(content.ReadString()));
 
             asked.Clear();
-            Assert.That(new AuthorityService(store, Admissions(), NullGateLog.Instance).Recreate().Succeeded, Is.True);
+            Assert.That(new AuthorityService(store, NullGateLog.Instance).Recreate().Succeeded, Is.True);
             Assert.That(asked, Does.Contain(authority), "the authority it deletes");
             Assert.That(asked.All(entry => _database.RootGroup.FindEntry(entry.Uuid, true) == null), Is.True,
                 "and nothing it keeps");
@@ -175,7 +175,7 @@ namespace KeePassGate.Host.Tests
         {
             // `STORE.md` §626: once the plan exists, every entry it deletes, sets back or protects
             // is asked about. Recreate deletes the authority's entry.
-            var first = StoreSeeds.Authority(Store(), Admissions());
+            var first = StoreSeeds.Authority(Store());
 
             using (var form = EntryDialog(Entry("authority")))
             {
@@ -200,7 +200,7 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_keep_that_retires_an_entry_an_entry_dialog_holds_is_refused_and_another_entry_s_dialog_lets_it_through()
         {
-            var both = StoreSeeds.Undecided(Store(), Admissions());
+            var both = StoreSeeds.Undecided(Store());
 
             using (var form = EntryDialog(EntryOf(both[1])))
             {
@@ -241,7 +241,7 @@ namespace KeePassGate.Host.Tests
             // as a whole, as under the TAN wizard, and the tab's custom data changes beside that
             // write are asked nothing. Neither window can stand beside the settings dialog, each
             // being modal, so the writer is asked directly here.
-            var both = StoreSeeds.Undecided(Store(), Admissions());
+            var both = StoreSeeds.Undecided(Store());
 
             using (var form = new DatabaseOperationsForm())
             {
@@ -343,17 +343,12 @@ namespace KeePassGate.Host.Tests
         private AuthorityService Service()
         {
             return new AuthorityService(
-                new OpenDatabase(_database.Database, delegate { }, _writer, NullGateLog.Instance).Store, Admissions(), NullGateLog.Instance);
+                new OpenDatabase(_database.Database, delegate { }, _writer, NullGateLog.Instance).Store, NullGateLog.Instance);
         }
 
         private KdbxStore Store()
         {
             return new KdbxStore(_database.Database, GateVersion.Current, NullGateLog.Instance);
-        }
-
-        private CustomDataStore Admissions()
-        {
-            return new CustomDataStore(_database.Database);
         }
 
         private PwEntry Entry(string kind)

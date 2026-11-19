@@ -411,7 +411,7 @@ namespace KeePassGate.Host.Tests
                         // The page in front first, because bringing it forward reads the database
                         // again and fills the list with what is really there.
                         Show(clients);
-                        clients.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), 9999, true), null, null);
+                        clients.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), null, null, 9999, true), null, null);
                         Show(clients, ClientList.ResultLabelName, LongestGesture());
                         clients.PerformLayout();
 
@@ -480,7 +480,7 @@ namespace KeePassGate.Host.Tests
                         Set(panel, GateTab.InvitationLabelName, LongestInvitationLine(panel));
                         Show(panel, GateTab.InviteNoticeName, notice);
                         Set(panel, GateTab.ResultLabelName, AuthorityPanel.LongestResult());
-                        clients.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), 9999, true), null, null);
+                        clients.Fill(new AdmissionListing(Array.Empty<AdmissionRecord>(), null, null, 9999, true), null, null);
                         Show(clients, ClientList.ResultLabelName, LongestGesture());
 
                         panel.PerformLayout();
@@ -659,12 +659,23 @@ namespace KeePassGate.Host.Tests
             {
                 using (var certificate = ClientCertificate(client.Item1, admitted))
                 {
-                    var record = AdmissionRecord.For(certificate, admitted, client.Item2);
+                    var record = AdmissionRecord.For(certificate, admitted, client.Item2, StoredAdmissions.AnyIssuer);
                     records.Add(record);
                     standing[record.AdmissionKey] = client.Item3;
                 }
 
                 admitted = admitted.AddMinutes(-3);
+            }
+
+            // And the longest client renewed, so its rows are a group: the certificate admitted
+            // last on the client's own row, and the earlier certificate indented under it.
+            using (var renewed = ClientCertificate(longestClient, admitted))
+            {
+                var first = records[records.Count - 1];
+                var renewal = AdmissionRecord.For(
+                    renewed, first.Admitted.AddMinutes(1), first.Profiles, StoredAdmissions.AnyIssuer, first.ClientKey, first.AdmissionKey);
+                records.Add(renewal);
+                standing[renewal.AdmissionKey] = RenewalRefusal.ThisSession();
             }
 
             using (var scaled = scaling > 1.00f ? ScaledDialog(scaling) : null)
@@ -692,7 +703,7 @@ namespace KeePassGate.Host.Tests
 
                             list.Fill(
                                 crowded
-                                    ? new AdmissionListing(records, new[] { new string('f', 64) }, 9999, false)
+                                    ? new AdmissionListing(records, null, new[] { new UnreadAdmission(new string('f', 64), null, null) }, 9999, false)
                                     : new AdmissionListing(records, true),
                                 null,
                                 null,
@@ -709,6 +720,7 @@ namespace KeePassGate.Host.Tests
                             }
 
                             var cut = new List<string>();
+                            var dated = false;
                             var line = TextRenderer.MeasureText("ops", grid.DefaultCellStyle.Font ?? grid.Font).Height;
                             foreach (DataGridViewRow row in grid.Rows)
                             {
@@ -735,6 +747,42 @@ namespace KeePassGate.Host.Tests
                                     cut.Add(ClientList.Describe(record) + " holds " + record.Profiles.Count
                                             + " profiles in a row " + row.Height + " tall");
                                 }
+
+                                // The row's menu, on every row that holds an admission and so on
+                                // the row whose menu holds the longest lines, an answer naming its
+                                // date among them: each command the row offers is available, and
+                                // the menu comes up no wider than the page it is opened over. A
+                                // menu is a window of its own and takes no room on the page, so the
+                                // page's width is no room it needs: it is the bound a line that
+                                // grew without end would cross.
+                                var listed = list.Rows[row.Index];
+                                if (listed.Record != null && list.Prepare(row.Index))
+                                {
+                                    var offered = new[]
+                                    {
+                                        Tuple.Create(ClientList.RevokeItemName, listed.Revocable),
+                                        Tuple.Create(ClientList.TakeAwayItemName, true),
+                                        Tuple.Create(ClientList.AllowRenewalItemName, true),
+                                    };
+                                    foreach (var command in offered.Where(command => list.Menu.Items[command.Item1].Available != command.Item2))
+                                    {
+                                        cut.Add("the menu of row " + row.Index + (command.Item2 ? " offers no " : " offers ") + command.Item1);
+                                    }
+
+                                    var menu = list.Menu.GetPreferredSize(Size.Empty).Width;
+                                    if (menu > area.Width)
+                                    {
+                                        cut.Add("the menu of row " + row.Index + " needs " + menu + " in " + area.Width);
+                                    }
+
+                                    var answer = list.Menu.Items[ClientList.AnswerItemName];
+                                    dated |= answer.Available && answer.Text.Contains(day.Year.ToString(CultureInfo.InvariantCulture));
+                                }
+                            }
+
+                            if (!dated)
+                            {
+                                cut.Add("no menu measured holds an answer naming its date");
                             }
 
                             TestContext.Out.WriteLine(what + ": columns " + columns + " of " + grid.ClientSize.Width
@@ -1011,7 +1059,7 @@ namespace KeePassGate.Host.Tests
             _several?.Dispose();
             _several = TemporaryDatabase.New();
             StoreSeeds.Undecided(
-                new KdbxStore(_several.Database, GateVersion.Current, null), new CustomDataStore(_several.Database));
+                new KdbxStore(_several.Database, GateVersion.Current, null));
 
             var panel = new AuthorityPanel(Opened(_several), null, NullGateLog.Instance);
             Set(panel, GateTab.ResultLabelName, AuthorityPanel.LongestResult());

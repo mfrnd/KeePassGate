@@ -30,9 +30,11 @@ namespace KeePassGate.Store
     /// of a record of a subject the file knows. **A deletion record tells only under its own
     /// kind's tag**, so the deletion record of an authority, which shares a subject with its
     /// retirement, retires nothing. For a certificate taken away the file knows an admission key
-    /// from the records and the items of that kind alone, their `certificate`, `from` and
-    /// `renewed`: an admission's own `certificate` and `from` are read with the admissions, which
-    /// this build does not read, `STORE.md` §620.
+    /// from the `certificate` and the `from` of every record of kind `client` present, in force
+    /// or not, and from the `certificate`, `from` and `renewed` of the records and the items of
+    /// that kind: the admission of a certificate taken away goes with the write that takes it
+    /// away, and where the record and its item are lost as well, a renewal's `from` is the text
+    /// left that names the certificate. Knowing a key only lets a deletion record refuse.
     ///
     /// **A certificate taken away is a set of statements**, `STORE.md` §648: each record of the
     /// kind by its identifier, each item of the kind as it is, and each deletion record of the
@@ -80,6 +82,14 @@ namespace KeePassGate.Store
         private readonly HashSet<(string Id, string Certificate, string Renewed, string From)> _itemStatements =
             new HashSet<(string Id, string Certificate, string Renewed, string From)>();
 
+        /// <summary>The statements, by the certificate each took away.</summary>
+        private readonly Dictionary<string, List<StoreStatement>> _statementsOf =
+            new Dictionary<string, List<StoreStatement>>(StringComparer.Ordinal);
+
+        /// <summary>The records of kind `client`, by the text of their `certificate`.</summary>
+        private readonly Dictionary<string, List<FoundRecord>> _admissionsOf =
+            new Dictionary<string, List<FoundRecord>>(StringComparer.Ordinal);
+
         private HashSet<string> _after = new HashSet<string>(StringComparer.Ordinal);
 
         private StoreInForce()
@@ -112,6 +122,12 @@ namespace KeePassGate.Store
 
         /// <summary>Every item of every summary entry present, of the kinds the plugin knows.</summary>
         public IReadOnlyList<StoreItem> Items { get; private set; }
+
+        /// <summary>
+        /// Every record of kind `client` under the key, in force or not, whether or not it reads
+        /// as an admission, `STORE.md` §615: each with the texts the core keeps of it, §658.
+        /// </summary>
+        public IReadOnlyList<FoundRecord> Admissions { get; private set; }
 
         /// <summary>The summary entries present, `STORE.md` §611.</summary>
         public IReadOnlyList<FoundRecord> Heads { get; private set; }
@@ -179,6 +195,33 @@ namespace KeePassGate.Store
         {
             HashSet<string> values;
             return kind != null && _taken.TryGetValue(kind, out values) ? values : Nothing;
+        }
+
+        /// <summary>
+        /// The statements that took this certificate away, `STORE.md` §648, each with the renewals
+        /// it names and the certificate of origin it holds; none for a certificate no statement
+        /// names. Worked out as the reading is made, so that following a chain of origins builds
+        /// no index in a hold.
+        /// </summary>
+        public IReadOnlyList<StoreStatement> StatementsOf(string certificate)
+        {
+            List<StoreStatement> statements;
+            return certificate != null && _statementsOf.TryGetValue(certificate, out statements)
+                ? statements
+                : (IReadOnlyList<StoreStatement>)Array.Empty<StoreStatement>();
+        }
+
+        /// <summary>
+        /// The records of kind `client` under the key whose `certificate` is this text, in force or
+        /// not and whether or not they read as admissions, in the order of
+        /// <see cref="Admissions"/>; none where no record names it.
+        /// </summary>
+        public IReadOnlyList<FoundRecord> AdmissionsOf(string certificate)
+        {
+            List<FoundRecord> records;
+            return certificate != null && _admissionsOf.TryGetValue(certificate, out records)
+                ? records
+                : (IReadOnlyList<FoundRecord>)Array.Empty<FoundRecord>();
         }
 
         /// <summary>
@@ -261,6 +304,24 @@ namespace KeePassGate.Store
             made.Heads = records.Where(record => record.Is(StoreKinds.Head)).ToList();
             made.HeadsInForce = made.Heads.Where(head => head.InForce).ToList();
             made.Items = made.Heads.SelectMany(head => head.Form.Items).ToList();
+            made.Admissions = records.Where(record => record.Is(StoreKinds.Client)).ToList();
+            foreach (var admission in made.Admissions)
+            {
+                var certificate = admission.Form.Member(StoreKinds.Certificate);
+                if (certificate == null)
+                {
+                    continue;
+                }
+
+                List<FoundRecord> named;
+                if (!made._admissionsOf.TryGetValue(certificate, out named))
+                {
+                    named = new List<FoundRecord>();
+                    made._admissionsOf[certificate] = named;
+                }
+
+                named.Add(admission);
+            }
 
             var byKind = ByKind(key, byTag);
             made.Told = Telling(key, byKind, StoreKinds.Head, StoreKinds.StoreSubject).ToList();
@@ -471,6 +532,18 @@ namespace KeePassGate.Store
             }
 
             _taken[row.Name] = new HashSet<string>(_statements.Select(statement => statement.Certificate), StringComparer.Ordinal);
+
+            foreach (var statement in _statements.Where(statement => statement.Certificate != null))
+            {
+                List<StoreStatement> of;
+                if (!_statementsOf.TryGetValue(statement.Certificate, out of))
+                {
+                    of = new List<StoreStatement>();
+                    _statementsOf[statement.Certificate] = of;
+                }
+
+                of.Add(new StoreStatement(statement.Renewed, statement.From));
+            }
         }
 
         /// <summary>A statement of what a record or an item holds, a member absent kept as null.</summary>
@@ -511,11 +584,20 @@ namespace KeePassGate.Store
 
         /// <summary>
         /// The admission keys the file knows for a certificate taken away, `STORE.md` §623 step
-        /// 2: the `certificate`, the `from` and each key in `renewed` of every record and item of
-        /// the kind, a text that is no admission key adding none.
+        /// 2: the `certificate` and the `from` of every record of kind `client`, and the
+        /// `certificate`, the `from` and each key in `renewed` of every record and item of the
+        /// kind, a text that is no admission key adding none.
         /// </summary>
         private IEnumerable<string> KnownAdmissionKeys(StoreKind row)
         {
+            var named = Admissions
+                .SelectMany(admission => new[] { admission.Form.Member(StoreKinds.Certificate), admission.Form.Member(StoreKinds.From) })
+                .Where(value => value != null && StoreChecked.InForm(value, StoreForm.Hex));
+            foreach (var value in named)
+            {
+                yield return value;
+            }
+
             var stated = Records.Where(record => record.Is(row.Name)).Select(record => record.Form.Members)
                 .Concat(Items.Where(item => item.Kind == row.Name).Select(item => item.Members));
             foreach (var members in stated)

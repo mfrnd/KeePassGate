@@ -55,8 +55,8 @@ namespace KeePassGate.Tests
                 Assert.That((string)answer["clientKey"], Is.EqualTo(CertificateDigest.Of(certificate)),
                     "a client that has not renewed is known by the certificate it paired with");
                 Assert.That((string)answer["admissionKey"], Is.EqualTo(CertificateDigest.Of(certificate)));
-                Assert.That(answer["profiles"].Values<string>(), Is.EqualTo(new[] { "reader", "ops" }),
-                    "the record's profiles, in the record's order, whatever the certificate claims");
+                Assert.That(answer["profiles"].Values<string>(), Is.EqualTo(new[] { "ops", "reader" }),
+                    "the admission's profiles, in ordinal order, whatever the certificate claims");
                 Assert.That(answer["removedProfiles"].Values<string>(), Is.Empty);
                 Assert.That((bool)answer["profilesUnreadable"], Is.False);
             }
@@ -80,13 +80,15 @@ namespace KeePassGate.Tests
         {
             // The client key is the certificate it paired with, which the renewal copied into the
             // record; the admission key is the certificate on this connection, which the audit
-            // names and the Clients page revokes.
+            // names and a renewal changes. The certificate it paired with is still admitted, as a
+            // renewal's origin has to be.
             using (var paired = _authority.IssueClient("agent-fictitious", "reader"))
             using (var renewed = _authority.IssueClient("agent-fictitious", "reader"))
             {
                 var first = CertificateDigest.Of(paired);
+                _authority.Admit(paired, "reader");
                 _authority.Admit(
-                    AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "reader" }, first), null, null);
+                    AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "reader" }, _authority.DatabaseId, first, first), null, null);
 
                 var answer = Answered("GET", Identified(renewed));
 
@@ -143,7 +145,7 @@ namespace KeePassGate.Tests
                 var answer = Answered("GET", Identified(certificate));
 
                 Assert.That(answer["profiles"].Values<string>(), Is.Empty);
-                Assert.That(answer["removedProfiles"].Values<string>(), Is.EqualTo(new[] { "reader", "ops" }));
+                Assert.That(answer["removedProfiles"].Values<string>(), Is.EqualTo(new[] { "ops", "reader" }));
                 Assert.That((bool)answer["profilesUnreadable"], Is.True);
             }
         }

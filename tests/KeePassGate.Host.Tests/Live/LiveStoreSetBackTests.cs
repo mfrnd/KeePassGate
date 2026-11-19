@@ -50,7 +50,7 @@ namespace KeePassGate.Host.Tests.Live
 
             keePass.ChangeTheStore(database =>
             {
-                var service = new AuthorityService(Store(database), new CustomDataStore(database), NullGateLog.Instance);
+                var service = new AuthorityService(Store(database), NullGateLog.Instance);
                 Assume.That(service.Create().Succeeded, Is.True);
                 Assume.That(service.Delete().Succeeded, Is.True);
 

@@ -171,10 +171,10 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_revocation_racing_an_approved_renewal_is_never_overtaken()
+        public void A_certificate_given_up_racing_an_approved_renewal_is_never_overtaken()
         {
-            // The client's own revocation, sent on another connection the moment the dialog
-            // closes. Whichever lands first, a revoked certificate must not end the race renewed.
+            // The client giving its certificate up on another connection the moment the dialog
+            // closes. Whichever lands first, a certificate given up must not end the race renewed.
             for (var round = 0; round < 8; round++)
             {
                 using (var old = Admit("agent-racing-" + round))
@@ -194,7 +194,7 @@ namespace KeePassGate.Host.Tests
                         Thread.Sleep(round * 3);
                         using (var target = _targets.Current().Single())
                         {
-                            target.Revoke(key, () => _audit.Note("revoked " + key));
+                            target.GiveUp(key, () => _audit.Note("given up " + key));
                         }
                     }) { IsBackground = true };
 
@@ -204,9 +204,9 @@ namespace KeePassGate.Host.Tests
 
                     var order = _audit.Lines.ToList();
                     var renewedAt = order.FindIndex(line => line == "renewed " + key);
-                    var revokedAt = order.FindIndex(line => line == "revoked " + key);
+                    var revokedAt = order.FindIndex(line => line == "given up " + key);
 
-                    Assert.That(revokedAt, Is.Not.EqualTo(-1), "the revocation landed");
+                    Assert.That(revokedAt, Is.Not.EqualTo(-1), "the certificate given up landed");
                     if (answer.Status == 200)
                     {
                         Assert.That(renewedAt, Is.LessThan(revokedAt), "a renewal answered 200 landed first");
@@ -302,7 +302,7 @@ namespace KeePassGate.Host.Tests
             {
                 var certificate = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, name, new[] { "ops" }).Read();
                 var written = _writer.WriteAdmission(
-                    _database.Database, AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" }));
+                    _database.Database, AdmissionRecord.For(certificate, DateTimeOffset.UtcNow, new[] { "ops" }, StoreSeeds.Served(new StoredAdmissions(_database.Database).Store)));
                 Assume.That(written.Ok, Is.True, written.Reason);
                 return certificate;
             }

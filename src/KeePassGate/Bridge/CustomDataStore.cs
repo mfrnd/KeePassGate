@@ -78,10 +78,8 @@ namespace KeePassGate.Bridge
         /// Removes the key if it is there. A no-op otherwise.
         /// </summary>
         /// <remarks>
-        /// A plain removal, because that is what the seam means everywhere it is used. Revocation
-        /// wants something stronger, since a removal is the one change a merge cannot carry, and
-        /// `AdmissionStore.Remove` is where that is decided rather than here: a record taken back
-        /// out because the save it belonged to never happened has nothing to outlive.
+        /// A plain removal, because that is what the seam means everywhere it is used: a standing
+        /// answer lifted, or taken back out because the save it belonged to never happened.
         /// </remarks>
         public void Remove(string key)
         {

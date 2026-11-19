@@ -9,6 +9,7 @@ using KeePassGate.Authority;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
+using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassGate.Transport;
 using KeePassGate.Ui;
@@ -22,11 +23,12 @@ namespace KeePassGate.Host.Tests.Live
     /// route on the next connection, and the old one is refused once the client has given it up.
     /// </summary>
     /// <remarks>
-    /// The old record is left valid by the renewal on purpose, so the client revokes it itself,
-    /// as the reference client does, presenting the old certificate. What this establishes that
-    /// nothing smaller does: that the new record reaches KeePass's own save before the answer, that
-    /// the bundle it answers with is one a client can connect with, and that the file holds the new
-    /// record and not the old once KeePass has gone.
+    /// The old admission is left valid by the renewal on purpose, so the client gives the old
+    /// certificate up itself, as the reference client does, presenting it. What this establishes
+    /// that nothing smaller does: that the new admission reaches KeePass's own save before the
+    /// answer, that the bundle it answers with is one a client can connect with, and that once
+    /// KeePass has gone the file holds the new admission, a record of kind withdrawn that takes
+    /// the old certificate away and names the renewal, and no admission of the old certificate.
     ///
     /// **And a refusal chosen from the Refuse button's menu**, in KeePass's own modal loop, which
     /// is where a menu on a dialog either owns its clicks and its keys or does not. The new
@@ -37,6 +39,12 @@ namespace KeePassGate.Host.Tests.Live
     /// **And that answer lifted from the clients page**, as the operator does it: the row's menu
     /// opened with Shift and F10, Allow renewal pressed, and the settings dialog accepted. The next
     /// renewal of that certificate then raises the dialog again, which is refused once.
+    ///
+    /// **And every command of the clients page, pressed in a single visit and landed by OK**: the
+    /// X on a client's row, Revoke and Take certificate away from the row's menu, and Allow renewal
+    /// on a certificate whose answer the file keeps. The database is saved, and once KeePass has
+    /// gone the file holds a revocation of each client revoked, a record taking the certificate
+    /// away that revokes nobody, and no answer for the certificate allowed to renew.
     /// </remarks>
     [TestFixture]
     [Category(TestCategories.Live)]
@@ -45,6 +53,11 @@ namespace KeePassGate.Host.Tests.Live
     public sealed class LiveRenewalTests
     {
         private static readonly TimeSpan DialogTimeout = TimeSpan.FromSeconds(60);
+
+        private const string RevokedByTheMark = "agent-revoked-by-the-x";
+        private const string RevokedFromTheMenu = "agent-revoked-from-the-menu";
+        private const string TakenAway = "agent-taken-away";
+        private const string AllowedToRenew = "agent-allowed-to-renew";
 
         private LiveSession _session;
 
@@ -62,12 +75,26 @@ namespace KeePassGate.Host.Tests.Live
         private bool _exited;
         private string _pluginLog;
         private string[] _savedBeforeTheAnswer;
+        private string _byTheMark;
+        private string _fromTheMenu;
+        private string _takenAway;
+        private string _allowedToRenew;
+        private string _takeAwayMenu;
+        private bool _oldTakenAwayInTheFile;
+        private bool _renewalNamedInTheFile;
+        private bool _oldAdmissionInTheFile;
 
         [OneTimeSetUp]
         public void RunTheWholeSession()
         {
             _session = LiveSession.Begin(true);
             var keePass = _session.KeePass;
+
+            _byTheMark = Admitted(keePass, RevokedByTheMark);
+            _fromTheMenu = Admitted(keePass, RevokedFromTheMenu);
+            _takenAway = Admitted(keePass, TakenAway);
+            _allowedToRenew = Admitted(keePass, AllowedToRenew);
+            keePass.RefuseRenewal(_allowedToRenew, RenewalRefusal.Forever());
 
             using (var old = keePass.IssueClientCertificate("agent-fictitious"))
             {
@@ -80,8 +107,8 @@ namespace KeePassGate.Host.Tests.Live
                 _renewed = Approve(driver, keePass, old);
                 Assert.That(_renewed.Status, Is.EqualTo(200), _renewed.Failure ?? _renewed.Body);
 
-                // Read now, before the old certificate's revocation saves the whole database again
-                // and would carry a record whose own save was skipped into the file regardless.
+                // Read now, before giving the old certificate up saves the whole database again and
+                // would carry an admission whose own save was skipped into the file regardless.
                 _savedBeforeTheAnswer = keePass.ReadAdmissions().Select(record => record.AdmissionKey).ToArray();
 
                 using (var renewed = Identity(_renewed.Body))
@@ -108,6 +135,16 @@ namespace KeePassGate.Host.Tests.Live
                     GateOperations.PathOf(GateOperations.RevokeCertificate), null);
                 _withTheOld = LiveGateClient.Get(
                     keePass.Port, keePass.NewGateName(), old, GateOperations.StatusPath);
+
+                // Read before the clients page's OK and the save after it, which writes whatever
+                // KeePass holds into the file: what is read here is what the give-up's own save
+                // wrote.
+                _oldTakenAwayInTheFile = keePass.FileHolds(StoreKinds.Withdrawn, StoreKinds.Certificate, _oldKey);
+                _renewalNamedInTheFile = keePass.FileHolds(StoreKinds.Withdrawn, StoreKinds.Renewed, _newKey);
+                _oldAdmissionInTheFile = keePass.FileHolds(StoreKinds.Client, StoreKinds.Certificate, _oldKey);
+
+                _takeAwayMenu = EveryCommandOnTheClientsPage(driver);
+                driver.Save();
 
                 _exited = driver.ShutDown();
             }
@@ -168,6 +205,44 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(admitted, Has.No.Member(_oldKey));
             Assert.That(_savedBeforeTheAnswer, Has.Member(_newKey),
                 "the renewal's own save put the new record in the file before it answered");
+
+            // As the give-up's own save wrote the file, read before any later save.
+            Assert.That(_oldTakenAwayInTheFile, Is.True, "the old certificate is taken away by a record of its own");
+            Assert.That(_renewalNamedInTheFile, Is.True, "which names the renewal the client had read");
+            Assert.That(_oldAdmissionInTheFile, Is.False, "and the write deleted the old certificate's admission");
+        }
+
+        [Test]
+        public void Every_command_of_the_clients_page_reached_the_file_once_OK_landed_it_and_KeePass_saved()
+        {
+            Assert.That(_exited, Is.True, "KeePass did not exit cleanly");
+            Assert.That(_takeAwayMenu, Does.Contain(Shown(ClientList.TakeAwayText)),
+                "the row's menu offered no way to take the certificate away");
+
+            var keePass = _session.KeePass;
+            var admitted = keePass.ReadAdmissions().Select(record => record.AdmissionKey).ToArray();
+            Assert.That(admitted, Has.No.Member(_byTheMark), "the X revoked its client");
+            Assert.That(admitted, Has.No.Member(_fromTheMenu), "Revoke on the menu revoked its client");
+            Assert.That(admitted, Has.No.Member(_takenAway), "the certificate taken away admits nobody");
+            Assert.That(admitted, Has.Member(_allowedToRenew), "allowing a renewal takes nothing away");
+
+            Assert.That(keePass.FileHolds(StoreKinds.Revoked, StoreKinds.ClientMember, _byTheMark), Is.True);
+            Assert.That(keePass.FileHolds(StoreKinds.Revoked, StoreKinds.ClientMember, _fromTheMenu), Is.True);
+            Assert.That(keePass.FileHolds(StoreKinds.Withdrawn, StoreKinds.Certificate, _takenAway), Is.True,
+                "the certificate is taken away by a record of its own");
+            Assert.That(keePass.FileHolds(StoreKinds.Revoked, StoreKinds.ClientMember, _takenAway), Is.False,
+                "and its client is not revoked");
+            Assert.That(keePass.ReadStandingRefusal(_allowedToRenew), Is.Null,
+                "the answer the file kept is lifted");
+
+            var lines = File.ReadAllLines(keePass.AuditPath);
+            foreach (var key in new[] { _byTheMark, _fromTheMenu, _takenAway })
+            {
+                Assert.That(
+                    lines.Count(line => line.Contains(Keys(key, key))
+                        && line.Contains("\"reason\":\"" + AdmissionAudit.RevokedByOperatorReason + "\"")),
+                    Is.EqualTo(1), "the line of " + key);
+            }
         }
 
         [Test]
@@ -326,12 +401,12 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>
         /// Lifts the answer standing on the newest row of the program, from the clients page, as an
         /// operator at the keyboard does, and accepts the settings dialog. Answers with what the
-        /// row's menu said.
+        /// row's menu showed.
         /// </summary>
         /// <remarks>
-        /// The newest row, because the list is newest first and the renewed certificate is the one
-        /// refused in this session; the menu's first line, stating that answer, is what proves the
-        /// menu was opened on it.
+        /// The newest row, because the list is newest first and the renewed certificate is the
+        /// certificate refused in this session; the menu's line stating that answer, under the line
+        /// naming the certificate, is what proves the menu was opened on it.
         /// </remarks>
         private static string AllowRenewalOnTheClientsPage(KeePassDriver driver)
         {
@@ -351,6 +426,112 @@ namespace KeePassGate.Host.Tests.Live
 
             Assert.That(driver.AcceptDialog(settings), Is.True, driver.Diagnostics);
             return said;
+        }
+
+        /// <summary>
+        /// Presses every command of the clients page in a single visit, as an operator does: the X
+        /// on a row, Revoke and Take certificate away from the rows' menus, opened by the right
+        /// button, and Allow renewal from a menu opened with Shift and F10; then accepts the
+        /// settings dialog. Answers with what the menu taking the certificate away showed.
+        /// </summary>
+        /// <remarks>
+        /// **No order of the rows is relied on.** Each row is found by its client's name when it
+        /// is pressed, and each press is followed by a wait, with a bound, until the page shows
+        /// what it did: the row gone, the answer lifted, and the menu closed.
+        /// </remarks>
+        private static string EveryCommandOnTheClientsPage(KeePassDriver driver)
+        {
+            var settings = driver.OpenDatabaseSettings();
+            driver.SelectGateTab(settings);
+            driver.SelectPage(settings, GateTab.ClientsPageText);
+            Assert.That(Lists(settings, RevokedByTheMark, true), Is.True, "the clients page never listed " + RevokedByTheMark + ". " + driver.Diagnostics);
+
+            Assert.That(driver.PressClientMark(settings, RevokedByTheMark), Is.True, driver.Diagnostics);
+            Assert.That(Lists(settings, RevokedByTheMark, false), Is.True, "the X left the row of " + RevokedByTheMark + " on the page");
+
+            Choose(driver, settings, RevokedFromTheMenu, false, ClientList.RevokeText, true);
+            var shown = Choose(driver, settings, TakenAway, false, ClientList.TakeAwayText, true);
+            Choose(driver, settings, AllowedToRenew, true, ClientList.AllowRenewalText, false);
+            Assert.That(Lifted(driver, settings, AllowedToRenew), Is.True, "Allow renewal left the answer of " + AllowedToRenew + " on the page");
+
+            Assert.That(driver.AcceptDialog(settings), Is.True, driver.Diagnostics);
+            return shown;
+        }
+
+        /// <summary>
+        /// Whether the answer to this client's renewals comes to be lifted on the page within the
+        /// bound a press is given: the row's menu, opened again, no longer states it.
+        /// </summary>
+        private static bool Lifted(KeePassDriver driver, AutomationElement settings, string client)
+        {
+            return Uia.WaitForOrNull(
+                () =>
+                {
+                    var menu = driver.OpenClientMenu(settings, client, true);
+                    if (menu == null)
+                    {
+                        return null;
+                    }
+
+                    var states = Uia.Descendant(menu, ControlType.MenuItem, name => name == "Renewal refused forever") != null;
+                    Keyboard.SendEscape();
+                    driver.WaitForWindowToClose(ClientList.MenuName, PressTimeout);
+                    return states ? null : client;
+                },
+                PressTimeout) != null;
+        }
+
+        /// <summary>
+        /// Opens the menu of the row naming this client and presses the command given, waits until
+        /// the menu has closed and, for a command that takes the row away, the row has gone, and
+        /// answers with what the menu showed.
+        /// </summary>
+        private static string Choose(
+            KeePassDriver driver, AutomationElement settings, string client, bool fromTheKeyboard, string command, bool rowGoes)
+        {
+            var menu = driver.OpenClientMenu(settings, client, fromTheKeyboard);
+            Assert.That(menu, Is.Not.Null, driver.Diagnostics);
+            var shown = Uia.Inventory(menu);
+
+            var item = Uia.Descendant(menu, ControlType.MenuItem, name => name == Shown(command));
+            Assert.That(item, Is.Not.Null, "the menu of " + client + " offers no " + Shown(command) + ": " + shown);
+            Mouse.Click(item);
+
+            Assert.That(driver.WaitForWindowToClose(ClientList.MenuName, PressTimeout), Is.True, "the menu of " + client + " stayed open");
+            if (rowGoes)
+            {
+                Assert.That(Lists(settings, client, false), Is.True, Shown(command) + " left the row of " + client + " on the page");
+            }
+
+            return shown;
+        }
+
+        /// <summary>How long a press on the clients page is given to show on the page.</summary>
+        private static readonly TimeSpan PressTimeout = TimeSpan.FromSeconds(10);
+
+        /// <summary>
+        /// Whether the clients page comes to list a row naming this client, or to list none, within
+        /// the bound a press is given.
+        /// </summary>
+        private static bool Lists(AutomationElement settings, string client, bool listed)
+        {
+            return Uia.WaitForOrNull(() => (KeePassDriver.ClientCell(settings, client) != null) == listed ? client : null, PressTimeout) != null;
+        }
+
+        /// <summary>A command's text as the menu shows it, without its access key's mark.</summary>
+        private static string Shown(string command)
+        {
+            return command.Replace("&", string.Empty);
+        }
+
+        /// <summary>Admits a client of the database's authority, before KeePass starts.</summary>
+        private static string Admitted(ThrowawayKeePass keePass, string subject)
+        {
+            using (var certificate = keePass.IssueClientCertificate(subject))
+            {
+                keePass.Admit(certificate, "reader");
+                return CertificateDigest.Of(certificate);
+            }
         }
 
         /// <summary>A renewal refused once, by a press on Refuse, while the request waits on its own thread.</summary>

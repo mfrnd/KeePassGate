@@ -27,10 +27,10 @@ namespace KeePassGate.Tests
         public void An_authority_created_reads_whole_and_is_served()
         {
             var store = new MemoryStore();
-            var id = StoreSeeds.Authority(store, new InMemoryKeyValueStore());
+            var id = StoreSeeds.Authority(store);
 
             var reading = store.Read();
-            using (var authority = StoreAuthorities.Read(reading, 0, true))
+            using (var authority = StoreAuthorities.Read(reading, 0))
             {
                 Assert.That(authority.Presence, Is.EqualTo(AuthorityPresence.Present));
                 Assert.That(authority.Material.AuthorityDigest, Is.EqualTo(id), "filed under the digest of its certificate");
@@ -53,7 +53,7 @@ namespace KeePassGate.Tests
             var reading = store.Read();
             Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
             Assert.That(reading.InForce.Key.Bytes, Is.EqualTo(key), "its key is found");
-            using (var authority = StoreAuthorities.Read(reading, 0, true))
+            using (var authority = StoreAuthorities.Read(reading, 0))
             {
                 Assert.That(authority.Presence, Is.EqualTo(AuthorityPresence.Damaged));
                 Assert.That(authority.Problems, Is.Not.Empty);
@@ -62,7 +62,7 @@ namespace KeePassGate.Tests
             // Answered by its `id` and never served: no material is read for a connection.
             var damagedId = reading.Answering.Single().Form.Member("id");
 
-            var service = new AuthorityService(store, new InMemoryKeyValueStore(), NullGateLog.Instance);
+            var service = new AuthorityService(store, NullGateLog.Instance);
             Assert.That(service.Create().Succeeded, Is.False, "Create is refused while an authority stands");
             var recreated = service.Recreate();
             Assert.That(recreated.Succeeded, Is.True, recreated.Message);
@@ -70,7 +70,7 @@ namespace KeePassGate.Tests
             var after = store.Read();
             Assert.That(after.InForce.Taken("retired"), Does.Contain(damagedId));
             Assert.That(after.InForce.Key.Bytes, Is.EqualTo(key), "Recreate carries the key");
-            using (var authority = StoreAuthorities.Read(after, 0, true))
+            using (var authority = StoreAuthorities.Read(after, 0))
             {
                 Assert.That(authority.Presence, Is.EqualTo(AuthorityPresence.Present));
             }
@@ -80,19 +80,19 @@ namespace KeePassGate.Tests
         public void An_authority_beside_a_deletion_record_or_retired_does_not_stand()
         {
             var store = new MemoryStore();
-            var id = StoreSeeds.Authority(store, new InMemoryKeyValueStore());
+            var id = StoreSeeds.Authority(store);
             var entry = store.Read().Answering.Single();
 
             var deleted = store.Copy();
             deleted.Delete(StoreComposer.BytesOf(entry.Hex));
             Assert.That(StoreAuthorities.Served(deleted.Read()), Is.Null, "beside a deletion record");
 
-            var service = new AuthorityService(store, new InMemoryKeyValueStore(), NullGateLog.Instance);
+            var service = new AuthorityService(store, NullGateLog.Instance);
             Assert.That(service.Delete().Succeeded, Is.True);
             var reading = store.Read();
             Assert.That(StoreAuthorities.Served(reading), Is.Null, "retired");
             Assert.That(reading.InForce.Taken("retired"), Is.EquivalentTo(new[] { id }));
-            using (var authority = StoreAuthorities.Read(reading, 0, true))
+            using (var authority = StoreAuthorities.Read(reading, 0))
             {
                 Assert.That(authority.Presence, Is.EqualTo(AuthorityPresence.None));
                 Assert.That(authority.IsRetired, Is.True);
@@ -103,11 +103,11 @@ namespace KeePassGate.Tests
         public void Several_authorities_standing_read_as_undecided_and_none_is_served()
         {
             var store = new MemoryStore();
-            var ids = StoreSeeds.Undecided(store, new InMemoryKeyValueStore());
+            var ids = StoreSeeds.Undecided(store);
 
             var reading = store.Read();
             Assert.That(StoreAuthorities.Served(reading), Is.Null);
-            using (var authority = StoreAuthorities.Read(reading, 0, true))
+            using (var authority = StoreAuthorities.Read(reading, 0))
             {
                 Assert.That(authority.Presence, Is.EqualTo(AuthorityPresence.Undecided));
                 Assert.That(authority.Candidates.Select(candidate => candidate.Fingerprint), Is.EqualTo(ids),
@@ -126,7 +126,7 @@ namespace KeePassGate.Tests
             for (var attempt = 0; attempt < 64; attempt++)
             {
                 var store = new MemoryStore();
-                StoreSeeds.Undecided(store, new InMemoryKeyValueStore());
+                StoreSeeds.Undecided(store);
                 var reading = store.Read();
                 var byEntry = reading.Answering.Select(record => record.Form.Member(StoreKinds.Id)).ToList();
                 var byFingerprint = byEntry.OrderBy(id => id, StringComparer.Ordinal).ToList();
@@ -135,7 +135,7 @@ namespace KeePassGate.Tests
                     continue;
                 }
 
-                using (var authority = StoreAuthorities.Read(reading, 0, true))
+                using (var authority = StoreAuthorities.Read(reading, 0))
                 {
                     Assert.That(authority.Candidates.Select(candidate => candidate.Fingerprint), Is.EqualTo(byFingerprint));
                 }
@@ -149,7 +149,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_store_with_no_key_holds_no_authority_and_none_retired()
         {
-            using (var none = StoreAuthorities.Read(new MemoryStore().Read(), 3, true))
+            using (var none = StoreAuthorities.Read(new MemoryStore().Read(), 3))
             {
                 Assert.That(none.Presence, Is.EqualTo(AuthorityPresence.None));
                 Assert.That(none.IsRetired, Is.False, "nothing was made, which Create answers");
@@ -158,29 +158,13 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void The_issuer_of_a_certificate_is_the_standing_authority_whose_certificate_it_chains_to()
-        {
-            var store = new MemoryStore();
-            var id = StoreSeeds.Authority(store, new InMemoryKeyValueStore());
-            var reading = store.Read();
-
-            using (var authority = StoreAuthorities.Read(reading, 0, true))
-            using (var client = Issuer.IssueClient(authority.Material.AuthorityKey, "agent-fictitious", new[] { "ops" }).Read())
-            using (var stranger = Issuer.IssueClient(Issuer.CreateAuthority(), "agent-fictitious", new[] { "ops" }).Read())
-            {
-                Assert.That(StoreAuthorities.IssuerOf(reading, client), Is.EqualTo(id));
-                Assert.That(StoreAuthorities.IssuerOf(reading, stranger), Is.Null);
-            }
-        }
-
-        [Test]
         public void Reading_twice_gives_two_usable_copies()
         {
             var store = new MemoryStore();
-            StoreSeeds.Authority(store, new InMemoryKeyValueStore());
+            StoreSeeds.Authority(store);
 
-            using (var first = StoreAuthorities.Read(store.Read(), 0, true))
-            using (var second = StoreAuthorities.Read(store.Read(), 0, true))
+            using (var first = StoreAuthorities.Read(store.Read(), 0))
+            using (var second = StoreAuthorities.Read(store.Read(), 0))
             {
                 Assert.That(first.Material.AuthorityKey.PrivateKey.IsPrivate, Is.True);
                 Assert.That(second.Material.AuthorityKey.PrivateKey.IsPrivate, Is.True);
@@ -194,9 +178,9 @@ namespace KeePassGate.Tests
         public void The_gate_key_handed_out_is_a_copy()
         {
             var store = new MemoryStore();
-            StoreSeeds.Authority(store, new InMemoryKeyValueStore());
+            StoreSeeds.Authority(store);
 
-            using (var reading = StoreAuthorities.Read(store.Read(), 0, true))
+            using (var reading = StoreAuthorities.Read(store.Read(), 0))
             {
                 var first = reading.Material.SniKey;
                 Array.Clear(first, 0, first.Length);
@@ -212,10 +196,10 @@ namespace KeePassGate.Tests
             // and the stored PKCS#12 the host certificate and its key travel in are erased, and
             // the keys themselves, which nothing can erase, are only let go.
             var store = new MemoryStore();
-            StoreSeeds.Authority(store, new InMemoryKeyValueStore());
+            StoreSeeds.Authority(store);
 
             // Declared outside the `using`, because what is asserted is what it leaves behind.
-            var reading = StoreAuthorities.Read(store.Read(), 0, true);
+            var reading = StoreAuthorities.Read(store.Read(), 0);
             using (reading)
             {
                 Assume.That(reading.Material.HostPkcs12.Any(b => b != 0), Is.True);
@@ -230,7 +214,7 @@ namespace KeePassGate.Tests
         public void A_reading_let_go_overwrites_the_store_key_its_forms_found()
         {
             var store = new MemoryStore();
-            StoreSeeds.Authority(store, new InMemoryKeyValueStore());
+            StoreSeeds.Authority(store);
 
             // Declared outside the `using`, because what is asserted is what it leaves behind.
             byte[] key;
@@ -247,18 +231,17 @@ namespace KeePassGate.Tests
         public void Admission_records_are_counted_whatever_state_the_authority_is_in()
         {
             var store = new MemoryStore();
-            var admissions = new InMemoryKeyValueStore();
-            admissions.Plant(AuthorityKeys.ClientPrefix + "aaa", "record");
-            admissions.Plant(AuthorityKeys.ClientPrefix + "bbb", "record");
-            var service = new AuthorityService(store, admissions, NullGateLog.Instance);
+            var service = new AuthorityService(store, NullGateLog.Instance);
 
             using (var absent = service.Read())
             {
                 Assert.That(absent.Presence, Is.EqualTo(AuthorityPresence.None));
-                Assert.That(absent.ClientRecordCount, Is.EqualTo(2));
+                Assert.That(absent.ClientRecordCount, Is.Zero, "a database with no store key holds no admission");
             }
 
-            StoreSeeds.Authority(store, admissions);
+            StoreSeeds.Authority(store);
+            StoreSeeds.Client(store, StoreRecords.Unread('a'));
+            StoreSeeds.Client(store, StoreRecords.Unread('b'));
             using (var present = service.Read())
             {
                 Assert.That(present.Presence, Is.EqualTo(AuthorityPresence.Present));
@@ -270,9 +253,9 @@ namespace KeePassGate.Tests
         public void A_candidate_that_will_not_read_can_be_retired_and_never_kept()
         {
             var store = new MemoryStore();
-            var whole = StoreSeeds.Authority(store, new InMemoryKeyValueStore());
+            var whole = StoreSeeds.Authority(store);
             var damaged = StoreSeeds.Damaged(store);
-            var service = new AuthorityService(store, new InMemoryKeyValueStore(), NullGateLog.Instance);
+            var service = new AuthorityService(store, NullGateLog.Instance);
 
             using (var reading = service.Read())
             {
@@ -296,10 +279,10 @@ namespace KeePassGate.Tests
         public void Deleting_retires_every_authority_there_is_including_an_authority_that_will_not_read()
         {
             var store = new MemoryStore();
-            var ids = StoreSeeds.Undecided(store, new InMemoryKeyValueStore());
+            var ids = StoreSeeds.Undecided(store);
             var damaged = StoreSeeds.Damaged(store);
 
-            Assert.That(new AuthorityService(store, new InMemoryKeyValueStore(), NullGateLog.Instance).Delete().Succeeded, Is.True);
+            Assert.That(new AuthorityService(store, NullGateLog.Instance).Delete().Succeeded, Is.True);
 
             var after = store.Read();
             Assert.That(after.InForce.Taken("retired"), Is.EquivalentTo(ids.Concat(new[] { damaged })));
@@ -319,7 +302,7 @@ namespace KeePassGate.Tests
             store.Write(new[] { Act(key, Damaged(key, "every problem at once")) });
 
             var longest = AuthorityRecord.LongestProblems(new string('x', 200));
-            using (var reading = StoreAuthorities.Read(store.Read(), 0, true))
+            using (var reading = StoreAuthorities.Read(store.Read(), 0))
             {
                 Assume.That(reading.Presence, Is.EqualTo(AuthorityPresence.Damaged));
                 Assert.That(reading.Problems.Count, Is.EqualTo(longest.Count), string.Join(" | ", reading.Problems));
@@ -339,7 +322,7 @@ namespace KeePassGate.Tests
             var store = new MemoryStore();
             var id = StoreSeeds.WrittenDown(store, SeededAuthority.Authority, SeededAuthority.Host, SeededAuthority.SniKey);
 
-            using (var reading = StoreAuthorities.Read(store.Read(), 0, true))
+            using (var reading = StoreAuthorities.Read(store.Read(), 0))
             {
                 Assert.That(reading.IsPresent, Is.True, string.Join("; ", reading.Problems));
                 Assert.That(reading.Material.AuthorityDigest, Is.EqualTo(id));
@@ -352,19 +335,6 @@ namespace KeePassGate.Tests
                     Assert.That(AnchorPin.Chains(client, reading.Material.Authority), Is.True);
                 }
             }
-        }
-
-        [Test]
-        public void A_store_that_is_not_whole_gives_no_authorities_for_a_revocation_to_be_taken_away_by()
-        {
-            var store = new MemoryStore();
-            StoreSeeds.Authority(store, new InMemoryKeyValueStore());
-            Assert.That(StoreAuthorities.Standing(store.Read()), Has.Count.EqualTo(1));
-
-            store.Drop(store.Read().InForce.Heads.Single().Hex);
-            Assume.That(store.Read().State, Is.EqualTo(StoreState.Stopped));
-
-            Assert.That(StoreAuthorities.Standing(store.Read()), Is.Null);
         }
 
         /// <summary>An authority's record that passes its check and does not read whole, by the damage named.</summary>

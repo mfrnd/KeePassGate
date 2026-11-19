@@ -161,7 +161,7 @@ namespace KeePassGate.Host.Tests
                     panel.CreateAuthority();
                 }
 
-                Assert.That(pending.StoreWaiting, Is.False);
+                Assert.That(pending.AuthorityWaiting, Is.False);
                 Assert.That(pending.Apply(), Is.False);
                 Assert.That(Authority(), Is.False);
             }

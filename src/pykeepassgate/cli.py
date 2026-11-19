@@ -394,7 +394,7 @@ def _parser() -> argparse.ArgumentParser:
 
     revoke = commands.add_parser(
         "revoke",
-        help="give up this client's admission, and remove what is stored for it",
+        help="give up the certificate this client presents, and remove what is stored for it",
         description=(
             "Revokes the certificate this client presents, so the database refuses it from the "
             "next connection on, then removes the identity stored for it, which nothing can use "

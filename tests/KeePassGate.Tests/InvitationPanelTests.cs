@@ -629,7 +629,7 @@ namespace KeePassGate.Tests
 
         private string Digest()
         {
-            using (var reading = new AuthorityService(_database.Store, _database.Values, null).Read())
+            using (var reading = new AuthorityService(_database.Store, null).Read())
             {
                 return reading.IsPresent ? reading.Material.AuthorityDigest : null;
             }

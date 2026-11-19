@@ -34,7 +34,7 @@ namespace KeePassGate.Tests
         {
             _authority = TestAuthority.New();
             _gateKey = _authority.GateKey;
-            _undecided = new HeldBackTarget(_authority.DatabaseId, _gateKey, _authority.Host, () => null, HeldBackTarget.Undecided);
+            _undecided = new HeldBackTarget(_authority.DatabaseId, _gateKey, _authority.Host, () => HeldBackTarget.Undecided);
 
             _log = new RecordingGateLog();
             _handler = new CountingHandler();
@@ -106,10 +106,10 @@ namespace KeePassGate.Tests
             Assert.That(_undecided.AuthorityKey, Is.Null, "nothing is issued from a candidate either");
             Assert.That(_undecided.Vault, Is.Null);
             Assert.That(_undecided.Admission(_authority.DatabaseId), Is.Null);
-            Assert.That(_undecided.AdmissionBlocked, Does.Contain("more than one authority"));
+            Assert.That(_undecided.AdmissionBlocked, Is.EqualTo("the gate holds the database back"));
             var write = _undecided.Admit(null, null, null);
             Assert.That(write.Ok, Is.False);
-            Assert.That(write.IsBusy, Is.True, "choosing is all it takes, so the invitee should try again");
+            Assert.That(write.IsBusy, Is.True, "what is held back is read anew, so the invitee should try again");
         }
 
         [Test]
@@ -128,11 +128,23 @@ namespace KeePassGate.Tests
         [Test]
         public void It_is_never_built_without_what_it_needs()
         {
-            Assert.Throws<ArgumentException>(() => new HeldBackTarget(null, _gateKey, _authority.Host, () => null, HeldBackTarget.Undecided));
-            Assert.Throws<ArgumentNullException>(() => new HeldBackTarget("db", null, _authority.Host, () => null, HeldBackTarget.Undecided));
-            Assert.Throws<ArgumentNullException>(() => new HeldBackTarget("db", _gateKey, null, () => null, HeldBackTarget.Undecided));
-            Assert.Throws<ArgumentNullException>(() => new HeldBackTarget("db", _gateKey, _authority.Host, null, HeldBackTarget.Undecided));
-            Assert.Throws<ArgumentException>(() => new HeldBackTarget("db", _gateKey, _authority.Host, () => null, null));
+            Assert.Throws<ArgumentException>(() => new HeldBackTarget(null, _gateKey, _authority.Host, () => null));
+            Assert.Throws<ArgumentNullException>(() => new HeldBackTarget("db", null, _authority.Host, () => null));
+            Assert.Throws<ArgumentNullException>(() => new HeldBackTarget("db", _gateKey, null, () => null));
+            Assert.Throws<ArgumentNullException>(() => new HeldBackTarget("db", _gateKey, _authority.Host, null));
+        }
+
+        [Test]
+        public void A_candidate_whose_own_authority_no_longer_stands_among_several_is_answered_busy()
+        {
+            // Its word is null once its authority went or the operator kept an authority: there is
+            // no decision left to wait for, so it is answered as what the gate last served with is,
+            // and a connection made now is answered by what the store holds then.
+            using (var candidate = new HeldBackTarget(_authority.DatabaseId, _authority.GateKey, _authority.Host, () => null))
+            {
+                Assert.That(ClientCredentials.For(null, candidate, null).UnavailableError, Is.EqualTo(HeldBackTarget.Busy));
+                Assert.That(candidate.AdmissionBlocked, Is.EqualTo("the gate holds the database back"), "a write it turns away names why");
+            }
         }
 
         [Test]
@@ -142,7 +154,7 @@ namespace KeePassGate.Tests
             // answers from the host certificate and the gate key it last served with, and `lost`
             // is how a store with no key is answered.
             string word = StoreWords.Lost;
-            using (var kept = new HeldBackTarget(_authority.DatabaseId, _gateKey, _authority.Host, () => word, HeldBackTarget.Busy))
+            using (var kept = new HeldBackTarget(_authority.DatabaseId, _gateKey, _authority.Host, () => word))
             using (var listener = new GateListener(
                        new GateOptions { Port = 0 }, new GateResolver(new FakeGateTargets(kept), _log), _handler, _log))
             {
@@ -167,7 +179,7 @@ namespace KeePassGate.Tests
         public void A_store_that_holds_the_gate_back_is_answered_before_which_authority_is_served(string word)
         {
             // `STORE.md` §656: which authority is served is asked only of a store that is whole.
-            using (var target = new HeldBackTarget(_authority.DatabaseId, _authority.GateKey, _authority.Host, () => word, HeldBackTarget.Undecided))
+            using (var target = new HeldBackTarget(_authority.DatabaseId, _authority.GateKey, _authority.Host, () => word))
             {
                 Assert.That(ClientCredentials.For(null, target, null).UnavailableError, Is.EqualTo(word));
             }

@@ -900,7 +900,7 @@ namespace KeePassGate.Host.Tests
             Assert.That(outcome.IsFailed, Is.True);
             Assert.That(outcome.Reason, Does.Contain("this session"));
             Assert.That(saves, Is.EqualTo(0), "nothing was saved");
-            Assert.That(new AdmissionStore(new CustomDataStore(_database.Database), NullGateLog.Instance)
+            Assert.That(new StoredAdmissions(_database.Database).Answers
                 .StandingRefusal(new string('a', 64)), Is.Null, "nor written");
         }
 

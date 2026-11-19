@@ -249,10 +249,11 @@ namespace KeePassGate.Tests
         [Test]
         public void A_client_holding_refused_certificates_is_recorded_on_two_allowances_and_no_more()
         {
-            // A revoked record is emptied and an expired one is taken away, so nothing names the
-            // client a refused certificate belonged to: its lines count against the database's
-            // refused allowance, beside the client's own, and a client presenting both is recorded
-            // at up to twice the pace. However many certificates it renewed out of, no more.
+            // A refused certificate's admission is deleted by the next write and an expired
+            // certificate is refused before its admission is read, so nothing names the client a
+            // refused certificate belonged to: its lines count against the database's refused
+            // allowance, beside the client's own, and a client presenting both is recorded at up
+            // to twice the pace. However many certificates it renewed out of, no more.
             var entry = TestNode.Root("root").Granting("reader", AclVerb.Read).Child("an entry");
             var client = Client("reader");
             var first = Refused();

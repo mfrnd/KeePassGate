@@ -118,7 +118,7 @@ profiles or three clients it states how many and names the first three, and the 
 them all. Each client is named once, however many of its certificates hold the name, and two that
 chose the same name are named apart by the start of their client keys, "agent (3f2a9c1e)", as
 [adding a profile back](access-control.md) names them. A client whose certificate has expired is not
-among them: it regains nothing, and its record goes with the write.
+among them: it regains nothing.
 
 A profile means nothing until a rule on a group or an entry names it, which is
 [`access-control.md`](access-control.md). Approving a program for `reader` when nothing grants
@@ -166,20 +166,21 @@ KeePass took it away. An approval whose record never landed admitted nobody and 
 down, and neither are the profiles, whichever were asked for or kept.
 
 **If KeePass is busy when Approve is pressed**, saving or with a dialog open that would take the
-record back, the approval is not lost. The plugin keeps it in memory, nothing is issued yet, and
-the program is told to ask again and until when: the end of the six minutes it was given for the
-whole pairing. When the same program asks again for exactly the same thing before then, it is
-written without the dialog coming back. A lock of KeePass, closing the database or exiting
-KeePass lets go of every approval kept this way, and asking again after that shows the dialog
-again.
+record back, as KeePass's entry dialog does while it is open on an entry of the plugin's own
+group that the pairing replaces, the approval is not lost. The plugin keeps it in memory, nothing
+is issued yet, and the program is told to ask again and until when: the end of the six minutes
+it was given for the whole pairing. When the same program asks again for exactly the same thing
+before then, it is written without the dialog coming back. A lock of KeePass, closing the
+database or exiting KeePass lets go of every approval kept this way, and asking again after that
+shows the dialog again.
 
 **The Database Maintenance dialog refuses the whole thing before anybody is disturbed.** That
 dialog takes a copy of the database's plugin data when it opens and writes the copy back when it
-closes, which would silently destroy a record written while it was open. If a pairing is reported
-refused for that reason, close the dialog and let the program ask again. **So does KeePass's TAN
-wizard**, under Tools, open on the same database: it adds its entries from inside its own OK,
-which can land part way through the save a pairing ends in and stop it, so nothing is saved to
-that database until the wizard is closed.
+closes, which would silently undo what a pairing wrote there while it was open, such as a profile
+the approval added. If a pairing is reported refused for that reason, close the dialog and let
+the program ask again. **So does KeePass's TAN wizard**, under Tools, open on the same database:
+it adds its entries from inside its own OK, which can land part way through the save a pairing
+ends in and stop it, so nothing is saved to that database until the wizard is closed.
 
 ## What the program gets
 

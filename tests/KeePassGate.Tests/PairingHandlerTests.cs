@@ -1178,16 +1178,63 @@ namespace KeePassGate.Tests
             Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "nothing is spent");
         }
 
+        [TestCase("split")]
+        [TestCase("outdated")]
+        [TestCase("stopped")]
+        [TestCase("lost")]
+        public void A_store_holding_the_gate_back_at_the_write_is_answered_its_word_and_lets_the_approval_go(string word)
+        {
+            // Asked again in the write's own turn, `STORE.md` §627: answered as a connection is,
+            // with the approval let go and the invitation unspent. Each word ends by an act of the
+            // operator's, after which the operator is asked again.
+            _target.AdmitAnswers = AdmissionWrite.Unavailable(word);
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), Approving());
+
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(word)));
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "the invitation is not spent");
+            Assert.That(_held.Count, Is.Zero, "the approval is let go");
+            Assert.That(
+                _log.Warnings.Select(entry => entry.Message),
+                Has.Some.Contains("the plugin's store holds the gate back").And.Contains(word));
+        }
+
+        [Test]
+        public void Several_authorities_standing_at_the_write_are_answered_undecided_and_let_the_approval_go()
+        {
+            // Several authorities serve nothing until the operator keeps an authority, and the
+            // pairing is answered as a connection to the database is, with the invitation good.
+            _target.AdmitAnswers = AdmissionWrite.Unavailable("undecided");
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", Array.Empty<string>(), Approving());
+
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("undecided")));
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "the invitation is not spent");
+            Assert.That(_held.Count, Is.Zero, "the approval is let go");
+            Assert.That(_log.Warnings.Select(entry => entry.Message), Has.Some.Contains("several authorities stand"));
+            Assert.That(_log.Warnings.Select(entry => entry.Message), Has.None.Contains("holds the gate back"));
+        }
+
         [Test]
         public void An_authority_recreated_under_the_write_admits_nobody()
         {
+            // The write's plan leaves the admission out before anything is asked or spent, and the
+            // answer is the answer for the authority the invitation was made under going: no retry
+            // under it can be written, so a `503` would invite a retry that cannot work.
             _target.BeforeWrite = () => _target.Retired = true;
             Hello(ClientProof());
 
             var context = Request("agent-fictitious", Array.Empty<string>(), Approving());
 
-            Assert.That(context.Status, Is.EqualTo(409));
+            Assert.That(context.Status, Is.EqualTo(409), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("no invitation")));
             Assert.That(_target.Admitted, Is.Null);
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "the invitation is not spent");
+            Assert.That(_held.Count, Is.Zero, "the approval is let go");
         }
 
         [Test]

@@ -49,13 +49,12 @@ namespace KeePassGate.Tests.Gallery
         private static void Shoot(
             string name, string databaseName, int authorities, int[] clients, bool unreadable, bool audit)
         {
-            var values = new InMemoryKeyValueStore();
             var records = new MemoryStore();
-            var service = new AuthorityService(records, values, null);
+            var service = new AuthorityService(records, null);
 
             // Each authority beside those before it, which is what copies that each recreated
             // leave behind once they are merged.
-            var digests = new List<string> { StoreSeeds.Authority(records, values) };
+            var digests = new List<string> { StoreSeeds.Authority(records) };
             for (var i = 1; i < authorities; i++)
             {
                 digests.Add(StoreSeeds.Beside(records));
@@ -70,7 +69,7 @@ namespace KeePassGate.Tests.Gallery
             {
                 for (var c = 0; c < clients[i]; c++)
                 {
-                    Admit(records, values, digests[i], "agent-" + i + "-" + c.ToString("00", CultureInfo.InvariantCulture));
+                    Admit(records, digests[i], "agent-" + i + "-" + c.ToString("00", CultureInfo.InvariantCulture));
                 }
             }
 
@@ -79,7 +78,7 @@ namespace KeePassGate.Tests.Gallery
             {
                 choice = AuthorityChoice.From(
                     reading,
-                    new AdmissionStore(values, null).All(),
+                    candidate => StoreSeeds.Listed(records, candidate),
                     keys => audit
                         ? keys.Take((keys.Count + 1) / 2).ToDictionary(k => k, k => Admitted.AddDays(19))
                         : null,
@@ -98,12 +97,12 @@ namespace KeePassGate.Tests.Gallery
             }
         }
 
-        private static void Admit(MemoryStore records, InMemoryKeyValueStore values, string digest, string client)
+        private static void Admit(MemoryStore records, string digest, string client)
         {
             var authority = StoreSeeds.KeyOf(records, digest);
             using (var certificate = new AuthorityIssuer().IssueClient(authority, client, new[] { "ops", "reader" }).Read())
             {
-                new AdmissionStore(values, null).Write(AdmissionRecord.For(certificate, Admitted, new[] { "ops", "reader" }));
+                StoreSeeds.Client(records, AdmissionRecord.For(certificate, Admitted, new[] { "ops", "reader" }, digest).Members());
             }
         }
     }

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Store;
 
 namespace KeePassGate.Authority
@@ -28,8 +27,7 @@ namespace KeePassGate.Authority
         /// or several. The caller owns the result and disposes it.
         /// </summary>
         /// <param name="clientRecords">How many admission records the database holds.</param>
-        /// <param name="clientsComplete">Whether those could be listed at all.</param>
-        public static AuthorityReading Read(StoreReading reading, int clientRecords, bool clientsComplete)
+        public static AuthorityReading Read(StoreReading reading, int clientRecords)
         {
             if (reading == null)
             {
@@ -42,8 +40,8 @@ namespace KeePassGate.Authority
                 // A store whose every authority is retired, by Delete or by copies that each kept
                 // another authority: no authority, and not a store whose authority was never made.
                 return reading.InForce != null && reading.InForce.Taken(StoreKinds.Retired).Count > 0
-                    ? AuthorityReading.Retired(clientRecords, clientsComplete)
-                    : AuthorityReading.Absent(clientRecords, clientsComplete);
+                    ? AuthorityReading.Retired(clientRecords)
+                    : AuthorityReading.Absent(clientRecords);
             }
 
             if (standing.Count == 1)
@@ -51,8 +49,8 @@ namespace KeePassGate.Authority
                 var problems = new List<string>();
                 var material = Material(standing[0], problems);
                 return material == null
-                    ? AuthorityReading.Damaged(problems, clientRecords, clientsComplete)
-                    : AuthorityReading.Whole(material, clientRecords, clientsComplete);
+                    ? AuthorityReading.Damaged(problems, clientRecords)
+                    : AuthorityReading.Whole(material, clientRecords);
             }
 
             // In the order of their fingerprints, ordinal, which is the order the operator reads
@@ -69,7 +67,7 @@ namespace KeePassGate.Authority
                     : AuthorityCandidate.Whole(id, material));
             }
 
-            return AuthorityReading.Undecided(candidates, clientRecords, clientsComplete);
+            return AuthorityReading.Undecided(candidates, clientRecords);
         }
 
         /// <summary>
@@ -98,50 +96,5 @@ namespace KeePassGate.Authority
                 : null;
         }
 
-        /// <summary>
-        /// The `id` of every authority standing in a store that is whole, or null where the store
-        /// does not tell: no key, several keys, a form this plugin does not read, or a store that
-        /// is not whole. What the prune of revocations naming an authority gone is held to.
-        /// </summary>
-        /// <remarks>
-        /// **Whole, and not only read**, because what a revocation is taken away for has to be
-        /// final. In a stopped store an authority can be missing for its entry having been deleted
-        /// by hand, and a copy merged in can bring that entry back, which would leave the
-        /// authority standing again with the revocations of its clients gone. A whole store can
-        /// lack an authority for the same deletion by hand, where another entry carries the key;
-        /// the deletion record left beside it keeps the entry out of every merge, and only that
-        /// record lost brings it back, which `STORE.md` §639 concedes.
-        /// </remarks>
-        public static IReadOnlyCollection<string> Standing(StoreReading reading)
-        {
-            return reading == null || reading.State != StoreState.Whole || reading.InForce == null
-                ? null
-                : reading.InForce.Authorities.Select(record => record.Form.Member(StoreKinds.Id)).ToList();
-        }
-
-        /// <summary>
-        /// The `id` of the authority among those standing whose certificate issued this certificate, by
-        /// the anchor pin, or null where none did or none could be read.
-        /// </summary>
-        public static string IssuerOf(StoreReading reading, X509Certificate2 certificate)
-        {
-            if (reading == null || reading.InForce == null || certificate == null)
-            {
-                return null;
-            }
-
-            foreach (var record in reading.InForce.Authorities)
-            {
-                using (var material = Material(record, new List<string>()))
-                {
-                    if (material != null && AnchorPin.Chains(certificate, material.Authority))
-                    {
-                        return record.Form.Member(StoreKinds.Id);
-                    }
-                }
-            }
-
-            return null;
-        }
     }
 }

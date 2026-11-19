@@ -106,14 +106,13 @@ namespace KeePassGate.Host.Tests
         /// </summary>
         private static AuthorityChoice Undecided(TemporaryDatabase database)
         {
-            var store = new CustomDataStore(database.Database);
             var records = new KdbxStore(database.Database, GateVersion.Current, null);
-            StoreSeeds.Undecided(records, store);
+            StoreSeeds.Undecided(records);
 
-            using (var reading = new AuthorityService(records, store, NullGateLog.Instance).Read())
+            using (var reading = new AuthorityService(records, NullGateLog.Instance).Read())
             {
                 Assume.That(reading.Presence, Is.EqualTo(AuthorityPresence.Undecided));
-                return AuthorityChoice.From(reading, new AdmissionStore(store, NullGateLog.Instance).All(), null, null);
+                return AuthorityChoice.From(reading, candidate => StoreSeeds.Listed(records, candidate), null, null);
             }
         }
 

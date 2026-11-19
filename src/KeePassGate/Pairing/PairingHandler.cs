@@ -616,7 +616,6 @@ namespace KeePassGate.Pairing
                 approved,
                 decision.Lifetime,
                 approved.Where(listed.Contains),
-                null,
                 arrived.After(_options.ApprovalHeld),
                 mark);
         }
@@ -776,7 +775,7 @@ namespace KeePassGate.Pairing
                 // A profile the operator approved that this database had never named is created by
                 // their approval, and the writer does that inside the same marshaled write as the
                 // record, off the profiles the record already carries.
-                var record = AdmissionRecord.For(certificate, _clock.Now, profiles);
+                var record = AdmissionRecord.For(certificate, _clock.Now, profiles, target.DatabaseId);
 
                 // The audit's line is the write's to write, once the record has landed and before
                 // anything else hears of it, so nothing that runs after the write can lose it. The
@@ -802,14 +801,7 @@ namespace KeePassGate.Pairing
                         return "the approval is no longer held";
                     }
 
-                    var stale = held.Stale(ground, null);
-                    if (stale == HeldStaleness.Authority)
-                    {
-                        refused = "no invitation";
-                        return "the authority it was approved under is no longer the one served";
-                    }
-
-                    if (stale != HeldStaleness.None)
+                    if (held.Stale(ground, null) != HeldStaleness.None)
                     {
                         refused = "stale";
                         return "a profile the answer rested on is not on the list as the dialog showed it";
@@ -884,7 +876,16 @@ namespace KeePassGate.Pairing
         /// so the same request asked again before the approval runs out is written without the
         /// dialog. **Anything the write's condition refused uses the approval up**, and what the
         /// client is told is what refused it: a lock or a close, the invitation gone, or the
-        /// database no longer holding what the operator approved, which asks them again.
+        /// database no longer holding what the operator approved, which asks them again. **A store
+        /// that holds the gate back where the write meets it, or holds several authorities with
+        /// the authority the invitation was made under among them**, is answered its word as a
+        /// connection is, `undecided` for the second, and lets the approval go and the invitation
+        /// stay. **An authority retired since the operator answered**, which the write finds
+        /// before the condition is asked, beside a single authority or none in its plan and beside
+        /// several before it plans anything, uses the approval up as well and is told as an
+        /// invitation that is gone, since the invitation was made under that authority and no
+        /// decision of the operator's lets a retry under it be written; the invitation itself is
+        /// not spent.
         /// </remarks>
         private void Unwritten(
             IGateContext context,
@@ -903,6 +904,28 @@ namespace KeePassGate.Pairing
                 }
 
                 Gone(context, invitation, held, what);
+                return;
+            }
+
+            if (written.Word != null)
+            {
+                // The plugin's store holds the gate back where the write met it, or several
+                // authorities stand, the authority the invitation was made under among them,
+                // `STORE.md` §627: answered its word, as a connection is, `STORE.md` §656. The
+                // approval goes and the invitation stays, since each word ends by an act of the
+                // operator's, after which the operator is asked again.
+                _held.Take(held);
+                _log.Warn(what + " was approved and not written, since " + HeldBackTarget.Why(written.Word));
+                context.Respond(503, HttpResponse.ErrorBody(written.Word));
+                return;
+            }
+
+            if (written.IsUnserved)
+            {
+                _held.Take(held);
+                _log.Warn(what + " was approved under an authority that is no longer the authority served, " +
+                          "so nothing was issued: " + written.Reason);
+                context.Respond(409, HttpResponse.ErrorBody("no invitation"));
                 return;
             }
 

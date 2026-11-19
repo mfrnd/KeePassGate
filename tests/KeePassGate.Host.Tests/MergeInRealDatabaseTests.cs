@@ -1,30 +1,33 @@
 using System;
 using System.Linq;
-using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Store;
 using KeePassGate.Testing;
+using KeePassGate.Ui;
 using KeePassLib;
-using KeePassLib.Collections;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests
 {
     /// <summary>
-    /// What KeePass's own synchronize does to admission records, against two real databases.
+    /// What KeePass's own synchronize does to admissions and revocations, and to the standing
+    /// answers to a renewal, against copies of one real database.
     /// </summary>
     /// <remarks>
-    /// The property the one-key-per-client shape is chosen for is that a replicated database
-    /// merges per key, so two hosts pairing different clients keep both and one host's write
-    /// cannot undo another's. It holds of `PwDatabase.CustomData` and of nothing else a plugin
-    /// can write to: a group's custom data carries no per-item modification times, so
+    /// An admission and a revocation are each an entry of the plugin's store, written once, so
+    /// two copies that admit different clients keep both, and a revocation is an entry the other
+    /// copy does not hold, which a merge brings and never takes away, `STORE.md` §615. The
+    /// standing answers stay in `PwDatabase.CustomData`, the one dictionary KeePass merges key
+    /// by key: a group's custom data carries no per-item modification times, so
     /// `PwGroup.AssignProperties` replaces the whole dictionary from whichever replica's group
     /// was touched last.
     ///
     /// These tests are the measurement. They drive `PwDatabase.MergeIn` with KeePass's own
-    /// `PwMergeMethod.Synchronize`, which is what `File > Synchronize` runs.
+    /// `PwMergeMethod.Synchronize`, which is what `File > Synchronize` runs, and with
+    /// `OverwriteExisting` where a time could decide.
     /// </remarks>
     [TestFixture]
     public sealed class MergeInRealDatabaseTests
@@ -66,25 +69,25 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_client_paired_on_one_copy_and_one_paired_on_the_other_both_survive()
         {
-            Records(_here).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }));
-            Records(_elsewhere).Write(AdmissionRecord.For(_second, DateTimeOffset.UtcNow, new[] { "reader" }));
+            Share();
+            Records(_here).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
+            Records(_elsewhere).Write(AdmissionRecord.For(_second, DateTimeOffset.UtcNow, new[] { "reader" }, StoredAdmissions.AnyIssuer));
 
             Synchronize();
 
             Assert.That(Records(_here).Find(CertificateDigest.Of(_first)), Is.Not.Null,
-                "the record written here is still here");
+                "the admission written here is still here");
             Assert.That(Records(_here).Find(CertificateDigest.Of(_second)), Is.Not.Null,
-                "and the one written on the other copy arrived, which is what per key means");
+                "and the one written on the other copy arrived, an entry of its own");
         }
 
         [Test]
-        public void A_revoked_client_stays_revoked_when_the_other_copy_still_holds_the_record()
+        public void A_revoked_client_stays_revoked_when_the_other_copy_still_holds_the_admission()
         {
-            // A removal leaves nothing for the merge to prefer, so the copy in the other replica
-            // would win and the client would be admitted again. The revocation is a key the other
-            // copy does not hold, which a merge never removes, so no clock has to favor it.
-            Records(_here).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }));
-            Records(_elsewhere).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }));
+            // The revocation is an entry the other copy does not hold, which a merge brings, and
+            // the admission the other copy still holds is refused beside it.
+            Records(_here).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
+            Share();
 
             Assume.That(Records(_here).Remove(CertificateDigest.Of(_first)), Is.True);
 
@@ -99,8 +102,9 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void The_revocation_travels_to_the_copy_it_was_not_made_on()
         {
-            Records(_here).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }));
-            Records(_elsewhere).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }));
+            Records(_here).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
+            Share();
+            Assume.That(Records(_elsewhere).Find(CertificateDigest.Of(_first)), Is.Not.Null);
 
             Assume.That(Records(_here).Remove(CertificateDigest.Of(_first)), Is.True);
 
@@ -113,36 +117,37 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_revoked_client_stays_refused_whatever_happened_to_the_times()
         {
-            // What the emptied record alone could not do, and the revocation beside it does. The
-            // record lost whenever its time did: dropped from the file by another program's save,
-            // `CA.md` §204, or older than the other copy's, or overwritten outright by an import.
-            // Here every one of those happens at once where it can: the other copy writes its
-            // record no earlier than the revocation, so its time never loses on age, and the times
-            // are dropped on either side, through the file each time, merged in either direction.
+            // A revocation is an entry of its own, and no time of any entry decides whether it
+            // counts. Here the copy that did not revoke holds an admission touched after the
+            // revocation, which outlives the deletion record a merge would otherwise apply to it,
+            // and the revocation itself is dated a year back, through the file each time, merged
+            // in either direction. A client the copies hold that nobody revoked stays admitted
+            // throughout, so a store a merge left unreadable cannot pass for a refusal.
             var admissionKey = CertificateDigest.Of(_first);
 
             foreach (var method in new[] { PwMergeMethod.Synchronize, PwMergeMethod.OverwriteExisting })
             {
-                foreach (var strip in new[] { Strip.Neither, Strip.Revoker, Strip.Holder, Strip.Both })
+                foreach (var times in new[] { Times.AsWritten, Times.HolderNewer, Times.RevokerOlder, Times.Both })
                 {
                     foreach (var intoRevoker in new[] { true, false })
                     {
                         using (var revoker = TemporaryDatabase.New())
                         using (var holder = TemporaryDatabase.New())
                         {
-                            holder.Database.RootGroup.Uuid = revoker.Database.RootGroup.Uuid;
-                            Records(revoker).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }));
+                            Assume.That(Authority(revoker).Create().Succeeded, Is.True);
+                            Records(revoker).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
+                            Records(revoker).Write(AdmissionRecord.For(_second, DateTimeOffset.UtcNow, new[] { "reader" }, StoredAdmissions.AnyIssuer));
+                            Copy(revoker, holder);
                             Assume.That(Records(revoker).Remove(admissionKey), Is.True);
-                            Records(holder).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }));
 
-                            if (strip == Strip.Revoker || strip == Strip.Both)
+                            if (times == Times.HolderNewer || times == Times.Both)
                             {
-                                StripTimes(revoker);
+                                Date(holder, DateTime.UtcNow.AddDays(1));
                             }
 
-                            if (strip == Strip.Holder || strip == Strip.Both)
+                            if (times == Times.RevokerOlder || times == Times.Both)
                             {
-                                StripTimes(holder);
+                                Date(revoker, DateTime.UtcNow.AddYears(-1));
                             }
 
                             revoker.SaveCloseAndReopen();
@@ -153,12 +158,14 @@ namespace KeePassGate.Host.Tests
                             target.Database.MergeIn(source.Database, method, null);
                             target.SaveCloseAndReopen();
 
-                            var named = method + ", times dropped on " + strip
+                            var named = method + ", " + times
                                         + (intoRevoker ? ", into the copy that revoked" : ", into the copy that did not");
 
+                            Assert.That(Records(target).Find(CertificateDigest.Of(_second)), Is.Not.Null,
+                                named + ": the client nobody revoked is still admitted");
                             Assert.That(Records(target).Find(admissionKey), Is.Null,
                                 named + ": a revoked client was admitted again");
-                            Assert.That(Records(target).All().Records, Is.Empty,
+                            Assert.That(Records(target).All().Records.Select(record => record.AdmissionKey), Has.No.Member(admissionKey),
                                 named + ": and the clients page listed it as a client");
                         }
                     }
@@ -173,69 +180,79 @@ namespace KeePassGate.Host.Tests
             // between two by their times, and the later stands. Written a moment apart, so the
             // times differ by more than the second they are kept to.
             var admissionKey = CertificateDigest.Of(_first);
-            Records(_here).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }));
-            Records(_elsewhere).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }));
+            Records(_here).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
+            Share();
 
-            Records(_here).RefuseRenewal(admissionKey, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(3)));
+            Records(_here).Answers.RefuseRenewal(admissionKey, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(3)));
             System.Threading.Thread.Sleep(1100);
-            Records(_elsewhere).RefuseRenewal(admissionKey, RenewalRefusal.Forever());
+            Records(_elsewhere).Answers.RefuseRenewal(admissionKey, RenewalRefusal.Forever());
 
             Synchronize();
 
-            Assert.That(Records(_here).StandingRefusal(admissionKey).IsForever, Is.True);
+            Assert.That(Records(_here).Answers.StandingRefusal(admissionKey).IsForever, Is.True);
         }
 
         [Test]
-        public void A_standing_answer_a_merge_brings_back_beside_a_revoked_record_goes_with_the_next_write()
+        public void A_standing_answer_a_merge_brings_beside_a_revoked_client_goes_with_the_next_write()
         {
-            // A revocation takes the answer away with the record, and a copy that still holds the
-            // answer brings it back, since a merge never removes a key. It refuses a renewal
-            // nothing could ask for, and the next write's prune takes it away again.
+            // A copy that still holds an answer about a certificate whose client was revoked
+            // brings it, since a merge never removes a key. It refuses a renewal nothing could
+            // ask for, and the next write of the plugin's own prunes it against the admissions
+            // that write leaves, here a pairing of another client.
             var admissionKey = CertificateDigest.Of(_first);
-            Records(_here).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }));
-            Records(_elsewhere).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }));
-            Records(_elsewhere).RefuseRenewal(admissionKey, RenewalRefusal.Forever());
+            Records(_here).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
+            Share();
+            Records(_elsewhere).Answers.RefuseRenewal(admissionKey, RenewalRefusal.Forever());
 
             Assume.That(Records(_here).Remove(admissionKey), Is.True);
-            Assume.That(Records(_here).StandingRefusal(admissionKey), Is.Null);
 
             Synchronize();
-            Assume.That(Records(_here).StandingRefusal(admissionKey), Is.Not.Null, "the merge brought it back");
+            Assume.That(Records(_here).Answers.StandingRefusal(admissionKey), Is.Not.Null, "the merge brought it");
 
-            Records(_here).PruneRefusals();
+            var writer = new DatabaseWriter(CurrentThread.Instance, database => database.Save(null), null, null, null);
+            var paired = writer.WriteAdmission(
+                _here.Database, AdmissionRecord.For(_second, DateTimeOffset.UtcNow, new[] { "reader" }, StoreSeeds.Served(Records(_here).Store)));
+            Assume.That(paired.Ok, Is.True, paired.Reason);
 
-            Assert.That(Records(_here).StandingRefusal(admissionKey), Is.Null);
+            Assert.That(Records(_here).Answers.StandingRefusal(admissionKey), Is.Null);
             Assert.That(Records(_here).Find(admissionKey), Is.Null, "and the client is still refused");
         }
 
         [Test]
-        public void The_record_of_an_expired_certificate_a_merge_brings_back_admits_nobody_and_goes_with_the_next_write()
+        public void An_expired_admission_a_merge_brings_stays_and_admits_nobody()
         {
             var then = DateTimeOffset.UtcNow.AddDays(-7);
             var issuer = new AuthorityIssuer(() => then);
 
-            // An authority of its own made a week ago, since this database's was made today and
-            // issues nothing that began before it.
-            var authorityKey = issuer.CreateAuthority();
-            using (var ended = issuer.IssueClient(authorityKey, "agent-ended-fictitious", new[] { "ops" }, TimeSpan.FromDays(1)).Read())
+            // The authority served made a week ago, since an authority issues nothing that began
+            // before it, a certificate it issued then for a day, and a certificate it issues now.
+            var recreated = new AuthorityService(
+                new KdbxStore(_here.Database, GateVersion.Current, NullGateLog.Instance), issuer, NullGateLog.Instance).Recreate();
+            Assume.That(recreated.Succeeded, Is.True, recreated.Message);
+            using (var reading = Authority(_here).Read())
+            using (var ended = issuer.IssueClient(reading.Material.AuthorityKey, "agent-ended-fictitious", new[] { "ops" }, TimeSpan.FromDays(1)).Read())
+            using (var current = new AuthorityIssuer().IssueClient(reading.Material.AuthorityKey, "agent-current-fictitious", new[] { "ops" }).Read())
             {
-                var record = AdmissionRecord.For(ended, then, new[] { "ops" });
-                Records(_here).Write(record);
+                Share();
+                var record = AdmissionRecord.For(ended, then, new[] { "ops" }, reading.Material.AuthorityDigest);
                 Records(_elsewhere).Write(record);
-
-                Assume.That(Records(_here).PruneExpired(DateTimeOffset.UtcNow), Is.Not.Empty);
+                Records(_elsewhere).Write(AdmissionRecord.For(current, DateTimeOffset.UtcNow, new[] { "ops" }, reading.Material.AuthorityDigest));
 
                 Synchronize();
-                Assume.That(_here.Database.CustomData.Get(record.StorageKey), Is.Not.Null.And.Not.Empty,
-                    "the merge brought the record back");
+                Assume.That(Listed(_here), Has.Member(record.AdmissionKey), "the merge brought the admission");
 
-                Assert.That(
-                    CertificateValidity.HasExpired(new DateTimeOffset(ended.NotAfter.ToUniversalTime(), TimeSpan.Zero), DateTimeOffset.UtcNow),
-                    Is.True, "it admits nobody, since the gate reads the certificate's dates");
+                using (var targets = new OpenDatabaseTargets(delegate { return new[] { _here.Database }; }, null, NullGateLog.Instance))
+                {
+                    var target = targets.Current().Single();
+                    Assert.That(KeePassGate.Pipeline.ClientCredentials.For(ended, target, NullGateLog.Instance).IsPaired, Is.False,
+                        "the gate refuses it on its dates");
+                    Assert.That(KeePassGate.Pipeline.ClientCredentials.For(current, target, NullGateLog.Instance).IsPaired, Is.True,
+                        "and admits the certificate beside it that has not ended");
+                }
 
-                Records(_here).PruneExpired(DateTimeOffset.UtcNow);
+                Records(_here).Write(AdmissionRecord.For(_second, DateTimeOffset.UtcNow, new[] { "reader" }, StoredAdmissions.AnyIssuer));
 
-                Assert.That(_here.Database.CustomData.Get(record.StorageKey), Is.Null, "and the next write takes it away");
+                Assert.That(Listed(_here), Has.Member(record.AdmissionKey), "and no write deletes it for its age");
             }
         }
 
@@ -263,51 +280,64 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void The_same_two_records_on_the_root_group_do_not_both_survive()
+        public void The_same_two_keys_on_the_root_group_do_not_both_survive()
         {
-            // The counterfactual, so that the tests above cannot pass for some reason other than
-            // the one they are about. These are the same two writes into the dictionary the
-            // records used to live in, and the merge takes that one from whichever replica's
-            // group was touched last.
-            _here.Database.RootGroup.CustomData.Set("KPG.Client.here", "a record");
+            // The counterfactual, so that the standing answers' tests above cannot pass for some
+            // reason other than the one they are about. These are two writes into a group's own
+            // dictionary, and the merge takes that one from whichever replica's group was touched
+            // last.
+            _here.Database.RootGroup.CustomData.Set("KPG.Here", "a value");
             _here.Database.RootGroup.Touch(true, false);
 
             System.Threading.Thread.Sleep(1100);
-            _elsewhere.Database.RootGroup.CustomData.Set("KPG.Client.elsewhere", "another record");
+            _elsewhere.Database.RootGroup.CustomData.Set("KPG.Elsewhere", "another value");
             _elsewhere.Database.RootGroup.Touch(true, false);
 
             Synchronize();
 
-            Assert.That(_here.Database.RootGroup.CustomData.Exists("KPG.Client.elsewhere"), Is.True,
+            Assert.That(_here.Database.RootGroup.CustomData.Exists("KPG.Elsewhere"), Is.True,
                 "the later replica's key arrives");
-            Assert.That(_here.Database.RootGroup.CustomData.Exists("KPG.Client.here"), Is.False,
+            Assert.That(_here.Database.RootGroup.CustomData.Exists("KPG.Here"), Is.False,
                 "and it arrives by replacing the dictionary, taking the other write with it");
         }
 
-        private enum Strip
+        private enum Times
         {
-            Neither,
-            Revoker,
-            Holder,
+            AsWritten,
+            HolderNewer,
+            RevokerOlder,
             Both,
         }
 
         /// <summary>
-        /// Every key written again with no time, which is what another program's save usually
-        /// leaves, `CA.md` §204. The public `Set` always stamps a time, so this goes through the
-        /// internal overload.
+        /// Every entry of the plugin's group, and every deletion record, dated to this moment.
         /// </summary>
-        private static void StripTimes(TemporaryDatabase database)
+        private static void Date(TemporaryDatabase database, DateTime when)
         {
-            var unstamped = typeof(StringDictionaryEx).GetMethod(
-                "Set", BindingFlags.Instance | BindingFlags.NonPublic, null,
-                new[] { typeof(string), typeof(string), typeof(DateTime?) }, null);
-            Assert.That(unstamped, Is.Not.Null, "KeePass no longer lets a key be written without a time");
-
-            foreach (var pair in database.Database.CustomData.ToList())
+            var group = database.Database.RootGroup.Groups.Single(found => StoreFormat.IsGroupIdentifier(found.Uuid.UuidBytes));
+            foreach (var entry in group.Entries)
             {
-                unstamped.Invoke(database.Database.CustomData, new object[] { pair.Key, pair.Value, null });
+                entry.LastModificationTime = when;
+                entry.LocationChanged = when;
             }
+
+            foreach (var deleted in database.Database.DeletedObjects)
+            {
+                deleted.DeletionTime = when;
+            }
+        }
+
+        /// <summary>
+        /// The other copy made a copy of this one, as a file copied and opened elsewhere is.
+        /// </summary>
+        private void Share()
+        {
+            Copy(_here, _elsewhere);
+        }
+
+        private static void Copy(TemporaryDatabase from, TemporaryDatabase into)
+        {
+            into.Database.MergeIn(from.Database, PwMergeMethod.Synchronize, null);
         }
 
         private void Synchronize()
@@ -320,9 +350,14 @@ namespace KeePassGate.Host.Tests
             return DatabaseAuthority.Of(database.Database, NullGateLog.Instance);
         }
 
-        private static AdmissionStore Records(TemporaryDatabase database)
+        private static StoredAdmissions Records(TemporaryDatabase database)
         {
-            return new AdmissionStore(new CustomDataStore(database.Database), NullGateLog.Instance);
+            return new StoredAdmissions(database.Database);
+        }
+
+        private static string[] Listed(TemporaryDatabase database)
+        {
+            return Records(database).All().Records.Select(record => record.AdmissionKey).ToArray();
         }
     }
 }
