@@ -774,7 +774,7 @@ namespace KeePassGate.Ui
                 var reaches = Reaches(admitted, reading, DateTimeOffset.UtcNow);
 
                 DescribeAuthority(reading, stored, admitted, reaches);
-                DescribeClients(admitted, reaches);
+                DescribeClients(admitted, reaches, NamedProfiles(stored, reading != null));
             }
         }
 
@@ -858,7 +858,10 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>The clients page, the profiles page and the notice, from the same reading.</summary>
-        private void DescribeClients(AdmissionListing admitted, IDictionary<string, ClientReach> reaches)
+        /// <param name="named">
+        /// The profiles the database names, from that reading: see <see cref="NamedProfiles"/>.
+        /// </param>
+        private void DescribeClients(AdmissionListing admitted, IDictionary<string, ClientReach> reaches, ICollection<string> named)
         {
             // Apart from the first page's catch, because a tab that failed to describe its
             // authority and went on showing the clients it listed a minute ago would be lying about
@@ -881,7 +884,7 @@ namespace KeePassGate.Ui
                 var writable = _database == null || !_database.IsOpen || _database.Store.Unwritable == null;
                 _clients.Writable = writable;
                 _profiles.Writable = writable && admitted.Complete;
-                _clients.Fill(admitted, reaches, NamedProfiles(), StandingAnswers(admitted, DateTimeOffset.UtcNow));
+                _clients.Fill(admitted, reaches, named, StandingAnswers(admitted, DateTimeOffset.UtcNow));
 
                 // The profiles page only while it is the page in front. It counts every rule in the
                 // tree and every record, which on a large database is the slowest thing on the tab,
@@ -2067,30 +2070,25 @@ namespace KeePassGate.Ui
         /// profile against.
         /// </summary>
         /// <remarks>
-        /// Read through the tab's own store, so a removal waiting for OK is shown as it will be
-        /// once OK is pressed, the way everything else on the tab is. A store that cannot be read
-        /// names nothing, which marks every held profile, because that is what the gate grants
-        /// then: nothing.
+        /// From the reading the redraw made of the tab's own store, so a removal waiting for OK is
+        /// shown as it will be once OK is pressed, the way everything else on the tab is, and the
+        /// store is not read again for it. A store that could not be read names nothing, which
+        /// marks every held profile, because that is what the gate grants then: nothing. Null where
+        /// no database was read.
         /// </remarks>
-        private ICollection<string> NamedProfiles()
+        /// <param name="stored">The redraw's reading of the store, or null.</param>
+        /// <param name="read">
+        /// Whether the redraw read a database, whose store could not be read where no reading came
+        /// of it.
+        /// </param>
+        private static ICollection<string> NamedProfiles(StoreReading stored, bool read)
         {
-            if (_database == null || !_database.IsOpen)
+            if (!read)
             {
                 return null;
             }
 
-            try
-            {
-                using (var reading = _database.Store.Read())
-                {
-                    return new HashSet<string>(ProfileNames.Of(reading).Names, StringComparer.Ordinal);
-                }
-            }
-            catch (Exception error) when (Expected.OfCustomData(error))
-            {
-                _log.Warn("the profiles this database names could not be read: " + error.Message);
-                return new HashSet<string>(StringComparer.Ordinal);
-            }
+            return new HashSet<string>(ProfileNames.Of(stored).Names, StringComparer.Ordinal);
         }
 
         /// <summary>

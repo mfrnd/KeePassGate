@@ -140,23 +140,23 @@ designing around them.
   and STORE.md §614.
 - **What the plugin keeps in custom data takes the file to KDBX 4.1**, because a per-key
   modification time is a 4.1 field. **This reverses "the authority takes the file to KDBX 4.1"**,
-  and after it "an admission record takes the file to 4.1": the authority and the admissions are
-  entries now, which need nothing above 4.0, so a saved database with an authority and an
-  admission in the store, and nothing of the plugin's in its custom data, is a 4.0 file, measured,
-  and a profile name or a standing answer to a renewal beside them takes it to 4.1, measured
-  too, and keeps it there, `AdmissionInRealDatabaseTests`. Measured through the pairing's own
-  write as well: a client paired for no profile leaves a 4.0 file, and a pairing that approves a
-  name the list does not hold writes that name, so it leaves a 4.1 file, for the name. That is a
-  format and not a gate: other programs open it, and what saving and merging in them does to it
-  is measured and stated in CA.md §204. A revocation is no key of that dictionary any more,
-  STORE.md §615, so what a KeePassXC merge can still undo there is the profile list and a
-  standing answer to a renewal.
+  and after it "an admission record takes the file to 4.1", and then "a profile name takes it to
+  4.1": the authority, the admissions and the profile names are entries now, which need nothing
+  above 4.0, so a saved database with an authority, an admission and a profile name in the store,
+  and nothing of the plugin's in its custom data, is a 4.0 file, measured, and a standing answer
+  to a renewal beside them takes it to 4.1, measured too, and keeps it there,
+  `AdmissionInRealDatabaseTests`. Measured through the pairing's own write as well: a client
+  paired for no profile and a client paired for a name the list did not hold each leave a 4.0
+  file. That is a format and not a gate: other programs open it, and what saving and merging in
+  them does to it is measured and stated in CA.md §204. A revocation and a profile name are no
+  keys of that dictionary any more, STORE.md §615 and §616, so what a KeePassXC merge can still
+  undo there is a standing answer to a renewal.
 - **That store is decided to be replaced in 0.3.0, and is what 0.2.0 ships until then.** The entries
   above about `CustomData` and KDBX 4.1 describe the plugin as released, but for the authority, the
-  admissions and the revocations. What replaces them is decided and built in part: the plugin's
-  data as entries in a group of its own, each written once under a check keyed by a secret the
-  database holds, with no custom data anywhere and nothing on the operator's own entries or
-  groups. [`STORE.md`](STORE.md) §601 is the contract,
+  admissions, the revocations and the profile names. What replaces them is decided and built in
+  part: the plugin's data as entries in a group of its own, each written once under a check keyed
+  by a secret the database holds, with no custom data anywhere and nothing on the operator's own
+  entries or groups. [`STORE.md`](STORE.md) §601 is the contract,
   §604 what it reverses and on which measurements, and `spikes/storage-survival` holds those
   measurements with the evaluation they were decided from. **Do not build anything new on custom
   data, and do not re-propose what those decisions closed**, which §612, §630 and §634 list with the

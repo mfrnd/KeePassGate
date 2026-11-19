@@ -1919,9 +1919,17 @@ entries without history, the hold measured 16.9 ms for a pairing's admission bes
 statements, and 27.2 ms for the renewal at the end of a chain of `from` as long as the
 statements, each renewed from the certificate before it and naming the next (§648 rule 4):
 following a chain as long as the store can hold costs about 10 ms over the statements alone.
-So the estimate holds in its shape, the walk somewhat dearer in the product, and reading every
-entry at every request stays well within the five seconds a hold is let run, with a full
-history on every entry the case that shows. *Held by*
+**With the names read in that hold as well** (§616), beside the same store, a single admission
+and 32 names on the list, the hold measured 2.78 ms at the median and 3.95 at worst, against
+2.72 ms for the admission alone in the same run; where every entry holds ten history items,
+57.3 ms against 58.4. Beside a single name removed and added again 7,936 times, the most that
+fit the addition's content, each removal an item of the summary entry and the addition naming
+all those removals, it measured 8.85 ms, 14.7 at worst, and 64.3 ms with the history: the names
+cost about 6 ms at that bound and nothing a run can tell at 32 names (`StoreReadingCostTests`,
+explicit, in Release, the median of 21 after a first). So the estimate holds in its shape, the
+walk somewhat dearer in the product, and reading every entry at every request stays well within
+the five seconds a hold is let run, with a full history on every entry the case that shows.
+*Held by*
 `StoreReadingBoundTests`, `StoreReadingTests` and
 `StoreInRealDatabaseTests`: a string replaced by an object of another text is read at the next
 hold with the entry's times left as they were; a second question inside a hold walks nothing;
@@ -2899,7 +2907,17 @@ reading with every entry, the plan, the entries asked about, the application, th
 back and the file hashed back, took 13 ms, and 73 ms where every entry holds ten history
 items. With KeePass's own save of the database the turn took 127 ms, and 4.8 seconds, 10.8 at
 worst, where every entry holds ten history items. So the save is what grows, and the store's
-part of a pairing's turn is what its reading costs (§620). **The operator's revocation is an
+part of a pairing's turn is what its reading costs (§620). **A pairing that approves 32 names
+the list does not hold**, each an addition of the admission's own write, took 24.0 ms at the
+median and 38.0 at worst against 12.8 ms in the same run for a pairing whose name the list held,
+and 89.7 against 74.0 ms where every entry holds ten history items
+(`StoreReadingCostTests.What_a_pairing_s_write_approving_32_new_names_holds_the_thread_for`):
+about 11 to 16 ms for the most names a pairing can ask for. Each figure was measured with no
+settings, group or entry dialog open. The KPG tab of each such dialog open as the record lands
+reads its own database's store again inside the same turn, the settings tab for its redraw and
+the grant editor for its pick list (`GrantPanel.Resync`), since the notice that a record landed
+names no database and each tab shows what its own database holds: each adds a reading of a store
+(§620) to the turn. **The operator's revocation is an
 act**, held by the buffer beside the authority's acts and written at OK. Every write deletes
 the records of kind `client` that step 3 names, by the texts §658 keeps, the write's own
 records counting as present, so a revocation, a certificate taken away, a Recreate and a Delete

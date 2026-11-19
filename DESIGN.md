@@ -1703,7 +1703,14 @@ So the rules here:
   milliseconds, and 73 where every entry holds ten history items; with KeePass's own save of
   the database, 127 milliseconds, and 4.8 seconds, 10.8 at worst, with the histories. That is a
   figure, on a developer's machine, for the save no sum of this plugin's timeouts bounds, above.
-  `StoreReadingCostTests.What_a_pairing_s_write_holds_the_thread_for`, `STORE.md` §627, and
+  A pairing that approves 32 names the list does not hold, the most a request can ask for, each
+  an addition of the same write, took 24 milliseconds where a pairing for a name the list held
+  took 13 in the same run, and 90 against 74 with the histories. And the hold a connection is
+  judged in, which reads the names with the admission, took 2.8 milliseconds beside 32 names
+  against 2.7 without them, and 8.9 beside a name added again after 7,936 removals, the most an
+  addition's content holds. `StoreReadingCostTests.What_a_pairing_s_write_holds_the_thread_for`,
+  `What_a_pairing_s_write_approving_32_new_names_holds_the_thread_for` and
+  `What_a_connection_s_hold_costs_with_the_names_it_reads`, `STORE.md` §620 and §627, and
   `FINDINGS.md` section 22.
 
   So the deadlock case is **mitigated rather than absent**, and earlier versions of this section

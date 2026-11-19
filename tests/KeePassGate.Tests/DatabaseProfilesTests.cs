@@ -215,6 +215,23 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Asking_what_a_name_brings_back_reads_the_store_once()
+        {
+            // The list and the clients holding the name from a single reading, on KeePass's
+            // thread, before an Add the operator pressed.
+            var group = new TestRuledNode("a group", "{\"ops\":[\"read\"]}");
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(group) });
+            var profiles = new DatabaseProfiles(database, null);
+            profiles.Add("ops");
+            profiles.Remove("ops");
+            var reads = database.Records.Reads;
+
+            Assert.That(profiles.Returning("ops"), Is.Not.Null);
+
+            Assert.That(database.Records.Reads - reads, Is.EqualTo(1));
+        }
+
+        [Test]
         public void A_name_no_rule_names_comes_back_without_a_warning()
         {
             var database = new FakeGateDatabase { Nodes = new TestRuledNodes() };

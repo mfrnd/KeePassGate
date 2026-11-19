@@ -137,6 +137,24 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void A_redraw_reads_the_store_once()
+        {
+            // The profiles the clients page marks its rows against come from the redraw's own
+            // reading, on KeePass's thread at every button and every record landing.
+            StoreSeeds.Authority(_database.Store);
+            Admit("agent-fictitious", DateTimeOffset.UtcNow);
+
+            using (var panel = NewPanel(true))
+            {
+                var reads = _database.Records.Reads;
+
+                panel.Describe();
+
+                Assert.That(_database.Records.Reads - reads, Is.EqualTo(1));
+            }
+        }
+
         [TestCase("split")]
         [TestCase("outdated")]
         public void Under_a_store_that_cannot_be_judged_the_profiles_page_offers_no_Add_and_no_X(string word)

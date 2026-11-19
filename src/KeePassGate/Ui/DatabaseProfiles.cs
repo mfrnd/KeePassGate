@@ -153,7 +153,7 @@ namespace KeePassGate.Ui
         /// counted in one walk: each reading parses every admission's certificate, and the page
         /// asks for a count on every row.
         ///
-        /// **Only clients that get in**, which <see cref="GettingIn"/> gives the reason for.
+        /// **Only clients that get in**, which <see cref="GettingIn()"/> gives the reason for.
         /// </remarks>
         public IReadOnlyDictionary<string, int> Clients()
         {
@@ -224,15 +224,23 @@ namespace KeePassGate.Ui
             using (var reading = new AuthorityService(_database.Store, _log).Read(out stored))
             using (stored)
             {
-                var authority = reading.IsPresent ? reading.Material.Authority : null;
-                var now = DateTimeOffset.UtcNow;
-                var listing = StoreAdmissions.Listing(stored);
-
-                return listing.Records
-                    .Where(record => listing.StandingOf(record) == AdmissionStanding.Admitted
-                                     && ClientReaches.GetsIn(record, authority, now))
-                    .ToList();
+                return GettingIn(reading, stored);
             }
+        }
+
+        /// <summary>
+        /// The same, from a reading of the store made already and the authority it holds.
+        /// </summary>
+        private static List<AdmissionRecord> GettingIn(AuthorityReading reading, StoreReading stored)
+        {
+            var authority = reading.IsPresent ? reading.Material.Authority : null;
+            var now = DateTimeOffset.UtcNow;
+            var listing = StoreAdmissions.Listing(stored);
+
+            return listing.Records
+                .Where(record => listing.StandingOf(record) == AdmissionStanding.Admitted
+                                 && ClientReaches.GetsIn(record, authority, now))
+                .ToList();
         }
 
         /// <summary>
@@ -272,16 +280,48 @@ namespace KeePassGate.Ui
         /// approved, so every client holding the name regains it. Counted now rather than
         /// remembered from the removal, because a rule can be written by hand, or an admission or
         /// a rule arrive in a merge, long after the name went.
+        ///
+        /// **The list and the clients holding the name from a single reading of the store.** Each
+        /// client is named once, by its client key, so a client that renewed and still holds the
+        /// admission it renewed from is named once, and two that share a name are named apart. It
+        /// regains the name through whichever of its certificates holds it, which while it holds
+        /// two can be the older alone. A listing that cannot be made names nobody, as the count
+        /// does; the tab's own line is where a failed read is reported, and a warning that could
+        /// not name the clients still states what comes back of the rules.
         /// </remarks>
         public string Returning(string name)
         {
-            if (_database == null || !_database.IsOpen || string.IsNullOrEmpty(name) || Read().Holds(name))
+            if (_database == null || !_database.IsOpen || string.IsNullOrEmpty(name))
             {
                 return null;
             }
 
+            var found = new List<AdmissionRecord>();
+            StoreReading stored;
+            using (var reading = new AuthorityService(_database.Store, _log).Read(out stored))
+            using (stored)
+            {
+                if (ProfileNames.Of(stored).Holds(name))
+                {
+                    return null;
+                }
+
+                try
+                {
+                    // Only an admission that gets in: an expired admission regains nothing and
+                    // goes with the plugin's next write, and an admission of another authority,
+                    // not for client use or not yet valid regains nothing either.
+                    found.AddRange(GettingIn(reading, stored).Where(record => record.Profiles != null
+                                                                            && record.Profiles.Contains(name, StringComparer.Ordinal)));
+                }
+                catch (Exception error) when (Expected.OfCustomData(error))
+                {
+                    _log.Warn("the clients holding " + name + " could not be listed: " + error.Message);
+                }
+            }
+
             var rules = Counted(Rules(), name);
-            var holders = Holders(name);
+            var holders = ClientList.ClientNames(found);
             if (rules == 0 && holders.Count == 0)
             {
                 return null;
@@ -312,39 +352,6 @@ namespace KeePassGate.Ui
             }
 
             return string.Join(" ", said);
-        }
-
-        /// <summary>
-        /// The admitted clients whose admissions hold a name, as the Clients page calls them.
-        /// </summary>
-        /// <remarks>
-        /// A listing that cannot be made names nobody, as the count does; the tab's own line is
-        /// where a failed read is reported, and a warning that could not name the clients still
-        /// states what comes back of the rules.
-        ///
-        /// Each client once, by its client key, so a client that renewed and still holds the
-        /// admission it renewed from is named once, and two that share a name are named apart. It
-        /// regains the name through whichever of its certificates holds it, which while it holds
-        /// two can be the older alone.
-        /// </remarks>
-        private IReadOnlyList<string> Holders(string name)
-        {
-            var found = new List<AdmissionRecord>();
-
-            try
-            {
-                // Only an admission that gets in: an expired admission regains nothing and goes
-                // with the plugin's next write, and an admission of another authority, not for
-                // client use or not yet valid regains nothing either.
-                found.AddRange(GettingIn().Where(record => record.Profiles != null
-                                                         && record.Profiles.Contains(name, StringComparer.Ordinal)));
-            }
-            catch (Exception error) when (Expected.OfCustomData(error))
-            {
-                _log.Warn("the clients holding " + name + " could not be listed: " + error.Message);
-            }
-
-            return ClientList.ClientNames(found);
         }
 
         /// <summary>
