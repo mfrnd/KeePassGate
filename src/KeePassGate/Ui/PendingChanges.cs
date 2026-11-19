@@ -195,6 +195,40 @@ namespace KeePassGate.Ui
         public IReadOnlyList<StoreAct> Landed { get; private set; } = Array.Empty<StoreAct>();
 
         /// <summary>
+        /// The names of the Adds held that OK would leave out now, because a removal of the name
+        /// that the press did not see stands in the database, `STORE.md` §627, in the order
+        /// pressed; none where the database is gone. Found as <see cref="Apply"/> finds them, by
+        /// the acts composed against the store as it stands, and by reading alone.
+        /// </summary>
+        /// <remarks>
+        /// What the Profiles page's line names as why a name the last press added does not show,
+        /// `DatabaseProfiles.Overtaken`: an addition never overrules a removal made apart.
+        /// </remarks>
+        public IReadOnlyList<string> OvertakenNow()
+        {
+            if (!_database.IsOpen || !_records.Waiting)
+            {
+                return Array.Empty<string>();
+            }
+
+            var held = _records.Acts;
+            var composed = _records.Composed();
+            var found = new List<string>();
+            using (var live = _database.Store.Read())
+            {
+                for (var at = 0; at < composed.Count; at++)
+                {
+                    if (composed[at] == null && ProfileActs.Overtaken(live, held[at]))
+                    {
+                        found.Add(ProfileActs.About(held[at]));
+                    }
+                }
+            }
+
+            return found;
+        }
+
+        /// <summary>
         /// Ignored rather than deferred. What marks the database is a change actually reaching it,
         /// which is <see cref="Apply"/>, because a database marked for a change that was then
         /// canceled is a database asking to be saved for nothing.

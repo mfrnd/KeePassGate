@@ -177,6 +177,12 @@ namespace KeePassGate.Tests.Gallery
                 _profiles.RemoveAll(p => p.Name == name);
                 return null;
             }
+
+            /// <summary>Nothing: no removal is made apart under these pictures.</summary>
+            public bool Overtaken(string name)
+            {
+                return false;
+            }
         }
     }
 }

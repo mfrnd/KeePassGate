@@ -524,14 +524,15 @@ namespace KeePassGate.Host.Tests
                     // band this page does not otherwise have: what a removal answers, with the
                     // longest name a profile can have and counts four digits wide, because the
                     // sentence names both; the refusal of a name where no store key stands; a name
-                    // removed in another copy under the dialog; and a write the store refuses, as
-                    // long as a reason is let be.
+                    // removed in another copy under the dialog, and a name the store as it stands
+                    // cannot take; and a write the store refuses, as long as a reason is let be.
                     var name = new string('p', 64);
                     var sentences = new[]
                     {
                         DatabaseProfiles.Said(name, 9999, 9999),
                         DatabaseProfiles.NoAuthorityRefusal,
                         ProfileList.RemovedMeanwhile(name),
+                        ProfileList.CannotBeAdded(name),
                         "That could not be written: " + Clipped.Message(new string('w', 4096)),
                     };
 

@@ -769,6 +769,11 @@ namespace KeePassGate.Tests
             {
                 return null;
             }
+
+            public bool Overtaken(string name)
+            {
+                return false;
+            }
         }
 
         [Test]

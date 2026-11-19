@@ -211,10 +211,30 @@ namespace KeePassGate.Tests
                 Assume.That(page.Add("ops"), Does.Contain("available to grant"));
 
                 database.Remove("ops");
+                database.OvertakenNames.Add("ops");
                 page.Describe();
 
                 Assert.That(page.Result, Is.EqualTo(
                     "The profile ops was removed in another copy of this database while this dialog was open, so OK will not add it."));
+            }
+        }
+
+        [Test]
+        public void A_name_a_redraw_takes_off_the_page_for_another_reason_is_not_said_to_be_removed_elsewhere()
+        {
+            // The authority it was added under gone, or the store stopped or split under the
+            // dialog: no removal made apart, and the line states only what holds.
+            var database = new FakeProfiles();
+
+            using (var page = new ProfileList(database, null))
+            {
+                Assume.That(page.Add("ops"), Does.Contain("available to grant"));
+
+                database.Remove("ops");
+                page.Describe();
+
+                Assert.That(page.Result, Is.EqualTo(
+                    "The profile ops cannot be added to the store as it stands now, so OK will not add it."));
             }
         }
 
@@ -564,6 +584,14 @@ namespace KeePassGate.Tests
 
                 _names.Remove(name);
                 return null;
+            }
+
+            /// <summary>The names whose Add a removal made apart overtakes.</summary>
+            public List<string> OvertakenNames { get; } = new List<string>();
+
+            public bool Overtaken(string name)
+            {
+                return OvertakenNames.Contains(name);
             }
         }
     }

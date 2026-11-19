@@ -49,6 +49,31 @@ namespace KeePassGate.Ui
             get { return _lastRemoval; }
         }
 
+        /// <summary>
+        /// Whether OK would leave out the Add of this name held on the dialog because a removal of
+        /// the name that the press did not see stands in the database, `STORE.md` §627: found as
+        /// the dialog's OK finds it, by reading alone. False over a database holding nothing for
+        /// OK, and where the store could not be read.
+        /// </summary>
+        public bool Overtaken(string name)
+        {
+            var pending = _database as PendingDatabase;
+            if (pending == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                return pending.OvertakenNow().Contains(name, StringComparer.Ordinal);
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Warn("the profiles held for OK could not be read against the store: " + error.Message);
+                return false;
+            }
+        }
+
         public IReadOnlyList<string> Names()
         {
             return Read().Names;

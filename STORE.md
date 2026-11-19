@@ -2778,6 +2778,14 @@ composed at OK against whatever stands then, and an act composed once under a ke
 | nothing | Add `x`, then Remove `x` | nothing is written |
 | nothing | Remove `x`, then Add `x` | nothing is written, and `x` stays as it was |
 
+**The Profiles page's line names a removal made apart** (this document's own) as why a name the
+last press added does not show, and only where that is why: `PendingDatabase.OvertakenNow` finds
+the additions held that a removal the press never saw leaves out, as the OK's write finds them,
+by reading alone. For any other cause, the authority the name was added under gone or the store
+split or stopped under the dialog, the line states only that the store as it stands cannot take
+the name. Either way OK writes nothing for the press and the log names it; the name comes back by
+being added on the page again. *Held by* `ProfileListTests` and `PendingRecordsTests`.
+
 **What the buffer holds, and what OK does with it** (this document's own). Each press on the
 tab puts its act into the buffer. An act of the authority's, a retirement or an authority with
 its certificates and its keys, is composed at the press, from the store as the page showed it.

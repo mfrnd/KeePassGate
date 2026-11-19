@@ -470,13 +470,14 @@ namespace KeePassGate.Ui
 
             _empty.Visible = _shown.Count == 0;
 
-            // A redraw can take off the page a name the last gesture showed as available, where a
-            // removal of it that the press did not see reached the database meanwhile, as a merge
-            // brings it, and the line has to stop showing it so: an addition never overrules a
-            // removal the operator was not shown, `STORE.md` §627.
+            // A redraw can take off the page a name the last gesture showed as available, and the
+            // line has to stop showing it so, stating why where the cause is a removal of it that
+            // the press did not see, as a merge brings it: an addition never overrules a removal
+            // the operator was not shown, `STORE.md` §627. Any other cause is the store standing
+            // otherwise than when the name was added, which is all the line claims then.
             if (_added != null && !_shown.Contains(_added))
             {
-                Said(RemovedMeanwhile(_added));
+                Said(_profiles.Overtaken(_added) ? RemovedMeanwhile(_added) : CannotBeAdded(_added));
             }
         }
 
@@ -488,6 +489,16 @@ namespace KeePassGate.Ui
         {
             return "The profile " + name + " was removed in another copy of this database while this dialog "
                    + "was open, so OK will not add it.";
+        }
+
+        /// <summary>
+        /// What the line holds once a name the last gesture added is not shown for any other
+        /// reason: the store stands otherwise than when the name was added, so that OK will not
+        /// add it.
+        /// </summary>
+        public static string CannotBeAdded(string name)
+        {
+            return "The profile " + name + " cannot be added to the store as it stands now, so OK will not add it.";
         }
 
         /// <summary>One profile's count, which is none when the count does not name it.</summary>
@@ -704,6 +715,18 @@ namespace KeePassGate.Ui
 
         /// <summary>What the last removal did, in words, or null when it has done nothing.</summary>
         string LastRemoval { get; }
+
+        /// <summary>
+        /// Whether OK would leave out the Add of this name held on the dialog because a removal of
+        /// the name that the press did not see stands in the database.
+        /// </summary>
+        /// <remarks>
+        /// What tells the page's line, for a name the last gesture added that a redraw does not
+        /// show, whether a removal made apart is why, or the store standing otherwise than when
+        /// the name was added: the authority it was added under gone, or the store split or
+        /// stopped under the dialog.
+        /// </remarks>
+        bool Overtaken(string name);
     }
 
     /// <summary>
@@ -750,6 +773,11 @@ namespace KeePassGate.Ui
         public string Remove(string name)
         {
             return "No database is open on this dialog.";
+        }
+
+        public bool Overtaken(string name)
+        {
+            return false;
         }
     }
 }

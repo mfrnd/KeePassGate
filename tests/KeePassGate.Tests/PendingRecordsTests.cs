@@ -665,6 +665,11 @@ namespace KeePassGate.Tests
             StoreSeeds.Unname(copy, "ops");
             live.Records.Synchronize(copy);
             Assert.That(page.Names(), Does.Not.Contain("ops"), "the page reads what OK would write");
+            Assert.That(page.Overtaken("ops"), Is.True, "and tells why");
+            var writes = live.Records.Writes;
+            Assert.That(pending.OvertakenNow(), Is.EqualTo(new[] { "ops" }), "found before OK");
+            Assert.That(live.Records.Writes, Is.EqualTo(writes), "by reading alone");
+            Assert.That(pending.ProfilesWaiting, Is.True, "with the press still held");
 
             pending.Apply();
 
@@ -676,6 +681,35 @@ namespace KeePassGate.Tests
             }
 
             Assert.That(log.Warnings.Any(entry => entry.Message.Contains("adding a profile ops")), Is.True, "the log names it");
+        }
+
+        [Test]
+        public void An_Add_a_store_split_under_the_dialog_leaves_out_is_not_overtaken()
+        {
+            // An authority under a key of its own, as a copy that made a store of its own leaves
+            // after a synchronize: the page lists no name, and no removal made apart is why.
+            var live = Keyed();
+            var page = new DatabaseProfiles(new PendingDatabase(live, NullGateLog.Instance), null);
+            Assert.That(page.Add("ops"), Is.Null);
+
+            live.Records.Put(StoreRecords.Authority(StoreRecords.Two, 'b'));
+
+            Assert.That(page.Names(), Does.Not.Contain("ops"));
+            Assert.That(page.Overtaken("ops"), Is.False);
+        }
+
+        [Test]
+        public void An_Add_a_pairing_made_good_under_the_dialog_is_not_overtaken()
+        {
+            // Nothing is left of the press to write, since the name is on the list already: not a
+            // removal the page's line names.
+            var live = Keyed();
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            Assert.That(new DatabaseProfiles(pending, null).Add("ops"), Is.Null);
+
+            StoreSeeds.Name(live.Store, "ops");
+
+            Assert.That(pending.OvertakenNow(), Is.Empty);
         }
 
         [Test]
@@ -700,9 +734,12 @@ namespace KeePassGate.Tests
             var live = new FakeGateDatabase();
             var log = new RecordingGateLog();
             var pending = new PendingDatabase(live, log);
+            var page = new DatabaseProfiles(pending, null);
             Assert.That(Service(pending).Create().Succeeded, Is.True);
-            Assert.That(new DatabaseProfiles(pending, null).Add("ops"), Is.Null);
+            Assert.That(page.Add("ops"), Is.Null);
             Assert.That(Service(pending).Delete().Succeeded, Is.True, "the Delete is taken");
+            Assert.That(page.Names(), Does.Not.Contain("ops"), "the page reads what OK would write");
+            Assert.That(page.Overtaken("ops"), Is.False, "and no removal made apart is why");
 
             pending.Apply();
 
