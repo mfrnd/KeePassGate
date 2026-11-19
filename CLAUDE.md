@@ -9,13 +9,13 @@ mutual TLS, so that automation and AI agents can each be given a narrow, revocab
 a database.
 
 **Status: released, and changed through pull requests into `master`.** The plugin makes each
-database its own certificate authority, kept with the admissions and the revocations as entries
-of a group of the plugin's own in that database, `STORE.md`, and serves a gate on loopback over
-mutual TLS 1.3, on Windows only. A client is served only while the database holds an admission
-record for its certificate that nothing refuses. A stranger becomes a client by pairing, on an
-invitation from the KPG tab and an approval dialog the operator answers, and a client's
-certificate is renewed on a dialog of the same kind, given up by the client, taken away alone
-by the operator, or revoked by the operator with every other certificate of its client. The
+database its own certificate authority, kept with the admissions, the revocations and the
+profile names as entries of a group of the plugin's own in that database, `STORE.md`, and serves a
+gate on loopback over mutual TLS 1.3, on Windows only. A client is served only while the database
+holds an admission record for its certificate that nothing refuses. A stranger becomes a client
+by pairing, on an invitation from the KPG tab and an approval dialog the operator answers, and a
+client's certificate is renewed on a dialog of the same kind, given up by the client, taken away
+alone by the operator, or revoked by the operator with every other certificate of its client. The
 OpenAPI document is the routing table, and every route declares the verb it needs: the router
 intersects the record's profiles with the rules kept on groups and entries, which the KPG tab
 of their dialogs edits as a `CRUSDLAP` mask, and writes every decision the rules make, and
@@ -34,7 +34,7 @@ account of all of it.
 | [`API.md`](API.md) | the reasoning behind the routes and what is deliberately absent, with the per-route detail in [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) |
 | [`CA.md`](CA.md) | the certificate authority: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
-| [`STORE.md`](STORE.md) | the store decided for 0.3.0: where the plugin's data lives in a database, how it is written and read, and a section attacking it. **Decided, and built only in part**, the guard, the reading, the authority, and the admissions and revocations: 0.2.0 ships the store of `CA.md` §204 |
+| [`STORE.md`](STORE.md) | the store decided for 0.3.0: where the plugin's data lives in a database, how it is written and read, and a section attacking it. **Decided, and built only in part**, the guard, the reading, the authority, the admissions and revocations, and the profile names: 0.2.0 ships the store of `CA.md` §204 |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
 | [`TESTING.md`](TESTING.md) | the four test tiers, what each one buys, and how to run them |
 | [`RELEASING.md`](RELEASING.md) | how a version is published, and the settings a release needs |
@@ -175,8 +175,10 @@ designing around them.
   hold, `StoreAdmissions`, written by a pairing's, a renewal's and a given up certificate's
   write, each saved, read back and taken back out whole where it did not land, §627, and by the
   clients page's revocation of a client and its removal of a single certificate at the settings
-  dialog's OK. The profile names, the rules and the standing answers to a renewal are still
-  where CA.md §204 keeps them.
+  dialog's OK. And the profile names, §616, an addition and a removal for each name: read with a
+  client's admission in its hold, `ProfileNames`, added by a pairing in the admission's own write
+  and added and removed by the Profiles page at the settings dialog's OK, `ProfileActs`. The rules
+  and the standing answers to a renewal are still where CA.md §204 keeps them.
 - **The admission record is load bearing.** A certificate that chains, passes its EKU check and has
   no record in the database is refused, and so is a certificate whose client is revoked, that was
   itself taken away, or that more than a single record admits, STORE.md §615. The
@@ -1192,14 +1194,14 @@ reopen the dialog, and only then believe it. Do the same after saving and reload
 those are two different failures.
 
 **`DatabaseOperationsForm`, under Tools then Database Maintenance, does the same to
-`PwDatabase.CustomData`**, which is where this plugin's own keys live: the profile names and the
-standing answers to a renewal, now that the authority, the admissions and the revocations are
+`PwDatabase.CustomData`**, which is where this plugin's own keys live: the standing answers to a
+renewal, now that the authority, the admissions, the revocations and the profile names are
 entries. Worse in two ways than the group dialog. Its write-back is conditional on the key count
-differing rather than on anything the operator did, so a key landing while it is open, as the
-profile name a pairing adds, is destroyed with the Plugin Data tab never opened. And the copy is
-written back as the dialog closes, whichever way it is closed: its one button, which is both the
-accept and the cancel button, Enter, Escape, the close box and Alt+F4 alike, so there is no way
-to decline it. `GroupDialogs` watches for it and `DatabaseWriter`
+differing rather than on anything the operator did, so a key landing while it is open, as a
+standing answer the renewal dialog writes would, is destroyed with the Plugin Data tab never
+opened. And the copy is written back as the dialog closes, whichever way it is closed: its single
+button, which is both the accept and the cancel button, Enter, Escape, the close box and Alt+F4
+alike, so there is no way to decline it. `GroupDialogs` watches for it and `DatabaseWriter`
 refuses while it is open.
 
 **A dialog that is adding something is about a group it does not hold**, which a watch keyed on the
@@ -1542,7 +1544,10 @@ will not read stops the store as any record of it does, and every client is answ
 This reverses an unreadable list read as an empty list, which left every client admitted and
 reaching nothing, with the Profiles page showing it as damaged and writing over it only when the
 operator replaced it there. A name needs the authority first, since its record is written under
-the store key, and the list keeps no ceiling.
+the store key, and the list keeps no ceiling. Where nothing is written into the store in the
+session, the Profiles page offers neither the row that adds a name nor an X, as the clients page
+offers no X, and neither under a store that is split or outdated, where the clients page lists
+nobody, STORE.md §636.
 
 ### The grant editor
 

@@ -208,15 +208,13 @@ for a hundred years, so there is nothing to count down to: see [`clients.md`](cl
 Anything wrong or about to be wrong appears as a sentence under the table: a client in the last
 third of its certificate's life, which is thirty days at most, and anything unreadable.
 
-**Once a profile is named, or a renewal is refused forever or until a day, the saved file is
-KDBX 4.1.** What the plugin keeps in the database's own custom data, the profile names and a
-standing answer to a renewal, carries the time each value was written, and that is a 4.1 field.
-The authority and the programs let in are entries of the plugin's group, which need nothing
-above 4.0, so a database with an authority and a program paired for no profile is still a 4.0
-file. A profile is named on the Profiles page, or by approving a program for a name the
-database does not hold yet. KeePass 2.48 or later keeps those times. Other programs open the
-file all the same, and [Revoking](clients.md#revoking) states what saving or merging in them
-costs and what to check afterwards.
+**Once a renewal is refused forever or until a day, the saved file is KDBX 4.1.** What the plugin
+keeps in the database's own custom data, a standing answer to a renewal, carries the time it was
+written, and that is a 4.1 field. The authority, the programs let in and the profile names are
+entries of the plugin's group, which need nothing above 4.0, so a database with an authority, a
+profile named and a program paired is still a 4.0 file. KeePass 2.48 or later keeps that time.
+Other programs open the file all the same, and [Revoking](clients.md#revoking) states what saving
+or merging in them costs and what to check afterwards.
 
 ## OK, then save
 
@@ -264,11 +262,12 @@ a copy of the file from before, synchronized in later, cannot put it back into s
 ## The plugin's group
 
 The authority is an entry of the database, in a group of the plugin's own named `KeePassGate`,
-beside the entries that keep the group's own account of what is in it. They are there to be seen
-and left alone. **An edit to what the plugin wrote in an entry of that group is undone at the
-plugin's next write into the group**, with the edit kept in the entry's history; in a database
-that keeps no history, such an edit ends the serving of the database. A title or notes changed on
-such an entry are not put back.
+beside an entry for each certificate admitted, for each client revoked and for each profile name
+added or removed, and the entries that keep the group's own account of what is in it. They are
+there to be seen and left alone. **An edit to what the plugin wrote in an entry of that group is
+undone at the plugin's next write into the group**, with the edit kept in the entry's history; in
+a database that keeps no history, such an edit ends the serving of the database. A title or notes
+changed on such an entry are not put back.
 
 **Deleting entries of that group is no way to stop a program or the gate.** Some deletions change
 nothing that is served, and some end the serving of the database. To stop a program, revoke it on
@@ -371,14 +370,11 @@ remove it once the plugin is gone:
 
 | | |
 | --- | --- |
-| **The plugin's group** | `KeePassGate`, holding a retirement for each authority the database has held, which Delete authority writes on purpose, a revocation for each client that was revoked and a record for each certificate a program gave up, and the entries that keep the group's own account of what is in it. The retirements are what keeps a copy of the file from before, synchronized in later, from putting the old authority back into service, so delete the group only once the plugin is not coming back. |
-| **The profiles** | `KPG.Profiles`, the names the Profiles page kept. |
+| **The plugin's group** | `KeePassGate`, holding a retirement for each authority the database has held, which Delete authority writes on purpose, a revocation for each client that was revoked and a record for each certificate a program gave up, an entry for each profile name added and for each removed, and the entries that keep the group's own account of what is in it. The retirements are what keeps a copy of the file from before, synchronized in later, from putting the old authority back into service, so delete the group only once the plugin is not coming back. The profile names go with the group. |
 | **The rules** | `KPG`, in the custom data of each group and entry that has a rule. |
 
 The group is deleted as any group is, into the recycle bin where the database keeps a recycle bin
-enabled, to be emptied from there. The profiles are on the **Plugin Data** tab under **Tools**,
-**Database Tools**, **Database Maintenance**, the tab to leave alone while the plugin is in use, as
-[Revoking](clients.md#revoking) explains. A group's rules are on the **Plugin Data** tab of
+enabled, to be emptied from there. A group's rules are on the **Plugin Data** tab of
 **Edit Group**, and an entry's under **Plugin data** on the **Properties** tab of **Edit Entry**;
 the versions an entry keeps in its history keep the rules they had. Then save the database.
 

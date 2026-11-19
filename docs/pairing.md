@@ -147,9 +147,8 @@ state nothing.
 
 1. The certificate is issued by this database's authority.
 2. The invitation is spent, so nothing else can use it.
-3. Any profile marked "(new)" or "(removed)" is added to the ones this database names, unless it
-   already names as many as it can hold, 32: then none is, and the dialog states so before anything
-   is pressed.
+3. Any profile marked "(new)" or "(removed)" is added to the profiles this database names, in the
+   same write as the next step.
 4. The admission record is written into the database **and the database is saved**.
 5. Only then is the certificate handed to the program.
 
@@ -157,7 +156,8 @@ The dialog states so before anything is pressed, because this and the renewal di
 [`clients.md`](clients.md#expiry), are the two screens in the plugin whose button writes the file.
 
 The save comes before the certificate, and the order is why: a program holding a certificate for a
-record that was never written would be a program that is refused forever and cannot state why.
+record that was never written would be a program that is refused forever and cannot state why. A
+save that fails takes the record back out of the database, with any profile the approval added.
 
 **Every answer is written to [the audit file](audit.md)**, by the invitation the request arrived on:
 approved, with the key of the certificate it admitted, once the record is saved; refused; or
@@ -176,11 +176,13 @@ shows the dialog again.
 
 **The Database Maintenance dialog refuses the whole thing before anybody is disturbed.** That
 dialog takes a copy of the database's plugin data when it opens and writes the copy back when it
-closes, which would silently undo what a pairing wrote there while it was open, such as a profile
-the approval added. If a pairing is reported refused for that reason, close the dialog and let
-the program ask again. **So does KeePass's TAN wizard**, under Tools, open on the same database:
-it adds its entries from inside its own OK, which can land part way through the save a pairing
-ends in and stop it, so nothing is saved to that database until the wizard is closed.
+closes, which would silently undo what a pairing changed there while it was open: a pairing's
+write clears away a [standing answer](clients.md#taking-a-standing-answer-back) to a renewal that
+no admitted certificate is left for. If a pairing is reported refused for that reason, close the
+dialog and let the program ask again. **So does KeePass's TAN wizard**, under Tools, open on the
+same database: it adds its entries from inside its own OK, which can land part way through the
+save a pairing ends in and stop it, so nothing is saved to that database until the wizard is
+closed.
 
 ## What the program gets
 

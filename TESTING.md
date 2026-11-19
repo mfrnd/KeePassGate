@@ -196,6 +196,17 @@ sequence leaves a store stopped, that state is held. The edits of a record past 
 limit are run a second apart and within the second the record was written, since KeePass
 compares modification times to the second and the two merge otherwise, `STORE.md` §622.
 
+**Which names a store lists is held as who it admits is**, `STORE.md` §616. In the unit tier
+`ProfileNamesTests` reads stores the test composes, each rule of that section on its own,
+`ProfileActsTests` holds what an addition and a removal are composed of and what each comes to
+composed again at OK, and `PendingRecordsTests` what the tab's buffer keeps of the presses about
+a name, an Add that a removal overtook left out at OK among them. In this tier
+`PairingInRealDatabaseTests` holds the name a pairing adds in its admission's own write, and
+`StoreProfileMergeTests` runs names over copies: each copy written apart by the product's own
+acts, each merged into the other from its file opened afresh, under each of KeePass's merge
+methods, with the copy merged into asked which names its list holds, and asked again after its
+next write, which deletes every addition a removal defeated.
+
 `StoreReadingCostTests` is explicit, as `Headroom_at_one_room_size` is: it times what reading the
 store holds KeePass's thread for through the real router and vault, with a connection's admission
 read by meaning through the gate's own target and at the ceiling of statements, and what a write

@@ -24,17 +24,21 @@ takes access away is a further entry, never an entry deleted or changed.
 > next write (§627, §643), and the words `split`, `outdated` and `stopped` of §656; the
 > authority and its retirements of §614, written by the plugin's own writes of §627, with the
 > records set back of §628 and what a write asks of KeePass's windows (§626), and served from what
-> stands, with `lost` (§656) answered from what the gate last served with; and the admissions and
+> stands, with `lost` (§656) answered from what the gate last served with; the admissions and
 > the revocations of §615, with a single certificate taken away (§648), by its own client or by
 > the operator, and the rule about renewals made from it: read by their meaning at every hold,
 > written by the writes of a pairing, a renewal and a certificate given up, each saved before it
 > is answered, and by the clients page at the settings dialog's OK, where the X revokes a client
-> and a row's menu takes a single certificate away (§636). §614, §615, §620, §626, §627,
+> and a row's menu takes a single certificate away (§636); and the profile names of §616, each
+> name added by a record and taken off by a record: read by their meaning with a client's
+> admission in the hold that reads it, added by a pairing in the admission's own write, and
+> added and removed on the Profiles page at the settings dialog's OK, which leaves out an Add
+> that a removal of its name overtook (§627). §614, §615, §616, §620, §626, §627,
 > §628, §633, §636, §643, §648 and §656 state which parts those are, and nothing else below
-> describes what the plugin does today. **Not built**: the profile names (§616), the rules
-> (§617) and the standing answers to a renewal as records of this store, which this build
-> keeps in custom data as 0.2.0 does; the page that seals a store again (§625) and the command
-> that starts it again (§632); the guard over KeePass's own windows, with its switch (§635);
+> describes what the plugin does today. **Not built**: the rules (§617) and the standing
+> answers to a renewal as records of this store, which this build keeps in custom data as
+> 0.2.0 does; the page that seals a store again (§625) and the command that starts it again
+> (§632); the guard over KeePass's own windows, with its switch (§635);
 > the tab's listing of the store (§636); the raising of the format, with `frozen` (§647,
 > §656); and the dialog that keeps a store among several (§649). §644 lists what is not
 > measured, with what each pull request ran of it. Each pull request that builds a part of
@@ -1593,15 +1597,20 @@ a removal and composes each again over the store as it stands at OK, and a pairi
 its additions after the admission. The gate reads a client's names with its admission, a held
 approval is compared name by name in the write's turn, the Profiles page writes each name through
 the store, refuses a name where no store key stands and offers no Add and no removal where
-nothing is written into the store (§636), and the grant editor's pick list is read from the
-store. Not built yet is the run over synchronized copies (§644). *Held by* `ProfileNamesTests`,
+nothing is written into the store or the store cannot be judged (§636), and the grant editor's
+pick list is read from the store. An Add that a removal of its name overtook before OK is not
+written: the page's line states it while the dialog is open, the log names the name at OK, and
+the name comes back by being added on the page again (§627). The names over copies that are
+synchronized are run over real databases, with what of that run stays owed in §644 item 32.
+*Held by* `ProfileNamesTests`,
 against the store's meanings of the measured code (`tests/Shared/StoreMeaningVectors.json`), and
 by every rule of this section over the product's reading, a hundred names among them;
 `ProfileActsTests`, against its records (`StoreRecordVectors.json`); `AdmissionActsTests`;
 `PendingRecordsTests` for the buffer, its fold and the additions it leaves out; `ProfileListTests`
-and `DatabaseProfilesTests` for the page; and `GateTabFitsTests` for the page with a hundred
+and `DatabaseProfilesTests` for the page; `GateTabFitsTests` for the page with a hundred
 names, and with the longest of each sentence its line holds, the refusal where no store key
-stands among them.
+stands among them; and `StoreProfileMergeTests` for names added and removed in copies of a real
+database, each merged into the other under each of KeePass's methods.
 
 ### Rules §617
 
@@ -1949,7 +1958,8 @@ certificates away by record, by item and by a deletion record of an admission ke
 stand, and the room of §627. The records of kind `profile` under the key are kept, in force or
 not, with the texts of §658, and the removals of each name by their identifiers, a removal known
 as a record, an item and a deletion record counted once: what the write of §627 step 3 deletes
-additions by. Which names are on the list (§616) is not worked out. The admission keys the file
+additions by. Which names are on the list (§616) is worked out from those by `ProfileNames`, from
+the reading of each hold that asks, and kept nowhere. The admission keys the file
 knows are those of step 2: the
 `certificate` and the `from` of every record of kind `client` present under the key, in force or
 not, each where it is an admission key, and what the records and the items that took certificates
@@ -1961,11 +1971,11 @@ connection is parsed there and kept nowhere, and every admission is parsed only 
 dialog that lists them. The authorities that stand under each key that stands are worked out for
 every state but no key and a store past `StoreFormat.MaxKeys`, of which no key is judged, as a
 word is answered under them (§656). What each kind means for access beyond that (steps 3 and 5)
-is built by the pull requests that bring each kind's meaning, the authority's (§614) and the
-admission's (§615) among them. The authority a database is served with is the single authority
-that stands in a store that is whole, read from the version that passed, and every admission
-holds the target it is made on to what the store then reads: the authority's entry, the version
-of it that passed, and that it still stands alone, so a retirement
+is built by the pull requests that bring each kind's meaning, the authority's (§614), the
+admission's (§615) and a profile name's (§616) among them. The authority a database is served
+with is the single authority that stands in a store that is whole, read from the version that
+passed, and every admission holds the target it is made on to what the store then reads: the
+authority's entry, the version of it that passed, and that it still stands alone, so a retirement
 written under a target already handed out refuses from that target's next admission on. A database
 whose store holds no key is served nothing, and a gate that was serving it when the key went answers
 `lost` from what it served with (§656). *Held by* `StoreReadingTests`, `StoreReadingStatesTests`,
@@ -3940,6 +3950,12 @@ guard as product code, with its setting, was not run (§644).
   yet or is about to lose. A client revoked on the page, or a certificate taken away there,
   changes nothing about which authority a code pairs with. *Held by*
   `AuthorityPanelTests.A_revocation_waiting_for_OK_leaves_inviting_as_it_was`.
+- **Its Profiles page adds a name and takes a name off the list** (§616), each an act of the
+  store that waits for OK (§627). Built: the row that adds a name, which refuses a name where
+  no store key stands and states that the database has no certificate authority yet; the X on
+  each row; and the line stating that OK will not add a name the last press added, in the form
+  for a name removed in another copy while the dialog stood and in the form for every other
+  cause (§627). *Held by* `ProfileListTests`, `DatabaseProfilesTests` and `GateTabFitsTests`.
 - **It shows entries that are passed over**: an entry with `KPG.` strings that is not the
   store's (§621). It lists no copy as taking anything away.
 - **It states a database that keeps little or no history** (decision 20), since in such a
@@ -4943,10 +4959,10 @@ store's group by the rule of the root, and with no rule at the root it serves no
 `docs/`, as a short section "Moving from 0.2" on the getting-started page (§654). The breaking
 item is written with the code (below). The section in `docs/`, with the steps in this order,
 is written by the pull request that writes the operator's documentation of the store, once
-every part of the store is built. Until then a build still reads the profile names and the
-rules where they were kept before, so the steps would not hold of that build, and the path of
-the last step can be verified only against a plugin that reads nothing of what is cleared
-(§644).
+every part of the store is built. Until then a build still reads the rules and the standing
+answers to a renewal where they were kept before, so the steps would not hold of that build, and
+the path of the last step can be verified only against a plugin that reads nothing of what is
+cleared (§644).
 
 **Two client programs have to change for 0.3.0**, which a 0.x minor release may ask (`API.md`
 §411). **A program that named fields of its own with the prefix `KPG.`**: such a field is out of
