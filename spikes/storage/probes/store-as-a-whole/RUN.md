@@ -1123,8 +1123,9 @@ keys sorted:
   `from` text for text, with no `from` where the record holds none. Added on 2026-11-19, in the
   forms of §616 and §611: an addition of a profile name with an empty `after`, an addition whose
   `after` names a removal, the removal, and a summary entry of height 1 holding the item
-  `removed` that restates it by its `name` and its identifier as `id`.
-- **`--meanings`**, `StoreMeaningVectors.json`: twenty small stores of those records, with what
+  `removed` that restates it by its `name` and its identifier as `id`. Added on 2026-11-20, the
+  records of a rule in the form of "The rules" below, and `profileTags`.
+- **`--meanings`**, `StoreMeaningVectors.json`: small stores of those records, with what
   `read.py` answers for each with its history rule on, as `status`, `served`, `auths`, `adm`,
   `valid`, `refusals` and `names`: an authority alone, two authorities, a retirement by record,
   by item and by deletion record, an authority beside a deletion record naming it, an admission,
@@ -1135,7 +1136,9 @@ keys sorted:
   naming its removal, an addition naming a single removal of two, an addition beside a deletion
   record naming it, and a name added twice. `read.py` answers the name on the list for the
   addition that names its removal and for the name added twice, and off it for the other five.
-- **`--writes`**, `StoreWriteVectors.json`: the file after each act of four sequences that
+  Added on 2026-11-20, the stores whose names begin `rules:`, about a profile's rule at a node
+  ("The rules" below).
+- **`--writes`**, `StoreWriteVectors.json`: the file after each act of sequences that
   `crdt_model.py`'s `World.step` plays under `bridge.py`'s `FLAGS`, written out by `store.py`'s
   `Encoder`, each step with its records, its deletion records, its summary entries and `read.py`'s
   answer. From the store the model's World starts with: Pair, Pair, Revoke, Recreate, Pair,
@@ -1150,7 +1153,79 @@ keys sorted:
   of the first into the second, `pf` added again in the first, and the two Synchronize again.
   Once the copies meet `pf` is off the list in both and `pg` on it by two additions, and at the
   end `pf` is on it in both, with both copies holding the same file. The model's pairing writes
-  no addition for a name it approves, which `STORE.md` §627 has a pairing write.
+  no addition for a name it approves, which `STORE.md` §627 has a pairing write. Added on
+  2026-11-20, every sequence plays with the store's rows switched on, and the sequences whose
+  names begin `rules,` play rows, switches and removed versions ("The rules" below).
+
+### The rules
+
+Added on 2026-11-20 for the rules kept in the store, `STORE.md` §617. Before any mode prints,
+the script switches the store's rows on as decided, as `bridge.rows('empty')` switches them for
+the runs of "Rules per profile": `crdt_model.ROWS` is `empty` and its `PP` on, `read.ROWS` and
+`read.PP` are on, and `store.ID_FORM` is `split`. A row's version is then identified by the
+subject hash over `rule:` and the node, and in bytes 9 and 10 by its profile's tag, the first two
+bytes of HMAC-SHA256 under the store key over `profile`, a line feed and the name; a switch's
+version by the subject hash over `switch:` and the node, and zero. Switching the rows on changes
+nothing printed before but `--writes`: its start holds a version of the row of `pf` and of `pg`
+at the root granting read, and its four earlier sequences play the same acts with the same
+answers, but for the model's names of authorities, whose numbers rise by 1 (`a10` for `a9`).
+
+**What the script chooses, and the model does not.**
+
+- **The texts.** In the script alone, `store.py`'s `doc` and `undoc` are replaced by the same
+  functions with the model's two letters written as the product writes them: read as `R` and
+  write as `U`. A row's text is `row:` and its letters in the order of CRUSDLAP (`row:RU`,
+  `row:R`, `row:U`), `row:` alone an empty rule, `off:` the rule taken off, and a switch's
+  `sw:deny` or `sw:inherit`. A text of a row or a switch in any other form is refused as the
+  script prints. `U` for write is the script's choice: the model's write has no letter in
+  CRUSDLAP.
+- **The nodes.** The root is `aa` repeated 16 times and the model's node N `bb` repeated 16
+  times, a group directly under the root; `--meanings` adds a group `cc` repeated 16 times
+  directly under N. In `--writes` the root and N are the only nodes, given under `nodes` and
+  `tree`.
+- **The keys and the tags.** The rule records of `--records` and the stores of `--meanings` are
+  under `keybytes('one')`, `849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8`,
+  as every record of those files is; the sequences of `--writes` under the model's label `K`.
+  The profile tags under the first are `pf` `9621`, `pg` `4322` and `px` `d546`, under the
+  second `pf` `4996` and `pg` `8772`.
+- **The profiles** are the model's `pf` and `pg`, and `px` in two stores of `--meanings`.
+- **The nonces.** Every rule record of `--records` holds the nonce of the file's other records;
+  versions made apart in `--meanings` differ in their nonce, the third derived as the invented
+  values are.
+
+**What each mode prints for the rules.**
+
+- **`--records`**: a version of `pf` at N granting `row:RU`, an empty rule of `pg`, a rule of
+  `pf` taken off, the switch refusing and inheriting, a version of `pf` granting `row:R` that
+  names in `after` the grant and the rule taken off, and a summary entry of height 1 holding the
+  item `format` and an item `version` for each of the first five, by its identifier as `id` and
+  its `object`, `after` and `doc`. For a row, the `subject` and `number` printed are those its
+  identifier holds: `rule:` and the node, and the profile's tag read as a big-endian number.
+  `profileTags` holds the tag of `pf` and of `pg`.
+- **`--meanings`**: stores of the first authority, the root's rows of `pf` and `pg` granting
+  `RU`, the versions the store's name gives, and a summary entry restating what stands. A row in
+  each state, granting, emptied, taken off and never made; two and three versions of a row,
+  granting, emptied and taken off, and three that grant with no letter all of them hold; each of
+  these also under N's switch refusing. Versions of the switch that differ; a row and a switch
+  lost by a deletion record; deletion records of a version that a standing version names, that
+  the summary entry restates, and of a row of `px`, before and after an addition makes the name
+  known; a version present beside a deletion record naming it, alone, beside a version that
+  grants and beside a version naming it; and limits at N above a group whose own row grants, at
+  N and at the group under it, and at the root. Each answer adds `rules`: what each node gives
+  `pf` and `pg` as letters, the standing texts of each row and switch, what a deletion record
+  shows lost, and `read.py`'s value of each, whether it refuses, the letters all granting
+  versions hold, and whether a version takes the rule off; and `tree`. Every store reads as `ok`.
+- **`--writes`**: every answer adds `rules` for the root and N, and a version present or deleted
+  adds its `object`, with its `subject` and `number` as `--records` gives them. The sequences of
+  `measured-rules-per-profile` sections 4, 5 and 7 that run over two copies, named by their
+  labels there: A1 to A7, the two copies of section 5, D1 to D3 in the form `again`, and W1 to
+  W8. Each plays a base in copy 0, a Synchronize into copy 1, the acts of each copy apart, and a
+  Synchronize of copy 1 into copy 0 and of copy 0 into copy 1, by the model's acts `row`,
+  `switch` and `drop` and its `kp_sync`, as the commands Set row, Remove row, Set switch, Remove
+  version and Synchronize. A rule act of the report that sets several rows is an act for each
+  row, in the order of the profiles' names, and an act that changes no row is left out. Every
+  step reads as `ok` under a single key; the second removal in W6 writes nothing, and at the end
+  of W8 N gives `pf` `RU`, which neither copy gave, as measured.
 
 ### Defects and limits
 
@@ -1178,3 +1253,27 @@ keys sorted:
   and S4, a revocation that also holds `certificate`, and a retirement for keeping an authority
   without the store key. So the product holds `--writes` by shape and by answer, and the first
   two modes byte for byte.
+- **The model holds a switch under an object of its own name**, `sw:` and the node, which
+  `store.py` writes as `switch:` and the node's identifier, and **its acts compose a version at
+  the write, with no buffer**: an act reads the copy's file as it stands when played and writes
+  at once, where `STORE.md` §629 has a rule set in a node's dialog written at the dialog's OK.
+  So no vector holds a version composed from what a dialog showed at a press, and no write of
+  several rows at once: each row is a write of its own, with its own summary entry. The `about`
+  of each of the three files names both.
+- **The model has two letters.** No vector holds `C`, `S`, `D`, `L`, `A` or `P`, and the order of
+  CRUSDLAP shows only as `R` before `U`: `store.py` sorts a row's letters as text, which agrees
+  with CRUSDLAP for these two alone.
+- **`--writes` is about 2.5 MB**, since every step holds the whole file.
+
+### Not printed
+
+- **A text out of form.** `read.py` reads a version's text with `undoc`, which raises on a text
+  it does not know, so the reading has no answer where the product refuses that profile's row.
+  No store holds such a text, and none holds an object out of form either.
+- **Two names whose tags meet.** `read.py` keeps a single name for each tag, the last of a set
+  whose order changes from run to run, so its answer is neither both rows refused, as the
+  product reads such a deletion record, nor the same in two runs.
+- **The sequences over three copies** of `measured-rules-per-profile` section 5 and D4 and D5,
+  outside the two copies the write vectors play; **the removal forms `void` and `limit`**, and
+  **the ways `again` and `off` of writing a removed row**, which the store does not take; and
+  **W9**, which writes a node's rule whole.
