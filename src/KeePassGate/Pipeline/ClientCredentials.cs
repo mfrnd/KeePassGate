@@ -128,35 +128,26 @@ namespace KeePassGate.Pipeline
 
                 var admissionKey = CertificateDigest.Of(presented);
 
-                // The names before the record, and read once, so the names granted and the names
-                // withheld are two halves of one list. Each read holds KeePass's thread on its own,
-                // and a lock can land between them: read second, the list met a database already
-                // shut and named nothing, and a client was told every profile it holds had been
-                // taken away. Read first, a lock after it is met by the record's read, which
-                // answers a shut database as one.
-                var named = target.KnownProfiles;
+                // The admission with the names the database lists, from a single hold, so the
+                // names granted and the names withheld are two halves of one list, and whether it
+                // read whole tells names a damaged list lost from names the operator removed.
+                var admitted = target.Admission(admissionKey);
 
-                // Whether it read whole, asked beside it and first for the same reason, so that
-                // names a damaged list lost are told apart from names the operator removed. A
-                // database shut by then answers that its list reads, so nothing is called damaged
-                // that was not.
-                var unreadable = target.ProfilesUnreadable != null;
-                var record = target.Admission(admissionKey);
-
-                if (record == null)
+                if (admitted == null)
                 {
                     logger.Warn("refused a certificate with no admission record: " +
                                 CertificateDigest.Shorten(admissionKey));
                     return ClientIdentity.Refused(databaseId, presented, "this certificate has no admission record");
                 }
 
+                var record = admitted.Record;
                 return ClientIdentity.Paired(
                     databaseId,
                     presented,
-                    Effective(record.Profiles, named),
-                    Removed(record.Profiles, named),
+                    Effective(record.Profiles, admitted.Named),
+                    Removed(record.Profiles, admitted.Named),
                     record.ClientKey,
-                    unreadable);
+                    admitted.Unreadable != null);
             }
             catch (DatabaseShut error)
             {
@@ -250,23 +241,22 @@ namespace KeePassGate.Pipeline
 
             try
             {
-                // In the order `For` reads them, and for its reasons.
-                var named = target.KnownProfiles;
-                var unreadable = target.ProfilesUnreadable != null;
-                var record = target.Admission(client.AdmissionKey);
+                // As `For` reads them, and for its reasons.
+                var admitted = target.Admission(client.AdmissionKey);
 
-                if (record == null)
+                if (admitted == null)
                 {
                     logger.Warn("refused a certificate whose admission record went while its request waited: " +
                                 CertificateDigest.Shorten(client.AdmissionKey));
                     return client.AsRefused("this certificate has no admission record");
                 }
 
+                var record = admitted.Record;
                 return client.AsNow(
-                    Effective(record.Profiles, named),
-                    Removed(record.Profiles, named),
+                    Effective(record.Profiles, admitted.Named),
+                    Removed(record.Profiles, admitted.Named),
                     record.ClientKey,
-                    unreadable);
+                    admitted.Unreadable != null);
             }
             catch (DatabaseShut error)
             {
@@ -298,9 +288,9 @@ namespace KeePassGate.Pipeline
         /// a renewal wrote while the name was off the list was written without it, `PAIRING.md`
         /// §312.
         ///
-        /// Read beside the record, on every connection and never cached, for the reason the record
-        /// is. A list that cannot be read is an empty one, which leaves the client admitted and
-        /// reaching nothing: the direction everything here fails in.
+        /// Read with the record, from the same reading, on every connection and never cached, for
+        /// the reason the record is. A list that cannot be read is an empty list, which leaves the
+        /// client admitted and reaching nothing: the direction everything here fails in.
         /// </remarks>
         public static IReadOnlyList<string> Effective(IReadOnlyList<string> held, IReadOnlyList<string> named)
         {

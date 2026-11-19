@@ -979,7 +979,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(identity.IsPaired, Is.True, "still admitted");
                 Assert.That(identity.Profiles, Is.EqualTo(new[] { "reader" }));
-                Assert.That(_ours.Admission(identity.AdmissionKey).Profiles, Is.EqualTo(new[] { "ops", "reader" }),
+                Assert.That(_ours.Admission(identity.AdmissionKey).Record.Profiles, Is.EqualTo(new[] { "ops", "reader" }),
                     "and the record is exactly what was approved");
             }
         }

@@ -737,14 +737,15 @@ POST /gate/renew
 **What the operator is shown is read from the record, not from the request.** Who is asking is the
 name the record was issued under, with when it was admitted and when the certificate it holds now
 expires, where the request came from, and the profiles its record holds that the database still
-names, all checked. The operator may uncheck any of them and can add none: the new certificate is
-never wider than the record. Unchecking narrows the new certificate alone, since the old record is
-left valid with everything it held until the client gives it up, and the dialog says so. A name the
-database no longer holds is not offered, and a line under the list says it is not carried over,
-since a renewed record is written from the names on the list. The list is read again once the
-operator has answered, so a name taken off it while they decided is not carried over either, and the
-renewal never puts a name back on the list. The lifetime is a proposal, as on a pairing: preselected
-among the presets when one is asked for, and a year when none is.
+names, read with the record in a single hold, all checked. The operator may uncheck any of them
+and can add none: the new certificate is never wider than the record. Unchecking narrows the new
+certificate alone, since the old record is left valid with everything it held until the client
+gives it up, and the dialog states as much. A name the database no longer holds is not offered, and
+a line under the list states that it is not carried over, since a renewed record is written from
+the names on the list. The list is read again once the operator has answered, so a name taken off
+it while they decided is not carried over either, and the renewal never puts a name back on the
+list. The lifetime is a proposal, as on a pairing: preselected among the presets when a lifetime is
+asked for, and a year when no lifetime is.
 
 **Refusing can answer more than this request**, which is the operator's ruling. Refuse is a split
 button. Pressing it refuses once, which keeps nothing, and so do Enter, Escape, the close box and

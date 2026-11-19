@@ -954,9 +954,10 @@ admission records, and the set of them is here. Three places, three questions, n
 duplicated, and no fourth place where they could disagree.
 
 **A name this list does not hold grants nothing.** A client is given the profiles its admission
-record holds that the list still names, read uncached beside the record on every request, and the
-resolver is handed only those. So taking a name off the list is the whole of taking it away: a rule
-for it that stays on a node, or comes back with a restored revision or a merge, answers for nobody.
+record holds that the list still names, read uncached with the record in its hold on every
+request, and the resolver is handed only those. So taking a name off the list is the whole of
+taking it away: a rule for it that stays on a node, or comes back with a restored revision or a
+merge, answers for nobody.
 **This reverses what this section first said**, that nothing is authorized by the list and the
 resolver has never heard of it, which made losing the list cost an operator their pick list rather
 than anybody their access. The intersection makes it load bearing, and fails closed the way

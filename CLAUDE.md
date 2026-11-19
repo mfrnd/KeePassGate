@@ -1531,14 +1531,14 @@ inherited alike**, because a profile is one row however it got there and narrowi
 one is done on the row that is already there.
 
 **And the list decides what a client holds.** A client is given the profiles its record holds less
-every name not on the list, read beside the record on every request, so removing a profile touches
-the list and nothing else: a rule still naming it grants nothing and the grant editor strikes it
-through, and adding the name back restores every rule and every client holding it, which the
-Profiles page and the approval dialog both say before it happens. This reverses a purge that took a
-removed name out of every rule, revisions included, and still lost to a stale copy merged in; see
-DESIGN.md §139. An unreadable list is an empty one, so every client stays admitted and reaches
-nothing, and the Profiles page shows it as damaged and writes over it only when the operator
-replaces it there.
+every name not on the list, read with the record in its hold on every request, so removing a
+profile touches the list and nothing else: a rule still naming it grants nothing and the grant
+editor strikes it through, and adding the name back restores every rule and every client holding
+it, which the Profiles page and the approval dialog both state before it happens. This reverses a
+purge that took a removed name out of every rule, revisions included, and still lost to a stale
+copy merged in; see DESIGN.md §139. An unreadable list is an empty list, so every client stays
+admitted and reaches nothing, and the Profiles page shows it as damaged and writes over it only
+when the operator replaces it there.
 
 ### The grant editor
 

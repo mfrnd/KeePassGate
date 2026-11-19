@@ -96,13 +96,7 @@ namespace KeePassGate.Tests.Fakes
         {
             get
             {
-                if (ListMisses > 0)
-                {
-                    ListMisses--;
-                    return Array.Empty<string>();
-                }
-
-                return _named.ToArray();
+                return NamesNow();
             }
             set
             {
@@ -112,17 +106,30 @@ namespace KeePassGate.Tests.Fakes
         }
 
         /// <summary>
-        /// How many of the next reads of <see cref="KnownProfiles"/> miss the list and answer it as
-        /// naming nothing, while the store a write reads under the writer's lock still holds it.
+        /// How many of the next reads of the list, by <see cref="KnownProfiles"/> or with an
+        /// admission, miss it and answer it as naming nothing, while the store a write reads under
+        /// the writer's lock still holds it.
         /// </summary>
         /// <remarks>
-        /// What a connection thread's lookup of `KPG.Profiles` meets when it races a change of the
-        /// database's custom data on KeePass's thread: a dictionary lookup that answers a miss
-        /// rather than throwing, which reads as a list that is there and names nothing. Apart
-        /// from <see cref="ProfilesUnreadable"/>, which is the list read and refused, so a test can
-        /// have the read pass the guard and miss afterwards.
+        /// What a lookup of `KPG.Profiles` meets when it races a change of the database's custom
+        /// data on KeePass's thread: a dictionary lookup that answers a miss rather than throwing,
+        /// which reads as a list that is there and names nothing. Apart from
+        /// <see cref="ProfilesUnreadable"/>, which is the list read and refused, so a test can have
+        /// the read pass the guard and miss afterwards.
         /// </remarks>
         public int ListMisses { get; set; }
+
+        /// <summary>The list as a read of it answers now, a miss among them.</summary>
+        private IReadOnlyList<string> NamesNow()
+        {
+            if (ListMisses > 0)
+            {
+                ListMisses--;
+                return Array.Empty<string>();
+            }
+
+            return _named.ToArray();
+        }
 
         /// <summary>Set to say the list of profiles will not read, as a damaged value would.</summary>
         public string ProfilesUnreadable { get; set; }
@@ -172,8 +179,11 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>Set to make listing the records fail, as a write racing the read does.</summary>
         public Exception AdmissionThrows { get; set; }
 
-        /// <summary>The admission of a certificate, as the gate reads it from the store.</summary>
-        public AdmissionRecord Admission(string admissionKey)
+        /// <summary>
+        /// The admission of a certificate, as the gate reads it from the store, with the profiles
+        /// this database names.
+        /// </summary>
+        public Admitted Admission(string admissionKey)
         {
             if (AdmissionThrows != null)
             {
@@ -182,7 +192,8 @@ namespace KeePassGate.Tests.Fakes
 
             using (var reading = _store.Read())
             {
-                return StoreAdmissions.Admitted(reading, admissionKey);
+                var record = StoreAdmissions.Admitted(reading, admissionKey);
+                return record == null ? null : new Admitted(record, NamesNow(), ProfilesUnreadable);
             }
         }
 
@@ -566,7 +577,12 @@ namespace KeePassGate.Tests.Fakes
         /// </summary>
         public bool Revoke(X509Certificate2 certificate)
         {
-            var admission = Admission(CertificateDigest.Of(certificate));
+            AdmissionRecord admission;
+            using (var reading = _store.Read())
+            {
+                admission = StoreAdmissions.Admitted(reading, CertificateDigest.Of(certificate));
+            }
+
             if (admission == null)
             {
                 return false;

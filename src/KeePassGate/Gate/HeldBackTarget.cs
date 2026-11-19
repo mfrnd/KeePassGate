@@ -172,7 +172,7 @@ namespace KeePassGate.Gate
             get { return null; }
         }
 
-        public AdmissionRecord Admission(string admissionKey)
+        public Admitted Admission(string admissionKey)
         {
             return null;
         }

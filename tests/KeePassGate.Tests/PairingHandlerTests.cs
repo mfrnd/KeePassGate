@@ -289,10 +289,10 @@ namespace KeePassGate.Tests
 
             using (var issued = IdentityIn(context))
             {
-                var record = _target.Admission(CertificateDigest.Of(issued));
+                var admitted = _target.Admission(CertificateDigest.Of(issued));
 
-                Assert.That(record, Is.Not.Null);
-                Assert.That(record.Profiles, Is.EqualTo(new[] { "ops" }));
+                Assert.That(admitted, Is.Not.Null);
+                Assert.That(admitted.Record.Profiles, Is.EqualTo(new[] { "ops" }));
             }
         }
 

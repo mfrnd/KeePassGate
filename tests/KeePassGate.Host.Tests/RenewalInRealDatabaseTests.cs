@@ -574,6 +574,32 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_dialog_offers_the_names_read_in_the_hold_that_read_the_admission_it_renews()
+        {
+            // The names are read with the admission, from the same reading. Taken off the list once
+            // that hold has ended, a name is still offered as the reading had it, and the write,
+            // which reads the list again in its own turn, finds the list is not what the dialog
+            // showed: nothing is written, and the operator is asked again.
+            var hold = new StopsAfterAHold();
+            using (var renewal = new RealRenewal(this, hold))
+            {
+                Assume.That(
+                    ProfileNames.Read(_database.Database.CustomData.Get(ProfileNames.CustomDataKey)).Holds("ops"), Is.True);
+                hold.Between = () => _database.Database.CustomData.Remove(ProfileNames.CustomDataKey);
+                hold.Armed = true;
+
+                var context = renewal.Ask(RenewalApproval.Approved(new[] { "ops" }), null);
+
+                Assert.That(hold.Armed, Is.False, "the name went between two holds");
+                Assert.That(renewal.LastRequest.Profiles, Is.EqualTo(new[] { "ops" }), "the names of the admission's own reading");
+                Assert.That(renewal.LastRequest.Dropped, Is.Empty);
+                Assert.That(context.Status, Is.EqualTo(503), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+            }
+        }
+
+        [Test]
         public void A_renewal_arriving_over_a_store_that_holds_the_gate_back_is_answered_its_word_before_the_dialog()
         {
             using (var renewal = new RealRenewal(this))

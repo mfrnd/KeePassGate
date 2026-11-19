@@ -141,7 +141,7 @@ namespace KeePassGate.Gate
         }
 
         /// <summary>Nobody is admitted while there is nothing to read records from.</summary>
-        public AdmissionRecord Admission(string admissionKey)
+        public Admitted Admission(string admissionKey)
         {
             return null;
         }

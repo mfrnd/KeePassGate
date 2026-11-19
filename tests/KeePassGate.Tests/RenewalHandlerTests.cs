@@ -75,7 +75,7 @@ namespace KeePassGate.Tests
                         "a new certificate, with a key of its own");
                     Assert.That(_authority.Admission(CertificateDigest.Of(renewed)), Is.Not.Null,
                         "admitted before the answer was sent");
-                    Assert.That(_authority.Admission(CertificateDigest.Of(renewed)).Profiles, Is.EqualTo(new[] { "reader" }));
+                    Assert.That(_authority.Admission(CertificateDigest.Of(renewed)).Record.Profiles, Is.EqualTo(new[] { "reader" }));
                 }
 
                 Assert.That(_authority.Admission(CertificateDigest.Of(old)), Is.Not.Null,
@@ -99,14 +99,14 @@ namespace KeePassGate.Tests
 
                 using (var renewed = Identity(first.Json))
                 {
-                    Assert.That(_authority.Admission(CertificateDigest.Of(renewed)).ClientKey, Is.EqualTo(paired));
+                    Assert.That(_authority.Admission(CertificateDigest.Of(renewed)).Record.ClientKey, Is.EqualTo(paired));
 
                     var second = Renew(operatorAt, renewed, "{}");
                     Assert.That(second.Status, Is.EqualTo(200), second.Json);
 
                     using (var again = Identity(second.Json))
                     {
-                        Assert.That(_authority.Admission(CertificateDigest.Of(again)).ClientKey, Is.EqualTo(paired));
+                        Assert.That(_authority.Admission(CertificateDigest.Of(again)).Record.ClientKey, Is.EqualTo(paired));
 
                         // Refused in the dialog and then by that standing answer without asking,
                         // so every way a renewal is written down has been, from a certificate two
@@ -214,7 +214,7 @@ namespace KeePassGate.Tests
 
                 using (var renewed = Identity(context.Json))
                 {
-                    Assert.That(_authority.Admission(CertificateDigest.Of(renewed)).Profiles, Is.EqualTo(new[] { "reader" }));
+                    Assert.That(_authority.Admission(CertificateDigest.Of(renewed)).Record.Profiles, Is.EqualTo(new[] { "reader" }));
                 }
             }
         }
@@ -250,7 +250,7 @@ namespace KeePassGate.Tests
                 Assert.That(operatorAt.LastRequest.Dropped, Is.EqualTo(new[] { "ops" }), "shown as dropped this time");
                 using (var renewed = Identity(again.Json))
                 {
-                    Assert.That(_authority.Admission(CertificateDigest.Of(renewed)).Profiles, Is.EqualTo(new[] { "reader" }));
+                    Assert.That(_authority.Admission(CertificateDigest.Of(renewed)).Record.Profiles, Is.EqualTo(new[] { "reader" }));
                 }
 
                 Assert.That(_authority.KnownProfiles, Does.Not.Contain("ops"), "and stays off it");
@@ -285,7 +285,7 @@ namespace KeePassGate.Tests
                 Assert.That(operatorAt.Asked, Is.EqualTo(2), "asked again, with the list read whole");
                 using (var renewed = Identity(again.Json))
                 {
-                    Assert.That(_authority.Admission(CertificateDigest.Of(renewed)).Profiles,
+                    Assert.That(_authority.Admission(CertificateDigest.Of(renewed)).Record.Profiles,
                         Is.EquivalentTo(new[] { "reader", "ops" }));
                 }
             }

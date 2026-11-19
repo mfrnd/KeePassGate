@@ -221,6 +221,34 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_connection_is_judged_in_a_hold_for_its_word_and_a_single_hold_for_its_admission_and_its_names()
+        {
+            // The names a client holds are read in the hold that reads its admission, from the
+            // same reading, so the names granted and the names withheld are two halves of a single
+            // list and no lock lands between the names and the admission. A hold of its own for
+            // the names would hold KeePass's thread again at every connection.
+            CreateAuthorityIn(_first);
+            _first.Database.CustomData.Set(KeePassGate.Acl.ProfileNames.CustomDataKey, "{\"profiles\":[\"ops\"]}");
+            var hold = new CountedHolds();
+            using (var targets = new OpenDatabaseTargets(delegate { return _open; }, null, hold, _log))
+            using (var target = targets.Current().Single())
+            using (var client = new AuthorityIssuer().IssueClient(
+                       target.AuthorityKey, "agent-fictitious", new[] { "ops", "retired" }).Read())
+            {
+                new StoredAdmissions(_first.Database).Write(
+                    AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops", "retired" }, target.DatabaseId));
+                var before = hold.Taken;
+
+                var identity = KeePassGate.Pipeline.ClientCredentials.For(client, target, _log);
+
+                Assert.That(identity.IsPaired, Is.True);
+                Assert.That(identity.Profiles, Is.EqualTo(new[] { "ops" }));
+                Assert.That(identity.Removed, Is.EqualTo(new[] { "retired" }));
+                Assert.That(hold.Taken - before, Is.EqualTo(2), "a hold for the word, and a hold for the admission with the names");
+            }
+        }
+
+        [Test]
         public void The_same_database_gives_the_same_target_until_something_changes()
         {
             // Building a target parses a PKCS#12 and mints a responder, so doing it per connection
@@ -708,6 +736,43 @@ namespace KeePassGate.Host.Tests
             {
                 _stamp++;
                 return read();
+            }
+        }
+
+        /// <summary>
+        /// Holds on the calling thread, each outermost hold under a stamp of its own, and counts
+        /// the outermost holds taken.
+        /// </summary>
+        private sealed class CountedHolds : KeePassGate.Ui.IReadHold
+        {
+            private long _stamp;
+            private int _depth;
+
+            public int Taken { get; private set; }
+
+            public long Stamp
+            {
+                get { return _depth > 0 ? _stamp : 0; }
+            }
+
+            public T Hold<T>(Func<T> read)
+            {
+                if (_depth > 0)
+                {
+                    return read();
+                }
+
+                Taken++;
+                _depth++;
+                _stamp = Taken;
+                try
+                {
+                    return read();
+                }
+                finally
+                {
+                    _depth--;
+                }
             }
         }
 
