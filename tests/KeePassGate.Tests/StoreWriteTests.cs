@@ -563,9 +563,136 @@ namespace KeePassGate.Tests
             Assert.That(items, Has.Count.EqualTo(before + 1));
         }
 
+        [Test]
+        public void An_addition_that_did_not_see_a_removal_of_its_name_is_deleted_by_a_record_an_item_a_deletion_record_and_the_write_s_own()
+        {
+            // `STORE.md` §627 step 3 and §616: an addition is deleted once a removal of its name
+            // that it does not name is known, the write's own removal counting as known; an
+            // addition of another name stays.
+            AssertDeletedBy(
+                Addition("reader", string.Empty),
+                Addition("writer", string.Empty),
+                new Dictionary<string, Func<ComposedStore, StoreAct>>
+                {
+                    { "a record with the item that restates it", store => Restating(store, store.Decision("removed")) },
+                    { "an item", store => Restating(store, RemovalItem(new string('7', 32), "reader")) },
+                    { "a deletion record", store => Telling(store, "removed", "profile:reader") },
+                    { "the write's own record", store => Act(One, Recorded("removed", ("name", "reader"))) },
+                });
+        }
+
+        [Test]
+        public void An_addition_naming_every_removal_of_its_name_is_left_and_an_addition_naming_a_single_removal_of_two_is_deleted()
+        {
+            var store = new ComposedStore(One);
+            var first = store.Add(Removal("reader"));
+            var second = store.Add(Removal("reader"));
+            store.RestateAll(new[] { RemovalItem(first.Hex, "reader"), RemovalItem(second.Hex, "reader") });
+            var both = store.Add(Addition("reader", string.Join(" ", new[] { first.Hex, second.Hex }.OrderBy(hex => hex, StringComparer.Ordinal))));
+            var single = store.Add(Addition("reader", first.Hex));
+            var reading = store.Read();
+            Assume.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+
+            var write = StoreWrite.Plan(reading, new[] { Neutral() }, Plugin);
+
+            Assert.That(write.Refused, Is.Null);
+            Assert.That(write.Delete, Does.Contain(single.Hex), "an addition that did not see the second removal");
+            Assert.That(write.Delete, Does.Not.Contain(both.Hex), "an addition that names every removal of its name");
+            Assert.That(write.Delete, Does.Not.Contain(first.Hex).And.Not.Contain(second.Hex), "a removal is never deleted");
+        }
+
+        [Test]
+        public void An_addition_out_of_force_or_whose_name_is_no_profile_name_goes_by_the_same_rule()
+        {
+            // `STORE.md` §627 step 3 tells additions by the texts the core keeps: an addition beside
+            // a deletion record naming it, and an addition whose name could travel as no claim, are
+            // deleted where a removal they do not name is known, and left where none is.
+            var store = new ComposedStore(One);
+            var gone = store.Add(Addition("reader", string.Empty));
+            store.Delete(gone);
+            var odd = store.Add(Addition("not a name", string.Empty));
+            var oddLeft = store.Add(Addition("not a name either", string.Empty));
+            var removal = store.Add(Removal("reader"));
+            var oddRemoval = store.Add(Removal("not a name"));
+            store.RestateAll(new[] { RemovalItem(removal.Hex, "reader"), RemovalItem(oddRemoval.Hex, "not a name") });
+            var reading = store.Read();
+            Assume.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+
+            var write = StoreWrite.Plan(reading, new[] { Neutral() }, Plugin);
+
+            Assert.That(write.Delete, Does.Contain(gone.Hex), "beside a deletion record naming it");
+            Assert.That(write.Delete, Does.Contain(odd.Hex), "a name that could travel as no claim");
+            Assert.That(write.Delete, Does.Not.Contain(oddLeft.Hex), "no removal of its name is known");
+
+            var applied = write.Applied(reading.Candidates, reading.Deletions);
+            Assert.That(applied.Value.Count(identifier => KeePassGate.Hex.Of(identifier) == gone.Hex), Is.EqualTo(1),
+                "the file holds its deletion record already, and no second is written");
+            Assert.That(applied.Value.Count(identifier => KeePassGate.Hex.Of(identifier) == odd.Hex), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_write_that_removes_a_name_deletes_the_addition_it_defeats_and_restates_the_removal_by_a_single_item_more()
+        {
+            var store = Started(out var key, 'a');
+            var addition = StoreRecord.Compose(key, "profile", new Dictionary<string, string> { { "after", string.Empty }, { "name", "reader" } });
+            Assert.That(store.Write(new[] { Act(key, addition) }).Taken, Is.True);
+            var before = store.Read().InForce.Room.Items;
+            var removal = StoreRecord.Compose(key, "removed", new Dictionary<string, string> { { "name", "reader" } });
+
+            var write = StoreWrite.Plan(store.Read(), new[] { Act(key, removal) }, Plugin);
+
+            Assert.That(write.Delete, Does.Contain(addition.Hex));
+            var items = Items(SummaryOf(write));
+            Assert.That(items, Does.Contain(RemovalItem(removal.Hex, "reader")));
+            Assert.That(items, Has.Count.EqualTo(before + 1));
+
+            var written = store.Write(new[] { Act(key, removal) });
+            Assert.That(written.Taken, Is.True, written.Reason);
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(store.Candidates.Select(candidate => candidate.Hex), Does.Not.Contain(addition.Hex));
+            Assert.That(store.Deletions.Select(KeePassGate.Hex.Of), Does.Contain(addition.Hex));
+            Assert.That(reading.InForce.RemovalsOf("reader"), Is.EqualTo(new[] { removal.Hex }), "and the removal stays");
+        }
+
+        [Test]
+        public void An_addition_the_write_itself_adds_is_not_deleted_by_a_removal_beside_it()
+        {
+            // `STORE.md` §627 step 3 deletes what a record present replaces; what the write adds is
+            // composed by the write, and an addition and a removal of a name in a single write are
+            // the composer's to avoid.
+            var store = Started(out var key, 'a');
+            var addition = StoreRecord.Compose(key, "profile", new Dictionary<string, string> { { "after", string.Empty }, { "name", "reader" } });
+            var removal = StoreRecord.Compose(key, "removed", new Dictionary<string, string> { { "name", "reader" } });
+
+            var write = StoreWrite.Plan(store.Read(), new[] { Act(key, removal), Act(key, addition) }, Plugin);
+
+            Assert.That(write.Refused, Is.Null);
+            Assert.That(write.Add.Select(record => record.Hex), Does.Contain(addition.Hex));
+            Assert.That(write.Delete, Does.Not.Contain(addition.Hex));
+        }
+
+        /// <summary>A record of kind `profile` under `One`: an addition of this name naming these removals.</summary>
+        private static StoreComposer.Composed Addition(string name, string after)
+        {
+            return StoreComposer.Record(One, "profile", "profile:" + name, StoreComposer.Content(("after", after), ("name", name)));
+        }
+
+        /// <summary>A record of kind `removed` under `One`: a removal of this name.</summary>
+        private static StoreComposer.Composed Removal(string name)
+        {
+            return StoreComposer.Record(One, "removed", "profile:" + name, StoreComposer.Content(("name", name)));
+        }
+
+        /// <summary>The item `removed` that restates a removal of this name under this identifier.</summary>
+        private static string RemovalItem(string id, string name)
+        {
+            return StoreComposer.Item(("id", id), ("kind", "removed"), ("name", name));
+        }
+
         /// <summary>
-        /// Plans a write with each case's act over a store holding these two records of kind
-        /// `client`, and holds the first deleted and the second left.
+        /// Plans a write with each case's act over a store holding these two records, and holds
+        /// the first deleted and the second left.
         /// </summary>
         private static void AssertDeletedBy(
             StoreComposer.Composed refused, StoreComposer.Composed left, IReadOnlyDictionary<string, Func<ComposedStore, StoreAct>> cases)

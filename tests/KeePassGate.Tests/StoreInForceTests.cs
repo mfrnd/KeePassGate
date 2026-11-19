@@ -223,6 +223,52 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_removals_of_a_name_are_known_by_record_by_item_and_by_deletion_record_each_once()
+        {
+            // `STORE.md` §616: a removal is known as a record, as an item of a summary entry
+            // present and as a deletion record that tells of it, each by its own identifier, so a
+            // removal known all three ways is a single removal.
+            var store = new ComposedStore(One);
+            var thrice = store.Add(StoreComposer.Record(One, "removed", "profile:reader", StoreComposer.Content(("name", "reader"))));
+            store.Delete(thrice);
+            var itemOnly = new string('7', 32);
+            store.Add(StoreComposer.Record(One, "profile", "profile:writer", StoreComposer.Content(("after", string.Empty), ("name", "writer"))));
+            var told = Told(One, "removed", "profile:writer");
+            store.Deleted.Add(told);
+            store.RestateAll(new[]
+            {
+                StoreComposer.Item(("id", thrice.Hex), ("kind", "removed"), ("name", "reader")),
+                StoreComposer.Item(("id", itemOnly), ("kind", "removed"), ("name", "auditor")),
+            });
+
+            var reading = store.Read();
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(reading.InForce.RemovalsOf("reader"), Is.EqualTo(new[] { thrice.Hex }), "its record, its item and its deletion record");
+            Assert.That(reading.InForce.RemovalsOf("auditor"), Is.EqualTo(new[] { itemOnly }), "an item alone");
+            Assert.That(reading.InForce.RemovalsOf("writer"), Is.EqualTo(new[] { KeePassGate.Hex.Of(told) }), "a deletion record alone");
+            Assert.That(reading.InForce.RemovalsOf("nobody"), Is.Empty);
+            Assert.That(reading.InForce.RemovalsOf("Reader"), Is.Empty, "a name is compared exactly");
+        }
+
+        [Test]
+        public void The_additions_are_every_record_of_kind_profile_in_force_or_not()
+        {
+            var store = new ComposedStore(One);
+            var standing = store.Add(StoreComposer.Record(
+                One, "profile", "profile:reader", StoreComposer.Content(("after", string.Empty), ("name", "reader"))));
+            var gone = store.Add(StoreComposer.Record(
+                One, "profile", "profile:writer", StoreComposer.Content(("after", string.Empty), ("name", "writer"))));
+            store.Delete(gone);
+
+            var reading = store.Read();
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(reading.InForce.Additions.Select(record => record.Hex), Is.EquivalentTo(new[] { standing.Hex, gone.Hex }));
+            Assert.That(reading.InForce.Additions.Single(record => record.Hex == gone.Hex).InForce, Is.False, "beside a deletion record naming it");
+        }
+
+        [Test]
         public void A_certificate_taken_away_is_taken_away_by_its_record_and_by_an_item()
         {
             var store = new ComposedStore(One);

@@ -281,7 +281,7 @@ namespace KeePassGate.Store
             // or not the record reads as an admission, so no certificate is read here, and no
             // other record of that kind is deleted, since an admission that does not count now,
             // among several admissions of a certificate, may count once a merge brings a deletion
-            // record of the others.
+            // record of the others. And every addition that a removal of its name defeats.
             var delete = new List<string>();
             if (!starts)
             {
@@ -294,6 +294,7 @@ namespace KeePassGate.Store
                                         || retired.Contains(admission.Form.Member(StoreKinds.Issuer))
                                         || withdrawn.Contains(admission.Form.Member(StoreKinds.Certificate)))
                     .Select(admission => admission.Hex));
+                delete.AddRange(Defeated(inForce, added));
             }
 
             // A write never takes the store key out of the file: an entry holding it stays, or the
@@ -455,6 +456,35 @@ namespace KeePassGate.Store
             var taken = new HashSet<string>(inForce == null ? Enumerable.Empty<string>() : inForce.Taken(kind), StringComparer.Ordinal);
             taken.UnionWith(added.Where(record => record.Kind == kind).Select(record => record.Member(member)));
             return taken;
+        }
+
+        /// <summary>
+        /// The additions present under the key that a removal defeats, `STORE.md` §616 and §627
+        /// step 3: each record of kind `profile`, in force or not and whatever its name, whose
+        /// `after` does not hold every removal of its name that the store or this write's own
+        /// records know.
+        /// </summary>
+        /// <remarks>
+        /// **Deleting an addition of these changes no answer.** A removal is never deleted, so an
+        /// addition that did not see it stays defeated in every copy whether or not its deletion
+        /// record reaches that copy. No other addition is deleted, a second addition of a name on
+        /// the list among them, and no addition this write adds: what a write adds is what its
+        /// acts were composed to add.
+        /// </remarks>
+        private static IEnumerable<string> Defeated(StoreInForce inForce, IReadOnlyList<StoreRecord> added)
+        {
+            var written = added
+                .Where(record => record.Kind == StoreKinds.Removed)
+                .ToLookup(record => record.Member(StoreKinds.NameMember), record => record.Hex, StringComparer.Ordinal);
+            foreach (var addition in inForce.Additions)
+            {
+                var name = addition.Form.Member(StoreKinds.NameMember);
+                var seen = StoreFormat.Identifiers(addition.Form.Member(StoreKinds.After)) ?? Array.Empty<string>();
+                if (inForce.RemovalsOf(name).Concat(written[name]).Except(seen, StringComparer.Ordinal).Any())
+                {
+                    yield return addition.Hex;
+                }
+            }
         }
 
         /// <summary>A retirement composed again with the store key among its members.</summary>

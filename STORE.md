@@ -1877,7 +1877,11 @@ present, in force and told of by deletion records, what the retirements, the rev
 removals take away by record, by item and by deletion record, and the statements that took
 certificates away by record, by item and by a deletion record of an admission key the file knows
 (steps 1, 2, 4 and 7), the highest format number and plugin version (step 6), the authorities that
-stand, and the room of §627. The admission keys the file knows are those of step 2: the
+stand, and the room of §627. The records of kind `profile` under the key are kept, in force or
+not, with the texts of §658, and the removals of each name by their identifiers, a removal known
+as a record, an item and a deletion record counted once: what the write of §627 step 3 deletes
+additions by. Which names are on the list (§616) is not worked out. The admission keys the file
+knows are those of step 2: the
 `certificate` and the `from` of every record of kind `client` present under the key, in force or
 not, each where it is an admission key, and what the records and the items that took certificates
 away name; they are gathered only where a deletion record under the key carries the tag of a
@@ -1903,7 +1907,8 @@ and `LiveAuthorityTests`; the admission keys by `StoreInForceTests`: a deletion 
 certificate taken away tells of it by the `certificate` of an admission, in force or not, and by
 the `from` of a renewal, as a statement of its own that the room counts; a text that is no
 admission key adds no key; and a store with admissions hashes no subject for them until a
-deletion record carries that tag.
+deletion record carries that tag; and the removals of a name, by record, by item and by deletion
+record, a removal known all three ways counted once, and the additions, in force or not.
 
 ### Which entries are records §621
 
@@ -2802,7 +2807,13 @@ part of a pairing's turn is what its reading costs (§620). **The operator's rev
 act**, held by the buffer beside the authority's acts and written at OK. Every write deletes
 the records of kind `client` that step 3 names, by the texts §658 keeps, the write's own
 records counting as present, so a revocation, a certificate taken away, a Recreate and a Delete
-each delete in their own write the admissions they refuse. **A client's write is answered the
+each delete in their own write the admissions they refuse. **Every write deletes the profile
+additions that step 3 names** as well: each record of kind `profile` present under the key, in
+force or not and whatever its `name`, whose `after` does not hold every removal of its name that
+the store or the write's own records know, a removal known as a record by its identifier, as an
+item by its `id` and as a deletion record by its own identifier; no other addition, and none the
+write adds. The plugin composes no addition and no removal of its own (§616 is not built), so
+what this deletes is what a merge brought. **A client's write is answered the
 store's word** where the store holds the gate back in the writer's turn, above (§644 item 26).
 **The tab's OK meets no save of the plugin's own**, above (§644 item 30), so nothing was built
 for it. **The single removal on the clients page is written as the revocation is**, by the
@@ -2819,7 +2830,10 @@ once among them, and a record of kind `client` deleted where its client is revok
 retired or its certificate taken away, by a record, an item, a deletion record and the write's
 own record, in force or not and read or not, and left where it names nothing refused
 (`An_admission_that_reads_is_deleted_by_what_refuses_it_and_one_nothing_refuses_is_left` for an
-admission that reads);
+admission that reads), and a profile addition deleted where a removal of its name that it does
+not name is known by a record, an item, a deletion record and the write's own record, in force
+or not and whatever its name, and left where it names every removal of its name or is the
+write's own;
 `PendingRecordsTests`; `StoreWritesInRealDatabaseTests`, the group a write goes into and a
 write applied to a database read as the same write applied in memory among them; and the writes
 that save by `PairingInRealDatabaseTests` and `RenewalInRealDatabaseTests`, among them
