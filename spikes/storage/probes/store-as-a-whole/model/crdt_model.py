@@ -214,6 +214,67 @@ def row_text(f):
     return (''.join(sorted(f[1])) or 'empty') + ('|off' if f[2] else '')
 
 
+# ADDED (owed forms): the forms STORE.md 644 item 24 left owed. Each switch at its default is the
+# configuration of rules per profile as it was run. `configure` sets more profiles, the letters of a
+# rule, and a group 'G' between the root and N (PARENT: a node's parent; empty, every node under the
+# root). KNOWN: a deletion record of a removal of a name, or of a row's version, is told only for a
+# name the file knows, as read.py tells it (the names of the list's records and items, and for a
+# row the profile of every row object a version present names); without it the model reads every
+# deletion record by the element it names. ADD_FORM, under KNOWN: how an addition of a name names
+# the removals of that name: 'text' those the reading before the write holds, 'name' those as well
+# that a deletion record tells once the name being added is counted as known. TAG_OF, the form
+# `split`: a name's keyed tag, so that a deletion record of a row's version is told for the names
+# the file knows whose tag is that name's tag; TAG_READ 'first' or 'last' tells it for a single
+# such name, the first or the last in ordinal order (read.py's reading as the form was run kept a
+# single name, in an order its hash seed decided), and 'each' for every such name.
+PARENT = {}
+ROOT_ROWS = None    # the profiles the root's rule names at the start; None, every profile
+KNOWN = False
+ADD_FORM = 'text'
+TAG_OF = None
+TAG_READ = 'last'
+SWITCH_LETTERS = frozenset('ap')     # attachments, protected values: "and those too"
+REMOVE_VERBS = frozenset('sd')       # strip, delete: neither switch is asked about for a removal
+
+
+def configure(profs=None, letters=None, levels=None):
+    """ADDED (owed forms): more profiles, the letters of a rule, and three levels."""
+    global PROFS, ALL, IDENT, PARENT
+    if profs:
+        PROFS = tuple(profs)
+    if letters:
+        ALL = frozenset(letters)
+        IDENT = cap(ALL)
+        DOCS['inherit'] = IDENT
+    if levels == 3:
+        PARENT = {'G': 'root', 'N': 'G'}
+
+
+def caps(words):
+    """ADDED (owed forms): what a set of letters lets a profile do, as (profile, verb, scope): each
+    verb alone, and with each switch of the same rule for a verb that reads or writes; a removal
+    reaches attachments and protected values without a switch; a switch without a verb grants
+    nothing. With the letters read and write and no switch, a letter is a verb and nothing more."""
+    per = {}
+    for x in words:
+        p, _, w = x.rpartition('.')
+        per.setdefault(p, set()).add(w)
+    out = set()
+    for p, ws in per.items():
+        verbs = ws - SWITCH_LETTERS
+        sw = ws & SWITCH_LETTERS
+        for v in verbs:
+            out.add((p, v, ''))
+            for s in (SWITCH_LETTERS if v in REMOVE_VERBS else sw):
+                out.add((p, v, s))
+    return frozenset(out)
+
+
+def caps_text(c):
+    """ADDED (owed forms): capabilities as text, 'pf r+a' for read with attachments."""
+    return ' '.join('%s %s%s' % (p, v, '+' + s if s else '') for p, v, s in sorted(c))
+
+
 # -------------------------------------------------------------------- elements
 class El:
     # ADDED (store-as-a-whole): `carry`, the store key a retirement carries (change 6)
@@ -330,13 +391,16 @@ class World:
         self.ncert = 0                  # ADDED (store-as-a-whole): certificates renewed so far
         base = self.reps[0]
         base.nodes = {'root': ['root', 1], 'N': [None, 1]}
+        if PARENT:      # ADDED (owed forms): the group between the root and N
+            base.nodes['G'] = [None, 1]
         els = [El('auth:a0', 'auth', 'a0'),
                self.mk('padd', 'pf', height=1),
                El('rec:c0', 'rec', 'c0', data=('a0', frozenset(['pf'])))]
         if ROWS is None:
             els.append(self.mk('ver', 'rule:root', data=DOCS['r']))
         else:       # ADDED (rules per profile): the root's rule of read, a row for each profile
-            els += [self.mk('ver', 'rule:root/' + p, data=row('r')) for p in PROFS]
+            # ADDED (owed forms): ROOT_ROWS, the profiles the root names at the start
+            els += [self.mk('ver', 'rule:root/' + p, data=row('r')) for p in (ROOT_ROWS or PROFS)]
         for e in els:
             self.EL[e.id] = e
             base.entries[e.id] = [e.id, 1, True]
@@ -444,6 +508,17 @@ class World:
             for V in vers.values():
                 for e in V.values():
                     deadall |= e.after
+            # ADDED (owed forms): the names the file knows, as read.py has them
+            known = rown = present = None
+            if KNOWN or TAG_OF is not None:
+                known = set(e.obj for e in ents.values() if e.kind in ('padd', 'prem')) | set(n for (n, r) in prem)
+                rown = set(known)
+                for o in set(vers) | supers:
+                    if o.startswith('rule:') and '/' in o:
+                        rown.add(o.split('/', 1)[1])
+                present = set()
+                for V in vers.values():
+                    present |= set(V)
             for u in rep.dels:
                 e = EL.get(u)
                 if e is None or e.key not in held:      # ADDED (store-as-a-whole): `not in held`
@@ -451,7 +526,23 @@ class World:
                 if e.kind == 'ref':
                     refusals.add(rtuple(e.data, fl))    # a deleted refusal still refuses (ADDED: rtuple)
                 elif e.kind == 'prem':
-                    prem.add((e.obj, e.id))             # a deleted removal still removes
+                    if known is None or e.obj in known:     # ADDED (owed forms): a name the file knows
+                        prem.add((e.obj, e.id))             # a deleted removal still removes
+                elif e.kind in ('ver', 'pin') and known is not None and e.obj.startswith('rule:') and '/' in e.obj:
+                    # ADDED (owed forms): a row's version, told by a name the file knows; in the
+                    # form `split` by every name the file knows whose tag is the name's tag
+                    node, p = e.obj[5:].split('/', 1)
+                    if TAG_OF is None:
+                        told = [p] if p in rown else []
+                    else:
+                        told = sorted(q for q in rown if TAG_OF(q) == TAG_OF(p))
+                        if TAG_READ in ('first', 'last'):
+                            told = told[:1] if TAG_READ == 'first' else told[-1:]
+                    for q in told:
+                        o = 'rule:%s/%s' % (node, q)
+                        if u not in deadall and (u not in present if TAG_READ == 'each' and TAG_OF is not None
+                                                 else u not in vers.get(o, {})):
+                            lost.setdefault(o, set()).add(u)
                 elif e.kind in ('ver', 'pin') and u not in deadall and u not in vers.get(e.obj, {}):
                     lost.setdefault(e.obj, set()).add(u)   # a version nothing replaced or carries
         store = bool(ents) or any(u[0] in 'HT' for u in rep.dels)
@@ -554,10 +645,23 @@ class World:
         # words_raw: what the rules say. words: what a client gets, which needs a store that is
         # whole and an authority that is served.
         words, words_raw, funcs = {}, {}, {}
+
+        def raw_of(n):      # ADDED (owed forms): what arrives at n down the walk from the root
+            if n == 'root':
+                return frozenset()
+            p = PARENT.get(n, 'root')
+            if p not in words_raw:
+                words_raw[p] = app(fnode(p), raw_of(p))
+                if PP:
+                    words_raw[p] = lift(words_raw[p])
+            return words_raw[p]
+
         for n in rep.nodes:
             f = fnode(n)
             funcs[n] = f
             up = app(fnode('root'), frozenset()) if n != 'root' else frozenset()
+            if PARENT:      # ADDED (owed forms)
+                up = raw_of(n)
             words_raw[n] = app(f, up)
             if PP:      # ADDED (copies extended): every word as a profile's letter
                 words_raw[n] = lift(words_raw[n])
@@ -747,6 +851,9 @@ class World:
             if n in v['names']:
                 return False
             rids = [r for (m, r) in v['prem'] if m == n]
+            if KNOWN and ADD_FORM == 'name':    # ADDED (owed forms): the name being added counted as known
+                rids += sorted(u for u in rep.dels if u not in rids and self.EL.get(u) is not None
+                               and self.EL[u].kind == 'prem' and self.EL[u].obj == n and self.EL[u].key in v['held'])
             gen = 1 + max([self.EL[r].height for r in rids] + [0])
             new.append(self.mk('padd', n, after=rids, height=gen))
         elif kind == 'prem':
