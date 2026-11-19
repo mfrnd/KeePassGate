@@ -376,17 +376,6 @@ namespace KeePassGate.Pairing
                 return null;
             }
 
-            // A renewal writes its record from the names on the list, so a list that will not read
-            // in the reading that found the admission is not offered as a list naming nothing: the
-            // client would carry no profile from here on, whatever the list holds once it reads
-            // again.
-            if (admitted.Unreadable != null)
-            {
-                _log.Warn("a renewal was refused for now: " + admitted.Unreadable);
-                context.Respond(503, HttpResponse.ErrorBody("busy"));
-                return null;
-            }
-
             var request = Request(context, target, key, admitted, lifetime);
             if (request == null)
             {

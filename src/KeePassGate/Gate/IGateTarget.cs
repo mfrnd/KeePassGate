@@ -93,23 +93,11 @@ namespace KeePassGate.Gate
         /// For the pairing dialog, which shows which of the profiles being asked for are new. A
         /// client's profiles and a renewal's are read with the admission, <see cref="Admission"/>.
         ///
-        /// Empty when the list cannot be read, and without the names it cannot hold when it holds
-        /// some it can. Not the safe direction for a pairing, which writes the names it approves
-        /// onto the list, so it asks <see cref="ProfilesUnreadable"/> first and refuses.
+        /// The names are what the store's records give, `STORE.md` §616, and a damaged record of a
+        /// name stops the store, which is answered its word before anything is read of it: so
+        /// there is no list that fails to read on its own. Empty where the store serves nothing.
         /// </remarks>
         IReadOnlyList<string> KnownProfiles { get; }
-
-        /// <summary>
-        /// Why the profiles this database names cannot be read now, or null when they can, an
-        /// empty list included.
-        /// </summary>
-        /// <remarks>
-        /// For a pairing, which refuses while it answers anything. A renewal asks the same of the
-        /// reading that found the admission it renews, `Admitted.Unreadable`. Every target answers
-        /// null: the names are what the store's records give, `STORE.md` §616, and a damaged record
-        /// stops the store, which is answered its word before anything is read of it.
-        /// </remarks>
-        string ProfilesUnreadable { get; }
 
         /// <summary>
         /// The admitted clients whose admissions hold a profile, read now. Empty where none do, and

@@ -469,24 +469,5 @@ namespace KeePassGate.Ui
 
             return written.Taken ? null : "That could not be written: " + Clipped.Message(written.Reason);
         }
-
-        /// <summary>
-        /// Whether the stored list will not read: never, since a damaged record of a name stops
-        /// the store, which the first page of the tab states.
-        /// </summary>
-        public bool Unreadable
-        {
-            get { return false; }
-        }
-
-        /// <summary>What Add and Remove answer while the stored list will not read.</summary>
-        public const string UnreadableRefusal =
-            "The list of profiles this database holds will not read, so it is left as it is. Start a new list first.";
-
-        /// <summary>Refuses, since nothing of the list fails to read: <see cref="Unreadable"/>.</summary>
-        public string StartNew()
-        {
-            return "The list of profiles reads, so there is nothing to replace.";
-        }
     }
 }

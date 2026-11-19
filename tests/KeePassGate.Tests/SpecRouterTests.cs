@@ -1002,16 +1002,6 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_list_that_cannot_be_read_leaves_every_client_holding_nothing()
-        {
-            // A target answers an unreadable list as an empty one, and the intersection with an
-            // empty list is empty, so the client is admitted and reaches nothing.
-            Assert.That(ClientCredentials.Effective(new[] { "ops", "reader" }, Array.Empty<string>()), Is.Empty);
-            Assert.That(ClientCredentials.Effective(new[] { "ops", "reader" }, null), Is.Empty);
-            Assert.That(ClientCredentials.Effective(null, new[] { "ops" }), Is.Empty);
-        }
-
-        [Test]
         public void The_intersection_keeps_the_record_s_order_and_compares_exactly()
         {
             Assert.That(

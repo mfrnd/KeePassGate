@@ -1606,15 +1606,6 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>
-            /// Nothing: a list of profiles cannot fail to read, since a damaged record of a name
-            /// stops the store, which is answered its word before anything is read of it.
-            /// </summary>
-            public string ProfilesUnreadable
-            {
-                get { return null; }
-            }
-
-            /// <summary>
             /// The admitted clients whose admissions hold a profile, read now. Nobody where the
             /// database has gone or its store cannot be judged, since such a store admits nobody,
             /// which leaves the approval dialog with no warning to give rather than a wrong
@@ -1924,7 +1915,7 @@ namespace KeePassGate.Bridge
 
                 var reading = _store.Now(database, database.RootGroup);
                 var record = Served(reading) ? StoreAdmissions.Admitted(reading, admissionKey) : null;
-                return record == null ? null : new Admitted(record, ProfileNames.Of(reading).Names, null);
+                return record == null ? null : new Admitted(record, ProfileNames.Of(reading).Names);
             }
 
             /// <summary>

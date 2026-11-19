@@ -49,7 +49,6 @@ IDENTITY: dict[str, Any] = {
     "expires": "2027-02-03T04:05:06Z",
     "profiles": ["reader"],
     "removedProfiles": ["retired"],
-    "profilesUnreadable": False,
 }
 
 
@@ -68,7 +67,6 @@ def test_the_gate_says_who_this_client_is_as_it_was_admitted(
         expires=datetime(2027, 2, 3, 4, 5, 6, tzinfo=UTC),
         profiles=("reader",),
         removed_profiles=("retired",),
-        profiles_unreadable=False,
     )
 
     declared = document["components"]["schemas"]["Identity"]
@@ -77,11 +75,9 @@ def test_the_gate_says_who_this_client_is_as_it_was_admitted(
     )
 
 
-def test_a_list_of_profiles_that_will_not_read_is_read_as_the_gate_answers_it(
+def test_the_stand_in_answers_who_this_client_is_as_the_plugin_does(
     gate: FakeGate, paired: GateClient
 ) -> None:
-    # Every profile on the record removed by no choice of the operator's, which the stand-in
-    # answers as the plugin does.
     gate.handler = lambda path, sent, client: identified(
         "CN=agent-invented",
         "5f" * 32,
@@ -89,13 +85,11 @@ def test_a_list_of_profiles_that_will_not_read_is_read_as_the_gate_answers_it(
         ["reader"],
         ["retired"],
         client_key="3a" * 32,
-        profiles_unreadable=True,
     )
 
     found = paired.identity()
 
-    assert found.profiles_unreadable
-    assert (found.profiles, found.removed_profiles) == ((), ("reader", "retired"))
+    assert (found.profiles, found.removed_profiles) == (("reader",), ("retired",))
     assert found.client_key == "3a" * 32
 
 
@@ -1325,11 +1319,6 @@ UNREADABLE: list[tuple[str, dict[str, Any], Callable[[GateClient], object]]] = [
      lambda c: c.identity()),
     ("an identity with no removed profiles",
      {name: value for name, value in IDENTITY.items() if name != "removedProfiles"},
-     lambda c: c.identity()),
-    ("an identity not saying whether its profiles read",
-     {name: value for name, value in IDENTITY.items() if name != "profilesUnreadable"},
-     lambda c: c.identity()),
-    ("an identity saying it in a word", {**IDENTITY, "profilesUnreadable": "false"},
      lambda c: c.identity()),
     ("grants that are a list", {"grants": ["reader"]}, lambda c: c.group_access()),
     ("a mask out of its order", {"grants": {"reader": "RC......"}}, lambda c: c.group_access()),

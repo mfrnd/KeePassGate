@@ -1161,23 +1161,6 @@ namespace KeePassGate.Tests
             Assert.That(_target.Admitted, Is.Null);
         }
 
-        [Test]
-        public void A_list_of_profiles_that_will_not_read_refuses_the_pairing_before_the_operator_is_asked()
-        {
-            // As a renewal is refused: shown as naming nothing, every name would be "(new)", and
-            // approving would write a list of only the approved names over the damaged one.
-            _target.ProfilesUnreadable = "the profiles this database names will not read";
-            var approval = Approving("ops");
-            Hello(ClientProof());
-
-            var context = Request("agent-fictitious", new[] { "ops" }, approval);
-
-            Assert.That(context.Status, Is.EqualTo(503));
-            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
-            Assert.That(approval.Asked, Is.Zero);
-            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "nothing is spent");
-        }
-
         [TestCase("split")]
         [TestCase("outdated")]
         [TestCase("stopped")]

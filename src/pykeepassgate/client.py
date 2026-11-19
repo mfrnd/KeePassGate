@@ -329,8 +329,6 @@ class GateClient:
         `credentials` says it without connecting. This is what holds now: `profiles` are the ones
         the rules are asked about, which leave out any name the database no longer holds, and
         `removed_profiles` are those, which grant nothing until the operator names them again.
-        `profiles_unreadable` is a database whose list of profiles will not read, which removes
-        every profile the record holds until the operator repairs it.
         """
         return Identity.of(self._request("GET", IDENTITY_PATH, None, _refuse))
 
@@ -1879,8 +1877,7 @@ def _refuse_renewal(reply: transport.Response) -> None:
 
     if reply.status == 503:
         # A renewal's own causes, which an ordinary route's message does not name: the gate asks
-        # the screen and the list of profiles as it does for a pairing, since a renewal writes a
-        # record of the names on it, and the list is the one of them that does not end by itself.
+        # about the screen as it does for a pairing.
         raise transport.unavailable(
             reply,
             locked="the database is locked, so a renewal has nothing to issue from",
@@ -1888,9 +1885,8 @@ def _refuse_renewal(reply: transport.Response) -> None:
                 "the gate cannot put this renewal to the operator right now: KeePass is part way "
                 "through something of its own, Database Maintenance is open, saving the database "
                 "would stop to ask the operator something, another pairing or renewal is in front "
-                "of them, or there is no screen to ask on, each of which ends by itself, or the "
-                "database's list of profiles will not read, which lasts until the operator "
-                "repairs it. Nothing changed, and the certificate this client holds still works"
+                "of them, or there is no screen to ask on, each of which ends by itself. Nothing "
+                "changed, and the certificate this client holds still works"
             ),
             undecided=_UNDECIDED,
         )

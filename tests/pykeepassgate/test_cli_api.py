@@ -61,7 +61,6 @@ def test_whoami_says_who_the_gate_admits_this_client_as(
             "expires": "2027-02-03T04:05:06Z",
             "profiles": ["reader", "writer"],
             "removedProfiles": [],
-            "profilesUnreadable": False,
         },
     )
 
@@ -81,49 +80,21 @@ def test_whoami_says_who_the_gate_admits_this_client_as(
 def test_whoami_names_a_profile_the_database_no_longer_holds(
     gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    answering(
-        gate,
-        {
-            "subject": "CN=agent-invented",
-            "clientKey": "3a" * 32,
-            "admissionKey": "5f" * 32,
-            "expires": "2027-02-03T04:05:06Z",
-            "profiles": [],
-            "removedProfiles": ["reader"],
-            "profilesUnreadable": False,
-        },
-    )
-
-    assert cli.main(["whoami", "--directory", str(kept)]) == 0
-
-    printed = capsys.readouterr().out.splitlines()
-    assert "profiles:         none" in printed
-    assert "removed profiles: reader" in printed
-    assert not any(line.startswith("profile list:") for line in printed), "printed only when so"
-
-
-def test_whoami_names_a_list_of_profiles_that_will_not_read(
-    gate: FakeGate, kept: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    # Every profile is removed then by no choice of the operator's, which is the one thing a
-    # person reading why nothing is granted needs to know, and it lasts until the list is mended.
+    # As the stand-in gate answers it, which is what the plugin answers.
     gate.handler = lambda path, sent, client: identified(
         "CN=agent-invented",
         "5f" * 32,
         datetime(2027, 2, 3, 4, 5, 6, tzinfo=UTC),
+        [],
         ["reader"],
-        profiles_unreadable=True,
+        client_key="3a" * 32,
     )
 
     assert cli.main(["whoami", "--directory", str(kept)]) == 0
 
     printed = capsys.readouterr().out.splitlines()
     assert "profiles:         none" in printed
-    assert "removed profiles: reader" in printed
-    assert printed[-1] == (
-        "profile list:     will not read, so every profile is removed until the operator "
-        "repairs it"
-    )
+    assert printed[-1] == "removed profiles: reader"
 
 
 @pytest.mark.parametrize(
@@ -782,7 +753,6 @@ def test_attachments_are_listed_with_their_sizes(
                 "expires": "2027-02-03T04:05:06Z",
                 "profiles": ["reader"],
                 "removedProfiles": [],
-                "profilesUnreadable": False,
             },
             "subject:          CN=Real\\nForged",
         ),

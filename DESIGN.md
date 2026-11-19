@@ -975,12 +975,14 @@ as it stood then; each press is an act of the store now, composed again at OK ag
 as it stands then, and a pairing writes its addition in the admission's own write. A list that
 would not read was an empty set, every client staying admitted and reaching nothing, and pairing,
 renewal and the Profiles page refused to write over it, the page offering one button that
-replaced it, the operator's ruling of 2026-11-08: a record of the store that will not read stops
-the store, as every record of the store does, so no state is left in which the names alone are
-lost. And the key held at most 32 names, so the Profiles page refused a further name, OK left out
-a name past that ceiling, and a pairing left an approved name off the list, which its dialog
-stated: no write of the plugin's refuses a name for how many the list holds now, and a pairing
-still asks for at most 32 names, which is the request's own limit.
+replaced it, the identity route telling a client `profilesUnreadable` and the audit giving a
+refusal the reason `profile list unreadable` (§120), the operator's ruling of 2026-11-08: a record
+of the store that will not read stops the store, as every record of the store does, so no state
+is left in which the names alone are lost, and all of that went with it. And the key held at most
+32 names, so the Profiles page refused a further name, OK left out a name past that ceiling, and
+a pairing left an approved name off the list, which its dialog stated: no write of the plugin's
+refuses a name for how many the list holds now, and a pairing still asks for at most 32 names,
+which is the request's own limit.
 
 **A name needs the authority first**, which reverses a name written into a database with no
 authority. A name is a record of the store, written under the store key that creating the
@@ -2169,9 +2171,11 @@ client has is in the database already, and a log repeating them is a second copy
 stealing. A refusal that the client's whole record would have permitted names the profiles the
 operator removed, under the reason `profile removed`, and that is not the copy: a removed name
 grants nothing, so writing it down says why a request failed without saying what anybody can
-reach. Where nobody removed them, because the database's list of profiles would not read and so
-named fewer than it held, the reason is `profile list unreadable` instead, the operator's ruling
-of 2026-11-08, so the line points at the damage rather than at a removal nobody made.
+reach. **That is the single reason for a name withheld**, which reverses a second, `profile list
+unreadable`, the operator's ruling of 2026-11-08, written where the list would not read and so
+named fewer than it held. The names are records of the plugin's store now, and a record of a
+name that will not read stops the store, §139, so no request is decided over a list that lost
+names to damage.
 
 **A certificate this authority issued is written down when an operation refuses it**, by its admission key,
 with the reason the credential check gave and no node. It has no admission record, or is outside

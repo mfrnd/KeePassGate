@@ -20,11 +20,7 @@ namespace KeePassGate.Gate
     {
         /// <summary>An admission and what the database names in the reading that found it.</summary>
         /// <param name="named">The profiles the database names, none where it names none.</param>
-        /// <param name="unreadable">
-        /// Why the profiles the database names would not read in that reading, or null where they
-        /// read, an empty list included.
-        /// </param>
-        public Admitted(AdmissionRecord record, IReadOnlyList<string> named, string unreadable)
+        public Admitted(AdmissionRecord record, IReadOnlyList<string> named)
         {
             if (record == null)
             {
@@ -33,23 +29,15 @@ namespace KeePassGate.Gate
 
             Record = record;
             Named = named ?? Array.Empty<string>();
-            Unreadable = unreadable;
         }
 
         /// <summary>The admission of the certificate.</summary>
         public AdmissionRecord Record { get; private set; }
 
         /// <summary>
-        /// The profiles the database names, read in the reading that found the admission. Empty
-        /// where the list will not read, and without the names it cannot hold where it holds some
-        /// it can: a client reaches no profile the reading left out.
+        /// The profiles the database names, read in the reading that found the admission: a
+        /// client reaches no profile the reading left out.
         /// </summary>
         public IReadOnlyList<string> Named { get; private set; }
-
-        /// <summary>
-        /// Why the profiles the database names would not read in that reading, or null where they
-        /// read: what tells the names a damaged list lost from the names the operator removed.
-        /// </summary>
-        public string Unreadable { get; private set; }
     }
 }

@@ -260,26 +260,20 @@ def identified(
     removed_profiles: Sequence[str] = (),
     *,
     client_key: str | None = None,
-    profiles_unreadable: bool = False,
 ) -> tuple[int, str]:
     """What the plugin answers `GET /gate/whoami` for a client its record holds so.
 
     `profiles` are the record's profiles the database still names and `removed_profiles` the
     rest; `client_key` is the admission key unless a renewal has changed the certificate since
-    pairing. `profiles_unreadable` is a database whose list of profiles will not read, which the
-    plugin answers by naming every profile on the record as removed and none as counted, so both
-    lists given end up under `removedProfiles`. A handler returns it, as it would any answer.
+    pairing. A handler returns it, as it would any answer.
     """
-    counted = [] if profiles_unreadable else list(profiles)
-    removed = [*profiles, *removed_profiles] if profiles_unreadable else list(removed_profiles)
     document = {
         "subject": subject,
         "clientKey": admission_key if client_key is None else client_key,
         "admissionKey": admission_key,
         "expires": expires.astimezone(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "profiles": counted,
-        "removedProfiles": removed,
-        "profilesUnreadable": profiles_unreadable,
+        "profiles": list(profiles),
+        "removedProfiles": list(removed_profiles),
     }
     return 200, json.dumps(document, separators=(",", ":"))
 

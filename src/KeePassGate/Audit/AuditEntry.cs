@@ -52,7 +52,7 @@ namespace KeePassGate.Audit
     /// words keep `permitted` meaning one thing, that the rules allowed something.
     ///
     /// **Four members are written only where they apply.** `removedProfiles` is a list of names on
-    /// a refusal that profiles the operator removed, or a damaged list lost, would have permitted;
+    /// a refusal that profiles the operator removed would have permitted;
     /// `invitation` names the invitation a pairing arrived on, and `issued` the admission key an
     /// approval admitted, on a pairing or a renewal; `requested` names the identifier a request
     /// asked for when it reached no node. None is a question every line answers, and written as
@@ -272,9 +272,8 @@ namespace KeePassGate.Audit
         /// A client's profiles are its record's less every name the database no longer lists, so a
         /// refusal because the operator took a name away read exactly like a rule saying no. When
         /// the record's whole list would have been permitted, the reason is
-        /// `AccessCheck.ProfileRemoved`, or `AccessCheck.ProfilesUnreadable` where the names were
-        /// lost to a list that would not read, and this names the removed profiles that would have
-        /// done it. What the client still holds is never written, which is the rule the line keeps.
+        /// `AccessCheck.ProfileRemoved`, and this names the removed profiles that would have done
+        /// it. What the client still holds is never written, which is the rule the line keeps.
         /// </remarks>
         public IReadOnlyList<string> RemovedProfiles { get; private set; }
 

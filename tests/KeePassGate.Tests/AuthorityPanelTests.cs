@@ -723,16 +723,6 @@ namespace KeePassGate.Tests
             {
                 return null;
             }
-
-            public bool Unreadable
-            {
-                get { return false; }
-            }
-
-            public string StartNew()
-            {
-                return null;
-            }
         }
 
         [Test]

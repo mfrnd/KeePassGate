@@ -129,8 +129,7 @@ namespace KeePassGate.Pipeline
                 var admissionKey = CertificateDigest.Of(presented);
 
                 // The admission with the names the database lists, from a single hold, so the
-                // names granted and the names withheld are two halves of one list, and whether it
-                // read whole tells names a damaged list lost from names the operator removed.
+                // names granted and the names withheld are two halves of a single list.
                 var admitted = target.Admission(admissionKey);
 
                 if (admitted == null)
@@ -146,8 +145,7 @@ namespace KeePassGate.Pipeline
                     presented,
                     Effective(record.Profiles, admitted.Named),
                     Removed(record.Profiles, admitted.Named),
-                    record.ClientKey,
-                    admitted.Unreadable != null);
+                    record.ClientKey);
             }
             catch (DatabaseShut error)
             {
@@ -255,8 +253,7 @@ namespace KeePassGate.Pipeline
                 return client.AsNow(
                     Effective(record.Profiles, admitted.Named),
                     Removed(record.Profiles, admitted.Named),
-                    record.ClientKey,
-                    admitted.Unreadable != null);
+                    record.ClientKey);
             }
             catch (DatabaseShut error)
             {
@@ -289,14 +286,13 @@ namespace KeePassGate.Pipeline
         /// §312.
         ///
         /// Read with the record, from the same reading, on every connection and never cached, for
-        /// the reason the record is. A list that cannot be read is an empty list, which leaves the
-        /// client admitted and reaching nothing: the direction everything here fails in.
+        /// the reason the record is.
         /// </remarks>
         public static IReadOnlyList<string> Effective(IReadOnlyList<string> held, IReadOnlyList<string> named)
         {
             var kept = new List<string>();
 
-            if (held == null || named == null)
+            if (held == null)
             {
                 return kept;
             }
@@ -316,9 +312,7 @@ namespace KeePassGate.Pipeline
         /// </summary>
         /// <remarks>
         /// Granting nothing, and kept for the audit alone: a refusal these names would have
-        /// permitted is written down as a profile removed rather than as a rule refusing. A list
-        /// that cannot be read is an empty one here too, so every name the record holds counts as
-        /// removed, which is how the clients page shows it as well.
+        /// permitted is written down as a profile removed rather than as a rule refusing.
         /// </remarks>
         public static IReadOnlyList<string> Removed(IReadOnlyList<string> held, IReadOnlyList<string> named)
         {
@@ -330,8 +324,7 @@ namespace KeePassGate.Pipeline
             }
 
             foreach (var profile in held.Where(
-                profile => profile != null
-                           && (named == null || !named.Contains(profile, StringComparer.Ordinal))))
+                profile => profile != null && !named.Contains(profile, StringComparer.Ordinal)))
             {
                 removed.Add(profile);
             }

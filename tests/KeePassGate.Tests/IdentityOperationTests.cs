@@ -58,7 +58,6 @@ namespace KeePassGate.Tests
                 Assert.That(answer["profiles"].Values<string>(), Is.EqualTo(new[] { "ops", "reader" }),
                     "the admission's profiles, in ordinal order, whatever the certificate claims");
                 Assert.That(answer["removedProfiles"].Values<string>(), Is.Empty);
-                Assert.That((bool)answer["profilesUnreadable"], Is.False);
             }
         }
 
@@ -126,27 +125,6 @@ namespace KeePassGate.Tests
 
                 Assert.That(answer["profiles"].Values<string>(), Is.EqualTo(new[] { "reader" }));
                 Assert.That(answer["removedProfiles"].Values<string>(), Is.EqualTo(new[] { "ops" }));
-                Assert.That((bool)answer["profilesUnreadable"], Is.False, "a name taken off a list that reads");
-            }
-        }
-
-        [Test]
-        public void A_list_of_profiles_that_will_not_read_is_named_as_damage()
-        {
-            // The operator's ruling of 2026-11-08. A list that will not read names nothing, so the
-            // record's every profile is under `removedProfiles`, which on its own read as the
-            // operator taking them all away, to be named again rather than repaired.
-            using (var certificate = _authority.IssueClient("agent-fictitious", "reader"))
-            {
-                _authority.Admit(certificate, "reader", "ops");
-                _authority.KnownProfiles = Array.Empty<string>();
-                _authority.ProfilesUnreadable = "the list of profiles is not a list";
-
-                var answer = Answered("GET", Identified(certificate));
-
-                Assert.That(answer["profiles"].Values<string>(), Is.Empty);
-                Assert.That(answer["removedProfiles"].Values<string>(), Is.EqualTo(new[] { "ops", "reader" }));
-                Assert.That((bool)answer["profilesUnreadable"], Is.True);
             }
         }
 
@@ -164,7 +142,6 @@ namespace KeePassGate.Tests
                     Is.EqualTo(new[]
                     {
                         "subject", "clientKey", "admissionKey", "expires", "profiles", "removedProfiles",
-                        "profilesUnreadable",
                     }));
             }
         }

@@ -337,35 +337,6 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_list_that_will_not_read_is_shown_as_that_and_takes_no_edit_until_it_is_replaced()
-        {
-            // The operator's ruling of 2026-11-08: the page states that the stored list will not
-            // read, Add stays off, and a button that states it replaces the damaged list is the
-            // one way to name profiles again.
-            var profiles = new FakeProfiles { Unreadable = true };
-
-            using (var page = new ProfileList(profiles, null))
-            {
-                Assert.That(ControlTree.FindByName<Control>(page, ProfileList.DamagedRowName).Visible, Is.True);
-                Assert.That(ControlTree.FindByName<Label>(page, ProfileList.DamagedLabelName).Text, Does.Contain("will not read"));
-                Assert.That(ControlTree.FindByName<Button>(page, ProfileList.StartNewButtonName).Text, Does.Contain("Replace"));
-                Assert.That(ControlTree.FindByName<Control>(page, "KpgProfileEmptyLabel").Visible, Is.False,
-                    "a list that will not read is not a list naming nothing yet");
-                Assert.That(ControlTree.FindByName<Button>(page, ProfileList.AddButtonName).Enabled, Is.False);
-                Assert.That(ControlTree.FindByName<TextBox>(page, ProfileList.NameBoxName).Enabled, Is.False);
-
-                Assert.That(page.Add("ops"), Is.EqualTo(DatabaseProfiles.UnreadableRefusal));
-                Assert.That(profiles.Added, Is.Empty);
-
-                Assert.That(page.StartNew(), Is.EqualTo(ProfileList.StartedText));
-
-                Assert.That(profiles.Started, Is.EqualTo(1));
-                Assert.That(ControlTree.FindByName<Control>(page, ProfileList.DamagedRowName).Visible, Is.False);
-                Assert.That(ControlTree.FindByName<Button>(page, ProfileList.AddButtonName).Enabled, Is.True);
-            }
-        }
-
-        [Test]
         public void A_name_is_its_own_tip_marked_left_to_right()
         {
             // A name too wide for its column fell back to the grid's own tip for a cut value, which
@@ -564,19 +535,6 @@ namespace KeePassGate.Tests
                 }
 
                 _names.Remove(name);
-                return null;
-            }
-
-            /// <summary>Whether the list is to read as damaged, until a new list is started.</summary>
-            public bool Unreadable { get; set; }
-
-            public int Started { get; private set; }
-
-            public string StartNew()
-            {
-                Started++;
-                Unreadable = false;
-                _names.Clear();
                 return null;
             }
         }

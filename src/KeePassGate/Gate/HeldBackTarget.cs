@@ -131,12 +131,6 @@ namespace KeePassGate.Gate
             get { return Array.Empty<string>(); }
         }
 
-        /// <summary>Nothing read here, so nothing that would not read.</summary>
-        public string ProfilesUnreadable
-        {
-            get { return null; }
-        }
-
         /// <summary>Nobody: pairing is refused here, so no dialog asks.</summary>
         public IReadOnlyList<AdmissionRecord> Holding(string profile)
         {

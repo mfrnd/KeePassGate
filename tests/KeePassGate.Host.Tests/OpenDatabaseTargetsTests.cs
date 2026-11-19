@@ -215,7 +215,6 @@ namespace KeePassGate.Host.Tests
             StoreSeeds.Name(new KdbxStore(_first.Database, GateVersion.Current, null), "ops");
 
             Assert.That(target.KnownProfiles, Is.EqualTo(new[] { "ops" }));
-            Assert.That(target.ProfilesUnreadable, Is.Null, "a list read from records cannot fail to read");
         }
 
         [Test]

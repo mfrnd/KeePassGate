@@ -606,25 +606,6 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_list_of_profiles_that_will_not_read_is_busy_rather_than_a_renewal_that_drops_them_all()
-        {
-            // Read as naming nothing, it offered no profile, said the database no longer named
-            // them, and an approval wrote a record without them that outlasted the list's repair.
-            var operatorAt = FakeRenewalApproval.Approving();
-            _authority.ProfilesUnreadable = "the profiles this database names will not read";
-
-            using (var old = _authority.IssueAdmittedClient("reader"))
-            {
-                var before = _authority.Admitted;
-                var context = Renew(operatorAt, old, "{}");
-
-                Assert.That(context.Status, Is.EqualTo(503));
-                Assert.That(operatorAt.Asked, Is.Zero);
-                Assert.That(_authority.Admitted, Is.SameAs(before));
-            }
-        }
-
-        [Test]
         public void A_standing_answer_that_cannot_be_read_is_busy_rather_than_a_dialog()
         {
             // A dialog is the one thing a standing answer exists to stop, so a read that fails

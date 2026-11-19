@@ -114,9 +114,6 @@ namespace KeePassGate.Tests.Fakes
             }
         }
 
-        /// <summary>Set to say the list of profiles will not read, as a damaged value would.</summary>
-        public string ProfilesUnreadable { get; set; }
-
         /// <summary>Takes a name off the list, as the Profiles page does.</summary>
         public void Forget(string profile)
         {
@@ -135,7 +132,6 @@ namespace KeePassGate.Tests.Fakes
                 StoreSeeds.Name(_store, profile);
             }
         }
-
 
         public byte[] GateKey
         {
@@ -180,7 +176,7 @@ namespace KeePassGate.Tests.Fakes
             using (var reading = _store.Read())
             {
                 var record = StoreAdmissions.Admitted(reading, admissionKey);
-                return record == null ? null : new Admitted(record, ProfileNames.Of(reading).Names, ProfilesUnreadable);
+                return record == null ? null : new Admitted(record, ProfileNames.Of(reading).Names);
             }
         }
 
