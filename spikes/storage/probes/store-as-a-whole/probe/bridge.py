@@ -126,6 +126,22 @@ def rows(variant):
     PREFIX = 'p%s-' % variant[0]
 
 
+NODES = ('N', 'root')       # ADDED (owed forms): the nodes the model and read.py are compared at
+JUDGE = ('root', 'N')       # ADDED (owed forms): the nodes a file is held to the oracle at, in order
+
+
+def owed(profs, letters, levels):
+    """ADDED (owed forms): rules per profile with more profiles, the letters of a rule, and, with
+    three levels, the group General between the root and N as the model's node 'G'."""
+    global NODES, JUDGE
+    M.configure(profs, letters, levels)
+    S.PROFS = tuple(profs)
+    S.LETTERS = letters
+    RD.LETTERS = letters
+    if levels == 3:
+        NODES, JUDGE = ('N', 'root', 'G'), ('root', 'G', 'N')
+
+
 def use(form):
     """ADDED (rules per profile): 'rows', the configuration's form, or 'whole', a version of a node's
     whole rule as every configuration before, with the words per profile kept on, so that a part
@@ -179,7 +195,9 @@ class Bridge:
         self.h, self.n, self.speed, self.repair, self.both = host, nrep, speed, repair, both
         self.W = X.LWorld(nrep, flags, binall=True)
         self.ids = node_ids()
-        self.enc = S.Encoder(self.W, {'N': self.ids['N'], 'root': self.ids['root']})
+        if M.PARENT:    # ADDED (owed forms): the group General is the model's node 'G'
+            self.ids['G'] = self.ids.pop('General')
+        self.enc = S.Encoder(self.W, {n: self.ids[n] for n in NODES})     # ADDED (owed forms): NODES
         self.macs = {}
         self.by_history = 0     # ADDED (decided store): an edit the model reads as damage, the file by history
         self.rewrites, self.copy_stops = [], 0     # ADDED (two readings)
@@ -299,8 +317,9 @@ class Bridge:
         """read.py's answer in the model's names."""
         inv = {v: k for k, v in self.ids.items()}
         out = dict(r)
-        out['words'] = {inv[n]: w for n, w in r['words'].items() if n in inv and inv[n] in ('N', 'root')}
-        out['words_raw'] = {inv[n]: w for n, w in r['words_raw'].items() if n in inv and inv[n] in ('N', 'root')}
+        # ADDED (owed forms): NODES for ('N', 'root')
+        out['words'] = {inv[n]: w for n, w in r['words'].items() if n in inv and inv[n] in NODES}
+        out['words_raw'] = {inv[n]: w for n, w in r['words_raw'].items() if n in inv and inv[n] in NODES}
         return out
 
     def readcheck(self, i, d, step):
@@ -308,7 +327,7 @@ class Bridge:
         v = self.W.fold(self.W.reps[i])
         r = self.as_model(rd(d, DECIDED))     # ADDED (two readings): rd
         mine = (v['status'], v['served'], sorted((c, sorted(p)) for c, p in v['adm'].items()),
-                sorted((n, M.words_text(w)) for n, w in v['words'].items() if n in ('N', 'root')),     # ADDED (copies extended): words_text
+                sorted((n, M.words_text(w)) for n, w in v['words'].items() if n in NODES),     # ADDED (copies extended): words_text; (owed forms): NODES
                 sorted(c for c, a in v['renew'].items() if a == 'forever'), sorted(v['names']))
         theirs = (r['status'], r['served'], sorted((c, sorted(p)) for c, p in r['adm'].items()),
                   sorted((n, M.words_text(w)) for n, w in r['words'].items()),     # ADDED (copies extended): words_text
@@ -699,7 +718,7 @@ def judge(b, i, r):
     """ADDED (copies extended): an answer held to every decision any gate made, taken out of
     `outcome` unchanged."""
     I = global_ideal(b.W, i)
-    nodes = ('root', 'N')
+    nodes = JUDGE       # ADDED (owed forms): JUDGE for ('root', 'N')
     w = M.narrower(r, I, nodes)
     if w:
         return 'WIDER: ' + w

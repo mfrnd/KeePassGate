@@ -74,6 +74,15 @@ UNIV = frozenset(p + '.' + v for p in S.PROFS for v in 'rw')
 # in the form 'split', each node once and each name once.
 ROWS = False
 SHOW = False    # the answer also lists the standing versions of every rule object, in either form
+# ADDED (owed forms): the letters a row may hold, and how a deletion record of a row's version is
+# told in the form 'split' where the tags of several names the file knows meet. The form was run
+# with a dictionary from a tag to a name, filled from a set of names, so that it kept whichever name
+# the set yielded last, an order that changes with the process's hash seed. Here the names are
+# sorted, and 'first' or 'last' keeps the first or the last in ordinal order, the two answers that
+# reading can give for two names; 'each' tells it for every such name, and then only where no
+# version present or restated carries its identifier
+LETTERS = 'rw'
+TAG_READ = 'last'
 
 
 def switch_refuses(s):
@@ -446,31 +455,38 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
     profile_tags = {}      # ADDED (rules per profile): the form 'split', a profile's tag to its name
     if ROWS and S.ID_FORM == 'split':
         for k in held:
-            for p in row_names:
-                profile_tags[(k, S.profile_tag(k, p))] = p
+            for p in sorted(row_names):     # ADDED (owed forms): sorted, and every name of a tag kept
+                profile_tags.setdefault((k, S.profile_tag(k, p)), []).append(p)
+    present = set()     # ADDED (owed forms): the identifier of every version present or restated
+    for V in vers.values():
+        present |= set(V)
     for u in dels:
         for kind, k in tags.get(u[:6], ()):
             what = subj.get((k, u[6:16]))
             if what is None:
                 continue
+            whats = [what]      # ADDED (owed forms): a deletion record may tell of several rows
             # ADDED (rules per profile): in the form 'split' a row's version is told by the node's
             # rule and the profile's tag
             if profile_tags and kind == 'version' and what[0] == 'object' and what[1].startswith('rule:') \
                     and '/' not in what[1] and u[16:20] != '0000':
-                p = profile_tags.get((k, u[16:20]))
-                if p is None:
+                ps = profile_tags.get((k, u[16:20]))
+                if ps is None:
                     continue
-                what = ('object', what[1] + '/' + p)
-            if kind == 'revoked' and what[0] == 'client':
-                refusals.add(('revoked', what[1]))
-            elif kind == 'retired' and what[0] == 'authority':
-                refusals.add(('retired', what[1]))
-            elif kind == 'removed' and what[0] == 'profile':
-                prem.add((what[1], u))
-            elif kind == 'version' and what[0] == 'object':
-                o = what[1]
-                if u not in deadall and u not in vers.get(o, {}):
-                    lost.setdefault(o, set()).add(u)
+                whats = [('object', what[1] + '/' + p)
+                         for p in (ps if TAG_READ == 'each' else ps[:1] if TAG_READ == 'first' else ps[-1:])]
+            for what in whats:
+                if kind == 'revoked' and what[0] == 'client':
+                    refusals.add(('revoked', what[1]))
+                elif kind == 'retired' and what[0] == 'authority':
+                    refusals.add(('retired', what[1]))
+                elif kind == 'removed' and what[0] == 'profile':
+                    prem.add((what[1], u))
+                elif kind == 'version' and what[0] == 'object':
+                    o = what[1]
+                    if u not in deadall and (u not in present if TAG_READ == 'each' and profile_tags
+                                             else u not in vers.get(o, {})):
+                        lost.setdefault(o, set()).add(u)
 
     def freg_own(o):
         """The object's value by the file's own versions (moved up, unchanged, for the limits)."""
@@ -620,7 +636,7 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
                     continue
                 if r is None or r[1] is None:
                     if not deny:
-                        P |= set(p + '.' + w for w in 'rw')
+                        P |= set(p + '.' + w for w in LETTERS)     # ADDED (owed forms): LETTERS
                 elif r[2]:
                     if not deny:
                         P |= set(p + '.' + w for w in r[1])
@@ -667,6 +683,11 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
                 standing[o] = sorted(S.doc(f) for i, (after, f) in V.items() if i not in dead)
         extra = dict(standing=standing, lost=sorted(lost), row_values={o: freg(o) for o in
                      set(vers) | set(lost) | supers if o.startswith('rule:') or o.startswith('switch:')})
+        # ADDED (owed forms): the names whose tags meet, which the reading can see; the names the
+        # file knows for a row; the names of the list's records and items
+        extra['tag_meets'] = sorted(tuple(ps) for ps in profile_tags.values() if len(ps) > 1)
+        extra['row_names'] = sorted(row_names)
+        extra['known_names'] = sorted(names)
     return dict(**extra,status=status, served=served, auths=auths, adm=adm if serve else {}, valid=valid,
                 names=sorted(on), words={n: (w if serve else frozenset()) for n, w in raw.items()},
                 words_raw=raw, renew=renew, refusals=refusals, counts=counts,

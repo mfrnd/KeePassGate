@@ -14,6 +14,7 @@ ADDED (decided store): with --decided, `out/decided` is held to `recorded-decide
 ADDED (two readings): with --rewrite or --copies, `out/rewrite` or `out/copies` to `recorded-rewrite`
 or `recorded-copies`.
 ADDED (copies extended): with --reading-LEVEL, `out/reading-LEVEL` to `recorded-reading-LEVEL`.
+ADDED (owed forms): with --owed, `out/owed` to `recorded-owed`.
 """
 import os
 import re
@@ -102,7 +103,7 @@ def main():
     # ADDED (two readings): the last two; ADDED (copies extended): --reading-LEVEL
     if sys.argv[1:] in (['--decided'], ['--rewrite'], ['--copies']) or sys.argv[1:2] in (
             ['--reading-nothing'], ['--reading-profile'], ['--reading-verb'], ['--reading-cap'],
-            ['--reading-cap-items'], ['--rows']):     # ADDED (rules per profile): --rows
+            ['--reading-cap-items'], ['--rows'], ['--owed']):     # ADDED (rules per profile): --rows; (owed forms): --owed
         name = sys.argv[1][2:]
         OUT, REC = os.path.join(OUT, name), os.path.join(FAMILY, 'recorded-' + name)
     bad = 0

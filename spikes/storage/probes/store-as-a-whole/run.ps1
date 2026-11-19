@@ -108,6 +108,18 @@
       apart, same, states, switch, dels, growth
                            rows.py --rows empty: items 2 to 7 of measured-rules-per-profile.md
 
+    With -Owed (ADDED, owed forms), rules per profile with a removed row written as decided, in the
+    forms STORE.md 644 item 24 left owed. Output in `out\owed\`, compared with `recorded-owed\`;
+    databases in `work\qo-*`:
+
+      combine              store_runs.py --owed combine: versions of a row made apart, the full mask
+      beyond-2-rw, beyond-4-rw, beyond-2-mask, beyond-4-mask, beyond-4-mask-3
+                           store_runs.py --owed P L V beyond 200000 34: `beyond` with two or four
+                           profiles, the letters read and write or the full mask, and two or three
+                           levels, each merge held to both copies by letters and by capabilities
+      afters, merges4, random4, levels, random3, offlist, tags
+                           owed.py: items 1 to 5 of measured-rules-owed-forms.md on real files
+
 .PARAMETER Parts
     Which parts to run; every part by default.
 
@@ -135,9 +147,10 @@
 #>
 param([string[]] $Parts = @(), [int] $Parallel = 6, [switch] $Decided, [switch] $Rewrite, [switch] $Copies,
     [ValidateSet('', 'nothing', 'profile', 'verb', 'cap', 'cap-items')] [string] $Reading = '',
-    [switch] $Rows)     # ADDED (rules per profile)
-if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent, ($Reading -ne ''), $Rows.IsPresent | Where-Object { $_ }).Count -gt 1) {
-    throw 'One of -Decided, -Rewrite, -Copies, -Reading, -Rows.'     # ADDED (two readings); -Reading (copies extended); -Rows (rules per profile)
+    [switch] $Rows,     # ADDED (rules per profile)
+    [switch] $Owed)     # ADDED (owed forms)
+if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent, ($Reading -ne ''), $Rows.IsPresent, $Owed.IsPresent | Where-Object { $_ }).Count -gt 1) {
+    throw 'One of -Decided, -Rewrite, -Copies, -Reading, -Rows, -Owed.'     # ADDED (two readings); -Reading (copies extended); -Rows (rules per profile); -Owed (owed forms)
 }
 
 $ErrorActionPreference = 'Stop'
@@ -251,6 +264,25 @@ if ($Rows) {
         'growth'             = @("$probe\rows.py", '--rows', 'empty', 'growth')
     }
 }
+# ADDED (owed forms): the forms STORE.md 644 item 24 left owed, the longest parts first
+if ($Owed) {
+    $config = 'owed'
+    $all = [ordered]@{
+        'afters'          = @("$probe\owed.py", 'afters')
+        'beyond-4-mask-3' = @("$model\store_runs.py", '--owed', '4', 'crusdlap', '3', 'beyond', '200000', '34')
+        'beyond-4-mask'   = @("$model\store_runs.py", '--owed', '4', 'crusdlap', '2', 'beyond', '200000', '34')
+        'beyond-4-rw'     = @("$model\store_runs.py", '--owed', '4', 'rw', '2', 'beyond', '200000', '34')
+        'beyond-2-mask'   = @("$model\store_runs.py", '--owed', '2', 'crusdlap', '2', 'beyond', '200000', '34')
+        'beyond-2-rw'     = @("$model\store_runs.py", '--owed', '2', 'rw', '2', 'beyond', '200000', '34')
+        'random4'         = @("$probe\owed.py", 'random4', '300', '13')
+        'random3'         = @("$probe\owed.py", 'random3', '300', '17')
+        'levels'          = @("$probe\owed.py", 'levels')
+        'merges4'         = @("$probe\owed.py", 'merges4')
+        'offlist'         = @("$probe\owed.py", 'offlist')
+        'tags'            = @("$probe\owed.py", 'tags')
+        'combine'         = @("$model\store_runs.py", '--owed', 'combine', '200000')
+    }
+}
 # Through -File a list arrives as one string, so commas are split here.
 $Parts = @($Parts | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 if ($Parts.Count -eq 0) { $Parts = @($all.Keys) }
@@ -264,7 +296,7 @@ if ($Parts.Count -eq $all.Count) {
     if ($config) {
         # ADDED (two readings): the configuration's own output and databases only
         if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
-        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } elseif ($Rows) { 'pe-*', 'po-*' } else {
+        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } elseif ($Rows) { 'pe-*', 'po-*' } elseif ($Owed) { 'qo-*' } else {     # ADDED (owed forms): qo-*
             $letter = if ($Reading -eq 'cap-items') { 'i' } else { $Reading[0] }     # ADDED (copies extended)
             "x${letter}h-*", "x${letter}e-*"
         }

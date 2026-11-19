@@ -81,6 +81,7 @@ def subject_of(kind, d):
 
 
 PROFS = ('pf', 'pg')    # ADDED (copies extended): the profiles a rule may name
+LETTERS = 'rw'          # ADDED (owed forms): the letters a row's version may hold
 
 
 def doc(f):
@@ -103,7 +104,7 @@ def doc(f):
 def undoc(s):
     k, w = s.split(':', 1)
     if k in ('row', 'cut', 'off', 'void'):      # ADDED (rules per profile)
-        if not set(w) <= set('rw') or (k in ('off', 'void') and w):
+        if not set(w) <= set(LETTERS) or (k in ('off', 'void') and w):     # ADDED (owed forms): LETTERS
             raise ValueError(s)
         if k == 'off':
             return ('rows', None, True)
