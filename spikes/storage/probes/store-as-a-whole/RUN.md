@@ -1135,7 +1135,7 @@ keys sorted:
   naming its removal, an addition naming a single removal of two, an addition beside a deletion
   record naming it, and a name added twice. `read.py` answers the name on the list for the
   addition that names its removal and for the name added twice, and off it for the other five.
-- **`--writes`**, `StoreWriteVectors.json`: the file after each act of three sequences that
+- **`--writes`**, `StoreWriteVectors.json`: the file after each act of four sequences that
   `crdt_model.py`'s `World.step` plays under `bridge.py`'s `FLAGS`, written out by `store.py`'s
   `Encoder`, each step with its records, its deletion records, its summary entries and `read.py`'s
   answer. From the store the model's World starts with: Pair, Pair, Revoke, Recreate, Pair,
@@ -1144,7 +1144,13 @@ keys sorted:
   in the first, Renew of its certificate in the second, the model's `renewcert`, Synchronize of
   the second into the first and then of the first into the second. The third sequence, added on
   2026-11-18, ends with the renewed certificate refused in both copies, since the revocation
-  names the client's key.
+  names the client's key. The fourth, added on 2026-11-19, plays the model's `padd` and `prem` as
+  Add and Remove of a profile name on two copies: `pf` removed in the first and added again
+  there, removed in the second, `pg` added in each, Synchronize of the second into the first and
+  of the first into the second, `pf` added again in the first, and the two Synchronize again.
+  Once the copies meet `pf` is off the list in both and `pg` on it by two additions, and at the
+  end `pf` is on it in both, with both copies holding the same file. The model's pairing writes
+  no addition for a name it approves, which `STORE.md` §627 has a pairing write.
 
 ### Defects and limits
 

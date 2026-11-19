@@ -27,7 +27,7 @@ of its own and each opening with an `about` that names what made it and what is 
 616 and 648 fix, and summary entries, composed as `rec` composes them (part 5). `--meanings` prints
 `tests/Shared/StoreMeaningVectors.json`: small stores of those records and what read.py answers for
 each about authorities, admissions, refusals and profile names (part 6). `--writes` prints
-`tests/Shared/StoreWriteVectors.json`: the file after each act of three fixed sequences that the
+`tests/Shared/StoreWriteVectors.json`: the file after each act of four fixed sequences that the
 model plays, written out by store.py's `Encoder`, with read.py's answer after each (part 7). Part
 7 reads more than store.py and read.py: the model, `model/crdt_model.py`, and `probe/bridge.py`
 for the switches the family's runs give it. The script imports both whatever it prints, and
@@ -502,7 +502,7 @@ def play(nrep, steps):
 
 
 WRITES_ABOUT = (
-    'The file after each act of three fixed sequences that the model plays, World.step and '
+    'The file after each act of four fixed sequences that the model plays, World.step and '
     'World.act of model/crdt_model.py of spikes/storage/probes/store-as-a-whole on '
     'spikes/storage-survival under the FLAGS of probe/bridge.py, the store as decided, written '
     'out as entries by store.py\'s Encoder as the family\'s runs write them, and read by read.py '
@@ -537,6 +537,17 @@ WRITES_ABOUT = (
     'holding id and storeKey alone (614); an admission without der, subject and admitted (615), '
     'and a renewal\'s without from as well (648); a revocation that also holds certificate (615); '
     'and a retirement for keeping an authority that does not hold the store key (614).')
+WRITES_ABOUT += (       # ADDED (profile names)
+    ' The fourth sequence plays the model\'s padd and prem, the commands Add and Remove of a '
+    'profile name, on two copies that start as the same file: pf removed in copy 0 and added '
+    'again there, naming that removal; pf removed in copy 1; pg added in each copy; a '
+    'Synchronize of copy 1 into copy 0 and then of copy 0 into copy 1; pf added again in copy '
+    '0, naming both removals; and the two Synchronize again in the same order. Once the copies '
+    'meet, pf is off the list in both and pg on it by two additions, and once pf is added again '
+    'and synchronized, it is on the list in both, and both copies hold the same file. The '
+    'model\'s pairing writes no addition for a '
+    'name it approves, which STORE.md 627 has a pairing write: no pairing here puts pg on the '
+    'list.')
 
 out['writes'] = {'about': WRITES_ABOUT, 'sequences': {
     'one copy': play(1, [('Pair', ('pair', 0)), ('Pair', ('pair', 0)),
@@ -549,6 +560,17 @@ out['writes'] = {'about': WRITES_ABOUT, 'sequences': {
     'two copies, revoked in the first and renewed in the second': play(2, [
         ('Revoke', ('revoke', 0, 'c0')), ('Renew', ('renewcert', 1, 'c0')),
         ('Synchronize', ('merge', 'kp_sync', 0, 1)), ('Synchronize', ('merge', 'kp_sync', 1, 0))]),
+    # ADDED (profile names): pf removed in each copy and added again in the first, pg added in each
+    'two copies, a name removed in each and added again in the first, another added in each':
+        play(2, [
+            ('Remove', ('prem', 0, 'pf')), ('Add', ('padd', 0, 'pf')),
+            ('Remove', ('prem', 1, 'pf')),
+            ('Add', ('padd', 0, 'pg')), ('Add', ('padd', 1, 'pg')),
+            ('Synchronize', ('merge', 'kp_sync', 0, 1)),
+            ('Synchronize', ('merge', 'kp_sync', 1, 0)),
+            ('Add', ('padd', 0, 'pf')),
+            ('Synchronize', ('merge', 'kp_sync', 0, 1)),
+            ('Synchronize', ('merge', 'kp_sync', 1, 0))]),
 }}
 
 
