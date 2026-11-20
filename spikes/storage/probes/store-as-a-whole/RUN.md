@@ -1190,11 +1190,21 @@ four runs. Before run 1, with the new switches off, `-Rows` was run again in `be
 | `random3`: steps; merges held; beyond both copies; files wider, as decided, narrower | 1,973; 866; 0; 312, 248, 150 | the same | yes |
 | `offlist`: reads wider than the last decision | 26 of 300, each a loss with no deletion record of a row whose profile the root names | the same | yes |
 | `offlist`: the name kept off the list by its first addition in the form `text` | 6 of 20, back at the second addition | the same | yes |
-| `tags`: the names whose tags meet; the name whose tag is 0000; the name the set keeps over 40 hash seeds | `q00067`, `q00401`, `6b11`; `q00238`; 17 and 23 | the same | yes |
+| `tags`: the names whose tags meet; the name whose tag is 0000; the name the set keeps over 40 hash seeds | `q00331`, `q00534`, `c699`; `q184933`; 20 and 20 | the same | yes |
 | `tags`: reads wider, `first`, `last`, `each` | G3 4 of 6; G2 4 of 6; 0 of 22, and G6 1 of 2 | the same | yes |
 | `afters`: at 400 edits in a copy, identifiers in `after`, KPG.Data, item, deletion records | 399, 13,295, 13,301, 799 | the same | yes |
 | `afters`: identifiers at which a version and its item pass 262,144 and 1,048,576 characters | 7,940 and 7,940; 31,772 and 31,771 | the same | yes |
 | `afters`: the file's bytes and the read's milliseconds | 3,047 to 19,575 bytes; 0.4 to 1.5 ms | differ by some bytes, and by time | masked |
+
+**`tags` was recorded anew on 2026-11-20**, when the tag of a profile's name took the label
+`name` (`store.py`, `PROFILE_TAG_LABEL`): it was keyed over `profile`, which is also the label of
+the check of a record of kind `profile`. The labels keyed under a store key are now the name of
+each kind for the check, `tag` for a kind's tag, `subject` for a subject's hash, `key` for a key's
+name and `name` for a profile's tag. `tags` is the only record that depends on the label: it
+found `q00067`, `q00401` and `6b11`, `q00238`, and 17 and 23 before, and its tallies are
+unchanged. It was run twice with `-Owed -Parts tags` and printed the same lines but its time.
+`dels` of rules per profile, the only other part that reads a tag, was run twice with `-Rows
+-Parts dels` and printed its record with the masks of "Running it".
 
 ### What was added for it
 
@@ -1647,7 +1657,7 @@ the script switches the store's rows on as decided, as `bridge.rows('empty')` sw
 the runs of "Rules per profile": `crdt_model.ROWS` is `empty` and its `PP` on, `read.ROWS` and
 `read.PP` are on, and `store.ID_FORM` is `split`. A row's version is then identified by the
 subject hash over `rule:` and the node, and in bytes 9 and 10 by its profile's tag, the first two
-bytes of HMAC-SHA256 under the store key over `profile`, a line feed and the name; a switch's
+bytes of HMAC-SHA256 under the store key over `name`, a line feed and the name; a switch's
 version by the subject hash over `switch:` and the node, and zero. Switching the rows on changes
 nothing printed before but `--writes`: its start holds a version of the row of `pf` and of `pg`
 at the root granting read, and its four earlier sequences play the same acts with the same
@@ -1669,8 +1679,8 @@ answers, but for the model's names of authorities, whose numbers rise by 1 (`a10
 - **The keys and the tags.** The rule records of `--records` and the stores of `--meanings` are
   under `keybytes('one')`, `849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8`,
   as every record of those files is; the sequences of `--writes` under the model's label `K`.
-  The profile tags under the first are `pf` `9621`, `pg` `4322` and `px` `d546`, under the
-  second `pf` `4996` and `pg` `8772`.
+  The profile tags under the first are `pf` `bf7f`, `pg` `c5f4` and `px` `e708`, under the
+  second `pf` `5348` and `pg` `cfd6`.
 - **The profiles** are the model's `pf` and `pg`, and `px` in two stores of `--meanings`.
 - **The nonces.** Every rule record of `--records` holds the nonce of the file's other records;
   versions made apart in `--meanings` differ in their nonce, the third derived as the invented

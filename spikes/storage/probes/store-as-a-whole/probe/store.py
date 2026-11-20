@@ -46,10 +46,16 @@ def mac(key, kind, data, extra):
 # alone, 'rule:<node>', and the two bytes of the height, which are 0 for a version, a keyed tag of
 # the profile's name.
 ID_FORM = 'pair'
+# ADDED (tag label): what the tag of a profile's name is keyed over, before a line feed and the
+# name. It was 'profile', which is also the label of the check of a record of kind `profile`
+# (`mac`). 'name' is the name of no kind and of nothing else keyed under a store key here: the
+# check under each kind's name, 'tag' for a kind's tag, 'subject' for a subject's hash and 'key'
+# for a key's name.
+PROFILE_TAG_LABEL = 'name'
 
 
 def profile_tag(key, name):
-    return hm(key, 'profile\n' + name)[:2].hex()
+    return hm(key, PROFILE_TAG_LABEL + '\n' + name)[:2].hex()     # ADDED (tag label): the label
 
 
 def ident(key, kind, subject, height, m):
