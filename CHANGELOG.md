@@ -205,21 +205,36 @@ none, since it releases both.
   where only the clients regaining it did; under a high contrast setting its text takes the
   theme's link color instead. A
   row the operator unchecked whose state did not change opens unchecked with no highlight. The
-  renewal dialog, which offers only names on the list, keeps its list, and a list of it longer
-  than it shows reads under it "The list scrolls: Approve grants every checked profile.", naming
-  no count. The pairing dialog's table, taller than it shows, ends at the top of its rows on a line
-  cut in half at the bottom of the table, half of whatever line the table's bottom meets, and no
-  line under the table states it in words; a table that shows everything ends where its rows end.
-  A scroll reaches the screen whole: the rows are painted into a single buffer and every scroll
-  paints the whole table, so that no picture of the screen shows a strip the scroll uncovered
-  still holding the lines it held before. A dialog is as tall as what it shows as it comes up, and
-  where a Refresh makes the rows taller than the table shows, the table grows with them, up to ten
-  lines, and the dialog grows downward by as much, its top edge where it stood and the answers
-  lower, kept inside the working area of its screen; rows a Refresh makes shorter leave the table
-  and the dialog as they stood. A request for no profile reads "The client asks for no profile."
-  above the table, its tooltip "Approved, the client reaches nothing.", so that the words beside
-  Refresh stand whole. `PAIRING.md` §303
-  and §311.
+  renewal dialog shows its profiles in the same table, below. A list of profiles taller
+  than it shows, on either dialog, ends at the top of its rows on a line cut in half at the bottom
+  of the table, half of whatever line the table's bottom meets, and no line under the table states
+  it in words; a list that shows everything ends where its rows end. A scroll reaches the screen
+  whole: the rows are painted into a single buffer and every scroll paints the whole table, so that
+  no picture of the screen shows a strip the scroll uncovered still holding the lines it held
+  before. A dialog is as tall as what it shows as it comes up, and where a Refresh makes the rows
+  taller than the table shows, the table grows with them, up to ten lines, and the dialog grows
+  downward by as much, its top edge where it stood and the answers lower, kept inside the working
+  area of its screen; rows a Refresh makes shorter leave the table and the dialog as they stood. A
+  request for no profile reads "The client asks for no profile." above the table, its tooltip
+  "Approved, the client reaches nothing.", so that the words beside Refresh stand whole.
+  `PAIRING.md` §303 and §311.
+- **The renewal dialog shows the profiles of the client's record in the pairing dialog's table**,
+  under **Grant** and **Profile**: a profile the database names has a check box, checked, and a
+  profile the database no longer names has a red X in place of a box, a mark that takes neither
+  the focus nor a press, and its name in gray, the tooltip of both reading "This database no
+  longer names the profile, so the new certificate omits the profile. Approve restores no
+  profile." in place of the line under the list that named what was not carried over; under a
+  high contrast setting the X takes the theme's text color. A screen reader reads such a row as
+  its name and that sentence, once, and the table scrolls by the keys with no box in it. A long
+  name is cut with an ellipsis and shown
+  whole in its tooltip rather than widening the dialog. The dialog's words are shorter:
+  "KeePassGate: a client is asking to renew a certificate", "Approve issues a new certificate and
+  saves this database. The current certificate keeps every profile until the client gives that
+  certificate up.", "Profiles the client holds:" and "Certificate expires (UTC)". Where the
+  record holds no profile the database still names, "The new certificate reaches no profile."
+  stands in bold above the line naming the table, as the pairing dialog shows its notice. What a
+  renewal grants, writes and audits is unchanged.
+  `PAIRING.md` §312.
 - **Breaking: the rules are records in the plugin's store, and every rule is entered again.** A
   profile's rule at a group or an entry, and the setting **Refuse any profile not named here**,
   are entries of the group `KeePassGate`, each under the identifier of the group or entry it is

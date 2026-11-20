@@ -155,6 +155,47 @@ namespace KeePassGate.Host.Tests.Live
             }
         }
 
+        [Test]
+        public void Every_part_of_the_renewal_dialog_is_read_by_a_name_of_its_own_a_renewal_reaching_no_profile_among_them()
+        {
+            // The headings were read as the notice of a renewal reaching no profile, which stood in
+            // place of the line naming the table.
+            foreach (var held in new[] { new[] { "reader" }, Array.Empty<string>() })
+            {
+                var request = new RenewalRequest(
+                    "aaaabbbbccccdddd", "Invented Vault", "agent-fictitious",
+                    new DateTimeOffset(2026, 4, 1, 9, 0, 0, TimeSpan.Zero), DateTimeOffset.UtcNow.AddDays(40),
+                    held, new[] { "gone-a", "gone-b" }, "127.0.0.1:60001", null);
+                using (var dialog = new RenewalApprovalForm(request, TimeSpan.FromMinutes(2), null))
+                {
+                    Away(dialog);
+                    var parts = Parts(dialog.Handle);
+
+                    Assert.That(parts.Where(part => part.Name.Length == 0), Is.Empty, "parts read by no name");
+                    Assert.That(parts.Where(part => part.Type == "ControlType.Pane" && part.Id.StartsWith("Kpg", StringComparison.Ordinal))
+                        .Select(part => part.Id + ": " + part.Name), Is.EqualTo(new[]
+                    {
+                        "KpgRenewalLayout: Renewal request",
+                        "KpgRenewalDetail: Details",
+                        "KpgRenewalProfilesList: Profiles the client holds",
+                        "KpgProfileHeadings: Headings",
+                        "KpgProfileRows: Profiles the client holds"
+                    }.Concat(held.Select(profile => "KpgProfileRow: " + profile)).Concat(new[]
+                    {
+                        "KpgProfileRow: gone-a. " + RenewalApprovalForm.OmitsTip,
+                        "KpgProfileRow: gone-b. " + RenewalApprovalForm.OmitsTip,
+                        "KpgApprovalLifetimeRow: Lifetime",
+                        "KpgRenewalFooter: Answer",
+                        "KpgRenewalButtonRow: Buttons"
+                    })), "holding " + held.Length);
+                    Assert.That(parts.Where(part => part.Type == "ControlType.Text" && part.Id.StartsWith("KpgRenewal", StringComparison.Ordinal) && part.Id.EndsWith("Line", StringComparison.Ordinal))
+                        .Select(part => part.Name), Is.EqualTo(new[] { "Profiles the client holds:" }), "the line naming the table");
+                    Assert.That(parts.Where(part => part.Id == "KpgRenewalNotice").Select(part => part.Name),
+                        Is.EqualTo(held.Length == 0 ? new[] { RenewalApprovalForm.NoProfilesHeld } : Array.Empty<string>()));
+                }
+            }
+        }
+
         /// <summary>Shows a dialog away from the screen, where no other window takes it.</summary>
         private static void Away(System.Windows.Forms.Form dialog)
         {
@@ -204,11 +245,45 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         [Test]
-        public void No_line_under_the_table_is_read_whether_the_table_scrolls_or_not()
+        public void A_renewal_s_row_with_an_X_is_read_as_its_name_and_the_sentence_of_the_X_once()
+        {
+            // A profile the database no longer names has an X in place of a box, drawn on the row,
+            // which is nothing of its own to UI automation: the row is read by its name and the
+            // sentence the X stands for, and that sentence by nothing else.
+            var request = new RenewalRequest(
+                "aaaabbbbccccdddd", "Invented Vault", "agent-fictitious",
+                new DateTimeOffset(2026, 4, 1, 9, 0, 0, TimeSpan.Zero), DateTimeOffset.UtcNow.AddDays(40),
+                new[] { "reader" }, new[] { "retired" }, "127.0.0.1:60001", null);
+            using (var dialog = new RenewalApprovalForm(request, TimeSpan.FromMinutes(2), null))
+            {
+                dialog.StartPosition = FormStartPosition.Manual;
+                dialog.Location = new Point(-4000, -4000);
+                dialog.ShowInTaskbar = false;
+                dialog.Show();
+                Application.DoEvents();
+
+                var table = ProfileRows.Table(dialog, GateTab.RenewalProfilesListName).Handle;
+                var read = Read(table);
+
+                Assert.That(read.Name, Is.EqualTo("Profiles the client holds"), "the line above the table, without its colon");
+                Assert.That(read.Texts, Is.EqualTo(new[] { "Grant", "Profile", "reader", "retired" }));
+                Assert.That(read.Boxes, Is.EqualTo(new[] { Box + "reader On" }));
+                Assert.That(read.Rows, Has.Count.EqualTo(2), "a row for each profile");
+                Assert.That(read.Rows[1], Is.EqualTo("retired. " + RenewalApprovalForm.OmitsTip), "the row with no box is read by itself");
+
+                var parts = Parts(table);
+                Assert.That(parts.Count(part => part.Name.Contains(RenewalApprovalForm.OmitsTip)), Is.EqualTo(1), "the sentence read other than once");
+                Assert.That(parts.Select(part => part.Type).Distinct().OrderBy(type => type, StringComparer.Ordinal),
+                    Is.EqualTo(new[] { "ControlType.CheckBox", "ControlType.Pane", "ControlType.Text" }), "a part of the table other than a row, a box or a text");
+            }
+        }
+
+        [Test]
+        public void No_line_under_the_table_is_read_on_either_dialog_whether_the_table_scrolls_or_not()
         {
             // A line cut in half at the bottom of the table shows that the table scrolls, and no
-            // line under the table states it in words: UI automation reads no such line, under a
-            // table that shows everything or a table that scrolls.
+            // line under the table states it in words: UI automation reads no such line on either
+            // dialog, under a table that shows everything or a table that scrolls.
             var lines = new List<string>();
             using (var database = TemporaryDatabase.New())
             {
@@ -219,18 +294,36 @@ namespace KeePassGate.Host.Tests.Live
                 {
                     using (var dialog = new PairingApprovalForm(Shown(store, asked), TimeSpan.FromMinutes(2)))
                     {
-                        dialog.StartPosition = FormStartPosition.Manual;
-                        dialog.Location = new Point(-4000, -4000);
-                        dialog.ShowInTaskbar = false;
-                        dialog.Show();
-                        Application.DoEvents();
-                        lines.AddRange(Read(dialog.Handle).Identified.Select(line => asked.Length + " profiles: " + line));
+                        lines.AddRange(LinesRead(dialog).Select(line => "pairing, " + asked.Length + " profiles: " + line));
+                    }
+
+                    var request = new RenewalRequest(
+                        "aaaabbbbccccdddd", "Invented Vault", "agent-fictitious",
+                        new DateTimeOffset(2026, 4, 1, 9, 0, 0, TimeSpan.Zero), DateTimeOffset.UtcNow.AddDays(40),
+                        asked, Array.Empty<string>(), "127.0.0.1:60001", null);
+                    using (var dialog = new RenewalApprovalForm(request, TimeSpan.FromMinutes(2), null))
+                    {
+                        lines.AddRange(LinesRead(dialog).Select(line => "renewal, " + asked.Length + " profiles: " + line));
                     }
                 }
             }
 
             Assert.That(lines.Where(line => line.Contains("scrolls") || line.Contains("Scrolling")), Is.Empty, "a line under a table read");
-            Assert.That(lines, Is.Not.Empty, "nothing of the dialog read");
+            Assert.That(lines, Is.Not.Empty, "nothing of the dialogs read");
+        }
+
+        /// <summary>
+        /// Every part of a dialog UI automation reads by an identifier, the dialog shown where
+        /// nobody sees it.
+        /// </summary>
+        private static IReadOnlyList<string> LinesRead(Form dialog)
+        {
+            dialog.StartPosition = FormStartPosition.Manual;
+            dialog.Location = new Point(-4000, -4000);
+            dialog.ShowInTaskbar = false;
+            dialog.Show();
+            Application.DoEvents();
+            return Read(dialog.Handle).Identified.ToList();
         }
 
         /// <summary>
@@ -385,6 +478,9 @@ namespace KeePassGate.Host.Tests.Live
             /// <summary>Every text, by the identifier a fixture finds it by and its name.</summary>
             public IReadOnlyList<string> Identified { get; private set; }
 
+            /// <summary>Every row of a table, by its name.</summary>
+            public IReadOnlyList<string> Rows { get; private set; }
+
             /// <summary>What automation reports of this table, read in a single search.</summary>
             public static Reading Of(AutomationElement table)
             {
@@ -398,6 +494,7 @@ namespace KeePassGate.Host.Tests.Live
                 var texts = new List<string>();
                 var identified = new List<string>();
                 var boxes = new List<string>();
+                var rows = new List<string>();
                 string name;
                 using (cache.Activate())
                 {
@@ -405,13 +502,20 @@ namespace KeePassGate.Host.Tests.Live
                         TreeScope.Descendants,
                         new OrCondition(
                             new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text),
-                            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.CheckBox)));
+                            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.CheckBox),
+                            new PropertyCondition(AutomationElement.AutomationIdProperty, GateTab.ProfileRowName)));
                     foreach (AutomationElement each in found)
                     {
                         if (each.Cached.ControlType == ControlType.Text)
                         {
                             texts.Add(each.Cached.Name ?? string.Empty);
                             identified.Add(each.Cached.AutomationId + ": " + each.Cached.Name);
+                            continue;
+                        }
+
+                        if (each.Cached.ControlType != ControlType.CheckBox)
+                        {
+                            rows.Add(each.Cached.Name ?? string.Empty);
                             continue;
                         }
 
@@ -422,7 +526,7 @@ namespace KeePassGate.Host.Tests.Live
                     name = table.Current.Name;
                 }
 
-                return new Reading { Name = name, Texts = texts, Identified = identified, Boxes = boxes };
+                return new Reading { Name = name, Texts = texts, Identified = identified, Boxes = boxes, Rows = rows };
             }
         }
     }

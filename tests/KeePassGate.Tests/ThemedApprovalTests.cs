@@ -52,6 +52,28 @@ namespace KeePassGate.Tests
             Assert.That(Themed(approvals => approvals.Renewal()), Is.EqualTo(new[] { true, true, true }));
         }
 
+        [Test]
+        public void The_pairing_dialog_comes_up_with_its_table_laid_as_its_window_draws_the_table()
+        {
+            Assert.That(Themed(approvals => approvals.PairingLaidAgain()), Is.Empty, "laying the table again moves its controls");
+        }
+
+        [Test]
+        public void The_renewal_dialog_comes_up_with_its_table_laid_as_its_window_draws_the_table()
+        {
+            // A box is measured otherwise once the table has a window under the visual styles, so
+            // a table laid only before that is laid at the estimate.
+            Assert.That(Themed(approvals => approvals.RenewalLaidAgain()), Is.Empty, "laying the table again moves its controls");
+        }
+
+        [Test]
+        public void The_renewal_dialog_draws_a_red_X_where_a_box_sits_for_a_profile_off_the_list()
+        {
+            // Under the visual styles the box is drawn by the theme, at the place the X has to
+            // take: on a plain row and on a highlighted row, red where a box sits and nowhere else.
+            Assert.That(Themed(approvals => approvals.RenewalCrossed()), Is.Empty);
+        }
+
         [TestCase(1.00f)]
         [TestCase(1.25f)]
         [TestCase(1.50f)]
@@ -146,6 +168,60 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>
+        /// What laying a first dialog's table again, once the dialog has come up, moves: each
+        /// control of the table whose bounds it changes, with the bounds before and after.
+        /// </summary>
+        public string[] PairingLaidAgain()
+        {
+            Application.EnableVisualStyles();
+            var asked = Enumerable.Range(1, PairingApprovalForm.MostRows).Select(at => "profile-" + at).ToArray();
+            using (var dialog = new PairingApprovalForm(PairingRequests.Shown(PairingRequests.Listing(asked), asked), Timeout))
+            {
+                return LaidAgain(Shown(dialog), GateTab.ApprovalProfilesListName);
+            }
+        }
+
+        /// <summary>The same of the renewal dialog's table, its rows on the list and off it.</summary>
+        public string[] RenewalLaidAgain()
+        {
+            Application.EnableVisualStyles();
+            var request = new RenewalRequest(
+                "aaaabbbbccccdddd", "Invented Vault", "agent-fictitious",
+                new DateTimeOffset(2026, 4, 1, 9, 0, 0, TimeSpan.Zero), DateTimeOffset.UtcNow.AddDays(40),
+                Enumerable.Range(1, PairingApprovalForm.MostRows - 1).Select(at => "profile-" + at).ToArray(), new[] { "retired" },
+                "127.0.0.1:60001", null);
+            using (var dialog = new RenewalApprovalForm(request, Timeout, null))
+            {
+                return LaidAgain(Shown(dialog), GateTab.RenewalProfilesListName);
+            }
+        }
+
+        /// <summary>
+        /// What is wrong with the X of a profile off the list on a renewal dialog, against the
+        /// place of the box of a profile on it: on its row as drawn, and highlighted.
+        /// </summary>
+        public string[] RenewalCrossed()
+        {
+            Application.EnableVisualStyles();
+            var request = new RenewalRequest(
+                "aaaabbbbccccdddd", "Invented Vault", "agent-fictitious",
+                new DateTimeOffset(2026, 4, 1, 9, 0, 0, TimeSpan.Zero), DateTimeOffset.UtcNow.AddDays(40),
+                new[] { "reader" }, new[] { "retired" }, "127.0.0.1:60001", null);
+            using (var dialog = new RenewalApprovalForm(request, Timeout, null))
+            {
+                var table = (ProfileTable)ProfileRows.Table(Shown(dialog), GateTab.RenewalProfilesListName);
+                var rows = ProfileRows.Of(table);
+                var place = ProfileRows.Box(rows[0]).Bounds;
+                var plain = CrossedRows.Faults(rows[1], place, "on a plain row");
+                table.Mark("retired", RenewalApprovalForm.OmitsTip, PairingApprovalForm.ChangedBackground, SystemColors.WindowText);
+                OffScreenForm.Pump();
+                return plain.Concat(CrossedRows.Faults(rows[1], place, "on a highlighted row"))
+                    .Concat(CrossedRows.Red(rows[0]).Take(1).Select(point => "red on the row with a box at " + point))
+                    .ToArray();
+            }
+        }
+
+        /// <summary>
         /// What is wrong with Refresh and the line above the table on a first dialog built at the
         /// font a display scaled this much hands it, with a picture of sixteen pixels as at a
         /// display of 100 percent; and the sizes measured, in <paramref name="sizes"/>.
@@ -205,6 +281,22 @@ namespace KeePassGate.Tests
             }
         }
 
+        private static string[] LaidAgain(Form dialog, string name)
+        {
+            var table = (ProfileTable)ProfileRows.Table(dialog, name);
+            var before = Bounds(table);
+            table.Lay(true);
+            OffScreenForm.Pump();
+            var after = Bounds(table);
+            return before.Zip(after, (was, now) => was == now ? null : was + " is now " + now).Where(moved => moved != null).ToArray();
+        }
+
+        /// <summary>The name and the bounds of the table and of every control in it, in order.</summary>
+        private static string[] Bounds(Control table)
+        {
+            return new[] { table }.Concat(ControlTree.Descendants(table)).Select(control => control.Name + " " + control.Bounds).ToArray();
+        }
+
         private static Form Shown(Form dialog)
         {
             dialog.StartPosition = FormStartPosition.Manual;
@@ -215,15 +307,9 @@ namespace KeePassGate.Tests
             return dialog;
         }
 
-        /// <summary>The check of each row of the named table or list, as its boxes hold it.</summary>
+        /// <summary>The check of each row of the named table, as its boxes hold it.</summary>
         private static bool[] Checks(Form dialog, string name)
         {
-            var list = ControlTree.FindByName<CheckedListBox>(dialog, name);
-            if (list != null)
-            {
-                return Enumerable.Range(0, list.Items.Count).Select(list.GetItemChecked).ToArray();
-            }
-
             return ProfileRows.Checks(ProfileRows.Table(dialog, name));
         }
     }

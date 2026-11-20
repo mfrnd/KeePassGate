@@ -248,22 +248,21 @@ namespace KeePassGate.Tests
         [Test]
         public void A_letter_on_the_profile_list_checks_nothing_and_Space_does()
         {
-            // The list has the focus when the dialog is first activated, and a letter selected the
-            // profile it begins and toggled it.
+            // The first box has the focus when the dialog is first activated, and a letter on it
+            // reached the dialog's mnemonics.
             using (var dialog = Shown())
             {
-                var list = Focus(Profiles(dialog));
-                SelectFirst(list);
-                Assert.That(FirstChecked(list), Is.True, "the profile was not checked, so nothing below is measured");
+                var box = Focus(Profiles(dialog));
+                Assert.That(box.Checked, Is.True, "the profile was not checked, so nothing below is measured");
 
-                TestNativeMethods.PostMessage(list.Handle, WmChar, (IntPtr)'o', IntPtr.Zero);
+                TestNativeMethods.PostMessage(box.Handle, WmChar, (IntPtr)'o', IntPtr.Zero);
                 OffScreenForm.Pump();
-                Assert.That(FirstChecked(list), Is.True, "a letter unchecked a profile");
+                Assert.That(box.Checked, Is.True, "a letter unchecked a profile");
 
-                Press(list, Keys.Space);
-                TestNativeMethods.PostMessage(list.Handle, WmChar, (IntPtr)' ', IntPtr.Zero);
+                Press(box, Keys.Space);
+                TestNativeMethods.PostMessage(box.Handle, WmChar, (IntPtr)' ', IntPtr.Zero);
                 OffScreenForm.Pump();
-                Assert.That(FirstChecked(list), Is.False, "Space still toggles");
+                Assert.That(box.Checked, Is.False, "Space still toggles");
             }
         }
 
@@ -392,39 +391,13 @@ namespace KeePassGate.Tests
             return approve;
         }
 
-        /// <summary>
-        /// What the keyboard reaches of the profiles: the first box of a table, or a list of
-        /// check boxes.
-        /// </summary>
-        private static Control Profiles(Control dialog)
+        /// <summary>What the keyboard reaches of the profiles: the first box of the table.</summary>
+        private static CheckBox Profiles(Control dialog)
         {
-            var list = ControlTree.FindByName<CheckedListBox>(dialog, GateTab.RenewalProfilesListName);
-            if (list != null)
-            {
-                return list;
-            }
-
             var name = dialog is PairingApprovalForm ? GateTab.ApprovalProfilesListName : GateTab.RenewalProfilesListName;
             var boxes = ProfileRows.Boxes(ProfileRows.Table(dialog, name));
             Assert.That(boxes, Is.Not.Empty, "no box in the table");
             return boxes[0];
-        }
-
-        private static void SelectFirst(Control list)
-        {
-            var boxes = list as CheckedListBox;
-            if (boxes != null)
-            {
-                boxes.SelectedIndex = 0;
-            }
-
-            OffScreenForm.Pump();
-        }
-
-        private static bool FirstChecked(Control list)
-        {
-            var boxes = list as CheckedListBox;
-            return boxes != null ? boxes.GetItemChecked(0) : ((CheckBox)list).Checked;
         }
 
         private static void Press(Control control, Keys key)

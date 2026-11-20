@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading;
@@ -30,6 +31,12 @@ namespace KeePassGate.Tests
         /// <summary>How wide the smallest screen the dialog is held to is, at 100%.</summary>
         private const int SmallestScreenWidth = 1024;
 
+        /// <summary>
+        /// How tall the working area of the smallest screen the dialog is held to is, at 100%: a
+        /// screen 768 pixels tall less a taskbar of 48.
+        /// </summary>
+        private const int SmallestWorkingHeight = 720;
+
         private static readonly TimeSpan Timeout = TimeSpan.FromMinutes(2);
 
         private static readonly DateTime Today = new DateTime(2026, 10, 3);
@@ -44,6 +51,108 @@ namespace KeePassGate.Tests
             Assert.That(said["Client"], Is.EqualTo("agent-fictitious"));
             Assert.That(said[GateTab.RenewalExpiresFactName], Is.EqualTo("2026-11-12 12:00:00"));
             Assert.That(said[GateTab.PeerFactName], Is.EqualTo("127.0.0.1:60001"));
+            Assert.That(GateTab.RenewalExpiresFactName, Is.EqualTo("Certificate expires (UTC)"));
+        }
+
+        [Test]
+        public void Its_words_are_the_words_chosen()
+        {
+            using (var dialog = New(Request(new[] { "reader" }, 40)))
+            {
+                Assert.That(dialog.Text, Is.EqualTo("KeePassGate: a client is asking to renew a certificate"));
+                Assert.That(Texts(dialog), Does.Contain("A client is asking to renew a certificate."));
+                Assert.That(Texts(dialog), Does.Contain(
+                    "Approve issues a new certificate and saves this database. The current certificate keeps every profile "
+                    + "until the client gives that certificate up."));
+                Assert.That(Texts(dialog), Does.Contain("Profiles the client holds:"));
+                Assert.That(Profiles(dialog).AccessibleName, Is.EqualTo("Profiles the client holds"), "the line above the table, without its colon");
+                Assert.That(RenewalApprovalForm.NoProfilesHeld, Is.EqualTo("The new certificate reaches no profile."));
+                Assert.That(RenewalApprovalForm.OmitsTip, Is.EqualTo(
+                    "This database no longer names the profile, so the new certificate omits the profile. Approve restores no profile."));
+            }
+
+            using (var dialog = New(Request(Array.Empty<string>(), 40)))
+            {
+                Assert.That(Texts(dialog), Does.Contain("The new certificate reaches no profile."));
+            }
+        }
+
+        [Test]
+        public void A_renewal_reaching_no_profile_states_so_in_a_notice_above_the_line_naming_the_table()
+        {
+            // The line naming the table stays, since the table still lists what the client holds;
+            // the sentence is a notice of its own above that line, in bold and on a single line, as
+            // the pairing dialog shows its notice, and Approve issues the certificate it states.
+            var request = new RenewalRequest(
+                "aaaabbbbccccdddd", "Invented Vault", "agent-fictitious",
+                new DateTimeOffset(2026, 4, 1, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(Today.AddDays(40), TimeSpan.Zero),
+                Array.Empty<string>(), new[] { "gone-a", "gone-b" }, "127.0.0.1:60001", null);
+            using (var dialog = New(request))
+            {
+                dialog.CreateControl();
+                dialog.PerformLayout();
+                var notice = ControlTree.FindByName<Label>(dialog, "KpgRenewalNotice");
+                var line = ControlTree.FindByName<Label>(dialog, "KpgRenewalProfilesLine");
+
+                Assert.That(notice, Is.Not.Null, "no notice");
+                Assert.That(notice.Text, Is.EqualTo("The new certificate reaches no profile."));
+                Assert.That(notice.Font.Bold, Is.True, "a notice in bold");
+                Assert.That(notice.Height, Is.EqualTo(line.Height), "a notice of a single line");
+                Assert.That(line.Text, Is.EqualTo("Profiles the client holds:"), "the line naming the table stays");
+                Assert.That(notice.Bottom, Is.LessThan(line.Top), "the notice above the line");
+                Assert.That(ControlTree.FindByName<Button>(dialog, GateTab.ApproveButtonName).Enabled, Is.True);
+            }
+
+            using (var dialog = New(Request(new[] { "reader" }, 40)))
+            {
+                Assert.That(ControlTree.FindByName<Label>(dialog, "KpgRenewalNotice"), Is.Null, "a notice where a profile is reached");
+            }
+        }
+
+        [Test]
+        public void Every_sentence_names_its_nouns_and_no_profile_or_client()
+        {
+            // As on the pairing dialog: the table's cells hold the names, and no other text does,
+            // the tooltip of a profile the database no longer names among them.
+            var request = new RenewalRequest(
+                "aaaabbbbccccdddd", "Invented Vault", "emu-client",
+                new DateTimeOffset(2026, 4, 1, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 11, 12, 12, 0, 0, TimeSpan.Zero),
+                new[] { "aardvark-listed" }, new[] { "bison-dropped" }, "127.0.0.1:60001", null);
+
+            using (var dialog = New(request))
+            {
+                var details = ControlTree.FindByName<Control>(dialog, "KpgRenewalDetail");
+                var table = ProfileRows.Table(dialog, GateTab.RenewalProfilesListName);
+                var tips = ProfileRows.Tips(table);
+                var sentences = ControlTree.Descendants(dialog).OfType<Label>()
+                    .Where(label => !ControlTree.Descendants(details).Contains(label) && !ControlTree.Descendants(table).Contains(label))
+                    .Select(label => label.Text)
+                    .Concat(new[] { dialog.Text, RenewalApprovalForm.NoProfilesHeld })
+                    .Concat(ProfileRows.Of(table)
+                        .SelectMany(row => new[] { tips.GetToolTip(row), tips.GetToolTip(ProfileRows.Cell(row, GateTab.RenewalProfileColumnName)) })
+                        .Where(tip => !string.IsNullOrEmpty(tip))
+                        .Select(tip => tip.Replace(Tooltips.LeftToRightMark.ToString(), string.Empty).Replace(Environment.NewLine, " ")))
+                    .ToList();
+
+                Assert.That(sentences, Does.Contain(RenewalApprovalForm.OmitsTip));
+                foreach (var sentence in sentences)
+                {
+                    foreach (var name in new[] { "aardvark-listed", "bison-dropped", "emu-client" })
+                    {
+                        Assert.That(sentence, Does.Not.Contain(name), "a sentence names " + name);
+                    }
+
+                    foreach (var pronoun in new[] { " it ", " it.", " it;", " it,", "It ", " its ", " them", " one ", " you", "You " })
+                    {
+                        Assert.That(sentence, Does.Not.Contain(pronoun), "a pronoun in: " + sentence);
+                    }
+                }
+            }
+        }
+
+        private static string Texts(Control form)
+        {
+            return string.Join(Environment.NewLine, ControlTree.Descendants(form).OfType<Label>().Select(label => label.Text));
         }
 
         [Test]
@@ -85,9 +194,9 @@ namespace KeePassGate.Tests
             using (var dialog = New(Request(new[] { "reader", "ops" }, 40)))
             {
                 var list = Profiles(dialog);
-                Assert.That(list.CheckedItems.Count, Is.EqualTo(2), "agreeing is still a decision");
+                Assert.That(ProfileRows.Checks(list), Is.EqualTo(new[] { true, true }), "agreeing is still a decision");
 
-                list.SetItemChecked(1, false);
+                ProfileRows.Boxes(list)[1].Checked = false;
                 dialog.Approve();
 
                 var answer = dialog.Answer();
@@ -98,14 +207,103 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_list_longer_than_it_shows_says_so_in_the_pairing_dialog_s_words()
+        public void A_list_longer_than_it_shows_ends_on_a_row_cut_in_half_as_the_pairing_dialog_s_does()
         {
+            // As on the pairing dialog: a row cut in half at the bottom of the table shows that
+            // the table scrolls, and no line under the table states it in words; a table that
+            // shows every row ends where the rows end.
             var many = Enumerable.Range(1, PairingApprovalForm.MostRows + 2).Select(at => "p" + at).ToArray();
             var few = many.Take(PairingApprovalForm.MostRows).ToArray();
 
-            Assert.That(RenewalApprovalForm.Scrolling(Request(many, 40)),
-                Is.EqualTo(PairingApprovalForm.Scrolling(many.Length)).And.Not.Null);
-            Assert.That(RenewalApprovalForm.Scrolling(Request(few, 40)), Is.Null);
+            using (var dialog = New(Request(many, 40)))
+            {
+                Show(dialog);
+                var list = Profiles(dialog);
+                var view = ProfileRows.View(list);
+                var single = ProfileRows.Of(list)[0].Height;
+                Assert.That(view.ClientSize.Height, Is.EqualTo((PairingApprovalForm.MostRows * single) + (single / 2)),
+                    "the view other than ten rows and half the row after them");
+                Assert.That(LinesUnder(dialog), Is.Empty, "a line under the table");
+            }
+
+            using (var dialog = New(Request(few, 40)))
+            {
+                Show(dialog);
+                var list = Profiles(dialog);
+                Assert.That(ProfileRows.Of(list)[ProfileRows.Of(list).Count - 1].Bottom, Is.EqualTo(ProfileRows.View(list).ClientSize.Height),
+                    "a table that shows every row ends other than where its rows end");
+                Assert.That(LinesUnder(dialog), Is.Empty, "a line under the table");
+            }
+        }
+
+        [Test]
+        public void Page_Down_on_a_focused_box_scrolls_the_table_and_the_view_stays_where_the_key_put_it()
+        {
+            // As on the pairing dialog: the box keeps the focus out of sight, and neither a layout
+            // of the dialog nor a tick of its countdown brings the box back into view.
+            var many = Enumerable.Range(1, PairingApprovalForm.MostRows + 2).Select(at => "p" + at).ToArray();
+            using (var dialog = New(Request(many, 40)))
+            {
+                Show(dialog);
+                var list = Profiles(dialog);
+                var view = ProfileRows.View(list);
+                var row = ProfileRows.Of(list)[0];
+                var box = ProfileRows.Box(row);
+                box.Focus();
+                OffScreenForm.Pump();
+                Assert.That(box.Focused, Is.True, "the key has to start where an operator would press it");
+                var end = view.DisplayRectangle.Height - view.ClientSize.Height;
+
+                Press(box, Keys.PageDown);
+                Assert.That(-view.AutoScrollPosition.Y, Is.EqualTo(end), "Page Down scrolled elsewhere than to the end of the rows");
+                Assert.That(row.Top + box.Bottom, Is.LessThanOrEqualTo(0), "Page Down left the box in sight");
+
+                PairingApprovalFormTests.PaintLayoutAndTick(dialog, GateTab.RenewalCountdownName);
+                Assert.That(-view.AutoScrollPosition.Y, Is.EqualTo(end), "a paint, a layout or the countdown's tick moved the view");
+                Assert.That(box.Focused, Is.True, "the focus moved");
+            }
+        }
+
+        [Test]
+        public void Ticks_paint_no_row_and_not_the_view_round_a_focused_box()
+        {
+            // As on the pairing dialog: the countdown's words changing every second lay nothing
+            // out, so that no tick draws the view of the rows again round a box holding the focus.
+            // On the screen, since a view off it paints nothing at all.
+            var many = Enumerable.Range(1, PairingApprovalForm.MostRows + 2).Select(at => "p" + at).ToArray();
+            using (var dialog = New(Request(many, 40)))
+            {
+                dialog.StartPosition = FormStartPosition.Manual;
+                dialog.Location = new Point(0, 0);
+                dialog.ShowInTaskbar = false;
+                dialog.Show();
+                OffScreenForm.Pump();
+                var list = Profiles(dialog);
+                var box = ProfileRows.Box(ProfileRows.Of(list)[0]);
+                box.Focus();
+                OffScreenForm.Pump();
+                Assert.That(box.Focused, Is.True, "the ticks have to come with a box holding the focus");
+                PairingApprovalFormTests.NextTick(dialog, GateTab.RenewalCountdownName);
+                var painted = PairingApprovalFormTests.PaintedWhile(list, () =>
+                {
+                    PairingApprovalFormTests.NextTick(dialog, GateTab.RenewalCountdownName);
+                    PairingApprovalFormTests.NextTick(dialog, GateTab.RenewalCountdownName);
+                });
+                Assert.That(painted, Is.Empty, "ticks painted the table");
+            }
+        }
+
+        /// <summary>
+        /// The names of the lines of text the dialog shows under its table, in order.
+        /// </summary>
+        private static IReadOnlyList<string> LinesUnder(Form dialog)
+        {
+            var table = Profiles(dialog);
+            var controls = table.Parent.Controls.Cast<Control>().ToList();
+            return controls.Skip(controls.IndexOf(table) + 1).OfType<Label>()
+                .Where(line => !string.IsNullOrEmpty(line.Text))
+                .Select(line => line.Name)
+                .ToList();
         }
 
         [Test]
@@ -121,25 +319,202 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_name_the_database_no_longer_holds_is_said_and_not_offered()
+        public void A_name_the_database_no_longer_holds_is_a_row_with_a_red_X_in_place_of_a_box_and_its_name_in_gray()
         {
+            // Two columns, the X drawn on the row where a box sits on the rows above it, and the
+            // sentence on the X and on the name alike, as the row is read out.
+            using (var dialog = New(Renewing(new[] { "reader", "ops" }, "retired")))
+            {
+                Show(dialog);
+                var list = Profiles(dialog);
+                var rows = ProfileRows.Of(list);
+                var tips = ProfileRows.Tips(list);
+                Assert.That(Headings(list), Is.EqualTo(new[] { "Grant", "Profile" }));
+                Assert.That(ProfileRows.Texts(list), Is.EqualTo(new[] { new[] { "reader" }, new[] { "ops" }, new[] { "retired" } }));
+                Assert.That(rows.Select(row => ProfileRows.Box(row) != null), Is.EqualTo(new[] { true, true, false }), "a box on the list alone");
+                Assert.That(ProfileRows.Checks(list), Is.EqualTo(new[] { true, true }));
+
+                var place = ProfileRows.Box(rows[0]).Bounds;
+                Assert.That(CrossedRows.Faults(rows[2], place, "on a plain row"), Is.Empty);
+                Assert.That(CrossedRows.Red(rows[0]), Is.Empty, "a row with a box drawing red");
+
+                var name = ProfileRows.Cell(rows[2], GateTab.RenewalProfileColumnName);
+                Assert.That(name.ForeColor, Is.EqualTo(SystemColors.GrayText), "the name of a profile not granted");
+                Assert.That(ProfileRows.Cell(rows[0], GateTab.RenewalProfileColumnName).ForeColor, Is.Not.EqualTo(SystemColors.GrayText),
+                    "the name of a profile granted in gray");
+                Assert.That(tips.GetToolTip(rows[2]), Is.EqualTo(Tooltips.Wrapped(RenewalApprovalForm.OmitsTip)), "the tooltip of the X");
+                Assert.That(tips.GetToolTip(name), Is.EqualTo(Tooltips.Wrapped(RenewalApprovalForm.OmitsTip)), "the tooltip of the name");
+                Assert.That(tips.GetToolTip(rows[0]), Is.Empty);
+                Assert.That(tips.GetToolTip(ProfileRows.Cell(rows[0], GateTab.RenewalProfileColumnName)), Is.Empty);
+                Assert.That(rows[2].AccessibleName, Is.EqualTo("retired. " + RenewalApprovalForm.OmitsTip),
+                    "the row with no box is read out by its name and the sentence of the X");
+                Assert.That(ProfileRows.Spoken(list), Is.EqualTo(new[] { "reader", "ops" }), "a box is read out by its name");
+                Assert.That(ControlTree.Descendants(dialog).OfType<Label>().Select(label => label.Text),
+                    Has.None.StartsWith("Not carried over").And.None.EqualTo("omits the profile").And.None.EqualTo("New certificate"));
+
+                // Highlighted, the X stays where it was and as red.
+                ((ProfileTable)list).Mark("retired", RenewalApprovalForm.OmitsTip, PairingApprovalForm.ChangedBackground, SystemColors.WindowText);
+                OffScreenForm.Pump();
+                Assert.That(CrossedRows.Faults(rows[2], place, "on a highlighted row"), Is.Empty);
+
+                ProfileRows.Boxes(list)[0].Checked = false;
+                dialog.Approve();
+                Assert.That(dialog.Answer().Profiles, Is.EqualTo(new[] { "ops" }), "the profiles checked on the list, and never a profile off it");
+            }
+
+            using (var dialog = New(Renewing(new[] { "reader", "ops" }, "retired")))
+            {
+                dialog.Approve();
+                Assert.That(dialog.Answer().Profiles, Is.EqualTo(new[] { "reader", "ops" }), "a profile off the list is never granted");
+            }
+        }
+
+        [Test]
+        public void The_X_is_a_mark_that_takes_neither_the_focus_nor_a_press()
+        {
+            // An X in the grant editor is a button that removes a rule; this one is drawn on the
+            // row, so no control stands where it is, and a press there changes nothing.
+            using (var dialog = New(Renewing(new[] { "reader" }, "retired")))
+            {
+                Show(dialog);
+                var list = Profiles(dialog);
+                var rows = ProfileRows.Of(list);
+                var place = ProfileRows.Box(rows[0]).Bounds;
+                var middle = new Point(place.Left + (place.Width / 2), place.Top + (place.Height / 2));
+                Assert.That(CrossedRows.Faults(rows[1], place, "before the press"), Is.Empty);
+                Assert.That(rows[1].GetChildAtPoint(middle), Is.Null, "a control where the X stands");
+                Assert.That(ControlTree.Descendants(rows[1]).Where(control => control.CanSelect), Is.Empty,
+                    "a control on the row that takes the focus");
+
+                var lifetime = ControlTree.FindByName<ComboBox>(dialog, GateTab.ApprovalLifetimeName);
+                lifetime.Focus();
+                OffScreenForm.Pump();
+                Assert.That(lifetime.Focused, Is.True, "the press has to start where the focus is elsewhere");
+                var at = (IntPtr)((middle.Y << 16) | (middle.X & 0xFFFF));
+                TestNativeMethods.PostMessage(rows[1].Handle, 0x0201, (IntPtr)1, at);
+                TestNativeMethods.PostMessage(rows[1].Handle, 0x0202, IntPtr.Zero, at);
+                OffScreenForm.Pump();
+
+                Assert.That(lifetime.Focused, Is.True, "the press moved the focus");
+                Assert.That(ProfileRows.Checks(list), Is.EqualTo(new[] { true }), "the press changed a check");
+                Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut), "the press answered the dialog");
+                Assert.That(CrossedRows.Faults(rows[1], place, "after the press"), Is.Empty);
+            }
+        }
+
+        [Test]
+        public void A_renewal_of_profiles_all_on_the_list_draws_two_columns_and_no_X_and_of_profiles_all_off_it_an_X_on_every_row()
+        {
+            using (var dialog = New(Renewing(new[] { "reader", "ops" })))
+            {
+                Show(dialog);
+                var list = Profiles(dialog);
+                Assert.That(Headings(list), Is.EqualTo(new[] { "Grant", "Profile" }));
+                Assert.That(ProfileRows.Of(list).SelectMany(CrossedRows.Red), Is.Empty, "a row with a box drawing red");
+            }
+
+            Rectangle place;
+            using (var dialog = New(Renewing(new[] { "reader" }, "gone-a", "gone-b")))
+            {
+                Show(dialog);
+                place = ProfileRows.Box(ProfileRows.Of(Profiles(dialog))[0]).Bounds;
+            }
+
+            using (var dialog = New(Renewing(Array.Empty<string>(), "gone-a", "gone-b")))
+            {
+                Show(dialog);
+                var list = Profiles(dialog);
+                Assert.That(Headings(list), Is.EqualTo(new[] { "Grant", "Profile" }));
+                Assert.That(ProfileRows.Boxes(list), Is.Empty);
+                Assert.That(ProfileRows.Of(list).SelectMany(row => CrossedRows.Faults(row, place, "on " + row.AccessibleName)), Is.Empty);
+                dialog.Approve();
+                Assert.That(dialog.Answer().Profiles, Is.Empty, "a profile off the list is never granted");
+            }
+        }
+
+        [Test]
+        public void The_X_is_red_in_a_color_of_its_own_legible_on_the_table_and_on_a_highlight_and_the_text_color_under_high_contrast()
+        {
+            Assert.That(ProfileTable.CrossColor(false), Is.EqualTo(ProfileTable.CrossRed));
+            Assert.That(ProfileTable.CrossColor(true), Is.EqualTo(SystemColors.WindowText), "the theme's text color under high contrast");
+            Assert.That(SystemInformation.HighContrast, Is.False, "the colors of the normal theme are measured");
+            Assert.That(Contrast(ProfileTable.CrossRed, SystemColors.Window), Is.GreaterThanOrEqualTo(4.5), "against the table");
+            Assert.That(Contrast(ProfileTable.CrossRed, PairingApprovalForm.ChangedBackground), Is.GreaterThanOrEqualTo(4.5), "against a highlight");
+        }
+
+        /// <summary>The contrast ratio of two colors, as WCAG 2 defines it.</summary>
+        private static double Contrast(Color one, Color other)
+        {
+            Func<Color, double> luminance = color =>
+            {
+                Func<int, double> linear = channel =>
+                {
+                    var c = channel / 255.0;
+                    return c <= 0.03928 ? c / 12.92 : Math.Pow((c + 0.055) / 1.055, 2.4);
+                };
+
+                return (0.2126 * linear(color.R)) + (0.7152 * linear(color.G)) + (0.0722 * linear(color.B));
+            };
+
+            var lighter = Math.Max(luminance(one), luminance(other));
+            var darker = Math.Min(luminance(one), luminance(other));
+            return (lighter + 0.05) / (darker + 0.05);
+        }
+
+        /// <summary>The headings of a table, in order.</summary>
+        private static string[] Headings(Control list)
+        {
+            return ControlTree.FindByName<Control>(list, ProfileTable.HeadingsName).Controls.OfType<Label>().Select(label => label.Text).ToArray();
+        }
+
+        /// <summary>A renewal of a record holding these profiles on the list and these off it.</summary>
+        private static RenewalRequest Renewing(string[] listed, params string[] dropped)
+        {
+            return new RenewalRequest(
+                "aaaabbbbccccdddd", "Invented Vault", "agent-fictitious",
+                new DateTimeOffset(2026, 4, 1, 9, 0, 0, TimeSpan.Zero),
+                new DateTimeOffset(Today.AddDays(40).AddHours(12), TimeSpan.Zero),
+                listed, dropped, "127.0.0.1:60001", null);
+        }
+
+        [Test]
+        public void A_table_of_profiles_the_database_no_longer_names_is_reached_by_Tab_and_scrolled_by_the_keys()
+        {
+            // No row has a box to take the focus, so the view the rows scroll in takes it, from
+            // Tab, and the keys that scroll the table under a box scroll it there.
+            var dropped = Enumerable.Range(1, PairingApprovalForm.MostRows + 4).Select(at => "gone-" + at).ToArray();
             var request = new RenewalRequest(
                 "aaaabbbbccccdddd", "Invented Vault", "agent-fictitious",
                 new DateTimeOffset(2026, 4, 1, 9, 0, 0, TimeSpan.Zero),
-                new DateTimeOffset(2026, 11, 12, 12, 0, 0, TimeSpan.Zero),
-                new[] { "reader" }, new[] { "retired" }, "127.0.0.1:60001", null);
+                new DateTimeOffset(Today.AddDays(40).AddHours(12), TimeSpan.Zero),
+                Array.Empty<string>(), dropped, "127.0.0.1:60001", null);
 
             using (var dialog = New(request))
             {
-                Assert.That(Profiles(dialog).Items.Cast<string>(), Is.EqualTo(new[] { "reader" }));
-                Assert.That(ControlTree.FindByName<Label>(dialog, GateTab.RenewalDroppedName).Text,
-                    Is.EqualTo("Not carried over, because this database no longer names it: retired."));
-            }
+                Show(dialog);
+                var list = Profiles(dialog);
+                var view = ProfileRows.View(list);
+                var rows = ProfileRows.Of(list);
+                var line = ProfileRows.Cell(rows[0], GateTab.RenewalProfileColumnName).Height;
+                Assert.That(rows, Has.Count.EqualTo(dropped.Length));
+                Assert.That(ProfileRows.Boxes(list), Is.Empty, "a row with a box");
+                var approve = ControlTree.FindByName<Button>(dialog, GateTab.ApproveButtonName);
+                approve.Focus();
+                OffScreenForm.Pump();
+                Assert.That(approve.Focused, Is.True, "the key has to start where an operator would press it");
 
-            using (var dialog = New(Request(new[] { "reader" }, 40)))
-            {
-                Assert.That(ControlTree.FindByName<Label>(dialog, GateTab.RenewalDroppedName), Is.Null,
-                    "nothing to say when everything is carried");
+                Press(approve, Keys.Tab);
+                Assert.That(view.Focused, Is.True, "Tab goes elsewhere than the view");
+
+                Press(view, Keys.Down);
+                Assert.That(rows[0].Top, Is.EqualTo(-line), "Down scrolls by a line");
+                Press(view, Keys.End);
+                Assert.That(view.ClientSize.Height - rows[rows.Count - 1].Bottom, Is.InRange(0, rows[0].Height - 1),
+                    "End leaves the last row other than whole, or a row or more empty below it");
+                Assert.That(rows.Count(row => row.Top == 0), Is.EqualTo(1), "End leaves the view's top other than on a row's top");
+                Press(view, Keys.Home);
+                Assert.That(rows[0].Top, Is.Zero, "Home");
+                Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut), "a key answered the dialog");
             }
         }
 
@@ -759,13 +1134,21 @@ namespace KeePassGate.Tests
             var names = Enumerable.Range(1, held).Select(at => "profile-" + at).ToArray();
 
             using (var larger = new Font(Control.DefaultFont.FontFamily, Control.DefaultFont.Size * scaling))
-            using (var dialog = new RenewalApprovalForm(Request(names, 40), Timeout, larger, Today, null))
+            using (var dialog = new RenewalApprovalForm(Renewing(names, "retired"), Timeout, larger, Today, null))
             {
                 dialog.CreateControl();
                 dialog.PerformLayout();
 
                 Assert.That(dialog.PreferredSize.Width, Is.LessThanOrEqualTo(SmallestScreenWidth * scaling),
                     "the dialog is wider than the smallest screen at " + scaling);
+                Assert.That(dialog.PreferredSize.Height, Is.LessThanOrEqualTo(SmallestWorkingHeight * scaling),
+                    "the dialog is taller than the smallest screen at " + scaling);
+
+                var list = Profiles(dialog);
+                var single = ProfileRows.Of(list)[0].Height;
+                Assert.That(ProfileRows.View(list).ClientSize.Height,
+                    Is.EqualTo(held + 1 > PairingApprovalForm.MostRows ? (PairingApprovalForm.MostRows * single) + (single / 2) : (held + 1) * single),
+                    "the view other than its rows, or ten and half the row after them, at " + scaling);
 
                 foreach (var name in new[]
                          {
@@ -793,12 +1176,61 @@ namespace KeePassGate.Tests
 
         [TestCase(1.0f)]
         [TestCase(2.0f)]
-        public void A_profile_as_long_as_a_name_may_be_is_listed_whole(float scaling)
+        public void A_line_the_dialog_does_not_show_takes_no_room(float scaling)
         {
-            // What is kept or dropped here is a name, whole: a name approved at the greatest length
-            // a profile name may have ran past the edge of a list as wide as a line of the
-            // dialog's text, and two names alike but for their ends looked the same.
-            var held = new[] { "reader", new string('W', 64) };
+            // The notice of a renewal reaching no profile stands between the sentence of what
+            // Approve costs and the line naming the table only where shown, otherwise the ordinary
+            // gap, with no band kept for a line not shown; and under a table that scrolls and a
+            // table that does not alike, the lifetime stands the ordinary gap below the table.
+            var many = Enumerable.Range(1, PairingApprovalForm.MostRows + 4).Select(at => "profile-" + at).ToArray();
+            using (var larger = new Font(Control.DefaultFont.FontFamily, Control.DefaultFont.Size * scaling))
+            {
+                foreach (var held in new[] { new[] { "reader" }, Array.Empty<string>(), many })
+                {
+                    using (var dialog = new RenewalApprovalForm(Renewing(held, "retired"), Timeout, larger, Today, null))
+                    {
+                        Show(dialog);
+                        var consequence = InDialog(ControlTree.FindByName<Label>(dialog, "KpgRenewalConsequence"), dialog);
+                        var naming = ControlTree.FindByName<Label>(dialog, "KpgRenewalProfilesLine");
+                        var notice = ControlTree.FindByName<Label>(dialog, RenewalApprovalForm.NoticeName);
+                        var gap = naming.Margin.Bottom;
+                        Assert.That(InDialog(naming, dialog).Top - consequence.Bottom,
+                            Is.EqualTo(held.Length == 0 ? gap + notice.Height + gap : gap), "the room above the line naming the table at " + scaling);
+
+                        var list = InDialog(Profiles(dialog), dialog);
+                        var row = ControlTree.FindByName<ComboBox>(dialog, GateTab.ApprovalLifetimeName).Parent;
+                        Assert.That(InDialog(row, dialog).Top - list.Bottom, Is.EqualTo(row.Margin.Top),
+                            "the room between the table and the lifetime holding " + held.Length + " at " + scaling);
+                        Assert.That(LinesUnder(dialog), Is.Empty, "a line under the table holding " + held.Length + " at " + scaling);
+                    }
+                }
+            }
+        }
+
+        [TestCase(1.0f)]
+        [TestCase(1.5f)]
+        [TestCase(2.0f)]
+        public void The_X_stands_where_a_box_sits_at_any_scaling(float scaling)
+        {
+            using (var larger = new Font(Control.DefaultFont.FontFamily, Control.DefaultFont.Size * scaling))
+            using (var dialog = new RenewalApprovalForm(Renewing(new[] { "reader" }, "retired"), Timeout, larger, Today, null))
+            {
+                Show(dialog);
+                var rows = ProfileRows.Of(Profiles(dialog));
+                Assert.That(rows[1].Height, Is.EqualTo(rows[0].Height), "a row with the X as tall as a row with a box at " + scaling);
+                Assert.That(CrossedRows.Faults(rows[1], ProfileRows.Box(rows[0]).Bounds, "at " + scaling), Is.Empty);
+            }
+        }
+
+        [TestCase(1.0f)]
+        [TestCase(2.0f)]
+        public void A_profile_as_long_as_a_name_may_be_is_cut_at_its_column_and_shown_whole_in_its_tooltip(float scaling)
+        {
+            // What is kept or dropped here is a name, whole: a name as long as a profile name may
+            // be is cut at the edge of its column, as on the pairing dialog, and the pointer on it
+            // shows it whole, so that two names alike but for their ends are told apart.
+            var longest = new string('W', 64);
+            var held = new[] { "reader", longest };
 
             using (var larger = new Font(Control.DefaultFont.FontFamily, Control.DefaultFont.Size * scaling))
             using (var dialog = new RenewalApprovalForm(Request(held, 40), Timeout, larger, Today, null))
@@ -807,14 +1239,10 @@ namespace KeePassGate.Tests
                 dialog.PerformLayout();
 
                 var list = Profiles(dialog);
-                foreach (var row in list.Items.Cast<string>())
-                {
-                    // As a list box draws it, beside a check box no wider than the row is tall.
-                    var width = TextRenderer.MeasureText(row, list.Font).Width;
-                    Assert.That(list.ItemHeight + width, Is.LessThanOrEqualTo(list.ClientSize.Width),
-                        "\"" + row + "\" is " + width + " pixels beside a check box of " + list.ItemHeight
-                        + " in a list " + list.ClientSize.Width + " wide");
-                }
+                var name = ProfileRows.Cell(ProfileRows.Of(list)[1], GateTab.RenewalProfileColumnName);
+                Assert.That(name.Text, Is.EqualTo(longest));
+                Assert.That(name.Width, Is.LessThan(TextRenderer.MeasureText(longest, list.Font).Width), "a name this long is cut");
+                Assert.That(ProfileRows.Tips(list).GetToolTip(name), Is.EqualTo(Tooltips.Wrapped(longest)), "and shown whole");
 
                 var approve = ControlTree.FindByName<Button>(dialog, GateTab.ApproveButtonName);
                 Assert.That(InDialog(approve, dialog).Right, Is.EqualTo(InDialog(list, dialog).Right),
@@ -930,11 +1358,9 @@ namespace KeePassGate.Tests
                 null);
         }
 
-        private static CheckedListBox Profiles(Control form)
+        private static Control Profiles(Control form)
         {
-            var list = ControlTree.FindByName<CheckedListBox>(form, GateTab.RenewalProfilesListName);
-            Assert.That(list, Is.Not.Null);
-            return list;
+            return ProfileRows.Table(form, GateTab.RenewalProfilesListName);
         }
 
         private static SplitButton Refuse(Control form)
@@ -975,6 +1401,71 @@ namespace KeePassGate.Tests
             TestNativeMethods.PostMessage(control.Handle, 0x0100, (IntPtr)(int)key, IntPtr.Zero);
             TestNativeMethods.PostMessage(control.Handle, 0x0101, (IntPtr)(int)key, IntPtr.Zero);
             OffScreenForm.Pump();
+        }
+    }
+
+    /// <summary>
+    /// The X a row of a profile not granted draws in place of a box, read off the row drawn.
+    /// </summary>
+    internal static class CrossedRows
+    {
+        /// <summary>
+        /// Every point of a row's column of boxes drawn in red, in the row's own coordinates: left
+        /// of the name, whose smoothed text can draw a red fringe that is no part of an X.
+        /// </summary>
+        public static IReadOnlyList<Point> Red(Control row)
+        {
+            var name = ProfileRows.Cell(row, GateTab.RenewalProfileColumnName);
+            using (var drawn = new Bitmap(row.Width, row.Height))
+            {
+                row.DrawToBitmap(drawn, new Rectangle(Point.Empty, row.Size));
+                return Enumerable.Range(0, name.Left)
+                    .SelectMany(x => Enumerable.Range(0, row.Height).Select(y => new Point(x, y)))
+                    .Where(point => IsRed(drawn.GetPixel(point.X, point.Y)))
+                    .ToList();
+            }
+        }
+
+        /// <summary>
+        /// What is wrong with the X a row draws against the place a box sits in a row of the same
+        /// table: none where red stands in that place alone in the column of boxes, at its middle,
+        /// and toward each of its four corners, as the arms of an X do.
+        /// </summary>
+        public static string[] Faults(Control row, Rectangle place, string where)
+        {
+            var red = Red(row);
+            var faults = new List<string>();
+            var middle = new Point(place.Left + (place.Width / 2), place.Top + (place.Height / 2));
+            if (!red.Any(point => Math.Abs(point.X - middle.X) <= 1 && Math.Abs(point.Y - middle.Y) <= 1))
+            {
+                faults.Add("no red at the middle " + middle + " of the place of a box " + place + " " + where);
+            }
+
+            var outside = red.Where(point => !place.Contains(point)).ToList();
+            if (outside.Count > 0)
+            {
+                faults.Add(outside.Count + " points of red outside the place of a box " + place + " " + where + ", " + string.Join(" ", outside.Take(4)));
+            }
+
+            var arms = new[]
+            {
+                red.Any(point => point.X < middle.X && point.Y < middle.Y),
+                red.Any(point => point.X > middle.X && point.Y < middle.Y),
+                red.Any(point => point.X < middle.X && point.Y > middle.Y),
+                red.Any(point => point.X > middle.X && point.Y > middle.Y)
+            };
+            if (arms.Contains(false))
+            {
+                faults.Add("an arm of the X missing " + where + ": " + string.Join(", ", arms));
+            }
+
+            return faults.ToArray();
+        }
+
+        /// <summary>Whether a pixel is red, as the X draws it: the core of a line rather than its smoothed edge.</summary>
+        public static bool IsRed(Color color)
+        {
+            return color.R >= 150 && color.G <= 100 && color.B <= 100;
         }
     }
 }

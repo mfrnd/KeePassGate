@@ -8,8 +8,8 @@ namespace KeePassGate.Ui
 {
     /// <summary>
     /// The table of profiles on an approval dialog: a row of headings that stays where it is above
-    /// rows that scroll by pixels, each row a check box and a cell of text for each column, a cell
-    /// taking a line for each line of its text.
+    /// rows that scroll by pixels, each row a check box, where the row has a box, and a cell of
+    /// text for each column, a cell taking a line for each line of its text.
     /// </summary>
     /// <remarks>
     /// **Real controls rather than a list view or a grid**, since neither holds a row taller than a
@@ -25,6 +25,8 @@ namespace KeePassGate.Ui
     /// - **Every cell keeps to the top of its row**, the box level with the first line of text,
     ///   and **every line of a cell is a line of its own**, cut with an ellipsis where its column
     ///   is too narrow and shown whole in the cell's tooltip.
+    /// - **A row of a profile not granted has a red X in place of a box**, drawn on the row where
+    ///   a box sits, and its text in the system's gray, <see cref="Omit"/>.
     /// - **A thin line between two rows**, in the system's color for a control's light edge, so
     ///   that a row of several lines reads as a single row and two highlighted rows as two; none
     ///   under the last row. **A tall row scrolls as the rest of the rows do**: its box, name and
@@ -70,9 +72,9 @@ namespace KeePassGate.Ui
     ///   **A double click on a box is the single click it begins with**, since a box double
     ///   clicked otherwise toggles twice, which reads as a click that did nothing.
     /// - **Every part UI automation reads has a name of its own**: the headings by
-    ///   <see cref="HeadingsRead"/>, a row by its profile and its box by the row's text read out,
-    ///   and every cell by its text; an empty cell is hidden, since an unnamed part is read by the
-    ///   name of the part before it.
+    ///   <see cref="HeadingsRead"/>, a row with a box by its profile and the box by the row's
+    ///   text read out, a row with no box by its text read out, and every cell by its text; an
+    ///   empty cell is hidden, since an unnamed part is read by the name of the part before it.
     ///   **Whether a part is off the screen is UI automation's own answer**: a row scrolled out of
     ///   the view is read as off the screen and its box and cells, which lie inside the row, as on
     ///   it, and a box or a cell answering off the screen in its own state changes nothing UI
@@ -178,47 +180,50 @@ namespace KeePassGate.Ui
             Controls.Add(_rows);
         }
 
-        /// <summary>The profiles whose boxes are checked, in the order of the rows.</summary>
+        /// <summary>The profiles whose rows have a box that is checked, in the order of the rows.</summary>
         internal IReadOnlyList<string> Checked
         {
-            get { return _order.Where(row => row.Box.Checked).Select(row => row.Profile).ToList(); }
+            get { return _order.Where(row => row.Box != null && row.Box.Checked).Select(row => row.Profile).ToList(); }
         }
 
-        /// <summary>Adds a row for a profile, with its box checked or not, and empty cells.</summary>
-        internal void Add(string profile, bool isChecked)
+        /// <summary>Adds a row for a profile, with a box checked or not, or with no box, and empty cells.</summary>
+        internal void Add(string profile, bool boxed, bool isChecked)
         {
             var row = new Row(profile, NewRow(GateTab.ProfileRowName), _columns.Count);
             row.Panel.TabIndex = _order.Count;
-            var box = new ProfileBox
+            if (boxed)
             {
-                Name = GateTab.ProfileBoxName,
-                AutoSize = false,
-                Text = string.Empty,
-                Checked = isChecked,
-                Anchor = AnchorStyles.Top | AnchorStyles.Left,
-                BringIntoSight = () => Reveal(row)
-            };
+                var box = new ProfileBox
+                {
+                    Name = GateTab.ProfileBoxName,
+                    AutoSize = false,
+                    Text = string.Empty,
+                    Checked = isChecked,
+                    Anchor = AnchorStyles.Top | AnchorStyles.Left,
+                    BringIntoSight = () => Reveal(row)
+                };
 
-            row.Box = box;
-            row.Box.CheckedChanged += (sender, e) =>
-                WindowHandlers.Run("a changed check could not be brought into view", () => Reveal(row));
+                row.Box = box;
+                row.Box.CheckedChanged += (sender, e) =>
+                    WindowHandlers.Run("a changed check could not be brought into view", () => Reveal(row));
 
-            // The focus moving to the box, by Tab or a click, brings the box into view, and nothing
-            // else brings a box into view, `RowsPanel.ScrollToControl`.
-            row.Box.Enter += (sender, e) =>
-                WindowHandlers.Run("a box given the focus could not be brought into view", () => Reveal(row));
+                // The focus moving to the box, by Tab or a click, brings the box into view, and
+                // nothing else brings a box into view, `RowsPanel.ScrollToControl`.
+                row.Box.Enter += (sender, e) =>
+                    WindowHandlers.Run("a box given the focus could not be brought into view", () => Reveal(row));
 
-            // The row draws the focus round its box, so the row is drawn again as the box takes
-            // the focus and loses it.
-            row.Box.GotFocus += (sender, e) => row.Panel.Invalidate();
-            row.Box.LostFocus += (sender, e) => row.Panel.Invalidate();
-            row.Panel.Box = row.Box;
-            row.Panel.Controls.Add(row.Box, 0, 0);
+                // The row draws the focus round its box, so the row is drawn again as the box
+                // takes the focus and loses it.
+                row.Box.GotFocus += (sender, e) => row.Panel.Invalidate();
+                row.Box.LostFocus += (sender, e) => row.Panel.Invalidate();
+                row.Panel.Box = row.Box;
+                row.Panel.Controls.Add(row.Box, 0, 0);
 
-            // Named by its profile, which is the row's own name: a part with no name of its own is
-            // read by the name of the part before it, which was the clients of the row above. The
-            // box carries the row's text read out, `Show`.
-            row.Panel.AccessibleName = profile;
+                // Named by its profile, which is the row's own name: a part with no name of its
+                // own is read by the name of the part before it, which was the clients of the row
+                // above. The box carries the row's text read out, `Show`.
+                row.Panel.AccessibleName = profile;
+            }
 
             for (var column = 0; column < _columns.Count; column++)
             {
@@ -233,7 +238,8 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// Gives a profile's row its cells, a line of a cell for each line of its text, the tip of
-        /// each cell, and the text its box is read out by. Shown once the table is laid again.
+        /// each cell, and the text its box, or the row where it has no box, is read out by. Shown
+        /// once the table is laid again.
         /// </summary>
         /// <remarks>
         /// **The text read out is the whole row, however long**: a box of a profile thirty clients
@@ -254,7 +260,16 @@ namespace KeePassGate.Ui
                 row.Tips[column] = column < tips.Count ? tips[column] : null;
             }
 
-            row.Box.AccessibleName = spoken;
+            // On the box, which is what a keyboard reaches; on the row where the row has no box, so
+            // that UI automation reads that row as its name and what its cells state.
+            if (row.Box != null)
+            {
+                row.Box.AccessibleName = spoken;
+            }
+            else
+            {
+                row.Panel.AccessibleName = spoken;
+            }
         }
 
         /// <summary>
@@ -273,10 +288,33 @@ namespace KeePassGate.Ui
             row.Panel.ForeColor = fore;
         }
 
-        /// <summary>Checks or unchecks a profile's box.</summary>
+        /// <summary>
+        /// Marks a profile's row with no box as a profile the dialog grants nothing: an X in place
+        /// of a box, the row's text in the system's gray, and this tip on the X and under every
+        /// cell's own. Shown once the table is laid again.
+        /// </summary>
+        /// <remarks>
+        /// **Drawn on the row and no control of its own**, so that the X takes neither the focus
+        /// nor a press and is nothing of its own to UI automation, which reads the row by the text
+        /// <see cref="Show"/> gives it: a control would be read a second time, and an X that looks
+        /// like the grant editor's would read as a button that removes the row.
+        /// </remarks>
+        internal void Omit(string profile, string tip)
+        {
+            if (!_byProfile.TryGetValue(profile, out var row) || row.Box != null)
+            {
+                return;
+            }
+
+            row.Tip = tip;
+            row.Panel.Crossed = true;
+            row.Panel.ForeColor = SystemColors.GrayText;
+        }
+
+        /// <summary>Checks or unchecks a profile's box, where its row has a box.</summary>
         internal void Check(string profile, bool isChecked)
         {
-            if (_byProfile.TryGetValue(profile, out var row))
+            if (_byProfile.TryGetValue(profile, out var row) && row.Box != null)
             {
                 row.Box.Checked = isChecked;
             }
@@ -306,10 +344,11 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Scrolls a row into view unless its box is in view already, and answers whether the view
-        /// moved: the row's top comes to the top of the view where the rows below it fill the
-        /// view, and otherwise as far up as the view scrolls, which for a row near the end puts the
-        /// view's top on the edge of a line and leaves the rest of the view below the last row.
+        /// Scrolls a row into view unless its box, or the row where it has no box, is in view
+        /// already, and answers whether the view moved: the row's top comes to the top of the
+        /// view where the rows below it fill the view, and otherwise as far up as the view
+        /// scrolls, which for a row near the end puts the view's top on the edge of a line and
+        /// leaves the rest of the view below the last row.
         /// </summary>
         /// <remarks>
         /// **The whole view left to paint, at the next paint**, unlike a scroll by the wheel or the
@@ -318,8 +357,9 @@ namespace KeePassGate.Ui
         /// </remarks>
         private bool Reveal(Row row)
         {
-            var top = row.Panel.Top + row.Box.Top;
-            if (top >= 0 && top + row.Box.Height <= _rows.ClientSize.Height)
+            var top = row.Panel.Top + (row.Box == null ? 0 : row.Box.Top);
+            var height = row.Box == null ? row.Panel.Height : row.Box.Height;
+            if (top >= 0 && top + height <= _rows.ClientSize.Height)
             {
                 return false;
             }
@@ -366,6 +406,16 @@ namespace KeePassGate.Ui
         {
             _rows.Invalidate(true);
             _rows.Update();
+        }
+
+        /// <summary>
+        /// Where a box sits on a row this wide: a box's glyph, its column's margin from the row's
+        /// start, which is its right edge in a right to left window, and level with the first line.
+        /// </summary>
+        private Rectangle CrossPlace(int width)
+        {
+            var x = RightToLeft == RightToLeft.Yes ? width - _inset - _glyph.Width : _inset;
+            return new Rectangle(new Point(x, _pad + ((_line - _glyph.Height) / 2)), _glyph);
         }
 
         /// <summary>
@@ -424,8 +474,10 @@ namespace KeePassGate.Ui
                 var row = _order[at];
                 row.Panel.Ruled = at < _order.Count - 1;
                 row.Panel.Rule = RuleColor(SystemInformation.HighContrast);
+                row.Panel.Cross = CrossColor(SystemInformation.HighContrast);
                 row.Panel.Around = _pad;
                 LayRow(row.Panel, row.Box, widths, new Rectangle(0, y, scrolls ? room : wide, heights[at]));
+                row.Panel.CrossAt = CrossPlace(row.Panel.Width);
                 y += heights[at];
             }
 
@@ -530,6 +582,23 @@ namespace KeePassGate.Ui
         internal static Color RuleColor(bool highContrast)
         {
             return highContrast ? SystemColors.WindowText : SystemColors.ControlLight;
+        }
+
+        /// <summary>
+        /// The red of the X a row of a profile not granted draws in place of a box,
+        /// <see cref="Omit"/>: 5.9 to 1 against white and 5.3 to 1 against the highlight of a
+        /// changed row, `PairingApprovalForm.ChangedBackground`.
+        /// </summary>
+        internal static readonly Color CrossRed = Color.FromArgb(0xC4, 0x1E, 0x1E);
+
+        /// <summary>
+        /// The color of the X in place of a box: <see cref="CrossRed"/>, and under a high contrast
+        /// setting the theme's text color, so that the shape alone carries the meaning there.
+        /// </summary>
+        /// <param name="highContrast">Whether a high contrast setting is on, `SystemInformation.HighContrast`.</param>
+        internal static Color CrossColor(bool highContrast)
+        {
+            return highContrast ? SystemColors.WindowText : CrossRed;
         }
 
         /// <summary>Scrolls the rows by this many pixels, down where positive, <see cref="ScrollTo"/>.</summary>
@@ -665,7 +734,7 @@ namespace KeePassGate.Ui
         {
             _inset = LogicalToDeviceUnits(Spacing.Gap) / 2;
             _pad = LogicalToDeviceUnits(Spacing.Tight);
-            var box = _order.Select(row => row.Box).FirstOrDefault();
+            var box = _order.Select(row => row.Box).FirstOrDefault(each => each != null);
             if (box != null)
             {
                 _boxSize = box.GetPreferredSize(Size.Empty);
@@ -772,7 +841,11 @@ namespace KeePassGate.Ui
             foreach (var row in _order)
             {
                 changed |= Tip(row.Panel, row.Tip);
-                changed |= Tip(row.Box, row.Tip);
+                if (row.Box != null)
+                {
+                    changed |= Tip(row.Box, row.Tip);
+                }
+
                 for (var column = 0; column < row.Cells.Length; column++)
                 {
                     var cell = row.Cells[column];
@@ -962,8 +1035,9 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// A row, or the headings: draws a line along its bottom where it is not the last row, and
-        /// the focus round its box while the box holds the focus.
+        /// A row, or the headings: draws a line along its bottom where it is not the last row, the
+        /// focus round its box while the box holds the focus, and an X in place of a box on the row
+        /// of a profile not granted.
         /// </summary>
         /// <remarks>
         /// **The focus round the box, clear of it**, on the row's own background, in the row's
@@ -987,7 +1061,7 @@ namespace KeePassGate.Ui
                 DoubleBuffered = true;
             }
 
-            /// <summary>The row's box, or null for the headings.</summary>
+            /// <summary>The row's box, or null for a row with no box and for the headings.</summary>
             public CheckBox Box { get; set; }
 
             /// <summary>Whether a line is drawn along the row's bottom.</summary>
@@ -998,6 +1072,15 @@ namespace KeePassGate.Ui
 
             /// <summary>How far round the box the focus is drawn, in pixels.</summary>
             public int Around { get; set; }
+
+            /// <summary>Whether the row draws an X in place of a box, <see cref="Omit"/>.</summary>
+            public bool Crossed { get; set; }
+
+            /// <summary>Where a box sits on the row, which the X is drawn inside.</summary>
+            public Rectangle CrossAt { get; set; }
+
+            /// <summary>The color of the X, <see cref="CrossColor"/>.</summary>
+            public Color Cross { get; set; }
 
             protected override void OnPaint(PaintEventArgs e)
             {
@@ -1017,6 +1100,11 @@ namespace KeePassGate.Ui
                         }
                     }
 
+                    if (Crossed)
+                    {
+                        DrawCross(e.Graphics);
+                    }
+
                     // A row scrolled up stands at a negative place in the view, and a box the keys
                     // scrolled out of sight keeps the focus with none of it drawn.
                     var view = Parent == null ? Height : Parent.ClientSize.Height;
@@ -1029,6 +1117,30 @@ namespace KeePassGate.Ui
                             e.Graphics, Rectangle.FromLTRB(at.Left - Around, top, at.Right + Around, bottom), ForeColor, BackColor);
                     }
                 });
+            }
+
+            /// <summary>
+            /// Draws the X where a box sits, as large as a box's check mark: two strokes corner to
+            /// corner of the box's glyph less a fifth of it all round, a sixth of the glyph thick
+            /// and two pixels at the least, smoothed.
+            /// </summary>
+            private void DrawCross(Graphics graphics)
+            {
+                var at = CrossAt;
+                var inset = Math.Max(1, at.Width / 5);
+                var left = at.Left + inset;
+                var top = at.Top + inset;
+                var right = at.Right - 1 - inset;
+                var bottom = at.Bottom - 1 - inset;
+                var smoothing = graphics.SmoothingMode;
+                graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using (var pen = new Pen(Cross, Math.Max(2f, at.Height / 6f)))
+                {
+                    graphics.DrawLine(pen, left, top, right, bottom);
+                    graphics.DrawLine(pen, right, top, left, bottom);
+                }
+
+                graphics.SmoothingMode = smoothing;
             }
         }
 

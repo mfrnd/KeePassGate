@@ -213,9 +213,6 @@ namespace KeePassGate.Ui
         /// <summary>What a screen reader calls the port box.</summary>
         public const string StatusPortBoxLabel = "Port to listen on";
 
-        /// <summary>What a screen reader calls the profiles being approved.</summary>
-        public const string ApprovalProfilesListLabel = "Profiles this client may use";
-
         /// <summary>
         /// What UI automation and a screen reader read off the copy button, since an icon has no
         /// caption for them to read. Every other button on this tab is found by its own text.
@@ -400,11 +397,11 @@ namespace KeePassGate.Ui
 
         public const string RenewalProfilesListName = "KpgRenewalProfilesList";
 
-        /// <summary>The line naming the profiles a renewal does not carry over.</summary>
-        public const string RenewalDroppedName = "KpgRenewalDropped";
+        /// <summary>The renewal table's column of check boxes, and of the X in place of a box.</summary>
+        public const string RenewalGrantColumnName = "KpgRenewalGrantColumn";
 
-        /// <summary>The line saying the list holds more profiles than it shows at once.</summary>
-        public const string RenewalScrollingName = "KpgRenewalScrolling";
+        /// <summary>The renewal table's column of names.</summary>
+        public const string RenewalProfileColumnName = "KpgRenewalProfileColumn";
 
         public const string RenewalCountdownName = "KpgRenewalCountdown";
 
@@ -421,7 +418,7 @@ namespace KeePassGate.Ui
         public const string RenewalAdmittedFactName = "Admitted (UTC)";
 
         /// <summary>What it calls the end of the certificate the client holds now.</summary>
-        public const string RenewalExpiresFactName = "Its certificate expires (UTC)";
+        public const string RenewalExpiresFactName = "Certificate expires (UTC)";
 
         /// <summary>
         /// The menu the renewal dialog's Refuse button opens, listing what refusing can mean.

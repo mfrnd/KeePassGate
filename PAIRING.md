@@ -1211,16 +1211,36 @@ POST /gate/renew
 
 **What the operator is shown is read from the record, not from the request.** Who is asking is the
 name the record was issued under, with when it was admitted and when the certificate it holds now
-expires, where the request came from, and the profiles its record holds that the database still
-names, read with the record in a single hold, all checked. The operator may uncheck any of them
-and can add none: the new certificate is never wider than the record. Unchecking narrows the new
-certificate alone, since the old record is left valid with everything it held until the client
-gives it up, and the dialog states as much. A name the database no longer holds is not offered, and
-a line under the list states that it is not carried over, since a renewed record is written from
-the names on the list. The list is read again once the operator has answered, so a name taken off
-it while they decided is not carried over either, and the renewal never puts a name back on the
-list. The lifetime is a proposal, as on a pairing: preselected among the presets when a lifetime is
-asked for, and a year when no lifetime is.
+expires, where the request came from, and every profile its record holds, read with the record in a
+single hold, a row each in the pairing dialog's table, §303, under the line "Profiles the client
+holds:", which names the table to UI automation without its colon, and under **Grant** and
+**Profile**. A profile the database still names has a box, checked: the operator may uncheck any
+of them and can add none, so the new certificate is never wider than the record. Unchecking narrows
+the new certificate alone, since the old record is left valid with everything it held until the
+client gives that certificate up, which the dialog states: "Approve issues a new certificate and
+saves this database. The current certificate keeps every profile until the client gives that
+certificate up." A profile the database no longer names has, under **Grant** in place of a box, a
+red X, and its name in the system's gray, so that the row reads as not to be granted, since a
+renewed record is written from the names on the list: the tooltip of the X and of the name reads
+"This database no longer names the profile, so the new certificate omits the profile. Approve
+restores no profile." **The X is a mark and not a control**, drawn on the row where a box sits, at
+the size of a box's check mark, in a red of its own, `ProfileTable.CrossRed`, 5.9 to 1 against the
+table and 5.3 to 1 against a highlight, and under a high contrast setting in the theme's text
+color, the name in the theme's gray, so that the shape carries the meaning: nothing frames the X,
+the X takes neither the focus nor a press, and Approve never counts its row. Where the record
+holds no profile the database still names, a notice in bold above the line naming the table reads
+"The new certificate reaches no profile.", the line naming the table staying, and Approve issues
+the certificate the notice states. UI automation reads such
+a row as the row itself, its name and that sentence, and the X as nothing of its own, so that the
+sentence is read once; the view the rows scroll in takes
+the focus from Tab, so that a table with no box scrolls by the keys as well. The table is laid
+again once the dialog has a window, as the pairing dialog's is, and more rows than it shows end, at
+the top of the rows, on a row cut in half at its bottom, as on the pairing dialog; nothing on this
+dialog changes the rows while it stands, so the table never grows. The list is read again once
+the operator has answered, so a name taken off it while they decided is not carried over either,
+and the renewal never puts a name back on the list. The words are each a single constant of
+`RenewalApprovalForm`. The lifetime is a proposal, as on a pairing: preselected among the presets
+when a lifetime is asked for, and a year when no lifetime is.
 
 **Refusing can answer more than this request**, which is the operator's ruling. Refuse is a split
 button. Pressing it refuses once, which keeps nothing, and so do Enter, Escape, the close box and

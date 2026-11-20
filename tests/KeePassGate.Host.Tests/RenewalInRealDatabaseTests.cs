@@ -226,14 +226,12 @@ namespace KeePassGate.Host.Tests
 
                 using (var dialog = new RenewalApprovalForm(request, TimeSpan.FromMinutes(2), null))
                 {
-                    var shown = new System.Text.StringBuilder();
-                    foreach (var control in ControlTree.Descendants(dialog))
-                    {
-                        shown.AppendLine(control.Text);
-                    }
-
-                    Assert.That(shown.ToString(), Does.Contain(RenewalApprovalForm.Dropped(request)));
-                    Assert.That(shown.ToString(), Does.Contain("agent-fictitious"));
+                    var table = ProfileRows.Table(dialog, GateTab.RenewalProfilesListName);
+                    Assert.That(ProfileRows.Texts(table), Is.EqualTo(new[] { new[] { "ops" } }), "the name off the list is a row of its own");
+                    Assert.That(ProfileRows.Of(table)[0].AccessibleName, Is.EqualTo("ops. " + RenewalApprovalForm.OmitsTip),
+                        "read as a row the new certificate omits");
+                    Assert.That(ProfileRows.Boxes(table), Is.Empty, "with no box to check");
+                    Assert.That(ControlTree.Descendants(dialog).Select(control => control.Text), Has.Some.EqualTo("agent-fictitious"));
                 }
             }
         }

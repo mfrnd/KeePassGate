@@ -9,8 +9,8 @@ namespace KeePassGate.Testing
 {
     /// <summary>
     /// The rows of an approval dialog's table of profiles, read off the controls the table is
-    /// made of: each row a panel holding its check box and a cell of text for each column after
-    /// the boxes, in the order of the columns.
+    /// made of: each row a panel holding its check box, where the row has a box, and a cell of
+    /// text for each column after the boxes, in the order of the columns.
     /// </summary>
     internal static class ProfileRows
     {
@@ -30,19 +30,19 @@ namespace KeePassGate.Testing
                 .ToList();
         }
 
-        /// <summary>The check box of a row.</summary>
+        /// <summary>The check box of a row, or null for a row with no box.</summary>
         public static CheckBox Box(Control row)
         {
             return ControlTree.FindByName<CheckBox>(row, GateTab.ProfileBoxName);
         }
 
-        /// <summary>The check box of every row, in the order of the rows.</summary>
+        /// <summary>The check box of every row with a box, in the order of the rows.</summary>
         public static IReadOnlyList<CheckBox> Boxes(Control table)
         {
-            return Of(table).Select(Box).ToList();
+            return Of(table).Select(Box).Where(box => box != null).ToList();
         }
 
-        /// <summary>Whether each row's box is checked, in the order of the rows.</summary>
+        /// <summary>Whether each row's box is checked, in the order of the rows with a box.</summary>
         public static bool[] Checks(Control table)
         {
             return Boxes(table).Select(box => box.Checked).ToArray();
@@ -64,7 +64,7 @@ namespace KeePassGate.Testing
 
         /// <summary>
         /// What UI automation reads of each row's box, which is the row's text read out, in the
-        /// order of the rows.
+        /// order of the rows with a box.
         /// </summary>
         public static IReadOnlyList<string> Spoken(Control table)
         {

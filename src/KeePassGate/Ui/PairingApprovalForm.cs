@@ -447,26 +447,6 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// The line under the renewal dialog's list of this many profiles,
-        /// <see cref="ScrollingLine"/>, or null for a list that shows every profile.
-        /// </summary>
-        internal static string Scrolling(int profiles)
-        {
-            return profiles <= MostRows ? null : ScrollingLine;
-        }
-
-        /// <summary>
-        /// The line under the renewal dialog's list while it holds more profiles than it shows, so
-        /// that some are out of sight.
-        /// </summary>
-        /// <remarks>
-        /// **Approve grants every profile checked, whether it was ever on screen or not**, and a
-        /// list past the rows it shows has no other sign of the rest than its scroll bar. This
-        /// dialog's table shows the rest by a line cut in half at its bottom instead, `ProfileTable`.
-        /// </remarks>
-        internal const string ScrollingLine = "The list scrolls: Approve grants every checked profile.";
-
-        /// <summary>
         /// The words beside Refresh as the dialog shown again for a request whose approval Approve
         /// found stale comes up, <see cref="StateChanged"/>; null on any other dialog.
         /// </summary>
@@ -861,7 +841,7 @@ namespace KeePassGate.Ui
             // change in its tooltip and in the text read out, `ChangedBackground`.
             foreach (var profile in request.Profiles)
             {
-                _profiles.Add(profile, request.Checks(profile));
+                _profiles.Add(profile, true, request.Checks(profile));
             }
 
             ShowRows(request);
