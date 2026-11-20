@@ -4906,8 +4906,8 @@ Nothing of the tab was run.
 
 **A rule that stands in several versions shows as that many rows, bound together** (a later
 decision, taken from pictures of a prototype in KeePass's own group and entry dialogs). What
-the operator sees is decided. How it is drawn is proposed, and belongs to the pull request that
-builds it.
+the operator sees is decided. How it is drawn was proposed with it, and "What is built of the
+drawing" below has the drawing as built, with where it departs from the proposal.
 
 **What the operator sees.**
 
@@ -5114,7 +5114,7 @@ and four at 1.50, and with no text standing three and six; the entry dialog show
 and more.
 
 **What is built.** The editor as a buffer over the store, with every row and state of this
-section but the drawing named below. `GrantSheet` decides what each row
+section. `GrantSheet` decides what each row
 stands for and what each press hands to OK, with no window in it: a rule of the node's own, a
 rule arriving from above, in force or refused by the box, the limit row under a profile that
 the node cuts, a row for each standing version of a rule in several versions in the order of
@@ -5130,11 +5130,9 @@ mask, the State column with its tooltips, and a text above the table for a tab t
 change, with its reason, each of the cases above and a KeePass that does not tell the
 database, the group or the entry of a dialog among them. The tab reads its node's rules, what
 arrives and the names from a single reading as it opens and again where a record lands, a row
-the operator pressed keeping its press. **Left to a later commit**: the bracket that binds
-the rows of a group, the light red behind them, the letters that differ in bold, and a
-highlight of what a press changed, of which the build shows the bound rows next to each other
-with their words and tooltips alone; and the drive in a real KeePass with its pictures (§644
-item 23). *Held by* `GrantSheetTests`, `GrantPanelTests`,
+the operator pressed keeping its press. `GrantMarks` draws the bracket, the colors and the
+letters in bold, below. **Left to a later commit**: the drive of every row and state in a real
+KeePass, with the pictures (§644 item 23). *Held by* `GrantSheetTests`, `GrantPanelTests`,
 `GrantPickerTests` and `GrantTableFitsTests`; and with the real `GroupForm` and `PwEntryForm`
 by `GrantEditorInRealDialogsTests`, each case in which the tab takes no change, the tab over a
 node's rules and what arrives, and the dialog that adds an entry among them, by
@@ -5143,6 +5141,49 @@ the editor was run on the store for a rule set on the entry dialog's tab and wri
 `LiveGrantEditorTests`, and for a picker left open under a dialog that closes,
 `LiveGrantPickerCloseTests`; no row of a rule in several versions, no limit and no lost rule
 was driven there by a fixture of the tree.
+
+**What is built of the drawing.** The rows of a group, the versions of a rule and a limit under
+its inherited rule, stand in a bracket in a padding before the name in the profile's cell, the
+width of the ordinary spacing, drawn as a line as thick as the tight spacing in the table's text
+color, both grown with the text: closed over the first row and under the last, and open where
+the table's scrolling cuts the group. Behind the rows of a group, a group in which no version
+reads among them, and behind the box in the mixed mark, on the box's own line, a light red
+(#FFEBEB). In bold, in the row's own text color, each place of the mask in which the masks that
+read in a group do not all hold the same character, on each of them, a version that takes the
+rule off among them: a lost or unreadable row and a mask struck through take no bold, and a
+group with a single mask that reads has none. Every mask is drawn a letter at a time in the
+places the cell draws the mask itself, left to right also in a table that reads right to left,
+so a bold letter is the only difference between two masks, and a mask of every letter in bold
+ends inside its cell. Behind a row or a box that a press changed and that OK writes, a light
+yellow, #FFF3B0, over the red, beside the line of its tooltip and its accessible text: a rule
+set, a rule removed and pending, a limit settled, a version removed, a version taken off shown
+with the letters OK records, a pending change with no letter to show, and each row whose state
+or letters a press on the box changes, a rule from above refused or arriving again and a limit
+coming, while a row that goes needs no mark; a first showing marks no row. **A change that no
+OK can write takes no yellow**, where a reading made again found the database no longer taking
+rules, since the yellow tells that OK writes the change; its tooltip and its accessible text
+tell that OK writes nothing, and a row of a group keeps its red. **A selected cell takes the
+selection's colors on every row**, an inherited rule's and a colored row's among them, and the
+rest of the row keeps its gray or its color; the bracket is drawn in the selection's text color
+in a selected cell and in the table's on every other, the same on every kind of row. The gray of
+an inherited rule and the line through a refused mask are drawn beside these marks, which take
+no row height and no column width. The strip between the table and the box lends the table up
+to its height where the rows lack that much, so a last row cut by its own bottom line stands
+whole with no scroll bar beside it; rows that lack more scroll as ever. A fault in drawing the
+marks is recorded once, and the table is then drawn by the grid alone, words and tooltips
+whole, until it is filled again. On the
+light yellow the window's text has a contrast of 18.7 to 1 and the gray of an inherited rule 4.6
+to 1; on the light red, 18.3 and 4.5 to 1. The red is lighter than the prototype's so that the
+gray keeps that contrast, and the bold letters keep the text's color, where the highlight color
+had less contrast on the red. A bold dot stays faint, and the letter in the same place on
+another row of the group is what the eye finds. **Under a high contrast setting no row and no
+box takes a fixed color**, and a change of the display's colors reaches every row and the box
+at once, on a tab that takes no press as on any other: the words, the tooltips, the accessible
+texts, the bracket and the bold letters tell every state, as they do with every color alike.
+The light yellow is defined once, as `RowTints.ChangedColor`, for every page of the plugin that
+marks a change waiting for OK. *Held by* `GrantMarksTests`, `GrantPanelTests`,
+`GrantDrawingTests`, `GrantSheetTests`, `GrantTableFitsTests` and, in the room of KeePass's
+group and entry dialogs at every scaling, `GrantTabFitsTests`.
 
 ---
 
@@ -6125,9 +6166,15 @@ that finds a measurement against a decision reports it and does not design aroun
     on a shown form and in the real group and entry dialogs: the rows of a rule in several
     versions, of a limit and of a lost rule over rules of the store, what each X and the
     dialog's OK write, and the room of the tab at each scaling with every text above the
-    table in at most two lines (§657). *Still owed*: the bracket, the colors, the bold letters
-    and the highlight of what changed, which are not drawn yet, with a high contrast setting;
-    and the rows in a real KeePass, with their pictures.
+    table in at most two lines (§657). *Run* on a shown form, read off its pixels, and in the
+    room of the real dialogs at each scaling: the bracket, the colors, the bold letters and the
+    highlight of what changed, and every drawn state with no color, which is what a high
+    contrast setting leaves (§657). The pictures are taken of that panel by
+    `GrantPanelGallery`: two and three versions bound with their letters in bold, a version
+    that takes the rule off among them, a row changed by each press, a version removed with the
+    rows left bound and changed at once, the longest texts, a group cut by scrolling, and every
+    drawn state with no color. *Still owed*: a real high contrast setting, and the rows in a
+    real KeePass, with their pictures.
 24. **Rules as a record for each node and profile** (§617). This item held the run owed before the
     rules are built: the run of the store as a whole, made again with a rule record for each node
     and profile and the switch as a record of its own. It was made (`measured-rules-per-profile`;

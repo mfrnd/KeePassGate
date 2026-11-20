@@ -211,6 +211,27 @@ namespace KeePassGate.Host.Tests
             return (int)Math.Round((label.Height - label.Padding.Vertical) / (double)line);
         }
 
+        /// <summary>
+        /// How far a mask of every letter in bold reaches when drawn as the table draws a mask:
+        /// each letter where the ordinary weight puts the letter, the right edge of the furthest.
+        /// </summary>
+        private static int BoldReach(Font regular)
+        {
+            // Measured on a surface, as the table measures while it paints: measured with no
+            // surface, a text keeps its padding whatever the flags ask.
+            const TextFormatFlags Measured = TextFormatFlags.NoPadding | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix;
+            using (var surface = new Bitmap(1, 1))
+            using (var graphics = Graphics.FromImage(surface))
+            using (var bold = new Font(regular, regular.Style | FontStyle.Bold))
+            {
+                return Enumerable.Range(0, VerbMask.Letters.Length)
+                    .Select(at =>
+                        (at == 0 ? 0 : TextRenderer.MeasureText(graphics, VerbMask.Letters.Substring(0, at), regular, Size.Empty, Measured).Width)
+                        + TextRenderer.MeasureText(graphics, VerbMask.Letters.Substring(at, 1), bold, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix).Width)
+                    .Max();
+            }
+        }
+
         private void AssertFits(Func<Form> newDialog, string scope, float scaling)
         {
             var text = scaling.ToString("0.00", CultureInfo.InvariantCulture) + " text";
@@ -240,6 +261,34 @@ namespace KeePassGate.Host.Tests
                         Assert.That(mask.SizeInPoints, Is.EqualTo(font.SizeInPoints + 1f).Within(0.01f),
                             "a mask " + state.Name + " kept the unscaled font at " + text);
                     }
+
+                    // The letters the versions of a rule do not agree on are drawn in bold, each in
+                    // the place the ordinary weight puts the letter, so the last letter in bold
+                    // ends inside the cell, on every table that holds a mask.
+                    if (grid.Rows.Cast<DataGridViewRow>().Any(row => !row.IsNewRow))
+                    {
+                        Assert.That(grid.Columns[GrantTab.MaskColumn].Width - 1, Is.GreaterThanOrEqualTo(BoldReach(masks[0])),
+                            "the last letter in bold runs past the cell " + state.Name + " at " + text);
+                    }
+
+                    // A bound row's bracket stands in a padding before the name, and the name beside
+                    // the bracket keeps the room the empty line's prompt is given, the longest name
+                    // of these states among the names held to it.
+                    foreach (var row in grid.Rows.Cast<DataGridViewRow>().Where(row => !row.IsNewRow && ((GrantRow)row.Tag).Bound))
+                    {
+                        var profile = ((GrantRow)row.Tag).Profile;
+                        var padding = row.Cells[GrantTab.ProfileColumn].Style.Padding.Left;
+                        Assert.That(padding, Is.EqualTo(GrantMarks.Room(grid.Font)), profile + " " + state.Name + " at " + text);
+                        Assert.That(grid.Columns[GrantTab.ProfileColumn].Width - padding,
+                            Is.GreaterThanOrEqualTo(TextRenderer.MeasureText(GrantTab.AddRowPrompt, grid.Font).Width),
+                            "the name beside the bracket of " + (profile == Longest ? "the longest name" : profile) + " has less room than the empty line's prompt "
+                            + state.Name + " at " + text);
+                    }
+
+                    Assert.That(
+                        state.Name != "bound rows, a version removed"
+                        || grid.Rows.Cast<DataGridViewRow>().Any(row => !row.IsNewRow && ((GrantRow)row.Tag).Bound && ((GrantRow)row.Tag).Profile == Longest),
+                        Is.True, "the longest name stands in a bracket " + state.Name);
 
                     foreach (Control child in Everything(panel))
                     {
@@ -317,7 +366,26 @@ namespace KeePassGate.Host.Tests
             new TabState("with every state, the box cleared", () => EveryState(false, null), true),
             new TabState("with every state, the box ticked", () => EveryState(true, null), true),
             new TabState("read only, the longest reason", () => EveryState(false, LongestReason), true),
+            new TabState("bound rows, a version removed", BoundAndChanged, false),
         };
+
+        /// <summary>
+        /// A rule in three versions with a version removed on the tab, a rule of the longest name
+        /// in two versions with every letter apart, and a limit under its inherited rule.
+        /// </summary>
+        private static GrantSheet BoundAndChanged()
+        {
+            var sheet = GrantSheet.Of(
+                Rules.Stored(
+                    ("deploy", "row:CRUSDLAP"), ("deploy", "row:"), ("deploy", "off:R"), ("ops", "off:R"),
+                    (Longest, "row:CRUSDLAP"), (Longest, "row:")),
+                Arriving(("ops", "CRUSDLAP")),
+                Names,
+                null);
+
+            Assert.That(sheet.RemoveVersion("deploy", sheet.Rows.First(row => row.Profile == "deploy").Version), Is.True);
+            return sheet;
+        }
 
         /// <summary>A profile name as long as the issuer allows.</summary>
         private static readonly string Longest = new string('w', 64);

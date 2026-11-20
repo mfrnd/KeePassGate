@@ -377,6 +377,39 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Ticking_the_box_marks_each_row_whose_state_the_press_changes_and_no_other()
+        {
+            // The inherited rules turn refused here and the limit under a rule taken off goes; a
+            // rule of the node's own shows as before. A row that goes needs no mark.
+            var sheet = Sheets.Of(Rules.Stored(("ops", "row:RL"), ("reader", "off:R")), Sheets.Arriving(("reader", "CRUL"), ("deploy", "RL")));
+            var before = Sheets.Lines(sheet);
+            Assert.That(before, Is.EqualTo(new[]
+            {
+                "deploy .R...L.. Inherited:Inherited", "ops .R...L.. Own", "reader CRU..L.. Inherited:Inherited", "reader .R...... Limit:Limit",
+            }));
+
+            sheet.PressBox();
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
+            {
+                "deploy .R...L.. Inherited:RefusedHere changed", "ops .R...L.. Own", "reader CRU..L.. Inherited:RefusedHere changed",
+            }));
+            Assert.That(GrantTab.StateTip(Sheets.Single(sheet, "deploy"), true), Does.EndWith(GrantTab.ChangedHere));
+
+            sheet.PressBox();
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(before), "the box pressed back to what the store holds changes nothing");
+        }
+
+        [Test]
+        public void Clearing_the_box_marks_each_rule_from_above_that_arrives_again()
+        {
+            var sheet = Sheets.Of(Rules.Node(true, ("ops", "RL")), Sheets.Arriving(("reader", "RL")));
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "ops .R...L.. Own", "reader .R...L.. Inherited:RefusedHere" }));
+
+            sheet.PressBox();
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "ops .R...L.. Own", "reader .R...L.. Inherited:Inherited changed" }));
+        }
+
+        [Test]
         [TestCase(null)]
         [TestCase("sw:refuse")]
         public void A_box_whose_version_is_lost_or_out_of_form_shows_lost_and_a_press_clears_it(string text)

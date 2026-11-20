@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -97,12 +98,13 @@ namespace KeePassGate.Tests.Gallery
             Shoot("grant-12-no-authority", GrantSheet.Of(NodeRule.None, Sheets.Arriving(("reader", "RL")), Names, GrantTab.NoAuthorityYet));
 
             // The longest texts at once: the longest reason, the widest masks, every state word,
-            // a long name.
+            // a long name, bound with every letter apart.
             Shoot(
                 "grant-13-longest-texts",
                 GrantSheet.Of(
                     Rules.Stored(
                         ("a-profile-with-a-name-somebody-really-did-type", "row:CRUSDLAP"),
+                        ("a-profile-with-a-name-somebody-really-did-type", "row:"),
                         ("deploy", "row:CRUSDLAP"), ("deploy", "off:CRUSDLAP"), ("ops", "off:R"), ("reader", null)),
                     Sheets.Arriving(("ops", "CRUSDLAP"), ("retired", "CRUSDLAP")),
                     new[] { "a-profile-with-a-name-somebody-really-did-type", "deploy", "ops", "reader" },
@@ -114,6 +116,61 @@ namespace KeePassGate.Tests.Gallery
                 Sheet(
                     Rules.Node(true, Enumerable.Range(0, 12).Select(i => ("profile-" + i.ToString("00", System.Globalization.CultureInfo.InvariantCulture), "RL")).ToArray()),
                     Sheets.Arriving(("reader", "RL"))));
+
+            // A rule in two versions: bound, with the letter the versions do not agree on in bold.
+            Shoot("grant-15-two-versions", Sheet(Rules.Stored(("reader", "row:RL"), ("reader", "row:CRL"), ("ops", "row:R")), null));
+
+            // A version removed from three: the two left bound and changed at once.
+            var removed = Sheet(Rules.Stored(("reader", "row:RL"), ("reader", "row:CRL"), ("reader", "off:R"), ("ops", "row:R")), Sheets.Arriving(("reader", "CRUL")));
+            removed.RemoveVersion("reader", removed.Rows.First(row => row.Profile == "reader").Version);
+            Shoot("grant-16-version-removed", removed);
+
+            // A rule set on the tab, changed until OK.
+            var set = Sheet(Rules.Node(false, ("reader", "R"), ("ops", "RL")), Sheets.Arriving(("deploy", "RL")));
+            set.Set("reader", "CR...L..");
+            Shoot("grant-17-rule-set", set);
+
+            // Every mark at once: a changed row, two versions bound, a rule refused here, the box
+            // in the mixed mark. Under a high contrast setting the colors go and the rest stays.
+            var every = Sheet(
+                Rules.Stored((null, "sw:deny"), (null, "sw:inherit"), ("reader", "row:RL"), ("reader", "row:CRL"), ("ops", "off:R"), ("deploy", "row:R")),
+                Sheets.Arriving(("ops", "CRUL")));
+            every.Set("deploy", "CR......");
+            Shoot("grant-18-every-mark", every);
+
+            // A rule in three versions among more rows than the table shows, scrolled so that the
+            // table's edge cuts the group: the bracket stays open there.
+            var versions = new List<(string Profile, string Text)> { ("a-reader", "row:R"), ("a-reader", "row:RL"), ("a-reader", "row:CRL") };
+            versions.AddRange(Enumerable.Range(0, 6).Select(i => ("profile-" + i.ToString("00", System.Globalization.CultureInfo.InvariantCulture), "row:RL")));
+            Shoot(
+                "grant-19-group-cut-by-scrolling",
+                GrantSheet.Of(Rules.Stored(versions.ToArray()), null, versions.Select(version => version.Profile).Distinct(), null),
+                null,
+                panel => ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName).FirstDisplayedScrollingRowIndex = 1);
+
+            // The box cleared over a version that takes the rule off: each version with the letters
+            // OK writes it with, changed, and still bound.
+            var cleared2 = Sheet(Rules.Stored(("reader", "row:R"), ("reader", "off:deny"), (null, "sw:deny"), ("ops", "row:RL")), Sheets.Arriving(("reader", "RL")));
+            cleared2.PressBox();
+            Shoot("grant-20-box-cleared-over-versions", cleared2);
+
+            // Versions removed down to a rule taken off with nothing arriving: a row with no letter
+            // that holds the change until OK.
+            var nothing = Sheet(Rules.Stored(("reader", "row:RL"), ("reader", "off:R"), ("ops", "row:RL")), null);
+            nothing.RemoveVersion("reader", nothing.Rows.First(row => row.Profile == "reader" && row.Mask == ".R...L..").Version);
+            Shoot("grant-21-pending-with-no-letter", nothing);
+
+            // A group in which no version reads: every row takes a rule, still bound.
+            Shoot("grant-22-no-version-reads", Sheet(Rules.Stored(("reader", null), ("reader", "row:x"), ("ops", "row:RL")), Sheets.Arriving(("reader", "RL"))));
+
+            // Presses on the table, then a reading made again that finds the database no longer
+            // taking rules: the changes stay on the table, and nothing is marked as OK writing them.
+            var stopped = Rules.Stored(("reader", "row:RL"), ("reader", "row:CRL"), ("reader", "row:R"), ("ops", "row:R"));
+            var notWritten = Sheet(stopped, null);
+            notWritten.RemoveVersion("reader", notWritten.Rows.First(row => row.Profile == "reader").Version);
+            notWritten.Set("ops", "CR......");
+            notWritten.Rebase(stopped, null, Names, GrantTab.StoreUnusable);
+            Shoot("grant-23-changes-not-written", notWritten);
         }
 
         private static GrantSheet Sheet(NodeRule rule, AclInheritance above)
@@ -129,7 +186,7 @@ namespace KeePassGate.Tests.Gallery
         /// The group dialog's room rather than the settings dialog's, because it is the least this
         /// tab is ever given and the states drawn here are about what that room leaves the table.
         /// </remarks>
-        private static void Shoot(string name, GrantSheet sheet, Action<GrantPanel> then = null)
+        private static void Shoot(string name, GrantSheet sheet, Action<GrantPanel> then = null, Action<GrantPanel> shown = null)
         {
             using (var panel = new GrantPanel(sheet, GrantTab.GroupScope, null, null, null))
             {
@@ -138,7 +195,7 @@ namespace KeePassGate.Tests.Gallery
                     then(panel);
                 }
 
-                Gallery.Shot(panel, Gallery.GroupPage, name);
+                Gallery.Shot(panel, Gallery.GroupPage, name, shown == null ? (Action)null : () => shown(panel));
                 TestContext.Out.WriteLine(Texts(name, panel, sheet));
             }
         }
@@ -155,6 +212,7 @@ namespace KeePassGate.Tests.Gallery
             }
 
             var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+            var marks = GrantMarks.Of(sheet.Rows, sheet.CanEdit);
             foreach (DataGridViewRow row in grid.Rows)
             {
                 if (row.IsNewRow)
@@ -170,12 +228,39 @@ namespace KeePassGate.Tests.Gallery
                 Line(text, "  tooltip Permissions: ", GrantTab.MaskTip(shown, sheet.CanEdit));
                 Line(text, "  tooltip State: ", GrantTab.StateTip(shown, sheet.CanEdit));
                 Line(text, "  accessible text of the row: ", row.AccessibilityObject.Description);
+                Line(text, "  marks GrantMarks.Of answers, and the color set behind the row: ", Drawn(marks[row.Index], row.DefaultCellStyle.BackColor));
             }
 
             var box = ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName);
             text.AppendLine("box: " + box.Text + " (" + box.CheckState + ", " + sheet.Box + (box.Enabled ? string.Empty : ", disabled") + ")");
+            Line(text, "  the color set behind the box: ", Drawn(null, box.BackColor == panel.BackColor ? Color.Empty : box.BackColor));
             Line(text, "  tooltip: ", box.AccessibleDescription);
             return text.ToString();
+        }
+
+        /// <summary>
+        /// What a row or the box is given to draw beyond its texts: the bracket and the places in bold
+        /// as `GrantMarks.Of` answers them, and the color set behind the row or the box.
+        /// </summary>
+        private static string Drawn(GrantMarks marks, Color behind)
+        {
+            var drawn = new List<string>();
+            if (marks != null && marks.Bound)
+            {
+                drawn.Add("bracket" + (marks.First ? ", closed over" : string.Empty) + (marks.Last ? ", closed under" : string.Empty));
+            }
+
+            if (marks != null && marks.Bold.Count > 0)
+            {
+                drawn.Add("bold at " + string.Join(",", marks.Bold));
+            }
+
+            if (!behind.IsEmpty)
+            {
+                drawn.Add(behind == RowTints.ChangedColor ? "light yellow" : behind == RowTints.BoundColor ? "light red" : behind.Name);
+            }
+
+            return string.Join("; ", drawn);
         }
 
         /// <summary>A line of the texts, each line of a tooltip after a slash, where there is any text.</summary>

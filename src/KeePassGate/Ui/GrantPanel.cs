@@ -19,15 +19,17 @@ namespace KeePassGate.Ui
     /// **The table is the tab.** Rows by profile, each rule as a `CRUSDLAP` mask in a monospaced
     /// column, the rules inherited from above shown among the node's own in gray, any of those
     /// the node's box refuses struck through, and a State column naming what keeps a row from
-    /// being in force as shown, with what the state means in the tooltip of its cell. Everything
-    /// the panel decides is in `GrantSheet`, which is tested without a message pump; what is left
-    /// here is drawing the sheet and turning clicks into calls.
+    /// being in force as shown, with what the state means in the tooltip of its cell. The rows of
+    /// a profile bound together, the versions of a rule or a limit under its inherited rule, stand
+    /// in a bracket on a light red, with the letters they differ in drawn in bold, `GrantMarks`.
+    /// Everything the panel decides is in `GrantSheet`, which is tested without a message pump;
+    /// what is left here is drawing the sheet and turning clicks into calls.
     ///
     /// **A press writes nothing**, `STORE.md` §629. A press is a choice in a picker, an X or the
     /// box, and each changes the sheet alone; the dialog's OK hands the sheet's changes to the
     /// writer as the dialog closes, and any other close throws the changes away. So OK and Cancel
     /// on the dialog do what the two words promise, and a row changed on the tab tells so in its
-    /// tooltip and its accessible text until the dialog closes.
+    /// tooltip, its accessible text and a light yellow until the dialog closes.
     ///
     /// Nothing in here throws. It runs on the UI thread of a password manager.
     /// </remarks>
@@ -63,6 +65,15 @@ namespace KeePassGate.Ui
         private readonly CheckBox _sealed;
         private readonly ToolTip _tips;
 
+        /// <summary>The strip between the table and the box.</summary>
+        private readonly Panel _air;
+
+        /// <summary>
+        /// How tall the strip between the table and the box stands where the strip lends nothing,
+        /// scaled with the panel.
+        /// </summary>
+        private int _band = Spacing.Gap;
+
         /// <summary>
         /// How many presses the sheet took, so that a failure after a press can tell whether the
         /// press is on the sheet.
@@ -83,6 +94,9 @@ namespace KeePassGate.Ui
         private Font _refusedMask;
 
         private bool _populating;
+
+        /// <summary>Whether drawing the marks failed since the table was last filled, `OnCellPainting`.</summary>
+        private bool _marksFailed;
 
         /// <summary>
         /// The picker that is showing, or null.
@@ -187,16 +201,20 @@ namespace KeePassGate.Ui
                 // the box takes no mark of its own from a click and the sheet decides.
                 ThreeState = true,
                 AutoCheck = false,
-
-                // A few pixels of air, so the box does not read as the table's last row. Padding
-                // rather than a margin, because a docked control is laid out edge to edge and its
-                // margin is not consulted at all.
-                Padding = new Padding(0, Spacing.Gap, 0, 0),
             };
+
+            // A few pixels of air, so the box does not read as the table's last row: a strip of
+            // its own between the two rather than a padding of the box's, which the box's color
+            // fills, so a box in the mixed mark or changed takes its color on its own line and not
+            // up against the table. A strip rather than a margin, because a docked control is laid
+            // out edge to edge and its margin is not consulted at all. The strip lends the table
+            // what the table's last row lacks, `Lend`.
+            _air = new Panel { Dock = DockStyle.Bottom, Height = _band };
 
             _grid = BuildGrid();
 
             Controls.Add(_grid);
+            Controls.Add(_air);
             Controls.Add(_sealed);
             Controls.Add(_warning);
             Controls.Add(_scope);
@@ -715,8 +733,9 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Gives the masks a monospaced font a point larger than the panel's new font, and the
-        /// masks that no longer arrive the same font struck through.
+        /// Gives the masks a monospaced font a point larger than the panel's new font, the masks
+        /// that no longer arrive the same font struck through, and a bound line's bracket the room
+        /// the new font needs.
         /// </summary>
         /// <remarks>
         /// Both are the panel's own, and a font set on a column or a cell is not a font it
@@ -752,6 +771,12 @@ namespace KeePassGate.Ui
                              .ToList())
                 {
                     struck.Style.Font = _refusedMask;
+                }
+
+                // And the room before a bound line's name, which the bracket grows into.
+                foreach (var bound in _grid.Rows.OfType<RuleRow>().Where(row => row.Marks != null && row.Marks.Bound).ToList())
+                {
+                    bound.Cells[ProfileColumn].Style.Padding = Bracketed();
                 }
 
                 monospace.Dispose();
@@ -1830,7 +1855,8 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Draws a cell in the last column as the space it is wherever there is nothing to remove.
+        /// Draws a cell in the last column as the space it is wherever there is nothing to remove,
+        /// and the marks of a line in the other columns, `PaintMarks`.
         /// </summary>
         /// <remarks>
         /// A button column paints a button on every cell it owns whatever that cell has been
@@ -1852,6 +1878,26 @@ namespace KeePassGate.Ui
         {
             if (e.ColumnIndex != ForgetColumn)
             {
+                // A fault drawing the marks is recorded once, by the handler around this, and the
+                // table is drawn by the grid alone until it is filled again: a fault in a paint
+                // is a fault in every cell of every repaint, and the words, the tooltips and the
+                // grid's own drawing tell every state without the marks.
+                if (_marksFailed)
+                {
+                    return;
+                }
+
+                var drawn = false;
+                try
+                {
+                    PaintMarks(e);
+                    drawn = true;
+                }
+                finally
+                {
+                    _marksFailed = !drawn;
+                }
+
                 return;
             }
 
@@ -1885,6 +1931,64 @@ namespace KeePassGate.Ui
 
             e.Paint(e.ClipBounds, DataGridViewPaintParts.Background | DataGridViewPaintParts.Border);
             e.Handled = true;
+        }
+
+        /// <summary>
+        /// Draws a line's bracket over its profile's cell, and its mask a letter at a time, in bold
+        /// where the lines of its group differ.
+        /// </summary>
+        /// <remarks>
+        /// **Every mask is drawn here, bold letters or none**, so that the letters of every line
+        /// stand in the same places and a bold letter reads as the only difference between two
+        /// masks. The cell paints its background, border, selection and focus as ever, and only
+        /// its text is drawn here.
+        ///
+        /// **The bracket in the table's own text color**, the same on every line of a group, so the
+        /// gray of an inherited rule bound to its limit does not break the bracket in two; in a
+        /// selected cell, the selection's text color, the same on every kind of line.
+        /// </remarks>
+        private void PaintMarks(DataGridViewCellPaintingEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.RowIndex >= _grid.Rows.Count)
+            {
+                return;
+            }
+
+            var marks = (_grid.Rows[e.RowIndex] as RuleRow)?.Marks;
+            if (marks == null)
+            {
+                return;
+            }
+
+            var selected = (e.State & DataGridViewElementStates.Selected) != 0;
+            var rightToLeft = _grid.RightToLeft == RightToLeft.Yes;
+
+            if (e.ColumnIndex == ProfileColumn && marks.Bound)
+            {
+                e.Paint(e.ClipBounds, DataGridViewPaintParts.All);
+                marks.DrawBracket(
+                    e.Graphics,
+                    e.CellBounds,
+                    selected ? _grid.DefaultCellStyle.SelectionForeColor : _grid.DefaultCellStyle.ForeColor,
+                    _grid.Font,
+                    rightToLeft);
+                e.Handled = true;
+                return;
+            }
+
+            var mask = e.Value as string;
+            if (e.ColumnIndex == MaskColumn && !string.IsNullOrEmpty(mask))
+            {
+                e.Paint(e.ClipBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.ContentForeground);
+                marks.DrawMask(
+                    e.Graphics,
+                    e.CellBounds,
+                    e.CellStyle,
+                    mask,
+                    selected ? e.CellStyle.SelectionForeColor : e.CellStyle.ForeColor,
+                    rightToLeft);
+                e.Handled = true;
+            }
         }
 
         /// <summary>
@@ -2012,15 +2116,19 @@ namespace KeePassGate.Ui
                 _grid.Rows.Clear();
 
                 var editable = _sheet.CanEdit;
-                foreach (var row in _sheet.Rows)
+                var rows = _sheet.Rows;
+                var marks = GrantMarks.Of(rows, editable);
+                _marksFailed = false;
+                for (var at = 0; at < rows.Count; at++)
                 {
                     // No X on a table that cannot be changed: pressing it would remove nothing,
                     // and a button that does nothing is a button somebody presses again.
+                    var row = rows[at];
                     var mark = row.Removable && editable ? ForgetMark : string.Empty;
                     var index = _grid.Rows.Add(row.Profile, row.Mask, GrantTab.WordOf(row), mark);
                     var added = _grid.Rows[index];
                     added.Tag = row;
-                    Draw(row, added, editable);
+                    Draw(row, added, editable, marks[at]);
                 }
 
                 ScrollTo(top);
@@ -2030,6 +2138,7 @@ namespace KeePassGate.Ui
                     ? CheckState.Unchecked
                     : box == GrantBox.Mixed ? CheckState.Indeterminate : CheckState.Checked;
                 _sealed.Enabled = editable;
+                Tint();
                 var boxTip = GrantTab.BoxTip(box, _sheet.BoxChanged, editable);
                 Tooltips.Set(_tips, _sealed, boxTip);
                 _sealed.AccessibleDescription = boxTip;
@@ -2064,6 +2173,7 @@ namespace KeePassGate.Ui
                 // table that takes a press; on a tab that takes none, the reason stands alone.
                 _scope.Visible = editable;
                 Warn(_sheet.Warning);
+                Lend();
             }
             catch (Exception error) when (Expected.OfUserInterface(error))
             {
@@ -2083,9 +2193,12 @@ namespace KeePassGate.Ui
         /// **Every state is told by its word, its tooltip and its accessible text**, and a line
         /// changed on the tab by a line of its tooltip and its accessible text, so that nothing on
         /// the tab is told by color alone. Gray tells that a rule comes from above, and a line
-        /// through the mask that the rule grants nothing here; both are marks beside the word.
+        /// through the mask that the rule grants nothing here; both are marks beside the word. The
+        /// light yellow of a change and the light red of a group are marks beside them, and so are
+        /// the bracket and the letters in bold, which `OnCellPainting` draws from the line's marks.
+        /// A change no OK can write takes no yellow, `GrantMarks.Of`, and `Tint` gives the colors.
         /// </remarks>
-        private void Draw(GrantRow row, DataGridViewRow added, bool editable)
+        private void Draw(GrantRow row, DataGridViewRow added, bool editable, GrantMarks marks)
         {
             // The profile's whole name and nothing else, since a long name is cut in its column
             // and a cell with a tip of its own never shows its cut value whole: two names sharing a
@@ -2106,11 +2219,10 @@ namespace KeePassGate.Ui
             {
                 // Inherited, so the node does not set the rule: shown so the table is the whole
                 // answer, and grayed so the rule is not mistaken for a rule of this node's own.
-                // Gray while selected too: a grid takes a row the moment the grid is given the
-                // focus, and a row painted in the selection color reads as a rule of the node's.
+                // A selected cell takes the selection's colors here as on every line, since the
+                // selection is where the keyboard is; the row's other cells keep the gray, and the
+                // State cell its word.
                 added.DefaultCellStyle.ForeColor = SystemColors.GrayText;
-                added.DefaultCellStyle.SelectionForeColor = SystemColors.GrayText;
-                added.DefaultCellStyle.SelectionBackColor = _grid.DefaultCellStyle.BackColor;
             }
 
             // Struck through where the rule grants nothing here whatever the mask holds: a name
@@ -2121,6 +2233,126 @@ namespace KeePassGate.Ui
             {
                 added.Cells[MaskColumn].Style.Font = _refusedMask;
             }
+
+            ((RuleRow)added).Marks = marks;
+
+            if (marks.Bound)
+            {
+                added.Cells[ProfileColumn].Style.Padding = Bracketed();
+            }
+        }
+
+        /// <summary>
+        /// Gives every line and the box the color behind what each shows, for the display as it is
+        /// set now: the light yellow of a change OK writes over the light red of a group, of a
+        /// limit and of a box in the mixed mark, and none at all under a high contrast setting.
+        /// </summary>
+        /// <remarks>
+        /// **Behind the line and never over the selection**: a selected cell takes the selection's
+        /// colors on every line, since the selection is where the keyboard is and the lines that
+        /// carry a color are the lines that need attention; the line's other cells keep the color.
+        /// A change no OK can write takes no yellow, since the yellow tells that OK writes it.
+        /// </remarks>
+        private void Tint()
+        {
+            var tints = RowTints.For(SystemInformation.HighContrast);
+            foreach (var line in _grid.Rows.OfType<RuleRow>().Where(line => line.Marks != null))
+            {
+                line.DefaultCellStyle.BackColor = line.Marks.Tint(tints);
+            }
+
+            _sealed.BackColor = _sheet.BoxChanged && _sheet.CanEdit
+                ? tints.Changed
+                : _sheet.Box == GrantBox.Mixed ? tints.Bound : Color.Empty;
+        }
+
+        /// <summary>Gives the lines and the box the colors the display now asks for, at once.</summary>
+        /// <remarks>
+        /// A high contrast setting turned on or off while the dialog stands changes the colors the
+        /// text is drawn in, and a light yellow left behind light text is a line nobody reads, on a
+        /// tab that takes no press as on any other. The control's own notice of the change, so that
+        /// nothing outlives the control.
+        /// </remarks>
+        protected override void OnSystemColorsChanged(EventArgs e)
+        {
+            WindowHandlers.Run("the rules could not take the display's colors", () =>
+            {
+                base.OnSystemColorsChanged(e);
+
+                if (_grid != null)
+                {
+                    Tint();
+                }
+            });
+        }
+
+        protected override void OnLayout(LayoutEventArgs e)
+        {
+            WindowHandlers.Run("the rules could not be laid out", () =>
+            {
+                base.OnLayout(e);
+
+                // Laid out again here: a layout asked for inside a layout is dropped, so the
+                // strip's new height would otherwise move nothing until something else asks.
+                if (Lend())
+                {
+                    base.OnLayout(e);
+                }
+            });
+        }
+
+        /// <summary>Scales the strip's full height as the page is scaled.</summary>
+        protected override void ScaleControl(SizeF factor, BoundsSpecified specified)
+        {
+            WindowHandlers.Run("the rules could not be scaled", () =>
+            {
+                base.ScaleControl(factor, specified);
+                if ((specified & BoundsSpecified.Height) != BoundsSpecified.None)
+                {
+                    _band = (int)Math.Round(_band * factor.Height);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Lends the table the pixels its rows lack from the strip under it, where the strip holds
+        /// that many, and nothing where the rows lack more; true where the strip's height changed.
+        /// </summary>
+        /// <remarks>
+        /// **A row cut by a few pixels is a row in view**, and the table answers a row cut by its
+        /// own bottom line with a scroll bar: in KeePass's group dialog the last row of a table of
+        /// four lacks two pixels, measured off pictures of a real dialog, and the table would put
+        /// its scroll bar beside four rows in view. The strip under the table lends up to its
+        /// height, so such a row is whole and no bar stands; a row cut by more than the strip
+        /// holds is a row out of view, and the table scrolls to it as ever.
+        /// </remarks>
+        private bool Lend()
+        {
+            if (_air == null || _grid == null || !_grid.IsHandleCreated)
+            {
+                return false;
+            }
+
+            var table = (Table)_grid;
+            var room = _grid.Height + _air.Height - _band;
+            var needed = (_grid.ColumnHeadersVisible ? _grid.ColumnHeadersHeight : 0)
+                         + _grid.Rows.GetRowsHeight(DataGridViewElementStates.Visible)
+                         + (2 * table.Edge);
+            var lacking = needed - room;
+            var height = lacking > 0 && lacking <= _band ? _band - lacking : _band;
+            if (_air.Height == height)
+            {
+                return false;
+            }
+
+            _air.Height = height;
+            return true;
+        }
+
+        /// <summary>The padding before a bound line's name that the bracket stands in, at the table's size of text.</summary>
+        private Padding Bracketed()
+        {
+            return new Padding(GrantMarks.Room(_grid.Font), 0, 0, 0);
         }
 
         /// <summary>Where the keyboard is on the table, or null when it is nowhere on it.</summary>
@@ -2265,10 +2497,14 @@ namespace KeePassGate.Ui
         {
             public string Description { get; set; }
 
+            /// <summary>What the line draws beyond its texts, or null on the empty line.</summary>
+            public GrantMarks Marks { get; set; }
+
             public override object Clone()
             {
                 var clone = (RuleRow)base.Clone();
                 clone.Description = Description;
+                clone.Marks = Marks;
                 return clone;
             }
 

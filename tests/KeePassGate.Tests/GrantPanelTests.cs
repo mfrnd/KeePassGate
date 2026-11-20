@@ -515,6 +515,341 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_rows_of_a_rule_in_versions_and_of_a_limit_are_on_the_light_red_and_a_first_showing_highlights_nothing()
+        {
+            var rule = Rules.Stored(("reader", "row:R"), ("reader", "row:RL"), ("ops", "off:R"), ("deploy", "row:CR"), ("lost", null));
+
+            using (var panel = new GrantPanel(
+                GrantSheet.Of(rule, Sheets.Arriving(("ops", "RL"), ("audit", "R")), new[] { "reader", "ops", "deploy", "lost", "audit" }, null),
+                GrantTab.GroupScope,
+                null, null, null))
+            {
+                var tints = Tints;
+                var grid = Grid(panel);
+                var bound = 0;
+                foreach (var row in Shown(grid))
+                {
+                    var shown = (GrantRow)row.Tag;
+                    var style = row.DefaultCellStyle;
+                    if (shown.Bound)
+                    {
+                        bound++;
+                        Assert.That(style.BackColor, Is.EqualTo(tints.Bound), shown.ToString());
+                        Assert.That(style.SelectionBackColor.IsEmpty && style.SelectionForeColor.IsEmpty, Is.True,
+                            shown + ": a selected cell takes the selection's own colors");
+                    }
+                    else
+                    {
+                        Assert.That(style.BackColor, Is.EqualTo(Color.Empty), shown.ToString());
+                    }
+
+                    Assert.That(shown.Changed, Is.False);
+                }
+
+                Assert.That(bound, Is.EqualTo(4), "the versions of reader, the inherited row of ops and the limit under it");
+                Assert.That(ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName).BackColor,
+                    Is.Not.EqualTo(tints.Bound).And.Not.EqualTo(tints.Changed));
+            }
+        }
+
+        [Test]
+        public void The_profile_of_a_bound_row_leaves_room_for_the_bracket_before_the_name_at_any_size_of_text()
+        {
+            var rule = Rules.Stored(("reader", "row:R"), ("reader", "row:RL"), ("deploy", "row:CR"));
+
+            using (var panel = Panel(rule, null))
+            using (var larger = new Font(panel.Font.FontFamily, panel.Font.Size * 2f))
+            {
+                foreach (var font in new[] { panel.Font, larger })
+                {
+                    panel.Font = font;
+                    var grid = Grid(panel);
+                    var room = GrantMarks.Room(grid.Font);
+                    Assert.That(room, Is.GreaterThan(0));
+
+                    foreach (var row in Shown(grid))
+                    {
+                        var cell = row.Cells[ProfileColumn];
+                        var padding = cell.HasStyle ? cell.Style.Padding.Left : 0;
+                        Assert.That(padding, Is.EqualTo(((GrantRow)row.Tag).Bound ? room : 0), row.Tag + " at " + font.Size);
+                    }
+                }
+            }
+        }
+
+        [Test]
+        [TestCase("a rule set")]
+        [TestCase("a rule removed and pending")]
+        [TestCase("a limit settled")]
+        [TestCase("a version removed")]
+        [TestCase("versions removed down to a single row")]
+        public void A_row_a_press_changed_is_on_the_light_yellow_beside_its_tooltip_and_accessible_text(string press)
+        {
+            var rule = Rules.Stored(
+                ("ops", "row:RL"), ("deploy", "row:R"), ("reader", "off:R"),
+                ("audit", "row:R"), ("audit", "row:RL"), ("audit", "row:CRL"));
+
+            using (var panel = new GrantPanel(
+                GrantSheet.Of(rule, Sheets.Arriving(("reader", "CRUL"), ("deploy", "RL")), new[] { "ops", "deploy", "reader", "audit" }, null),
+                GrantTab.GroupScope,
+                null, null, null))
+            {
+                var tints = Tints;
+                var grid = Grid(panel);
+                Assert.That(Shown(grid).Any(row => row.DefaultCellStyle.BackColor == tints.Changed), Is.False, "before the press");
+
+                var changed = Press(panel, grid, press);
+
+                foreach (var row in Shown(grid))
+                {
+                    var shown = (GrantRow)row.Tag;
+                    var name = press + ": " + shown;
+                    if (shown.Profile == changed)
+                    {
+                        Assert.That(shown.Changed, Is.True, name);
+                        Assert.That(row.DefaultCellStyle.BackColor, Is.EqualTo(tints.Changed), name);
+                        Assert.That(row.DefaultCellStyle.SelectionBackColor.IsEmpty, Is.True, name + ": selected, the selection's own colors");
+                        Assert.That(row.AccessibilityObject.Description, Is.EqualTo(GrantTab.ChangedHere), name);
+                        Assert.That(GrantTab.MaskTip(shown, true), Does.EndWith(GrantTab.ChangedHere), name);
+                        Assert.That(row.Cells[MaskColumn].ToolTipText, Is.EqualTo(Tooltips.Wrapped(GrantTab.MaskTip(shown, true))), name);
+                    }
+                    else
+                    {
+                        Assert.That(row.DefaultCellStyle.BackColor, Is.Not.EqualTo(tints.Changed), name);
+                    }
+                }
+
+                Assert.That(Shown(grid).Count(row => row.DefaultCellStyle.BackColor == tints.Changed),
+                    Is.EqualTo(press == "a version removed" ? 2 : 1), press);
+            }
+        }
+
+        [Test]
+        public void A_box_in_the_mixed_mark_is_on_the_light_red_and_a_pressed_box_on_the_light_yellow()
+        {
+            using (var panel = Panel(Rules.Stored((null, "sw:deny"), (null, "sw:inherit"), ("ops", "row:RL")), Sheets.Arriving(("reader", "RL"))))
+            {
+                var tints = Tints;
+                var box = ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName);
+                Assert.That(box.CheckState, Is.EqualTo(CheckState.Indeterminate));
+                Assert.That(box.BackColor, Is.EqualTo(tints.Bound));
+
+                panel.PressBox();
+                Assert.That(box.CheckState, Is.EqualTo(CheckState.Checked));
+                Assert.That(box.BackColor, Is.EqualTo(tints.Changed));
+                Assert.That(box.AccessibleDescription, Does.EndWith(GrantTab.ChangedHere));
+            }
+
+            using (var panel = Panel(Rules.Node(true, ("ops", "RL")), null))
+            {
+                var tints = Tints;
+                var box = ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName);
+                Assert.That(box.BackColor, Is.EqualTo(panel.BackColor), "a box nobody pressed and copies agree on");
+
+                panel.PressBox();
+                Assert.That(box.BackColor, Is.EqualTo(tints.Changed));
+
+                panel.PressBox();
+                Assert.That(box.BackColor, Is.EqualTo(panel.BackColor), "pressed back to what the store holds");
+            }
+        }
+
+        [Test]
+        public void A_change_of_the_display_s_colors_reaches_every_row_and_the_box_of_a_tab_that_takes_no_press()
+        {
+            // A high contrast setting turned on or off while the dialog stands: the table takes the
+            // colors the display now asks for at once, on a tab that takes no press as well.
+            var rule = Rules.Stored((null, "sw:deny"), (null, "sw:inherit"), ("reader", "row:R"), ("reader", "row:RL"), ("ops", "row:R"));
+
+            using (var form = OffScreenForm.New())
+            using (var panel = new GrantPanel(GrantSheet.Of(rule, null, Sheets.Names, GrantTab.EarlierVersion), GrantTab.GroupScope, null, null, null))
+            {
+                form.Controls.Add(panel);
+                form.Show();
+                OffScreenForm.Pump();
+
+                var grid = Grid(panel);
+                var box = ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName);
+                foreach (var row in Shown(grid))
+                {
+                    row.DefaultCellStyle.BackColor = Color.Black;
+                }
+
+                box.BackColor = Color.Black;
+
+                typeof(Control).GetMethod("OnSystemColorsChanged", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Invoke(form, new object[] { EventArgs.Empty });
+
+                var tints = Tints;
+                Assert.That(
+                    Shown(grid).Select(row => ((GrantRow)row.Tag).Profile + " " + row.DefaultCellStyle.BackColor.ToArgb()),
+                    Is.EqualTo(new[] { "ops " + Color.Empty.ToArgb(), "reader " + tints.Bound.ToArgb(), "reader " + tints.Bound.ToArgb() }));
+                Assert.That(box.BackColor, Is.EqualTo(tints.Bound.IsEmpty ? panel.BackColor : tints.Bound), "the box in the mixed mark");
+            }
+        }
+
+        [Test]
+        public void Every_state_is_told_by_its_word_its_tooltip_and_its_accessible_text_beside_its_color()
+        {
+            var rule = Rules.Stored((null, "sw:deny"), (null, "sw:inherit"), ("reader", "row:R"), ("reader", "row:RL"), ("ops", "row:R"));
+
+            using (var panel = Panel(rule, null))
+            {
+                panel.SetGrant("ops", "CR......");
+
+                var grid = Grid(panel);
+                var ops = Row(grid, "ops");
+                Assert.That(ops.AccessibilityObject.Description, Is.EqualTo(GrantTab.ChangedHere));
+                Assert.That(GrantTab.MaskTip((GrantRow)ops.Tag, true), Does.EndWith(GrantTab.ChangedHere));
+                Assert.That(ops.Cells[MaskColumn].ToolTipText, Is.EqualTo(Tooltips.Wrapped(GrantTab.MaskTip((GrantRow)ops.Tag, true))));
+                Assert.That(
+                    Shown(grid).Where(row => ((GrantRow)row.Tag).Profile == "reader").Select(row => row.Cells[StateColumn].Value),
+                    Is.EqualTo(new[] { GrantTab.VersionWord, GrantTab.VersionWord }));
+                Assert.That(
+                    Shown(grid).Where(row => ((GrantRow)row.Tag).Bound).All(row => row.Cells[ProfileColumn].Style.Padding.Left > 0),
+                    Is.True, "the bracket keeps its room");
+            }
+        }
+
+        [Test]
+        public void A_change_no_OK_can_write_takes_no_light_yellow_and_a_bound_row_keeps_its_light_red()
+        {
+            // A reading made again finds the database no longer taking rules: the presses stay on
+            // the table as changes OK does not write, and the light yellow, which tells that OK
+            // writes a change, is not drawn behind them or behind the box.
+            var rule = Rules.Stored(("ops", "row:RL"), ("reader", "row:R"), ("reader", "row:RL"), ("reader", "row:CRL"), (null, "sw:deny"));
+            var reading = new GrantReading(rule, null, Sheets.Names, null);
+
+            using (var panel = new GrantPanel(Sheets.Of(rule, null), GrantTab.GroupScope, null, () => reading, null))
+            {
+                var tints = Tints;
+                var grid = Grid(panel);
+                var box = ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName);
+
+                Assert.That(panel.SetGrant("ops", "CR......"), Is.Null);
+                panel.Press(RowIndex(grid, "reader", ".R......"), ForgetColumn);
+                panel.PressBox();
+                Assert.That(Row(grid, "ops").DefaultCellStyle.BackColor, Is.EqualTo(tints.Changed), "while OK writes the change");
+                Assert.That(box.BackColor, Is.EqualTo(tints.Changed));
+
+                reading = new GrantReading(rule, null, Sheets.Names, GrantTab.StoreUnusable);
+                panel.Resync();
+
+                Assert.That(panel.Warning, Is.EqualTo(GrantTab.StoreUnusable));
+                var ops = Row(grid, "ops");
+                Assert.That(((GrantRow)ops.Tag).Changed, Is.True, "the press stays on the table");
+                Assert.That(ops.AccessibilityObject.Description, Is.EqualTo(GrantTab.ChangedNotWritten));
+                Assert.That(ops.DefaultCellStyle.BackColor, Is.EqualTo(Color.Empty));
+
+                var versions = Shown(grid).Where(row => ((GrantRow)row.Tag).Profile == "reader").ToList();
+                Assert.That(versions.Count, Is.EqualTo(2));
+                Assert.That(versions.All(row => ((GrantRow)row.Tag).Changed && ((GrantRow)row.Tag).Bound), Is.True);
+                Assert.That(versions.Select(row => row.DefaultCellStyle.BackColor), Is.EqualTo(new[] { tints.Bound, tints.Bound }));
+
+                Assert.That(box.AccessibleDescription, Does.EndWith(GrantTab.ChangedNotWritten));
+                Assert.That(box.BackColor, Is.EqualTo(panel.BackColor));
+            }
+        }
+
+        [Test]
+        public void A_pending_change_with_no_letter_to_show_is_on_the_light_yellow()
+        {
+            // Versions removed down to a rule taken off, with nothing arriving: the row stays until
+            // OK with no letter, and the change it holds is marked as any change OK writes.
+            using (var panel = Panel(Rules.Stored(("reader", "row:RL"), ("reader", "off:R")), null))
+            {
+                var tints = Tints;
+                var grid = Grid(panel);
+                panel.Press(RowIndex(grid, "reader", ".R...L.."), ForgetColumn);
+
+                var row = Row(grid, "reader");
+                Assert.That(((GrantRow)row.Tag).Mask, Is.EqualTo("........"));
+                Assert.That(((GrantRow)row.Tag).Changed, Is.True);
+                Assert.That(row.DefaultCellStyle.BackColor, Is.EqualTo(tints.Changed));
+                Assert.That(row.AccessibilityObject.Description, Is.EqualTo(GrantTab.ChangedHere));
+            }
+        }
+
+        [Test]
+        public void A_version_taken_off_shown_with_the_letters_OK_records_is_on_the_light_yellow_and_stays_bound()
+        {
+            // Clearing the box shows each version that takes the rule off with the letters OK
+            // writes the version with, changed; the versions stay a group, in a bracket with the
+            // letters they differ in bold, on the light yellow of the change.
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:R"), ("reader", "off:deny"), (null, "sw:deny")), Sheets.Arriving(("reader", "RL")));
+
+            using (var panel = new GrantPanel(sheet, GrantTab.GroupScope, null, null, null))
+            {
+                var tints = Tints;
+                panel.PressBox();
+
+                var grid = Grid(panel);
+                var versions = Shown(grid).ToList();
+                Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R...... " + GrantTab.VersionWord, "reader .R...L.. " + GrantTab.TakenOffWord }));
+                Assert.That(versions.Select(row => row.DefaultCellStyle.BackColor), Is.EqualTo(new[] { tints.Changed, tints.Changed }));
+                Assert.That(versions.All(row => row.Cells[ProfileColumn].Style.Padding.Left == GrantMarks.Room(grid.Font)), Is.True, "in a bracket");
+                Assert.That(GrantMarks.Of(sheet.Rows, sheet.CanEdit).Select(mark => string.Join(",", mark.Bold)), Is.EqualTo(new[] { "5", "5" }));
+            }
+        }
+
+        [Test]
+        public void A_group_in_which_no_version_reads_is_bound_on_the_light_red()
+        {
+            using (var panel = Panel(Rules.Stored(("reader", null), ("reader", "row:x")), Sheets.Arriving(("reader", "RL"))))
+            {
+                var tints = Tints;
+                var grid = Grid(panel);
+                var versions = Shown(grid).ToList();
+
+                Assert.That(versions.Select(row => row.Cells[StateColumn].Value), Is.EqualTo(new[] { GrantTab.LostWord, GrantTab.LostWord }));
+                Assert.That(versions.Select(row => row.DefaultCellStyle.BackColor), Is.EqualTo(new[] { tints.Bound, tints.Bound }));
+                Assert.That(versions.All(row => row.Cells[ProfileColumn].Style.Padding.Left == GrantMarks.Room(grid.Font)), Is.True, "in a bracket");
+            }
+        }
+
+        /// <summary>Presses as named, and answers the profile whose rows the press changed.</summary>
+        private static string Press(GrantPanel panel, DataGridView grid, string press)
+        {
+            switch (press)
+            {
+                case "a rule set":
+                    Assert.That(panel.SetGrant("ops", "CR......"), Is.Null);
+                    return "ops";
+
+                case "a rule removed and pending":
+                    panel.Press(RowIndex(grid, "deploy", ".R......"), ForgetColumn);
+                    Assert.That(Row(grid, "deploy").Cells[StateColumn].Value, Is.EqualTo(GrantTab.InheritedWord));
+                    return "deploy";
+
+                case "a limit settled":
+                    panel.Press(RowIndex(grid, "reader", ".R......"), ForgetColumn);
+                    Assert.That(Row(grid, "reader").Cells[StateColumn].Value, Is.EqualTo(GrantTab.InheritedWord));
+                    return "reader";
+
+                case "a version removed":
+                    panel.Press(RowIndex(grid, "audit", ".R......"), ForgetColumn);
+                    return "audit";
+
+                default:
+                    panel.Press(RowIndex(grid, "audit", ".R......"), ForgetColumn);
+                    panel.Press(RowIndex(grid, "audit", ".R...L.."), ForgetColumn);
+                    Assert.That(((GrantRow)Row(grid, "audit").Tag).Bound, Is.False);
+                    return "audit";
+            }
+        }
+
+        /// <summary>The colors the product takes for the display as it is set now.</summary>
+        private static RowTints Tints
+        {
+            get { return RowTints.For(SystemInformation.HighContrast); }
+        }
+
+        private static IEnumerable<DataGridViewRow> Shown(DataGridView grid)
+        {
+            return grid.Rows.Cast<DataGridViewRow>().Where(row => !row.IsNewRow).ToList();
+        }
+
+        [Test]
         [TestCase("R", "RL", "Narrows")]
         [TestCase("CRP", "R", "Widens")]
         [TestCase("RU", "RL", "Replaces")]

@@ -1684,8 +1684,11 @@ that OK could not write. The X takes the rule off, also under a box that refuses
 removed shows, until the dialog closes, as the inherited row in its place, marked as changed.
 The check box shows a
 mixed mark, counted as ticked, where copies set it apart, and a press only ticks or clears it.
-The bracket, the colors and the bold letters that are to bind and mark those rows are not drawn
-yet.
+`GrantMarks` draws what binds and marks those rows: a bracket before the names of a group's
+rows, a light red behind them and behind a box in the mixed mark, in bold the letters in which
+the masks of a group differ, and a light yellow behind every row and box that a press changed
+and OK writes. Each tells nothing that a word of the State column, a tooltip and an accessible
+text do not tell as well, and under a high contrast setting no fixed color is drawn.
 
 **Every text above the table takes at most two lines**, the reasons for which the tab takes no
 change among them, because in the group dialog every line above the table is a row less:

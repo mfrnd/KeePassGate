@@ -106,6 +106,15 @@ namespace KeePassGate.Ui
         /// </summary>
         public bool Removable { get; private set; }
 
+        /// <summary>The same row, marked as changed by a press on the tab.</summary>
+        internal GrantRow AsChanged()
+        {
+            // cspell:ignore Memberwise
+            var changed = (GrantRow)MemberwiseClone();
+            changed.Changed = true;
+            return changed;
+        }
+
         public override string ToString()
         {
             return Profile + " " + Mask + (States.Count == 0 ? string.Empty : " (" + string.Join(", ", States) + ")")
@@ -866,7 +875,44 @@ namespace KeePassGate.Ui
             var stored = _rule.Row(profile);
             var left = AsLeft(profile, stored.Versions);
             var renewed = left.Where((seen, at) => seen.Kind != stored.Versions[at].Kind || !seen.Letters.SameAs(new Seen(stored.Versions[at]).Letters)).Any();
-            return Shown(profile, left, stored.Lost, renewed, SwitchAfter(profile, null));
+            var rows = Shown(profile, left, stored.Lost, renewed, SwitchAfter(profile, null));
+            if (renewed || !BoxChanged)
+            {
+                return rows;
+            }
+
+            // A press on the box that OK writes changes what other rows show as well: a rule from
+            // above refused or arriving again, a limit coming or going. Each row that shows a state
+            // or letters the tab did not show before the press is a row that changed; a row that
+            // goes needs no mark.
+            var before = WithoutTheBox(profile);
+            return rows
+                .Select(row => before.Any(shown => SameShown(shown, row)) ? row : row.AsChanged())
+                .ToList();
+        }
+
+        /// <summary>The rows of a profile no press decides, as the tab shows them with no press on the box.</summary>
+        private IList<GrantRow> WithoutTheBox(string profile)
+        {
+            var pressed = _box;
+            _box = null;
+            try
+            {
+                return Unpressed(profile);
+            }
+            finally
+            {
+                _box = pressed;
+            }
+        }
+
+        /// <summary>Whether two rows show the same: the same kind of row, version, states and letters.</summary>
+        private static bool SameShown(GrantRow first, GrantRow second)
+        {
+            return first.Kind == second.Kind
+                   && string.Equals(first.Version, second.Version, StringComparison.Ordinal)
+                   && string.Equals(first.Mask, second.Mask, StringComparison.Ordinal)
+                   && first.States.SequenceEqual(second.States);
         }
 
         /// <summary>
