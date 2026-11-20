@@ -55,17 +55,36 @@ import store as S     # noqa: E402
 import bridge as B    # noqa: E402  ADDED (vectors for the writes): its FLAGS, the store as decided
 import crdt_model as M    # noqa: E402  ADDED (vectors for the writes)
 
-# ADDED (rules per profile): the probe's rows switched on as decided. The identifier of a row's
-# version in the form `split` of store.py, and the texts of store.py's `doc` with the model's two
-# letters written as the product writes them: read as R and write as U, which CRUSDLAP orders as
-# the model sorts r and w. A text of any other form is the model's own and passes as it is; a text
+# ADDED (rules per profile): the probe's rows switched on. The identifier of a row's version in the
+# form `split` of store.py, and the texts of store.py's `doc` with the model's letters written as
+# the product writes them. A text of any other form is the model's own and passes as it is; a text
 # of a row or a switch that the product's form does not have is refused, so that no vector holds
 # such a text. Nothing of store.py changes but these two names, which its Encoder and read.py
 # look up.
+# ADDED (form by what arrived): the form `seen` of S34-DESIGN.md, as bridge.dep('seen', 'off') sets
+# it, with a removed row taken off for real: a version that takes a rule off records the letters
+# that arrived for its profile, or `deny` where the node's own switch refused, and a version of
+# the switch that inherits records them for each profile. The model writes its letters in lower
+# case and in alphabetical order; the product writes them in capitals in the order of CRUSDLAP.
+# With the model's two letters, read and write are written R and U; with the full mask, each
+# letter is its capital. `configure` sets the model, store.py and read.py to a set of profiles, a
+# set of letters and two or three levels, as bridge.owed does, and the letters with them.
 S.ID_FORM = 'split'
-LETTERS = {'r': 'R', 'w': 'U'}
+TWO_LETTERS = {'r': 'R', 'w': 'U'}
+MASK_LETTERS = {x: x.upper() for x in 'crusdlap'}
+LETTERS = dict(TWO_LETTERS)
 ORDER = 'CRUSDLAP'
 MODEL_DOC, MODEL_UNDOC = S.doc, S.undoc
+NAME_CHARS = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_')
+
+
+def configure(profs, model_letters, levels):
+    """ADDED (form by what arrived): the model's profiles, letters and levels, as bridge.owed sets
+    them, and the product's letters for them."""
+    M.PARENT = {}
+    B.owed(profs, model_letters, levels)
+    LETTERS.clear()
+    LETTERS.update(TWO_LETTERS if model_letters == 'rw' else MASK_LETTERS)
 
 
 def letters(model):
@@ -80,24 +99,60 @@ def product_doc(f, uid=None):
     kind, _, rest = text.partition(':')
     if kind == 'row':
         return 'row:' + letters(rest)
-    if text in ('off:', 'sw:deny', 'sw:inherit'):
+    if kind == 'off' and '|' not in rest:       # ADDED (form by what arrived): the letters seen
+        return text if rest == 'deny' else 'off:' + letters(rest)
+    if text == 'sw:deny':
         return text
+    if kind == 'sw' and rest.split(' ')[0] == 'inherit' and '|' not in rest:     # ADDED (form by what arrived)
+        items = [x.split('=') for x in rest.split(' ')[1:]]
+        return 'sw:inherit' + ''.join(' %s=%s' % (p, letters(w)) for p, w in items)
     raise ValueError('a text the product does not write: ' + text)
 
 
+def product_letters(text):
+    """ADDED (form by what arrived): the model's letters of a product's mask: capitals of the
+    letters the model is configured with, in the order of CRUSDLAP, each at most once."""
+    back = {v: k for k, v in LETTERS.items()}
+    if any(x not in back for x in text) or list(text) != sorted(set(text), key=ORDER.index):
+        raise ValueError('a mask the product does not write: ' + text)
+    return ''.join(sorted(back[x] for x in text))
+
+
 def model_undoc(text):
-    kind, _, rest = text.partition(':')
+    """The product's text of a row or a switch read strictly and handed to store.py's undoc as the
+    model's text; any other text handed on as it is. ADDED (form by what arrived): the texts of
+    the form, and a switch's items: a name the issuer could issue, in ascending ordinal order, so
+    each once, with a mask of at least a letter."""
+    kind, sep, rest = text.partition(':')
     if kind == 'row':
-        back = {v: k for k, v in LETTERS.items()}
-        if rest != letters(back[x] for x in rest if x in back) or len(rest) != len(set(rest)):
+        return MODEL_UNDOC('row:' + product_letters(rest))
+    if kind == 'off':
+        return MODEL_UNDOC(text if rest == 'deny' else 'off:' + product_letters(rest))
+    if text == 'sw:deny':
+        return MODEL_UNDOC(text)
+    if kind == 'sw':
+        head, items = rest.split(' ')[0], rest.split(' ')[1:]
+        if head != 'inherit':
             raise ValueError('a text the product does not write: ' + text)
-        text = 'row:' + ''.join(sorted(back[x] for x in rest))
+        names, parts = [], []
+        for x in items:
+            p, eq, w = x.partition('=')
+            if not eq or not w or not 1 <= len(p) <= 64 or not set(p) <= NAME_CHARS or p == 'default':
+                raise ValueError('a text the product does not write: ' + text)
+            names.append(p)
+            parts.append(p + '=' + product_letters(w))
+        if names != sorted(set(names)):
+            raise ValueError('a text the product does not write: ' + text)
+        return MODEL_UNDOC(' '.join(['sw:inherit'] + parts))
+    if kind in ('cut', 'void'):
+        raise ValueError('a text the product does not write: ' + text)
     return MODEL_UNDOC(text)
 
 
 S.doc, S.undoc = product_doc, model_undoc
 R.ROWS = R.PP = True    # as bridge.rows sets them: a node's rule read from its rows and its switch
-M.ROWS, M.PP = 'empty', True    # as bridge.rows('empty') sets them: a removed row as decided
+M.ROWS, M.PP = 'off', True      # ADDED (form by what arrived): a removed row taken off for real
+M.DEP = S.DEP = 'seen'          # ADDED (form by what arrived): bridge.dep('seen', 'off')
 
 # read.py's status, and the state the product names for it.
 STATES = {'ok': 'Whole', 'incomplete': 'Stopped', 'nostore': 'None'}
@@ -374,9 +429,29 @@ RECORDS_ABOUT += (
 # objects and texts of the rows switched on above, and a summary entry that restates them.
 N = 'bb' * 16       # the model's node N, a group directly under the root ROOT
 PF, PG, SW = 'rule:%s/pf' % N, 'rule:%s/pg' % N, 'switch:' + N
-ROW_RU, ROW_R, ROW_U, ROW_EMPTY = (S.doc(M.row(x)) for x in ('rw', 'r', 'w', ''))
-ROW_OFF = S.doc(M.ROW_OFF)
-SW_DENY, SW_INHERIT = (S.doc(('sws', frozenset([x]))) for x in ('deny', 'inherit'))
+# ADDED (form by what arrived): the records and the stores of rules are composed with the model
+# configured for the full mask and the profiles pf and pg, so that a mask shows the order of
+# CRUSDLAP; read and write are then the model's r and u, written R and U as before.
+configure(('pf', 'pg'), 'crusdlap', 2)
+ROW_RU, ROW_R, ROW_U, ROW_EMPTY = (S.doc(M.row(x)) for x in ('ru', 'r', 'u', ''))
+SW_DENY = S.doc(('sws', frozenset(['deny'])))
+
+
+def off(model_letters):
+    """ADDED (form by what arrived): the text of a version that takes the rule off, recording the
+    model's letters that arrived."""
+    return S.doc(('rows', None, True, frozenset([('s', frozenset(model_letters))])))
+
+
+def inherit(table):
+    """ADDED (form by what arrived): the text of a version of the switch that inherits, recording
+    for each profile of `table` the model's letters that arrived."""
+    seen = frozenset(p + '.' + w for p, ws in table.items() for w in ws)
+    return S.doc(('sws', frozenset(['inherit']), frozenset([('s', seen)])))
+
+
+OFF_DENY = S.doc(('rows', None, True, frozenset([('deny',)])))
+OFF_RU, OFF_R, OFF_NOTHING = off('ru'), off('r'), off('')
 
 
 def rule_record(obj, text, after=(), nonce=NONCE):
@@ -399,35 +474,99 @@ def restating_version(v):
             'object': m['object']}
 
 
+# ADDED (form by what arrived): the versions of the form. A switch's version names five profiles,
+# so that the order of its items is seen to be ordinal: Zeta before p-b before pa.
+SWITCH_SEEN = {'Zeta': 'c', 'p-b': 'u', 'pa': 'rl', 'pf': 'rla', 'pg': 'r'}
 granting = rule_record(PF, ROW_RU)
 emptied = rule_record(PG, ROW_EMPTY)
-taken_off = rule_record(PF, ROW_OFF)
+taken_off = rule_record(PF, off('rla'))
+taken_off_nothing = rule_record(PF, OFF_NOTHING)
+taken_off_deny = rule_record(PF, OFF_DENY)
 refusing = rule_record(SW, SW_DENY)
-inheriting = rule_record(SW, SW_INHERIT)
+inheriting = rule_record(SW, inherit(SWITCH_SEEN))
+inheriting_nothing = rule_record(SW, inherit({}))
+renewed = rule_record(PF, off('crudla'), after=[taken_off['id']])
+renewed_switch = rule_record(SW, inherit(dict(SWITCH_SEEN, pf='crudla')), after=[inheriting['id']])
 settled = rule_record(PF, ROW_R, after=[granting['id'], taken_off['id']])
+RULE_RECORDS = {
+    'version, a row that grants': granting,
+    'version, an empty rule': emptied,
+    'version, a rule taken off, with the mask that arrived': taken_off,
+    'version, a rule taken off, nothing having arrived': taken_off_nothing,
+    'version, a rule taken off while the switch refused': taken_off_deny,
+    'version, the switch refusing': refusing,
+    'version, the switch inheriting, with a mask for each profile': inheriting,
+    'version, the switch inheriting, nothing having arrived': inheriting_nothing,
+    'version, a rule taken off renewed by a write above': renewed,
+    'version, the switch renewed by a write above': renewed_switch,
+    'version, a row naming the versions it replaces': settled,
+}
 head1v = record('head', {'after': '', 'height': '1', 'nonce': NONCE},
-                [FORMAT] + [restating_version(x) for x in (granting, emptied, taken_off, refusing,
-                                                            inheriting)], 1)
+                [FORMAT] + [restating_version(x) for x in RULE_RECORDS.values()], 1)
+
+
+def model_text(text):
+    """ADDED (form by what arrived): the model's own text of a product's text, or None where the
+    script's reader refuses it."""
+    try:
+        return MODEL_DOC(model_undoc(text))
+    except ValueError:
+        return None
+
+
+# ADDED (form by what arrived): texts of a row's version and of a switch's version, each with the
+# model's own text where the script's reader takes it, and null where it refuses it.
+TEXTS = ['row:', 'row:RU', 'row:CRUSDLAP', 'row:UR', 'row:RR', 'row:r', 'row:W', 'row: ',
+         'off:', 'off:RLA', 'off:A', 'off:CRUSDLAP', 'off:deny', 'off:ALR', 'off:RLLA', 'off:Deny',
+         'off:deny ', 'off:-', 'off:R|U', 'cut:R', 'void:',
+         'sw:deny', 'sw:inherit', 'sw:inherit pf=R', 'sw:inherit pf=RLA pg=U',
+         'sw:inherit Zeta=C p-b=U pa=RL pf=RLA pg=R', 'sw:inherit ' + 'q' * 64 + '=R',
+         'sw:', 'sw:allow', 'sw:deny pf=R', 'sw:inherit ', 'sw:inherit  pf=R', 'sw:inherit pf=',
+         'sw:inherit pf', 'sw:inherit pg=R pf=R', 'sw:inherit pf=R pf=U', 'sw:inherit pa=R Zeta=C',
+         'sw:inherit pa=R p-b=U', 'sw:inherit default=R', 'sw:inherit p.f=R', 'sw:inherit pf=UR',
+         'sw:inherit pf=RR', 'sw:inherit pf=r', 'sw:inherit ' + 'q' * 65 + '=R', 'sw:inherit pf=R ',
+         'sw:inherit/deny', 'sw:Inherit']
 RECORDS_ABOUT += (
     ' A version of a profile\'s row at a node and a version of a node\'s switch are records of '
-    'kind version, with the store\'s rows switched on as decided and the identifier in the form '
-    'split of store.py. The object of a row is rule:, the node\'s identifier in 32 lowercase '
+    'kind version, with the store\'s rows switched on and the identifier in the form split of '
+    'store.py, in the form by what arrived (the form seen of S34-DESIGN.md) with a removed row '
+    'taken off for real. The object of a row is rule:, the node\'s identifier in 32 lowercase '
     'hexadecimal characters, a slash and the profile\'s name; the object of a switch is switch: '
-    'and the node\'s identifier. Each text is store.py\'s doc over the model\'s value with the '
-    'model\'s letters read and write written R and U: row: and the letters granted, row: alone '
-    'for an empty rule, off: for the rule taken off, sw:deny and sw:inherit. The model has no '
-    'other letter. The identifier of a row\'s version holds the subject hash over the object '
-    'before the slash and, in bytes 9 and 10, the profile\'s tag, the first two bytes of '
-    'HMAC-SHA256 under the store key over profile, a line feed and the name; its subject and its '
+    'and the node\'s identifier. Each text is store.py\'s doc over the model\'s value, configured '
+    'for the full mask, with the model\'s letters written as the product writes them: row: and '
+    'the letters granted, row: alone for an empty rule; off: and the letters that arrived for the '
+    'profile when the rule was taken off, off: alone where nothing arrived; off:deny for a rule '
+    'taken off while the node\'s own switch refused; sw:deny; and sw:inherit followed, for each '
+    'profile at least a letter arrived for, by a space, the name, = and its letters, sw:inherit '
+    'alone where nothing arrived for any profile. The model writes every mask in lower case and '
+    'in alphabetical order (off:alr, sw:inherit pf=alr); the texts here write it in capitals in '
+    'the order of CRUSDLAP (off:RLA, sw:inherit pf=RLA), each letter at most once. Both write a '
+    'switch\'s items with the names in ascending ordinal order, which puts Zeta before p-b and p-b '
+    'before pa. The identifier of a row\'s version holds the subject hash over the object before '
+    'the slash and, in bytes 9 and 10, the profile\'s tag, the first two bytes of HMAC-SHA256 '
+    'under the store key over name, a line feed and the profile\'s name; its subject and its '
     'number are those, the number the tag read as a big-endian number, and profileTags holds '
-    'each tag. The identifier of a switch\'s version holds the subject hash over its object and '
-    'zero. The node is bb repeated 16 times and the profiles are the model\'s pf and pg. The '
-    'versions of pf that grant and that take the rule off were made apart, as were the two '
-    'versions of the switch; the summary entry of height 1 that restates rules holds the item '
-    'format and an item version for each of those four and for the empty rule of pg, each with '
-    'the version\'s identifier as id and its object, after and text; and a further version of pf '
-    'names in after the two versions of pf it replaces. The model holds a switch under an object '
-    'of its own name, sw: and the node, which store.py writes as switch: and the node\'s '
+    'each tag. The label name is that of no kind and of nothing else keyed under a store key: '
+    'the check is keyed under the kind\'s name, a kind\'s tag under tag, a subject\'s hash under '
+    'subject and a key\'s name under key. The identifier of a switch\'s version holds the subject '
+    'hash over its object and zero. The node is bb repeated 16 times and the rows are of the '
+    'model\'s pf and pg. The versions of a row and of the switch here are composed apart and name '
+    'nothing, but for three: the rule taken off renewed by a write above names the version taken '
+    'off with RLA and records CRUDLA, what arrives after that write; the switch renewed by a write '
+    'above names the switch inheriting with a mask for each profile and changes the letters of pf '
+    'alone; and a version of pf that grants R names in after the version that grants RU and the '
+    'version taken off with RLA, which it replaces. The summary entry of height 1 that restates '
+    'rules holds the item format and an item version for each of those versions, each with the '
+    'version\'s identifier as id and its object, after and text. texts holds texts of a row and '
+    'of a switch, each with the model\'s own text where the script\'s reader takes it and null '
+    'where it refuses it: a mask in capitals of the letters of CRUSDLAP in that order, each at '
+    'most once; off:deny exactly; sw:deny exactly; sw:inherit and items, each a single space, a '
+    'name of 1 to 64 ASCII letters, digits, - and _ other than default, = and a mask of at least '
+    'a letter, the names in ascending ordinal order and so each once, and nothing after the last '
+    'item. That reader is the script\'s own, before store.py\'s undoc, which takes some of the '
+    'texts refused here; read.py raises on every text the reader refuses, so no store of these '
+    'vectors holds such a text and no reading answers for it. The model holds a switch under an '
+    'object of its own name, sw: and the node, which store.py writes as switch: and the node\'s '
     'identifier, and its acts compose a version at the write, with no buffer between a press '
     'and the write; the records here are composed by rec and by no act.')
 out['records'] = {'about': RECORDS_ABOUT, 'key': ONE.hex(), 'records': {
@@ -448,14 +587,15 @@ out['records'] = {'about': RECORDS_ABOUT, 'key': ONE.hex(), 'records': {
     'profile, naming a removal': added_again,
     'removed': removal,
     'head of height 1, restating a removal': head1r,
-    'version, a row that grants': granting,        # ADDED (rules per profile): the seven below
-    'version, an empty rule': emptied,
-    'version, a rule taken off': taken_off,
-    'version, the switch refusing': refusing,
-    'version, the switch inheriting': inheriting,
-    'version, a row naming the versions it replaces': settled,
-    'head of height 1, restating rules': head1v,
-}, 'profileTags': {p: S.profile_tag(ONE, p) for p in M.PROFS}}     # ADDED (rules per profile)
+    'head of height 1, restating rules': head1v,    # ADDED (rules per profile)
+}, 'profileTags': {p: S.profile_tag(ONE, p) for p in ('pf', 'pg', 'px')},  # ADDED (rules per profile)
+    'texts': {t: model_text(t) for t in TEXTS}}     # ADDED (form by what arrived)
+out['records']['records'].update(RULE_RECORDS)      # ADDED (rules per profile)
+
+
+# The earlier parts below, with the model's two letters, until they are written in the form.
+configure(('pf', 'pg'), 'rw', 2)
+ROW_OFF, SW_INHERIT = S.doc(M.ROW_OFF), S.doc(('sws', frozenset(['inherit'])))
 
 
 # 6. ADDED (vectors for the writes): what read.py answers about authorities, admissions and
