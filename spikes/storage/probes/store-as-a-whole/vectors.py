@@ -40,6 +40,15 @@ entry that restates them. `--meanings` adds small stores of such versions in a t
 groups, with what read.py answers about the rules of each. `--writes` plays every sequence with
 the rows switched on, and adds the sequences of rows, switches and removed versions over two
 copies of `measured-rules-per-profile` sections 4, 5 and 7.
+
+ADDED (form by what arrived): the rows in the form `seen` of `S34-DESIGN.md`, with a removed row
+taken off for real, the model configured for each part as below the imports. `--records` adds a
+rule taken off with the letters that arrived, with none and while the switch refused, the switch
+inheriting with letters for each profile and with none, renewals by a write above, and `texts`,
+the texts the script's reader takes or refuses. `--meanings` holds its earlier stores in the form
+and stores of the form itself, with capabilities beside letters. `--writes` adds O6, O7, L8, L9
+and L10 as `probe/owed.py` holds them, H1, H3, H4, H9 and H10 as `probe/s34.py` holds them, R1a,
+and a sequence of writes above, with every merge held to both copies just before it.
 """
 import base64
 import hashlib
@@ -54,6 +63,8 @@ import read as R      # noqa: E402
 import store as S     # noqa: E402
 import bridge as B    # noqa: E402  ADDED (vectors for the writes): its FLAGS, the store as decided
 import crdt_model as M    # noqa: E402  ADDED (vectors for the writes)
+import owed as O      # noqa: E402  ADDED (form by what arrived): O6, O7, L8, L9 and L10
+import s34 as H34     # noqa: E402  ADDED (form by what arrived): the hand histories
 
 # ADDED (rules per profile): the probe's rows switched on. The identifier of a row's version in the
 # form `split` of store.py, and the texts of store.py's `doc` with the model's letters written as
@@ -958,10 +969,6 @@ out['meanings']['about'] += (
     'stores are composed here and by no act.')
 
 
-# The earlier parts below, with the model's two letters, until they are written in the form.
-configure(('pf', 'pg'), 'rw', 2)
-
-
 # 7. ADDED (vectors for the writes): the file after each act of a fixed sequence the model plays,
 # written out by store.py's Encoder as the family's runs write it, and read by read.py.
 def described(enc, eid):
@@ -983,15 +990,32 @@ def by_record(x):
     return (x['kind'], x['subject'], x['number'], x['id'])
 
 
-def state(W, enc, i):
-    """File i of the model as the Encoder writes it, described, and what read.py answers for
-    it."""
+G = 'dd' * 16       # ADDED (form by what arrived): the model's group G, between the root and N
+
+
+def placed(levels):
+    """ADDED (form by what arrived): the model's nodes by identifier, and the groups of the tree
+    with their parents: N under the root, or under G with three levels."""
+    if levels == 3:
+        return {'root': ROOT, 'G': G, 'N': N}, {G: ROOT, N: G}
+    return {'root': ROOT, 'N': N}, {N: ROOT}
+
+
+def read_copy(W, enc, i, tree):
+    """File i of the model as the Encoder writes it, as a dump, and what read.py answers for it."""
     rep = W.reps[i]
     eids = sorted(eid for u, (eid, mt, ok) in rep.entries.items() if u == eid and ok)
     written = [enc.entry(eid) for eid in eids]
     d = dump([(u, s, []) for (u, title, s, prot) in written], [enc.u(x) for x in rep.dels])
-    d['groups'] = {N: {'parent': ROOT}}     # ADDED (rules per profile): the model's node N
-    r = R.read(d, history=True)
+    d['groups'] = {g: {'parent': p} for g, p in tree.items()}     # ADDED (rules per profile)
+    return eids, written, d, R.read(d, history=True)
+
+
+def state(W, enc, i, tree):
+    """File i of the model as the Encoder writes it, described, and what read.py answers for
+    it."""
+    rep = W.reps[i]
+    eids, written, d, r = read_copy(W, enc, i, tree)
     heads = []
     for (u, title, s, prot) in written:
         if s['KPG.Kind'] == 'head':
@@ -1003,23 +1027,56 @@ def state(W, enc, i):
             'present': sorted((described(enc, eid) for eid in eids), key=by_record),
             'deletions': sorted((described(enc, x) for x in rep.dels), key=by_record),
             'heads': sorted(heads, key=lambda h: (h['height'], h['id'])),
-            'answer': dict(answer(r), rules=rules(r, [ROOT, N])),    # ADDED (rules per profile)
+            'answer': dict(answer(r), rules=rules(r, [ROOT] + sorted(tree, key=depth_of(tree)))),
             'file': files(d)}
 
 
-def play(nrep, steps):
+def depth_of(tree):
+    def depth(n):
+        return 0 if n == ROOT else 1 + depth(tree[n])
+    return depth
+
+
+def beyond(after, pre, nodes):
+    """ADDED (form by what arrived): what a merged copy gives at each node beyond both copies just
+    before the merge, as store_runs.py's part_dep holds it: letters neither copy gave, and
+    crdt_model.caps neither copy gave. Only the nodes with something beyond."""
+    out = {}
+    for n in nodes:
+        a, b0, b1 = (x.get(n, frozenset()) for x in (after, pre[0], pre[1]))
+        lt, caps = a - b0 - b1, M.caps(a) - M.caps(b0) - M.caps(b1)
+        if lt or caps:
+            out[n] = {'capabilities': {p: cap_texts(caps, p) for p in sorted(set(c[0] for c in caps))},
+                      'letters': {p: letters(x.split('.')[1] for x in lt if x.split('.')[0] == p)
+                                  for p in sorted(set(x.split('.')[0] for x in lt))}}
+    return out
+
+
+def play(nrep, steps, cfg=None):
     """The model's own store, then each (command, act) of steps played by the model, each with
-    the file of the copy it wrote and the deletion records it added there."""
+    the file of the copy it wrote and the deletion records it added there. ADDED (form by what
+    arrived): `cfg`, the profiles, the model's letters and the levels the model is configured with,
+    two profiles, read and write and two levels by default; each merge also holds what the merged
+    copy gives beyond both copies just before it."""
+    cfg = cfg or (('pf', 'pg'), 'rw', 2)
+    configure(*cfg)
+    nodes, tree = placed(cfg[2])
     W = M.World(nrep, B.FLAGS)
     W.maxclients = 4
-    enc = S.Encoder(W, {'root': ROOT, 'N': N})     # ADDED (rules per profile): N
-    made = {'start': state(W, enc, 0), 'steps': []}
+    enc = S.Encoder(W, nodes)     # ADDED (rules per profile): N; (form by what arrived): G
+    made = {'nodes': nodes, 'profiles': list(cfg[0]), 'start': state(W, enc, 0, tree), 'steps': [],
+            'tree': {'groups': dict(sorted(tree.items())), 'root': ROOT}}
     for command, op in steps:
         i = op[2] if op[0] == 'merge' else op[1]
         before = set(W.reps[i].dels)
-        x = dict(command=command, act=list(op), played=W.step(op), **state(W, enc, i))
+        pre = [read_copy(W, enc, k, tree)[3]['words_raw'] for k in (op[2], op[3])] \
+            if op[0] == 'merge' else None
+        x = dict(command=command, act=list(op), played=W.step(op), **state(W, enc, i, tree))
         x['deleted'] = sorted((described(enc, u) for u in set(W.reps[i].dels) - before),
                               key=by_record)
+        if pre is not None:
+            x['beyond'] = beyond(read_copy(W, enc, i, tree)[3]['words_raw'], pre,
+                                 [ROOT] + sorted(tree))
         made['steps'].append(x)
     return made
 
@@ -1101,8 +1158,6 @@ out['writes'] = {'about': WRITES_ABOUT, 'sequences': {
 # ADDED (rules per profile): the sequences of measured-rules-per-profile 4, 5 and 7 over two
 # copies, by the model's acts on a single row, on a node's switch and on a single version of a row,
 # and its Synchronize; a base in copy 0 synchronized into copy 1, each copy's acts, then both ways.
-# The model's nodes by their identifiers, and the tree they are in.
-out['writes'].update(nodes={'N': N, 'root': ROOT}, tree={'groups': {N: ROOT}, 'root': ROOT})
 INTO_1, INTO_0 = ('merge', 'kp_sync', 1, 0), ('merge', 'kp_sync', 0, 1)
 
 
@@ -1123,7 +1178,9 @@ def command(op):
         return 'Synchronize'
     if op[0] == 'row':
         return 'Remove row' if op[4] == 'off' else 'Set row'
-    return {'switch': 'Set switch', 'drop': 'Remove version'}[op[0]]
+    # ADDED (form by what arrived): a table of rows in a single act, and the press that settles
+    return {'switch': 'Set switch', 'drop': 'Remove version', 'rule': 'Set rows',
+            'lift': 'Settle limit'}[op[0]]
 
 
 ROOT_RW = [row_act(0, 'root', 'pf', 'rw'), row_act(0, 'root', 'pg', 'rw')]
@@ -1195,16 +1252,70 @@ RULE_SEQUENCES = [
 for label, what, ops in RULE_SEQUENCES:
     out['writes']['sequences']['rules, %s: %s' % (label, what)] = play(
         2, [(command(op), op) for op in ops + [INTO_0, INTO_1]])
+
+
+# ADDED (form by what arrived): the sequences of measured-rules-across-levels and S34-DESIGN.md that
+# the form closes, leaves or writes for, each under the configuration it was measured in.
+def form_sequence(label, what, nrep, ops, cfg=None):
+    out['writes']['sequences']['form, %s: %s' % (label, what)] = play(
+        nrep, [(command(op), op) for op in ops], cfg)
+
+
+MASK2, MASK3, LEVELS3 = (O.FOUR, O.MASK, 2), (O.FOUR, O.MASK, 3), (('pf', 'pg'), 'rw', 3)
+configure(*MASK2)
+for hid, what, base, c0, c1, nrep in O.merges4_histories():
+    if hid in ('O6', 'O7'):
+        form_sequence(hid, what, nrep, base + c0 + c1 + [INTO_0, INTO_1], MASK2)
+configure(*MASK3)
+for hid, what, base, c0, c1, nrep in O.levels_histories():
+    if hid in ('L8', 'L9', 'L10'):
+        form_sequence(hid, what, nrep, base + c0 + c1 + [INTO_0, INTO_1], MASK3)
+HAND = {hid: (what, ops, last) for hid, what, ops, last in H34.hand_histories()}
+for hid in ('H1', 'H3', 'H4', 'H9', 'H10'):
+    what, ops, last = HAND[hid]
+    if hid == 'H1':     # then the press that settles in the copy that took the merge, and back
+        what += '; then the press that settles in copy 1, synchronized into copy 0'
+        ops = ops + [last, ('lift', 1, 'N', 'pf'), INTO_0]
+    elif hid == 'H10':  # as S34-DESIGN.md has it: nothing arrives for pf
+        what = what.replace('removed for real', 'nothing arriving for pf, removed for real')
+        ops = [('row', 0, 'root', 'pf', '')] + ops + [last]
+    elif last is not None:
+        ops = ops + [last]
+    form_sequence(hid, what, 2, ops)
+form_sequence('R1a', 'two rules taken off apart at two levels, and a widening after the '
+              'merge: G grants pf R and N holds an empty rule; copy 0 takes the rule off N, copy 1 '
+              'takes it off G; both ways; the root widened for pf in copy 0',
+              2, [('row', 0, 'G', 'pf', 'r'), ('row', 0, 'N', 'pf', ''), INTO_1,
+                  ('row', 0, 'N', 'pf', 'off'), ('row', 1, 'G', 'pf', 'off'), INTO_1, INTO_0,
+                  ('row', 0, 'root', 'pf', 'rw')], LEVELS3)
+form_sequence('above', 'the write above: G and N take pf\'s rule off seeing R; copy 1 widens the '
+              'root, renewing G; both ways, so N cuts to R under G; copy 0 narrows the root to R, '
+              'renewing G and leaving N, which was cutting; copy 0 widens the root again, renewing '
+              'G and N',
+              2, [('row', 0, 'G', 'pf', ''), ('row', 0, 'G', 'pf', 'off'), ('row', 0, 'N', 'pf', ''),
+                  INTO_1, ('row', 0, 'N', 'pf', 'off'), ('row', 1, 'root', 'pf', 'rw'), INTO_0, INTO_1,
+                  ('row', 0, 'root', 'pf', 'r'), ('row', 0, 'root', 'pf', 'rw'), INTO_1], LEVELS3)
+configure(('pf', 'pg'), 'rw', 2)
 out['writes']['about'] += (
-    ' Every sequence plays with the store\'s rows switched on as decided, as '
-    'bridge.rows(\'empty\') switches them, the identifier of a row\'s version in the form split '
-    'of store.py, and the texts and objects of the records file: the start holds a version of the '
-    'row of pf and of pg at the root, row:R. The model\'s node N is bb repeated 16 times, a group '
-    'directly under the root, aa repeated 16 times, as nodes and tree give them; the root and N '
-    'are the only nodes. Every answer adds rules, read.py\'s answer about rules at the root and '
-    'at N as the meanings file gives it. A version present or named by a deletion record adds its '
-    'object, and for a row its subject and its number are those its identifier holds, as the '
-    'records file gives them. The sequences whose names begin with rules and a comma are those of '
+    ' Every sequence plays with the store\'s rows switched on, the identifier of a row\'s version '
+    'in the form split of store.py, in the form by what arrived (the form seen of S34-DESIGN.md) '
+    'with a removed row taken off for real, as bridge.dep(\'seen\', \'off\') sets them, and the '
+    'texts and objects of the records file: the start holds a version of the row of each profile '
+    'at the root, row:R. Each sequence holds the profiles it plays with as profiles, the model\'s '
+    'nodes by identifier as nodes and the tree as tree. The model\'s node N is bb repeated 16 '
+    'times, directly under the root, aa repeated 16 times; where a sequence has three levels, the '
+    'model\'s group G, dd repeated 16 times, is directly under the root and N under G. A sequence '
+    'plays with the profiles pf and pg and the model\'s letters read and write, written R and U, '
+    'but O6, O7, L8, L9 and L10, which play with the profiles pf, pg, ph and pi and the full '
+    'mask, as they were measured; the model\'s letters are then those of CRUSDLAP in lower case, '
+    'written in capitals. Every answer adds rules, read.py\'s answer about rules at each node as '
+    'the meanings file gives it, capabilities among it. Every Synchronize adds beyond: what the '
+    'copy merged into gives at each node beyond both copies just before the merge, letters '
+    'neither copy gave and capabilities neither copy gave, as store_runs.py\'s part_dep holds a '
+    'merge to both copies; only a node with something beyond is there. A version present or named '
+    'by a deletion record adds its object, and for a row its subject and its number are those its '
+    'identifier holds, as the records file gives them. The sequences whose names begin with rules '
+    'and a comma are those of '
     'measured-rules-per-profile sections 4, 5 and 7 that run over two copies, each named by its '
     'label there, 5 for the two copies of section 5: A1 to A7, 5, D1 to D3, and W1 to W8. Each '
     'plays a base in copy 0, a Synchronize into copy 1, the acts of each copy apart, and then a '
@@ -1213,20 +1324,62 @@ out['writes']['about'] += (
     'an act of the report that changes no row is not played, as the root grants read from the '
     'start; and D1 to D3 remove a version in the form again, which STORE.md 617 fixes. The '
     'commands: Set row is the model\'s row act with letters, an empty rule where it holds none; '
-    'Remove row its row act with off, which writes an empty rule where the copy reads the node\'s '
-    'switch as refusing, writes nothing where the row is an empty rule there already, and takes '
-    'the rule off where the switch inherits; Set switch its switch act with deny or inherit; '
-    'Remove version its drop act, which writes again each version left, naming the version '
-    'removed, the version left and everything each of them names. An act\'s letters are the '
-    'model\'s r and w, which the texts write R and U, and its node is the model\'s name. A step '
-    'whose act writes nothing has played false and the copy\'s file as it stood: the second '
-    'removal in W6. At the end of W8, N gives pf R and U, which neither copy gave before the '
-    'copies met, as measured. Left out are the sequences of section 5 over three copies, D4 and '
-    'D5, and W9, which writes a node\'s rule whole. The model holds a switch under an object of '
-    'its own name, sw: and the node, which store.py writes as switch: and the node\'s identifier; '
-    'and its acts compose a version at the write, with no buffer: an act reads the copy\'s file '
-    'as it stands when the act is played and writes at once, where STORE.md 629 has a rule set in '
-    'a node\'s dialog written at the dialog\'s OK.')
+    'Remove row its row act with off, which writes nothing where no row of the profile stands '
+    'but versions that take the rule off, writes off:deny where the copy reads the node\'s switch '
+    'as refusing, and otherwise writes anew each version of the switch that holds other letters '
+    'for the profile than arrive, then takes the rule off with the letters that arrive; Set '
+    'switch its switch act with deny, or with inherit, which records for each profile the '
+    'letters that arrive, writes nothing where no version of the switch stands or a single '
+    'version inherits already, '
+    'and writes anew each version at the node that takes a rule off and holds other letters than '
+    'arrive for its profile, off:deny among them; Set rows its rule act with a table, a version '
+    'for each row the table names at the node, in a single write; Settle limit its lift act, the '
+    'press that settles: each version at the node that lets the profile through and holds other '
+    'letters than arrive written anew, a version of the switch with that profile\'s letters '
+    'changed and every other profile\'s kept; Remove version its drop act, which writes again '
+    'each version left, naming the version removed, the version left and everything each of them '
+    'names. After every act at a node with nodes below, the write above: each node below, the '
+    'nearer first, whose switch does not refuse and whose row does not answer by itself, where '
+    'what arrives differs before and after the act and every version there that lets the profile '
+    'through held everything that arrived before it, has those versions written anew, each by '
+    'itself, with what arrives after, naming the version it renews and everything that version '
+    'names; a version that was cutting already, or off:deny, leaves every version of its node for '
+    'that profile as it is. An act\'s letters are the model\'s, and its node is the model\'s name. '
+    'A step whose act writes nothing has played false and the copy\'s file as it stood: the '
+    'second removal in W6. No Synchronize of A1 to W8 gives anything beyond both copies. At the '
+    'end of W8 N gives pf R, what the first copy gave, where the store as decided gave R and U; '
+    'W3 ends with nothing for pf; and W6 ends with pf given R and U, wider than the store as '
+    'decided by design: the switch turned off in the second copy renews off:deny with what '
+    'arrives (H9), as measured-rules-across-levels section 4 has it. Left out are the sequences '
+    'of section 5 over three copies, D4 and D5, and W9, which writes a node\'s rule whole. The '
+    'sequences whose names begin with form and a comma: O6 and O7 of measured-rules-owed-forms '
+    '(merges4) and L8, L9 and L10 of its levels, each a base in copy 0, a Synchronize into copy '
+    '1, the acts of each copy apart, and a Synchronize of copy 1 into copy 0 and of copy 0 into '
+    'copy 1, as measured-rules-across-levels section 4 played them; no Synchronize of them gives '
+    'anything beyond both copies, O6 and O7 end with pf given A alone at N, a switch with no verb '
+    'and so no capability, L8 with RL at G and at N, L9 with RL at N, and L10 with nothing for pf '
+    'at N. H1, H3, H4, H9 and H10 of S34-DESIGN.md section 5, each as probe/s34.py plays it under '
+    'the form: H1 then the press that settles in the copy that took the merge, and a Synchronize '
+    'back; H10 with the root\'s row of pf first set to no letter, so that nothing arrives for pf, '
+    'as the design states it, and pf ends with nothing at N. H4 is the residual history of the '
+    'form: its last Synchronize gives pf R at N beyond both copies, within what the version at N '
+    'recorded when its rule was taken off. R1a is the second residual history: G grants pf R and '
+    'N holds an empty rule, the first copy takes the rule off N and the second takes it off G, '
+    'both ways, and the root widened in the first copy reaches N, which ends with R and U, though '
+    'no Synchronize gives anything beyond both copies. The sequence the write above names: a '
+    'widening of the root in copy 1 renews G, where N still holds its empty rule; once both ways, '
+    'N\'s version, taken off in copy 0 seeing R, cuts what G lets through to R; a narrowing of the '
+    'root to R in copy 0 renews G and leaves N, which was cutting; and a widening again renews G '
+    'and N, so that N, cut no longer by the time of that widening, follows it. What the model '
+    'cannot express: it holds a switch under an object of its own name, sw: and the node, which '
+    'store.py writes as switch: and the node\'s identifier; and its acts compose a version at the '
+    'write, with no buffer: an act reads the copy\'s file as it stands when the act is played and '
+    'writes at once, where STORE.md 629 has a rule set in a node\'s dialog written at the dialog\'s '
+    'OK, naming what the tab showed at the press. So no vector holds a write at a dialog\'s OK that '
+    'names only the versions the tab showed, nor a version that reached the database under an open '
+    'dialog and is left by the write above; and the only write of several rows is the rule act, '
+    'which sets the rows of a table at a single node, so no write here sets a row and the switch '
+    'together.')
 
 
 
