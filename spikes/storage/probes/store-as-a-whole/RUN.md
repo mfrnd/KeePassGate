@@ -1652,73 +1652,119 @@ keys sorted:
 
 ### The rules
 
-Added on 2026-11-20 for the rules kept in the store, `STORE.md` §617. Before any mode prints,
-the script switches the store's rows on as decided, as `bridge.rows('empty')` switches them for
-the runs of "Rules per profile": `crdt_model.ROWS` is `empty` and its `PP` on, `read.ROWS` and
-`read.PP` are on, and `store.ID_FORM` is `split`. A row's version is then identified by the
-subject hash over `rule:` and the node, and in bytes 9 and 10 by its profile's tag, the first two
-bytes of HMAC-SHA256 under the store key over `name`, a line feed and the name; a switch's
-version by the subject hash over `switch:` and the node, and zero. Switching the rows on changes
-nothing printed before but `--writes`: its start holds a version of the row of `pf` and of `pg`
-at the root granting read, and its four earlier sequences play the same acts with the same
-answers, but for the model's names of authorities, whose numbers rise by 1 (`a10` for `a9`).
+Added on 2026-11-20 for the rules kept in the store, `STORE.md` §617, and printed anew the same
+day in the form by what arrived, the form `seen` of "The two forms of S34" with a removed row
+taken off for real. Before any mode prints, the script switches the store's rows on in that form,
+as `bridge.rows` and then `bridge.dep('seen', 'off')` switch them for the runs of "The two forms
+of S34": `crdt_model.ROWS` is `off` and its `PP` on, `crdt_model.DEP` and `store.DEP` are `seen`,
+`read.ROWS` and `read.PP` are on, and `store.ID_FORM` is `split`. A row's version is then
+identified by the subject hash over `rule:` and the node, and in bytes 9 and 10 by its profile's
+tag, the first two bytes of HMAC-SHA256 under the store key over `name`, a line feed and the
+name; a switch's version by the subject hash over `switch:` and the node, and zero.
+
+**The form.** A version that takes a rule off records the letters that arrived for its profile
+when it was written, or `deny` where the node's own switch refused; a version of the switch that
+inherits records them for each profile. The reading cuts what arrives at a node that lets a
+profile through to the letters of each such record, `deny` holding none. A write at a node with
+nodes below writes anew each version below that let everything through, the nearer node first,
+with what arrives after it; a version that was cutting already, or `off:deny`, is left.
 
 **What the script chooses, and the model does not.**
 
 - **The texts.** In the script alone, `store.py`'s `doc` and `undoc` are replaced by the same
-  functions with the model's two letters written as the product writes them: read as `R` and
-  write as `U`. A row's text is `row:` and its letters in the order of CRUSDLAP (`row:RU`,
-  `row:R`, `row:U`), `row:` alone an empty rule, `off:` the rule taken off, and a switch's
-  `sw:deny` or `sw:inherit`. A text of a row or a switch in any other form is refused as the
-  script prints. `U` for write is the script's choice: the model's write has no letter in
-  CRUSDLAP.
+  functions with the model's letters written as the product writes them. A row's text is `row:`
+  and its letters, `row:` alone an empty rule; a rule taken off is `off:` and the letters that
+  arrived, `off:` alone where nothing arrived, or `off:deny`; a switch's text is `sw:deny`, or
+  `sw:inherit` followed, for each profile at least a letter arrived for, by a space, the name, `=`
+  and its letters, the names in ascending ordinal order. The model writes every mask in lower case
+  and in alphabetical order (`off:alr`); the product writes it in capitals in the order of
+  CRUSDLAP, each letter at most once (`off:RLA`), and each vector's `about` names the difference.
+  With the model's two letters, read and write are `R` and `U`: `U` for write is the script's
+  choice, since the model's write has no letter in CRUSDLAP.
+- **The reader.** The script reads a product's text strictly before `store.py`'s `undoc`: a mask
+  of capitals of the letters the model is configured with, in the order of CRUSDLAP and each at
+  most once; `off:deny` and `sw:deny` exactly; `sw:inherit` and items, each a single space, a
+  name of 1 to 64 ASCII letters, digits, `-` and `_` other than `default`, `=` and a mask of at
+  least a letter, the names ascending and so each once, nothing after the last. A text it refuses
+  is out of form; `store.py`'s `undoc` alone takes some of them.
+- **The configurations.** `configure` sets the model, `store.py` and `read.py` to a set of
+  profiles, a set of letters and two or three levels, as `bridge.owed` does. The records of
+  `--records` and the stores of `--meanings` are composed with the full mask and the profiles `pf`
+  and `pg`, so that a mask shows the order of CRUSDLAP; read and write are then the model's `r`
+  and `u`, written `R` and `U` as before. `--writes` plays two profiles, read and write and two
+  levels, but O6, O7, L8, L9 and L10, which play the profiles `pf`, `pg`, `ph` and `pi` with the
+  full mask as they were measured, and R1a and the writes above, which play three levels.
 - **The nodes.** The root is `aa` repeated 16 times and the model's node N `bb` repeated 16
-  times, a group directly under the root; `--meanings` adds a group `cc` repeated 16 times
-  directly under N. In `--writes` the root and N are the only nodes, given under `nodes` and
-  `tree`.
+  times; `--meanings` adds a group `cc` repeated 16 times directly under N. In `--writes` N is
+  directly under the root, or, with three levels, under the model's group G, `dd` repeated 16
+  times, directly under the root; each sequence gives its own under `nodes` and `tree`.
 - **The keys and the tags.** The rule records of `--records` and the stores of `--meanings` are
   under `keybytes('one')`, `849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8`,
   as every record of those files is; the sequences of `--writes` under the model's label `K`.
   The profile tags under the first are `pf` `bf7f`, `pg` `c5f4` and `px` `e708`, under the
   second `pf` `5348` and `pg` `cfd6`.
-- **The profiles** are the model's `pf` and `pg`, and `px` in two stores of `--meanings`.
+- **The profiles** are the model's `pf` and `pg`, `px` in two stores of `--meanings`, `Zeta`,
+  `p-b` and `pa` beside `pf` and `pg` in the versions of the switch of `--records`, so that the
+  ordinal order of the names shows, and `ph` and `pi` in O6, O7 and L8 to L10.
 - **The nonces.** Every rule record of `--records` holds the nonce of the file's other records;
   versions made apart in `--meanings` differ in their nonce, the third derived as the invented
   values are.
 
 **What each mode prints for the rules.**
 
-- **`--records`**: a version of `pf` at N granting `row:RU`, an empty rule of `pg`, a rule of
-  `pf` taken off, the switch refusing and inheriting, a version of `pf` granting `row:R` that
-  names in `after` the grant and the rule taken off, and a summary entry of height 1 holding the
-  item `format` and an item `version` for each of the first five, by its identifier as `id` and
-  its `object`, `after` and `doc`. For a row, the `subject` and `number` printed are those its
-  identifier holds: `rule:` and the node, and the profile's tag read as a big-endian number.
-  `profileTags` holds the tag of `pf` and of `pg`.
+- **`--records`**: versions of `pf` at N granting `row:RU`, taken off with `off:RLA`, with `off:`
+  and with `off:deny`; an empty rule of `pg`; the switch refusing, inheriting with a mask for each
+  of five profiles, and inheriting with none; a rule taken off and the switch, each renewed by a
+  write above, naming the version it renews; a version of `pf` granting `row:R` that names the
+  grant and the first rule taken off; a summary entry of height 1 holding the item `format` and an
+  item `version` for each of those, by its identifier as `id` and its `object`, `after` and
+  `doc`. For a row, the `subject` and `number` printed are those its identifier holds: `rule:`
+  and the node, and the profile's tag read as a big-endian number. `profileTags` holds the tag of
+  `pf`, `pg` and `px`. `texts` holds 47 texts of a row or a switch, each with the model's own
+  text where the reader takes it, and null where it refuses it.
 - **`--meanings`**: stores of the first authority, the root's rows of `pf` and `pg` granting
-  `RU`, the versions the store's name gives, and a summary entry restating what stands. A row in
-  each state, granting, emptied, taken off and never made; two and three versions of a row,
-  granting, emptied and taken off, and three that grant with no letter all of them hold; each of
-  these also under N's switch refusing. Versions of the switch that differ; a row and a switch
-  lost by a deletion record; deletion records of a version that a standing version names, that
-  the summary entry restates, and of a row of `px`, before and after an addition makes the name
-  known; a version present beside a deletion record naming it, alone, beside a version that
-  grants and beside a version naming it; and limits at N above a group whose own row grants, at
-  N and at the group under it, and at the root. Each answer adds `rules`: what each node gives
-  `pf` and `pg` as letters, the standing texts of each row and switch, what a deletion record
-  shows lost, and `read.py`'s value of each, whether it refuses, the letters all granting
-  versions hold, and whether a version takes the rule off; and `tree`. Every store reads as `ok`.
-- **`--writes`**: every answer adds `rules` for the root and N, and a version present or deleted
-  adds its `object`, with its `subject` and `number` as `--records` gives them. The sequences of
-  `measured-rules-per-profile` sections 4, 5 and 7 that run over two copies, named by their
-  labels there: A1 to A7, the two copies of section 5, D1 to D3 in the form `again`, and W1 to
-  W8. Each plays a base in copy 0, a Synchronize into copy 1, the acts of each copy apart, and a
-  Synchronize of copy 1 into copy 0 and of copy 0 into copy 1, by the model's acts `row`,
-  `switch` and `drop` and its `kp_sync`, as the commands Set row, Remove row, Set switch, Remove
-  version and Synchronize. A rule act of the report that sets several rows is an act for each
-  row, in the order of the profiles' names, and an act that changes no row is left out. Every
-  step reads as `ok` under a single key; the second removal in W6 writes nothing, and at the end
-  of W8 N gives `pf` `RU`, which neither copy gave, as measured.
+  `RU` (or the root's versions a store names), the versions the store's name gives, and a summary
+  entry restating what stands. Every store of the earlier file, in the form: a rule taken off
+  holds what arrived when it was taken off, `RU` at N, `R` at the group under N where N gives `R`,
+  nothing at the root, and `off:deny` under N's switch refusing; each answers in letters as the
+  earlier store did. Beside them, 17 stores of the form itself: a cut of what arrives now; a rule
+  taken off at the group under N below a version at N made apart, which it did not see; a record
+  holding more than arrives; two records made apart; `off:deny` under a switch with no version,
+  beside the switch turned to inherit made apart, and renewed by that switch, each renewal naming
+  the version it replaces, under a deletion record; a rule taken off before the switch was turned
+  to refuse; the switch inheriting with masks beside a widening above, and naming a single
+  profile; a rule and the switch both recording; a switch and no verb left at N, as O6 and O7
+  end; cuts at N and at the group under N along a single walk, by a rule and by the group's
+  switch; and a rule taken off and the switch inheriting, each lost by a deletion record. Each
+  answer adds `rules`: what each node gives `pf` and `pg` as letters and as capabilities,
+  `crdt_model.caps` of the letters, the standing texts of each row and switch, what a deletion
+  record shows lost, and `read.py`'s value of each, whether it refuses, the letters all granting
+  versions hold, whether a version takes the rule off, and what the standing versions record; and
+  `tree`. Every store reads as `ok`.
+- **`--writes`**: every answer adds `rules` for each node, capabilities among it, a version present
+  or deleted adds its `object`, with its `subject` and `number` as `--records` gives them, and
+  every Synchronize adds `beyond`, what the copy merged into gives beyond both copies just before
+  the merge, by letters and by capabilities, as `store_runs.py`'s `part_dep` holds a merge. The
+  sequences whose names begin `rules,` are those of `measured-rules-per-profile` sections 4, 5 and
+  7 that run over two copies, A1 to A7, the two copies of section 5, D1 to D3 in the form `again`,
+  and W1 to W8, each a base in copy 0, a Synchronize into copy 1, the acts of each copy apart, and
+  a Synchronize of copy 1 into copy 0 and of copy 0 into copy 1; a rule act of the report that
+  sets several rows is an act for each row, in the order of the profiles' names, and an act that
+  changes no row is left out. They answer as the earlier file did, but W6 and W8, as
+  `measured-rules-across-levels` section 4 has them: W8 ends with N giving `pf` `R`, what the
+  first copy gave, and W6 with `RU`, by design (H9). The sequences whose names begin `form,`: O6
+  and O7 from `owed.py`'s `merges4`, L8, L9 and L10 from its `levels`, played the same way, ending
+  with `pf` given `A` alone at N in O6 and O7, a switch with no verb and so no capability, `RL` at
+  G and N in L8, `RL` at N in L9 and nothing for `pf` at N in L10; H1, then the press that settles
+  (the model's `lift`), H3, H4, H9 and H10 as `s34.py` plays them, H10 with the root's row of
+  `pf` first set to no letter, so that nothing arrives for `pf`, as the design states it; R1a; and
+  a sequence of writes above at three levels, which renews G and N, leaves N while it cuts, and
+  renews it once it no longer cuts. Every step reads as `ok` under a single key. No Synchronize
+  gives anything beyond both copies but the last of H4, which gives `pf` `R` at N, within what N's
+  version recorded; R1a ends with N giving `pf` `RU` after a widening of the root made after the
+  merge. The commands are Set row, Remove row, Set switch, Set rows (the model's `rule` act with a
+  table, a version for each row it names in a single write), Settle limit, Remove version and
+  Synchronize.
 
 ### Defects and limits
 
@@ -1749,24 +1795,28 @@ answers, but for the model's names of authorities, whose numbers rise by 1 (`a10
 - **The model holds a switch under an object of its own name**, `sw:` and the node, which
   `store.py` writes as `switch:` and the node's identifier, and **its acts compose a version at
   the write, with no buffer**: an act reads the copy's file as it stands when played and writes
-  at once, where `STORE.md` §629 has a rule set in a node's dialog written at the dialog's OK.
-  So no vector holds a version composed from what a dialog showed at a press, and no write of
-  several rows at once: each row is a write of its own, with its own summary entry. The `about`
-  of each of the three files names both.
-- **The model has two letters.** No vector holds `C`, `S`, `D`, `L`, `A` or `P`, and the order of
-  CRUSDLAP shows only as `R` before `U`: `store.py` sorts a row's letters as text, which agrees
-  with CRUSDLAP for these two alone.
-- **`--writes` is about 2.5 MB**, since every step holds the whole file.
+  at once, where `STORE.md` §629 has a rule set in a node's dialog written at the dialog's OK,
+  naming the versions the tab showed at the press. So no vector holds a write at a dialog's OK
+  that names only what the tab showed, nor a version that reached the database under an open
+  dialog and that the write above leaves (H6), nor the dialog's own order of an X and the switch
+  (H8). The only write of several rows is the model's `rule` act, a table of rows at a single
+  node: no write sets rows at several nodes, or a row and the switch together. The `about` of
+  each of the three files names this.
+- **`--writes` is about 4.3 MB**, since every step holds the whole file.
 
 ### Not printed
 
-- **A text out of form.** `read.py` reads a version's text with `undoc`, which raises on a text
-  it does not know, so the reading has no answer where the product refuses that profile's row.
-  No store holds such a text, and none holds an object out of form either.
+- **A store holding a text out of form.** `read.py` reads a version's text with `undoc`, which
+  raises on a text the script's reader refuses, so the reading has no answer where the product
+  refuses that profile's row or reads the switch as refusing. `--records` lists such texts in
+  `texts`; no store holds such a text, and none holds an object out of form either.
 - **Two names whose tags meet.** `read.py` keeps a single name for each tag, the last of a set
   whose order changes from run to run, so its answer is neither both rows refused, as the
   product reads such a deletion record, nor the same in two runs.
 - **The sequences over three copies** of `measured-rules-per-profile` section 5 and D4 and D5,
-  outside the two copies the write vectors play; **the removal forms `void` and `limit`**, and
-  **the ways `again` and `off` of writing a removed row**, which the store does not take; and
-  **W9**, which writes a node's rule whole.
+  and the residual history over three copies, outside the two copies the write vectors play;
+  **the removal forms `void` and `limit`**, and **W9**, which writes a node's rule whole.
+- **The form by identity**, and the store as decided beside the form: each vector holds the form
+  by what arrived alone.
+- **H5, H7 and H13**, which move a node with the model's `nmove`, and **H16**, a name put back on
+  the list apart from a row widened, which the reading of rules does not see.
