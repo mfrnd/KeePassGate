@@ -148,9 +148,10 @@
 param([string[]] $Parts = @(), [int] $Parallel = 6, [switch] $Decided, [switch] $Rewrite, [switch] $Copies,
     [ValidateSet('', 'nothing', 'profile', 'verb', 'cap', 'cap-items')] [string] $Reading = '',
     [switch] $Rows,     # ADDED (rules per profile)
-    [switch] $Owed)     # ADDED (owed forms)
-if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent, ($Reading -ne ''), $Rows.IsPresent, $Owed.IsPresent | Where-Object { $_ }).Count -gt 1) {
-    throw 'One of -Decided, -Rewrite, -Copies, -Reading, -Rows, -Owed.'     # ADDED (two readings); -Reading (copies extended); -Rows (rules per profile); -Owed (owed forms)
+    [switch] $Owed,     # ADDED (owed forms)
+    [switch] $S34)      # ADDED (S34 forms)
+if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent, ($Reading -ne ''), $Rows.IsPresent, $Owed.IsPresent, $S34.IsPresent | Where-Object { $_ }).Count -gt 1) {
+    throw 'One of -Decided, -Rewrite, -Copies, -Reading, -Rows, -Owed, -S34.'     # ADDED (two readings); -Reading (copies extended); -Rows (rules per profile); -Owed (owed forms); -S34 (S34 forms)
 }
 
 $ErrorActionPreference = 'Stop'
@@ -283,6 +284,33 @@ if ($Owed) {
         'combine'         = @("$model\store_runs.py", '--owed', 'combine', '200000')
     }
 }
+# ADDED (S34 forms): the forms of S34-DESIGN.md, each beside the store as decided, the longest first
+if ($S34) {
+    $config = 's34'
+    $all = [ordered]@{}
+    foreach ($form in 'seen', 'above') {
+        $all["search-acts-$form"] = @("$model\store_runs.py", '--depform', $form, '--rows', 'off', 'acts', 'search')
+        $all["beyond-4-mask-3-$form"] = @("$model\store_runs.py", '--dep', $form, 'off', '4', 'crusdlap', '3', '200000', '34')
+        $all["long-2-$form"] = @("$model\store_runs.py", '--dep', $form, 'off', '2', 'rw', '2', '200000', '34', '8-14')
+        $all["moves-3-$form"] = @("$model\store_runs.py", '--dep', $form, 'off', '2', 'rw', '3', '200000', '34', 'moves')
+        $all["beyond-4-mask-$form"] = @("$model\store_runs.py", '--dep', $form, 'off', '4', 'crusdlap', '2', '200000', '34')
+        $all["beyond-2-mask-$form"] = @("$model\store_runs.py", '--dep', $form, 'off', '2', 'crusdlap', '2', '200000', '34')
+        $all["beyond-4-rw-$form"] = @("$model\store_runs.py", '--dep', $form, 'off', '4', 'rw', '2', '200000', '34')
+        foreach ($variant in 'off', 'again', 'empty') {
+            $all["beyond-2-rw-$variant-$form"] = @("$model\store_runs.py", '--dep', $form, $variant, '2', 'rw', '2', '200000', '34')
+        }
+    }
+    foreach ($variant in 'again', 'off') {
+        $all["beyond-2-rw-$variant-none"] = @("$model\store_runs.py", '--dep', 'none', $variant, '2', 'rw', '2', '200000', '34')
+    }
+    $all['combine'] = @("$model\store_runs.py", '--dep', 'combine', '200000')
+    foreach ($form in 'seen', 'above') {
+        $all["subtree-$form"] = @("$model\store_runs.py", '--dep', 'subtree', $form)
+        foreach ($p in 'switch', 'cells3', 'cells4', 'afters', 'moves', 'hand') {
+            $all["$p-$form"] = @("$probe\s34.py", $p, $form)
+        }
+    }
+}
 # Through -File a list arrives as one string, so commas are split here.
 $Parts = @($Parts | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 if ($Parts.Count -eq 0) { $Parts = @($all.Keys) }
@@ -296,7 +324,7 @@ if ($Parts.Count -eq $all.Count) {
     if ($config) {
         # ADDED (two readings): the configuration's own output and databases only
         if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
-        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } elseif ($Rows) { 'pe-*', 'po-*' } elseif ($Owed) { 'qo-*' } else {     # ADDED (owed forms): qo-*
+        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } elseif ($Rows) { 'pe-*', 'po-*' } elseif ($Owed) { 'qo-*' } elseif ($S34) { 'qss-*', 'qsa-*' } else {     # ADDED (owed forms): qo-*; (S34 forms): qss-* and qsa-*
             $letter = if ($Reading -eq 'cap-items') { 'i' } else { $Reading[0] }     # ADDED (copies extended)
             "x${letter}h-*", "x${letter}e-*"
         }

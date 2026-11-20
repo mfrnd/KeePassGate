@@ -82,17 +82,49 @@ def subject_of(kind, d):
 
 PROFS = ('pf', 'pg')    # ADDED (copies extended): the profiles a rule may name
 LETTERS = 'rw'          # ADDED (owed forms): the letters a row's version may hold
+# ADDED (S34 forms): the texts of `S34-DESIGN.md` 2.2 and 2.3, with the probe's letters. 'seen': a
+# rule taken off is 'off:' and the letters that arrived ('off:' alone, nothing), or 'off:deny'; the
+# switch inheriting is 'sw:inherit' and, for each profile something arrived for, ' pf=rw'. 'above':
+# a rule taken off is 'off:@' and the identifiers named, separated by commas, or 'off:deny'; the
+# switch inheriting is 'sw:inherit' and, for each profile with a version above, ' pf=@' and its
+# identifiers. The design puts the identifiers in a member `above`; the probe keeps them in `doc`,
+# which its summary items restate whole as well.
+DEP = None
 
 
-def doc(f):
+def rec_doc(rec, uid=None):
+    """ADDED (S34 forms): a record of a rule taken off, as text."""
+    if rec[0] == 'deny':
+        return 'deny'
+    if rec[0] == 's':
+        return ''.join(sorted(rec[1]))
+    return '@' + ','.join(sorted(uid(i) if uid else i for i in rec[1]))
+
+
+def doc(f, uid=None):       # ADDED (S34 forms): `uid`, an element's identifier on the file
     # ADDED (rules per profile): a row's version: 'row:<letters>' (an empty rule is 'row:'), 'off:'
     # the rule taken off, 'void:' a version holding nothing of its own, 'cut:<letters>' letters
     # granted and the rule taken off together; a switch's version: 'sw:deny' or 'sw:inherit'
     if f[0] == 'rows':
         if f[1] is None:
+            if f[2] and len(f) > 3 and DEP is not None:     # ADDED (S34 forms): a written version's record
+                return 'off:' + '|'.join(sorted(rec_doc(r, uid) for r in f[3]))
             return 'off:' if f[2] else 'void:'
         return ('cut:' if f[2] else 'row:') + ''.join(sorted(f[1]))
     if f[0] == 'sws':
+        if len(f) > 2 and DEP is not None:      # ADDED (S34 forms): the switch's record
+            out = []
+            for r in sorted(f[2], key=repr):
+                if r[0] == 's':
+                    per = {}
+                    for x in r[1]:
+                        p, w = x.split('.')
+                        per.setdefault(p, []).append(w)
+                    out.append(''.join(' %s=%s' % (p, ''.join(sorted(per[p]))) for p in sorted(per)))
+                else:
+                    out.append(''.join(' %s=@%s' % (p, ','.join(sorted(uid(i) if uid else i for i in ids)))
+                                       for p, ids in sorted(r[1])))
+            return 'sw:' + '/'.join(sorted(f[1])) + '|'.join(out)
         return 'sw:' + '/'.join(sorted(f[1]))
     if f[0] == 'pp':    # ADDED (copies extended): 'pp:pf=rw,pg=', a profile left out inheriting
         named = [p for p in PROFS if not any(x.startswith(p + '.') for x in f[2])]
@@ -103,6 +135,33 @@ def doc(f):
 
 def undoc(s):
     k, w = s.split(':', 1)
+    if k == 'off' and DEP is not None:      # ADDED (S34 forms): what a rule taken off recorded
+        if w == 'deny':
+            return ('rows', None, True, frozenset([('deny',)]))
+        if DEP == 'above':
+            if not w.startswith('@'):
+                raise ValueError(s)
+            return ('rows', None, True, frozenset([('a', frozenset(x for x in w[1:].split(',') if x))]))
+        if not set(w) <= set(LETTERS):
+            raise ValueError(s)
+        return ('rows', None, True, frozenset([('s', frozenset(w))]))
+    if k == 'sw' and DEP is not None and w.split(' ')[0] == 'inherit':     # ADDED (S34 forms)
+        items = w.split(' ')[1:]
+        if DEP == 'seen':
+            letters = set()
+            for x in items:
+                p, ws = x.split('=')
+                if not ws or not set(ws) <= set(LETTERS):
+                    raise ValueError(s)
+                letters |= set(p + '.' + c for c in ws)
+            return ('sws', frozenset(['inherit']), frozenset([('s', frozenset(letters))]))
+        pairs = []
+        for x in items:
+            p, ids = x.split('=')
+            if not ids.startswith('@'):
+                raise ValueError(s)
+            pairs.append((p, frozenset(i for i in ids[1:].split(',') if i)))
+        return ('sws', frozenset(['inherit']), frozenset([('a', frozenset(pairs))]))
     if k in ('row', 'cut', 'off', 'void'):      # ADDED (rules per profile)
         if not set(w) <= set(LETTERS) or (k in ('off', 'void') and w):     # ADDED (owed forms): LETTERS
             raise ValueError(s)
@@ -183,7 +242,7 @@ class Encoder:
             kind, d = 'removed', {'v': '2', 'name': e.obj, 'nonce': nonce}
         elif e.kind == 'ver':
             kind, d = 'version', {'v': '2', 'object': self.obj(e.obj), 'after': ' '.join(sorted(self.u(x) for x in e.after)),
-                                  'doc': doc(e.data), 'nonce': nonce}
+                                  'doc': doc(e.data, self.u), 'nonce': nonce}     # ADDED (S34 forms): self.u
         elif e.kind == 'head':
             height = e.height
             kind, d = 'head', {'v': '2', 'height': str(e.height), 'after': ' '.join(sorted(self.u(x) for x in e.after)),
@@ -196,7 +255,7 @@ class Encoder:
             for vid in sorted(e.data['regs']):
                 v = W.EL[vid]
                 items.append({'kind': 'version', 'id': self.u(vid), 'object': self.obj(v.obj),
-                              'after': ' '.join(sorted(self.u(x) for x in v.after)), 'doc': doc(v.data)})
+                              'after': ' '.join(sorted(self.u(x) for x in v.after)), 'doc': doc(v.data, self.u)})     # ADDED (S34 forms): self.u
             # ADDED (copies extended): the copies a Seal again acknowledged, by the identifier
             # each copy's content gives
             for cid in sorted(e.data.get('ack', ())):

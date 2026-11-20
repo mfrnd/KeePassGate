@@ -104,12 +104,25 @@ def und(s):
     return gen(f) if PP and f[0] not in ('rows', 'sws') else f     # ADDED (rules per profile): not a row
 
 
+def deps_of(x):
+    """ADDED (S34 forms): the records a value holds, as crdt_model.deps_of."""
+    if x is None:
+        return frozenset()
+    if x[0] == 'rows' and len(x) > 3:
+        return x[3]
+    if x[0] == 'sws' and len(x) > 2:
+        return x[2]
+    return frozenset()
+
+
 def meet(f, g):
     if f[0] == 'rows' and g[0] == 'rows':   # ADDED (rules per profile): as crdt_model.meet
         G = f[1] if g[1] is None else g[1] if f[1] is None else f[1] & g[1]
-        return ('rows', G, f[2] or g[2])
+        D = deps_of(f) | deps_of(g)         # ADDED (S34 forms): the records of every version
+        return ('rows', G, f[2] or g[2], D) if D else ('rows', G, f[2] or g[2])
     if f[0] == 'sws' and g[0] == 'sws':     # ADDED (rules per profile)
-        return ('sws', f[1] | g[1])
+        D = deps_of(f) | deps_of(g)         # ADDED (S34 forms)
+        return ('sws', f[1] | g[1], D) if D else ('sws', f[1] | g[1])
     if f[0] == 'pp' or g[0] == 'pp':    # ADDED (copies extended): letter by letter
         f, g = gen(f), gen(g)
         c = f[1] & g[1]
@@ -621,6 +634,45 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
         parent[u] = e['parent']
     memo = {}
 
+    # ADDED (S34 forms): what a node lets through for a profile, cut or checked by what its versions
+    # that let through record, as crdt_model.dep_cut, over the file's tree
+    def standing_ids(o):
+        V = vers.get(o) or {}
+        dd = set()
+        for after, f in V.values():
+            dd |= after
+        return frozenset(i for i in V if i not in dd)
+
+    def walk_above(n, p):
+        ids, m = set(), n
+        while m != dump['root']:
+            m = parent[m]
+            ids |= standing_ids('rule:%s/%s' % (m, p))
+            r = freg('rule:%s/%s' % (m, p))
+            if r is not None and (r[0] == 'const' or (r[1] is not None and not r[2])):
+                break
+            ids |= standing_ids('switch:' + m)
+            if switch_refuses(freg('switch:' + m)):
+                break
+        return frozenset(ids)
+
+    def dep_cut(L, r, sw, n, p):
+        if S.DEP is None:
+            return L
+        for rec in deps_of(r):
+            if rec[0] == 'deny':
+                return set()
+            if S.DEP == 'seen':
+                L = L & set(p + '.' + w for w in rec[1])
+            elif rec[1] != walk_above(n, p) | standing_ids('switch:' + n):
+                return set()
+        for rec in deps_of(sw):
+            if S.DEP == 'seen':
+                L = L & rec[1]
+            elif dict(rec[1]).get(p, frozenset()) != walk_above(n, p):
+                return set()
+        return L
+
     def words(n):
         if n in memo:
             return memo[n]
@@ -628,7 +680,8 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
         if PP:      # ADDED (copies extended)
             f = gen(f)
         if ROWS:    # ADDED (rules per profile): the node's rule from its rows and its switch
-            deny = switch_refuses(freg('switch:' + n))
+            sw = freg('switch:' + n)
+            deny = switch_refuses(sw)
             C, P = set(), set()
             for p in S.PROFS:
                 r = freg('rule:%s/%s' % (n, p))
@@ -636,10 +689,10 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
                     continue
                 if r is None or r[1] is None:
                     if not deny:
-                        P |= set(p + '.' + w for w in LETTERS)     # ADDED (owed forms): LETTERS
+                        P |= dep_cut(set(p + '.' + w for w in LETTERS), r, sw, n, p)     # ADDED (owed forms): LETTERS; (S34 forms): dep_cut
                 elif r[2]:
                     if not deny:
-                        P |= set(p + '.' + w for w in r[1])
+                        P |= dep_cut(set(p + '.' + w for w in r[1]), r, sw, n, p)     # ADDED (S34 forms): dep_cut
                 else:
                     C |= set(p + '.' + w for w in r[1])
             f = ('pp', frozenset(C), frozenset(P))

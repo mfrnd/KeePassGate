@@ -142,6 +142,15 @@ def owed(profs, letters, levels):
         NODES, JUDGE = ('N', 'root', 'G'), ('root', 'G', 'N')
 
 
+def dep(form, variant):
+    """ADDED (S34 forms): rules per profile under a form of `S34-DESIGN.md`, DEP None, 'seen' or
+    'above', with a removed row written as `variant`, in the model and in the file's texts. Called
+    after rows() and owed(); a part may call it again to play the store as decided beside."""
+    global ROWS
+    M.DEP, S.DEP = form, form
+    M.ROWS = ROWS = variant
+
+
 def use(form):
     """ADDED (rules per profile): 'rows', the configuration's form, or 'whole', a version of a node's
     whole rule as every configuration before, with the words per profile kept on, so that a part
@@ -545,6 +554,8 @@ class Bridge:
             os.replace(tmp, f[op[1]])
         elif kind == 'dedupe':
             self.h.run('dedupe', f[op[1]])
+        elif kind == 'nmove':       # ADDED (S34 forms): N moved between G (General) and the root
+            self.h.run('move', f[op[1]], self.ids[op[2]], 'General' if op[3] == 'G' else 'Root', t)
         else:
             raise ValueError(op)
         self.W = P

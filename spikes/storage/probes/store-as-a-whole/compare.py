@@ -103,7 +103,7 @@ def main():
     # ADDED (two readings): the last two; ADDED (copies extended): --reading-LEVEL
     if sys.argv[1:] in (['--decided'], ['--rewrite'], ['--copies']) or sys.argv[1:2] in (
             ['--reading-nothing'], ['--reading-profile'], ['--reading-verb'], ['--reading-cap'],
-            ['--reading-cap-items'], ['--rows'], ['--owed']):     # ADDED (rules per profile): --rows; (owed forms): --owed
+            ['--reading-cap-items'], ['--rows'], ['--owed'], ['--s34']):     # ADDED (rules per profile): --rows; (owed forms): --owed; (S34 forms): --s34
         name = sys.argv[1][2:]
         OUT, REC = os.path.join(OUT, name), os.path.join(FAMILY, 'recorded-' + name)
     bad = 0
