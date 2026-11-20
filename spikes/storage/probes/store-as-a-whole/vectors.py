@@ -73,8 +73,8 @@ def letters(model):
     return ''.join(sorted((LETTERS[x] for x in model), key=ORDER.index))
 
 
-def product_doc(f):
-    text = MODEL_DOC(f)
+def product_doc(f, uid=None):
+    text = MODEL_DOC(f, uid)
     if f[0] not in ('rows', 'sws'):
         return text
     kind, _, rest = text.partition(':')
