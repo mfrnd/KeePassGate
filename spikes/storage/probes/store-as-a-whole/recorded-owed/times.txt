@@ -1,0 +1,13 @@
+﻿afters: 162 s, exit 0
+beyond-4-rw: 197 s, exit 0
+beyond-4-mask: 252 s, exit 0
+beyond-4-mask-3: 338 s, exit 0
+beyond-2-rw: 166 s, exit 0
+beyond-2-mask: 227 s, exit 0
+merges4: 121 s, exit 0
+levels: 171 s, exit 0
+random4: 368 s, exit 0
+offlist: 121 s, exit 0
+tags: 101 s, exit 0
+random3: 312 s, exit 0
+combine: 30 s, exit 0

@@ -1,0 +1,200 @@
+== Item 4: two profile names whose keyed tags meet, in the form `split` (the subject hash over the node's
+   rule, the profile's keyed tag in the two bytes of the height). Found by search under the store key:
+   q00067 and q00401, tag 6b11, after 402 names tried; q00238, the first name whose tag is 0000.
+   How likely two of n names meet under a key, 1 - (1 - 1/65536)(1 - 2/65536)...(1 - (n-1)/65536):
+      n =    2: 0.000015
+      n =    4: 0.000092
+      n =    8: 0.000427
+      n =   16: 0.001830
+      n =   32: 0.007541
+      n =   64: 0.030303
+      n =  100: 0.072784
+      n =  256: 0.392678
+      n = 1000: 0.999529
+   A name's tag is 0000 with chance 1/65536 = 0.000015 for each name.
+   The reading as the form was run fills a dictionary from a tag to a name by iterating the set of names
+   the file knows (here pf, q00067, q00401), and keeps the name the set yields last. Over the hash seeds 0 to 39 of
+   this Python, the name kept for the tag 6b11: q00067 in 17, q00401 in 23. So the same file reads differently from process to
+   process. Below, `first` and `last` are the two answers that reading gives, with the names sorted so
+   that each run is the same; `each` is the reading proposed: every name of the tag, where no version
+   present or restated carries the deletion record's identifier.
+## the reading `first`: a deletion record whose tag meets several names the file knows is told for the first of them in ordinal order, q00067
+   every merge both ways after G1
+## G1: row acts on both names apart: q00067 widened at copy 0, q00401 set to read at copy 1
+   base: rule 0 root rw ; padd 0 q00067 ; padd 0 q00401 ; row 0 N q00067 r ; row 0 N q00401  ; merge kp_sync 1 0; copy 0: row 0 N q00067 rw; copy 1: row 1 N q00401 r
+   before the merge: copy 0 gives root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:- | copy 1 gives root pf:rw q00067:rw q00401:rw; N pf:rw q00067:r q00401:r
+   KeePass Synchronize    into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:r q00401:r; within what the copies gave; oracle narrower [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:-; within what the copies gave; oracle narrower [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+== tally (history, the oracle's class): G1 as decided 16, G1 import narrower 2
+== tally (history, against both copies just before the merge): G1 within 16, G1 import within 2
+   letters: 0 cells, 0 of them imports
+   capabilities only: 0 cells, 0 of them imports
+   within: 18 cells, 2 of them imports
+## G2: the version of N/q00067 deleted for good with a deletion record, with every summary entry, at copy 0
+   after the deletion: store incomplete; pf X gives rw, q00067 refuses (a version lost) gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle refuses
+   Seal again: store ok; pf X gives rw, q00067 E gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 1: store ok; pf X gives rw, q00067 E gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 0: store ok; pf X gives rw, q00067 E gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; pf X gives rw, q00067 E gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; pf X gives rw, q00067 E gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+## G3: the version of N/q00401 deleted for good with a deletion record, with every summary entry, at copy 0
+   after the deletion: store incomplete; pf X gives rw, q00067 refuses (a version lost) gives -, q00401 X gives rw; tags that meet among the names the file knows: q00067/q00401; WIDER: q00401 gets rw, its last decision -; oracle refuses
+   Seal again: store ok; pf X gives rw, q00067 E gives -, q00401 X gives rw; tags that meet among the names the file knows: q00067/q00401; WIDER: q00401 gets rw, its last decision -; oracle WIDER
+   Synchronize into 1: store ok; pf X gives rw, q00067 E gives -, q00401 X gives rw; tags that meet among the names the file knows: q00067/q00401; WIDER: q00401 gets rw, its last decision -; oracle WIDER
+   Synchronize into 0: store ok; pf X gives rw, q00067 E gives -, q00401 X gives rw; tags that meet among the names the file knows: q00067/q00401; WIDER: q00401 gets rw, its last decision -; oracle WIDER
+   KeePassXC 2.8.0 into 1: store ok; pf X gives rw, q00067 E gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; pf X gives rw, q00067 E gives -, q00401 refuses (a version beside its deletion record) gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+## G4: the version of N/q00067 deleted for good with a deletion record; the summary entry restating it kept, at copy 0
+   after the deletion: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 1: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 0: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+## G5: the version of N/q00401 deleted for good with a deletion record; the summary entry restating it kept, at copy 0
+   after the deletion: store ok; pf X gives rw, q00067 refuses (a version lost) gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle narrower
+   Synchronize into 1: store ok; pf X gives rw, q00067 refuses (a version lost) gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle narrower
+   Synchronize into 0: store ok; pf X gives rw, q00067 refuses (a version lost) gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle narrower
+   KeePassXC 2.8.0 into 1: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; pf X gives rw, q00067 refuses (a version lost) gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle narrower
+## the reading `last`: a deletion record whose tag meets several names the file knows is told for the last of them in ordinal order, q00401
+   every merge both ways after G1
+## G1: row acts on both names apart: q00067 widened at copy 0, q00401 set to read at copy 1
+   base: rule 0 root rw ; padd 0 q00067 ; padd 0 q00401 ; row 0 N q00067 r ; row 0 N q00401  ; merge kp_sync 1 0; copy 0: row 0 N q00067 rw; copy 1: row 1 N q00401 r
+   before the merge: copy 0 gives root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:- | copy 1 gives root pf:rw q00067:rw q00401:rw; N pf:rw q00067:r q00401:r
+   KeePass Synchronize    into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:r q00401:r; within what the copies gave; oracle narrower [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:-; within what the copies gave; oracle narrower [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+== tally (history, the oracle's class): G1 as decided 16, G1 import narrower 2
+== tally (history, against both copies just before the merge): G1 within 16, G1 import within 2
+   letters: 0 cells, 0 of them imports
+   capabilities only: 0 cells, 0 of them imports
+   within: 18 cells, 2 of them imports
+## G2: the version of N/q00067 deleted for good with a deletion record, with every summary entry, at copy 0
+   after the deletion: store incomplete; pf X gives rw, q00067 X gives rw, q00401 refuses (a version lost) gives -; tags that meet among the names the file knows: q00067/q00401; WIDER: q00067 gets rw, its last decision r; oracle refuses
+   Seal again: store ok; pf X gives rw, q00067 X gives rw, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; WIDER: q00067 gets rw, its last decision r; oracle WIDER
+   Synchronize into 1: store ok; pf X gives rw, q00067 X gives rw, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; WIDER: q00067 gets rw, its last decision r; oracle WIDER
+   Synchronize into 0: store ok; pf X gives rw, q00067 X gives rw, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; WIDER: q00067 gets rw, its last decision r; oracle WIDER
+   KeePassXC 2.8.0 into 1: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; pf X gives rw, q00067 refuses (a version beside its deletion record) gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle narrower
+## G3: the version of N/q00401 deleted for good with a deletion record, with every summary entry, at copy 0
+   after the deletion: store incomplete; pf X gives rw, q00067 row:r gives r, q00401 refuses (a version lost) gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle refuses
+   Seal again: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 1: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 0: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+## G4: the version of N/q00067 deleted for good with a deletion record; the summary entry restating it kept, at copy 0
+   after the deletion: store ok; pf X gives rw, q00067 row:r gives r, q00401 refuses (a version lost) gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 1: store ok; pf X gives rw, q00067 row:r gives r, q00401 refuses (a version lost) gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 0: store ok; pf X gives rw, q00067 row:r gives r, q00401 refuses (a version lost) gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; pf X gives rw, q00067 row:r gives r, q00401 refuses (a version lost) gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+## G5: the version of N/q00401 deleted for good with a deletion record; the summary entry restating it kept, at copy 0
+   after the deletion: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 1: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 0: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+## the reading `each`: a deletion record whose tag meets several names the file knows is told for each of them, where no version present or restated carries its identifier
+   every merge both ways after G1
+## G1: row acts on both names apart: q00067 widened at copy 0, q00401 set to read at copy 1
+   base: rule 0 root rw ; padd 0 q00067 ; padd 0 q00401 ; row 0 N q00067 r ; row 0 N q00401  ; merge kp_sync 1 0; copy 0: row 0 N q00067 rw; copy 1: row 1 N q00401 r
+   before the merge: copy 0 gives root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:- | copy 1 gives root pf:rw q00067:rw q00401:rw; N pf:rw q00067:r q00401:r
+   KeePass Synchronize    into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePass OverwriteExisting into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePass KeepExisting   into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePass CreateNewUuids into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:r q00401:r; within what the copies gave; oracle narrower [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:-; within what the copies gave; oracle narrower [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+                          into 0: root pf:rw q00067:rw q00401:rw; N pf:rw q00067:rw q00401:r; within what the copies gave; oracle as decided [entries 0, read 0]
+== tally (history, the oracle's class): G1 as decided 16, G1 import narrower 2
+== tally (history, against both copies just before the merge): G1 within 16, G1 import within 2
+   letters: 0 cells, 0 of them imports
+   capabilities only: 0 cells, 0 of them imports
+   within: 18 cells, 2 of them imports
+## G2: the version of N/q00067 deleted for good with a deletion record, with every summary entry, at copy 0
+   after the deletion: store incomplete; pf X gives rw, q00067 refuses (a version lost) gives -, q00401 refuses (a version lost) gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle refuses
+   Seal again: store ok; pf X gives rw, q00067 E gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 1: store ok; pf X gives rw, q00067 E gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 0: store ok; pf X gives rw, q00067 E gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; pf X gives rw, q00067 E gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; pf X gives rw, q00067 E gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+## G3: the version of N/q00401 deleted for good with a deletion record, with every summary entry, at copy 0
+   after the deletion: store incomplete; pf X gives rw, q00067 refuses (a version lost) gives -, q00401 refuses (a version lost) gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle refuses
+   Seal again: store ok; pf X gives rw, q00067 E gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 1: store ok; pf X gives rw, q00067 E gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 0: store ok; pf X gives rw, q00067 E gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; pf X gives rw, q00067 E gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; pf X gives rw, q00067 E gives -, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+## G4: the version of N/q00067 deleted for good with a deletion record; the summary entry restating it kept, at copy 0
+   after the deletion: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 1: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 0: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+## G5: the version of N/q00401 deleted for good with a deletion record; the summary entry restating it kept, at copy 0
+   after the deletion: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 1: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   Synchronize into 0: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; pf X gives rw, q00067 row:r gives r, q00401 E gives -; tags that meet among the names the file knows: q00067/q00401; no profile above its last decision; oracle as decided
+## G6: the name q00238, whose tag is 0000, with read at N; its version and every summary entry deleted for good with deletion records, at copy 0 (the reading `each`)
+   after the deletion: store incomplete; pf X gives rw, q00238 X gives rw; tags that meet among the names the file knows: none; WIDER: q00238 gets rw, its last decision r; oracle refuses
+   Seal again: store ok; pf X gives rw, q00238 E gives -; tags that meet among the names the file knows: none; no profile above its last decision; oracle as decided
+== tally (reading, sequence: the reads wider than a last decision, of the reads)
+   each G2: 0 of 6
+   each G3: 0 of 6
+   each G4: 0 of 5
+   each G5: 0 of 5
+   each G6: 1 of 2 (after the deletion)
+   first G2: 0 of 6
+   first G3: 4 of 6 (Seal again, Synchronize into 0, Synchronize into 1, after the deletion)
+   first G4: 0 of 5
+   first G5: 0 of 5
+   last G2: 4 of 6 (Seal again, Synchronize into 0, Synchronize into 1, after the deletion)
+   last G3: 0 of 6
+   last G4: 0 of 5
+   last G5: 0 of 5
+== 99 s

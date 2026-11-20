@@ -1,0 +1,4 @@
+== random histories of rows and switches, 4 profiles, the mask crusdlap, nodes root, N, the removal written as empty: 300 histories, steps 1967, entry disagreements 0, read differences 0, 149 s
+   files at the end against every decision: WIDER 328, as decided 227, narrower 167
+   merges held to both copies just before: 781; that gave more: by letters 0, by capabilities only 0
+== 150 s

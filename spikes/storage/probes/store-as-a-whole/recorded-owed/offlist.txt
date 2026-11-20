@@ -1,0 +1,616 @@
+== Item 3: a row of a name off the list whose records and summary items are lost. Client c1 is admitted
+   with pf and pg; pg is added to the list and given read at N; copy 1 takes everything; pg is removed from
+   the list at copy 0, and copy 1 takes that too. Two trees: the root gives pf and pg read and write, so that
+   pg is also named at the root (`root`), or the root names pf alone and pg is named at N alone (`N alone`).
+   Then at copy 0 what each loss names is lost, in each way; Seal again; pg added again, its addition naming
+   the removals the reading holds (`text`) or also those a deletion record tells once pg is counted as known
+   (`name`); a further write of the plugin's own (the name ph added); pg added a second time; then each
+   merge with copy 1. Each line: the state of N/pg (E an empty rule, O the rule taken off, X no version),
+   what N gives pg, the list, what c1 holds, the names the file knows from the list's records and items,
+   and what c1 reaches at N against the operator's last decisions (pf read and write; pg read once pg is
+   added again). The control: pg never removed, the row and every summary entry lost in each way.
+   base, root: rule 0 root rw ; pair 0 ; padd 0 pg ; row 0 N pg r ; merge kp_sync 1 0; then, but in the control, prem 0 pg ; merge kp_sync 1 0
+   base, N alone: row 0 root pf rw ; pair 0 ; padd 0 pg ; row 0 N pg r ; merge kp_sync 1 0; then, but in the control, prem 0 pg ; merge kp_sync 1 0
+## root; pg off the list; lost: the versions of N/pg and every summary entry; deleted for good, with deletion records; the addition as `text`
+   after the loss: store incomplete; N/pg refuses (a version lost), gives pg -; names pf; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg E, gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; as the last decision; oracle as decided
+   pg added again: store ok; N/pg E, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   a further write: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   pg added a second time (does not apply): store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg off the list; lost: the versions of N/pg and every summary entry; deleted for good, with deletion records; the addition as `name`
+   after the loss: store incomplete; N/pg refuses (a version lost), gives pg -; names pf; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg E, gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; as the last decision; oracle as decided
+   pg added again: store ok; N/pg E, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   a further write: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   pg added a second time (does not apply): store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg off the list; lost: the versions of N/pg and every summary entry; deleted for good, no deletion record; the addition as `text`
+   after the loss: store incomplete; N/pg X, gives pg rw; names pf; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg rw; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; as the last decision; oracle WIDER
+   pg added again: store ok; N/pg X, gives pg rw; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   a further write: store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   pg added a second time (does not apply): store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+## root; pg off the list; lost: the versions of N/pg and every summary entry; deleted for good, no deletion record; the addition as `name`
+   after the loss: store incomplete; N/pg X, gives pg rw; names pf; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg rw; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; as the last decision; oracle WIDER
+   pg added again: store ok; N/pg X, gives pg rw; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   a further write: store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   pg added a second time (does not apply): store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+## root; pg off the list; lost: the versions of N/pg and every summary entry; deleted to the recycle bin, the bin then emptied; the addition as `text`
+   after the loss: store incomplete; N/pg refuses (a version lost), gives pg -; names pf; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg E, gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; as the last decision; oracle as decided
+   pg added again: store ok; N/pg E, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   a further write: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   pg added a second time (does not apply): store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg off the list; lost: the versions of N/pg and every summary entry; deleted to the recycle bin, the bin then emptied; the addition as `name`
+   after the loss: store incomplete; N/pg refuses (a version lost), gives pg -; names pf; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg E, gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; as the last decision; oracle as decided
+   pg added again: store ok; N/pg E, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   a further write: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   pg added a second time (does not apply): store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg off the list; lost: the versions of N/pg and every summary entry; deleted for good with deletion records, then every deletion record removed; the addition as `text`
+   after the loss: store incomplete; N/pg X, gives pg rw; names pf; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg rw; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; as the last decision; oracle WIDER
+   pg added again: store ok; N/pg X, gives pg rw; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   a further write: store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   pg added a second time (does not apply): store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+## root; pg off the list; lost: the versions of N/pg and every summary entry; deleted for good with deletion records, then every deletion record removed; the addition as `name`
+   after the loss: store incomplete; N/pg X, gives pg rw; names pf; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg rw; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; as the last decision; oracle WIDER
+   pg added again: store ok; N/pg X, gives pg rw; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   a further write: store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   pg added a second time (does not apply): store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+## root; pg off the list; lost: the versions of N/pg, every summary entry, and pg's additions and removals; deleted for good, with deletion records; the addition as `text`
+   after the loss: store incomplete; N/pg refuses (a version lost), gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg E, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf pg; as the last decision; oracle as decided
+   pg added again: store ok; N/pg E, gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   a further write: store ok; N/pg E, gives pg -; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   pg added a second time: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg off the list; lost: the versions of N/pg, every summary entry, and pg's additions and removals; deleted for good, with deletion records; the addition as `name`
+   after the loss: store incomplete; N/pg refuses (a version lost), gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg E, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf pg; as the last decision; oracle as decided
+   pg added again: store ok; N/pg E, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   a further write: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   pg added a second time (does not apply): store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg off the list; lost: the versions of N/pg, every summary entry, and pg's additions and removals; deleted for good, no deletion record; the addition as `text`
+   after the loss: store incomplete; N/pg X, gives pg rw; names pf; c1 holds not admitted; names known from the list pf, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg rw; names pf; c1 holds pf; names known from the list pf, for rows pf pg; as the last decision; oracle WIDER
+   pg added again: store ok; N/pg X, gives pg rw; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   a further write: store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   pg added a second time (does not apply): store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg off the list; lost: the versions of N/pg, every summary entry, and pg's additions and removals; deleted for good, no deletion record; the addition as `name`
+   after the loss: store incomplete; N/pg X, gives pg rw; names pf; c1 holds not admitted; names known from the list pf, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg rw; names pf; c1 holds pf; names known from the list pf, for rows pf pg; as the last decision; oracle WIDER
+   pg added again: store ok; N/pg X, gives pg rw; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   a further write: store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   pg added a second time (does not apply): store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg off the list; lost: the versions of N/pg, every summary entry, and pg's additions and removals; deleted to the recycle bin, the bin then emptied; the addition as `text`
+   after the loss: store incomplete; N/pg refuses (a version lost), gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg E, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf pg; as the last decision; oracle as decided
+   pg added again: store ok; N/pg E, gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   a further write: store ok; N/pg E, gives pg -; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   pg added a second time: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg off the list; lost: the versions of N/pg, every summary entry, and pg's additions and removals; deleted to the recycle bin, the bin then emptied; the addition as `name`
+   after the loss: store incomplete; N/pg refuses (a version lost), gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg E, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf pg; as the last decision; oracle as decided
+   pg added again: store ok; N/pg E, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   a further write: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   pg added a second time (does not apply): store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg off the list; lost: the versions of N/pg, every summary entry, and pg's additions and removals; deleted for good with deletion records, then every deletion record removed; the addition as `text`
+   after the loss: store incomplete; N/pg X, gives pg rw; names pf; c1 holds not admitted; names known from the list pf, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg rw; names pf; c1 holds pf; names known from the list pf, for rows pf pg; as the last decision; oracle WIDER
+   pg added again: store ok; N/pg X, gives pg rw; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   a further write: store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   pg added a second time (does not apply): store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg off the list; lost: the versions of N/pg, every summary entry, and pg's additions and removals; deleted for good with deletion records, then every deletion record removed; the addition as `name`
+   after the loss: store incomplete; N/pg X, gives pg rw; names pf; c1 holds not admitted; names known from the list pf, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg rw; names pf; c1 holds pf; names known from the list pf, for rows pf pg; as the last decision; oracle WIDER
+   pg added again: store ok; N/pg X, gives pg rw; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   a further write: store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   pg added a second time (does not apply): store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg off the list; lost: the versions of every row of pg, every summary entry, and pg's additions and removals; deleted for good, with deletion records; the addition as `text`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf; as the last decision; oracle narrower
+   pg added again: store ok; N/pg refuses (a version lost), gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   a further write: store ok; N/pg refuses (a version lost), gives pg -; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   pg added a second time: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 1: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 0: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+## root; pg off the list; lost: the versions of every row of pg, every summary entry, and pg's additions and removals; deleted for good, with deletion records; the addition as `name`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf; as the last decision; oracle narrower
+   pg added again: store ok; N/pg refuses (a version lost), gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   a further write: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   pg added a second time (does not apply): store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 1: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 0: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+## root; pg off the list; lost: the versions of every row of pg, every summary entry, and pg's additions and removals; deleted for good, no deletion record; the addition as `text`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf; as the last decision; oracle narrower
+   pg added again: store ok; N/pg X, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   a further write: store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   pg added a second time (does not apply): store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg off the list; lost: the versions of every row of pg, every summary entry, and pg's additions and removals; deleted for good, no deletion record; the addition as `name`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf; as the last decision; oracle narrower
+   pg added again: store ok; N/pg X, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   a further write: store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   pg added a second time (does not apply): store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg off the list; lost: the versions of every row of pg, every summary entry, and pg's additions and removals; deleted to the recycle bin, the bin then emptied; the addition as `text`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf; as the last decision; oracle narrower
+   pg added again: store ok; N/pg refuses (a version lost), gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   a further write: store ok; N/pg refuses (a version lost), gives pg -; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   pg added a second time: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 1: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 0: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+## root; pg off the list; lost: the versions of every row of pg, every summary entry, and pg's additions and removals; deleted to the recycle bin, the bin then emptied; the addition as `name`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf; as the last decision; oracle narrower
+   pg added again: store ok; N/pg refuses (a version lost), gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   a further write: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   pg added a second time (does not apply): store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 1: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 0: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+## root; pg off the list; lost: the versions of every row of pg, every summary entry, and pg's additions and removals; deleted for good with deletion records, then every deletion record removed; the addition as `text`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf; as the last decision; oracle narrower
+   pg added again: store ok; N/pg X, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   a further write: store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   pg added a second time (does not apply): store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg off the list; lost: the versions of every row of pg, every summary entry, and pg's additions and removals; deleted for good with deletion records, then every deletion record removed; the addition as `name`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf; as the last decision; oracle narrower
+   pg added again: store ok; N/pg X, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   a further write: store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   pg added a second time (does not apply): store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## N alone; pg off the list; lost: the versions of N/pg and every summary entry; deleted for good, with deletion records; the addition as `text`
+   after the loss: store incomplete; N/pg refuses (a version lost), gives pg -; names pf; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg E, gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; as the last decision; oracle as decided
+   pg added again: store ok; N/pg E, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   a further write: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   pg added a second time (does not apply): store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## N alone; pg off the list; lost: the versions of N/pg and every summary entry; deleted for good, with deletion records; the addition as `name`
+   after the loss: store incomplete; N/pg refuses (a version lost), gives pg -; names pf; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg E, gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; as the last decision; oracle as decided
+   pg added again: store ok; N/pg E, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   a further write: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   pg added a second time (does not apply): store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## N alone; pg off the list; lost: the versions of N/pg and every summary entry; deleted for good, no deletion record; the addition as `text`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; as the last decision; oracle narrower
+   pg added again: store ok; N/pg X, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   a further write: store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   pg added a second time (does not apply): store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+## N alone; pg off the list; lost: the versions of N/pg and every summary entry; deleted for good, no deletion record; the addition as `name`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; as the last decision; oracle narrower
+   pg added again: store ok; N/pg X, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   a further write: store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   pg added a second time (does not apply): store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+## N alone; pg off the list; lost: the versions of N/pg and every summary entry; deleted to the recycle bin, the bin then emptied; the addition as `text`
+   after the loss: store incomplete; N/pg refuses (a version lost), gives pg -; names pf; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg E, gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; as the last decision; oracle as decided
+   pg added again: store ok; N/pg E, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   a further write: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   pg added a second time (does not apply): store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## N alone; pg off the list; lost: the versions of N/pg and every summary entry; deleted to the recycle bin, the bin then emptied; the addition as `name`
+   after the loss: store incomplete; N/pg refuses (a version lost), gives pg -; names pf; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg E, gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; as the last decision; oracle as decided
+   pg added again: store ok; N/pg E, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   a further write: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   pg added a second time (does not apply): store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## N alone; pg off the list; lost: the versions of N/pg and every summary entry; deleted for good with deletion records, then every deletion record removed; the addition as `text`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; as the last decision; oracle narrower
+   pg added again: store ok; N/pg X, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   a further write: store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   pg added a second time (does not apply): store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+## N alone; pg off the list; lost: the versions of N/pg and every summary entry; deleted for good with deletion records, then every deletion record removed; the addition as `name`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; as the last decision; oracle narrower
+   pg added again: store ok; N/pg X, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   a further write: store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   pg added a second time (does not apply): store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+## N alone; pg off the list; lost: the versions of N/pg, every summary entry, and pg's additions and removals; deleted for good, with deletion records; the addition as `text`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf; as the last decision; oracle narrower
+   pg added again: store ok; N/pg refuses (a version lost), gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   a further write: store ok; N/pg refuses (a version lost), gives pg -; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   pg added a second time: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 1: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 0: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+## N alone; pg off the list; lost: the versions of N/pg, every summary entry, and pg's additions and removals; deleted for good, with deletion records; the addition as `name`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf; as the last decision; oracle narrower
+   pg added again: store ok; N/pg refuses (a version lost), gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   a further write: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   pg added a second time (does not apply): store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 1: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 0: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+## N alone; pg off the list; lost: the versions of N/pg, every summary entry, and pg's additions and removals; deleted for good, no deletion record; the addition as `text`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf; as the last decision; oracle narrower
+   pg added again: store ok; N/pg X, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   a further write: store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   pg added a second time (does not apply): store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## N alone; pg off the list; lost: the versions of N/pg, every summary entry, and pg's additions and removals; deleted for good, no deletion record; the addition as `name`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf; as the last decision; oracle narrower
+   pg added again: store ok; N/pg X, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   a further write: store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   pg added a second time (does not apply): store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## N alone; pg off the list; lost: the versions of N/pg, every summary entry, and pg's additions and removals; deleted to the recycle bin, the bin then emptied; the addition as `text`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf; as the last decision; oracle narrower
+   pg added again: store ok; N/pg refuses (a version lost), gives pg -; names pf; c1 holds pf; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   a further write: store ok; N/pg refuses (a version lost), gives pg -; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   pg added a second time: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 1: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 0: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+## N alone; pg off the list; lost: the versions of N/pg, every summary entry, and pg's additions and removals; deleted to the recycle bin, the bin then emptied; the addition as `name`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf; as the last decision; oracle narrower
+   pg added again: store ok; N/pg refuses (a version lost), gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   a further write: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   pg added a second time (does not apply): store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 1: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   Synchronize into 0: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg refuses (a version lost), gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle narrower
+## N alone; pg off the list; lost: the versions of N/pg, every summary entry, and pg's additions and removals; deleted for good with deletion records, then every deletion record removed; the addition as `text`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf; as the last decision; oracle narrower
+   pg added again: store ok; N/pg X, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   a further write: store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   pg added a second time (does not apply): store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## N alone; pg off the list; lost: the versions of N/pg, every summary entry, and pg's additions and removals; deleted for good with deletion records, then every deletion record removed; the addition as `name`
+   after the loss: store incomplete; N/pg X, gives pg -; names pf; c1 holds not admitted; names known from the list pf, for rows pf; narrower than the last decision: c1 lacks pf:rw pg:-; oracle refuses
+   Seal again: store ok; N/pg X, gives pg -; names pf; c1 holds pf; names known from the list pf, for rows pf; as the last decision; oracle narrower
+   pg added again: store ok; N/pg X, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   a further write: store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   pg added a second time (does not apply): store ok; N/pg X, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf ph; c1 holds pf; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg on the list; lost: the versions of N/pg and every summary entry; deleted for good, with deletion records
+   after the loss: store incomplete; N/pg refuses (a version lost), gives pg -; names pf pg; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:r; oracle refuses
+   Seal again: store ok; N/pg E, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   a further write: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg on the list; lost: the versions of N/pg and every summary entry; deleted for good, no deletion record
+   after the loss: store incomplete; N/pg X, gives pg rw; names pf pg; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:r; oracle refuses
+   Seal again: store ok; N/pg X, gives pg rw; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   a further write: store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+## root; pg on the list; lost: the versions of N/pg and every summary entry; deleted to the recycle bin, the bin then emptied
+   after the loss: store incomplete; N/pg refuses (a version lost), gives pg -; names pf pg; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:r; oracle refuses
+   Seal again: store ok; N/pg E, gives pg -; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   a further write: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   Synchronize into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg E, gives pg -; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; narrower than the last decision: c1 lacks pf:- pg:r; oracle as decided
+## root; pg on the list; lost: the versions of N/pg and every summary entry; deleted for good with deletion records, then every deletion record removed
+   after the loss: store incomplete; N/pg X, gives pg rw; names pf pg; c1 holds not admitted; names known from the list pf pg, for rows pf pg; narrower than the last decision: c1 lacks pf:rw pg:r; oracle refuses
+   Seal again: store ok; N/pg X, gives pg rw; names pf pg; c1 holds pf pg; names known from the list pf pg, for rows pf pg; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   a further write: store ok; N/pg X, gives pg rw; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; WIDER than the last decision: c1 reaches pf:- pg:w; oracle WIDER
+   Synchronize into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   Synchronize into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 1: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+   KeePassXC 2.8.0 into 0: store ok; N/pg row:r, gives pg r; names pf pg ph; c1 holds pf pg; names known from the list pf pg ph, for rows pf pg ph; as the last decision; oracle as decided
+== tally (tree, pg on or off the list, what was lost, the way, the addition, when, against the last decision):
+   N alone | off | row | bin | name | a further write | not wider: 1
+   N alone | off | row | bin | name | merged | not wider: 4
+   N alone | off | row | bin | name | pg added a second time | not wider: 1
+   N alone | off | row | bin | name | pg added again | not wider: 1
+   N alone | off | row | bin | text | a further write | not wider: 1
+   N alone | off | row | bin | text | merged | not wider: 4
+   N alone | off | row | bin | text | pg added a second time | not wider: 1
+   N alone | off | row | bin | text | pg added again | not wider: 1
+   N alone | off | row | clear | name | a further write | not wider: 1
+   N alone | off | row | clear | name | merged | not wider: 4
+   N alone | off | row | clear | name | pg added a second time | not wider: 1
+   N alone | off | row | clear | name | pg added again | not wider: 1
+   N alone | off | row | clear | text | a further write | not wider: 1
+   N alone | off | row | clear | text | merged | not wider: 4
+   N alone | off | row | clear | text | pg added a second time | not wider: 1
+   N alone | off | row | clear | text | pg added again | not wider: 1
+   N alone | off | row | delete | name | a further write | not wider: 1
+   N alone | off | row | delete | name | merged | not wider: 4
+   N alone | off | row | delete | name | pg added a second time | not wider: 1
+   N alone | off | row | delete | name | pg added again | not wider: 1
+   N alone | off | row | delete | text | a further write | not wider: 1
+   N alone | off | row | delete | text | merged | not wider: 4
+   N alone | off | row | delete | text | pg added a second time | not wider: 1
+   N alone | off | row | delete | text | pg added again | not wider: 1
+   N alone | off | row | unrecorded | name | a further write | not wider: 1
+   N alone | off | row | unrecorded | name | merged | not wider: 4
+   N alone | off | row | unrecorded | name | pg added a second time | not wider: 1
+   N alone | off | row | unrecorded | name | pg added again | not wider: 1
+   N alone | off | row | unrecorded | text | a further write | not wider: 1
+   N alone | off | row | unrecorded | text | merged | not wider: 4
+   N alone | off | row | unrecorded | text | pg added a second time | not wider: 1
+   N alone | off | row | unrecorded | text | pg added again | not wider: 1
+   N alone | off | row and name | bin | name | a further write | not wider: 1
+   N alone | off | row and name | bin | name | merged | not wider: 4
+   N alone | off | row and name | bin | name | pg added a second time | not wider: 1
+   N alone | off | row and name | bin | name | pg added again | not wider: 1
+   N alone | off | row and name | bin | text | a further write | not wider: 1
+   N alone | off | row and name | bin | text | merged | not wider: 4
+   N alone | off | row and name | bin | text | pg added a second time | not wider: 1
+   N alone | off | row and name | bin | text | pg added again | not wider: 1
+   N alone | off | row and name | clear | name | a further write | not wider: 1
+   N alone | off | row and name | clear | name | merged | not wider: 4
+   N alone | off | row and name | clear | name | pg added a second time | not wider: 1
+   N alone | off | row and name | clear | name | pg added again | not wider: 1
+   N alone | off | row and name | clear | text | a further write | not wider: 1
+   N alone | off | row and name | clear | text | merged | not wider: 4
+   N alone | off | row and name | clear | text | pg added a second time | not wider: 1
+   N alone | off | row and name | clear | text | pg added again | not wider: 1
+   N alone | off | row and name | delete | name | a further write | not wider: 1
+   N alone | off | row and name | delete | name | merged | not wider: 4
+   N alone | off | row and name | delete | name | pg added a second time | not wider: 1
+   N alone | off | row and name | delete | name | pg added again | not wider: 1
+   N alone | off | row and name | delete | text | a further write | not wider: 1
+   N alone | off | row and name | delete | text | merged | not wider: 4
+   N alone | off | row and name | delete | text | pg added a second time | not wider: 1
+   N alone | off | row and name | delete | text | pg added again | not wider: 1
+   N alone | off | row and name | unrecorded | name | a further write | not wider: 1
+   N alone | off | row and name | unrecorded | name | merged | not wider: 4
+   N alone | off | row and name | unrecorded | name | pg added a second time | not wider: 1
+   N alone | off | row and name | unrecorded | name | pg added again | not wider: 1
+   N alone | off | row and name | unrecorded | text | a further write | not wider: 1
+   N alone | off | row and name | unrecorded | text | merged | not wider: 4
+   N alone | off | row and name | unrecorded | text | pg added a second time | not wider: 1
+   N alone | off | row and name | unrecorded | text | pg added again | not wider: 1
+   root | off | every row and name | bin | name | a further write | not wider: 1
+   root | off | every row and name | bin | name | merged | not wider: 4
+   root | off | every row and name | bin | name | pg added a second time | not wider: 1
+   root | off | every row and name | bin | name | pg added again | not wider: 1
+   root | off | every row and name | bin | text | a further write | not wider: 1
+   root | off | every row and name | bin | text | merged | not wider: 4
+   root | off | every row and name | bin | text | pg added a second time | not wider: 1
+   root | off | every row and name | bin | text | pg added again | not wider: 1
+   root | off | every row and name | clear | name | a further write | not wider: 1
+   root | off | every row and name | clear | name | merged | not wider: 4
+   root | off | every row and name | clear | name | pg added a second time | not wider: 1
+   root | off | every row and name | clear | name | pg added again | not wider: 1
+   root | off | every row and name | clear | text | a further write | not wider: 1
+   root | off | every row and name | clear | text | merged | not wider: 4
+   root | off | every row and name | clear | text | pg added a second time | not wider: 1
+   root | off | every row and name | clear | text | pg added again | not wider: 1
+   root | off | every row and name | delete | name | a further write | not wider: 1
+   root | off | every row and name | delete | name | merged | not wider: 4
+   root | off | every row and name | delete | name | pg added a second time | not wider: 1
+   root | off | every row and name | delete | name | pg added again | not wider: 1
+   root | off | every row and name | delete | text | a further write | not wider: 1
+   root | off | every row and name | delete | text | merged | not wider: 4
+   root | off | every row and name | delete | text | pg added a second time | not wider: 1
+   root | off | every row and name | delete | text | pg added again | not wider: 1
+   root | off | every row and name | unrecorded | name | a further write | not wider: 1
+   root | off | every row and name | unrecorded | name | merged | not wider: 4
+   root | off | every row and name | unrecorded | name | pg added a second time | not wider: 1
+   root | off | every row and name | unrecorded | name | pg added again | not wider: 1
+   root | off | every row and name | unrecorded | text | a further write | not wider: 1
+   root | off | every row and name | unrecorded | text | merged | not wider: 4
+   root | off | every row and name | unrecorded | text | pg added a second time | not wider: 1
+   root | off | every row and name | unrecorded | text | pg added again | not wider: 1
+   root | off | row | bin | name | a further write | not wider: 1
+   root | off | row | bin | name | merged | not wider: 4
+   root | off | row | bin | name | pg added a second time | not wider: 1
+   root | off | row | bin | name | pg added again | not wider: 1
+   root | off | row | bin | text | a further write | not wider: 1
+   root | off | row | bin | text | merged | not wider: 4
+   root | off | row | bin | text | pg added a second time | not wider: 1
+   root | off | row | bin | text | pg added again | not wider: 1
+   root | off | row | clear | name | a further write | WIDER: 1
+   root | off | row | clear | name | merged | not wider: 4
+   root | off | row | clear | name | pg added a second time | WIDER: 1
+   root | off | row | clear | name | pg added again | WIDER: 1
+   root | off | row | clear | text | a further write | WIDER: 1
+   root | off | row | clear | text | merged | not wider: 4
+   root | off | row | clear | text | pg added a second time | WIDER: 1
+   root | off | row | clear | text | pg added again | WIDER: 1
+   root | off | row | delete | name | a further write | not wider: 1
+   root | off | row | delete | name | merged | not wider: 4
+   root | off | row | delete | name | pg added a second time | not wider: 1
+   root | off | row | delete | name | pg added again | not wider: 1
+   root | off | row | delete | text | a further write | not wider: 1
+   root | off | row | delete | text | merged | not wider: 4
+   root | off | row | delete | text | pg added a second time | not wider: 1
+   root | off | row | delete | text | pg added again | not wider: 1
+   root | off | row | unrecorded | name | a further write | WIDER: 1
+   root | off | row | unrecorded | name | merged | not wider: 4
+   root | off | row | unrecorded | name | pg added a second time | WIDER: 1
+   root | off | row | unrecorded | name | pg added again | WIDER: 1
+   root | off | row | unrecorded | text | a further write | WIDER: 1
+   root | off | row | unrecorded | text | merged | not wider: 4
+   root | off | row | unrecorded | text | pg added a second time | WIDER: 1
+   root | off | row | unrecorded | text | pg added again | WIDER: 1
+   root | off | row and name | bin | name | a further write | not wider: 1
+   root | off | row and name | bin | name | merged | not wider: 4
+   root | off | row and name | bin | name | pg added a second time | not wider: 1
+   root | off | row and name | bin | name | pg added again | not wider: 1
+   root | off | row and name | bin | text | a further write | not wider: 1
+   root | off | row and name | bin | text | merged | not wider: 4
+   root | off | row and name | bin | text | pg added a second time | not wider: 1
+   root | off | row and name | bin | text | pg added again | not wider: 1
+   root | off | row and name | clear | name | a further write | WIDER: 1
+   root | off | row and name | clear | name | merged | not wider: 4
+   root | off | row and name | clear | name | pg added a second time | WIDER: 1
+   root | off | row and name | clear | name | pg added again | WIDER: 1
+   root | off | row and name | clear | text | a further write | WIDER: 1
+   root | off | row and name | clear | text | merged | not wider: 4
+   root | off | row and name | clear | text | pg added a second time | WIDER: 1
+   root | off | row and name | clear | text | pg added again | WIDER: 1
+   root | off | row and name | delete | name | a further write | not wider: 1
+   root | off | row and name | delete | name | merged | not wider: 4
+   root | off | row and name | delete | name | pg added a second time | not wider: 1
+   root | off | row and name | delete | name | pg added again | not wider: 1
+   root | off | row and name | delete | text | a further write | not wider: 1
+   root | off | row and name | delete | text | merged | not wider: 4
+   root | off | row and name | delete | text | pg added a second time | not wider: 1
+   root | off | row and name | delete | text | pg added again | not wider: 1
+   root | off | row and name | unrecorded | name | a further write | WIDER: 1
+   root | off | row and name | unrecorded | name | merged | not wider: 4
+   root | off | row and name | unrecorded | name | pg added a second time | WIDER: 1
+   root | off | row and name | unrecorded | name | pg added again | WIDER: 1
+   root | off | row and name | unrecorded | text | a further write | WIDER: 1
+   root | off | row and name | unrecorded | text | merged | not wider: 4
+   root | off | row and name | unrecorded | text | pg added a second time | WIDER: 1
+   root | off | row and name | unrecorded | text | pg added again | WIDER: 1
+   root | on | row | bin | None | a further write | not wider: 1
+   root | on | row | bin | None | merged | not wider: 4
+   root | on | row | clear | None | a further write | WIDER: 1
+   root | on | row | clear | None | merged | not wider: 4
+   root | on | row | delete | None | a further write | not wider: 1
+   root | on | row | delete | None | merged | not wider: 4
+   root | on | row | unrecorded | None | a further write | WIDER: 1
+   root | on | row | unrecorded | None | merged | not wider: 4
+== reads wider than the last decision: 26 of 300
+== 117 s

@@ -1,0 +1,10 @@
+== 200000 histories over two copies, 4 profiles, letters crusdlap, nodes root, G, N, row values crusdlap, crudl, rl, rla, rlp, cula, a, empty, off
+   histories with a merge that gave more than both copies just before it: 44; by letters: 43; by capabilities only (every letter given by a copy, a combination given by neither): 1
+   such merges: by letters 55, by capabilities only 1
+   capabilities only at N, across nodes: 1
+   letters at G, across nodes: 20
+   letters at N, across nodes: 35
+   shortest, capabilities only at N, across nodes (5 steps): gives pg r+a; row 1 N pg cula ; merge xc 0 1 ; row 0 N pg off ; row 1 G pg rla ; merge xc 1 0
+   shortest, letters at G, across nodes (5 steps): gives pf:cula; row 0 G pf  ; merge kp_other 1 0 ; row 0 G pf off ; row 1 root pf cula ; merge kp_other 0 1
+   shortest, letters at N, across nodes (5 steps): gives pf:cula; row 0 G pf  ; merge kp_other 1 0 ; row 0 G pf off ; row 1 root pf cula ; merge kp_other 0 1
+== 336 s

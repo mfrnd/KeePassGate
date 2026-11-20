@@ -32,6 +32,12 @@ in the model and in the probe. Each has a record of its own, `recorded-reading-<
 stored as a record for each node and profile and the node's switch as a record of its own. Its
 record is `recorded-rows\`. The section "Rules per profile" at the end holds it.
 
+**A further configuration, the forms rules per profile left owed**, was added on 2026-11-20 for
+the report `measured-rules-owed-forms.md`: `run.ps1 -Owed`, rules per profile with four profiles
+and the full mask, a group between the root and N, a name off the list, two names whose tags meet,
+and a row edited many times. Its record is `recorded-owed\`. The section "The forms rules per
+profile left owed" at the end holds it.
+
 | Path | What it is |
 | --- | --- |
 | `model\crdt_model.py` | a copy of `spikes\storage\model\crdt_model.py` with the switches of section "What was added" below; every new switch at its default is the design's model |
@@ -53,6 +59,8 @@ record is `recorded-rows\`. The section "Rules per profile" at the end holds it.
 | `recorded-reading-nothing\`, `-profile\`, `-verb\`, `-cap\`, `-cap-items\` | the output of the runs of the wider readings of a copy, which `measured-copies-extended.md` quotes |
 | `probe\rows.py` | the parts of rules per profile (section "Rules per profile") |
 | `recorded-rows\` | the output of the runs of rules per profile, which `measured-rules-per-profile.md` quotes |
+| `probe\owed.py` | the parts on real files of the forms rules per profile left owed (section "The forms rules per profile left owed") |
+| `recorded-owed\` | the output of the runs of those forms, which `measured-rules-owed-forms.md` quotes |
 
 **Everything ran twice**, on 2026-11-16, on a machine other measurements were sharing. Every
 output of the second run is the same as the record line for line, apart from what `compare.py`
@@ -1084,6 +1092,154 @@ Reported, not fixed.
   derivation; KeePassXC releases other than 2.8.0 outside `b-merges`, `apart`, `same`, `states`
   and `switch`.
 - Everything the store as decided does not run.
+
+## The forms rules per profile left owed
+
+Added on 2026-11-20 for the report `measured-rules-owed-forms.md`. The run of rules per profile
+left owed, in `STORE.md` §644 item 24: more than two profiles and two letters, and the switches of
+a rule; a rule on a group between the root and the node; a row of a name off the list whose records
+and items are gone; two profiles whose tags meet in the form `split`; and how the `after` lists
+grow. `run.ps1 -Owed` runs them on rules per profile with a removed row written as decided. Its
+record is `recorded-owed\`.
+
+### What it runs
+
+| Part | What it is |
+| --- | --- |
+| `combine` | `store_runs.py --owed combine 200000`: every pair of versions of a row (each set of the eight letters, and the rule taken off), every set of letters arriving from above, the switch refusing and inheriting, held to what both versions allow by capabilities; 200,000 random triples; and how many triples of letter sets a check by letters would pass while a capability is in neither copy |
+| `beyond-2-rw`, `beyond-4-rw`, `beyond-2-mask`, `beyond-4-mask`, `beyond-4-mask-3` | `store_runs.py --owed P L V beyond 200000 34`: `beyond` of rules per profile with two or four profiles, the letters read and write or the full mask, at the root and N or at the root, a group and N; each merge held to both copies by letters and by capabilities; each history that gives more shrunk to its shortest form and named by the nodes its acts touch. `beyond-2-rw` draws exactly what `beyond` drew |
+| `merges4` | `owed.py merges4`: eight histories with four profiles and the full mask, every merge both ways by KeePassLib's five methods and four `keepassxc-cli` releases, each merged file held to the oracle and to both copies just before the merge |
+| `random4` | `owed.py random4 300 13`: random histories of acts on rows and switches with four profiles and the full mask, at the root and N, with Synchronize, Overwrite if newer and KeePassXC 2.8.0 |
+| `levels` | `owed.py levels`: ten sequences at the root, the group General (the model's `G`) and N under it, every merge both ways |
+| `random3` | `owed.py random3 300 17`: `random4` at the root, the group and N |
+| `offlist` | `owed.py offlist`: a row of a name off the list, its records and summary items lost in four ways, Seal again, the name added again in two forms, a further write, and each merge with a copy that holds the row |
+| `tags` | `owed.py tags`: two names whose keyed tags meet, found by search, in the form `split` under three readings, and a name whose tag is 0000 |
+| `afters` | `owed.py afters`: a row edited 400 times in a copy, 200 times alternately in two copies with Synchronize between, and 200 times apart in two copies with Synchronize both ways; what a version, its summary item and the summary entry hold, at checkpoints; and the counts at which `store.py`'s strings pass the ceilings of `STORE.md` |
+
+**How a row is written with the full mask.** As in "Rules per profile", with any of the eight
+letters of `CRUSDLAP` in `row:`, in alphabetical order. A rule act names a table, `pf=crusdlap,pg=rl`.
+**How a merge is held to both copies.** By letters, as before, and by capabilities
+(`crdt_model.caps`): each verb alone, each verb that reads or writes with each switch of the same
+rule, and strip and delete with both switches; a switch without a verb grants nothing. A merge that
+gives a capability neither copy gave while each of its letters came from a copy is counted as
+"capabilities only".
+
+### The command
+
+From the branch root, in Windows PowerShell 5.1, under an ordinary user token:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1 -Owed -Parallel 4
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\compare.py --owed
+```
+
+A run of every part empties `out\owed\` and the databases `work\qo-*` and nothing of the other
+configurations'. Started through a PowerShell 7 session, Windows PowerShell inherits PowerShell 7's
+module path and `tools\KeePass.ps1` fails to load `Get-AuthenticodeSignature`; the runs here removed
+`PSModulePath` before starting `run.ps1`, as `kp.py` does for the host.
+
+**How long**, in seconds, four parts at once, on a machine another measurement was sharing:
+
+| Part | Run 1 | Run 2 |
+| --- | --- | --- |
+| `beyond-4-mask-3` | 338 | 331 |
+| `beyond-4-mask` | 252 | 251 |
+| `beyond-2-mask` | 227 | 211 |
+| `beyond-4-rw` | 197 | 211 |
+| `beyond-2-rw` | 166 | 171 |
+| `afters` | 162 | 226 |
+| `levels` | 171 | 171 |
+| `merges4` | 121 | 131 |
+| `offlist` | 121 | 90 |
+| `tags` | 101 | 65 |
+| `combine` | 30 | 30 |
+| `random4`, runs 1 to 4 | 368, 286, 150, 105 | |
+| `random3`, runs 1 to 4 | 312, 276, 150, 105 | |
+
+**How the runs were made.** Run 1 was `run.ps1 -Owed -Parallel 4` with every part; its outputs
+were copied aside and are `recorded-owed\`, but `random4` and `random3`. Run 2 was the same
+command. Then `random4` and `random3` were given the count of merges they hold to both copies,
+which run 1 did not print, and ran twice more with `-Parts random4,random3 -Parallel 2`: run 3 is
+their record and run 4 printed it line for line; every other line of theirs is the same in all
+four runs. Before run 1, with the new switches off, `-Rows` was run again in `beyond`,
+`beyond-whole`, `beyond-again`, `b-merges`, `switch`, `same`, `b-random-rows`, `apart`, `states`,
+`dels` and `growth`, `-Decided` in `b-merges` and `b-random`, and the first record in
+`store-scenarios` and `store-section6`; each printed its record line for line, with the masks of
+"Running it": 15 files.
+
+**Compared.** Every output of run 2, and of run 4 for the two random parts, is the same as
+`recorded-owed\` line for line, with the masks of "Running it": 13 files.
+
+| Figure | Recorded | Second run | Reproduced |
+| --- | --- | --- | --- |
+| `combine`: pairs held to what both versions allow; more, less; random triples more, less | 16,974,336; 0, 0; 200,000: 0, 0 | the same | yes |
+| `combine`: triples of letter sets within both copies' letters and beyond their capabilities | 1,365,238 of 16,777,216 | the same | yes |
+| `beyond-2-rw`, `-4-rw`, `-2-mask`, `-4-mask`, `-4-mask-3`: histories beyond both copies; of them by capabilities only | 67, 33, 129, 44, 44; 0, 0, 8, 1, 1 | the same | yes |
+| the same: histories at a single node | 0 in every configuration | the same | yes |
+| `merges4`, 144 cells: as decided against the oracle but imports; against both copies, within, by letters, by capabilities only | 128 of 128; 112 (16 imports), 16 (O7), 16 (O6) | the same | yes |
+| `random4`: steps; merges held; beyond both copies; files wider, as decided, narrower | 1,967; 781; 0; 328, 227, 167 | the same | yes |
+| `levels`, 180 cells: as decided but imports; within, by letters | 160 of 160; 132 (20 imports), 48 (L8, L9, L10) | the same | yes |
+| `random3`: steps; merges held; beyond both copies; files wider, as decided, narrower | 1,973; 866; 0; 312, 248, 150 | the same | yes |
+| `offlist`: reads wider than the last decision | 26 of 300, each a loss with no deletion record of a row whose profile the root names | the same | yes |
+| `offlist`: the name kept off the list by its first addition in the form `text` | 6 of 20, back at the second addition | the same | yes |
+| `tags`: the names whose tags meet; the name whose tag is 0000; the name the set keeps over 40 hash seeds | `q00067`, `q00401`, `6b11`; `q00238`; 17 and 23 | the same | yes |
+| `tags`: reads wider, `first`, `last`, `each` | G3 4 of 6; G2 4 of 6; 0 of 22, and G6 1 of 2 | the same | yes |
+| `afters`: at 400 edits in a copy, identifiers in `after`, KPG.Data, item, deletion records | 399, 13,295, 13,301, 799 | the same | yes |
+| `afters`: identifiers at which a version and its item pass 262,144 and 1,048,576 characters | 7,940 and 7,940; 31,772 and 31,771 | the same | yes |
+| `afters`: the file's bytes and the read's milliseconds | 3,047 to 19,575 bytes; 0.4 to 1.5 ms | differ by some bytes, and by time | masked |
+
+### What was added for it
+
+Each line added or changed carries "ADDED (owed forms)". With the new switches off, every part
+printed what it printed before, in the 15 files named under "How the runs were made".
+
+- `crdt_model.py`: `configure`, the profiles, the letters and three levels (`PARENT`, a node `G`
+  under the root and N under it, what arrives at a node being what its parent gives); `caps` and
+  `caps_text`, a profile's letters as capabilities; `ROOT_ROWS`, the profiles the root names at
+  the start; `KNOWN`, a deletion record of a removal or of a row's version told only for a name
+  the file knows, as `read.py` tells it, and `ADD_FORM`, how an addition names the removals of its
+  name under it; `TAG_OF` and `TAG_READ`, the form `split`'s tags and the readings `first`, `last`
+  and `each`.
+- `store_runs.py`: `--owed combine` and `--owed PROFILES LETTERS LEVELS beyond COUNT SEED`
+  (`part_combine`, `part_beyond_owed`, `node_value`, `mask_text`).
+- `store.py`: `LETTERS`, the letters a row's version may hold.
+- `read.py`: `LETTERS`; in the form `split` the names of a tag kept sorted in a list, with
+  `TAG_READ` `first`, `last` or `each`, the last telling a deletion record of every name of its tag
+  only where no version present or restated carries its identifier; the answer names the tags that
+  meet (`tag_meets`), the names known for a row (`row_names`) and from the list (`known_names`).
+- `bridge.py`: `owed`, the configuration; `NODES` and `JUDGE`, the nodes compared and judged, the
+  group General as `G` with three levels.
+- `owed.py`: new, the parts on files.
+- `run.ps1`: `-Owed`. `compare.py`: `--owed`.
+
+### Defects and limits of this configuration
+
+Reported, not fixed.
+
+- **The reading of `split` as it was run was not stable**: its dictionary from a tag to a name
+  kept the name a set of strings yielded last, an order the process's hash seed decides. No earlier
+  output depends on it, since no earlier run held two names whose tags meet. Here the names are
+  sorted, and `first` and `last` stand for its two answers.
+- **`read.py`'s form `split` reads a tag of 0000 as a version of a node's whole rule**, so the
+  deletion record of a row of a name whose tag is 0000 tells of no row (`tags`, G6). The model
+  tells it, so Seal again in G6 wrote what the model read.
+- **The model's row act does not name a lost version**, so a row that refuses for a lost version
+  stays refusing when it is set again; nothing here sets such a row again.
+- **The oracle compares what a node gives each profile**, letters and not capabilities; each merge
+  is held to both copies by capabilities as well, but a file is held to the oracle by letters.
+- **`afters` writes no file past 400 edits**; the ceilings are computed from `store.py`'s strings.
+- **The probe's texts**: letters in alphabetical order, the measured forms of every record (`v`,
+  nonces derived from the elements), as in the configurations before.
+- **KeePassLib stands for KeePass's window** in every edit, as in the configurations before.
+
+### Not run in this configuration
+
+- The model's searches with four profiles, the full mask or three levels; the forms `void` and
+  `limit`, and the removal written `again` or `off`, with four profiles.
+- KeePassXC releases other than 2.8.0 in `random4`, `random3`, `offlist` and `tags`; the slow key
+  derivation.
+- A row set again after it refuses; more than four profiles; the product's texts.
+- Everything rules per profile does not run.
 
 ## Vectors for the product
 

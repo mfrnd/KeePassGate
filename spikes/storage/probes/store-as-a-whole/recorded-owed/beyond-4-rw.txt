@@ -1,0 +1,6 @@
+== 200000 histories over two copies, 4 profiles, letters rw, nodes root, N, row values rw, r, empty, off
+   histories with a merge that gave more than both copies just before it: 33; by letters: 33; by capabilities only (every letter given by a copy, a combination given by neither): 0
+   such merges: by letters 33, by capabilities only 0
+   letters at N, across nodes: 33
+   shortest, letters at N, across nodes (5 steps): gives pf:w; row 0 N pf r ; merge kp_other 1 0 ; row 0 N pf off ; row 1 root pf rw ; merge xc 1 0
+== 195 s

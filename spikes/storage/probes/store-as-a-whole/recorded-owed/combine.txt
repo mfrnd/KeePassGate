@@ -1,0 +1,7 @@
+== versions of a row made apart, the full mask: 257 values of a version (every set of the eight letters, and the rule taken off), 256 sets arriving from above, the switch of the node refusing or inheriting
+   switch letters without a verb: a, p, ap grant nothing
+   pairs: 16974336 combinations checked; the row gives more than what both versions allow: 0; less: 0
+   random triples: 200000; more than what all three allow: 0; less: 0
+== a merge held to both copies by letters and by capabilities: a node value that is within the union of two copies' letters and still beyond the union of their capabilities
+   triples of letter sets (copy 0, copy 1, merged) with the merged letters within the copies' letters and a capability neither copy gave: 1365238 of 16777216; smallest: copy 0 c, copy 1 a, merged ca
+== 27 s
