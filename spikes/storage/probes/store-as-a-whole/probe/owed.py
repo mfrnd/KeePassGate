@@ -237,7 +237,7 @@ def part_random(host, count, seed, nodes, tag):
     import random
     rng = random.Random(seed)
     t0 = time.time()
-    outs, found_n, lines, nsteps, ndis, nread = {}, {}, [], 0, 0, 0
+    outs, found_n, lines, nsteps, ndis, nread, nmerge = {}, {}, [], 0, 0, 0, 0
     for h in range(count):
         nrep = 2 if rng.random() < 0.6 else 3
         R = range(nrep)
@@ -261,6 +261,7 @@ def part_random(host, count, seed, nodes, tag):
                 continue
             nsteps += 1
             if pre is not None:
+                nmerge += 1
                 bl, bc = beyond2(pre[0], pre[1], answer(b, op[2])['words_raw'], nodes)
                 if bl or bc:
                     found.append((k, op, verdict(bl, bc)))
@@ -280,8 +281,8 @@ def part_random(host, count, seed, nodes, tag):
           ' %d histories, steps %d, entry disagreements %d, read differences %d, %.0f s' % (
               len(M.PROFS), MASK, ', '.join(nodes), B.ROWS, count, nsteps, ndis, nread, time.time() - t0))
     print('   files at the end against every decision: ' + ', '.join('%s %d' % kv for kv in sorted(outs.items())))
-    print('   merges that gave more than both copies just before: by letters %d, by capabilities only %d' % (
-        found_n.get('letters', 0), found_n.get('capabilities only', 0)))
+    print('   merges held to both copies just before: %d; that gave more: by letters %d, by capabilities only %d' % (
+        nmerge, found_n.get('letters', 0), found_n.get('capabilities only', 0)))
     for x in lines:
         print(x)
 
