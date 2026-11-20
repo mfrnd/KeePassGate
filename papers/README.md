@@ -57,6 +57,10 @@ evidence to its place here.
 | `ground/measured-two-readings.md` | `spikes\storage\probes\store-as-a-whole\`, run with `-Rewrite` and with `-Copies` | `recorded-rewrite\` and `recorded-copies\` there |
 | `ground/measured-copies-extended.md` | `spikes\storage\probes\store-as-a-whole\`, run with `-Reading` and each of `nothing`, `profile`, `verb`, `cap` and `cap-items` | `recorded-reading-<name>\` there, a directory for each |
 | `ground/measured-rules-per-profile.md` | `spikes\storage\probes\store-as-a-whole\`, run with `-Rows` | `recorded-rows\` there |
+| `ground/measured-rules-owed-forms.md` | `spikes\storage\probes\store-as-a-whole\`, run with `-Owed` | `recorded-owed\` there |
+| `ground/measured-rules-cut-parts.md` | `spikes\storage\probes\store-as-a-whole\`, `run-cut.ps1` | `recorded-cut\` there |
+| `ground/measured-rules-across-levels.md` | `spikes\storage\probes\store-as-a-whole\`, run with `-S34` | `recorded-s34\` there |
+| `ground/measured-rule-waits-for-save.md` | not on this branch: measured in a real KeePass on the branch `measure/rules-wait-for-save` | not on this branch |
 
 The two desktop families show windows and the Android records come from an emulator, so neither
 runs again from the branch without those; each `RUN.md` states what did.
