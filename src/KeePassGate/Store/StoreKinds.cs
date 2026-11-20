@@ -197,6 +197,9 @@ namespace KeePassGate.Store
         /// <summary>The member of a version, and of its item, naming what it is a version of.</summary>
         public const string ObjectMember = "object";
 
+        /// <summary>The member of a version, and of its item, holding the text of the version, `STORE.md` §617.</summary>
+        public const string Doc = "doc";
+
         /// <summary>The member of a keep record, and of its item, naming the key not kept.</summary>
         public const string Key = "key";
 
@@ -258,11 +261,14 @@ namespace KeePassGate.Store
         /// <summary>The type of the object of a profile's rule at a node, `STORE.md` §617.</summary>
         public const string RuleType = "rule";
 
+        /// <summary>The type of the object of a node's switch, `STORE.md` §617.</summary>
+        public const string SwitchType = "switch";
+
         /// <summary>
         /// The types of object a version is of: a profile's rule at a node, a node's switch, and
         /// an answer to a renewal. A version of another type is of a kind the plugin does not know.
         /// </summary>
-        public static readonly IReadOnlyList<string> ObjectTypes = Array.AsReadOnly(new[] { RuleType, "switch", "renew" });
+        public static readonly IReadOnlyList<string> ObjectTypes = Array.AsReadOnly(new[] { RuleType, SwitchType, "renew" });
 
         /// <summary>The rows of `STORE.md` §658, in its order.</summary>
         public static readonly IReadOnlyList<StoreKind> All = Array.AsReadOnly(new[]
@@ -321,13 +327,13 @@ namespace KeePassGate.Store
                 Members(
                     new StoreMember(ObjectMember, StoreForm.Text),
                     new StoreMember(After, StoreForm.Identifiers),
-                    new StoreMember("doc", StoreForm.Text)),
+                    new StoreMember(Doc, StoreForm.Text)),
                 false, StoreRestated.ById, null,
                 Members(
                     new StoreMember(Id, StoreForm.Text),
                     new StoreMember(ObjectMember, StoreForm.Text),
                     new StoreMember(After, StoreForm.Identifiers),
-                    new StoreMember("doc", StoreForm.Text))),
+                    new StoreMember(Doc, StoreForm.Text))),
             new StoreKind(
                 Kept, "key:", Key, StoreNumber.None,
                 Members(new StoreMember(Key, StoreForm.KeyName), new StoreMember(After, StoreForm.Identifiers)),

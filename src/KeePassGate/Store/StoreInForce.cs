@@ -19,9 +19,12 @@ namespace KeePassGate.Store
     /// <see cref="Standing"/> works out those authorities alone.
     ///
     /// **Where it may be asked from.** It is made inside the reading, on the thread making it,
-    /// which is the only caller of `FoundKey.Subject` and `FoundKey.TagOf`; what is handed out is
-    /// read and asks the key's cache for no subject, <see cref="RemovalsOnceKnown"/> hashing the
-    /// name an addition is composed for under the key's bytes, for whoever composes it.
+    /// which is the only caller of `FoundKey.Subject`, `FoundKey.NameTag` and `FoundKey.TagOf`,
+    /// and which alone walks the tree it is handed; what is handed out is read and asks the key's
+    /// cache for no subject, <see cref="RemovalsOnceKnown"/> hashing the name an addition is
+    /// composed for under the key's bytes, for whoever composes it. What stands and what is lost
+    /// of each object is worked out as it is made, so <see cref="Objects"/>,
+    /// <see cref="VersionsOf"/> and <see cref="LostOf"/> take no key and hash nothing.
     /// <see cref="Key"/> holds bytes a writer composes under only where the reading was made
     /// afresh in the writer's own turn, `StoreReading.Afresh`: a gate's reading may hand out
     /// forms whose keys were overwritten as it ended, which is why no connection thread takes a
@@ -52,6 +55,23 @@ namespace KeePassGate.Store
     /// store whose deletion records tell of nothing hashes nothing, `FoundKey.Subject`. Everything
     /// is worked out as the reading is made, but the hash of the name an addition is composed
     /// for: what is handed out is read and never changed, by whichever thread holds the reading.
+    ///
+    /// **What the rules cost in hashes**, `STORE.md` §620. A deletion record under the tag of kind
+    /// `version` under which a version is present costs nothing. Every other is placed by its
+    /// first ten bytes where a version present begins with them, with no subject hashed and no
+    /// tree walked, which places every deletion record of the plugin's own deletions and
+    /// renewals, since the version of the same object naming it is at its place. A deletion
+    /// record placed so nowhere costs a subject hash of `rule:` for each node the objects of the
+    /// versions present name, and of `switch:` for each where such a record holds 0 in bytes 9
+    /// and 10; then, only where its subject meets none of those, the same for each group and entry
+    /// of the tree not yet tried, the tree being walked once in that reading. Whether a version
+    /// of another object names it changes none of this. Once a deletion record lies at a node's
+    /// rows, the tag of each name the file knows is wanted: read off the identifier of a row
+    /// record where one shows the name, and hashed otherwise. So a store whose deletion records
+    /// are all the plugin's own, and whose every name has a row record, hashes nothing for the
+    /// rules at any hold, and a name with no row record has its tag hashed once. Each hash is kept
+    /// with the key, so a later hold under the same key hashes only what is new, and walks the tree
+    /// again only while a deletion record placed nowhere is left.
     /// </remarks>
     internal sealed class StoreInForce
     {
@@ -99,6 +119,21 @@ namespace KeePassGate.Store
 
         /// <summary>What a write that adds no version does with the versions present: what the room counts.</summary>
         private StoreReplaced _settled;
+
+        /// <summary>The standing versions of each object, ascending by identifier, `STORE.md` §617.</summary>
+        private readonly Dictionary<string, List<StoreNaming>> _standing = new Dictionary<string, List<StoreNaming>>(StringComparer.Ordinal);
+
+        /// <summary>The identifiers of the lost versions of each object, ascending, `STORE.md` §617.</summary>
+        private readonly Dictionary<string, IReadOnlyList<string>> _lost = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// The versions whose record and an item in force, or two items in force, restate them
+        /// otherwise, each with every object those name: lost to each.
+        /// </summary>
+        private readonly Dictionary<string, HashSet<string>> _differing = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
+        /// <summary>Every object with a standing or a lost version, ascending.</summary>
+        private IReadOnlyCollection<string> _objects = Nothing;
 
         private HashSet<string> _after = new HashSet<string>(StringComparer.Ordinal);
 
@@ -260,6 +295,41 @@ namespace KeePassGate.Store
         public ISet<string> Others { get; private set; }
 
         /// <summary>
+        /// The text of every object, of every type, that has a standing version or a lost version
+        /// under the key, each once: what the rules of a reading are worked out from, `STORE.md`
+        /// §617.
+        /// </summary>
+        public IReadOnlyCollection<string> Objects
+        {
+            get { return _objects; }
+        }
+
+        /// <summary>
+        /// The standing versions of an object, `STORE.md` §617: in force, by a record in force or
+        /// by an item of a summary entry in force, and named in `after` by no version in force of
+        /// the same object; ascending by identifier, and none for an object nothing stands for.
+        /// </summary>
+        public IReadOnlyList<StoreNaming> VersionsOf(string objectText)
+        {
+            List<StoreNaming> standing;
+            return objectText != null && _standing.TryGetValue(objectText, out standing)
+                ? standing
+                : (IReadOnlyList<StoreNaming>)Array.Empty<StoreNaming>();
+        }
+
+        /// <summary>
+        /// The identifiers of the lost versions of an object, `STORE.md` §617, ascending: each
+        /// deletion record telling of a version of the object that nothing in force names or
+        /// carries, and each version present beside its own deletion record that nothing in force
+        /// names or restates; none where nothing of the object is lost.
+        /// </summary>
+        public IReadOnlyList<string> LostOf(string objectText)
+        {
+            IReadOnlyList<string> lost;
+            return objectText != null && _lost.TryGetValue(objectText, out lost) ? lost : Array.Empty<string>();
+        }
+
+        /// <summary>
         /// The versions present that a version in force names of its own object in `after`:
         /// replaced, so that none stands, `STORE.md` §617 and §658.
         /// </summary>
@@ -385,11 +455,16 @@ namespace KeePassGate.Store
         /// the key it sets aside, `STORE.md` §623 step 7: what a summary entry carries on for
         /// them, since none of them is a record present.
         /// </param>
+        /// <param name="nodes">
+        /// The identifier of every group and entry of the tree, walked only where a deletion record
+        /// of a version is left that no node the objects name explains; null where there is none.
+        /// </param>
         public static StoreInForce Of(
             FoundKey key,
             IReadOnlyList<FoundRecord> records,
             IReadOnlyDictionary<string, List<string>> byTag,
-            IReadOnlyCollection<KeyValuePair<string, string>> keptByDeletion)
+            IReadOnlyCollection<KeyValuePair<string, string>> keptByDeletion,
+            Func<IEnumerable<byte[]>> nodes)
         {
             var made = new StoreInForce { Key = key, Records = records };
             made.Heads = records.Where(record => record.Is(StoreKinds.Head)).ToList();
@@ -420,6 +495,7 @@ namespace KeePassGate.Store
             made.Highest(key, byKind);
             made.Take(key, byKind);
             made.Restate();
+            made.Index(key, byKind[StoreKinds.Version], nodes);
 
             var retired = made._taken[StoreKinds.Retired];
             made.Authorities = records
@@ -807,7 +883,10 @@ namespace KeePassGate.Store
 
             // Every version present: what its record holds, or where no record carries it what an
             // item holds; whether its record is in force, and whether an item of a summary entry
-            // in force carries it, with that item's members, which restate it.
+            // in force carries it. Its text is its record's, the content its identifier was made
+            // of, wherever a record carries it; an item in force that restates it otherwise, or a
+            // second item in force that differs from the first, leaves no single text to read, and
+            // the version is lost to every object they name, whatever order the entries are in.
             var versions = new Dictionary<string, StoreNaming>(StringComparer.Ordinal);
             foreach (var record in Records.Where(record => record.Is(StoreKinds.Version) && !versions.ContainsKey(record.Hex)))
             {
@@ -825,18 +904,27 @@ namespace KeePassGate.Store
                 foreach (var item in head.Form.Items.Where(item => item.Kind == StoreKinds.Version))
                 {
                     var id = item.Member(StoreKinds.Id);
+                    var members = WithId(id, item.Members);
                     StoreNaming version;
                     if (!versions.TryGetValue(id, out version))
                     {
-                        version = new StoreNaming(
-                            id, item.Member(StoreKinds.ObjectMember), item.Member(StoreKinds.After), false, false, WithId(id, item.Members));
+                        version = new StoreNaming(id, item.Member(StoreKinds.ObjectMember), item.Member(StoreKinds.After), false, false, members);
                         versions[id] = version;
                     }
 
-                    if (head.InForce && !version.ItemInForce)
+                    if (!head.InForce)
                     {
-                        version.CarriedInForce(WithId(id, item.Members));
+                        continue;
                     }
+
+                    if ((version.Record || version.ItemInForce) && !Alike(version.Members, members))
+                    {
+                        var refusing = SetAt(_differing, id);
+                        refusing.Add(version.Object);
+                        refusing.Add(item.Member(StoreKinds.ObjectMember));
+                    }
+
+                    version.CarriedInForce(members);
                 }
             }
 
@@ -855,6 +943,370 @@ namespace KeePassGate.Store
             }
 
             _settled = StoreReplaced.Settle(versions, Others, Array.Empty<StoreRecord>());
+        }
+
+        /// <summary>
+        /// What stands and what is lost of each object, whatever its type, `STORE.md` §617: the
+        /// versions in force that no version in force of the same object names; each version
+        /// present beside its own deletion record that nothing in force names of its object or
+        /// restates; each version whose record and items restate it otherwise; and each object a
+        /// deletion record under the tag of kind `version` tells of, where no version in force of
+        /// that object names it.
+        /// </summary>
+        /// <remarks>
+        /// **Answered object by object.** A deletion record is answered for an object only by a
+        /// version in force of that object naming it in `after`, or by a version present under its
+        /// identifier, which is a version of its own object alone. So where it tells of the rows of
+        /// several names that share a tag, a version of a single row naming it answers for that row
+        /// and leaves every other row of the tag refusing until a version of that row names it too;
+        /// the same holds for the object with no `/` under a tag of 0. The measured reading
+        /// answered a deletion record for every object once any version in force named it, and
+        /// this reading is narrower than it there, by design.
+        /// </remarks>
+        /// <param name="deleted">The deletion records under the tag of kind `version`.</param>
+        /// <param name="nodes">The identifier of every group and entry of the tree, or null where there is none.</param>
+        private void Index(FoundKey key, IReadOnlyList<string> deleted, Func<IEnumerable<byte[]>> nodes)
+        {
+            var told = new HashSet<string>(deleted, StringComparer.Ordinal);
+            var losing = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
+
+            // The objects whose versions in force name each identifier: what answers for it, for
+            // each of those objects and no other. A version restated otherwise answers for none.
+            var namedBy = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+            foreach (var version in Versions.Values.Where(version => version.Object != null && version.InForce && !_differing.ContainsKey(version.Id)))
+            {
+                foreach (var identifier in Listed(version.After))
+                {
+                    SetAt(namedBy, identifier).Add(version.Object);
+                }
+            }
+
+            foreach (var version in Versions.Values.Where(version => version.Object != null))
+            {
+                HashSet<string> refusing;
+                if (_differing.TryGetValue(version.Id, out refusing))
+                {
+                    foreach (var objectText in refusing.Where(objectText => objectText != null))
+                    {
+                        Losing(losing, objectText).Add(version.Id);
+                    }
+
+                    continue;
+                }
+
+                if (ReplacedVersions.Contains(version.Id))
+                {
+                    continue;
+                }
+
+                if (version.InForce)
+                {
+                    ListAt(_standing, version.Object).Add(version);
+                }
+                else if (told.Contains(version.Id))
+                {
+                    // Present beside its own deletion record: told of by its own object, with
+                    // nothing hashed.
+                    Losing(losing, version.Object).Add(version.Id);
+                }
+            }
+
+            // A deletion record under which a version is present is that version's, and its object
+            // judges it above; every other is told of below, object by object.
+            var left = told.Where(identifier => !Versions.ContainsKey(identifier)).ToList();
+            if (left.Count > 0)
+            {
+                TellOfLost(key, left, nodes, namedBy, losing);
+            }
+
+            foreach (var standing in _standing.Values)
+            {
+                standing.Sort((first, second) => string.CompareOrdinal(first.Id, second.Id));
+            }
+
+            foreach (var pair in losing)
+            {
+                _lost[pair.Key] = pair.Value.ToList();
+            }
+
+            _objects = _standing.Keys.Union(_lost.Keys, StringComparer.Ordinal).OrderBy(objectText => objectText, StringComparer.Ordinal).ToList();
+        }
+
+        /// <summary>
+        /// The rows and the switches that deletion records whose content is nowhere tell of,
+        /// `STORE.md` §617 and §620, each lost to every object it tells of that no version in
+        /// force of that object names it for: a deletion record at the place of a version present
+        /// first, then the nodes of the objects the file names, and the tree's only where a
+        /// deletion record is still not told of.
+        /// </summary>
+        /// <remarks>
+        /// **A deletion record tells of a row** by the subject hash of `rule:` and a node and the
+        /// tag of a name in bytes 9 and 10, and so of the row of every name of that tag the file
+        /// knows; with 0 there, of the object of that node with no `/` as well, where a version
+        /// names it, since the ten keyed bytes tell neither apart, `STORE.md` §609. **It tells of a
+        /// switch** by the subject hash of `switch:` and a node, with 0. A tag that meets no name
+        /// the file knows tells of nothing, until the name is known. **Its place**, those ten
+        /// bytes, is that of a version present of an object of the same node, type and tag
+        /// wherever a version present begins with them, which is how every deletion record of the
+        /// plugin's own writes is placed: the version that names it is at its place.
+        ///
+        /// **What it hashes, each kept with the key**, `FoundKey`: nothing for a deletion record at
+        /// the place of a version present; for the rest a subject for each node tried, `rule:` for
+        /// each and `switch:` only where such a deletion record holds 0. Once a deletion record
+        /// lies at a node's rows, the tag of each name the file knows, read off the identifier of a
+        /// row record where one shows the name and hashed otherwise. Whether a version of another
+        /// object names a deletion record changes none of this.
+        ///
+        /// **What it adds is bounded**: each deletion record is placed once, and added once to the
+        /// set of each object it tells of, so K deletion records at a node's rows add at most K for
+        /// each of the M names of their tag, M being 1 but where tags meet; the sets are built once
+        /// for the reading.
+        /// </remarks>
+        private void TellOfLost(
+            FoundKey key,
+            IReadOnlyList<string> left,
+            Func<IEnumerable<byte[]>> nodes,
+            IReadOnlyDictionary<string, HashSet<string>> namedBy,
+            Dictionary<string, SortedSet<string>> losing)
+        {
+            var rules = StoreKinds.RuleType + StoreKinds.ObjectTypeEnd;
+            var switches = StoreKinds.SwitchType + StoreKinds.ObjectTypeEnd;
+            var atRows = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+            // Lost to this object, unless a version in force of the object names the record.
+            void Tell(string objectText, string identifier)
+            {
+                HashSet<string> by;
+                if (!namedBy.TryGetValue(identifier, out by) || !by.Contains(objectText))
+                {
+                    Losing(losing, objectText).Add(identifier);
+                }
+            }
+
+            // Placed by a version present at its place, with nothing hashed.
+            var places = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var version in Versions.Values.Where(version => version.Object != null && !places.ContainsKey(PlaceOf(version.Id))))
+            {
+                places[PlaceOf(version.Id)] = version.Object;
+            }
+
+            var unplaced = new List<string>();
+            foreach (var identifier in left)
+            {
+                string objectText;
+                if (!places.TryGetValue(PlaceOf(identifier), out objectText))
+                {
+                    unplaced.Add(identifier);
+                }
+                else if (objectText.StartsWith(rules, StringComparison.Ordinal))
+                {
+                    ListAt(atRows, NodeOf(objectText, rules)).Add(identifier);
+                }
+                else if (objectText.StartsWith(switches, StringComparison.Ordinal))
+                {
+                    Tell(objectText, identifier);
+                }
+
+                // At the place of an object of another type, what it tells of is that type's.
+            }
+
+            var objects = new HashSet<string>(
+                Versions.Values.Select(version => version.Object).Where(objectText => objectText != null), StringComparer.Ordinal);
+            if (unplaced.Count > 0)
+            {
+                var bySubject = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+                foreach (var identifier in unplaced)
+                {
+                    ListAt(bySubject, SubjectOf(identifier)).Add(identifier);
+                }
+
+                var zero = unplaced.Any(identifier => NumberOf(identifier) == 0);
+                var unmatched = new HashSet<string>(bySubject.Keys, StringComparer.Ordinal);
+                var tried = new HashSet<string>(StringComparer.Ordinal);
+
+                void Try(string node)
+                {
+                    if (!tried.Add(node))
+                    {
+                        return;
+                    }
+
+                    List<string> telling;
+                    var rows = key.Subject(rules + node);
+                    if (bySubject.TryGetValue(rows, out telling))
+                    {
+                        ListAt(atRows, node).AddRange(telling);
+                        unmatched.Remove(rows);
+                    }
+
+                    if (!zero)
+                    {
+                        return;
+                    }
+
+                    var turned = key.Subject(switches + node);
+                    if (bySubject.TryGetValue(turned, out telling))
+                    {
+                        foreach (var identifier in telling.Where(identifier => NumberOf(identifier) == 0))
+                        {
+                            Tell(switches + node, identifier);
+                        }
+
+                        unmatched.Remove(turned);
+                    }
+                }
+
+                foreach (var objectText in objects)
+                {
+                    if (objectText.StartsWith(rules, StringComparison.Ordinal))
+                    {
+                        Try(NodeOf(objectText, rules));
+                    }
+                    else if (objectText.StartsWith(switches, StringComparison.Ordinal))
+                    {
+                        Try(objectText.Substring(switches.Length));
+                    }
+                }
+
+                // The whole tree, once, where a deletion record's subject meets no node the
+                // objects name: the nodes already tried are hashed no further.
+                if (unmatched.Count > 0 && nodes != null)
+                {
+                    foreach (var node in nodes())
+                    {
+                        Try(Hex.Of(node));
+                    }
+                }
+            }
+
+            if (atRows.Count == 0)
+            {
+                return;
+            }
+
+            var names = NamesByTag(key, objects, rules);
+            foreach (var row in atRows)
+            {
+                foreach (var identifier in row.Value)
+                {
+                    var number = NumberOf(identifier);
+                    List<string> tagged;
+                    if (names.TryGetValue(number, out tagged))
+                    {
+                        foreach (var name in tagged)
+                        {
+                            Tell(rules + row.Key + StoreFormat.ProfileStart + name, identifier);
+                        }
+                    }
+
+                    if (number == 0 && objects.Contains(rules + row.Key))
+                    {
+                        Tell(rules + row.Key, identifier);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// The names the file knows, `STORE.md` §617, by their tags: from every record of kind
+        /// `profile` or `removed` present, in force or not, every item `removed` of a summary entry
+        /// present, and every object of type `rule` that a version present names, each once. A
+        /// tag is read off the identifier of a row record that shows the name, which its check
+        /// holds to its content, and hashed under the key otherwise.
+        /// </summary>
+        private Dictionary<int, List<string>> NamesByTag(FoundKey key, IEnumerable<string> objects, string rules)
+        {
+            var known = new HashSet<string>(KnownValues(StoreKinds.Find(StoreKinds.Removed)).Where(name => name != null), StringComparer.Ordinal);
+            foreach (var objectText in objects.Where(objectText => objectText.StartsWith(rules, StringComparison.Ordinal)))
+            {
+                var start = objectText.IndexOf(StoreFormat.ProfileStart, rules.Length);
+                if (start >= 0)
+                {
+                    known.Add(objectText.Substring(start + 1));
+                }
+            }
+
+            var shown = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var record in Records.Where(record => record.Is(StoreKinds.Version) && record.Form.Tagged != null))
+            {
+                shown[record.Form.Tagged] = NumberOf(record.Hex);
+            }
+
+            var names = new Dictionary<int, List<string>>();
+            foreach (var name in known)
+            {
+                int tag;
+                ListAt(names, shown.TryGetValue(name, out tag) ? tag : key.NameTag(name)).Add(name);
+            }
+
+            return names;
+        }
+
+        /// <summary>Whether an item restates a version as these members hold it: its object, `after` and text alike.</summary>
+        private static bool Alike(IReadOnlyDictionary<string, string> held, IReadOnlyDictionary<string, string> restated)
+        {
+            return new[] { StoreKinds.ObjectMember, StoreKinds.After, StoreKinds.Doc }.All(member =>
+            {
+                string first;
+                string second;
+                return held.TryGetValue(member, out first) && restated.TryGetValue(member, out second)
+                       && string.Equals(first, second, StringComparison.Ordinal);
+            });
+        }
+
+        /// <summary>
+        /// The place of a version's identifier: its first ten bytes, the tag of `version`, the
+        /// subject hash and bytes 9 and 10, as hexadecimal, `STORE.md` §609.
+        /// </summary>
+        private static string PlaceOf(string identifier)
+        {
+            return identifier.Substring(0, (StoreFormat.TagLength + StoreFormat.SubjectLength + StoreFormat.HeightLength) * 2);
+        }
+
+        /// <summary>The node of an object of type `rule`: its text after `rule:` and before the first `/`.</summary>
+        private static string NodeOf(string objectText, string rules)
+        {
+            var end = objectText.IndexOf(StoreFormat.ProfileStart, rules.Length);
+            return end < 0 ? objectText.Substring(rules.Length) : objectText.Substring(rules.Length, end - rules.Length);
+        }
+
+        /// <summary>The list under a key, made the first time it is asked for.</summary>
+        private static List<TValue> ListAt<TKey, TValue>(Dictionary<TKey, List<TValue>> lists, TKey key)
+        {
+            List<TValue> list;
+            if (!lists.TryGetValue(key, out list))
+            {
+                list = new List<TValue>();
+                lists[key] = list;
+            }
+
+            return list;
+        }
+
+        /// <summary>The set under a key, made the first time it is asked for.</summary>
+        private static HashSet<string> SetAt(Dictionary<string, HashSet<string>> sets, string key)
+        {
+            HashSet<string> set;
+            if (!sets.TryGetValue(key, out set))
+            {
+                set = new HashSet<string>(StringComparer.Ordinal);
+                sets[key] = set;
+            }
+
+            return set;
+        }
+
+        /// <summary>The identifiers lost to an object, ascending, made the first time it is asked for.</summary>
+        private static SortedSet<string> Losing(Dictionary<string, SortedSet<string>> losing, string objectText)
+        {
+            SortedSet<string> set;
+            if (!losing.TryGetValue(objectText, out set))
+            {
+                set = new SortedSet<string>(StringComparer.Ordinal);
+                losing[objectText] = set;
+            }
+
+            return set;
         }
 
         /// <summary>
@@ -1119,14 +1571,25 @@ namespace KeePassGate.Store
             get { return RecordInForce || ItemInForce; }
         }
 
-        /// <summary>The members of the item that restates it, its `id` among them.</summary>
+        /// <summary>
+        /// Its members, `id` among them, as an item restating it holds them: its record's where a
+        /// record carries it, and otherwise those of the first item of a summary entry in force
+        /// that carries it, or of the first item present where none in force does.
+        /// </summary>
         public IReadOnlyDictionary<string, string> Members { get; private set; }
 
-        /// <summary>Marks it carried by an item of a summary entry in force, which restates it as it holds it.</summary>
+        /// <summary>
+        /// Marks it carried by an item of a summary entry in force, taking that item's members
+        /// where neither a record nor an earlier item in force gave them.
+        /// </summary>
         internal void CarriedInForce(IReadOnlyDictionary<string, string> members)
         {
+            if (!Record && !ItemInForce)
+            {
+                Members = members;
+            }
+
             ItemInForce = true;
-            Members = members;
         }
     }
 }

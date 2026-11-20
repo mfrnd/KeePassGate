@@ -70,8 +70,6 @@ namespace KeePassGate.Host.Tests
         {
             using (var database = TemporaryDatabase.New())
             {
-                var root = database.RootGroup;
-                root.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting((Profile, "CRUSDLAP")));
                 var entries = Fill(database.Database, history);
                 Store(database.Database);
 
@@ -478,9 +476,10 @@ namespace KeePassGate.Host.Tests
         }
 
         /// <summary>
-        /// An authority, a revocation for each of many clients, and the summary entry restating
-        /// them all, which is about the size of the store the growth run left after a thousand
-        /// writes, `STORE.md` §643.
+        /// An authority, a revocation for each of many clients, a rule granting the fixture's
+        /// profile every letter at the root, and the summary entry restating them all, which is
+        /// about the size of the store the growth run left after a thousand writes, `STORE.md`
+        /// §643.
         /// </summary>
         private static void Store(PwDatabase database)
         {
@@ -491,7 +490,15 @@ namespace KeePassGate.Host.Tests
                 key, "authority", "authority:" + Authority,
                 StoreComposer.Content(("id", Authority), ("storeKey", StoreComposer.HexOf(key))))), true);
 
-            var items = new List<string> { StoreComposer.Item(("format", "1"), ("kind", "format"), ("plugin", "0.3.0")) };
+            var rule = StoreComposer.RowObject(Hex.Of(database.RootGroup.Uuid.UuidBytes), Profile);
+            var granting = StoreComposer.RuleVersion(key, rule, "row:CRUSDLAP");
+            group.AddEntry(StoreEntries.Of(granting), true);
+
+            var items = new List<string>
+            {
+                StoreComposer.Item(("format", "1"), ("kind", "format"), ("plugin", "0.3.0")),
+                StoreComposer.RuleVersionItem(granting, rule, "row:CRUSDLAP"),
+            };
             items.AddRange(Revocations(group, key));
             var after = Enumerable.Range(0, Decisions).Select(index => index.ToString("x32", CultureInfo.InvariantCulture));
 

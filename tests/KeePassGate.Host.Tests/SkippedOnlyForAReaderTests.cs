@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using KeePassGate.Acl;
 using KeePassGate.Audit;
 using KeePassGate.Bridge;
 using KeePassGate.Pipeline;
@@ -90,7 +89,7 @@ namespace KeePassGate.Host.Tests
         public void What_is_already_there_is_skipped_only_for_a_caller_that_may_read_it(
             string what, string mask, bool skipped)
         {
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", mask)));
+            DatabaseRules.Rule(_database.Database, _group, ("agent", mask));
             var revisions = _entry.History.UCount;
 
             var answer = Send(what, "agent");
@@ -113,9 +112,7 @@ namespace KeePassGate.Host.Tests
         {
             // Profiles are combined with or, as a read combines them: a client that can read the
             // value through any profile it holds learns nothing from a skipped write.
-            _group.CustomData.Set(
-                AclDocument.CustomDataKey,
-                Rules.Granting(("reader", "R"), ("writer", "U")));
+            DatabaseRules.Rule(_database.Database, _group, ("reader", "R"), ("writer", "U"));
 
             var answer = Send("field", "reader", "writer");
 
@@ -128,9 +125,7 @@ namespace KeePassGate.Host.Tests
         {
             // `read` and `protected` in one rule, as a read is held to: a rule that reads the
             // entry without its protected values beside a rule that may set them reads no secret.
-            _group.CustomData.Set(
-                AclDocument.CustomDataKey,
-                Rules.Granting(("reader", "R"), ("writer", "UP")));
+            DatabaseRules.Rule(_database.Database, _group, ("reader", "R"), ("writer", "UP"));
 
             var answer = Send("secret", "reader", "writer");
 
@@ -154,7 +149,7 @@ namespace KeePassGate.Host.Tests
             // holds no value at all. Each mask is a rule of its own, under a profile of its own.
             _entry.Strings.Set(PwDefs.TitleField, new ProtectedString(true, Title));
             var rules = masks.Split(' ').Select((mask, index) => ("profile" + index, mask)).ToArray();
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(rules));
+            DatabaseRules.Rule(_database.Database, _group, rules);
             var revisions = _entry.History.UCount;
 
             var answer = Send(what, rules.Select(rule => rule.Item1).ToArray());
@@ -176,7 +171,7 @@ namespace KeePassGate.Host.Tests
             // the listing and the read.
             _database.Database.MemoryProtection.ProtectTitle = true;
             var rules = masks.Split(' ').Select((mask, index) => ("profile" + index, mask)).ToArray();
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(rules));
+            DatabaseRules.Rule(_database.Database, _group, rules);
 
             var answer = Send("title", rules.Select(rule => rule.Item1).ToArray());
 
@@ -190,7 +185,7 @@ namespace KeePassGate.Host.Tests
         public void A_request_naming_nothing_is_skipped_for_everybody(string what)
         {
             // Nothing in it is a guess at anything.
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "U")));
+            DatabaseRules.Rule(_database.Database, _group, ("agent", "U"));
 
             var answer = Send(what, "agent");
 
@@ -202,7 +197,7 @@ namespace KeePassGate.Host.Tests
         public void An_expiry_alone_is_a_value_its_caller_has_to_read_to_be_skipped()
         {
             _entry.Expires = false;
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "U")));
+            DatabaseRules.Rule(_database.Database, _group, ("agent", "U"));
 
             var answer = Send("expiry", "agent");
 

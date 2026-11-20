@@ -110,8 +110,9 @@ its client key; and what takes a single certificate away is a record of a kind o
 paragraphs on them below hold of them there.
 
 Everything else under `KPG` keys in the **database's own** `CustomData`, which is the one dictionary
-KeePass stamps key by key and merges the same way. A node's access rule is the exception and lives
-on that node, where it belongs and travels. Everything requires KDBX 4, and this requires KDBX 4.1,
+KeePass stamps key by key and merges the same way. A node's access rule was the exception and lived
+on that node; it is a record of the store that names its node now, `STORE.md` §617, and nothing of
+the plugin's is on a group or an entry. Everything requires KDBX 4, and this requires KDBX 4.1,
 because a per-key modification time is a 4.1 field: a database with a profile name in that
 dictionary is a 4.1 file. That is a format and not a gate: other programs open the file, and the
 paragraph on them below has what saving and merging in them was measured to do. Nothing that takes
@@ -139,8 +140,11 @@ leaves a 4.0 file as a client paired for no profile does.
 other programs do to custom data, in the paragraphs on them below, is what reopened it: the
 plugin's data is to move into entries in a group of the plugin's own, with no custom data
 anywhere. [`STORE.md`](STORE.md) §601 holds that store and §604 lists what of this section it
-reverses. The standing answers to a renewal and the rules on groups and entries are not moved
-yet, so for them this section remains the account of what the plugin does.
+reverses. The rules on groups and entries have moved as well: a rule is a record of the store
+for each node and profile, written as the node's dialog closes with OK, `STORE.md` §617 and
+§629, and what this section holds of a rule carried by its node is the account of what that
+reversed. The standing answers to a renewal are not moved yet, so for them this section remains
+the account of what the plugin does.
 
 | Key | Contents | Written |
 | --- | --- | --- |
@@ -158,18 +162,24 @@ dialog is open is destroyed by that OK, silently. Everything here used to live t
 database's own dictionary is copied by one dialog only, Database Maintenance, and the plugin
 refuses to write while that one is open.
 
-**A node's rule is carried by the node, because nothing smaller carries it.** A group's and an
-entry's `CustomData` keeps no time per key, so a merge takes the whole dictionary from one side or
-the other and decides by the node's own modification time. A rule is written only into the copy a
-group or entry dialog puts back on OK, so it travels exactly as far as any other edit made in that
-dialog, and the plugin writes no rule of its own. Nor does it move the time that decides which
-copy's rule a merge keeps: a removal through the API stamps what KeePass's own delete stamps, so a
-child's removal is no edit of its parent, and the first bin it makes is no decision about the bin. A
-merge that hands back a rule for a profile the operator has since removed hands back something
-inert, because the database's list of profiles decides which names are in force (`DESIGN.md` §139);
+**A node's rule was carried by the node, because nothing smaller carried it, and is a record of
+the store now.** A group's and an entry's `CustomData` keeps no time per key, so a merge takes the
+whole dictionary from one side or the other and decides by the node's own modification time: that
+is a fact about KeePass, and it stands. While a rule was a key of that dictionary, it was written
+only into the copy a group or entry dialog puts back on OK, so it traveled exactly as far as any
+other edit made in that dialog, the plugin wrote no rule of its own, and a merge kept the rules
+of whichever copy touched the node last, a narrowing made in the other copy lost with them.
+**That is what the store reverses for a rule**, `STORE.md` §617: a rule is a record for each node
+and profile, merged record by record whatever became of the node's time, a rule changed apart in
+two copies stands in both versions and grants what both allow, and the plugin writes its rules
+itself, as the node's dialog closes with OK. What still holds is about the node and not about its
+rules: a removal through the API stamps what KeePass's own delete stamps, so a child's removal is
+no edit of its parent, and the first bin it makes is no decision about the bin. A merge that
+hands back a rule for a profile the operator has since removed hands back something inert,
+because the database's list of profiles decides which names are in force (`DESIGN.md` §139);
 that replaced a purge which rewrote every rule naming a removed profile, and moved the times of
-entries nobody had edited to make the rewrite carry. A write that says nothing new stays a no-op, so
-reading a rule is never an unsaved change.
+entries nobody had edited to make the rewrite carry. A dialog looked at and accepted with no rule
+changed writes nothing, so reading a rule is never an unsaved change.
 
 **An admission is a record for each certificate, never one blob.** Each is an entry of its own, and
 a merge brings an entry the other copy lacks, so two hosts pairing different clients keep both;
@@ -422,33 +432,37 @@ written since, which was every revocation, admission record and profile list whi
 keys, and puts back the older value of every key changed since, a standing answer among them,
 stamped, where the file keeps times, with the time of the merge, which a later synchronize in
 KeePass takes as the newest. A group both copies hold
-keeps the rules of the database merged into, however the other copy changed them, and takes the
-newer of the two times, so a narrowing made in the other copy is lost without looking older.
+keeps the custom data of the database merged into, however the other copy changed it, and takes
+the newer of the two times, so a rule narrowed in the other copy was lost without looking older
+while a rule was a key of that dictionary.
 Merging the other way, the paired database into an older copy, gives that copy the paired
 database's keys.
 
 **Android programs that open KDBX 4 files were measured on the same branch**, in an emulator of
-Android 11: Keepass2Android 1.15-r6 and 1.08d-r5, KeePassDX 4.5.8, 3.2.0 and 3.3.0, and
-KeePassDroid 2.7. No save and no merge in any of them removed a key from the database's custom
-data, so a revocation held there while it was a key. **A save in KeePassDroid 2.7 deletes the rules
-on every group and entry, and a save in KeePassDX 3.2.0 or 3.3.0 the rules on every group**,
-without moving the modification time of the group or entry, so nothing on the node shows that its
-rules went. A save in KeePassDX 4.5.8 keeps the rules and the times, and a save in Keepass2Android
-keeps the rules and drops the times, as a save in KeePass 2.47 does. A Keepass2Android merge gives
-a key both copies hold the value of the copy that is open unless the arriving copy's settings were
-changed later, so the admission record and the profile list went back to the older copy's values
-whenever the older copy was the open copy or arrived with the later settings. A KeePassDX merge,
-in 4.5.8 and 3.2.0, puts the arriving copy's rules on a group or an entry whichever copy is newer,
-so an older, wider rule arrives under the newer time. KeePassDroid 2.7 showed no merge to run. A
-group or an entry whose rules went answers each profile with the nearest rule above it, or refuses
-a profile no rule above names, and its **Refuse any profile not named here** check mark goes with
-the rules, so wherever they narrowed what a group above grants, a client now reaches more.
+Android 11: Keepass2Android 1.15-r6 and 1.08d-r5, KeePassDX 4.5.8, 3.2.0 and 3.3.0, and KeePassDroid
+2.7. No save and no merge in any of them removed a key from the database's custom data, so a
+revocation held there while it was a key. **A save in KeePassDroid 2.7 deletes the custom data of
+every group and entry, and a save in KeePassDX 3.2.0 or 3.3.0 that of every group**, without moving
+the modification time of the group or entry, so nothing on the node shows that it went: measured
+with the rules that were kept there, which such a save deleted, and which are records of the store
+now. A save in KeePassDX 4.5.8 keeps a node's custom data and the times, and a save in
+Keepass2Android keeps it and drops the times, as a save in KeePass 2.47 does. A Keepass2Android
+merge gives a key both copies hold the value of the copy that is open unless the arriving copy's
+settings were changed later, so the admission record and the profile list went back to the older
+copy's values whenever the older copy was the open copy or arrived with the later settings. A
+KeePassDX merge, in 4.5.8 and 3.2.0, puts the arriving copy's custom data on a group or an entry
+whichever copy is newer, so an older, wider rule arrived under the newer time while a rule was
+kept there. KeePassDroid 2.7 showed no merge to run. A group or an entry whose rules went so
+answered each profile with the nearest rule above it, or refused a profile no rule above named,
+and its **Refuse any profile not named here** check mark went with the rules, so wherever they
+had narrowed what a group above grants, a client reached more. **That is what a rule kept as a
+record of the store reverses**, `STORE.md` §617: none of those saves and merges reaches a rule
+through a node's custom data any more.
 
 Nothing here detects any of it. After any change made outside KeePass, the clients page, the
-Profiles page and the authority are where to look, and after a save in a program that deletes
-rules, the rules on every group and entry that had any. What the same programs do to the entries
-that the authority, the admissions, the revocations and the profile names are kept in is
-`STORE.md` §603 and §637.
+Profiles page and the authority are where to look. What the same programs do to the entries
+that the authority, the admissions, the revocations, the profile names and the rules are kept
+in is `STORE.md` §603 and §637.
 
 **KeePass's own Database Maintenance dialog lists every one of these keys on its Plugin Data tab,
 and deletes any of them on request.** None of that is a way to manage what this plugin keeps.
@@ -548,8 +562,10 @@ puts the copy back.
 **The dialog this plugin puts its tab on carries no such snapshot**, which the same tests assert
 against the real type. So the buttons on the KPG tab are safe from their own dialog, and the hazard
 belongs to whatever writes while somebody has a *group* open. Nothing in the custom data this
-store holds is in a group, since §204 keeps it in the database's own dictionary, so what a group
-dialog can destroy is a node's rule. The dialog that copies that dictionary is Database
+store holds is in a group, since §204 keeps it in the database's own dictionary, and a node's
+rule, which a group dialog could destroy while it was a key of the node's custom data, is a
+record of the plugin's store now, `STORE.md` §617, so a group dialog destroys nothing of it.
+The dialog that copies that dictionary is Database
 Maintenance, which writes it back the same way, and [`PAIRING.md`](PAIRING.md) §307 is where
 pairing answers that dialog. The authority, the admissions and the revocations are in a group, as
 entries of the plugin's store, and no group dialog copies an entry: an entry edited in KeePass's

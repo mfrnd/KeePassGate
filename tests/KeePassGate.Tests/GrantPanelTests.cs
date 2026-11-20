@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Acl;
@@ -13,37 +15,39 @@ using NUnit.Framework;
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// The grant editor as a control: what it draws, and what it writes.
+    /// The grant editor as a control: what it draws, what each press does to the sheet, and that
+    /// only the dialog's OK hands the sheet to the writer.
     /// </summary>
     /// <remarks>
     /// Driven through the panel's own methods rather than its controls, because
     /// `Button.PerformClick` does nothing on a form that was never shown, silently, and a test that
-    /// pressed one would assert against a table nobody touched.
+    /// pressed a button would assert against a table nobody touched.
     /// </remarks>
     [TestFixture]
     [Apartment(ApartmentState.STA)]
     public sealed class GrantPanelTests
     {
+        private const int ProfileColumn = GrantTab.ProfileColumn;
+        private const int MaskColumn = GrantTab.MaskColumn;
+        private const int StateColumn = GrantTab.StateColumn;
+        private const int ForgetColumn = GrantTab.ForgetColumn;
+
         [Test]
         public void A_node_with_nothing_on_it_draws_an_empty_table()
         {
-            using (var panel = Panel(new FakeGrantStore(null), null))
+            using (var panel = Panel(NodeRule.None, null))
             {
                 Assert.That(panel.Lines, Is.Empty);
                 Assert.That(panel.Warning, Is.Null);
-                Assert.That(panel.Writes, Is.Zero);
             }
         }
 
         [Test]
-        public void The_table_says_what_it_is_to_anything_that_cannot_see_it()
+        public void The_table_is_named_to_anything_that_cannot_see_it()
         {
-            // It has no text of its own and it is the whole page, so without a name a screen reader
-            // announced the KPG tab on a group or an entry by its control type alone. The clients
-            // and profiles tables were given one; this is the third.
-            using (var panel = Panel(new FakeGrantStore(null), null))
+            using (var panel = Panel(NodeRule.None, null))
             {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                var grid = Grid(panel);
 
                 Assert.That(grid.AccessibleName, Is.EqualTo(GrantTab.GridLabel));
                 Assert.That(grid.AccessibleName, Is.Not.EqualTo(grid.Name),
@@ -52,786 +56,582 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_panel_is_named_to_a_screen_reader_by_a_name_of_its_own()
+        {
+            // With no name of its own, UI automation names the panel after the label before the
+            // page on KeePass's dialog, "UUID:".
+            using (var panel = Panel(NodeRule.None, null))
+            {
+                Assert.That(panel.AccessibleName, Is.EqualTo(GrantTab.PanelLabel));
+            }
+        }
+
+        [Test]
         public void Every_X_is_named_to_a_screen_reader_by_what_pressing_it_does()
         {
-            // S422: the heading was left empty for the bin painted over it, so each X was read
-            // out as its row and an X, and nothing told a listener that it removes a rule.
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("reader", "R"))), null))
+            using (var panel = Panel(Rules.Node(false, ("reader", "R")), null))
             {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
-                ButtonColumns.AssertNamedBy(panel, grid, GrantTab.ForgetColumnName, GrantTab.ForgetColumnHeader);
+                ButtonColumns.AssertNamedBy(panel, Grid(panel), GrantTab.ForgetColumnName, GrantTab.ForgetColumnHeader);
             }
         }
 
         [Test]
-        public void A_rule_is_drawn_as_its_mask()
+        public void The_columns_are_the_profile_the_permissions_the_state_and_the_bin_each_with_its_sentence()
         {
-            var store = new FakeGrantStore(Rules.Granting(("reader", "RL")));
-
-            using (var panel = Panel(store, null))
+            using (var panel = Panel(Rules.Node(false, ("reader", "R")), null))
             {
-                Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R...L.." }));
+                var columns = Grid(panel).Columns;
+
+                Assert.That(columns.Count, Is.EqualTo(4));
+                Assert.That(columns[ProfileColumn].HeaderText, Is.EqualTo(GrantTab.ProfileColumnHeader));
+                Assert.That(columns[MaskColumn].HeaderText, Is.EqualTo(GrantTab.MaskColumnHeader));
+                Assert.That(columns[StateColumn].HeaderText, Is.EqualTo(GrantTab.StateColumnHeader));
+                Assert.That(columns[StateColumn].Name, Is.EqualTo(GrantTab.StateColumnName));
+                Assert.That(columns[ProfileColumn].ToolTipText, Is.EqualTo(Tooltips.Wrapped(GrantTab.ProfileColumnHelp)));
+                Assert.That(columns[MaskColumn].ToolTipText, Is.EqualTo(Tooltips.Wrapped(GrantTab.MaskColumnHelp)));
+                Assert.That(columns[StateColumn].ToolTipText, Is.EqualTo(Tooltips.Wrapped(GrantTab.StateColumnHelp)));
+                Assert.That(columns[ForgetColumn].ToolTipText, Is.EqualTo(Tooltips.Wrapped(GrantTab.ForgetColumnHelp)));
+                Assert.That(columns.Cast<DataGridViewColumn>().All(column => column.SortMode == DataGridViewColumnSortMode.NotSortable), Is.True);
             }
         }
 
         [Test]
-        public void Writing_a_rule_stores_it_and_redraws()
+        public void Each_row_is_drawn_as_its_profile_its_mask_and_the_word_of_its_first_state()
         {
-            var store = new FakeGrantStore(null);
+            var rule = Rules.Stored(("reader", "row:R"), ("reader", "row:RL"), ("ops", "off:R"), ("deploy", null));
 
-            using (var panel = Panel(store, null))
+            using (var panel = Panel(rule, Sheets.Arriving(("ops", "RL"), ("zeta", "C"))))
             {
-                Assert.That(panel.SetGrant("reader", ".R...LA."), Is.Null);
-
-                Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R...LA." }));
-                Assert.That(panel.Writes, Is.EqualTo(1));
-                Assert.That(AclDocument.Read(store.Current).Grant("reader").CoversAttachments, Is.True);
+                Assert.That(panel.Lines, Is.EqualTo(new[]
+                {
+                    "deploy ........ " + GrantTab.LostWord,
+                    "ops .R...L.. " + GrantTab.InheritedWord,
+                    "ops .R...... " + GrantTab.LimitWord,
+                    "reader .R...... " + GrantTab.VersionWord,
+                    "reader .R...L.. " + GrantTab.VersionWord,
+                    "zeta C....... " + GrantTab.NoProfileWord,
+                }));
             }
         }
 
         [Test]
-        public void Opening_a_tab_and_changing_nothing_writes_nothing()
+        public void Every_state_word_has_a_tooltip_telling_what_the_gate_does_and_the_same_accessible_description()
         {
-            // The one that decides whether looking at a database leaves it modified. Only an edit
-            // writes, a choice in a picker, an X, the seal or Discard, and none is made here.
-            var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
+            var rule = Rules.Stored(("reader", "row:R"), ("reader", "off:R"), ("ops", "off:R"), ("deploy", null), ("lost", "row:x"));
+            var names = new[] { "reader", "ops", "deploy", "lost", "above" };
 
-            using (var panel = Panel(store, null))
+            using (var panel = new GrantPanel(
+                GrantSheet.Of(rule, Sheets.Arriving(("ops", "RL"), ("above", "R"), ("gone", "R")), names, null),
+                GrantTab.GroupScope,
+                null, null, null))
             {
-                Assert.That(panel.SetGrant("reader", ".R......"), Is.Null, "the same rule again");
-                Assert.That(panel.RemoveGrant("nobody-has-this"), Is.False);
+                var seen = new HashSet<string>();
+                foreach (DataGridViewRow row in Grid(panel).Rows)
+                {
+                    if (row.IsNewRow)
+                    {
+                        continue;
+                    }
 
-                Assert.That(panel.Writes, Is.Zero);
-                Assert.That(store.Writes, Is.Zero);
+                    var cell = row.Cells[StateColumn];
+                    var word = (string)cell.Value;
+                    seen.Add(word);
+
+                    var tip = GrantTab.StateTip((GrantRow)row.Tag, true);
+                    Assert.That(cell.ToolTipText, Is.EqualTo(Tooltips.Wrapped(tip)), word);
+                    Assert.That(cell.AccessibilityObject.Description, Is.EqualTo(tip), word);
+
+                    // UI automation reads a cell's help, never its description, as its help text.
+                    Assert.That(cell.AccessibilityObject.Help, Is.EqualTo(tip), word);
+                    Assert.That(tip, Does.Contain("gate grants").Or.Contain("grants nothing"), word);
+                }
+
+                Assert.That(seen, Is.EquivalentTo(new[]
+                {
+                    GrantTab.InheritedWord, GrantTab.LimitWord, GrantTab.VersionWord, GrantTab.TakenOffWord,
+                    GrantTab.LostWord, GrantTab.NoProfileWord,
+                }));
             }
         }
 
         [Test]
-        public void Writing_the_same_rule_twice_writes_once()
+        public void The_tooltip_of_each_state_is_its_sentence_and_what_a_press_on_the_row_does()
         {
-            var store = new FakeGrantStore(null);
+            var sheet = GrantSheet.Of(
+                Rules.Stored(
+                    ("reader", "row:R"), ("reader", "row:RL"), ("tk", "row:RL"), ("tk", "off:R"), ("ops", "off:R"),
+                    ("deploy", null), ("lost", "row:x"), ("deny", "off:deny")),
+                Sheets.Arriving(("ops", "RL"), ("above", "CR"), ("deny", "R"), ("gone", "R")),
+                new[] { "reader", "tk", "ops", "deploy", "lost", "above", "deny" },
+                null);
+            var rows = sheet.Rows;
 
-            using (var panel = Panel(store, null))
+            string Tip(string profile, GrantRowKind kind) =>
+                GrantTab.StateTip(rows.First(row => row.Profile == profile && row.Kind == kind), true);
+
+            Assert.That(Tip("above", GrantRowKind.Inherited), Is.EqualTo(
+                GrantTab.InheritedTip + " " + GrantTab.InheritedGrants + " " + GrantTab.InheritedChoice));
+            Assert.That(Tip("ops", GrantRowKind.Inherited), Is.EqualTo(
+                GrantTab.InheritedCutTip + " " + GrantTab.InheritedCutGrants + " " + GrantTab.InheritedChoice));
+            Assert.That(Tip("ops", GrantRowKind.Limit), Is.EqualTo(GrantTab.LimitTip + " " + GrantTab.LimitGrants + " " + GrantTab.LimitRemoval));
+            Assert.That(Tip("deny", GrantRowKind.Limit), Is.EqualTo(GrantTab.LimitRefusingTip + " " + GrantTab.LimitRemoval));
+            Assert.That(Tip("deploy", GrantRowKind.Lost), Is.EqualTo(GrantTab.LostTip + " " + GrantTab.LostChoice));
+            Assert.That(Tip("lost", GrantRowKind.Lost), Is.EqualTo(GrantTab.UnreadableTip + " " + GrantTab.UnreadableChoice));
+            Assert.That(Tip("reader", GrantRowKind.Version), Is.EqualTo(
+                "This rule stands in 2 versions, made in copies of this database before the copies met. Until a single version is "
+                + "left, the gate grants .R...... at this node. " + GrantTab.VersionRemoval));
+            Assert.That(GrantTab.StateTip(rows.First(row => row.States.Contains(GrantState.TakenOff)), true), Is.EqualTo(
+                "In this version the rule was removed, so the version lets a grant from above through only as far as the "
+                + "permissions shown. Until a single version is left, the gate grants ........ at this node. "
+                + GrantTab.VersionRemoval));
+            Assert.That(Tip("gone", GrantRowKind.Inherited), Is.EqualTo(
+                GrantTab.NoProfileTip + Environment.NewLine + GrantTab.InheritedTip + " " + GrantTab.InheritedChoice));
+        }
+
+        [Test]
+        public void No_tooltip_tells_a_grant_for_a_profile_the_database_no_longer_names()
+        {
+            // A rule for a name the list no longer holds grants nothing, whatever the row shows: no
+            // state of such a row tells of a grant, read only or not.
+            var sheet = GrantSheet.Of(
+                Rules.Stored(("gone", "row:R"), ("cut", "off:R"), ("group", "row:R"), ("group", "row:RL"), ("taken", "row:RL"), ("taken", "off:R")),
+                Sheets.Arriving(("above", "RL"), ("cut", "RL"), ("taken", "RUL")),
+                new[] { "ops" },
+                null);
+            var grants = new Regex(@"gate grants (?!nothing)");
+
+            var rows = sheet.Rows.Where(row => row.States.Contains(GrantState.NoProfile)).ToList();
+            Assert.That(rows.Select(row => row.Kind).Distinct(), Is.SupersetOf(new[]
             {
-                panel.SetGrant("reader", ".R......");
-                panel.SetGrant("reader", ".R......");
-
-                Assert.That(panel.Writes, Is.EqualTo(1));
+                GrantRowKind.Own, GrantRowKind.Inherited, GrantRowKind.Limit, GrantRowKind.Version,
+            }));
+            Assert.That(rows.SelectMany(row => row.States).Distinct(), Does.Contain(GrantState.TakenOff));
+            foreach (var row in rows)
+            {
+                foreach (var tip in new[] { true, false }.Select(editable => GrantTab.StateTip(row, editable)))
+                {
+                    Assert.That(grants.IsMatch(tip), Is.False, row + ": " + tip);
+                }
             }
         }
 
         [Test]
-        public void Removing_the_last_rule_takes_the_key_away()
+        public void The_row_an_X_leaves_where_nothing_arrives_tells_that_nothing_arrives()
         {
-            var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
+            var sheet = Sheets.Of(Rules.Node(false, ("reader", "R")), null);
+            Assert.That(sheet.Remove("reader"), Is.True);
 
-            using (var panel = Panel(store, null))
+            Assert.That(GrantTab.StateTip(Sheets.Single(sheet, "reader"), true), Is.EqualTo(
+                GrantTab.NothingArrives + " " + GrantTab.NothingArrivesChoice + Environment.NewLine + GrantTab.ChangedHere));
+        }
+
+        [Test]
+        public void A_lost_version_in_a_group_is_removed_by_its_X_and_takes_no_rule()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:R"), ("reader", null)), null);
+
+            Assert.That(GrantTab.StateTip(sheet.Rows.Single(row => row.Kind == GrantRowKind.Lost), true),
+                Is.EqualTo(GrantTab.LostTip + " " + GrantTab.VersionRemoval));
+        }
+
+        [Test]
+        public void A_state_tooltip_tells_of_no_press_where_the_tab_takes_none()
+        {
+            var sheet = GrantSheet.Of(Rules.Stored(("ops", "off:R")), Sheets.Arriving(("ops", "RL")), Sheets.Names, "read only");
+
+            Assert.That(sheet.Rows.Select(row => GrantTab.StateTip(row, false)), Is.EqualTo(new[]
             {
-                Assert.That(panel.RemoveGrant("reader"), Is.True);
+                GrantTab.InheritedCutTip + " " + GrantTab.InheritedCutGrants,
+                GrantTab.LimitTip + " " + GrantTab.LimitGrants,
+            }));
+        }
 
-                Assert.That(store.Current, Is.Null, "no rules is the absent key");
-                Assert.That(panel.Lines, Is.Empty);
+        [Test]
+        public void A_rule_refused_here_tells_what_the_box_does_and_a_name_gone_beside_it_tells_both()
+        {
+            var sheet = GrantSheet.Of(Rules.Node(true), Sheets.Arriving(("reader", "R"), ("gone", "R")), new[] { "reader" }, null);
+
+            Assert.That(GrantTab.StateTip(Sheets.Single(sheet, "reader"), true),
+                Is.EqualTo(GrantTab.RefusedHereTip + " " + GrantTab.RefusedHereChoice));
+            Assert.That(GrantTab.StateTip(Sheets.Single(sheet, "gone"), true), Is.EqualTo(GrantTab.NoProfileRefusedTip));
+        }
+
+        [Test]
+        public void A_row_changed_on_the_tab_tells_so_in_its_tooltips_and_its_accessible_text()
+        {
+            using (var panel = Panel(Rules.Node(false, ("reader", "R"), ("ops", "R")), Sheets.Arriving(("reader", "RL"))))
+            {
+                Assert.That(panel.SetGrant("reader", "CR...L.."), Is.Null);
+
+                var grid = Grid(panel);
+                var changed = Row(grid, "reader");
+                var untouched = Row(grid, "ops");
+
+                Assert.That(((GrantRow)changed.Tag).Changed, Is.True);
+                Assert.That(changed.AccessibilityObject.Description, Is.EqualTo(GrantTab.ChangedHere));
+                Assert.That(changed.AccessibilityObject.Help, Is.EqualTo(GrantTab.ChangedHere), "the help text UI automation reads");
+                Assert.That(changed.Cells[StateColumn].AccessibilityObject.Description, Is.EqualTo(GrantTab.ChangedHere));
+                Assert.That(changed.Cells[StateColumn].ToolTipText, Is.EqualTo(Tooltips.Wrapped(GrantTab.ChangedHere)));
+                Assert.That(changed.Cells[MaskColumn].ToolTipText, Is.EqualTo(Tooltips.Wrapped(
+                    "Widens .R...L.." + GrantTab.InheritedFrom + Environment.NewLine + GrantTab.ChangedHere)));
+
+                Assert.That(untouched.AccessibilityObject.Description ?? string.Empty, Does.Not.Contain(GrantTab.ChangedHere));
+                Assert.That(untouched.Cells[StateColumn].ToolTipText, Is.Empty.Or.Null);
             }
         }
 
         [Test]
-        public void A_rule_that_is_not_one_is_refused_and_nothing_is_written()
+        public void No_tooltip_but_the_profile_cell_holds_a_profile_s_name()
         {
-            var store = new FakeGrantStore(null);
+            var rule = Rules.Stored(("zz-reader", "row:R"), ("zz-reader", "off:R"), ("zz-ops", "off:R"), ("zz-lost", null), ("zz-own", "row:CR"));
+            var names = new[] { "zz-reader", "zz-ops", "zz-lost", "zz-own", "zz-above" };
 
-            using (var panel = Panel(store, null))
+            using (var panel = new GrantPanel(
+                GrantSheet.Of(rule, Sheets.Arriving(("zz-ops", "RL"), ("zz-above", "R"), ("zz-gone", "R"), ("zz-own", "C")), names, null),
+                GrantTab.GroupScope,
+                null, null, null))
             {
-                Assert.That(panel.SetGrant("has a space", ".R......"), Is.Not.Null);
-                Assert.That(panel.SetGrant("reader", "nonsense"), Is.Not.Null);
+                panel.SetGrant("zz-above", "CR......");
+                panel.PressBox();
 
-                Assert.That(store.Writes, Is.Zero);
-                Assert.That(panel.Lines, Is.Empty);
+                foreach (DataGridViewRow row in Grid(panel).Rows)
+                {
+                    if (row.IsNewRow)
+                    {
+                        continue;
+                    }
+
+                    Assert.That(row.Cells[ProfileColumn].ToolTipText, Is.EqualTo(Tooltips.Wrapped(((GrantRow)row.Tag).Profile)),
+                        "the whole name, and nothing else");
+                    foreach (var column in new[] { MaskColumn, StateColumn, ForgetColumn })
+                    {
+                        Assert.That(row.Cells[column].ToolTipText ?? string.Empty, Does.Not.Contain("zz-"));
+                        Assert.That(row.Cells[column].AccessibilityObject.Description ?? string.Empty, Does.Not.Contain("zz-"));
+                    }
+
+                    Assert.That(row.AccessibilityObject.Description ?? string.Empty, Does.Not.Contain("zz-"));
+                }
+
+                var box = ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName);
+                Assert.That(box.AccessibleDescription, Does.Not.Contain("zz-"));
+                Assert.That(panel.Warning ?? string.Empty, Does.Not.Contain("zz-"));
             }
         }
 
         [Test]
-        public void A_mask_is_stored_in_one_spelling_however_it_arrives()
+        public void A_press_changes_the_sheet_and_the_rules_given_are_as_they_were()
         {
-            // Nothing on the tab types a mask any more, but a document can hold either case and the
-            // panel is what the end to end test drives, so what it accepts is worth pinning: the
-            // table shows one spelling whatever it was given.
-            var store = new FakeGrantStore(null);
+            var rule = Rules.Node(false, ("reader", "R"));
 
-            using (var panel = Panel(store, null))
+            using (var panel = Panel(rule, Sheets.Arriving(("ops", "RL"))))
             {
-                Assert.That(panel.SetGrant("reader", ".r...la."), Is.Null, "typed in any case");
+                Assert.That(panel.SetGrant("ops", "CR......"), Is.Null);
+                panel.Press(Row(Grid(panel), "reader").Index, ForgetColumn);
+                panel.PressBox();
 
-                Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R...LA." }),
-                    "and rewritten to the one spelling as soon as it commits");
+                Assert.That(panel.Lines, Is.EqualTo(new[]
+                {
+                    "ops CR......",
+                    "reader ........ " + GrantTab.RefusedHereWord,
+                }));
+                Assert.That(rule.Row("reader").Versions.Single().Kind, Is.EqualTo(RowVersionKind.Grants));
+                Assert.That(rule.Switch.Versions, Is.Empty);
             }
         }
 
         [Test]
-        public void A_rule_stored_for_no_profile_says_what_it_is_when_it_is_pressed()
+        public void The_X_on_a_version_removes_that_version_and_the_X_on_a_limit_settles()
         {
-            // A document written by hand can hold one, since the reader takes any member name.
-            // Pressing its rule said "Choose a profile first", a sentence about the new line at the
-            // bottom, on a row that has no profile to choose and can only be removed.
-            using (var panel = Panel(new FakeGrantStore("{\"\":[\"read\"]}"), null))
+            var rule = Rules.Stored(("reader", "row:R"), ("reader", "row:RL"), ("ops", "off:R"));
+
+            using (var panel = Panel(rule, Sheets.Arriving(("ops", "RL"))))
             {
-                Assert.That(panel.Lines.Count, Is.EqualTo(1), "the rule is on the table");
+                var grid = Grid(panel);
+                Assert.That(grid.Rows.Cast<DataGridViewRow>().Where(row => !row.IsNewRow)
+                    .All(row => (string)row.Cells[ForgetColumn].Value == "X"), Is.False, "the inherited row has no X");
 
-                panel.OpenPicker(0);
+                panel.Press(RowIndex(grid, "reader", ".R...L.."), ForgetColumn);
+                Assert.That(panel.Lines.Where(line => line.StartsWith("reader", StringComparison.Ordinal)),
+                    Is.EqualTo(new[] { "reader .R......" }));
 
-                Assert.That(panel.Picking, Is.False);
-                Assert.That(panel.Warning, Is.EqualTo(GrantTab.RuleWithoutProfile));
+                panel.Press(RowIndex(grid, "ops", ".R......"), ForgetColumn);
+                Assert.That(panel.Lines.Where(line => line.StartsWith("ops", StringComparison.Ordinal)),
+                    Is.EqualTo(new[] { "ops .R...L.. " + GrantTab.InheritedWord }));
             }
         }
 
         [Test]
-        public void What_a_group_above_grants_is_drawn_among_the_local_rules()
+        public void The_X_takes_a_rule_off_and_the_inherited_rule_shows_in_its_place_until_OK()
         {
-            var above = TestNode.Root("root").Granting("reader", AclVerb.Read);
-
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("editor", "RU"))), above))
+            using (var panel = Panel(Rules.Node(false, ("reader", "R")), Sheets.Arriving(("reader", "RL"))))
             {
-                Assert.That(panel.Lines, Is.EqualTo(new[] { "editor .RU.....", "reader .R......" }));
+                var grid = Grid(panel);
+                panel.Press(Row(grid, "reader").Index, ForgetColumn);
+
+                Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R...L.. " + GrantTab.InheritedWord }));
+                Assert.That(((GrantRow)Row(grid, "reader").Tag).Changed, Is.True);
+                Assert.That(Row(grid, "reader").Cells[ForgetColumn].Value, Is.EqualTo(string.Empty));
             }
         }
 
         [Test]
-        public void An_inherited_rule_is_drawn_as_one_and_offers_nothing_to_remove()
+        public void The_box_shows_ticked_cleared_and_the_mixed_mark_and_a_press_only_ticks_or_clears()
         {
-            // A table that draws a rule from a group above exactly as it draws a local one invites
-            // an operator to remove something this node does not have, and reads as if this node
-            // granted what a group above it grants. Gray, and no mark in the column that takes a
-            // rule away, are the whole of the difference on screen.
-            var above = TestNode.Root("root").Granting("reader", AclVerb.Read);
-
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("editor", "R"))), above))
+            using (var panel = Panel(Rules.Stored((null, "sw:deny"), (null, "sw:inherit")), null))
             {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
-                Assert.That(grid, Is.Not.Null);
+                var box = ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName);
 
-                var local = Row(grid, "editor");
-                var inherited = Row(grid, "reader");
+                Assert.That(box.Text, Is.EqualTo(GrantTab.SealCheckBoxText));
+                Assert.That(box.CheckState, Is.EqualTo(CheckState.Indeterminate));
+                Assert.That(box.AccessibleDescription, Is.EqualTo(GrantTab.SealCheckBoxMixed));
 
-                Assert.That(local.Cells[2].Value, Is.Not.Null.And.Not.EqualTo(string.Empty),
-                    "a local rule can be taken away, so it says so");
-                Assert.That(inherited.Cells[2].Value, Is.EqualTo(string.Empty),
-                    "an inherited rule has nothing here to remove");
-                Assert.That(inherited.DefaultCellStyle.ForeColor, Is.EqualTo(SystemColors.GrayText));
+                panel.PressBox();
+                Assert.That(box.CheckState, Is.EqualTo(CheckState.Checked));
+                Assert.That(box.AccessibleDescription, Is.EqualTo(GrantTab.SealCheckBoxHelp + Environment.NewLine + GrantTab.ChangedHere));
 
-                // And gray while selected, because a grid takes a row as soon as it has the focus
-                // and a row in the selection color is a row that looks local.
-                Assert.That(inherited.DefaultCellStyle.SelectionForeColor, Is.EqualTo(SystemColors.GrayText));
-                Assert.That(local.DefaultCellStyle.SelectionForeColor, Is.Not.EqualTo(SystemColors.GrayText));
+                panel.PressBox();
+                Assert.That(box.CheckState, Is.EqualTo(CheckState.Unchecked));
+                Assert.That(box.Text, Is.EqualTo(GrantTab.SealCheckBoxText), "the caption in every state");
             }
         }
 
         [Test]
-        public void A_local_rule_says_on_its_mask_what_it_is_narrowing()
+        public void A_lost_box_shows_ticked_with_its_own_tooltip()
         {
-            // One row per profile however the rule got there, so a local rule replaces the
-            // inherited one on the table and what it narrowed is nowhere else on the tab. On the
-            // mask rather than in a column of its own: nothing on this tab scrolls and the group
-            // dialog gives it less room than any other page this plugin is on, so a fourth column
-            // would come out of the two that are already sharing. `GrantTabFitsTests` measures it.
-            var above = TestNode.Root("root").Granting("reader", AclVerb.Read, AclVerb.Update);
-
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("reader", "R"))), above))
+            using (var panel = Panel(Rules.Stored((null, null)), null))
             {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
-                var narrowed = Row(grid, "reader");
+                var box = ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName);
 
-                Assert.That(narrowed.Cells[1].ToolTipText, Does.Contain(".RU....."),
-                    "so narrowing is visibly narrowing");
-                Assert.That(narrowed.Cells[1].ToolTipText, Does.StartWith("Narrows"));
+                Assert.That(box.CheckState, Is.EqualTo(CheckState.Checked));
+                Assert.That(box.AccessibleDescription, Is.EqualTo(GrantTab.SealCheckBoxLost));
             }
         }
 
         [Test]
-        public void A_local_rule_granting_more_than_the_one_above_says_it_widens_it()
+        public void A_tab_that_takes_no_press_shows_every_row_with_no_X_no_list_and_the_box_disabled()
         {
-            // Nearest wins, so the rule here is in force in full. Said to narrow the group's rule,
-            // it told an operator who had just widened an entry that the group still bounded it.
-            var above = TestNode.Root("root").Granting("editor", AclVerb.Read);
+            var rule = Rules.Stored(("reader", "row:R"), ("reader", "row:RL"), ("ops", "off:R"), (null, "sw:inherit ops=R"));
 
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("editor", "CRP"))), above))
+            using (var panel = new GrantPanel(
+                GrantSheet.Of(rule, Sheets.Arriving(("ops", "RL")), Sheets.Names, GrantTab.EarlierVersion),
+                GrantTab.EntryScope,
+                null, null, null))
             {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                var grid = Grid(panel);
+                var before = panel.Lines;
 
-                Assert.That(Row(grid, "editor").Cells[1].ToolTipText, Does.StartWith("Widens .R......"));
+                Assert.That(before.Count, Is.EqualTo(4));
+                Assert.That(panel.Warning, Is.EqualTo(GrantTab.EarlierVersion));
+                Assert.That(ControlTree.FindByName<Label>(panel, GrantTab.ScopeLabelName).Visible, Is.False,
+                    "the line telling that a rule can be overwritten stands over no table that takes no change");
+                Assert.That(grid.AllowUserToAddRows, Is.False);
+                Assert.That(grid.Rows.Cast<DataGridViewRow>().All(row => (string)row.Cells[ForgetColumn].Value == string.Empty), Is.True);
+                Assert.That(ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName).Enabled, Is.False);
+                Assert.That(grid.Columns[MaskColumn].ToolTipText, Is.EqualTo(Tooltips.Wrapped(GrantTab.MaskColumnReadOnlyHelp)));
+
+                for (var index = 0; index < grid.Rows.Count; index++)
+                {
+                    panel.Press(index, ForgetColumn);
+                }
+
+                panel.PressBox();
+                Assert.That(panel.SetGrant("deploy", "CR......"), Is.EqualTo(GrantTab.NothingToChange));
+                Assert.That(panel.Lines, Is.EqualTo(before));
             }
         }
 
         [Test]
-        public void A_local_rule_neither_inside_nor_around_the_one_above_says_it_replaces_it()
+        public void An_inherited_rule_is_gray_and_a_rule_the_box_refuses_is_struck_through()
         {
-            var above = TestNode.Root("root").Granting("editor", AclVerb.Read, AclVerb.List);
-
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("editor", "RU"))), above))
+            using (var panel = Panel(Rules.Node(true, ("ops", "RL")), Sheets.Arriving(("reader", "RL"))))
             {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                var grid = Grid(panel);
+                var refused = Row(grid, "reader");
 
-                Assert.That(Row(grid, "editor").Cells[1].ToolTipText, Does.StartWith("Replaces .R...L.."));
+                Assert.That(refused.DefaultCellStyle.ForeColor, Is.EqualTo(SystemColors.GrayText));
+                Assert.That(refused.Cells[MaskColumn].Style.Font.Strikeout, Is.True);
+                Assert.That(refused.Cells[StateColumn].Value, Is.EqualTo(GrantTab.RefusedHereWord), "told by the word too");
+                Assert.That(Row(grid, "ops").Cells[MaskColumn].Style.Font, Is.Null, "a rule of the node's own is drawn plainly");
             }
         }
 
         [Test]
-        public void A_local_rule_granting_what_the_one_above_grants_says_it_is_the_same()
+        public void The_row_an_X_leaves_where_nothing_arrives_under_a_ticked_box_is_refused_here_and_struck_through()
         {
-            var above = TestNode.Root("root").Granting("reader", AclVerb.Read);
-
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("reader", "R"))), above))
+            using (var panel = Panel(Rules.Node(true, ("ops", "RL")), Sheets.Arriving(("reader", "RL"))))
             {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                Assert.That(ControlTree.FindByName<Label>(panel, GrantTab.ScopeLabelName).Visible, Is.True, "the line at the top stands on a tab that takes a press");
 
-                Assert.That(Row(grid, "reader").Cells[1].ToolTipText, Does.StartWith("The same as .R......"));
+                var grid = Grid(panel);
+                panel.Press(Row(grid, "ops").Index, ForgetColumn);
+
+                var left = Row(grid, "ops");
+                Assert.That(left.Cells[StateColumn].Value, Is.EqualTo(GrantTab.RefusedHereWord));
+                Assert.That(left.Cells[MaskColumn].Value, Is.EqualTo("........"));
+                Assert.That(left.Cells[MaskColumn].Style.Font.Strikeout, Is.True);
+                Assert.That(left.Cells[StateColumn].ToolTipText, Is.EqualTo(Tooltips.Wrapped(
+                    GrantTab.RefusedHereTip + " " + GrantTab.RefusedHereChoice + Environment.NewLine + GrantTab.ChangedHere)));
             }
         }
 
         [Test]
-        public void A_local_rule_narrowing_nothing_says_nothing_on_its_mask()
+        public void A_rule_for_a_profile_the_database_no_longer_names_is_struck_through_and_told_by_its_word()
         {
-            // Nothing above names this profile, so there is no narrowing to report and a tooltip
-            // saying so would be a sentence about an absence.
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("reader", "R"))), null))
+            using (var panel = new GrantPanel(
+                GrantSheet.Of(Rules.Node(false, ("ops", "RL")), Sheets.Arriving(("retired", "R")), new[] { "reader" }, null),
+                GrantTab.GroupScope,
+                null, null, null))
             {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                var grid = Grid(panel);
+                foreach (var profile in new[] { "ops", "retired" })
+                {
+                    var row = Row(grid, profile);
+                    Assert.That(row.Cells[MaskColumn].Style.Font.Strikeout, Is.True, profile);
+                    Assert.That(row.Cells[StateColumn].Value, Is.EqualTo(GrantTab.NoProfileWord), profile);
+                }
 
-                Assert.That(Row(grid, "reader").Cells[1].ToolTipText, Is.Empty);
-            }
-        }
-
-        [Test]
-        public void Nothing_is_chosen_until_somebody_chooses_it()
-        {
-            // A grid selects its first row for itself. On an entry whose only rules come from a
-            // group above, that paints an inherited rule in the selection color and hides the gray
-            // that says this node does not own it.
-            var above = TestNode.Root("root").Granting("reader", AclVerb.Read);
-
-            using (var panel = Panel(new FakeGrantStore(null), above))
-            {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
-
-                Assert.That(grid.SelectedRows, Is.Empty);
-                Assert.That(grid.SelectedCells, Is.Empty);
-            }
-        }
-
-        [Test]
-        public void A_grant_the_seal_refuses_is_drawn_as_refused_rather_than_as_one_in_force()
-        {
-            // Sealing a node does not take away what a group above grants, it stops it arriving,
-            // and the row stays so that the operator can see what the seal is refusing. Drawn like
-            // every other inherited row it read as a permission in force, beside a check box whose
-            // whole text says it is not one.
-            var above = TestNode.Root("root").Granting("reader", AclVerb.Read, AclVerb.List);
-
-            using (var panel = Panel(new FakeGrantStore(Rules.Sealing()), above))
-            {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
-                var refused = Row(grid, "reader").Cells[GrantTab.MaskColumn];
-
-                Assert.That(refused.Style.Font, Is.Not.Null,
-                    "drawn in exactly the font of a rule that arrives");
-                Assert.That(refused.Style.Font.Strikeout, Is.True);
-
-                Assert.That(refused.ToolTipText, Does.Contain("no longer arrives"));
-                Assert.That(refused.ToolTipText, Does.Not.Contain("narrow"),
-                    "and narrowing is the opposite of what a rule written here would do");
+                Assert.That(panel.ProfileChoices, Is.EqualTo(new[] { "reader" }));
             }
         }
 
         [Test]
         public void The_masks_follow_the_panel_to_a_larger_font()
         {
-            // S417: both mask fonts were made once, a point over the size the panel had in its
-            // constructor, so a dialog whose font is not the system's drew the masks smaller than
-            // the profiles beside them, and the scaled fit test measured a column as wide as its
-            // cells with the cells at a size nobody sees.
-            var above = TestNode.Root("root").Granting("reader", AclVerb.Read, AclVerb.List);
-
-            using (var panel = Panel(new FakeGrantStore(Rules.Sealing()), above))
+            using (var panel = Panel(Rules.Node(true), Sheets.Arriving(("reader", "RL"))))
             using (var larger = new Font(panel.Font.FontFamily, 12f))
             {
                 panel.Font = larger;
 
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
-                var plain = grid.Columns[GrantTab.MaskColumn].DefaultCellStyle.Font;
-                var refused = Row(grid, "reader").Cells[GrantTab.MaskColumn].Style.Font;
+                var grid = Grid(panel);
+                var plain = grid.Columns[MaskColumn].DefaultCellStyle.Font;
+                var refused = Row(grid, "reader").Cells[MaskColumn].Style.Font;
 
                 Assert.That(plain.SizeInPoints, Is.EqualTo(larger.SizeInPoints + 1f).Within(0.01f),
                     "the masks kept the size the panel was built at");
                 Assert.That(refused.SizeInPoints, Is.EqualTo(plain.SizeInPoints).Within(0.01f),
-                    "a mask that no longer arrives kept the size the panel was built at");
+                    "a mask the box refuses kept the size the panel was built at");
                 Assert.That(refused.Strikeout, Is.True, "and is still struck through");
             }
         }
 
         [Test]
-        public void A_grant_rules_here_that_will_not_read_refuse_points_at_discarding_them()
-        {
-            // Refused as under a seal, but a rule cannot be chosen here until the unreadable one
-            // is discarded, so offering to choose one would offer a button that is not there.
-            var above = TestNode.Root("root").Granting("reader", AclVerb.Read, AclVerb.List);
-
-            using (var panel = Panel(new FakeGrantStore("{\"reader\":[\"purge\"]}"), above))
-            {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
-                var refused = Row(grid, "reader").Cells[GrantTab.MaskColumn];
-
-                Assert.That(refused.Style.Font.Strikeout, Is.True);
-                Assert.That(refused.ToolTipText, Does.Contain("Discard"));
-                Assert.That(refused.ToolTipText, Does.Not.Contain("Choose a rule"));
-            }
-        }
-
-        [Test]
-        public void An_inherited_grant_that_does_arrive_is_drawn_plainly()
-        {
-            // The other half, or the mask would be struck through on every inherited row and say
-            // nothing about any of them.
-            var above = TestNode.Root("root").Granting("reader", AclVerb.Read, AclVerb.List);
-
-            using (var panel = Panel(new FakeGrantStore(null), above))
-            {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
-                var arriving = Row(grid, "reader").Cells[GrantTab.MaskColumn];
-
-                Assert.That(arriving.Style.Font, Is.Null, "nothing is drawn through this one");
-                Assert.That(arriving.ToolTipText, Does.Contain("replace it"),
-                    "a rule chosen here replaces this one whether it grants less or more");
-            }
-        }
-
-        [Test]
-        public void A_profile_s_whole_name_is_in_its_tooltip_and_only_a_rule_of_its_own_is_told_how_to_change_it()
-        {
-            // A long name is cut in its column, and a cell with a tip of its own never shows its cut
-            // value whole, so two names sharing a long start drew as the same row. And an inherited
-            // row has no X, so it was told to remove and recreate a rule it does not hold.
-            var above = TestNode.Root("root").Granting("editor", AclVerb.Read);
-
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("reader", "R"))), above))
-            {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
-
-                Assert.That(Row(grid, "reader").Cells[0].ToolTipText, Does.Contain("reader").And.Contain("only removed and recreated"));
-                Assert.That(Row(grid, "editor").Cells[0].ToolTipText, Does.Contain("editor"));
-                Assert.That(Row(grid, "editor").Cells[0].ToolTipText, Does.Not.Contain("removed and recreated"));
-            }
-        }
-
-        [Test]
-        public void An_unnamed_profile_on_a_sealed_node_is_not_promised_back_in_force_by_its_name_alone()
-        {
-            // The seal refuses the inherited rule whether or not the name is on the list, so
-            // adding the name back turned the row into a rule the seal refuses, still struck.
-            var above = TestNode.Root("root").Granting("retired", AclVerb.Read);
-
-            using (var panel = new GrantPanel(
-                new GrantSheet(Rules.Sealing(), above, new[] { "reader" }, null),
-                new FakeGrantStore(Rules.Sealing()), GrantTab.GroupScope, null))
-            {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
-
-                Assert.That(Row(grid, "retired").Cells[1].ToolTipText, Does.Contain("refuses it here").And.Not.Contain("back in force"));
-            }
-        }
-
-        [Test]
-        public void A_tab_that_cannot_change_offers_no_choice_and_no_discard()
-        {
-            // A history revision whose rules will not read: the sheet refuses the discard, and the
-            // button stayed up doing nothing under rows telling the operator to press it, beside a
-            // heading and rows telling them to choose a rule that no picker would open for.
-            var above = TestNode.Root("root").Granting("reader", AclVerb.Read).Granting("editor", AclVerb.Read);
-
-            using (var panel = new GrantPanel(
-                new GrantSheet("{\"reader\":[\"purge\"]}", above, new[] { "reader", "editor" }, "This is an earlier version of the entry."),
-                null, GrantTab.EntryScope, null))
-            {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
-                var discard = ControlTree.FindByName<Button>(panel, GrantTab.DiscardButtonName);
-
-                Assert.That(discard.Visible, Is.False);
-                foreach (DataGridViewRow row in grid.Rows)
-                {
-                    Assert.That(row.Cells[1].ToolTipText, Does.Not.Contain("Discard").And.Not.Contain("Choose a rule"));
-                }
-
-                Assert.That(grid.Columns[1].ToolTipText, Does.Not.Contain("Click to choose"));
-            }
-        }
-
+        [TestCase("R", "RL", "Narrows")]
+        [TestCase("CRP", "R", "Widens")]
+        [TestCase("RU", "RL", "Replaces")]
+        [TestCase("R", "R", "The same as")]
+        [TestCase("", "A", "The same as")]
         [TestCase("D", "DA", "The same as")]
-        [TestCase("SP", "S", "The same as")]
-        [TestCase("A", "", "The same as")]
-        [TestCase("RA", "R", "Widens")]
-        [TestCase("R", "RP", "Narrows")]
-        public void Narrowing_and_widening_are_judged_as_the_gate_grants_rather_than_as_letters(
-            string here, string above, string word)
+        public void A_rule_here_tells_on_its_mask_which_way_it_replaces_the_rule_above(string here, string above, string word)
         {
-            // A switch widens the verbs beside it that read, and is asked for no strip or delete:
-            // compared as sets, a switch on a rule that holds no reading verb read as a change.
-            var node = TestNode.Root("root").Granting("reader", Verbs(above));
-
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("reader", here))), node))
+            using (var panel = Panel(Rules.Node(false, ("reader", here)), Sheets.Arriving(("reader", above))))
             {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
-
-                Assert.That(Row(grid, "reader").Cells[1].ToolTipText, Does.StartWith(word));
+                Assert.That(Row(Grid(panel), "reader").Cells[MaskColumn].ToolTipText, Is.EqualTo(Tooltips.Wrapped(
+                    word + " " + VerbMask.Of(Rules.Letters(above)) + GrantTab.InheritedFrom)));
             }
         }
 
-        private static AclVerb[] Verbs(string letters)
+        [Test]
+        public void A_rule_here_over_nothing_inherited_tells_nothing_on_its_mask()
         {
-            return letters.Select(letter => AclVerbs.Grantable[VerbKeys.PositionOf(letter)]).ToArray();
+            using (var panel = Panel(Rules.Node(false, ("reader", "R")), null))
+            {
+                Assert.That(Row(Grid(panel), "reader").Cells[MaskColumn].ToolTipText, Is.Empty.Or.Null);
+            }
         }
 
         [Test]
-        public void Two_edits_that_cancel_leave_a_hand_written_rule_as_it_was_written()
+        public void The_pick_list_holds_the_profiles_the_table_does_not_show()
         {
-            // After a write the sheet compared against what it had just written, so the seal on
-            // and off came back in the writer's spelling, and the entry dialog took the respelled
-            // value for a changed entry, with a revision in its history.
-            var store = new FakeGrantStore("{ \"reader\" : [ \"read\" ] }");
+            using (var panel = Panel(Rules.Node(false, ("reader", "R")), Sheets.Arriving(("ops", "R"))))
+            {
+                Assert.That(panel.ProfileChoices, Is.EqualTo(new[] { "deploy" }));
+            }
+        }
 
+        [Test]
+        public void A_profile_chosen_from_the_list_arrives_granting_nothing_and_changed()
+        {
+            using (var panel = Panel(NodeRule.None, null))
+            {
+                Assert.That(panel.AddGrant("ops"), Is.Null);
+
+                Assert.That(panel.Lines, Is.EqualTo(new[] { "ops ........" }));
+                Assert.That(((GrantRow)Row(Grid(panel), "ops").Tag).Changed, Is.True);
+            }
+        }
+
+        [Test]
+        public void A_profile_the_table_shows_is_refused_rather_than_started_again()
+        {
+            using (var panel = Panel(Rules.Node(false, ("reader", "RL")), Sheets.Arriving(("ops", "R"))))
+            {
+                Assert.That(panel.AddGrant("reader"), Is.EqualTo(GrantTab.AlreadyShown));
+                Assert.That(panel.AddGrant("ops"), Is.EqualTo(GrantTab.AlreadyShown));
+                Assert.That(panel.Lines, Is.EqualTo(new[] { "ops .R...... " + GrantTab.InheritedWord, "reader .R...L.." }));
+            }
+        }
+
+        [Test]
+        public void A_database_that_names_no_profile_tells_so_over_the_table_before_any_press_and_offers_no_empty_line()
+        {
+            // The table holds a rule of a profile the database no longer names, which the box and
+            // the X still take a press on: the tab is not read only, so the line at the top stands.
             using (var panel = new GrantPanel(
-                new GrantSheet(store.Read(), null, new[] { "reader" }, null), store, GrantTab.GroupScope, null))
+                GrantSheet.Of(Rules.Node(false, ("retired", "R")), null, Array.Empty<string>(), null), GrantTab.GroupScope, null, null, null))
             {
-                var seal = ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName);
+                var grid = Grid(panel);
 
-                seal.Checked = true;
-                Assume.That(store.Current, Is.Not.EqualTo("{ \"reader\" : [ \"read\" ] }"), "the seal was written");
-                seal.Checked = false;
+                Assert.That(panel.Warning, Is.EqualTo(GrantTab.NoProfilesYet), "told before any press");
+                Assert.That(GrantTab.NoProfilesYet, Does.Contain(GateName.OnATab).And.Contain("Profiles page"));
+                Assert.That(grid.AllowUserToAddRows, Is.False, "no empty line offers a profile where none is named");
+                Assert.That(ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName).Enabled, Is.True);
+                Assert.That(ControlTree.FindByName<Label>(panel, GrantTab.ScopeLabelName).Visible, Is.True);
 
-                Assert.That(store.Current, Is.EqualTo("{ \"reader\" : [ \"read\" ] }"));
+                panel.Press(0, ForgetColumn);
+                Assert.That(panel.Lines, Is.EqualTo(new[] { "retired ........ " + GrantTab.NoProfileWord }), "the X takes a press");
+                Assert.That(panel.Warning, Is.EqualTo(GrantTab.NoProfilesYet), "and the notice stands");
             }
         }
 
         [Test]
-        public void An_empty_value_is_no_change_from_no_rules()
+        public void A_record_landing_reads_the_rules_and_the_names_again_and_keeps_every_press()
         {
-            // An empty value and no value read the same, and an empty value read as changed on
-            // opening, so the first edits that ended with no rules took the key away.
-            var store = new FakeGrantStore(string.Empty);
-
-            using (var panel = new GrantPanel(
-                new GrantSheet(store.Read(), null, new[] { "reader" }, null), store, GrantTab.GroupScope, null))
-            {
-                Assert.That(panel.SetGrant("reader", ".R......"), Is.Null);
-                Assert.That(panel.RemoveGrant("reader"), Is.True);
-
-                Assert.That(store.Current, Is.Empty, "the dialog's own value went back, not a removal");
-            }
-        }
-
-        private static DataGridViewRow Row(DataGridView grid, string profile)
-        {
-            foreach (DataGridViewRow row in grid.Rows)
-            {
-                if (Equals(row.Cells[0].Value, profile))
-                {
-                    return row;
-                }
-            }
-
-            Assert.Fail("no row for " + profile);
-            return null;
-        }
-
-        [Test]
-        public void An_unreadable_rule_here_locks_the_table_and_offers_to_discard_it()
-        {
-            var store = new FakeGrantStore("{\"reader\":[\"purge\"]}");
-
-            using (var panel = Panel(store, null))
-            {
-                Assert.That(panel.Warning, Does.Contain("cannot be read"));
-                Assert.That(panel.SetGrant("reader", ".R......"), Is.Not.Null);
-                Assert.That(store.Writes, Is.Zero, "and it is left exactly as it was found");
-
-                panel.Discard();
-
-                Assert.That(panel.Warning, Is.Null);
-                Assert.That(store.Current, Is.Null);
-                Assert.That(panel.SetGrant("reader", ".R......"), Is.Null, "and now it can be edited");
-            }
-        }
-
-        [Test]
-        public void The_button_that_discards_unreadable_rules_says_why_they_refuse()
-        {
-            // The warning over the table says what is wrong and what to do, in the two lines the
-            // group dialog leaves it. Why the rules refuse rather than being skipped is for whoever
-            // is deciding whether to discard them, so it is on the button they would press.
-            using (var panel = Panel(new FakeGrantStore("{\"reader\":[\"purge\"]}"), null))
-            {
-                var discard = ControlTree.FindByName<Button>(panel, GrantTab.DiscardButtonName);
-                Assert.That(discard, Is.Not.Null);
-
-                var tips = (ToolTip)typeof(GrantPanel)
-                    .GetField("_tips", BindingFlags.Instance | BindingFlags.NonPublic)
-                    .GetValue(panel);
-
-                Assert.That(tips.GetToolTip(discard), Is.EqualTo(Tooltips.Wrapped(GrantTab.DiscardButtonHelp)));
-                Assert.That(panel.Warning, Does.Not.Contain("safe reading"), "and it is said once");
-            }
-        }
-
-        [Test]
-        public void An_edit_that_could_not_be_kept_is_said_on_the_tab_and_refused()
-        {
-            var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
-            var sheet = new GrantSheet(store.Read(), null, null, "This KeePass keeps it somewhere else.");
-
-            using (var panel = new GrantPanel(sheet, store, GrantTab.GroupScope, null))
-            {
-                Assert.That(panel.Warning, Is.EqualTo("This KeePass keeps it somewhere else."));
-                Assert.That(panel.Lines, Is.Not.Empty, "the rules are still worth reading");
-                Assert.That(panel.SetGrant("editor", ".R......"), Is.Not.Null);
-                Assert.That(store.Writes, Is.Zero);
-            }
-        }
-
-        [Test]
-        public void A_store_that_throws_says_so_rather_than_taking_KeePass_with_it()
-        {
-            var store = new FakeGrantStore { Refusal = new System.Reflection.TargetInvocationException(new System.Exception("nowhere to put it")) };
-
-            using (var panel = Panel(store, null))
-            {
-                Assert.That(panel.SetGrant("reader", ".R......"), Is.Null);
-
-                Assert.That(panel.Warning, Does.Contain("not in force"));
-                Assert.That(panel.Warning, Does.Contain("nowhere to put it"),
-                    "the reason is on the tab, not only in a log file somewhere else");
-                Assert.That(panel.Writes, Is.Zero);
-            }
-        }
-
-        [Test]
-        public void A_rule_the_store_would_not_take_is_off_the_table_as_well_as_out_of_force()
-        {
-            // The sentence says it is not in force, so the table must not still be showing it.
-            // The sheet must not still be holding it either, or the next write of anything at
-            // all would carry it in, with nothing said the second time.
-            var store = new FakeGrantStore { Refusal = new System.Reflection.TargetInvocationException(new System.Exception("nowhere to put it")) };
-
-            using (var panel = Panel(store, null))
-            {
-                panel.SetGrant("reader", ".R......");
-
-                Assert.That(panel.Warning, Does.Contain("not in force"));
-                Assert.That(panel.Lines, Is.Empty, "the refused rule is not on the table");
-                Assert.That(panel.Writes, Is.Zero);
-            }
-        }
-
-        [Test]
-        public void The_pick_list_holds_the_profiles_that_have_no_rule_here_yet()
-        {
-            var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
-
-            using (var panel = Panel(store, null))
-            {
-                Assert.That(panel.ProfileChoices, Is.EqualTo(new[] { "editor" }));
-            }
-        }
-
-        [Test]
-        public void A_profile_chosen_from_the_list_arrives_granting_nothing()
-        {
-            // Which is half a decision and the safe half. What it may do is the next thing chosen,
-            // and until it is, the rule is on the table refusing everything it can refuse.
-            var store = new FakeGrantStore(null);
-
-            using (var panel = Panel(store, null))
-            {
-                Assert.That(panel.AddGrant("reader"), Is.Null);
-
-                Assert.That(panel.Lines, Is.EqualTo(new[] { "reader ........" }));
-                Assert.That(AclDocument.Read(store.Current).Grant("reader").Count, Is.Zero);
-            }
-        }
-
-        [Test]
-        public void A_profile_that_already_has_a_rule_here_is_refused_rather_than_started_again()
-        {
-            var store = new FakeGrantStore(Rules.Granting(("reader", "RL")));
-
-            using (var panel = Panel(store, null))
-            {
-                Assert.That(panel.AddGrant("reader"), Does.Contain("already a rule"));
-
-                // The rule it would have replaced, untouched.
-                Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R...L.." }));
-                Assert.That(panel.Writes, Is.Zero);
-            }
-        }
-
-        [Test]
-        public void A_table_with_every_profile_on_it_says_nothing()
-        {
-            // There was a sentence here, and what it stated was that the rows already on the table
-            // are all of them, which the rows show. It cost four lines of the group dialog's page,
-            // the shortest this plugin is on. The case below, where the database names no profiles
-            // at all, is the one worth a sentence: there the table is empty and nothing tells where
-            // a profile comes from.
-            var store = new FakeGrantStore(Rules.Granting(("reader", "R"), ("editor", "U")));
-
-            using (var panel = Panel(store, null))
-            {
-                panel.OpenProfilePicker(0);
-
-                Assert.That(panel.Warning, Is.Null);
-                Assert.That(panel.Picking, Is.False);
-            }
-        }
-
-        [Test]
-        public void A_database_that_names_no_profiles_says_where_one_is_made()
-        {
-            var store = new FakeGrantStore(null);
-
-            using (var panel = new GrantPanel(
-                new GrantSheet(null, null, null, null), store, GrantTab.GroupScope, null))
-            {
-                panel.OpenProfilePicker(0);
-
-                Assert.That(panel.Warning, Is.EqualTo(GrantTab.NoProfilesYet));
-                Assert.That(GrantTab.NoProfilesYet, Does.Contain(GateName.OnATab),
-                    "named as the tab is labeled, which is what the operator has to find");
-            }
-        }
-
-        [Test]
-        public void An_inherited_profile_is_narrowed_on_the_row_it_is_already_on()
-        {
-            // So it is not in the pick list, and choosing a rule on that row is what makes it this
-            // node's own. Two rows for one profile is a thing the document cannot hold.
-            var above = TestNode.Root("root").Granting("editor", AclVerb.Read, AclVerb.List);
-            var store = new FakeGrantStore(null);
-
-            using (var panel = Panel(store, above))
-            {
-                Assert.That(panel.ProfileChoices, Is.EqualTo(new[] { "reader" }));
-                Assert.That(panel.Lines, Is.EqualTo(new[] { "editor .R...L.." }));
-
-                Assert.That(panel.SetGrant("editor", ".R......"), Is.Null);
-
-                Assert.That(panel.Lines, Is.EqualTo(new[] { "editor .R......" }));
-                Assert.That(panel.ProfileChoices, Is.EqualTo(new[] { "reader" }));
-            }
-        }
-
-        [Test]
-        public void A_rule_for_a_profile_the_database_no_longer_names_is_drawn_as_granting_nothing()
-        {
-            // Removing a profile leaves its rules where they were, and a client holds only the
-            // names the database still names, so this rule reaches nobody. It stays on the table,
-            // because adding the name again puts it back in force.
-            var above = TestNode.Root("root").Granting("retired", AclVerb.Read);
-
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("ops", "RL"))), above))
-            {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
-
-                foreach (var profile in new[] { "ops", "retired" })
-                {
-                    var inert = Row(grid, profile).Cells[GrantTab.MaskColumn];
-
-                    Assert.That(inert.Style.Font, Is.Not.Null, profile);
-                    Assert.That(inert.Style.Font.Strikeout, Is.True, profile);
-                    Assert.That(inert.ToolTipText, Does.Contain("grants nothing"), profile);
-                }
-
-                Assert.That(panel.ProfileChoices, Does.Not.Contain("ops").And.Not.Contain("retired"),
-                    "and the pick list still offers only what the database names");
-            }
-        }
-
-        [Test]
-        public void A_rule_stored_for_no_profile_is_drawn_as_granting_nothing_and_says_why()
-        {
-            // Struck through like every rule that reaches nobody, but not with their sentence,
-            // which says adding the profile again puts the rule back in force: no name can be
-            // added to put back a rule for no profile at all.
-            using (var panel = Panel(new FakeGrantStore("{\"\":[\"read\"]}"), null))
-            {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
-                var mask = grid.Rows[0].Cells[GrantTab.MaskColumn];
-
-                Assert.That(mask.Style.Font, Is.Not.Null);
-                Assert.That(mask.Style.Font.Strikeout, Is.True);
-                Assert.That(mask.ToolTipText, Is.EqualTo(Tooltips.Wrapped(GrantTab.RuleWithoutProfile)));
-            }
-        }
-
-        [Test]
-        public void A_rule_for_a_profile_the_database_names_is_drawn_plainly()
-        {
-            using (var panel = Panel(new FakeGrantStore(Rules.Granting(("reader", "R"))), null))
-            {
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
-
-                Assert.That(Row(grid, "reader").Cells[GrantTab.MaskColumn].Style.Font, Is.Null);
-            }
-        }
-
-        [Test]
-        public void A_profile_named_while_the_dialog_is_open_is_on_the_tab_once_it_reads_again()
-        {
-            // S194: reading again took the node's rules and not the database's profiles, so a name
-            // a pairing added while the dialog was open stayed off the pick list, and a rule for a
-            // name put back stayed struck through as granting nothing while the gate honored it.
-            var names = new List<string> { "reader" };
-
-            using (var panel = Listing(names, null))
-            {
-                Assume.That(panel.ProfileChoices, Is.EqualTo(new[] { "reader" }));
-
-                names.Add("ops");
-                names.Add("editor");
-                panel.Resync();
-
-                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
-                Assert.That(panel.ProfileChoices, Is.EqualTo(new[] { "editor", "reader" }));
-                Assert.That(Row(grid, "ops").Cells[GrantTab.MaskColumn].Style.Font, Is.Null,
-                    "a rule for a name put back is drawn as a rule in force");
-            }
-        }
-
-        [Test]
-        public void A_record_landing_reads_the_profiles_again()
-        {
-            // The approval that names the profile is answered over the dialog this tab is on, so
-            // the tab is never brought forward again to read: it hears the record land instead.
-            var names = new List<string> { "reader" };
             var notice = new AdmissionNotice();
+            var reading = new GrantReading(Rules.Node(false, ("reader", "R"), ("ops", "R")), null, new[] { "reader", "ops" }, null);
 
-            using (var panel = Listing(names, notice))
+            using (var panel = new GrantPanel(
+                GrantSheet.Of(reading.Rule, reading.Above, reading.Names, null), GrantTab.GroupScope, null, () => reading, notice))
             {
-                names.Add("editor");
+                panel.SetGrant("ops", "CR......");
+
+                reading = new GrantReading(
+                    Rules.Node(false, ("reader", "RL"), ("ops", "RL")), Sheets.Arriving(("deploy", "R")), new[] { "reader", "ops", "deploy", "new" }, null);
                 notice.Raise();
 
-                Assert.That(panel.ProfileChoices, Is.EqualTo(new[] { "editor", "reader" }));
+                Assert.That(panel.Lines, Is.EqualTo(new[]
+                {
+                    "deploy .R...... " + GrantTab.InheritedWord,
+                    "ops CR......",
+                    "reader .R...L..",
+                }));
+                Assert.That(panel.ProfileChoices, Is.EqualTo(new[] { "new" }));
             }
         }
 
         [Test]
         public void A_tab_that_has_been_disposed_is_not_told_about_the_next_record()
         {
-            // The notice is the plugin's and outlives every dialog, as on the database settings.
             var read = 0;
             var notice = new AdmissionNotice();
-            var store = new FakeGrantStore(null);
 
             using (new GrantPanel(
-                new GrantSheet(null, null, new[] { "reader" }, null), store, GrantTab.GroupScope, null,
+                GrantSheet.Of(NodeRule.None, null, Sheets.Names, null),
+                GrantTab.GroupScope,
+                null,
                 () =>
                 {
                     read++;
-                    return new[] { "reader" };
+                    return new GrantReading(NodeRule.None, null, Sheets.Names, null);
                 },
                 notice))
             {
@@ -841,27 +641,246 @@ namespace KeePassGate.Tests
             Assert.That(read, Is.Zero, "a disposed tab read the database again");
         }
 
-        /// <summary>A tab with a rule for `ops`, offering the names as it finds them.</summary>
-        private static GrantPanel Listing(List<string> names, IAdmissionNotice notice)
+        [Test]
+        public void Nothing_is_written_at_a_press_and_OK_writes_once_as_the_dialog_closes()
         {
-            var store = new FakeGrantStore(Rules.Granting(("ops", "R")));
-            return new GrantPanel(
-                new GrantSheet(store.Read(), null, names.ToArray(), null),
-                store,
-                GrantTab.GroupScope,
-                null,
-                () => names.ToArray(),
-                notice);
+            var rules = new FakeNodeRules();
+            var prompt = new FakePrompt(true);
+
+            using (var window = OffScreenForm.New())
+            using (var dialog = OffScreenForm.New())
+            {
+                window.Show();
+                var sheet = Sheets.Of(Rules.Node(false, ("reader", "R")), Sheets.Arriving(("ops", "RL")));
+
+                using (var panel = (GrantPanel)Factory(sheet, rules, prompt, window).CreatePanel(dialog))
+                {
+                    dialog.Show();
+                    panel.SetGrant("ops", "CR......");
+                    panel.Press(Row(Grid(panel), "reader").Index, ForgetColumn);
+                    panel.PressBox();
+                    OffScreenForm.Pump();
+
+                    Assert.That(rules.Written, Is.Empty, "a press changes the sheet and nothing else");
+                }
+
+                dialog.DialogResult = DialogResult.OK;
+                dialog.Close();
+                OffScreenForm.Pump();
+
+                var written = rules.Written.Single();
+                Assert.That(written.Rows.Select(change => change.Profile), Is.EqualTo(new[] { "ops", "reader" }));
+                Assert.That(written.Switch, Is.Not.Null);
+                Assert.That(prompt.Told, Is.Zero, "nothing to tell where every change was kept");
+            }
         }
 
-        private static GrantPanel Panel(IGrantStore store, IAclNode above)
+        [Test]
+        [TestCase(DialogResult.Cancel)]
+        [TestCase(DialogResult.None)]
+        public void Any_close_but_OK_writes_nothing(DialogResult result)
         {
-            return new GrantPanel(
-                new GrantSheet(store.Read(), above, new[] { "reader", "editor" }, null),
-                store,
-                GrantTab.GroupScope,
+            var rules = new FakeNodeRules();
+
+            using (var window = OffScreenForm.New())
+            using (var dialog = OffScreenForm.New())
+            {
+                var sheet = Sheets.Of(NodeRule.None, Sheets.Arriving(("ops", "RL")));
+                using (var panel = (GrantPanel)Factory(sheet, rules, new FakePrompt(true), window).CreatePanel(dialog))
+                {
+                    dialog.Show();
+                    panel.SetGrant("ops", "CR......");
+                }
+
+                dialog.DialogResult = result;
+                dialog.Close();
+                OffScreenForm.Pump();
+
+                Assert.That(rules.Written, Is.Empty);
+            }
+        }
+
+        [Test]
+        public void An_OK_with_nothing_changed_writes_nothing()
+        {
+            var rules = new FakeNodeRules();
+
+            using (var window = OffScreenForm.New())
+            using (var dialog = OffScreenForm.New())
+            {
+                var sheet = Sheets.Of(Rules.Node(false, ("reader", "R")), null);
+                var prompt = new FakePrompt(true);
+                using (var panel = (GrantPanel)Factory(sheet, rules, prompt, window).CreatePanel(dialog))
+                {
+                    dialog.Show();
+                    panel.SetGrant("reader", "CR......");
+                    panel.SetGrant("reader", ".R......");
+                }
+
+                dialog.DialogResult = DialogResult.OK;
+                dialog.Close();
+                OffScreenForm.Pump();
+
+                Assert.That(rules.Written, Is.Empty);
+                Assert.That(prompt.Told, Is.Zero, "nothing is told where nothing is pressed");
+            }
+        }
+
+        [Test]
+        public void An_OK_once_the_tab_stopped_taking_presses_writes_nothing_and_tells_each_press_not_kept()
+        {
+            // A record landed while the dialog stood, and the reading made again gives a reason no
+            // rule can be written: the tab takes no press from there on, keeps the presses made on
+            // the table as changes that are not written, and its OK tells so.
+            var rules = new FakeNodeRules();
+            var prompt = new FakePrompt(true);
+            var notice = new AdmissionNotice();
+            var reading = new GrantReading(NodeRule.None, Sheets.Arriving(("ops", "RL")), Sheets.Names, null);
+
+            using (var window = OffScreenForm.New())
+            using (var dialog = OffScreenForm.New())
+            {
+                window.Show();
+                var sheet = GrantSheet.Of(reading.Rule, reading.Above, reading.Names, null);
+                var factory = new GrantPanelFactory(
+                    new FakeNodeDialogs(new NodeTab(sheet, GrantTab.GroupScope, () => reading, rules)), null, notice, prompt, window, null);
+                using (var panel = (GrantPanel)factory.CreatePanel(dialog))
+                {
+                    dialog.Show();
+                    Assert.That(panel.SetGrant("ops", "CR......"), Is.Null);
+
+                    reading = new GrantReading(NodeRule.None, Sheets.Arriving(("ops", "RL")), Sheets.Names, GrantTab.StoreUnusable);
+                    notice.Raise();
+
+                    Assert.That(panel.Warning, Is.EqualTo(GrantTab.StoreUnusable));
+                    Assert.That(panel.Lines, Is.EqualTo(new[] { "ops CR......" }), "the press stays on the table");
+                    var row = Row(Grid(panel), "ops");
+                    Assert.That(row.AccessibilityObject.Description, Is.EqualTo(GrantTab.ChangedNotWritten));
+                    Assert.That(row.Cells[ForgetColumn].Value, Is.EqualTo(string.Empty), "and the tab takes no press");
+                    Assert.That(panel.SetGrant("ops", ".R......"), Is.EqualTo(GrantTab.NothingToChange));
+                }
+
+                dialog.DialogResult = DialogResult.OK;
+                dialog.Close();
+                OffScreenForm.Pump();
+
+                Assert.That(rules.Written, Is.Empty);
+                Assert.That(prompt.Told, Is.EqualTo(1));
+                Assert.That(prompt.LastNews, Is.EqualTo(GrantTab.NotKept + GrantTab.NoLongerWritable));
+            }
+        }
+
+        [Test]
+        public void A_refused_OK_is_told_once_the_dialog_has_closed_and_never_at_a_press()
+        {
+            var rules = new FakeNodeRules { Refusal = GrantTab.NotKept + "the database maintenance dialog is open on this database" };
+            var prompt = new FakePrompt(true);
+
+            using (var window = OffScreenForm.New())
+            using (var dialog = OffScreenForm.New())
+            {
+                window.Show();
+                var sheet = Sheets.Of(NodeRule.None, Sheets.Arriving(("ops", "RL")));
+                using (var panel = (GrantPanel)Factory(sheet, rules, prompt, window).CreatePanel(dialog))
+                {
+                    dialog.Show();
+                    panel.SetGrant("ops", "CR......");
+                    OffScreenForm.Pump();
+                    Assert.That(prompt.Told, Is.Zero);
+                }
+
+                var toldAtTheClose = -1;
+                dialog.FormClosed += (sender, e) => toldAtTheClose = prompt.Told;
+                dialog.DialogResult = DialogResult.OK;
+                dialog.Close();
+                OffScreenForm.Pump();
+
+                Assert.That(toldAtTheClose, Is.Zero, "posted, never raised inside the close");
+                Assert.That(prompt.Told, Is.EqualTo(1));
+                Assert.That(prompt.LastNews, Is.EqualTo(rules.Refusal));
+            }
+        }
+
+        [Test]
+        public void A_tab_that_takes_no_press_watches_no_close()
+        {
+            var rules = new FakeNodeRules();
+
+            using (var window = OffScreenForm.New())
+            using (var dialog = OffScreenForm.New())
+            {
+                var sheet = GrantSheet.Of(NodeRule.None, Sheets.Arriving(("ops", "RL")), Sheets.Names, GrantTab.NotWatched);
+                using (Factory(sheet, rules, new FakePrompt(true), window).CreatePanel(dialog))
+                {
+                    dialog.Show();
+                }
+
+                dialog.DialogResult = DialogResult.OK;
+                dialog.Close();
+                OffScreenForm.Pump();
+
+                Assert.That(rules.Written, Is.Empty);
+            }
+        }
+
+        [Test]
+        public void Every_sentence_of_the_tab_names_its_noun_and_none_of_the_words_ruled_out()
+        {
+            // A sentence names no profile and no client, and no pronoun stands for a subject or an
+            // object: the words a pronoun is spelled with are looked for, and so are the words the
+            // conventions rule out.
+            var dashes = new string(new[] { (char)0x2013, (char)0x2014 });
+            var ruledOut = new Regex(@"\b(it|its|they|them|their|one|ones|sa(?:ys?|id|y(?:ing)))\b|\s-\s|[" + dashes + "]", RegexOptions.IgnoreCase);
+            var sentences = typeof(GrantTab)
+                .GetFields(BindingFlags.Public | BindingFlags.Static)
+                .Where(field => field.FieldType == typeof(string) && !field.Name.EndsWith("Name", StringComparison.Ordinal))
+                .Select(field => (string)field.GetValue(null))
+                .ToList();
+
+            Assert.That(sentences.Count, Is.GreaterThan(30), "the sentences were found");
+            foreach (var sentence in sentences)
+            {
+                Assert.That(ruledOut.IsMatch(sentence), Is.False, sentence);
+            }
+        }
+
+        private static GrantPanelFactory Factory(GrantSheet sheet, FakeNodeRules rules, FakePrompt prompt, Control window)
+        {
+            return new GrantPanelFactory(
+                new FakeNodeDialogs(new NodeTab(sheet, GrantTab.GroupScope, null, rules)),
+                null,
+                null,
+                prompt,
+                window,
                 null);
         }
 
+        private static GrantPanel Panel(NodeRule rule, AclInheritance above)
+        {
+            return new GrantPanel(Sheets.Of(rule, above), GrantTab.GroupScope, null, null, null);
+        }
+
+        private static DataGridView Grid(Control panel)
+        {
+            var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+            Assert.That(grid, Is.Not.Null);
+            return grid;
+        }
+
+        private static DataGridViewRow Row(DataGridView grid, string profile)
+        {
+            var rows = grid.Rows.Cast<DataGridViewRow>()
+                .Where(row => !row.IsNewRow && ((GrantRow)row.Tag).Profile == profile)
+                .ToList();
+            Assert.That(rows.Count, Is.EqualTo(1), profile + " shows on a single row");
+            return rows[0];
+        }
+
+        private static int RowIndex(DataGridView grid, string profile, string mask)
+        {
+            return grid.Rows.Cast<DataGridViewRow>()
+                .Single(row => !row.IsNewRow && ((GrantRow)row.Tag).Profile == profile && ((GrantRow)row.Tag).Mask == mask)
+                .Index;
+        }
     }
 }

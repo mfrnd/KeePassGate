@@ -100,7 +100,7 @@ namespace KeePassGate.Host.Tests.Live
             var keePass = _session.KeePass;
 
             keePass.FillWithInventedContent();
-            keePass.Grant(Rules.Granting(("agent", "CRUSDLA")));
+            keePass.Grant(("agent", "CRUSDLA"));
             keePass.LockWhenWindowsLocks();
             keePass.KeepTemporaryFilesInside();
 

@@ -50,14 +50,19 @@ namespace KeePassGate.Host.Tests
             _database.Dispose();
         }
 
+        /// <summary>
+        /// The group dialog's copy of a group's custom data: the plugin reaches for no such field,
+        /// and this fixture measures the hazard the field is.
+        /// </summary>
+        private const string CopyField = "m_sdCustomData";
+
         [Test]
         public void The_group_dialog_still_holds_a_copy_of_the_custom_data()
         {
             var groupForm = typeof(Plugin).Assembly.GetType(KeePassContract.GroupFormTypeName, false);
             Assert.That(groupForm, Is.Not.Null, KeePassContract.GroupFormTypeName + " is gone from this KeePass.");
 
-            var snapshot = groupForm.GetField(
-                KeePassContract.NodeFormCustomDataField, BindingFlags.NonPublic | BindingFlags.Instance);
+            var snapshot = groupForm.GetField(CopyField, BindingFlags.NonPublic | BindingFlags.Instance);
 
             Assert.That(snapshot, Is.Not.Null,
                 "The snapshot field is gone. Either KeePass fixed this, or it moved and the hazard is now unmeasured.");
@@ -125,12 +130,11 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_write_made_while_a_group_dialog_is_open_is_destroyed_by_OK()
         {
-            // Written straight to the group, because that is what the hazard is about and the
-            // plugin's own store no longer goes there. A node's access rule still does, which is
-            // why this stays measured.
+            // Written straight to the group, because that is what the hazard is about. Nothing of
+            // this plugin's is kept on a node, and this stays measured as the reason why.
             var dialog = DialogOpensOn(_database.RootGroup);
 
-            _database.RootGroup.CustomData.Set("KPG", "a rule written underneath the dialog");
+            _database.RootGroup.CustomData.Set("KPG", "a value written underneath the dialog");
             Assume.That(_database.RootGroup.CustomData.Exists("KPG"), Is.True);
 
             dialog.PressOk();

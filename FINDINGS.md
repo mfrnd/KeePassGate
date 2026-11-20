@@ -239,7 +239,10 @@ something plausible rather than by failing.
 ## 12. Grants in a real tree
 
 Established while building the rules. The rules themselves need no password manager; these are the
-three things about KeePass that the rules depend on and could not be reasoned out.
+three things about KeePass that the rules depended on and could not be reasoned out. **The first
+two are facts about KeePass that the rules rest on no more**: a rule is a record of the plugin's
+store that names its node, `STORE.md` §617, and nothing of a rule is written into a group's or an
+entry's custom data. The third still carries every walk.
 
 | Fact | How it was established |
 | --- | --- |
@@ -249,21 +252,27 @@ three things about KeePass that the rules depend on and could not be reasoned ou
 
 Two things this section deliberately does not claim. Nothing here was measured about **where** a rule
 is asked, because these were measured before the resolver was wired to the router, and section 14 is
-where the two answers are combined. And the `GroupForm` snapshot hazard in section 9 applies to
+where the two answers are combined. And the `GroupForm` snapshot hazard in section 9 applied to
 grants exactly as it applies to everything else in custom data, which is why the editor has a
-section of its own, 13.
+section of its own, 13, and why a grant is kept in custom data no more.
 
 ## 13. Editing a grant on somebody else's dialog
 
-Established while building the grant editor.
+Established while building the grant editor. **The first two rows are facts about KeePass that
+still hold, and the plugin does nothing with either any more**: the editor is a buffer that the
+dialog's close applies to the plugin's store, `STORE.md` §629, and reaches for no field of the
+dialog's copy.
 
 | Fact | How it was established |
 | --- | --- |
-| **The group and entry dialogs both keep their own copy of a node's custom data**, in `m_sdCustomData`, and write it back over the node when they are accepted. Writing there is what makes their OK keep a grant and their Cancel discard it | the host tier writes through a real `GroupForm` and finds the live group untouched; the end to end tier presses OK and finds the rule in the `.kdbx` afterwards |
-| **That copy does not exist while the tab is being built.** KeePass makes it as the dialog loads and announces the window during the same load, so a plugin that captured the field at attach time would capture null and write nowhere | asserted directly: after `InitEx` and before the dialog loads, the field is null. The adapter therefore resolves it on every access and reads from the node itself |
+| **The group and entry dialogs both keep their own copy of a node's custom data**, in `m_sdCustomData`, and write it back over the node when they are accepted. Writing there was what made their OK keep a grant and their Cancel discard it, while a grant was a key of that dictionary. What makes OK keep a rule and Cancel discard it now is the dialog's result, read as the dialog closes | the host tier wrote through a real `GroupForm` and found the live group untouched, and the end to end tier pressed OK and found the rule in the `.kdbx` afterwards; `SnapshotHazardTests` still measures the copy, and `GrantEditorInRealDialogsTests` that OK writes the rule into the store with the node unchanged and Cancel writes nothing |
+| **That copy does not exist while the tab is being built.** KeePass makes it as the dialog loads and announces the window during the same load, so a plugin that captured the field at attach time would capture null and write nowhere | asserted directly while the adapter used the field: after `InitEx` and before the dialog loads, the field is null. The adapter resolved it on every access and read from the node itself, and uses it no more |
 | `PwEntryForm.InitEx` **refuses a null image list**, which a test constructing one has to supply | `ArgumentNullException` on `ilIcons`, from the first attempt |
 | A `DataGridView` cell reaches UI automation as an `Edit` whose name is its column header plus its row, and **a read only one exposes no pattern that operates it**: the value pattern refuses, and there is no invoke, because opening a picker is a decision the panel makes about a click rather than a property of the cell | the end to end test asked, was told the value is read only, and now synthesizes a real pointer and real keystrokes instead |
 | The main menu path to a group's own dialog is **Group, Edit Group**, and both report access keys | dumped the real menu tree through UI automation rather than guessing at it |
+| **A `DataGridView` takes Enter on every row, and Escape on its empty line, as its own input**, so on a dialog with an accept and a cancel button Enter never pressed OK while the keyboard stood on the table, and Escape left the dialog open once the empty line was pressed. The table hands both keys to the dialog where no picker is open | `GrantPickerTests`, on a shown form, in `Escape_after_a_press_on_the_table_presses_the_dialog_s_Cancel` and `Enter_after_a_press_on_the_table_presses_the_dialog_s_OK`, each with a key posted through a real message loop |
+| **KeePass hands an earlier version of an entry over with no parent group.** A revision read from the file is put into its entry's history and given no parent, so a tab read through the revision showed no rule from a group above, no limit and no rule of a name gone. The tab is read through the entry of the revision's identifier | `GrantEditorInRealDialogsTests.An_earlier_version_read_from_the_file_shows_every_row_the_entry_shows_as_the_rules_stand_now`, over a database saved and opened again, on KeePass 2.62 |
+| **UI automation's proxy for a Windows button reads its help off the tooltip's window, cut after 127 characters**, with the tooltip's line breaks in it, whatever the control's accessible object answers. A check box is such a button; a cell of a `DataGridView` is not, and its help arrives whole | the dump of the grant editor's box in a real KeePass 2.62, beside `GrantPickerTests.The_box_s_accessible_object_answers_the_whole_of_its_tooltip_as_its_help`, which asks the accessible object |
 
 ## 14. Combining the two answers
 

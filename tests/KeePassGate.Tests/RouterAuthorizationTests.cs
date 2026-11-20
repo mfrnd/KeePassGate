@@ -101,6 +101,51 @@ namespace KeePassGate.Tests
             Assert.That(_audit.Entries[1].Reason, Does.Contain("nothing to decide"));
         }
 
+        [TestCase("lost", "a rule here was lost", "a group")]
+        [TestCase("out of form", "a rule here could not be read", "a group")]
+        [TestCase("made apart", "rules here made apart do not all grant it", "a group")]
+        [TestCase("limited", "a limit here does not let it through", "a group")]
+        [TestCase("lost switch", "a rule here was lost", "a group")]
+        public void A_refusal_the_store_s_rules_make_is_written_down_where_it_was_made_and_answered_as_an_absent_node(
+            string how, string reason, string decidedAt)
+        {
+            // The operator is told the reason and the node the walk ended at, and the caller is
+            // told what a node that is not there is answered with, whichever way the rules refused.
+            var group = TestNode.Root("root").Granting("reader", AclVerb.Read, AclVerb.Update).Child("a group");
+            switch (how)
+            {
+                case "lost":
+                    group.Holding(Rules.Stored(("reader", null)));
+                    break;
+                case "out of form":
+                    group.Holding(Rules.Stored(("reader", "row:UR")));
+                    break;
+                case "made apart":
+                    group.Holding(Rules.Stored(("reader", "row:U"), ("reader", "row:R")));
+                    break;
+                case "limited":
+                    group.Holding(Rules.Stored(("reader", "off:U")));
+                    break;
+                default:
+                    group.Holding(Rules.Stored((null, null)));
+                    break;
+            }
+
+            _node = group.Child("an entry");
+            var refused = Ask(Paired("reader"));
+            _node = null;
+            var absent = Ask(Paired("reader"));
+
+            Assert.That(_reached, Is.Empty);
+            Assert.That(refused.Status, Is.EqualTo(404));
+            Assert.That(refused.Json, Is.EqualTo(absent.Json));
+            var line = _audit.Entries[0];
+            Assert.That(line.Permitted, Is.False);
+            Assert.That(line.Node, Is.EqualTo("an entry"));
+            Assert.That(line.Reason, Is.EqualTo(reason));
+            Assert.That(line.DecidedAt, Is.EqualTo(decidedAt));
+        }
+
         [Test]
         public void A_certificate_this_authority_issued_and_refused_is_written_down_by_its_key()
         {
@@ -616,9 +661,10 @@ namespace KeePassGate.Tests
                 _walks = walks;
             }
 
-            public string Document
+            /// <summary>The rules of the node it walks for.</summary>
+            public NodeRule Rule
             {
-                get { return _node.Document; }
+                get { return _node.Rule; }
             }
 
             public IAclNode Parent

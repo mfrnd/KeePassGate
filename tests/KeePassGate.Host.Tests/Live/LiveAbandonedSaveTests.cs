@@ -95,7 +95,7 @@ namespace KeePassGate.Host.Tests.Live
         {
             _session = LiveSession.Begin(true);
             var keePass = _session.KeePass;
-            keePass.Grant(Rules.Granting(("agent", "CRL")));
+            keePass.Grant(("agent", "CRL"));
             InstallSecondPlugin(keePass);
 
             using (var admitted = keePass.IssueClientCertificate("agent-fictitious"))

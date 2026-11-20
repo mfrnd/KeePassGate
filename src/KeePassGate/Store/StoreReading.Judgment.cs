@@ -85,11 +85,14 @@ namespace KeePassGate.Store
                 };
             }
 
+            /// <summary>The store as these forms read under the keys found, beside these deletion records.</summary>
+            /// <param name="nodes">The identifier of every group and entry of the tree, or null where there is none.</param>
             public static Judgment Of(
                 IReadOnlyList<StoreCandidate> candidates,
                 IReadOnlyList<StoreChecked[]> forms,
                 IReadOnlyList<FoundKey> keys,
-                IReadOnlyList<byte[]> deletions)
+                IReadOnlyList<byte[]> deletions,
+                Func<IEnumerable<byte[]>> nodes)
             {
                 if (keys.Count == 0)
                 {
@@ -185,7 +188,7 @@ namespace KeePassGate.Store
                 var keptByDeletion = told.Where(relation => relation.Source == store)
                     .Select(relation => new KeyValuePair<string, string>(relation.Id, keys[relation.Target].Name))
                     .ToList();
-                var judged = Store(keys[store], records[store], damage[store], byTag, keptByDeletion);
+                var judged = Store(keys[store], records[store], damage[store], byTag, keptByDeletion, nodes);
                 judged.Damage = damage[store].Count;
                 judged.Passed = passed;
                 judged.ByHistory = records[store].Count(record => record.ByHistory);
@@ -202,9 +205,10 @@ namespace KeePassGate.Store
                 IReadOnlyList<FoundRecord> records,
                 IReadOnlyList<string> damage,
                 IReadOnlyDictionary<string, List<string>> byTag,
-                IReadOnlyCollection<KeyValuePair<string, string>> keptByDeletion)
+                IReadOnlyCollection<KeyValuePair<string, string>> keptByDeletion,
+                Func<IEnumerable<byte[]>> nodes)
             {
-                var inForce = StoreInForce.Of(key, records, byTag, keptByDeletion);
+                var inForce = StoreInForce.Of(key, records, byTag, keptByDeletion, nodes);
 
                 // A record of a kind the plugin does not know, an item of such a kind, or a
                 // version of an object of such a type: outdated, with or without a version

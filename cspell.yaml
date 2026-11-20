@@ -114,6 +114,11 @@ words:
   - CRUDLA
   - RLLA
 
+  # the letters of a rule chosen in a step of the write vectors, as the model's act spells them and
+  # as a version and a mask spell them, printed by the measured code
+  - CRUDL
+  - crudl
+
   # own the transport, because the name rotates
   - REUSEADDR
   - cafile

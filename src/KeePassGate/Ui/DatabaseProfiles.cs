@@ -12,13 +12,13 @@ namespace KeePassGate.Ui
     /// The profiles page's answers, read from and written to one open database.
     /// </summary>
     /// <remarks>
-    /// Two stores rather than a single store, and they are not the same kind of thing. The list
-    /// of names is the plugin's store's, `STORE.md` §616: an addition and a removal are records
-    /// of it. The rules are a document for each node, all over the tree. A profile is added and
-    /// removed by touching only the first, because a client holds only the names its admission
-    /// carries that the list still names: taking a name off the list is what makes every rule for
-    /// it grant nothing, and putting it back is what makes them grant again. The rules are read
-    /// here and never written.
+    /// Two kinds of record of the plugin's store, and they are not the same kind of thing. The
+    /// list of names is made of additions and removals, `STORE.md` §616. The rules are versions,
+    /// each of a profile's row or of the switch at a node of the tree, §617. A profile is added
+    /// and removed by touching only the first, because a client holds only the names its
+    /// admission carries that the list still names: taking a name off the list is what makes
+    /// every rule for it grant nothing, and putting it back is what makes them grant again. The
+    /// rules are read here and never written.
     ///
     /// **A press is an act handed to the database's store**, as the clients page hands a
     /// revocation: the KPG tab's buffer holds it until the dialog's OK, and the page reads the
@@ -80,54 +80,72 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// How many groups and entries have a rule for each profile, whatever the rule grants: an
-        /// empty one, which grants nothing from its node down, is a rule too. Counted rather than
-        /// remembered, because the rules are edited on other dialogs entirely and a number kept here
-        /// would be stale the moment somebody pressed OK on one of them.
+        /// How many groups and entries hold a rule for each profile, whatever the rule grants: an
+        /// empty rule, which grants nothing from its node down, is a rule too, and a rule taken off
+        /// is none, nor a rule that refuses the profile at its node, a version lost or a text out
+        /// of form standing beside the version that grants. Counted rather than remembered, because the rules are changed on other dialogs
+        /// entirely, and arrive in a merge, and a number kept here would be stale the moment
+        /// somebody pressed OK on one of them.
         /// </summary>
         /// <remarks>
-        /// **Every profile in one walk**, because the walk is the cost: every group and every
-        /// entry. Asked one profile at a time, a page of thirty two profiles over twenty thousand
-        /// entries, when the walk still took in each entry's history, walked two hundred thousand
-        /// nodes thirty two times on KeePass's own thread, which held the settings dialog shut for
-        /// twelve seconds before it was drawn.
+        /// **A node is counted once for a profile however many versions of its rule stand**, since
+        /// it is one rule at one node, and only at a node in the tree outside the recycle bin and
+        /// the plugin's store, `IRuledNodes`: a rule for a node that is not there, or is out of
+        /// reach, puts nothing back in force.
+        ///
+        /// **Every profile from a single reading of the store and a single walk of the tree**,
+        /// because the walk is the cost: every group and every entry. Asked one profile at a time,
+        /// a page of thirty two profiles over twenty thousand entries, when the walk still took in
+        /// each entry's history, walked two hundred thousand nodes thirty two times on KeePass's
+        /// own thread, which held the settings dialog shut for twelve seconds before it was drawn.
         /// </remarks>
         public IReadOnlyDictionary<string, int> Rules()
         {
-            var found = new Dictionary<string, int>(StringComparer.Ordinal);
-
             if (_database == null || !_database.IsOpen || _database.Nodes == null)
             {
-                return found;
+                return new Dictionary<string, int>(StringComparer.Ordinal);
             }
 
             try
             {
-                foreach (var stored in _database.Nodes.All().Select(
-                    node => node == null ? null : node.Read()))
+                using (var reading = _database.Store.Read())
                 {
-                    if (string.IsNullOrEmpty(stored))
-                    {
-                        continue;
-                    }
-
-                    var document = AclDocument.Read(stored);
-                    if (document == null)
-                    {
-                        continue;
-                    }
-
-                    foreach (var name in document.Profiles)
-                    {
-                        int counted;
-                        found.TryGetValue(name, out counted);
-                        found[name] = counted + 1;
-                    }
+                    return Rules(reading);
                 }
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
                 _log.Warn("the rules could not be counted: " + error.Message);
+                return new Dictionary<string, int>(StringComparer.Ordinal);
+            }
+        }
+
+        /// <summary>The same count, of a reading of the store made already.</summary>
+        private IReadOnlyDictionary<string, int> Rules(StoreReading reading)
+        {
+            var found = new Dictionary<string, int>(StringComparer.Ordinal);
+            if (_database.Nodes == null)
+            {
+                return found;
+            }
+
+            var rules = StoredRules.Of(reading);
+            if (rules.Profiles.Count == 0)
+            {
+                return found;
+            }
+
+            var nodes = new HashSet<string>(
+                _database.Nodes.All(reading).Where(node => node != null).Select(node => node.Id), StringComparer.Ordinal);
+
+            foreach (var profile in rules.Profiles)
+            {
+                var counted = rules.Named(profile)
+                    .Count(node => nodes.Contains(node) && !rules.At(node).Row(profile).Refuses);
+                if (counted > 0)
+                {
+                    found[profile] = counted;
+                }
             }
 
             return found;
@@ -298,6 +316,7 @@ namespace KeePassGate.Ui
             }
 
             var found = new List<AdmissionRecord>();
+            var rules = 0;
             StoreReading stored;
             using (var reading = new AuthorityService(_database.Store, _log).Read(out stored))
             using (stored)
@@ -319,9 +338,17 @@ namespace KeePassGate.Ui
                 {
                     _log.Warn("the clients holding " + name + " could not be listed: " + error.Message);
                 }
+
+                try
+                {
+                    rules = Counted(Rules(stored), name);
+                }
+                catch (Exception error) when (Expected.OfCustomData(error))
+                {
+                    _log.Warn("the rules could not be counted: " + error.Message);
+                }
             }
 
-            var rules = Counted(Rules(), name);
             var holders = ClientList.ClientNames(found);
             if (rules == 0 && holders.Count == 0)
             {

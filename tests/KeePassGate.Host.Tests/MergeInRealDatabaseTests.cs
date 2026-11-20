@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
@@ -14,13 +15,15 @@ using NUnit.Framework;
 namespace KeePassGate.Host.Tests
 {
     /// <summary>
-    /// What KeePass's own synchronize does to admissions and revocations, and to the standing
-    /// answers to a renewal, against copies of one real database.
+    /// What KeePass's own synchronize does to admissions and revocations, to rules, and to the
+    /// standing answers to a renewal, against copies of one real database.
     /// </summary>
     /// <remarks>
     /// An admission and a revocation are each an entry of the plugin's store, written once, so
     /// two copies that admit different clients keep both, and a revocation is an entry the other
-    /// copy does not hold, which a merge brings and never takes away, `STORE.md` §615. The
+    /// copy does not hold, which a merge brings and never takes away, `STORE.md` §615. A rule is
+    /// versions of the store, each an entry of its own naming the versions its writer read, so
+    /// rules changed apart meet at no more than either copy gave, §617. The
     /// standing answers stay in `PwDatabase.CustomData`, the one dictionary KeePass merges key
     /// by key: a group's custom data carries no per-item modification times, so
     /// `PwGroup.AssignProperties` replaces the whole dictionary from whichever replica's group
@@ -262,6 +265,209 @@ namespace KeePassGate.Host.Tests
 
             TestContext.Out.WriteLine(measured.ToString());
             Assert.That(wrong, Is.Empty, string.Join(Environment.NewLine, wrong));
+        }
+
+        [Test]
+        public void Rules_changed_apart_end_at_what_the_lower_version_recorded_under_every_method_both_ways()
+        {
+            // `STORE.md` §617: a rule is versions of the store, and a version that lets through
+            // records the letters that arrived, so rules changed apart in two copies end, once a
+            // single merge of either into the other has met them, at no more than either copy
+            // gave. Each history starts from a shared copy and changes each copy apart, as the
+            // product writes each at a dialog's OK; the copy merged into is read through the file.
+            // Create new IDs brings no record, and is held apart below.
+            var wrong = new List<string>();
+            foreach (var method in Methods.Where(method => method != PwMergeMethod.CreateNewUuids))
+            {
+                foreach (var history in Histories)
+                {
+                    foreach (var into in new[] { 0, 1 })
+                    {
+                        var named = history.Key + ", " + method + ", into copy " + into;
+                        var found = Merged(history.Value, method, into);
+                        if (found != null)
+                        {
+                            wrong.Add(named + ": " + found);
+                        }
+                    }
+                }
+            }
+
+            Assert.That(wrong, Is.Empty, string.Join(Environment.NewLine, wrong));
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        public void Under_new_identifiers_each_copy_grants_what_it_granted(int into)
+        {
+            // Create new IDs brings the other copy's nodes and records under identifiers of their
+            // own, so no record of it counts and no rule of it reaches a node of the copy merged
+            // into: the copy narrowed apart and the copy widened apart each grant what they did.
+            var found = Merged(
+                new History(
+                    "pf",
+                    (store, root, node) => StoreSeeds.Rule(store, node, ("pf", "RU")),
+                    (store, root, node) => StoreSeeds.Rule(store, node, ("pf", "R")),
+                    (store, root, node) => StoreSeeds.Rule(store, node, ("pf", "RUL")),
+                    into == 0 ? "R" : "RUL"),
+                PwMergeMethod.CreateNewUuids,
+                into);
+
+            Assert.That(found, Is.Null, found);
+        }
+
+        /// <summary>
+        /// The histories of rules changed apart, each with the letters a node directly under the
+        /// node changed receives once the copies have met.
+        /// </summary>
+        private static readonly IReadOnlyDictionary<string, History> Histories = new Dictionary<string, History>(StringComparer.Ordinal)
+        {
+            {
+                // Narrowed at copy 0, widened at copy 1: versions made apart, cut to what both hold.
+                "a rule narrowed in a copy and widened in the other",
+                new History(
+                    "pf",
+                    (store, root, node) => StoreSeeds.Rule(store, node, ("pf", "RU")),
+                    (store, root, node) => StoreSeeds.Rule(store, node, ("pf", "R")),
+                    (store, root, node) => StoreSeeds.Rule(store, node, ("pf", "RUL")),
+                    "R")
+            },
+            {
+                // H1: the root grants `R` and the node holds an empty rule; copy 0 takes the rule
+                // off, copy 1 widens the root. The version taken off recorded `R`.
+                "a rule taken off below a root widened apart",
+                new History(
+                    "pf",
+                    (store, root, node) =>
+                    {
+                        StoreSeeds.Rule(store, root, ("pf", "R"));
+                        StoreSeeds.Rule(store, node, ("pf", string.Empty));
+                    },
+                    (store, root, node) => StoreSeeds.TakeOff(store, node, "pf", "R"),
+                    (store, root, node) => StoreSeeds.Rule(store, root, ("pf", "RU")),
+                    "R")
+            },
+            {
+                // H2: the node's switch refuses; copy 1 widens the root, copy 0 clears the box.
+                // The switch's version recorded `R` for the profile.
+                "a switch cleared below a root widened apart",
+                new History(
+                    "pf",
+                    (store, root, node) =>
+                    {
+                        StoreSeeds.Rule(store, root, ("pf", "R"));
+                        StoreSeeds.Seal(store, node);
+                    },
+                    (store, root, node) => StoreSeeds.Unseal(store, node, ("pf", "R")),
+                    (store, root, node) => StoreSeeds.Rule(store, root, ("pf", "RU")),
+                    "R")
+            },
+            {
+                // H3: the same, for a profile the node never named, widened for that profile alone.
+                "a switch cleared below a root widened apart for a profile the node never named",
+                new History(
+                    "pg",
+                    (store, root, node) =>
+                    {
+                        StoreSeeds.Rule(store, root, ("pf", "R"), ("pg", "R"));
+                        StoreSeeds.Seal(store, node);
+                    },
+                    (store, root, node) => StoreSeeds.Unseal(store, node, ("pf", "R"), ("pg", "R")),
+                    (store, root, node) => StoreSeeds.Rule(store, root, ("pg", "RU")),
+                    "R")
+            },
+            {
+                // W3: the row taken off under the refusing switch at copy 0, the switch cleared at
+                // copy 1 while the row still stood there. Nothing passed the switch at copy 0.
+                "a row taken off under the switch and the switch cleared apart",
+                new History(
+                    "pf",
+                    (store, root, node) =>
+                    {
+                        StoreSeeds.Rule(store, root, ("pf", "R"));
+                        StoreSeeds.Seal(store, node, ("pf", "RL"));
+                    },
+                    (store, root, node) => StoreSeeds.TakeOff(store, node, "pf", "R"),
+                    (store, root, node) => StoreSeeds.Unseal(store, node, ("pf", "R")),
+                    string.Empty)
+            },
+        };
+
+        /// <summary>
+        /// A history played over two copies of a database and merged by this method into the copy
+        /// named: what the merged copy gives below the node otherwise than the history expects, or
+        /// null where it gives that.
+        /// </summary>
+        private static string Merged(History history, PwMergeMethod method, int into)
+        {
+            using (var first = TemporaryDatabase.New())
+            using (var second = TemporaryDatabase.New())
+            {
+                var copies = new[] { first, second };
+                second.Database.RootGroup.Uuid = first.Database.RootGroup.Uuid;
+                Assert.That(Authority(first).Create().Succeeded, Is.True);
+                var group = new PwGroup(true, true, "Fictitious", PwIcon.Folder);
+                first.RootGroup.AddGroup(group, true);
+                var root = DatabaseRules.Id(first.RootGroup.Uuid);
+                var node = DatabaseRules.Id(group.Uuid);
+
+                history.Shared(DatabaseAuthority.Store(first.Database), root, node);
+                Copy(first, second);
+                history.First(DatabaseAuthority.Store(first.Database), root, node);
+                history.Second(DatabaseAuthority.Store(second.Database), root, node);
+                first.SaveCloseAndReopen();
+                second.SaveCloseAndReopen();
+
+                var target = copies[into];
+                target.Database.MergeIn(copies[1 - into].Database, method, null);
+                target.SaveCloseAndReopen();
+
+                var database = target.Database;
+                using (var readings = new StoreReadings(database, CurrentThread.Instance, null))
+                {
+                    var state = readings.Now().State;
+                    var at = KdbxNodes.Of(database.RootGroup.FindGroup(group.Uuid, true), CurrentThread.Instance, () => readings.Rules(database, database.RootGroup));
+                    var gives = AclResolver.Arrives(at, history.Profile);
+                    return gives.SameAs(Rules.Letters(history.Expected))
+                        ? null
+                        : "gives " + VerbMask.Of(gives) + " where " + history.Expected + " was expected, the store " + state;
+                }
+            }
+        }
+
+        /// <summary>
+        /// A history of rules: what both copies hold, what each copy then changes apart, and what
+        /// a node directly under the node changed receives for the profile once they have met.
+        /// </summary>
+        private sealed class History
+        {
+            public History(
+                string profile,
+                Action<IGateStore, string, string> shared,
+                Action<IGateStore, string, string> first,
+                Action<IGateStore, string, string> second,
+                string expected)
+            {
+                Profile = profile;
+                Shared = shared;
+                First = first;
+                Second = second;
+                Expected = expected;
+            }
+
+            public string Profile { get; private set; }
+
+            /// <summary>Done before the copies part, given the store, the root and the node.</summary>
+            public Action<IGateStore, string, string> Shared { get; private set; }
+
+            /// <summary>Done at copy 0 once they have parted.</summary>
+            public Action<IGateStore, string, string> First { get; private set; }
+
+            /// <summary>Done at copy 1 once they have parted.</summary>
+            public Action<IGateStore, string, string> Second { get; private set; }
+
+            /// <summary>The letters a node under the node receives once the copies have met, as a mask.</summary>
+            public string Expected { get; private set; }
         }
 
         [Test]

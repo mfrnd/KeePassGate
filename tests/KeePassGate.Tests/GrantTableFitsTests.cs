@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Acl;
@@ -129,8 +131,18 @@ namespace KeePassGate.Tests
 
                 Assert.That(mask.AutoSizeMode, Is.EqualTo(DataGridViewAutoSizeColumnMode.AllCells));
 
-                // And a floor is not what holds it up, so there is none to go stale.
-                Assert.That(mask.MinimumWidth, Is.LessThanOrEqualTo(Needs(mask)));
+                // And the floor under it, which keeps a table with no rule yet as wide as a table
+                // of rules, is measured off a mask in the column's own font: a floor that stays
+                // where it was at a larger font is a floor for a single display.
+                var floor = mask.MinimumWidth;
+                using (var larger = new Font(panel.Font.FontFamily, panel.Font.Size * 2f))
+                {
+                    panel.Font = larger;
+                    OffScreenForm.Pump();
+
+                    Assert.That(mask.MinimumWidth, Is.GreaterThan(floor), "the floor stayed where it was");
+                    Assert.That(mask.Width, Is.GreaterThanOrEqualTo(Needs(mask)), "the heading is cut at the larger font");
+                }
             }
         }
 
@@ -151,6 +163,90 @@ namespace KeePassGate.Tests
                     Is.GreaterThan(grid.Columns[MaskColumn].Width),
                     "the column with no known length is the narrow one");
             }
+        }
+
+        [Test]
+        public void The_columns_keep_their_widths_whatever_a_press_changes()
+        {
+            // A press takes rows away, and with them the vertical scroll bar, and changes the words
+            // the State column shows. Left to the grid, the profile column gives the scroll bar its
+            // room as the bar comes and goes, and the State column is as wide as the words shown;
+            // no column moves.
+            var sheet = GrantSheet.Of(
+                Rules.Stored(("deploy", "row:R"), ("deploy", "row:RL"), ("deploy", "row:CRL"), ("ops", "row:RL"), (null, "sw:deny")),
+                Sheets.Arriving(("reader", "RL")),
+                new[] { "deploy", "ops", "reader" },
+                null);
+
+            using (var form = OffScreenForm.New())
+            using (var panel = new GrantPanel(sheet, GrantTab.GroupScope, null, null, null))
+            {
+                Lay(form, panel);
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+
+                // Room for four rows and a half: the six rows the table starts with scroll, and the
+                // four left once two versions are removed do not.
+                var row = grid.Rows[0].Height;
+                form.ClientSize = new Size(form.ClientSize.Width, form.ClientSize.Height - grid.Height + grid.ColumnHeadersHeight + (row * 9 / 2));
+                OffScreenForm.Pump();
+                Assert.That(Scrolls(grid), Is.True, "the table starts with no scroll bar, so its going is not measured");
+                Assert.That(Sideways(grid), Is.False, "the table scrolls sideways beside the scroll bar");
+
+                var before = Widths(grid);
+                TestContext.Out.WriteLine("widths " + string.Join(", ", before) + ": " + string.Join(" | ", panel.Lines));
+
+                foreach (var version in sheet.Rows.Where(shown => shown.Profile == "deploy").Take(2).Select(shown => shown.Version).ToList())
+                {
+                    panel.Press(grid.Rows.Cast<DataGridViewRow>().Single(line => !line.IsNewRow && ((GrantRow)line.Tag).Version == version).Index, GrantTab.ForgetColumn);
+                    OffScreenForm.Pump();
+                }
+
+                Assert.That(Scrolls(grid), Is.False, "the rows left still scroll, so the bar's going is not measured: " + string.Join(" | ", panel.Lines));
+                Assert.That(Widths(grid), Is.EqualTo(before), "the scroll bar went: " + string.Join(" | ", panel.Lines));
+                Assert.That(Sideways(grid), Is.False, "the table scrolls sideways with the scroll bar gone");
+
+                panel.PressBox();
+                OffScreenForm.Pump();
+                Assert.That(panel.Lines.Any(line => line.Contains(GrantTab.RefusedHereWord)), Is.False, "the box still refuses, so no word changed");
+                Assert.That(Widths(grid), Is.EqualTo(before), "the words changed: " + string.Join(" | ", panel.Lines));
+                Assert.That(Sideways(grid), Is.False);
+            }
+        }
+
+        [Test]
+        public void A_table_s_first_rule_moves_no_column()
+        {
+            using (var form = OffScreenForm.New())
+            using (var panel = new GrantPanel(GrantSheet.Of(NodeRule.None, null, new[] { "reader" }, null), GrantTab.GroupScope, null, null, null))
+            {
+                Lay(form, panel);
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                var before = Widths(grid);
+
+                Assert.That(panel.AddGrant("reader"), Is.Null);
+                OffScreenForm.Pump();
+
+                Assert.That(panel.Lines, Is.EqualTo(new[] { "reader ........" }));
+                Assert.That(Widths(grid), Is.EqualTo(before), "widths before " + string.Join(", ", before) + ", after " + string.Join(", ", Widths(grid)));
+            }
+        }
+
+        /// <summary>The width of every column of the table, in order.</summary>
+        private static int[] Widths(DataGridView grid)
+        {
+            return grid.Columns.Cast<DataGridViewColumn>().Select(column => column.Width).ToArray();
+        }
+
+        /// <summary>Whether the table shows its vertical scroll bar.</summary>
+        private static bool Scrolls(DataGridView grid)
+        {
+            return grid.Controls.OfType<VScrollBar>().Any(bar => bar.Visible);
+        }
+
+        /// <summary>Whether the table shows a scroll bar across, which nothing on a tab may.</summary>
+        private static bool Sideways(DataGridView grid)
+        {
+            return grid.Controls.OfType<HScrollBar>().Any(bar => bar.Visible);
         }
 
         /// <summary>What this column's heading needs, which is what the grid says it needs.</summary>
@@ -186,15 +282,76 @@ namespace KeePassGate.Tests
             return grid.ColumnHeadersDefaultCellStyle.Font ?? grid.Font;
         }
 
+        [Test]
+        public void The_state_column_is_as_wide_as_its_longest_word_and_its_heading()
+        {
+            // A word cut in its column is a state nobody can read, and the State column is sized
+            // to what is in it, as the Permissions column is, rather than to a width in pixels.
+            var shown = new List<string>();
+            foreach (var refusing in new[] { false, true })
+            {
+                using (var form = OffScreenForm.New())
+                using (var panel = EveryState(refusing))
+                {
+                    Lay(form, panel);
+
+                    var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                    var state = grid.Columns[GrantTab.StateColumn];
+                    var font = grid.DefaultCellStyle.Font ?? grid.Font;
+                    var words = grid.Rows.Cast<DataGridViewRow>().Where(row => !row.IsNewRow)
+                        .Select(row => (string)row.Cells[GrantTab.StateColumn].Value).ToList();
+                    shown.AddRange(words);
+
+                    Assert.That(state.AutoSizeMode, Is.EqualTo(DataGridViewAutoSizeColumnMode.AllCells));
+                    foreach (var word in words)
+                    {
+                        Assert.That(state.Width, Is.GreaterThanOrEqualTo(TextRenderer.MeasureText(word, font).Width), word);
+                    }
+
+                    Assert.That(state.Width, Is.GreaterThanOrEqualTo(Needs(state)), "the heading is cut off by the column it heads");
+                    Assert.That(grid.Columns[ProfileColumn].Width,
+                        Is.GreaterThanOrEqualTo(TextRenderer.MeasureText(GrantTab.AddRowPrompt, grid.Font).Width),
+                        "the prompt of the empty line is cut");
+                }
+            }
+
+            Assert.That(shown, Is.SupersetOf(Words), "every word was on a table measured");
+        }
+
+        /// <summary>Every word the State column can show.</summary>
+        internal static readonly string[] Words =
+        {
+            GrantTab.NoProfileWord, GrantTab.LostWord, GrantTab.VersionWord, GrantTab.TakenOffWord,
+            GrantTab.LimitWord, GrantTab.RefusedHereWord, GrantTab.InheritedWord,
+        };
+
         private static GrantPanel Table()
         {
-            var above = TestNode.Root("root").Granting("reader", AclVerb.Read);
-
             return new GrantPanel(
-                new GrantSheet(Rules.Granting(("editor", "RU")), above, new[] { "reader", "editor" }, null),
-                new FakeGrantStore(Rules.Granting(("editor", "RU"))) { Refusal = new InvalidOperationException("this measurement writes nothing") },
+                GrantSheet.Of(Rules.Node(false, ("editor", "RU")), Sheets.Arriving(("reader", "R")), new[] { "reader", "editor" }, null),
                 GrantTab.GroupScope,
-                null);
+                null, null, null);
+        }
+
+        /// <summary>
+        /// A table with a row of every state a box allows, a full mask among the rows: the box
+        /// cleared shows the limit, the version taken off and the name gone, and the box ticked
+        /// shows what the box refuses.
+        /// </summary>
+        internal static GrantPanel EveryState(bool refusing)
+        {
+            var versions = new List<(string Profile, string Text)>
+            {
+                ("deploy", "row:CRUSDLAP"), ("deploy", "off:R"), ("lost", null), ("ops", "off:R"), ("gone", "row:R"),
+            };
+            if (refusing)
+            {
+                versions.Add((null, "sw:deny"));
+            }
+
+            var above = Sheets.Arriving(("ops", "CRUSDLAP"), ("reader", "RL"));
+            var sheet = GrantSheet.Of(Rules.Stored(versions.ToArray()), above, new[] { "deploy", "lost", "ops", "reader" }, null);
+            return new GrantPanel(sheet, GrantTab.GroupScope, null, null, null);
         }
 
         private static void Lay(Form form, GrantPanel panel)

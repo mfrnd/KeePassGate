@@ -94,8 +94,8 @@ namespace KeePassGate.Host.Tests.Live
         private LiveSession _session;
         private string _directory;
 
-        private string _ruleOnTheRoot;
-        private string _ruleOnTheEntry;
+        private NodeRule _ruleOnTheRoot;
+        private int _rulesOnEntries;
 
         private readonly List<string> _written = new List<string>();
 
@@ -122,11 +122,6 @@ namespace KeePassGate.Host.Tests.Live
             // The moving picture starts from here, a database with entries and nothing else, so it
             // is kept as it is now and put back when the picture is taken, last.
             _pristine = _session.KeePass.CopyDatabase(PristineCopy);
-
-            // The rule the access pages are screenshotted showing. Written into the database rather
-            // than chosen in the dialog: what the pictures are of is an editor reading a real rule,
-            // and driving a dropdown to produce one would screenshot the automation instead.
-            _session.KeePass.Grant(Rules.Granting((Profile, "RLA")));
 
             Capture();
         }
@@ -208,6 +203,12 @@ namespace KeePassGate.Host.Tests.Live
             // tell apart.
             _session.KeePass.NameProfiles(Profile, SecondProfile);
 
+            // The rule the access pages are screenshotted showing, a record of the store as well,
+            // so under the same key and after the same picture. Written into the database rather
+            // than chosen in the dialog: what the pictures are of is an editor reading a real rule,
+            // and driving a dropdown to produce one would screenshot the automation instead.
+            _session.KeePass.Grant((Profile, "RLA"));
+
             driver = KeePassDriver.Start(_session.KeePass);
             WaitUntilServing(driver, 1, 0);
 
@@ -286,15 +287,12 @@ namespace KeePassGate.Host.Tests.Live
 
             driver.ShutDown();
 
-            _ruleOnTheRoot = _session.KeePass.ReadRootCustomData(AclDocument.CustomDataKey);
-            foreach (var found in _session.KeePass.ReadEntries()
-                         .Select(stored => stored.CustomData.Get(AclDocument.CustomDataKey))
-                         .Where(found => !string.IsNullOrEmpty(found)))
-            {
-                _ruleOnTheEntry = found;
-            }
+            var read = _session.KeePass.ReadRules();
+            _ruleOnTheRoot = read.Rules.At(read.Root);
+            _rulesOnEntries = _session.KeePass.ReadEntries()
+                .Count(stored => read.Rules.At(Hex.Of(stored.Uuid.UuidBytes)).Profiles.Count > 0);
 
-            Assert.That(_ruleOnTheRoot, Does.Contain(Profile),
+            Assert.That(_ruleOnTheRoot.Profiles, Does.Contain(Profile),
                 "the rule the pictures are of is not in the database they were taken from");
 
             ShowStandingAnswers();
@@ -523,9 +521,9 @@ namespace KeePassGate.Host.Tests.Live
             // What the entry page is worth showing at all: a rule made on the group above, seen
             // from an entry that does not carry one. If the rule had landed on the entry the
             // picture would teach the reader the opposite of how this works.
-            Assert.That(_ruleOnTheRoot, Is.Not.Null.And.Not.Empty,
+            Assert.That(_ruleOnTheRoot.Profiles, Is.Not.Empty,
                 "the rule the pictures were taken of is not on the group");
-            Assert.That(_ruleOnTheEntry, Is.Null,
+            Assert.That(_rulesOnEntries, Is.Zero,
                 "an entry carries a rule of its own, so the picture is not of an inherited one");
         }
 

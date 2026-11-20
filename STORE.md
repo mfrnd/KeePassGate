@@ -33,9 +33,15 @@ takes access away is a further entry, never an entry deleted or changed.
 > name added by a record and taken off by a record: read by their meaning with a client's
 > admission in the hold that reads it, added by a pairing in the admission's own write, and
 > added and removed on the Profiles page at the settings dialog's OK, which leaves out an Add
-> that a removal of its name overtook (§627). §614, §615, §616, §620, §626, §627,
-> §628, §633, §636, §643, §648 and §656 state which parts those are, and nothing else below
-> describes what the plugin does today. **Not built**: the rules (§617) and the standing
+> that a removal of its name overtook (§627); and the rules of §617, a version of a profile's
+> row and of a node's switch as records, with nothing of a rule on a group or an entry: read by
+> the walk of §617 from the reading of the hold a rule is asked in, and written through the
+> writer as the dialog of a group or an entry closes with OK, from a grant editor that holds
+> every press until then (§629, §657). §614, §615, §616, §617, §620, §626, §627, §628, §629,
+> §633, §636, §643, §648, §656 and §657 state which parts those are, and nothing else below
+> describes what the plugin does today. **Not built**: the write above, by which a change at
+> a node writes anew the versions below it that were following (§617), so a node whose rule
+> was taken off stays cut until its limit is removed at the node; the standing
 > answers to a renewal as records of this store, which this build keeps in custom data as
 > 0.2.0 does; the page that seals a store again (§625) and the command that starts it again
 > (§632); the guard over KeePass's own windows, with its switch (§635);
@@ -69,7 +75,11 @@ takes access away is a further entry, never an entry deleted or changed.
   that lets a profile through records what arrived, and the reading cuts to it (§617, §639);
   the X takes a rule off also under a switch that refuses, which reverses the decision on a
   removed row named above (§617); and a version that no longer fits a string is left without
-  its renewal while the rest of the write is written (§627).
+  its renewal while the rest of the write is written (§627). And with the building of the
+  rules: a mask a version records is what the tab showed arriving at the press, cut to what
+  arrives at the node in the write's own reading (§617); a state has a column of its own in
+  the grant editor's table, with a tooltip for each word; and every text above that table
+  takes at most two lines (§657).
 - **Measured** names a fact that was run, with where: a report is named by its file name under
   `papers/ground/` on that branch, without `.md`, and its section, as `measured-decided-store` 3.5.
   The reports hold the counts and the reproduction of each run; this document quotes a count only
@@ -88,7 +98,7 @@ takes access away is a further entry, never an entry deleted or changed.
   run since** (`measured-rules-per-profile`). Every run before that wrote a version of a node's
   whole rule. What this document states of rules is measured in the decided form where the
   sentence names that report, and in the whole-rule form where the sentence names that form.
-  §644 has what the run showed and what of it stays owed before the rules are built.
+  §644 has what the run showed, what the build of the rules ran of it and what stays owed.
 - **Proposed** marks a design this document makes where a decision names a result and leaves the
   form open, or asks for a design. It is reasoned and not run, and it stands until a decision or a
   measurement changes it. **This document's own** marks a rule that tightens the measured
@@ -1709,9 +1719,9 @@ where a copy kept nothing of its removal but a deletion record.
 
 **A rule is stored as a record for each node and profile** (a later decision). Each row of the
 grant editor is a record of its own with its own versions: a record of kind `version` whose
-object is a node and a profile. The node's switch "Refuse any profile not named here", which is
-`default` in today's rule document, is a record of its own with its own versions, whose object
-is the node. Nothing is on the node.
+object is a node and a profile. The node's switch "Refuse any profile not named here", which was
+`default` in the rule document of release 0.2.0, is a record of its own with its own versions,
+whose object is the node. Nothing is on the node.
 
 **This replaces the form that was measured first.** Every run of the store before that
 decision wrote a version of a node's whole rule: a single object for a node, `rule:` and the
@@ -1737,14 +1747,14 @@ version of a profile's rule holds a single thing of three:
 
 - **the letters granted**, out of the eight of `CRUSDLAP`;
 - **no letter**, which is an empty rule: the profile may do nothing from there down, as an empty
-  array is today, `DESIGN.md` §136;
+  array was in the rule document, `DESIGN.md` §136;
 - **the rule taken off**, which is the profile not named at that node. It is told apart from an
   empty rule. With it the version holds what arrived at the node for the profile when the rule
   was taken off, or that the node's own switch refused then (a later decision, below).
 
 A version of the switch holds whether the node refuses a profile it does not name or lets the
-walk go on, which is `deny` or `inherit` today, and where it lets the walk go on, what arrived
-at the node for each profile when it was written (the same decision).
+walk go on, which was `deny` or `inherit` in the rule document, and where it lets the walk go
+on, what arrived at the node for each profile when it was written (the same decision).
 
 **The object and the text of a version** (S8; the shapes the runs wrote, with the product's
 letters). A row's object is `rule:`, the node's identifier as 32 lowercase hexadecimal
@@ -1772,8 +1782,8 @@ whole, and the format number stays as it is (§658). The runs wrote these shapes
 their own, in sorted order, which fix nothing of the product's letters
 (`measured-rules-per-profile` 1, `measured-rules-across-levels` 1); the order of the letters,
 the order of the names and which profiles a switch's version names where a name is off the list
-are this document's own, and in no run. It rules out the words of today's rule document as the
-text, and a second rule for a name beside the issuer's.
+are this document's own, and in no run. It rules out the words of the rule document of release
+0.2.0 as the text, and a second rule for a name beside the issuer's.
 
 **Each is read strictly, and a text out of form refuses** (this document's own; in no run, the
 probe's reader raising on such a text). A standing version of a row whose `doc` is none of those
@@ -1787,9 +1797,8 @@ version may have been taking away, `DESIGN.md` §136. An object of type `rule` o
 other text than its form above is the rule of no node (§658): no rule is read from it and it stops
 nothing, as a name out of form is no name on the list (§616). **So a rule that will not read is no
 state of a node.** A record of a rule that fails its check is damage, which stops the store (§621,
-§624), where a rule document that will not read refuses at its node alone, `DESIGN.md` §136, and the
-pull request that builds the rules records that reversal there. *Held by* `StoredRulesTests` and
-`StoreReadingTests`.
+§624), where a rule document that would not read refused at its node alone, and `DESIGN.md` §136
+records that reversal. *Held by* `RuleTextTests`, `StoredRulesTests` and `StoreReadingTests`.
 
 **The three states of a row stay apart** (measured, `measured-rules-per-profile` 6). An empty
 rule, a rule taken off and no rule ever made were each made at a node under a root that grants
@@ -1813,12 +1822,12 @@ through what arrives from above. That is what the press writes for any lost vers
 reverse did not occur: after the same loss and the same press an empty rule read as an empty
 rule, in 4 of 4 cells.
 
-**Today's rule model is unchanged** (decision 9): the nearest rule wins for each profile, profiles
-are combined with or, a rule can be empty, the switch answers where no rule names a profile, and
-the verbs and the two switches of a rule are `CRUSDLAP`, `DESIGN.md` §136 and §137. What changes
-is where a rule is kept, and not what it means. The reading puts together, for a node, the rules
-of the profiles named there and the switch, and hands the resolver what today's rule document
-hands it (reasoning), wherever each row and the switch stand in a single version. Versions that
+**The rule model of release 0.2.0 is unchanged** (decision 9): the nearest rule wins for each
+profile, profiles are combined with or, a rule can be empty, the switch answers where no rule names
+a profile, and the verbs and the two switches of a rule are `CRUSDLAP`, `DESIGN.md` §136 and §137.
+What changes is where a rule is kept, and not what it means. The reading puts together, for a node,
+the rules of the profiles named there and the switch, and hands the resolver what the rule document
+handed it (reasoning), wherever each row and the switch stand in a single version. Versions that
 stand apart are handed over as they stand, and what the resolver does with them is below (S9).
 **A later decision changes the meaning in a single place**: a node that lets a profile through
 gives what arrives from above only as far as it had arrived when the node was made to let it
@@ -1828,7 +1837,7 @@ through (below). This paragraph had the meaning as unchanged throughout.
 standing version is the rule. A newer version names every version of that object that its
 writer had read, whatever it holds: that is the operator changing a row, and it may widen. No
 standing version and no trace of any is a profile that the node does not name, which the switch
-answers, as today.
+answers, as in that model.
 
 **Two copies that change different profiles at the same node do not meet.** Each of the two
 objects has a single standing version after the copies come together, both changes hold, and no
@@ -1877,7 +1886,7 @@ whatever arrives later. So such a version records what arrived, a rule taken off
 node's own switch refused records that it lets nothing through, and the reading cuts what
 arrives now to what the versions recorded. Nothing is refused for a record: the node gives what
 arrives, less the letters that its own versions never saw. A node never ruled and a switch
-never set hold no version and cut nothing, which is today's meaning of a node without a rule.
+never set hold no version and cut nothing, which is that model's meaning of a node without a rule.
 The other side of the sequence cannot carry the record: the version above would have to name
 every node below that lets through, which has no bound, where the version below states a single
 thing about a single place.
@@ -1929,11 +1938,11 @@ so refuse, and where it refuses for a lost version or a text out of form; a node
 of the switch lets the walk go on. The switch's letters are read for a profile the node names
 as well, wherever its row lets through, and never where its row answers. A switch with no
 version cuts nothing, and neither does a row with no version. An answer left with a rule's
-switches and no verb grants nothing, as such a rule does today, `DESIGN.md` §137. Where a limit
+switches and no verb grants nothing, as a rule of that shape does, `DESIGN.md` §137. Where a limit
 is what refuses, the decision names the node that set the limit, a node whose record cut among
 them. Nothing is looked up that the walk does not read already. So the result is never wider
 than any standing version, for every letter, which is the condition S9 set, and the walk is
-today's walk wherever every row and every switch stand in a single version and nothing is cut.
+that model's walk wherever every row and every switch stand in a single version and nothing is cut.
 It rules out combining the versions at the node alone, which cannot cut what arrives from
 above. The combination was run with the whole mask and a rule's switches in some versions and
 not in others, in 16,974,336 of 16,974,336 pairs without a recorded mask and in the pairs above
@@ -1949,13 +1958,13 @@ of its dialog's OK (§629).
 
 - **A row set to letters, or to no letter**, records nothing.
 - **A row taken off, where the switch lets the walk go on once the OK is written**, is `off:`
-  and the letters that the tab showed arriving for the profile at the press. Each standing
+  and the mask recorded for the profile (below). Each standing
   `sw:inherit` version that the tab showed and that holds other letters for that profile is
   written anew by itself, with that profile's letters changed and every other profile's kept.
 - **A row taken off, where the switch refuses once the OK is written**, is `off:deny` (below).
 - **The switch turned to refuse** is `sw:deny` alone.
-- **The switch turned to let the walk go on** is `sw:inherit` with the letters arriving for
-  every profile, as the tab showed at the press. Every standing version at the node that takes
+- **The switch turned to let the walk go on** is `sw:inherit` with the mask recorded for
+  every profile. Every standing version at the node that takes
   a rule off, of every profile, that the tab showed and that holds other letters than arrive is
   written anew by itself, as `off:` and the letters, `off:deny` among them: the switch let
   nothing through before, and the tab shows each of those profiles' inherited rows live at the
@@ -1969,6 +1978,19 @@ of its dialog's OK (§629).
   letters changed and every other profile's kept. It is offered only where the switch lets the
   walk go on. It is in the measured code and was in no run of it, on files or in a
   search.
+
+**A mask recorded is what the tab showed arriving at the press, cut to what arrives at the node in
+the write's own reading** (a later decision; in no run of the measured code, which composes every
+act at its write). It is never more than the operator saw, and never more than arrives when the OK
+is written. The reason is a narrowing above that landed under the open dialog: a mask recorded as
+the tab showed it would hold more than arrives at the write, and that narrowing could then be undone
+by a widening made apart once copies meet, with the node's version holding the wider mask. A mask
+cut to nothing is `off:` alone, which follows what arrives later, and stays apart from `off:deny`.
+Where two presses on a tab write the same version anew, as a limit settled and the box cleared, it
+is written once, with what both presses showed arriving, cut the same way. This corrects the bullets
+above, which had the letters as the tab showed them at the press and no cut. *Held by*
+`RuleActsTests` and
+`RuleWritesInRealDatabaseTests.A_write_plans_against_the_very_reading_its_act_was_composed_over_and_cuts_to_what_arrives_in_it`.
 
 **The write above** (the same decision; as run, `measured-rules-across-levels` 1, 9 and 12, but
 where a sentence names another mark). After any write at a node that has nodes below, whichever
@@ -2109,7 +2131,14 @@ run). An X pressed under a switch that refuses, with the switch then turned off 
 before OK, writes `off:` and what arrives, and an X pressed under a switch that lets the walk
 go on, with the switch then turned to refuse on the same tab, writes `off:deny`, whichever of
 the two presses came first. It rules out a mask recorded under a switch that the same OK turns
-to refuse. *Held by* `GrantSheetTests` and `RuleActsTests`, each order of the two presses.
+to refuse. **And it follows the switch the tab showed at the press**: an X pressed where the tab
+showed the box ticked, with no press on that tab clearing the box, writes `off:deny` also where
+the write's own reading finds the switch letting the walk go on, as after a version of the
+switch that reached the database under the open dialog. What the tab showed arriving under a
+switch that refuses is nothing that the node let through, so no mask of that press is recorded,
+and the row lets nothing through until it is written anew at its node. *Held by*
+`GrantSheetTests` and `RuleActsTests`, each order of the two presses, and
+`RuleActsTests.A_rule_taken_off_under_a_box_the_tab_showed_ticked_is_off_deny_whatever_reached_the_store_under_the_dialog`.
 
 **Reversed: under a switch that refuses, removing a row wrote an empty rule.** The three
 paragraphs that follow are that decision as it stood, with what was measured of that form, and
@@ -2243,8 +2272,8 @@ identifier (reasoning).
 **No ceiling is kept on the profiles ruled at a node** (a later decision; S21), as none is kept
 on the list of names (§616). No write of the plugin's own refuses a row for the count of rows
 at its node, and the reading cuts nothing short. A ceiling could not hold across a synchronize
-in any case, since two copies can each add rows apart (reasoning). A rule document holds 31
-profiles at most, `DESIGN.md` §136, which is what its reader takes and no property of a record
+in any case, since two copies can each add rows apart (reasoning). A rule document held 31
+profiles at most, `DESIGN.md` §136, which was what its reader took and no property of a record
 for each node and profile. The grant editor's table scrolls its rows (§657), and each row is an
 item of the summary entry, which the room counts (§627, §643).
 
@@ -2260,6 +2289,48 @@ dialog's OK by the first characters of the node's identifier, each profile set o
 the switch, and never by a title, which would put a title into a file outside the database; the
 audit holds no line for a rule changed, `DESIGN.md` §120. *Held by* `StoreReadingBoundTests`,
 `RouterAuthorizationTests` and `GrantPanelTests`.
+
+**What is built.** The records of this section, their reading, the walk, and the write of a node's
+own dialog; the write above is not. `RuleText` composes and reads every text of the table strictly,
+and an object in any other text than its form. `StoreInForce` holds, for every object of whatever
+type, its standing versions and the versions lost: a version present beside its own deletion record
+that no version in force of its object names and no item of a summary entry in force carries, and
+for a row and a switch a deletion record whose content is nowhere. `StoredRules` works a reading's
+rules out once, each node's by its identifier, and `NodeRule` holds what a row and a switch come to:
+whether each refuses, what the granting versions all hold, and what each version that lets through
+recorded. `AclResolver` makes the single walk with a limit of every letter, and the router, the
+handlers, the routes that answer what a client may do at a node and the grant editor ask that walk
+and nothing else. A refusal names its node and its reason: a rule lost, a rule that could not be
+read, rules made apart that do not all grant, a limit that does not let the verb through, a switch
+that refuses, or no rule anywhere. `RuleActs` composes the act of an OK over the reading the write
+is planned against: a row set, a rule taken off as `off:` with its mask or as `off:deny` by the
+switch as the OK leaves it, the switch turned either way, a single version of a rule in several
+versions removed, the press that settles, and the versions at the node that each of those writes
+anew, every mask cut as above. A version that would not fit a string is left as it stands and
+reported, and the rest is composed as though it had not been pressed (§627). `KdbxNodes` reads a
+node's rules by its identifier from the rules it is handed, so a rule stays with its node wherever
+the node is moved, and a copy, an entry made from a template and an earlier version of an entry hold
+none. Nothing of a rule is written on a group or an entry. **Left to a later commit**: the write
+above, with what the sheet keeps for it of the versions below (§629); until then a change above a
+node renews nothing below, and a node whose version lets through is cut to what it recorded until
+its limit is removed at the node, which is narrower. And the runs of rules changed apart over
+synchronized copies beyond the histories named below, the drive in a real KeePass, and every cost
+(§644). **Where the build reads otherwise than this section** (each stated for a decision, and none
+changed here). A deletion record whose content is nowhere tells of nothing where a version in force
+of any object names it, and the judgment for each object is made of a version present beside its own
+deletion record alone; this section has both for each object. The file knows a name and a node from
+the items of every summary entry present, where this section has the items of a summary entry in
+force; knowing more only lets a deletion record refuse. And the log names a change of rules by the
+node and that the rules were written or not, a version left at the ceiling by its profile, and not
+each profile set or removed. *Held by* `RuleTextTests`; `StoredRulesTests` and `AclResolverTests`,
+against the meanings of the measured code (`tests/Shared/StoreMeaningVectors.json`), by letters and
+by capabilities; `AclInheritanceTests` and `AclDecideAnyTests`; `StoreInForceTests` and
+`StoreReadingTests`; `RuleActsTests`, and `StoreWriteShapeTests` against the writes of the measured
+code (`StoreWriteVectors.json`); `RouterAuthorizationTests`, each refusal with its reason and node;
+and over real databases `AclInRealDatabaseTests`, a group moved keeping its rule and a duplicate
+holding none among them, `RuleWritesInRealDatabaseTests`, `StoreSourceNodesTests`,
+`StoreOnEveryRouteTests` with a rule the product wrote, and
+`MergeInRealDatabaseTests.Rules_changed_apart_end_at_what_the_lower_version_recorded_under_every_method_both_ways`.
 
 ### Renewal answers §618
 
@@ -2467,6 +2538,36 @@ the `from` of a renewal, as a statement of its own that the room counts; a text 
 admission key adds no key; and a store with admissions hashes no subject for them until a
 deletion record carries that tag; and the removals of a name, by record, by item and by deletion
 record, a removal known all three ways counted once, and the additions, in force or not.
+
+**What is built of the rules' reading.** `StoreInForce` holds the objects of every type with their
+standing versions and the versions lost (§617), worked out as the reading is made. A deletion record
+under the tag of `version` costs no hash where a version is present under it, and none where it
+lies at the place of a version present, the first ten bytes of an identifier, which a version of
+the same node, type and tag shares: so no subject is hashed and no tree walked for a store whose
+deletion records under that tag each lie at such a place, which is every store the plugin's own
+deletions and renewals leave, since the version that names a deletion record is at its place.
+Whether a version of another object names a deletion record changes none of that, and what a
+deletion record refuses is judged for each object (§617). For a deletion record at no such place:
+`rule:` and each node that
+the file's objects name, and `switch:` with it where a deletion record left holds 0 in bytes 9 and
+10; then, only where a deletion record is still not told of, the same for each group and entry of
+the tree not yet tried, the recycle bin and the plugin's own group among them, walked once and only
+while the reading is made; and a tag for each name the file knows once a deletion record meets a
+node's rows. Each hash and each tag is kept with the key. **The rules are worked out in the hold
+that first asks for a rule**: `StoreReadings` keeps them beside the reading they were worked out
+from, answers them for that very reading alone, and lets them go when the reading is replaced, at
+the end of a turn and with the target. A gate's node keeps nothing and asks the rules of the hold it
+is walked in. A read of an entry, a listing and a question about access each take a single hold and
+a single reading; a change takes a single hold before its turn, and a reading in that hold and in
+its turn; and the hold a connection is judged in works out no rule. A node the store holds no rule
+for lets through what arrives, a database closed under a walk grants nothing, and a store that is
+split or of a kind the plugin does not know grants nothing. **Not measured yet**: what the rules
+cost a hold, a listing and a write, and a hold beside a deletion record that nothing answers for,
+each left to a later commit (§644 item 24). *Held by* `StoreInForceTests`, among them that a store
+the plugin's writes left hashes nothing and walks no tree; `StoreSourceNodesTests`;
+`RuleWritesInRealDatabaseTests.A_reading_tells_of_a_rule_lost_at_a_node_no_object_of_the_file_names`;
+and `RulesInTheHoldTests`, over the real router and vault, each count above and a rule narrowed
+between two holds granting in the second what it was narrowed to.
 
 ### Which entries are records §621
 
@@ -2998,13 +3099,17 @@ admission itself, each asked about once the plan exists, as above. *Held by* `St
 `PairingInRealDatabaseTests.A_pairing_while_an_entry_dialog_holds_the_summary_entry_is_busy_and_spends_nothing`.
 
 **The write made as a node's dialog closes is asked the same** (§629; reasoning, with the run in
-KeePass's window owed, §644 item 6). The paragraph above is silent on it. That write is made in
-the handler of the dialog's close, after KeePass's own handler, so the dialog that closes has
-put back by then what it puts back. A group dialog holds no copy of an entry. An entry dialog
-whose close writes rules is on an entry of the operator's and never on a record of the store,
-where the tab takes no change (§657). So the plan of that write touches nothing that its own
-dialog holds, and the write is not refused for the dialog it comes from. Every other question
-is asked as of any write of the operator's (§627). *Held by* `StoreWritesUnderDialogsTests`.
+KeePass's window owed, §644 item 6). The paragraph above is silent on it. That write is made in the
+handler of the dialog's close, after KeePass's own handler, so the dialog that closes has put back
+by then what it puts back. A group dialog holds no copy of an entry. An entry dialog whose close
+writes rules is on an entry of the operator's and never on a record of the store, where the tab
+takes no change (§657). So the plan of that write touches nothing that its own dialog holds, and the
+write is not refused for the dialog it comes from. Every other question is asked as of any write of
+the operator's (§627). Built: the write is asked what the store write of the settings dialog's OK is
+asked, so it is refused whole under Database Maintenance and written by an OK made once that window
+has gone. *Held by*
+`StoreWritesUnderDialogsTests.The_OK_of_a_node_dialog_s_tab_is_refused_whole_under_Database_Maintenance_and_written_once_it_has_gone`
+and `GrantEditorInRealDialogsTests`.
 
 ### A write of the plugin's own §627
 
@@ -3228,11 +3333,13 @@ like any other write. *Held by*
 and, over the real writer and a real database, by
 `TabOkBesideOwnSaveTests.The_tab_s_OK_pressed_inside_a_pairing_s_save_is_made_once_that_save_has_returned`.
 **A node dialog's close is raised the same way**, by that dialog's own modal loop, so the write
-of §629 meets no save of the plugin's own either (reasoning from that measurement; the run over
-a node's dialog is owed, §644 item 6). **What the operator is shown of a refused write differs
+of §629 meets no save of the plugin's own either (reasoning from that measurement, and run over
+the real group dialog since, `NodeDialogOkBesideSaveTests`; the run in KeePass's window is
+owed, §644 item 6). **What the operator is shown of a refused write differs
 between the settings dialog and a node's dialog** (a later decision). For the settings dialog's
 OK the log's line is all. Where the write at a node dialog's OK is refused, the log names it
-and a message of KeePass's own is shown once that dialog has closed, with the reason (§629).
+and a message of the plugin's own is shown once that dialog has closed, with the reason
+(§629).
 Where the dialogs that would take a write back are not watched, which the
 plugin's load logs, every such write is refused for the session, and the KPG tab offers no
 command on the store and states why, as under a word (§636).
@@ -3674,45 +3781,51 @@ The act is composed and planned against a single reading, made afresh in that tu
 **A write that is refused there adds nothing, and the operator is told** (a later decision; §627
 and this section were silent on it). The log names the node by the first characters of its
 identifier, what was not written and why (§617), and once the dialog has closed a message of
-KeePass's own states that the rules changed on the KPG tab were not kept, with the reason. A
+the plugin's own states that the rules changed on the KPG tab were not kept, with the reason.
+This had the message as KeePass's own: a box of KeePass's own counts among the windows KeePass
+is waiting on, under which every write of the API's is refused for as long as the box stands
+(`DESIGN.md` §119), so the plugin shows its own, posted from the handler of the close so that
+KeePass has handled the dialog's result first. A
 change of rules that was not written can be a narrowing that the operator takes to be in force,
 so the log alone is not enough for it. The tab is read only wherever the refusal can be known as
 the dialog opens (§657), so the message is for a refusal that arises while the dialog stands,
 as where a synchronize started by a trigger stops the store, or where the change does not fit
 the store's room (§627). KeePass has closed the dialog by then and keeps its own changes to the
-group or the entry. The settings dialog's OK keeps the log alone (§627). The message's text is
-proposed: "KeePassGate did not keep the rules changed on the KPG tab:" and the reason.
+group or the entry. The settings dialog's OK keeps the log alone (§627). The message's text was
+proposed as "KeePassGate did not keep the rules changed on the KPG tab:" and the reason, and
+"What is built" below has the texts as built, which name no profile.
 **Considered and not taken:** the log alone, as for the settings dialog, under which a rule
 that the operator narrowed stays as wide as it was with nothing on the screen.
 
 **What the editor's buffer holds** (this document's own, in the manner §627 has for a name). For
-each row the operator touched, the buffer holds what the row is to be, and for a rule in
-several versions each version an X removed (§657), and with it the versions the tab showed for
-that row at the press. For the switch it holds the same, and only where the operator pressed
-the check box, also where the switch stands in versions that differ (§657). **With each press
-that takes a rule off, turns the switch or settles a limit, it holds what the tab showed
-arriving at the press**, the letters for each profile the press concerns, **and the
-identifiers of the versions that let through below the node** in the tab's reading, so that
-the write above renews no version that the operator's tab did not hold (§617). A later choice
-of a
-rule for a row takes the place of an earlier choice, and of the removals before it: where
-versions of a rule were removed until a single row was left and that row was then given a rule
-on the same tab, OK writes a single version that names every version the tab showed. At OK a
-row is written only where the store, as it reads in the write's turn, does not give what the
-row is to be from a single standing version, so a row the operator did not touch, or set back
-to what it was, writes nothing. The new version names in `after` the versions the tab showed at
-the press and everything those name (§617). A version that reached the database under the
-dialog, as a synchronize started by a trigger brings it, is not named: it stands beside the new
-version, and the gate grants what both allow until the operator has removed a version (§657).
-That is §610: records made apart give the narrower answer, and a change the operator never saw
-is not overruled by a press made before it arrived. While the dialog stands, the tab reads the
-store again where a record lands: a row the operator did not touch follows the store, and a row
-the operator touched keeps its press and the versions it named. It rules out a version composed
-at OK against whatever stands then. *Held by* `GrantSheetTests`, `RuleActsTests` and
+each row the operator touched, the buffer holds what the row is to be, and for a rule in several
+versions each version an X removed (§657), and with it the versions the tab showed for that row at
+the press. For the switch it holds the same, and only where the operator pressed the check box, also
+where the switch stands in versions that differ (§657). **With each press that takes a rule off,
+turns the switch or settles a limit, it holds what the tab showed arriving at the press**, the
+letters for each profile the press concerns, which the write cuts to what arrives at the node in its
+own reading before it records them (a later decision, §617), **and the identifiers of the versions
+that let through below the node** in the tab's reading, so that the write above renews no version
+that the operator's tab did not hold (§617). A later choice of a rule for a row takes the place of
+an earlier choice, and of the removals before it: where versions of a rule were removed until a
+single row was left and that row was then given a rule on the same tab, OK writes a single version
+that names every version the tab showed. At OK a row is written only where the store, as it reads in
+the write's turn, does not give what the row is to be from a single standing version, so a row the
+operator did not touch, or set back to what it was, writes nothing. The new version names in `after`
+the versions the tab showed at the press and everything those name (§617). A version that reached
+the database under the dialog, as a synchronize started by a trigger brings it, is not named: it
+stands beside the new version, and the gate grants what both allow until the operator has removed a
+version (§657). That is §610: records made apart give the narrower answer, and a change the operator
+never saw is not overruled by a press made before it arrived. While the dialog stands, the tab reads
+the store again where a record lands: a row the operator did not touch follows the store, and a row
+the operator touched keeps its press and the versions it named. It rules out a version composed at
+OK against whatever stands then. *Held by* `GrantSheetTests`, `RuleActsTests` and
 `GrantEditorInRealDialogsTests`.
 
-**What the write leaves of the node** (reasoning; what KeePass does with the mark is owed a run
-in its window, §644 item 6). A rule is no part of its node. A change of rules alone gives the
+**What the write leaves of the node** (reasoning; the mark was run in KeePass's window for the
+entry dialog since, `LiveGrantEditorTests`, and what KeePass asks before it ends with a rule
+unsaved is owed a run there, §644 item 6). A rule is no part of its node. A change of rules
+alone gives the
 node no new modification time and an entry no history item, and KeePass's own question whether
 to keep an entry's changes is not asked for it: an entry's dialog closed by Escape after a
 change of rules alone asks nothing, and the change is discarded. The plugin's write marks the
@@ -3733,6 +3846,36 @@ merge, beside versions of another gate that the operator never saw.
 **The editor no longer writes into the dialog's copy of custom data.** The grant editor keeps its
 change in a buffer of its own and applies it when the node's dialog closes with OK (the design
 paper 10). What the editor shows for a rule that stands in several versions is §657.
+
+**What is built.** The write at a node dialog's close, with everything it writes at the node,
+and not the write above. `GrantSheet` is the buffer: it keeps, for each profile, the last
+press with the node's rules as the tab showed them then and what the tab showed arriving, and
+for the check box the same; a row or a box brought back to what the store gives from a single
+standing version, or for a cleared box from none, holds no change. `GrantPanelFactory`
+subscribes to the dialog's close as the tab is built and, where the dialog's result is OK and
+the sheet holds a change, hands the changes to the store through `DatabaseWriter.ByOperator`.
+There `KdbxStore` reads the store once with every entry, `RuleActs` composes the act over that
+reading, with the node's parent of the same reading for what arrives, and the write is planned
+and applied against that very reading, the database marked as changed and nothing saved.
+Cancel, Escape and the close box write nothing, and KeePass asks nothing about a change of
+rules alone. In the dialog that adds an entry, the parent is the group the entry is added to.
+**A change that was not kept is told**: a write refused, with its reason, and a version of the
+operator's own press left at the ceiling of a string, are named in the log and in a message
+box of the plugin's own, posted to KeePass's main window from the handler so that KeePass has
+handled the dialog's result first; a version left that another press wrote anew is named in
+the log alone, and so is everything where KeePass names no main window. The log names the node
+by the first eight characters of its identifier. A defect in the handler is counted as an
+incident, `DESIGN.md` §141. **Left to a later commit**: the versions below the node that a
+write above writes anew, with the identifiers of them that the sheet keeps at each press; the
+drive of a dialog's OK, its mark and the operator's save in a real KeePass; and what an OK
+holds KeePass's thread for (§644 items 6 and 24). *Held by* `GrantSheetTests`,
+`RuleActsTests`, `WindowHandlersTests`; and with the real `GroupForm` and `PwEntryForm` by
+`GrantEditorInRealDialogsTests`, OK writing the rule with the entry unchanged and the database
+marked, Cancel writing nothing, and a refused OK adding nothing and told once the dialog has
+closed; `NodeDialogOkBesideSaveTests`, an OK pressed inside a pairing's save written once that
+save has returned; and `StoreWritesUnderDialogsTests`, the OK refused whole under Database
+Maintenance. `SnapshotHazardTests` keeps the group dialog's copy of a group's custom data
+measured, as the reason nothing of the plugin's is kept on a node.
 
 ### What the plugin never does §630
 
@@ -4629,8 +4772,11 @@ guard as product code, with its setting, was not run (§644).
   and outside the plugin's store, at which a row for that profile stands. An empty rule counts,
   a rule taken off does not, and a row that stands in several versions counts once. The count
   is read from the rules, so the pull request that builds the rules brings it. It rules out a
-  count of records, which grows with every merge. *Held by* `DatabaseProfilesTests` and
-  `DatabaseNodesTests`.
+  count of records, which grows with every merge. Built: the page reads the store once and
+  counts, for each profile, the nodes of the tree at which a standing version of its row
+  grants, `StoredRules.Named`, so a row whose standing versions all take the rule off and a
+  row that is only lost are left out, and `DatabaseNodes` walks neither the recycle bin nor the
+  plugin's store. *Held by* `DatabaseProfilesTests` and `DatabaseNodesTests`.
 - **It shows entries that are passed over**: an entry with `KPG.` strings that is not the
   store's (§621). It lists no copy as taking anything away.
 - **It states a database that keeps little or no history** (decision 20), since in such a
@@ -4793,11 +4939,21 @@ wherever a change could only be refused at OK and that can be known as the dialo
   its copy of the entry back at its OK (§626), ahead of the guard of §635;
 - where several entries are edited together;
 - on an earlier version of an entry, where the tab shows the entry's rules as they stand, since
-  a rule belongs to the entry and to no version of it (§617);
+  a rule belongs to the entry and to no version of it (§617): every row the entry's own tab
+  shows, a rule from above, a limit and a rule of a name gone among them, found through the entry
+  of the revision's identifier, since KeePass reads a revision from the file under no group;
 - and where the dialog names no node or no database.
 
 The rows are shown wherever the store is whole or stopped. It rules out a press that is refused
-only at OK. *Held by* `GrantSheetTests` and `GrantEditorInRealDialogsTests`.
+only at OK. **The reason stands in place of the line that states where rules come from**, which
+tells that a rule can be overwritten and so stands only over a table that takes a press. *Held
+by* `GrantSheetTests` and `GrantEditorInRealDialogsTests`.
+
+**A database that names no profile is told over the table**, before any press, with where a
+profile is named, the Profiles page of the KPG tab in the database settings. That is no reason
+of the read only kind, since the box and the X on the row of a name the list no longer holds
+still take a press that OK writes; the table offers no empty line then, since no profile can be
+chosen on the line.
 
 **A row or a switch that refuses is shown, and setting it replaces it** (this document's own;
 not run). A row that refuses for a lost version or for a text out of form (§617) shows as a
@@ -4807,13 +4963,89 @@ the node. Choosing a rule for that row replaces it: the version written names, b
 versions the tab showed, each lost version by the identifier of the deletion record that tells
 of it, and from then on that deletion record tells of a replaced version (§617). Where such a
 row stands in several versions besides, it offers its X alone as any row of a group does, and
-is given a rule once a single row is left. A switch that refuses in that way shows as refusing,
+is given a rule once a single row is left. **No press is offered that OK could not write**
+(this document's own, with the build): removing a version writes again each version left, so
+the X removes a version only where a version that reads is left to write again. The last
+version that reads beside a lost version therefore offers no X, and in a group no version of
+which reads, every row takes a rule, which replaces every version, and its X takes the rule
+off, every version with the rule. A switch that refuses in that way shows as refusing,
 and setting it replaces it in the same way. Without that, a row that refuses in a store that is
 whole could be lifted only by sealing the store again (§625), which is a press for a stopped
-store. *Held by* `RuleActsTests` and
-`StoreRuleMergeTests`.
+store. *Held by* `RuleActsTests` and `GrantSheetTests`; a row that refuses, replaced in the
+editor and merged back over synchronized copies, is left to a later commit (§644 item 24).
 
-Nothing of the editor was run on the store.
+**A state has a column of its own, and each of its words a tooltip** (a later decision). The
+table holds the profile, its permissions as a mask, a State column and the X. A State cell
+holds a word and never a name: where several states hold for a row, the first of this order,
+and the tooltip carries the sentence of each. The words are "No profile", for a rule whose
+name the database no longer names; "Lost", for a row that refuses for a lost version or a text
+that cannot be read; "Version", for a standing version of a rule in several versions; "Taken
+off", for a version of such a rule in which the rule was removed; "Limit", for the limit row
+under a profile that the node cuts; "Refused here", for a rule from above that the node's box
+refuses; and "Inherited", for a rule from above in force at the node. A rule set at the node
+in a single version has no word. **The tooltip of the cell states what the word means**, which
+is what the gate does for the profile at the node in that state, and the same text is the
+cell's accessible description and its accessible help, which UI automation reads as its help
+text; nothing of it is printed under the table. A sentence of the tab names no profile and no
+client, which a cell of the table may, and names its subject and its object where a pronoun
+would stand. **A row or a box that a press changed is told by a further line of its tooltip
+and by its accessible text**, and never by a color alone; each line of a tooltip is folded as
+any tooltip of the plugin is. **A rule that the X removed shows, until the dialog closes, as
+the profile's inherited row in its place**, marked as changed, with the mask that arrives and
+no letter where nothing arrives, so that every change that waits for OK has a row; where the
+box refuses, that row is refused here, struck through, as any row the node does not name.
+
+**Enter and Escape are the dialog's OK and Cancel** wherever the table holds the keyboard and
+no picker is open, as on every other page of the dialog, and a picker's own while the picker
+is open. **The columns keep their widths for the life of the dialog**: the profile's column
+leaves the room of the vertical scroll bar whether or not the bar shows, the Permissions column
+is as wide as a mask whether or not a row shows a mask, the State column as its longest word,
+and the last column as its bin or its X. **The panel has a name of its own** for UI automation,
+and the box's accessible object answers the box's whole tooltip as its help; UI automation's
+own proxy for a Windows button reads the tooltip's window instead, cut after 127 characters,
+measured. **Where an OK kept some changes and left others out**, the message after the close
+ends with a line telling that the KPG tab of the group or entry shows the rules as kept, since
+no sentence names a profile.
+
+**Every text that stands above the table takes at most two lines** (a later decision): the
+line that states where rules come from, each reason for which the tab takes no change, and
+each notice. The table is what the tab is for, and in the group dialog every line above it is
+a row less. Measured in the real group and entry dialogs at each scaling KeePass is run at
+(`GrantTabFitsTests.Every_text_above_the_table_takes_at_most_two_lines`): with the longest
+text standing, the group dialog's table shows its heading and two rows at a scaling of 1.00
+and four at 1.50, and with no text standing three and six; the entry dialog shows eleven rows
+and more.
+
+**What is built.** The editor as a buffer over the store, with every row and state of this
+section but the write above and the drawing named below. `GrantSheet` decides what each row
+stands for and what each press hands to OK, with no window in it: a rule of the node's own, a
+rule arriving from above, in force or refused by the box, the limit row under a profile that
+the node cuts, a row for each standing version of a rule in several versions in the order of
+their masks, a lost row, and a rule for a name the database no longer names. It takes a rule
+chosen on a row of the node's own, on an inherited row and on a lost row that stands alone,
+and none on a row of a group but where no version of the group reads; every row carries the X
+but an inherited row and the last version that reads beside a lost version, whose removal no
+write could make; the X on a limit
+row is the press that settles; and the check box shows cleared, ticked, the mixed mark, or
+ticked with the tooltip of a lost setting. `GrantPanel` draws the sheet: the masks in a
+monospaced column, a rule from above in gray, a rule the box refuses with a line through its
+mask, the State column with its tooltips, and a text above the table for a tab that takes no
+change, with its reason, each of the cases above and a KeePass that does not tell the
+database, the group or the entry of a dialog among them. The tab reads its node's rules, what
+arrives and the names from a single reading as it opens and again where a record lands, a row
+the operator pressed keeping its press. **Left to a later commit**: the bracket that binds
+the rows of a group, the light red behind them, the letters that differ in bold, and a
+highlight of what a press changed, of which the build shows the bound rows next to each other
+with their words and tooltips alone; the versions below a node (§629); and the drive in a
+real KeePass with its pictures (§644 item 23). *Held by* `GrantSheetTests`, `GrantPanelTests`,
+`GrantPickerTests` and `GrantTableFitsTests`; and with the real `GroupForm` and `PwEntryForm`
+by `GrantEditorInRealDialogsTests`, each case in which the tab takes no change, the tab over a
+node's rules and what arrives, and the dialog that adds an entry among them, by
+`GrantTabFitsTests` at each scaling, and by `RightToLeftTranslationTests`. In a real KeePass
+the editor was run on the store for a rule set on the entry dialog's tab and written at OK,
+`LiveGrantEditorTests`, and for a picker left open under a dialog that closes,
+`LiveGrantPickerCloseTests`; no row of a rule in several versions, no limit and no lost rule
+was driven there by a fixture of the tree.
 
 ---
 
@@ -5583,7 +5815,10 @@ that finds a measurement against a decision reports it and does not design aroun
    right a rule can give, against a database that holds the store, with entries in the bin and in
    other groups, copies under other identifiers, and the reference client following references.
    Run by `StoreOnEveryRouteTests`, over records the test composes, and holding on every route
-   declared; §633 states what it does not show. Owed again by every pull request that adds a route
+   declared; §633 states what it does not show. Run again with the rules in the store: a rule
+   the product wrote grants everything at the root, and rules composed for the plugin's own
+   group and for a record of it, which the product writes for no node of the store, reach
+   nothing on any route. Owed again by every pull request that adds a route
    or a kind of record, whose case it has to bring. *Could overturn*: the authority's key in an
    entry.
 2. **What the run of the store as decided left out** (`measured-decided-store` 8): sealing the
@@ -5623,7 +5858,17 @@ that finds a measurement against a decision reports it and does not design aroun
    before a save. Owed by the pull request that builds §629, with what §626, §627 and §629
    state by reasoning of a node dialog's close: that it is raised once a save pumping under the
    dialog has returned, that the dialog that closes holds nothing the write touches, and that
-   the database stays marked as changed after it. *Could overturn*: decision 11 as worded.
+   the database stays marked as changed after it. *Run* with the real `GroupForm` and
+   `PwEntryForm` and the real writer, outside a running KeePass: an OK pressed inside a
+   pairing's save is written once that save has returned
+   (`NodeDialogOkBesideSaveTests`), and an OK writes the rule with the entry unchanged and the
+   database marked, while Cancel writes nothing (`GrantEditorInRealDialogsTests`). *Run* in a
+   real KeePass (`LiveGrantEditorTests`): the OK of the entry dialog with nothing of the entry
+   changed, its mark in KeePass's title, and the operator's save writing the rule, read from
+   the file once KeePass has gone. *Still owed*, in a real KeePass: the same on the group
+   dialog, Cancel and Escape, an OK pressed while a save runs, a save answered with
+   Synchronize, KeePass asking before it ends with a rule unsaved, and a database closed
+   without saving. *Could overturn*: decision 11 as worded.
 7. **Two KeePass instances with the plugin** on a single synchronized file: a revocation at the
    first, a renewal at the second, a rule changed at both. Several gates were run as files that
    each write.
@@ -5722,94 +5967,105 @@ that finds a measurement against a decision reports it and does not design aroun
 23. **The grant editor's rows for a rule in several versions** (§657). The pictures the decision
     was taken from are of a prototype with rows that were made up, and not of a store: two and
     three versions, scrolled, under a high contrast setting, and with what removing a row and
-    the dialog's OK write. Owed by the pull request that builds the editor on the store.
-24. **Rules as a record for each node and profile** (§617). This item held the run owed before
-    the rules are built: the run of the store as a whole, made again with a rule record for
-    each node and profile and the switch as a record of its own. It was made
-    (`measured-rules-per-profile`; the numbers in parentheses below are its sections), on
-    files made and changed by KeePassLib 2.62 and merged by KeePassLib and `keepassxc-cli`,
-    every part twice with the same output: the merge cells of the store as decided, over
-    KeePassLib's five methods and four KeePassXC releases, each also in the whole-rule form;
-    the same deletions and edits of an entry of the store, with the switch as a further kind;
-    the same random histories, and random histories of acts on a single row and on the
-    switch; and the model's searches with that form. **What it showed**, by what the item
-    asked for. No cell is newly wider: of 396 merge cells 16 ended wider, the same cells in
-    both forms, each an import or a stale copy, and of the 724 files of the random histories
-    no file ended wider with a record for each profile that did not in the whole-rule form;
-    the class of a single merge cell and of six of those files differs between the forms,
-    and none of them grants more (3). Two copies that change different profiles at a node
-    ended as decided with no row to settle, in 112 of 112 cells that are not imports, where
-    the whole-rule form ended narrower in 80 of 96 (4). The same profile changed apart gave
-    what all versions allow, for two versions and for three (5). An empty rule and a rule
-    taken off stayed apart through every merge and every edit, and not through every loss:
-    after the loss of a version that took a rule off, sealing the store again writes an
-    empty rule, which is narrower (6). The switch in versions made apart refused, in the
-    single sequence run (7). A deletion record still told which row's version was deleted
-    (8). Rows changed apart added up to more than either copy gave in 67 of 200,000
-    histories of the model, against 298 in the whole-rule form, and a row removed under a
-    switch that refuses, written as an empty rule, did not (7; §639). The model's searches
-    failed in the same kinds as for the store as decided; their counts are the earlier
-    record's in 20 configurations of 24 and differ by a single failure in each of the other
-    four, in histories that were not traced; and with acts on a row and on the switch, and
-    no loss of the authority's entry, no shortest failing history holds a row or a switch
-    (3). **What that run left owed, and what was run of it since.** This item held as owed
-    more than two profiles and two letters in a file, with the switches of a rule; a rule on
-    a group between the root and the node; a row of a name off the list whose records and
-    items are all gone; two profiles whose tags meet, in the form proposed for S8; how the
-    `after` lists grow under repeated edits of a row; the histories in which the model's
-    counts differ; and the parts cut from that run, with the other KeePassXC releases. Each
-    was run, in the same probe family, twice with the same output.
-    **`measured-rules-owed-forms`**: four profiles and the whole mask, where versions of a
-    row made apart gave exactly what both allow in 16,974,336 of 16,974,336 combinations and
-    no merge on files gave a verb or a switch beyond both copies at a single node (§617);
-    three levels, where nearest wins through versions made apart at different levels in 16
-    of 16 cells of each sequence, and the class across nodes reached the group between and
-    its switch (§639); a row of a name off the list, where nothing was wider that the list
-    causes (§617); two names whose tags meet, where the form of S8 is supported with a
-    reading that tells of every name of a tag and the reading as first run is overturned
-    (§609, §617); and the `after` lists, 33 characters an edit and nothing pruned (§643).
-    **`measured-rules-cut-parts`**: the edits, the deletions and the random histories of rows
-    with each of four KeePassXC releases, with no cell of 1,128 in another class under
-    another release and none wider in a merge by any; the cells under the slow key
-    derivation, the duplicates, Delete Duplicate Entries, the growth and the replays, with
-    every change of class between the forms going from wider to refusing (§617, §639, §643).
-    The four histories in which the model's counts differ are traced: in each, the forms part
-    at a rule act that changes no row, which writes nothing with a record for each profile
-    and a version of the node's rule in the whole-rule form, and that version, waiting in the
-    model's memory for a save, has the model refuse the hand deletions that follow. It is a
-    property of the model and no matter of a rule: with that act taken out both forms answer
-    alike, and the three histories that fail with a record for each profile alone are a
-    store key lost, twice, and a retirement deleted with its summary entry. Beyond the
-    shortest histories, a single failing history holds an act on a row: a row's narrowing
-    deleted with a summary entry, which is row 3 of §639 and fails alike in the whole-rule
-    form. **`measured-rules-across-levels`**: the record of what arrived and the form
-    considered beside it, in the model's draws of each configuration, in longer histories,
-    with a move of the node, on files in every sequence that had ended beyond both copies,
-    and for the cost of a write above (§617, §639, §642, §643).
-    **What stays owed**, by the pull request that builds the rules, over real databases the
-    product wrote unless a clause names another place: the sequence that `off:deny` is for,
-    with nothing arriving for the profile, which the run on files made with read arriving
-    (§617); the press that settles, and the removal of a single version of a rule above, on
-    files and in a search; three copies; a move of a group with its nodes, a move under an
-    open dialog, and a move by a merge other than Synchronize; a merge that lands under an
-    open node dialog, and the two orders of an X and the check box on a single tab, which a
-    model that composes at its write cannot run; a version that lets through, and a renewal
-    of it, lost with and without the summary entry and a deletion record, and edited past the
-    history limit, with the new texts; a text out of form; the loss of every row of a node at
-    once; a row set again after it refuses (§657); more than four profiles; a tree of more
-    than three levels on files; the read in the plugin's own code, with what a hold costs
-    beside a deletion record under the tag of `version` that nothing answers for (§620),
-    what a write above 200, 2,000 and 9,000 versions holds KeePass's thread for, and the
-    opening of a tab above them; the sizes of §643 in the product's texts; and the grant
-    editor, a second KeePass with the plugin, and a device (items 23, 7 and 5). *Could
-    overturn*: the conditions of the write above as §617 has them for a dialog, and the
-    decision on a version at the ceiling of a string, should a write above many nodes hold
-    KeePass's thread for longer than a hold is let run.
+    the dialog's OK write. Owed by the pull request that builds the editor on the store. *Run*
+    on a shown form and in the real group and entry dialogs: the rows of a rule in several
+    versions, of a limit and of a lost rule over rules of the store, what each X and the
+    dialog's OK write, and the room of the tab at each scaling with every text above the
+    table in at most two lines (§657). *Still owed*: the bracket, the colors, the bold letters
+    and the highlight of what changed, which are not drawn yet, with a high contrast setting;
+    and the rows in a real KeePass, with their pictures.
+24. **Rules as a record for each node and profile** (§617). This item held the run owed before the
+    rules are built: the run of the store as a whole, made again with a rule record for each node
+    and profile and the switch as a record of its own. It was made (`measured-rules-per-profile`;
+    the numbers in parentheses below are its sections), on files made and changed by KeePassLib 2.62
+    and merged by KeePassLib and `keepassxc-cli`, every part twice with the same output: the merge
+    cells of the store as decided, over KeePassLib's five methods and four KeePassXC releases, each
+    also in the whole-rule form; the same deletions and edits of an entry of the store, with the
+    switch as a further kind; the same random histories, and random histories of acts on a single
+    row and on the switch; and the model's searches with that form. **What it showed**, by what the
+    item asked for. No cell is newly wider: of 396 merge cells 16 ended wider, the same cells in
+    both forms, each an import or a stale copy, and of the 724 files of the random histories no file
+    ended wider with a record for each profile that did not in the whole-rule form; the class of a
+    single merge cell and of six of those files differs between the forms, and none of them grants
+    more (3). Two copies that change different profiles at a node ended as decided with no row to
+    settle, in 112 of 112 cells that are not imports, where the whole-rule form ended narrower in 80
+    of 96 (4). The same profile changed apart gave what all versions allow, for two versions and for
+    three (5). An empty rule and a rule taken off stayed apart through every merge and every edit,
+    and not through every loss: after the loss of a version that took a rule off, sealing the store
+    again writes an empty rule, which is narrower (6). The switch in versions made apart refused, in
+    the single sequence run (7). A deletion record still told which row's version was deleted (8).
+    Rows changed apart added up to more than either copy gave in 67 of 200,000 histories of the
+    model, against 298 in the whole-rule form, and a row removed under a switch that refuses,
+    written as an empty rule, did not (7; §639). The model's searches failed in the same kinds as
+    for the store as decided; their counts are the earlier record's in 20 configurations of 24 and
+    differ by a single failure in each of the other four, in histories that were not traced; and
+    with acts on a row and on the switch, and no loss of the authority's entry, no shortest failing
+    history holds a row or a switch (3). **What that run left owed, and what was run of it since.**
+    This item held as owed more than two profiles and two letters in a file, with the switches of a
+    rule; a rule on a group between the root and the node; a row of a name off the list whose
+    records and items are all gone; two profiles whose tags meet, in the form proposed for S8; how
+    the `after` lists grow under repeated edits of a row; the histories in which the model's counts
+    differ; and the parts cut from that run, with the other KeePassXC releases. Each was run, in the
+    same probe family, twice with the same output. **`measured-rules-owed-forms`**: four profiles
+    and the whole mask, where versions of a row made apart gave exactly what both allow in
+    16,974,336 of 16,974,336 combinations and no merge on files gave a verb or a switch beyond both
+    copies at a single node (§617); three levels, where nearest wins through versions made apart at
+    different levels in 16 of 16 cells of each sequence, and the class across nodes reached the
+    group between and its switch (§639); a row of a name off the list, where nothing was wider that
+    the list causes (§617); two names whose tags meet, where the form of S8 is supported with a
+    reading that tells of every name of a tag and the reading as first run is overturned (§609,
+    §617); and the `after` lists, 33 characters an edit and nothing pruned (§643).
+    **`measured-rules-cut-parts`**: the edits, the deletions and the random histories of rows with
+    each of four KeePassXC releases, with no cell of 1,128 in another class under another release
+    and none wider in a merge by any; the cells under the slow key derivation, the duplicates,
+    Delete Duplicate Entries, the growth and the replays, with every change of class between the
+    forms going from wider to refusing (§617, §639, §643). The four histories in which the model's
+    counts differ are traced: in each, the forms part at a rule act that changes no row, which
+    writes nothing with a record for each profile and a version of the node's rule in the whole-rule
+    form, and that version, waiting in the model's memory for a save, has the model refuse the hand
+    deletions that follow. It is a property of the model and no matter of a rule: with that act
+    taken out both forms answer alike, and the three histories that fail with a record for each
+    profile alone are a store key lost, twice, and a retirement deleted with its summary entry.
+    Beyond the shortest histories, a single failing history holds an act on a row: a row's narrowing
+    deleted with a summary entry, which is row 3 of §639 and fails alike in the whole-rule form.
+    **`measured-rules-across-levels`**: the record of what arrived and the form considered beside
+    it, in the model's draws of each configuration, in longer histories, with a move of the node, on
+    files in every sequence that had ended beyond both copies, and for the cost of a write above
+    (§617, §639, §642, §643). **What stays owed**, by the pull request that builds the rules, over
+    real databases the product wrote unless a clause names another place: the sequence that
+    `off:deny` is for, with nothing arriving for the profile, which the run on files made with read
+    arriving (§617); the press that settles, and the removal of a single version of a rule above, on
+    files and in a search; three copies; a move of a group with its nodes, a move under an open
+    dialog, and a move by a merge other than Synchronize; a merge that lands under an open node
+    dialog, and the two orders of an X and the check box on a single tab, which a model that
+    composes at its write cannot run; a version that lets through, and a renewal of it, lost with
+    and without the summary entry and a deletion record, and edited past the history limit, with the
+    new texts; a text out of form; the loss of every row of a node at once; a row set again after it
+    refuses (§657); more than four profiles; a tree of more than three levels on files; the read in
+    the plugin's own code, with what a hold costs beside a deletion record under the tag of
+    `version` that nothing answers for (§620), what a write above 200, 2,000 and 9,000 versions
+    holds KeePass's thread for, and the opening of a tab above them; the sizes of §643 in the
+    product's texts; and the grant editor, a second KeePass with the plugin, and a device (items 23,
+    7 and 5). *Could overturn*: the conditions of the write above as §617 has them for a dialog, and
+    the decision on a version at the ceiling of a string, should a write above many nodes hold
+    KeePass's thread for longer than a hold is let run. **What the build of the rules ran of it, and
+    what it leaves** (§617, §620, §629). Run: the reading held to the meanings of the measured code,
+    each store read by letters and by capabilities; the acts of an OK held to the writes of the
+    measured code step by step; a text out of form; a lost row and a lost switch; the two orders of
+    an X and the check box on a single tab; a version that reached the database under the tab, in
+    memory; and, over real databases the product wrote, rules changed apart in two copies and merged
+    by `PwDatabase.MergeIn` under each method that keeps identifiers, in each direction, ending at
+    no more than either copy gave, with Create new IDs leaving each copy as it was. Left to a later
+    commit: the write above, and with it every sequence that needs a renewal below a node; the other
+    runs over synchronized copies that the list above names, three copies and the moves among them;
+    a merge under an open dialog over the real dialogs; every cost; and the drive in a real KeePass.
 25. **What the Profiles page counts** (§636). Its count of the groups and entries holding a rule
     for a profile, `DatabaseNodes`, leaves the recycle bin out and not the plugin's store, which
     the API leaves out beside it (§633). This item left it to the pull request that brings the
     tab's listing of the store. The count is read from the rules, so it moves to the pull
-    request that builds the rules, and §636 has what it counts.
+    request that builds the rules, and §636 has what it counts. Built, and held by
+    `DatabaseProfilesTests` and `DatabaseNodesTests`: the count reads the store, and walks
+    neither the recycle bin nor the plugin's store.
 26. **The store asked again where a client writes into it.** A pairing, a renewal and a client's
     own revocation are judged against the store where the connection arrives, and a rule governs
     none of them, so the router does not ask the store again for them; a request that waits for

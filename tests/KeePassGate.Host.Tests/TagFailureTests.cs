@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
-using KeePassGate.Acl;
 using KeePassGate.Audit;
 using KeePassGate.Bridge;
 using KeePassGate.Pipeline;
@@ -325,10 +324,10 @@ namespace KeePassGate.Host.Tests
             _entry.Binaries.Set(name, planted);
         }
 
-        /// <summary>Writes the rules on the root group, as an operator does.</summary>
+        /// <summary>Chooses the rules at the root group, as an operator does.</summary>
         private void Granting(params (string Profile, string Mask)[] rules)
         {
-            _database.RootGroup.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(rules));
+            DatabaseRules.Rule(_database.Database, _database.RootGroup, rules);
         }
 
         /// <summary>

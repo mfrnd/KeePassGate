@@ -482,7 +482,7 @@ namespace KeePassGate.Ui
 
                     var row = new ListViewItem(client.Name)
                     {
-                        ToolTipText = Tooltips.Wrapped(string.Join(Environment.NewLine, whole))
+                        ToolTipText = Tooltips.Laid(string.Join(Environment.NewLine, whole))
                     };
                     row.SubItems.Add(string.Join(", ", client.Profiles));
                     row.SubItems.Add(Moments.OnScreen(client.Admitted));

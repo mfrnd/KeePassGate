@@ -454,46 +454,39 @@ gives the reason:
   is about. The rules can be read and not changed, and
   [the plugin's log](getting-started.md#the-plugins-log) names what was missing.
 
-**Rules that cannot be read are refused rather than skipped.** A rule damaged by a merge, edited by
-hand or written by a later version of the plugin is still there, and nobody can tell what it was
-taking away, so every profile is refused at that group or entry and everything under it unless a
-nearer rule admits it, and the tab cannot be edited while they stand. **Discard the unreadable
-rules** throws away that node's own rules, with the **Refuse any profile not named here** check
-mark, and lets the tab be edited again: it is the only way past them. Like every other change on the
-tab, it is kept by OK and undone by Cancel. What the rules held is shown nowhere, since it could not
-be read, so write the rules the node should have before pressing OK.
+**Rules that cannot be read are refused rather than skipped.** A version of a rule deleted in a
+copy of the database that another copy kept, edited by hand or written by a later version of the
+plugin is shown as **Lost**, and nobody can tell what it was taking away, so the profile is refused
+at that group or entry and everything under it unless a nearer rule admits it. A rule chosen on
+that row replaces the version when OK is pressed. A **Refuse any profile not named here** check mark
+that cannot be read refuses every profile not named there, until the box is set again.
 
-**A rule above that cannot be read** is named on the tab as well: nothing beyond it arrives here, so
-a profile that neither this node nor a group in between names is refused. Its rules are discarded on
-the group that holds them, not here.
+**A rule above that cannot be read** refuses here as well: nothing beyond it arrives, so a profile
+that neither this node nor a group in between names is refused. It is replaced on the group that
+holds it, not here.
 
 ## Press OK
 
-**A rule is kept by the dialog's OK and discarded by its Cancel**, like everything else on those
-dialogs. Then save the database as usual.
+**A rule is written by the dialog's OK and discarded by its Cancel or Escape**, like everything
+else on those dialogs. Then save the database as usual. Nothing on the tab is written while the
+dialog is open, and a rule KeePassGate could not write at OK is named in a message once the dialog
+has closed.
 
-The **KPG** tab in the database settings dialog works the same way, for a different underlying
-reason. KeePass's group and entry dialogs work on a copy and write it back when they are accepted, and
-this page writes into that copy. The settings dialog keeps no such copy, so that tab keeps one of its
-own. Either way OK and Cancel do what they promise.
+The **KPG** tab in the database settings dialog works the same way: both tabs hold every change
+until OK, and OK and Cancel do what they promise.
 
 ## Where a rule is stored
 
-In the group's or entry's own custom data, under a key beginning `KPG`. It travels with the
-database, it is covered by the database's encryption, and no other plugin's data is touched.
+In the plugin's own store in the database, beside the certificate authority and the clients,
+under the identifier of the group or entry it is about. It travels with the database, it is covered
+by the database's encryption, and no other plugin's data is touched.
 
-**A copy of a node carries its rules**, whichever way KeePass makes the copy. **Duplicate Entry**
-and **Duplicate Group**, copying entries or a group into another group, and making an entry from a
-template all give the copy the original's custom data, rules included, and a copied group brings
-the rules of everything inside it as well. The copy is a node of its own, with an identifier of its
-own, and it grants what the original's rules grant wherever it is moved, so look at its **KPG** tab
-before moving it somewhere a program should not reach.
-
-**A rule on a template is a rule on every entry made from it.** The arrow beside the toolbar's
-**Add Entry** button offers the entries of the templates group chosen under **File**, **Database
-Settings**, **Advanced**, and an entry made from a template is a copy of it, made in whichever group
-is selected at the time. So keep rules off the templates, or check the **KPG** tab of every entry
-made from a template.
+**A rule stays with its node and nothing else.** A group or an entry moved elsewhere keeps its rule.
+A copy is a node of its own, with an identifier of its own, so **Duplicate Entry** and **Duplicate
+Group**, copying entries or a group into another group, and making an entry from a template give the
+copy no rule: it grants what reaches it from the groups above, so look at the **KPG** tab of the
+group it lands in before moving it somewhere a program should not reach. An earlier version of an
+entry, restored from its history, changes no rule.
 
 ## What a program actually gets
 

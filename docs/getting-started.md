@@ -370,13 +370,10 @@ remove it once the plugin is gone:
 
 | | |
 | --- | --- |
-| **The plugin's group** | `KeePassGate`, holding a retirement for each authority the database has held, which Delete authority writes on purpose, a revocation for each client that was revoked and a record for each certificate a program gave up, an entry for each profile name added and for each removed, and the entries that keep the group's own account of what is in it. The retirements are what keeps a copy of the file from before, synchronized in later, from putting the old authority back into service, so delete the group only once the plugin is not coming back. The profile names go with the group. |
-| **The rules** | `KPG`, in the custom data of each group and entry that has a rule. |
+| **The plugin's group** | `KeePassGate`, holding a retirement for each authority the database has held, which Delete authority writes on purpose, a revocation for each client that was revoked and a record for each certificate a program gave up, an entry for each profile name added and for each removed, the versions of the rules written on the **KPG** tabs of groups and entries, and the entries that keep the group's own account of what is in it. The retirements are what keeps a copy of the file from before, synchronized in later, from putting the old authority back into service, so delete the group only once the plugin is not coming back. The profile names and the rules go with the group. |
 
 The group is deleted as any group is, into the recycle bin where the database keeps a recycle bin
-enabled, to be emptied from there. A group's rules are on the **Plugin Data** tab of
-**Edit Group**, and an entry's under **Plugin data** on the **Properties** tab of **Edit Entry**;
-the versions an entry keeps in its history keep the rules they had. Then save the database.
+enabled, to be emptied from there. Then save the database.
 
 **Outside the databases** are the plugin's files, its port and what the programs it let in were
 handed:

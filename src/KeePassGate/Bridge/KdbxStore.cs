@@ -85,7 +85,7 @@ namespace KeePassGate.Bridge
             }
 
             var walk = StoreSource.Of(_database, root, everyEntry);
-            return StoreReading.Afresh(walk.Candidates, walk.Deletions, walk.Present);
+            return StoreReading.AfreshInTree(walk.Candidates, walk.Deletions, walk.Present, walk.Nodes);
         }
 
         /// <summary>
@@ -118,22 +118,66 @@ namespace KeePassGate.Bridge
         {
             using (var reading = ForWrite())
             {
-                var staged = Stage(reading, acts);
-                var refused = staged.Refused ?? staged.Held;
-                if (refused != null)
-                {
-                    return StoreWritten.Refused(refused, staged.Write.LeftOut);
-                }
-
-                staged.Apply();
-
-                foreach (var left in staged.Write.LeftOut)
-                {
-                    _log.Warn("an act on the plugin's store was left out, because what it was composed against went: " + left);
-                }
-
-                return StoreWritten.Done(staged.Write.Taken, staged.Write.LeftOut, !staged.Write.Empty);
+                return Written(reading, acts);
             }
+        }
+
+        /// <summary>
+        /// Reads the store afresh with every entry in this turn, composes an act over that reading,
+        /// and plans and applies it against the same reading, marking the database: what a write
+        /// whose act depends on the versions it replaces makes, an OK on a node's dialog among it.
+        /// Answers what came of it, a write of nothing where <paramref name="compose"/> answers
+        /// null.
+        /// </summary>
+        /// <remarks>
+        /// **A single reading**, `STORE.md` §629: an act composed over a reading and planned
+        /// against another would write anew versions the plan does not hold, and leave out of the
+        /// summary entry versions it does. The act is this write's own, so it is let go here.
+        /// </remarks>
+        public StoreWritten Write(Func<StoreReading, StoreAct> compose)
+        {
+            if (compose == null)
+            {
+                throw new ArgumentNullException(nameof(compose));
+            }
+
+            using (var reading = ForWrite())
+            {
+                var act = compose(reading);
+                if (act == null)
+                {
+                    return StoreWritten.Done(Array.Empty<StoreAct>(), Array.Empty<string>(), false);
+                }
+
+                try
+                {
+                    return Written(reading, new[] { act });
+                }
+                finally
+                {
+                    act.Forget();
+                }
+            }
+        }
+
+        /// <summary>Plans these acts against this reading and applies them, or answers why not.</summary>
+        private StoreWritten Written(StoreReading reading, IReadOnlyList<StoreAct> acts)
+        {
+            var staged = Stage(reading, acts);
+            var refused = staged.Refused ?? staged.Held;
+            if (refused != null)
+            {
+                return StoreWritten.Refused(refused, staged.Write.LeftOut);
+            }
+
+            staged.Apply();
+
+            foreach (var left in staged.Write.LeftOut)
+            {
+                _log.Warn("an act on the plugin's store was left out, because what it was composed against went: " + left);
+            }
+
+            return StoreWritten.Done(staged.Write.Taken, staged.Write.LeftOut, !staged.Write.Empty);
         }
 
         /// <summary>Null: this writes whenever it is asked, and the questions before it are the writer's.</summary>

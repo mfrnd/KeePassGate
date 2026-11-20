@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using KeePassGate.Acl;
 using KeePassGate.Audit;
 using KeePassGate.Bridge;
 using KeePassGate.Pipeline;
@@ -69,7 +68,7 @@ namespace KeePassGate.Host.Tests
             // A rule that may update and may not reach protected values. The handler finds the
             // string unprotected, and the operator's OK on the entry dialog marks it and types a
             // secret into it before the write's turn comes.
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "RUL")));
+            DatabaseRules.Rule(_database.Database, _group, ("agent", "RUL"));
             var operatorFirst = new OperatorFirst(() =>
             {
                 _entry.Strings.Set(Name, new ProtectedString(true, Typed));
@@ -92,9 +91,9 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_rule_taken_away_before_the_queued_write_refuses_the_write()
         {
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "RUL")));
+            DatabaseRules.Rule(_database.Database, _group, ("agent", "RUL"));
             var operatorFirst = new OperatorFirst(
-                () => _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "RL"))));
+                () => DatabaseRules.Rule(_database.Database, _group, ("agent", "RL")));
 
             var answer = Send(
                 operatorFirst,
@@ -112,10 +111,10 @@ namespace KeePassGate.Host.Tests
         {
             // Removal is allowed in the group the entry was found in and nowhere else. The operator
             // drags the entry into a group whose rule lets the same client read it and no more.
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "RDL")));
+            DatabaseRules.Rule(_database.Database, _group, ("agent", "RDL"));
             var kept = new PwGroup(true, true, "Kept", PwIcon.Folder);
-            kept.CustomData.Set(AclDocument.CustomDataKey, Rules.Sealing(("agent", "RL")));
             _database.RootGroup.AddGroup(kept, true);
+            DatabaseRules.Seal(_database.Database, kept, ("agent", "RL"));
             var operatorFirst = new OperatorFirst(() =>
             {
                 _group.Entries.Remove(_entry);
@@ -140,10 +139,10 @@ namespace KeePassGate.Host.Tests
             // a removal of both its sides, and all of that is of a single hold of KeePass's
             // thread. The answer and the line the request leaves are the rules' answer at the
             // node, whichever hold the lookup and the walks are part of.
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", granted)));
+            DatabaseRules.Rule(_database.Database, _group, ("agent", granted));
             if (narrowed != null)
             {
-                _entry.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", narrowed)));
+                DatabaseRules.Rule(_database.Database, _entry, ("agent", narrowed));
             }
 
             var thread = new HoldsCounted();
@@ -182,7 +181,7 @@ namespace KeePassGate.Host.Tests
             // first removal makes. Each asks both of its sides before its turn, and all of that
             // is of a single hold of KeePass's thread, as every change's first asking is.
             var database = _database.Database;
-            _database.RootGroup.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "RDL")));
+            DatabaseRules.Rule(database, _database.RootGroup, ("agent", "RDL"));
             database.RecycleBinEnabled = true;
 
             PwGroup bin = null;

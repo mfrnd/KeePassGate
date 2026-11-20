@@ -82,8 +82,8 @@ namespace KeePassGate.Acl
         /// What a mask says a rule holds, or null for anything that is not exactly a mask.
         /// </summary>
         /// <remarks>
-        /// Strict, and for the same reason the document reader is: a mask read generously is a
-        /// rule that grants something nobody wrote. What it reads is the grant editor's own cell
+        /// Strict, and for the same reason a version's text is: a mask read generously is a rule
+        /// that grants something nobody wrote. What it reads is the grant editor's own cell
         /// text and an inherited rule's mask, both written by <see cref="Of"/>, since neither
         /// column of the editor is typed into, so a mask that is not exactly one is a defect to
         /// refuse rather than a rule to guess at. Every position has to be its own letter or a dot,

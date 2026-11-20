@@ -33,6 +33,15 @@ namespace KeePassGate.Tests
 
         public List<byte[]> Deleted { get; } = new List<byte[]>();
 
+        /// <summary>
+        /// The identifier of every group and entry of the tree the store is read beside: what a
+        /// reading asks for where a deletion record is left that no object the file names explains.
+        /// </summary>
+        public List<byte[]> Tree { get; } = new List<byte[]>();
+
+        /// <summary>How many times a reading asked for <see cref="Tree"/>.</summary>
+        public int Walks { get; private set; }
+
         public StoreComposer.Composed Add(StoreComposer.Composed record)
         {
             _entries.Add(new KeyValuePair<byte[], List<IReadOnlyDictionary<string, string>>>(
@@ -162,7 +171,14 @@ namespace KeePassGate.Tests
             var candidates = _entries
                 .Select(entry => versions.Candidate(entry.Key, entry.Value.ToArray()))
                 .ToList();
-            return StoreReading.Of(candidates, Deleted, null, new StoreKept());
+            return StoreReading.Of(candidates, Deleted, null, new StoreKept(), Walked);
+        }
+
+        /// <summary>The tree, counted as asked for.</summary>
+        private IEnumerable<byte[]> Walked()
+        {
+            Walks++;
+            return Tree.ToList();
         }
 
         private StoreComposer.Composed HeadOf(int height, string after, params string[] items)

@@ -153,32 +153,35 @@ designing around them.
   undo there is a standing answer to a renewal.
 - **That store is decided to be replaced in 0.3.0, and is what 0.2.0 ships until then.** The entries
   above about `CustomData` and KDBX 4.1 describe the plugin as released, but for the authority, the
-  admissions, the revocations and the profile names. What replaces them is decided and built in
-  part: the plugin's data as entries in a group of its own, each written once under a check keyed
-  by a secret the database holds, with no custom data anywhere and nothing on the operator's own
-  entries or groups. [`STORE.md`](STORE.md) §601 is the contract,
-  §604 what it reverses and on which measurements, and `spikes/storage-survival` holds those
-  measurements with the evaluation they were decided from. **Do not build anything new on custom
-  data, and do not re-propose what those decisions closed**, which §612, §630 and §634 list with the
-  measurement behind each. **What of it is built**: the API's guard, §633; the store's reading, §620
-  to §624, with what is in force and the room a store has for its next write, read once for each
-  hold and answered `503 split`, `outdated` or `stopped` before a route is chosen, §656, a store
-  with no room among the stopped, §643; and the authority, §614, read from the store, served from
-  what stands in it and written into it by the KPG tab's commands at the settings dialog's OK and by
-  keeping an authority, §627, with every record edited in KeePass set back at the next write, §628,
-  and every write refused while an entry dialog holds an entry it deletes, sets back or protects,
-  since that dialog's OK puts its copy back, §626. A database whose store holds no key is served
-  nothing, but by a gate that was serving it when the key went, which answers `503 lost` from what
-  it served with until the database is locked or closed, §656. And the admissions and the
-  revocations, §615, with a single certificate taken away, by its client or by the operator, and
-  the rule about renewals made from it, §648: read by their meaning from the reading of every
-  hold, `StoreAdmissions`, written by a pairing's, a renewal's and a given up certificate's
-  write, each saved, read back and taken back out whole where it did not land, §627, and by the
-  clients page's revocation of a client and its removal of a single certificate at the settings
-  dialog's OK. And the profile names, §616, an addition and a removal for each name: read with a
-  client's admission in its hold, `ProfileNames`, added by a pairing in the admission's own write
-  and added and removed by the Profiles page at the settings dialog's OK, `ProfileActs`. The rules
-  and the standing answers to a renewal are still where CA.md §204 keeps them.
+  admissions, the revocations, the profile names and the rules. What replaces them is decided and
+  built in part: the plugin's data as entries in a group of its own, each written once under a check
+  keyed by a secret the database holds, with no custom data anywhere and nothing on the operator's
+  own entries or groups. [`STORE.md`](STORE.md) §601 is the contract, §604 what it reverses and on
+  which measurements, and `spikes/storage-survival` holds those measurements with the evaluation
+  they were decided from. **Do not build anything new on custom data, and do not re-propose what
+  those decisions closed**, which §612, §630 and §634 list with the measurement behind each. **What
+  of it is built**: the API's guard, §633; the store's reading, §620 to §624, with what is in force
+  and the room a store has for its next write, read once for each hold and answered `503 split`,
+  `outdated` or `stopped` before a route is chosen, §656, a store with no room among the stopped,
+  §643; and the authority, §614, read from the store, served from what stands in it and written into
+  it by the KPG tab's commands at the settings dialog's OK and by keeping an authority, §627, with
+  every record edited in KeePass set back at the next write, §628, and every write refused while an
+  entry dialog holds an entry it deletes, sets back or protects, since that dialog's OK puts its
+  copy back, §626. A database whose store holds no key is served nothing, but by a gate that was
+  serving it when the key went, which answers `503 lost` from what it served with until the database
+  is locked or closed, §656. And the admissions and the revocations, §615, with a single certificate
+  taken away, by its client or by the operator, and the rule about renewals made from it, §648: read
+  by their meaning from the reading of every hold, `StoreAdmissions`, written by a pairing's, a
+  renewal's and a given up certificate's write, each saved, read back and taken back out whole where
+  it did not land, §627, and by the clients page's revocation of a client and its removal of a
+  single certificate at the settings dialog's OK. And the profile names, §616, an addition and a
+  removal for each name: read with a client's admission in its hold, `ProfileNames`, added by a
+  pairing in the admission's own write and added and removed by the Profiles page at the settings
+  dialog's OK, `ProfileActs`. And the rules, §617, a version of a profile's rule and of a node's
+  switch as records: read by the walk from the reading of the hold a rule is asked in,
+  `StoredRules`, and written as a group's or an entry's dialog closes with OK, `RuleActs`, §629; the
+  versions below a node that a change above writes anew are not built yet. The standing answers to a
+  renewal are still where CA.md §204 keeps them.
 - **The admission record is load bearing.** A certificate that chains, passes its EKU check and has
   no record in the database is refused, and so is a certificate whose client is revoked, that was
   itself taken away, or that more than a single record admits, STORE.md §615. The
@@ -421,11 +424,21 @@ designing around them.
   of them in the sum, which is the whole point of there being three. A
   `TabControl` with no window handle never sizes its pages, so the measurement creates one and
   brings each page to the front before believing what it is told.
-- **The grant editor writes into the dialog's own copy**, `m_sdCustomData`, on the group dialog and
-  the entry dialog alike, which is what makes those dialogs' OK keep a rule and their Cancel discard
-  it. The copy does not exist yet when the tab is built, so the field is resolved on every access
-  and reading falls back to the node itself. A KeePass that renames it leaves the editor showing the
-  rules and refusing to change them.
+- **The grant editor is a buffer, applied as the dialog closes with OK**, `STORE.md` §629. A press
+  on the KPG tab of a group or entry dialog changes `GrantSheet` and nothing else. The handler of
+  the dialog's close, where its result is OK, hands the changes to `DatabaseWriter.ByOperator`,
+  which writes them into the plugin's store in memory and marks the database; Cancel, Escape and
+  the close box write nothing. At the close and not at the press, because KeePass's own handler
+  has applied the dialog's fields by then, and because an OK pressed while a save of the plugin's
+  own pumps under the dialog is handled inside that save, where a write would lose its mark to it.
+  **A change that was not kept is told**, in the log and in a message box of the plugin's own
+  posted after the close, since a narrowing the operator takes to be in force has to be seen to
+  be missing; a box of KeePass's own would have every write of the API's refused while it stood.
+  **This reverses an editor that wrote into the dialog's own copy**, `m_sdCustomData`, on the
+  group dialog and the entry dialog alike, which is what made those dialogs' OK keep a rule and
+  their Cancel discard it while a rule was a key of the node's custom data. The plugin reaches
+  for no field of that copy now, and `SnapshotHazardTests` keeps the copy measured as the reason
+  nothing of the plugin's is kept on a node.
 - **No third-party HTTP dependency.** `uHttpSharp` fits the seam natively with zero changes and is
   ruled out on **license** (LGPL-2.1) and liveness (no commits since 2021), not on fit. Wanting
   WebSocket, HTTP/2 or chunked request bodies flips this; nothing else does. **Writing a chunked
@@ -655,11 +668,38 @@ designing around them.
   a value wherever a protected attachment is read through it, each logged as a warning as the
   plugin loads. `VaultViewField.Read` hands out pieces and no whole value. `DESIGN.md` §145.
 - **A plain DLL on .NET Framework 4.8**, not a `.plgx`.
-- **The access control model is one document per node**: `AclDocument`, `AclResolver`, `AclGrant`,
-  `AclVerb`, `AclDefault`, with `KdbxNodes` adapting a `PwGroup` or a `PwEntry`. Grants live under
-  a `KPG` key, which is this plugin's own namespace and touches nothing another plugin owns. The
-  document is one flat object of strings and arrays of strings, which is what `JsonBody` already
-  reads, so no parser arrives with the ACL.
+- **The access control model is a record for each node and profile**, in the plugin's store,
+  `STORE.md` §617: a version of a profile's rule at a node, and a version of the node's switch
+  "Refuse any profile not named here", each naming its node by the node's identifier. `RuleText`
+  reads and composes the texts, `NodeRule` and `StoredRules` hold what a reading's versions come
+  to, `AclResolver`, `AclGrant` and `AclVerb` decide, and `KdbxNodes` adapts a `PwGroup` or a
+  `PwEntry`. Nothing of a rule is on a group or an entry, so a rule stays with its node wherever
+  the node is moved, and a copy, an entry made from a template and an earlier version of an entry
+  hold none. A rule changed apart in two copies of a database stands in both versions and grants
+  what both allow, until the operator has removed versions on the tab.
+
+  **A node that lets a profile through gives what arrives, cut to what had arrived when it was
+  made to let through.** A rule taken off records the mask that arrived, as `off:` and the
+  letters, or `off:deny` where the node's own switch refused, and a box cleared records a mask
+  for each profile. Without the record, a rule taken off in a copy and a rule widened above it
+  in another gave, once the copies met, what neither copy's table gave, `STORE.md` §639. A mask
+  recorded is what the tab showed arriving at the press, cut to what arrives at the node in the
+  write's own reading, so that a narrowing above that landed under the open dialog is not
+  recorded away. **Do not re-propose a version that lets through with no record**, and do not
+  re-propose refusing wherever what stands above differs from what was named: both were measured,
+  `STORE.md` §617.
+
+  **A version lost, or a text that cannot be read, refuses**: that profile at that node for a
+  row, and every profile the node does not name for the switch. A record of a rule that fails
+  the store's check is damage, and stops the store for the whole database.
+
+  **This reverses one document per node**: `AclDocument` and `AclDefault`, a `KPG` key of the
+  node's custom data holding a flat object of strings and arrays of strings, chosen because
+  `JsonBody` already read it and no parser arrived with the ACL. A KeePassXC merge never merged a
+  node's custom data, KeePass's merge took the whole dictionary from whichever copy touched the
+  node last, and the node's own dialog put its copy back at OK; a document that would not read
+  refused at its node alone, and a document held 31 profiles at most. `DESIGN.md` §114 and §136
+  have each reversal with its argument.
 
   **`protected` is a scope and not a verb**, like `attachments`, and it is the one scope a handler
   asks about and records rather than the router. An attachment is a route of its own, so the router
@@ -675,13 +715,14 @@ designing around them.
   trust the stored string's own flag, so a standard field the database protects and the string did
   not was handed out as though nothing protected it.
 
-  **Nearest wins, per profile**, and profiles are combined with or. An empty array is a rule
-  granting nothing from there down; a profile the document does not name is silence, answered by
-  `default`. **A change is allowed by one profile**, the operator's ruling R10 as amended on
+  **Nearest wins, per profile**, and profiles are combined with or. An empty rule grants nothing
+  from there down; a profile the node holds no rule for is silence, answered by the node's
+  switch; and a rule taken off is a third thing, a version that lets through what arrives as far
+  as it had arrived. **A change is allowed by one profile**, the operator's ruling R10 as amended on
   2026-11-03: a removal needs `delete` from one profile on both of its sides, and the strip guard
   asks each profile on its own whether it could put an unprotected value back. A listing is the
   exception, being a read: some profile has to list from where it is taken, and its items are shown
-  through any profile the client holds. A document that will not read refuses where it is found
+  through any profile the client holds. A version lost or out of form refuses where it is found
   rather than being skipped, because walking past it would answer with a permission it may have been
   taking away.
 
@@ -822,12 +863,13 @@ KeePass through UI automation cannot unload. Run them from **Windows PowerShell*
   wrong once: KeePassXC decides the version a file is written as from the rest of the tree, and the
   times on the database's own custom data do not count toward it. CA.md §204 states what all of
   that does to a paired database.
-- **A save in KeePassDroid 2.7 deletes the rules on every group and entry, and a save in KeePassDX
-  3.2.0 or 3.3.0 the rules on every group**, moving no modification time, so nothing on the node
-  shows that the rules went. Measured on `spikes/revocation-merge` in an emulator of Android 11,
-  beside Keepass2Android 1.15-r6 and 1.08d-r5 and KeePassDX 4.5.8, whose saves keep the rules. No
-  save and no merge in any of them removed a key from the database's custom data. CA.md §204
-  states what their saves and merges do to a paired database.
+- **A save in KeePassDroid 2.7 deletes the custom data of every group and entry, and a save in
+  KeePassDX 3.2.0 or 3.3.0 that of every group**, moving no modification time, so nothing on the
+  node shows that it went. Measured with the rules that were kept there while a rule was a key
+  of a node's custom data, on `spikes/revocation-merge` in an emulator of Android 11, beside
+  Keepass2Android 1.15-r6 and 1.08d-r5 and KeePassDX 4.5.8, whose saves keep it. No save and no
+  merge in any of them removed a key from the database's custom data. CA.md §204 states what
+  their saves and merges do to a paired database, and a rule is a record of the store now.
 - **KeePass keeps a protected attachment through whatever cipher stands when it last read
   it.** `ProtectedBinary.ReadData` decrypts the buffer in place under the object's lock and
   encrypts it again, through Windows' protection of process memory, or through the cipher a
@@ -999,6 +1041,14 @@ KeePass through UI automation cannot unload. Run them from **Windows PowerShell*
   from `Name` and is ours: with the lookup keyed on the identifier, `AccessibleName` is free to
   be the phrase a screen reader should say, and is set only where a control has no text of its
   own to say it. Keying the lookup on the name instead is what made the two collide.
+- **UI automation's proxy for a Windows button reads its help off the tooltip's window, cut
+  after 127 characters.** A check box is a Windows button, so whatever its accessible object
+  answers as its help, a client of UI automation is handed the text of the tooltip window, with
+  the tooltip's line breaks and direction marks in it, and no more than 127 characters of it.
+  Nothing set on the control changes that reading. The whole text is on the accessible object,
+  which is where a test has to ask for it:
+  `GrantPickerTests.The_box_s_accessible_object_answers_the_whole_of_its_tooltip_as_its_help`.
+  A cell of a `DataGridView` is no button, and its help arrives whole.
 - **A caret cannot be hidden from another process, and both calls say nothing about it.**
   `HideCaret` hides a caret only if a window in the **calling process** owns it, and `DestroyCaret`
   destroys one only under the same condition; `AttachThreadInput` shares an input queue rather than
@@ -1037,6 +1087,23 @@ KeePass through UI automation cannot unload. Run them from **Windows PowerShell*
   `ProfileListTests.Enter_on_a_dialog_with_an_accept_button_adds_the_name_rather_than_pressing_it`
   posts the key through a real message loop, which is the only way to see this: a test that calls
   the handler directly passes either way.
+- **A `DataGridView` takes Enter on every row and Escape on its empty line as its own input.**
+  On .NET Framework 4.8 Enter moves the current cell down a row, and Escape on the line for a
+  new row ends an edit that no read only cell ever began, so on a dialog with an accept and a
+  cancel button Enter never presses OK while the keyboard stands on the table, and Escape
+  leaves the dialog open once the empty line was pressed. The table of the grant editor hands
+  both keys to the dialog where no picker is open: Escape through the grid's own handling of a
+  dialog key, and Enter by pressing the accept button. `GrantPickerTests` holds it on a shown
+  form, in `Escape_after_a_press_on_the_table_presses_the_dialog_s_Cancel` and
+  `Enter_after_a_press_on_the_table_presses_the_dialog_s_OK`.
+- **KeePass hands an earlier version of an entry over with no parent group.** A revision read
+  from the file is put into the history of its entry and given no parent, measured on KeePass
+  2.62, so the entry dialog opened on it holds an entry from which nothing above can be reached:
+  a walk up from it ends at once, and a tab read through it shows no rule from a group above.
+  The entry of the revision's identifier, found in the database, is the node that stands in the
+  tree. `NodeDialog` reads the tab of an earlier version through that entry, and
+  `GrantEditorInRealDialogsTests.An_earlier_version_read_from_the_file_shows_every_row_the_entry_shows_as_the_rules_stand_now`
+  holds it.
 - **KeePass's dialogs scale, and by more than the text does.** They are `AutoScaleMode.Font` against
   `AutoScaleDimensions` of 6 by 13, so a larger system font makes a larger dialog: the settings
   dialog's own first page goes from 449 by 314 at font height 13 to 599 by 410 at 16, 674 by 482 at
@@ -1129,7 +1196,7 @@ KeePass through UI automation cannot unload. Run them from **Windows PowerShell*
   KeePassLib, and asking `List<T>` for its version caught almost none of it, because the version
   moves after the size. Holding KeePass's thread still for the read, in a turn of its own, missed
   nothing. `KdbxVaultTests.A_read_meets_a_tree_standing_still_while_KeePass_changes_it`, and
-  `AclInRealDatabaseTests.A_walk_held_still_finds_a_seal_while_KeePass_rewrites_the_keys_around_it`
+  `AclInRealDatabaseTests.A_walk_held_still_finds_a_seal_while_KeePass_moves_the_tree_around_it`
   for the rules.
 - **A posted message goes ahead of the operator's input and of every timer.** Windows hands out a
   posted message before input and makes a timer's message only once nothing else is queued, and
@@ -1192,6 +1259,11 @@ one to a stale snapshot makes the certificate inert rather than invisible and ir
 **testing any `CustomData` work means pressing OK, not just looking**: make the change, press OK,
 reopen the dialog, and only then believe it. Do the same after saving and reloading the file, because
 those are two different failures.
+
+**Nothing of the plugin's is on a group or an entry any more**, so the group and entry dialogs'
+copies hold nothing of it: a rule is a record of the store, STORE.md §617, and the grant editor
+writes into no copy. The hazard stays a fact about KeePass, kept measured by
+`SnapshotHazardTests`, and it is the reason for that.
 
 **`DatabaseOperationsForm`, under Tools then Database Maintenance, does the same to
 `PwDatabase.CustomData`**, which is where this plugin's own keys live: the standing answers to a
@@ -1551,9 +1623,12 @@ nobody, STORE.md §636.
 
 ### The grant editor
 
-**The editor is what makes a grant possible at all.** KeePass's own group and entry dialogs list a
-node's custom data and offer no way to write it, so without the editor no rule could be made and
-the model would be inert.
+**The editor is what makes a grant possible at all.** KeePass's own group and entry dialogs offer
+no way to set a rule, so without the editor no rule could be made and the model would be inert.
+**A press writes nothing**: the tab is a buffer, and the dialog's OK writes it into the plugin's
+store as the dialog closes, "The grant editor is a buffer" above. So OK and Cancel on the dialog
+do what the two words promise. **A rule cannot be written before the database has an
+authority**, since a rule is a record under the store key that creating the authority writes.
 
 The tab is captioned `KPG` with the plugin's icon, and not "Access control", because another plugin
 may well put an access control page on the same dialogs and two pages with one name governing
@@ -1587,10 +1662,43 @@ seal refuses keeps its place and carries a line through the mask. Gray was alrea
 rule comes from elsewhere, which stays true either way, and the mask is where the eye already is.
 Its tooltip is replaced rather than extended, because the inherited one offers to replace a rule
 that arrives, and on that row nothing arrives: naming the profile is what lets the grant through
-again. And the editor never writes the same rules in other words. A node's custom data keeps no
-modification time, but the entry dialog compares the entry it hands back with the one it was
-given, so a rule respelled by a byte is a changed entry, with a revision in its history and the
-database marked modified, for having been looked at.
+again.
+
+**A state has a column of its own, and a tooltip for each word.** The table is Profile,
+Permissions, State and the X. A State cell holds a word and never a name, the first that holds of
+No profile, Lost, Version, Taken off, Limit, Refused here and Inherited, and the tooltip of the
+cell states what the word means, which is what the gate does for the profile at the node in that
+state; the same text is the cell's accessible description, and none of it is printed under the
+table. A state joined to a name in a single text was the alternative, and a reader could not
+then tell the name from the state. A sentence of the tab names no profile and no client, which a
+cell may, and names the noun where a pronoun would stand. A row or a box that a press changed is
+told by a line of its tooltip and by its accessible text, never by a color alone.
+
+**The rows the store adds.** A rule changed apart in copies shows a row for each version, bound
+together, each with an X that removes that version and no list of rules: no single press there
+grants more than some version held. A profile that the node cuts shows its inherited row and a
+limit row under it, and the X on the limit row settles it in a single press. A lost rule shows
+as granting nothing, and a rule chosen there replaces it. Every row but an inherited row has an
+X, and the last version that reads beside a lost version has none, since no press is offered
+that OK could not write. The X takes the rule off, also under a box that refuses; a rule the X
+removed shows, until the dialog closes, as the inherited row in its place, marked as changed.
+The check box shows a
+mixed mark, counted as ticked, where copies set it apart, and a press only ticks or clears it.
+The bracket, the colors and the bold letters that are to bind and mark those rows are not drawn
+yet.
+
+**Every text above the table takes at most two lines**, the reasons for which the tab takes no
+change among them, because in the group dialog every line above the table is a row less:
+`GrantTabFitsTests` counts the lines in the real dialogs at each scaling.
+
+**The editor used to take care never to write the same rules in other words**, and that care is
+gone with its reason. While a rule was a key of the node's custom data, the entry dialog compared
+the entry it handed back with the entry it was given, so a rule respelled by a byte was a changed
+entry, with a revision in its history and the database marked modified, for having been looked
+at. A rule is no part of its node now: a change of rules alone gives an entry no revision, and a
+row or a box brought back to what the store holds writes nothing. The Discard button for rules
+that would not read went the same way, since a rule that will not read is no state of a node:
+a version lost or out of form refuses its own row, and a damaged record stops the store.
 
 ### Authorization
 

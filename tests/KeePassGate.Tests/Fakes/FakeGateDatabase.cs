@@ -125,6 +125,9 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>What the last <see cref="Tell"/> said, or null when nothing has been said.</summary>
         public string LastNews { get; private set; }
 
+        /// <summary>How many times <see cref="Tell"/> was called.</summary>
+        public int Told { get; private set; }
+
         public bool Confirm(string title, string question)
         {
             Asked++;
@@ -134,6 +137,7 @@ namespace KeePassGate.Tests.Fakes
 
         public void Tell(string title, string news)
         {
+            Told++;
             LastNews = news;
         }
     }

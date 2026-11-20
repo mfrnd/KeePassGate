@@ -108,8 +108,7 @@ namespace KeePassGate.Acl
         {
             return AuthorityIssuer.IsUsableProfileName(name)
                 ? null
-                : "A profile name is ASCII letters, digits, hyphens and underscores, up to 64 of them, and not `"
-                  + AclDocument.DefaultKey + "` in any case.";
+                : "A profile name is ASCII letters, digits, hyphens and underscores, up to 64 of them, and not `default` in any case.";
         }
     }
 }

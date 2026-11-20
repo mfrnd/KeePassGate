@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 namespace KeePassGate.Ui
@@ -13,9 +15,14 @@ namespace KeePassGate.Ui
     /// the edge of it. Every tooltip here explains something, which means every one of them is long
     /// enough for that to happen.
     ///
-    /// **A tooltip that already has newlines in it is left alone**, because somebody chose where
-    /// those went. Re-folding it would move the breaks they wrote to wherever this column happens
-    /// to fall, which is the one thing a written break is for.
+    /// **A break somebody wrote stays where it was written**, and each line between two breaks is
+    /// folded as a text with no break is: a written break moved to wherever this column happens to
+    /// fall loses the one thing a written break is for, and a line left whole because another line
+    /// was broken by hand is a band the width of the desktop all the same.
+    ///
+    /// **A text whose every line was laid out by hand is handed to <see cref="Laid"/>**, which
+    /// folds nothing: a key of sixty-four characters has no space to fold at, and folded onto a
+    /// line of its own leaves its label behind.
     ///
     /// Folded on characters rather than on measured pixels, because a tooltip is drawn in whatever
     /// font the desktop gives it and this has no window to ask. What that costs is a ragged right
@@ -58,6 +65,15 @@ namespace KeePassGate.Ui
             }
 
             return LeftToRight(Folded(text, width));
+        }
+
+        /// <summary>
+        /// A text whose lines its caller laid out, each kept whole whatever its length, with every
+        /// line marked left to right.
+        /// </summary>
+        public static string Laid(string text)
+        {
+            return string.IsNullOrEmpty(text) ? text : LeftToRight(text);
         }
 
         /// <summary>
@@ -114,12 +130,24 @@ namespace KeePassGate.Ui
                 return text;
             }
 
-            // Somebody chose these, so they stay where they are and nothing else is added.
-            if (text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0)
+            // Each line between the breaks somebody wrote, folded, and each break kept as written:
+            // the split keeps every break as a part of its own between two lines.
+            var parts = Breaks.Split(text);
+            var folded = new StringBuilder(text.Length + 8);
+            for (var at = 0; at < parts.Length; at++)
             {
-                return text;
+                folded.Append(at % 2 == 0 ? FoldedLine(parts[at], width) : parts[at]);
             }
 
+            return folded.ToString();
+        }
+
+        /// <summary>A line break as written by hand, kept by the split the break is used for.</summary>
+        private static readonly Regex Breaks = new Regex("(\r\n|\r|\n)", RegexOptions.CultureInvariant);
+
+        /// <summary>A line with no break, folded at word boundaries unless short enough.</summary>
+        private static string FoldedLine(string text, int width)
+        {
             if (text.Length <= width)
             {
                 return text;
@@ -128,13 +156,8 @@ namespace KeePassGate.Ui
             var folded = new StringBuilder(text.Length + 8);
             var line = 0;
 
-            foreach (var word in text.Split(' '))
+            foreach (var word in text.Split(' ').Where(part => part.Length > 0))
             {
-                if (word.Length == 0)
-                {
-                    continue;
-                }
-
                 if (line == 0)
                 {
                     folded.Append(word);

@@ -1,5 +1,4 @@
 using System.Linq;
-using KeePassGate.Acl;
 using KeePassGate.Bridge;
 using KeePassGate.Testing;
 using KeePassLib;
@@ -9,59 +8,51 @@ using NUnit.Framework;
 namespace KeePassGate.Host.Tests
 {
     /// <summary>
-    /// Every group and entry of a real database, as somewhere rules can be read.
+    /// Every group and entry of a real database a rule can be in force at, each known by its
+    /// identifier.
     /// </summary>
     /// <remarks>
     /// Against KeePass's own types, because the whole of what this class does is walk them: the
-    /// root, the groups under it however deep, and the entries in all of them. A walk that misses a
-    /// branch counts a profile as naming fewer rules than it does, and the operator reading that
-    /// count is deciding whether removing the profile takes anything away.
+    /// root, the groups under it however deep, and the entries in all of them, less the recycle
+    /// bin and the plugin's store. A walk that misses a branch counts a profile as naming fewer
+    /// rules than it does, and the operator reading that count is deciding whether removing the
+    /// profile takes anything away.
     /// </remarks>
     [TestFixture]
     public sealed class DatabaseNodesTests
     {
         [Test]
-        public void Every_group_and_entry_is_reached_however_deep_it_is()
+        public void Every_group_and_entry_is_reached_however_deep_it_is_by_its_identifier()
         {
             var database = Tree();
 
-            var nodes = new DatabaseNodes(database).All().ToList();
+            var nodes = new DatabaseNodes(database).All(null).Select(node => node.Id).ToList();
 
-            // The root, two groups under it, one under that, and three entries between them.
-            Assert.That(nodes.Count, Is.EqualTo(7));
-        }
-
-        [Test]
-        public void A_rule_is_read_from_the_node_it_is_written_on()
-        {
-            var database = Tree();
-            var deepest = database.RootGroup.GetGroups(true).Single(group => group.Name == "deeper");
-            var rule = Rules.Granting(("ops", "R"));
-            deepest.CustomData.Set(AclDocument.CustomDataKey, rule);
-
-            var found = new DatabaseNodes(database).All()
-                .Count(node => node.Read() == rule);
-
-            Assert.That(found, Is.EqualTo(1));
+            // The root, two groups under it, one under that, and three entries between them, each
+            // by the 32 lowercase hexadecimal characters a rule names it by.
+            var expected = new[] { database.RootGroup.Uuid }
+                .Concat(database.RootGroup.GetGroups(true).Select(group => group.Uuid))
+                .Concat(database.RootGroup.GetEntries(true).Select(entry => entry.Uuid))
+                .Select(IdOf);
+            Assert.That(nodes, Is.EquivalentTo(expected));
+            Assert.That(nodes, Has.Count.EqualTo(7));
+            Assert.That(nodes, Has.All.Match("^[0-9a-f]{32}$"));
         }
 
         [Test]
         public void The_revisions_an_entry_keeps_are_not_walked()
         {
-            // A revision carries the rules of the moment KeePass took it, and none of them is in
-            // force: the resolver walks the live tree. Counted, a rule the entry no longer has
-            // would read as one that still decides something.
+            // A revision shares its entry's identifier and is no node of its own: the resolver
+            // walks the live tree.
             var database = Tree();
             var entry = database.RootGroup.Entries.Single();
-            entry.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("ops", "R")));
             entry.CreateBackup(database);
             entry.CreateBackup(database);
-            entry.CustomData.Remove(AclDocument.CustomDataKey);
 
-            var nodes = new DatabaseNodes(database).All().ToList();
+            var nodes = new DatabaseNodes(database).All(null).ToList();
 
             Assert.That(nodes.Count, Is.EqualTo(7), "the same seven, however long a history is");
-            Assert.That(nodes.Count(node => node.Read() != null), Is.Zero);
+            Assert.That(nodes.Select(node => node.Id).Distinct().Count(), Is.EqualTo(7));
         }
 
         [Test]
@@ -72,22 +63,56 @@ namespace KeePassGate.Host.Tests
             var database = Tree();
             var bin = database.RootGroup.GetGroups(true).Single(group => group.Name == "first");
             database.RecycleBinUuid = bin.Uuid;
-            bin.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("ops", "R")));
-            bin.Entries.Single().CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("ops", "R")));
 
-            var nodes = new DatabaseNodes(database).All().ToList();
+            var nodes = new DatabaseNodes(database).All(null).Select(node => node.Id).ToList();
 
             // The root, the second group and the one entry under the root: the bin, the group
             // inside it and their two entries are left out.
             Assert.That(nodes.Count, Is.EqualTo(3));
-            Assert.That(nodes.Count(node => node.Read() != null), Is.Zero);
+            Assert.That(nodes, Does.Not.Contain(IdOf(bin.Uuid)));
+        }
+
+        [Test]
+        public void Nothing_of_the_plugin_s_store_is_walked_wherever_its_entries_sit()
+        {
+            // The vault hides the store as it hides the bin, `STORE.md` §633: its group and the
+            // records inside it by the group's identifier, and a record moved out of the group by
+            // what the reading tells of it.
+            using (var temporary = TemporaryDatabase.New())
+            {
+                var database = temporary.Database;
+                var store = new KdbxStore(database, GateVersion.Current, null);
+                StoreSeeds.Authority(store);
+                var plugin = database.RootGroup.Groups.Single(StoreNodes.Holds);
+                var moved = plugin.Entries.First();
+                Assert.That(new DatabaseNodes(database).All(null).Select(node => node.Id), Does.Not.Contain(IdOf(plugin.Uuid)),
+                    "the group by its identifier alone");
+
+                plugin.Entries.Remove(moved);
+                database.RootGroup.AddEntry(moved, true);
+
+                using (var reading = store.Read())
+                {
+                    var nodes = new DatabaseNodes(database).All(reading).Select(node => node.Id).ToList();
+
+                    Assert.That(nodes, Does.Not.Contain(IdOf(plugin.Uuid)));
+                    Assert.That(nodes, Does.Not.Contain(IdOf(moved.Uuid)), "a record wherever it sits");
+                    Assert.That(nodes, Does.Contain(IdOf(database.RootGroup.Uuid)));
+                }
+            }
         }
 
         [Test]
         public void A_database_with_no_tree_yields_nothing_rather_than_failing()
         {
-            Assert.That(new DatabaseNodes(null).All(), Is.Empty);
-            Assert.That(new DatabaseNodes(new PwDatabase()).All(), Is.Empty);
+            Assert.That(new DatabaseNodes(null).All(null), Is.Empty);
+            Assert.That(new DatabaseNodes(new PwDatabase()).All(null), Is.Empty);
+        }
+
+        /// <summary>A node's identifier as a rule names it.</summary>
+        private static string IdOf(PwUuid uuid)
+        {
+            return Hex.Of(uuid.UuidBytes);
         }
 
         /// <summary>A tree of invented content: two branches, one of them nested.</summary>

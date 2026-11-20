@@ -14,8 +14,11 @@ namespace KeePassGate.Acl
     /// </remarks>
     public interface IAclNode
     {
-        /// <summary>The document written here, or null when nothing is.</summary>
-        string Document { get; }
+        /// <summary>
+        /// The rules of this node in the reading its tree was read with: `NodeRule.None` where
+        /// that reading holds none for it, and never null.
+        /// </summary>
+        NodeRule Rule { get; }
 
         /// <summary>The group above, or null at the root.</summary>
         IAclNode Parent { get; }
@@ -119,10 +122,23 @@ namespace KeePassGate.Acl
     /// Whether a client holding these profiles may do this to this node.
     /// </summary>
     /// <remarks>
-    /// **Nearest wins, per profile.** Resolution walks from the node up to the root and stops at the
-    /// first document that says anything about that profile. What it says is the answer, even when
-    /// something further up said more: that is how a grant made at the root is taken away in one
-    /// group without a deny syntax to get wrong.
+    /// **A single walk, `STORE.md` §617, for every question.** From the node asked about upward,
+    /// for a single profile, with a limit that starts as every letter. At each node: a row that
+    /// refuses, for a lost version or a text out of form, gives nothing and ends the walk; a row
+    /// whose every standing version grants gives the letters all of them hold, cut to the limit,
+    /// and ends the walk; otherwise a switch that refuses gives nothing and ends the walk;
+    /// otherwise the node lets through, and the limit is cut to what the node's versions recorded.
+    /// Above the root nothing arrives. Every question, `Decide`, `DecideAny`, `Arrives` and
+    /// `Above`, is answered from that walk and from nothing else, so no entry point can skip a cut.
+    ///
+    /// **Nearest wins, per profile.** The walk stops at the first row that answers for the
+    /// profile. What it grants is the answer, even when something further up granted more: that is
+    /// how a grant made at the root is taken away in a group without a deny syntax to get wrong.
+    ///
+    /// **Only ever cut.** The limit and the granted letters are whole masks, and the walk only
+    /// intersects them, so the answer for a profile is never wider than any standing version on its
+    /// way allows, a verb never stands beside a switch that no single mask held beside it, and the
+    /// order in which versions are met changes nothing.
     ///
     /// **A profile is resolved on its own, and then they are combined.** A client holding two
     /// profiles is permitted when either of them is, which is the only combination that does not
@@ -135,13 +151,13 @@ namespace KeePassGate.Acl
     /// the verb and the switch from the same rule, so a rule granting `read` without it refuses
     /// where it is found rather than sending the walk up to a rule that would have.
     ///
-    /// **Everything that is not an explicit permission is a refusal.** No rule anywhere, a document
-    /// that will not read, a node with no chain to a root, a verb that is not grantable: each of
+    /// **Everything that is not an explicit permission is a refusal.** No rule anywhere, a rule
+    /// lost or out of form, a node with no chain to a root, a verb that is not grantable: each of
     /// those denies. There is no permissive default here and there is not one anywhere else either.
     ///
     /// **This is half of the answer.** `DESIGN.md` §114 intersects it with the admission
     /// record, and `AccessCheck` is where the two are put together, before any handler runs. On its
-    /// own this says what the database permits a profile, not what a particular client holds.
+    /// own this answers what the database permits a profile, not what a particular client holds.
     ///
     /// Static because it holds nothing and decides nothing on its own account: the tree is the
     /// argument and the answer is a function of it. `JsonLinesAudit` records what came back
@@ -159,9 +175,20 @@ namespace KeePassGate.Acl
         /// </remarks>
         public const int MaxDepth = 64;
 
+        private const string Lost = "a rule here was lost";
+        private const string OutOfForm = "a rule here could not be read";
+        private const string MadeApart = "rules here made apart do not all grant it";
+        private const string Limited = "a limit here does not let it through";
+        private const string Unnamed = "a rule here refuses anything it does not name";
+        private const string NoRule = "no rule anywhere grants it";
+        private const string TooDeep = "the tree is deeper than this walks";
+
+        /// <summary>How many levels a walk from a node's parent has already walked: the node itself.</summary>
+        private const int Edited = 1;
+
         /// <summary>
-        /// What a node under this one inherits: the rule in force for every profile named at or
-        /// above the node given.
+        /// What a node under this one inherits: for every profile whose walk from the node given
+        /// ends at a row, what that walk gives.
         /// </summary>
         /// <remarks>
         /// The same walk `Decide` makes, stopped one question earlier. It exists for the editor,
@@ -169,9 +196,13 @@ namespace KeePassGate.Acl
         /// only a group's own rules reports nothing for a group whose parent already opens it wide,
         /// and an operator reading that is being invited to grant more.
         ///
-        /// For display, so unlike `Decide` it answers about every profile at once and says when it
-        /// could not read something rather than refusing. Nothing authorizes anything on the
-        /// strength of what comes back.
+        /// A profile whose walk ends at a row that refuses, a lost version or a text out of form,
+        /// is listed as granted nothing, since a row stands for it there. A profile whose walk ends
+        /// at a switch that refuses, or above the root, is not listed: nothing above names it on
+        /// the way. Each letter listed is what `Arrives` answers, every cut on the way taken.
+        ///
+        /// For display, so unlike `Decide` it answers about every profile at once. Nothing
+        /// authorizes anything on the strength of what comes back.
         /// </remarks>
         /// <param name="node">The parent of the node being edited, which is where its walk goes next.</param>
         public static AclInheritance Above(IAclNode node)
@@ -182,59 +213,49 @@ namespace KeePassGate.Acl
         private static AclInheritance Inherited(IAclNode node)
         {
             var grants = new Dictionary<string, AclGrant>(StringComparer.Ordinal);
-            var readable = true;
+            var named = new HashSet<string>(StringComparer.Ordinal);
 
             // One level already walked: the node being edited, whose own rules the editor holds.
             // Counted from there, `MaxDepth` gives up at the same group `Decide` does rather than
             // one further up, where a grant it would show is one the resolver never reaches.
-            var walked = 1;
+            var walked = Edited;
             var tooDeep = false;
 
             for (var current = node; current != null; current = current.Parent)
             {
                 if (++walked > MaxDepth)
                 {
-                    // Where `Decide` gives up, and what it answers there: no for every profile
-                    // still unanswered. What was collected below this point is still in force.
-                    readable = false;
                     tooDeep = true;
                     break;
                 }
 
-                var text = current.Document;
-                if (string.IsNullOrEmpty(text))
+                if (current.Rule != null)
                 {
-                    continue;
-                }
-
-                var document = AclDocument.Read(text);
-                if (document == null)
-                {
-                    // Refused where it is found, exactly as `Decide` refuses it, which is only for
-                    // a profile no nearer rule has already answered. So what was collected on the
-                    // way up stays: those rules are nearer, `Decide` stops at them and never reads
-                    // this one. Everything else is refused here, which is a seal as far as the
-                    // editor can tell, and nothing further up is inherited.
-                    readable = false;
-                    break;
-                }
-
-                // Nearest wins, so the first rule found for a profile is its answer and anything
-                // further up about that profile is already overruled.
-                foreach (var profile in document.Profiles.Where(profile => !grants.ContainsKey(profile)))
-                {
-                    grants[profile] = document.Grant(profile);
-                }
-
-                if (document.Default == AclDefault.Deny)
-                {
-                    // A seal: nothing above it reaches anything under it, so nothing above it is
-                    // listed as inherited.
-                    break;
+                    named.UnionWith(current.Rule.Profiles);
                 }
             }
 
-            return new AclInheritance(grants, readable, tooDeep);
+            foreach (var profile in named)
+            {
+                var walk = Walked(node, profile, Edited);
+                if (walk.Row != null)
+                {
+                    grants[profile] = walk.Letters;
+                }
+            }
+
+            return new AclInheritance(grants, tooDeep);
+        }
+
+        /// <summary>
+        /// The letters a node directly under <paramref name="above"/> receives for a profile: what
+        /// the walk from <paramref name="above"/> gives the profile, every verb and switch together
+        /// and cut by each limit on the way; no letter where the walk refuses or meets no rule, and
+        /// none where <paramref name="above"/> is null.
+        /// </summary>
+        public static AclGrant Arrives(IAclNode above, string profile)
+        {
+            return above == null ? AclGrant.Nothing : above.Held(() => Walked(above, profile, Edited).Letters);
         }
 
         /// <summary>Whether these profiles may do this to this entry's fields.</summary>
@@ -249,31 +270,10 @@ namespace KeePassGate.Acl
             return Decide(node, profiles, verb, reach).Permitted;
         }
 
-        /// <summary>
-        /// The same question, reading each rule through documents one request has already read.
-        /// </summary>
-        /// <remarks>
-        /// For a listing, which asks it about every node it walks: see <see cref="AclDocuments"/>.
-        /// The answer is the one the other overloads give, because a document read twice says the
-        /// same thing both times.
-        /// </remarks>
-        public static bool Permits(
-            IAclNode node, IEnumerable<string> profiles, AclVerb verb, AclReach reach, AclDocuments read)
-        {
-            return Decide(node, profiles, verb, reach, read).Permitted;
-        }
-
         /// <summary>The same question about an entry's fields, with what answered it.</summary>
         public static AclDecision Decide(IAclNode node, IEnumerable<string> profiles, AclVerb verb)
         {
             return Decide(node, profiles, verb, AclReach.Fields);
-        }
-
-        /// <summary>The same question, with what answered it.</summary>
-        public static AclDecision Decide(
-            IAclNode node, IEnumerable<string> profiles, AclVerb verb, AclReach reach)
-        {
-            return Decide(node, profiles, verb, reach, null);
         }
 
         /// <summary>
@@ -287,9 +287,9 @@ namespace KeePassGate.Acl
         /// node's question alone: a removal also asks the group the node is leaving, and no
         /// operation strips a group, so a `D` or an `S` reported here can be a grant no operation
         /// can use at this node. That is what the KPG tab shows for the node's rule, and the answer
-        /// says what the rules grant here rather than what would succeed.
+        /// is what the rules grant here rather than what would succeed.
         ///
-        /// **Per profile, because a switch belongs to its rule.** A switch says how far the verbs of
+        /// **Per profile, because a switch belongs to its rule.** A switch sets how far the verbs of
         /// the same rule reach, so one profile's `read` and another's `protected` do not add up to
         /// reading a protected value, and one grant made of both would claim exactly that. Each
         /// profile is answered on its own, as the router combines them: one is enough by itself,
@@ -331,7 +331,6 @@ namespace KeePassGate.Acl
                 return new AclDecision(false, "the client holds no profiles", null);
             }
 
-            var read = new AclDocuments();
             var grants = new List<KeyValuePair<string, AclGrant>>();
             AclDecision granted = null;
             AclDecision refusal = null;
@@ -347,7 +346,7 @@ namespace KeePassGate.Acl
                         continue;
                     }
 
-                    var decision = Decide(node, profile, verb, AclReach.Fields, read);
+                    var decision = Decide(node, profile, verb, AclReach.Fields);
                     if (decision.Permitted)
                     {
                         verbs.Add(verb);
@@ -361,12 +360,12 @@ namespace KeePassGate.Acl
 
                 var holds = new HashSet<AclVerb>(verbs);
 
-                if (Reaches(node, profile, verbs, AclReach.Attachments, read))
+                if (Reaches(node, profile, verbs, AclReach.Attachments))
                 {
                     holds.Add(AclVerb.Attachments);
                 }
 
-                if (Reaches(node, profile, verbs, AclReach.Protected, read))
+                if (Reaches(node, profile, verbs, AclReach.Protected))
                 {
                     holds.Add(AclVerb.Protected);
                 }
@@ -382,13 +381,12 @@ namespace KeePassGate.Acl
         /// Whether a switch reaches one of these verbs, all granted to this profile here, that a
         /// switch can qualify.
         /// </summary>
-        private static bool Reaches(
-            IAclNode node, string profile, IEnumerable<AclVerb> verbs, AclReach reach, AclDocuments read)
+        private static bool Reaches(IAclNode node, string profile, IEnumerable<AclVerb> verbs, AclReach reach)
         {
             foreach (var verb in verbs)
             {
                 if (verb != AclVerb.Strip && verb != AclVerb.Delete
-                    && Decide(node, profile, verb, reach, read).Permitted)
+                    && Decide(node, profile, verb, reach).Permitted)
                 {
                     return true;
                 }
@@ -397,17 +395,8 @@ namespace KeePassGate.Acl
             return false;
         }
 
-        /// <summary>
-        /// The same question, with what answered it, reading each rule through documents one
-        /// request has already read.
-        /// </summary>
-        /// <remarks>
-        /// For a caller that asks several questions of one node and keeps a refusal to write
-        /// down, so that the line written is the walk that decided: see
-        /// <see cref="AclDocuments"/>.
-        /// </remarks>
-        public static AclDecision Decide(
-            IAclNode node, IEnumerable<string> profiles, AclVerb verb, AclReach reach, AclDocuments read)
+        /// <summary>The same question, with what answered it.</summary>
+        public static AclDecision Decide(IAclNode node, IEnumerable<string> profiles, AclVerb verb, AclReach reach)
         {
             if (node == null)
             {
@@ -440,15 +429,14 @@ namespace KeePassGate.Acl
                 return new AclDecision(false, "the client holds no profiles", null);
             }
 
-            return node.Held(() => First(node, held, verb, reach, read));
+            return node.Held(() => First(node, held, verb, reach));
         }
 
-        private static AclDecision First(
-            IAclNode node, IEnumerable<string> held, AclVerb verb, AclReach reach, AclDocuments read)
+        private static AclDecision First(IAclNode node, IEnumerable<string> held, AclVerb verb, AclReach reach)
         {
             AclDecision refusal = null;
 
-            foreach (var decision in held.Select(profile => Decide(node, profile, verb, reach, read)))
+            foreach (var decision in held.Select(profile => Decide(node, profile, verb, reach)))
             {
                 if (decision.Permitted)
                 {
@@ -463,75 +451,170 @@ namespace KeePassGate.Acl
             return refusal;
         }
 
-        private static AclDecision Decide(
-            IAclNode node, string profile, AclVerb verb, AclReach reach, AclDocuments read)
+        /// <summary>A single profile's question, answered from its walk.</summary>
+        private static AclDecision Decide(IAclNode node, string profile, AclVerb verb, AclReach reach)
         {
-            var walked = 0;
+            var walk = Walked(node, profile, 0);
+            var at = walk.At == null ? null : walk.At.Name;
+            if (walk.Row == null || walk.Row.Refuses)
+            {
+                return new AclDecision(false, walk.Reason, at);
+            }
+
+            // The nearest row about this profile is the answer, so a row that grants the verb but
+            // not the switch refuses here rather than sending the walk on to find a rule further
+            // up that would.
+            var row = walk.Row;
+            if (!row.Grants.Holds(verb))
+            {
+                return new AclDecision(false, Apart(row, "a rule here does not grant it", verb, null), at);
+            }
+
+            // Neither switch is asked about for a removal. A switch sets how far the verbs a rule
+            // grants see or change inside an entry, and removing something shows nobody anything.
+            // A rule that may remove an entry already takes every attachment and every protected
+            // value with it, so requiring a scope before one of them can be stripped on its own
+            // would forbid the smaller act while allowing the larger one.
+            AclVerb? scope = null;
+            if (verb != AclVerb.Strip && verb != AclVerb.Delete)
+            {
+                if (reach == AclReach.Attachments)
+                {
+                    scope = AclVerb.Attachments;
+                }
+                else if (reach == AclReach.Protected)
+                {
+                    scope = AclVerb.Protected;
+                }
+            }
+
+            if (scope != null && !row.Grants.Holds(scope.Value))
+            {
+                var unreached = scope == AclVerb.Attachments
+                    ? "a rule here does not reach attachments"
+                    : "a rule here does not reach protected values";
+                return new AclDecision(false, Apart(row, unreached, verb, scope), at);
+            }
+
+            // Granted where the row stands, and cut on the way to it: the node that took the
+            // letters away is what decided, a node whose version recorded what arrived among them.
+            if (!walk.Letters.Holds(verb) || (scope != null && !walk.Letters.Holds(scope.Value)))
+            {
+                return new AclDecision(false, Limited, walk.CutAt(verb, scope) ?? at);
+            }
+
+            return new AclDecision(true, "a rule here grants it", at);
+        }
+
+        /// <summary>
+        /// Why a row that answered does not grant this: a reason of its own where versions made
+        /// apart stand and a single one of them would have granted it.
+        /// </summary>
+        private static string Apart(RowRule row, string reason, AclVerb verb, AclVerb? scope)
+        {
+            var some = row.Versions.Any(version =>
+                version.Letters.Holds(verb) && (scope == null || version.Letters.Holds(scope.Value)));
+            return row.Versions.Count > 1 && some ? MadeApart : reason;
+        }
+
+        /// <summary>
+        /// The walk of `STORE.md` §617 for a single profile, from <paramref name="node"/> upward,
+        /// with <paramref name="walked"/> levels already counted against <see cref="MaxDepth"/>.
+        /// </summary>
+        private static Walk Walked(IAclNode node, string profile, int walked)
+        {
+            var walk = new Walk();
+            var limit = AclGrant.Every;
 
             for (var current = node; current != null; current = current.Parent)
             {
                 if (++walked > MaxDepth)
                 {
-                    return new AclDecision(false, "the tree is deeper than this walks", current.Name);
+                    return walk.Ended(AclGrant.Nothing, current, TooDeep, null);
                 }
 
-                var text = current.Document;
-                if (string.IsNullOrEmpty(text))
+                // Never null; one that is would be a node whose rules nobody could read, and that
+                // refuses where it is found rather than being walked past.
+                var rule = current.Rule;
+                if (rule == null)
                 {
-                    continue;
+                    return walk.Ended(AclGrant.Nothing, current, OutOfForm, null);
                 }
 
-                var document = read == null ? AclDocument.Read(text) : read.Read(text);
-                if (document == null)
+                var row = rule.Row(profile);
+                if (row.Refuses)
                 {
-                    // Refused rather than skipped. A document that will not read is a rule somebody
-                    // wrote and this cannot honor, and carrying on up the tree would answer with a
-                    // permission that the node in front of it may have been taking away.
-                    return new AclDecision(false, "a rule here could not be read", current.Name);
+                    return walk.Ended(AclGrant.Nothing, current, row.Lost.Count > 0 ? Lost : OutOfForm, row);
                 }
 
-                var grant = document.Grant(profile);
-                if (grant != null)
+                if (row.Answers)
                 {
-                    // The nearest rule about this profile is the answer, so a rule that grants the
-                    // verb but not the scope refuses here rather than sending the walk on to find
-                    // a rule further up that would.
-                    if (!grant.Holds(verb))
-                    {
-                        return new AclDecision(false, "a rule here does not grant it", current.Name);
-                    }
-
-                    // Neither switch is asked about for a removal. A switch says how far the verbs
-                    // a rule grants see or change inside an entry, and removing something shows
-                    // nobody anything. A rule that may remove an entry already takes every
-                    // attachment and every protected value with it, so requiring a scope before
-                    // one of them can be stripped on its own would forbid the smaller act while
-                    // allowing the larger one.
-                    if (verb != AclVerb.Strip && verb != AclVerb.Delete)
-                    {
-                        if (reach == AclReach.Attachments && !grant.CoversAttachments)
-                        {
-                            return new AclDecision(
-                                false, "a rule here does not reach attachments", current.Name);
-                        }
-
-                        if (reach == AclReach.Protected && !grant.CoversProtected)
-                        {
-                            return new AclDecision(
-                                false, "a rule here does not reach protected values", current.Name);
-                        }
-                    }
-
-                    return new AclDecision(true, "a rule here grants it", current.Name);
+                    return walk.Ended(row.Grants.Cut(limit), current, null, row);
                 }
 
-                if (document.Default == AclDefault.Deny)
+                var sw = rule.Switch;
+                if (sw.Refuses)
                 {
-                    return new AclDecision(false, "a rule here refuses anything it does not name", current.Name);
+                    var reason = sw.Lost.Count > 0
+                        ? Lost
+                        : sw.Versions.Any(version => version.Kind == SwitchVersionKind.OutOfForm) ? OutOfForm : Unnamed;
+                    return walk.Ended(AclGrant.Nothing, current, reason, null);
                 }
+
+                // The node lets through: what arrives is cut to what its row's versions and its
+                // switch's versions recorded for the profile, and the walk goes on.
+                var cut = limit.Cut(rule.Limit(profile));
+                if (!cut.SameAs(limit))
+                {
+                    walk.Cuts.Add(new KeyValuePair<IAclNode, AclGrant>(current, cut));
+                }
+
+                limit = cut;
             }
 
-            return new AclDecision(false, "no rule anywhere grants it", null);
+            return walk.Ended(AclGrant.Nothing, null, NoRule, null);
+        }
+
+        /// <summary>Where a walk ended, what it gives there, and each node on the way that cut it.</summary>
+        private sealed class Walk
+        {
+            /// <summary>What the walk gives the profile: no letter for a refusal and above the root.</summary>
+            public AclGrant Letters { get; private set; }
+
+            /// <summary>The node the walk ended at, or null where it went past the root.</summary>
+            public IAclNode At { get; private set; }
+
+            /// <summary>Why it ended there, where it ended for want of a row that answers.</summary>
+            public string Reason { get; private set; }
+
+            /// <summary>The row the walk ended at, refusing or answering; null where it ended otherwise.</summary>
+            public RowRule Row { get; private set; }
+
+            /// <summary>Each node that cut what arrives, nearest first, with the limit left after it.</summary>
+            public List<KeyValuePair<IAclNode, AclGrant>> Cuts { get; } = new List<KeyValuePair<IAclNode, AclGrant>>();
+
+            public Walk Ended(AclGrant letters, IAclNode at, string reason, RowRule row)
+            {
+                Letters = letters;
+                At = at;
+                Reason = reason;
+                Row = row;
+                return this;
+            }
+
+            /// <summary>The nearest node whose cut took this verb, or this verb with this switch, away.</summary>
+            public string CutAt(AclVerb verb, AclVerb? scope)
+            {
+                foreach (var cut in Cuts)
+                {
+                    if (!cut.Value.Holds(verb) || (scope != null && !cut.Value.Holds(scope.Value)))
+                    {
+                        return cut.Key.Name;
+                    }
+                }
+
+                return null;
+            }
         }
     }
 }

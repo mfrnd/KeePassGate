@@ -16,19 +16,20 @@ namespace KeePassGate.Host.Tests
     /// </summary>
     /// <remarks>
     /// A merge decides a group, an entry and the recycle bin setting by their times, and takes a
-    /// group whole, its rules with it, from whichever copy's group was modified last. So whatever a
-    /// removal stamps claims to be the newer edit at the next synchronize, and these hold the vault
-    /// to stamping what KeePass's own delete stamps and nothing more. The other copy's edit is
-    /// given a time of its own, after the copies were made and before the removal, so that the
-    /// order is the test's rather than the clock's. Both directions are asked, since
-    /// `File > Synchronize` can be run on either copy.
+    /// group whole, its own fields with it, from whichever copy's group was modified last. So
+    /// whatever a removal stamps claims to be the newer edit at the next synchronize, and these
+    /// hold the vault to stamping what KeePass's own delete stamps and nothing more. The other
+    /// copy's edit is given a time of its own, after the copies were made and before the removal,
+    /// so that the order is the test's rather than the clock's. Both directions are asked, since
+    /// `File > Synchronize` can be run on either copy. A rule is a record of the plugin's store,
+    /// merged as an entry of its own, and a rule narrowed on the other copy is held beside the
+    /// group's fields.
     /// </remarks>
     [TestFixture]
     [NonParallelizable]
     public sealed class RemovalMergeTests
     {
-        private const string Wide = "{\"agent\":[\"read\",\"delete\",\"list\"]}";
-        private const string Narrowed = "{\"agent\":[]}";
+        private const string Notes = "notes written on the other copy";
 
         private TemporaryDatabase _here;
         private TemporaryDatabase _elsewhere;
@@ -50,8 +51,8 @@ namespace KeePassGate.Host.Tests
             _elsewhere.Database.RootGroup.Uuid = _here.Database.RootGroup.Uuid;
 
             _shared = new PwGroup(true, true, "Shared", PwIcon.Folder);
-            _shared.CustomData.Set(AclDocument.CustomDataKey, Wide);
             _here.Database.RootGroup.AddGroup(_shared, true);
+            DatabaseRules.Rule(_here.Database, _shared, ("agent", "RDL"));
             _empty = new PwGroup(true, true, "Empty", PwIcon.Folder);
             _shared.AddGroup(_empty, true);
             _entry = new PwEntry(true, true);
@@ -90,26 +91,34 @@ namespace KeePassGate.Host.Tests
             _elsewhere.Dispose();
         }
 
-        [TestCase(true, true, TestName = "a rule narrowed elsewhere survives a subgroup binned here, synchronized here")]
-        [TestCase(false, true, TestName = "a rule narrowed elsewhere survives a subgroup binned here, synchronized elsewhere")]
-        [TestCase(true, false, TestName = "a rule narrowed elsewhere survives a subgroup deleted here, synchronized here")]
-        [TestCase(false, false, TestName = "a rule narrowed elsewhere survives a subgroup deleted here, synchronized elsewhere")]
-        public void A_rule_narrowed_on_another_copy_survives_a_subgroup_removed_here(bool intoHere, bool bin)
+        [TestCase(true, true, TestName = "a group's notes and rule changed elsewhere survive a subgroup binned here, synchronized here")]
+        [TestCase(false, true, TestName = "a group's notes and rule changed elsewhere survive a subgroup binned here, synchronized elsewhere")]
+        [TestCase(true, false, TestName = "a group's notes and rule changed elsewhere survive a subgroup deleted here, synchronized here")]
+        [TestCase(false, false, TestName = "a group's notes and rule changed elsewhere survive a subgroup deleted here, synchronized elsewhere")]
+        public void A_group_changed_on_another_copy_survives_a_subgroup_removed_here(bool intoHere, bool bin)
         {
             // The parent was stamped as modified by the removal of its child, which KeePass's own
             // delete never does, and a group keeps no history: the next synchronize took this
-            // copy's parent whole, and the rule the operator had narrowed on the other copy was
-            // the wide rule again, with nothing to show it.
+            // copy's parent whole, and what the operator had written on the other copy was gone,
+            // with nothing to show it. The rule narrowed there is a version of the store, which a
+            // merge brings beside the version it replaces, and the narrower answer stands.
             _here.Database.RecycleBinEnabled = bin;
             var there = Find(_elsewhere, _shared);
-            there.CustomData.Set(AclDocument.CustomDataKey, Narrowed);
+            there.Notes = Notes;
             there.LastModificationTime = _made.AddMinutes(5);
+            DatabaseRules.Rule(_elsewhere.Database, there, ("agent", ""));
 
             Assert.That(_vault.DeleteGroup(Hex(_empty), VaultAskings.Free).Ok, Is.True);
 
             var merged = Synchronize(intoHere);
 
-            Assert.That(Find(merged, _shared).CustomData.Get(AclDocument.CustomDataKey), Is.EqualTo(Narrowed));
+            Assert.That(Find(merged, _shared).Notes, Is.EqualTo(Notes));
+            using (var reading = DatabaseAuthority.Store(merged).Read())
+            {
+                var row = StoredRules.Of(reading).At(DatabaseRules.Id(_shared.Uuid)).Row("agent");
+                Assert.That(row.Answers, Is.True);
+                Assert.That(row.Grants.SameAs(AclGrant.Nothing), Is.True, "the rule narrowed on the other copy");
+            }
         }
 
         [TestCase(true, TestName = "an edit made elsewhere stays an entry's content after it is binned here, synchronized here")]

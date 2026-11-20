@@ -18,7 +18,7 @@ namespace KeePassGate.Tests.Fakes
     /// what is decided here.
     ///
     /// The nodes it hands out are `TestNode`s wired into the same shape as the tree, so a rule
-    /// written on a group really does reach the entries under it.
+    /// put at a group really does reach the entries under it.
     /// </remarks>
     internal sealed class FakeVault : IVault
     {
@@ -302,12 +302,12 @@ namespace KeePassGate.Tests.Fakes
             return false;
         }
 
-        /// <summary>Writes a rule on a group or an entry, which is what a grant editor does.</summary>
-        public FakeVault Granting(string uuid, string document)
+        /// <summary>Puts these rules on a group or an entry, as the store holds them after an OK on its dialog.</summary>
+        public FakeVault Granting(string uuid, NodeRule rule)
         {
             var node = NodeOf(uuid)
                 ?? throw new InvalidOperationException("there is nothing called " + uuid);
-            node.Holding(document);
+            node.Holding(rule);
             return this;
         }
 

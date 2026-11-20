@@ -82,7 +82,7 @@ namespace KeePassGate.Diagnostics
         }
 
         /// <summary>
-        /// Reading or writing custom data: the database's own, a group's or an entry's.
+        /// Reading or writing custom data, the database's own.
         /// </summary>
         /// <remarks>
         /// `InvalidOperationException` is what an enumeration throws when its dictionary changes

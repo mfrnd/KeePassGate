@@ -114,13 +114,13 @@ namespace KeePassGate.Acl
         /// verbs and then the two switches.
         /// </summary>
         /// <remarks>
-        /// One list, so the editor's boxes, a document's ordering and anything that enumerates what
-        /// can be granted cannot disagree about what there is or what order it comes in.
+        /// One list, so the editor's boxes, the letters of a version and anything that enumerates
+        /// what can be granted cannot disagree about what there is or what order it comes in.
         ///
         /// **Read only, and not merely a field nobody reassigns.** A position in this list is a
-        /// letter of every mask and the place of a verb in every document written, for the life of
-        /// the process, so code able to sort it or write into it would change both everywhere at
-        /// once. `readonly` on an array keeps the reference and nothing in it.
+        /// letter of every mask and of every version the store holds, for the life of the process,
+        /// so code able to sort it or write into it would change both everywhere at once.
+        /// `readonly` on an array keeps the reference and nothing in it.
         /// </remarks>
         public static readonly IReadOnlyList<AclVerb> Grantable = new ReadOnlyCollection<AclVerb>(new[]
         {
@@ -133,22 +133,6 @@ namespace KeePassGate.Acl
             AclVerb.Attachments,
             AclVerb.Protected,
         });
-
-        /// <summary>
-        /// Where a verb sits in <see cref="Grantable"/>, or -1 for one no rule can hold.
-        /// </summary>
-        public static int PositionOf(AclVerb verb)
-        {
-            for (var i = 0; i < Grantable.Count; i++)
-            {
-                if (Grantable[i] == verb)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
 
         /// <summary>
         /// Whether this says how far a rule reaches rather than what it may do.
@@ -185,13 +169,12 @@ namespace KeePassGate.Acl
         /// The verb this text names, or null for anything else.
         /// </summary>
         /// <remarks>
-        /// Fail closed. A verb nobody recognizes is not a verb that means nothing, it is a rule
-        /// somebody wrote and this cannot honor, so it denies rather than being skipped. The
-        /// alternative would be a typo in a grant silently widening what a client may do, because
-        /// the rule it belonged to would have been dropped instead of applied.
+        /// Fail closed. A verb nobody recognizes is not a verb that means nothing, so an operation
+        /// declaring one stops the plugin loading rather than being routed under a verb somebody
+        /// guessed.
         ///
         /// Case sensitive, and the document writes them in lower case. A comparison that ignored
-        /// case would mean two spellings of one rule, and an editor that has to choose one.
+        /// case would mean two spellings of a single verb.
         /// </remarks>
         public static AclVerb? Read(string text)
         {
@@ -216,7 +199,7 @@ namespace KeePassGate.Acl
             }
         }
 
-        /// <summary>How a verb is written, which is how a document and an editor both spell it.</summary>
+        /// <summary>How a verb is written, which is how the routing document and the editor both spell it.</summary>
         public static string Write(AclVerb verb)
         {
             switch (verb)
@@ -244,8 +227,7 @@ namespace KeePassGate.Acl
         /// would read as permission to do something rather than as permission to do nothing.
         ///
         /// Nor is `Any`, which asks about every verb a rule can hold and is not one of them. A rule
-        /// holding it would grant what no letter of the editor shows, so a document naming it is
-        /// refused like one naming a verb nobody defined.
+        /// holding it would grant what no letter of the editor shows, so no letter spells it.
         /// </remarks>
         public static bool IsGrantable(AclVerb verb)
         {

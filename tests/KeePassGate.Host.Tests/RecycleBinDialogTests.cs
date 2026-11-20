@@ -274,7 +274,7 @@ namespace KeePassGate.Host.Tests
             {
                 Assert.That(_dialogs.Count, Is.Zero);
                 Assert.That(_dialogs.Blocking(_database.RootGroup), Is.Null,
-                    "and it copies no custom data, so it blocks no rule and no record either");
+                    "and it copies no node's custom data, so it blocks no write to a node either");
             }
         }
 

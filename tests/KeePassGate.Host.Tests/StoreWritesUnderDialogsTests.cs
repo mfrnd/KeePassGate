@@ -263,6 +263,50 @@ namespace KeePassGate.Host.Tests
             Assert.That(StoreAuthorities.Served(Store().Read()), Is.EqualTo(both[0]));
         }
 
+        [Test]
+        public void The_OK_of_a_node_dialog_s_tab_is_refused_whole_under_Database_Maintenance_and_written_once_it_has_gone()
+        {
+            // `STORE.md` §629: the write at a node dialog's close goes through the writer's guard
+            // as the settings dialog's OK does, so under a window that puts the database's own
+            // custom data back the write adds nothing, and the reason is what the operator is told.
+            StoreSeeds.Authority(Store());
+            var group = new PwGroup(true, true, "Fictitious", PwIcon.Folder);
+            _database.RootGroup.AddGroup(group, true);
+            var node = Hex.Of(group.Uuid.UuidBytes);
+
+            using (var dialog = new GroupForm())
+            using (var form = new DatabaseOperationsForm())
+            {
+                dialog.InitEx(group, false, null, _database.Database);
+                var tab = new NodeDialogs(NullGateLog.Instance, _writer).TabFor(dialog);
+                Assert.That(tab.Sheet.Set("reader", ".R......"), Is.Null);
+
+                form.InitEx(_database.Database);
+                GlobalWindowManager.AddWindow(form);
+                try
+                {
+                    Assert.That(tab.Rules.Write(tab.Sheet.Changes), Does.Contain("the database maintenance dialog is open on this database"));
+                    Assert.That(Rows(node), Is.Empty, "a write refused adds nothing");
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+
+                Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+                Assert.That(Rows(node), Is.EqualTo(new[] { "reader" }));
+            }
+        }
+
+        /// <summary>The profiles the store holds a row for at a node, as a reading made now reads them.</summary>
+        private IReadOnlyList<string> Rows(string node)
+        {
+            using (var reading = Store().Read())
+            {
+                return KeePassGate.Acl.StoredRules.Of(reading).At(node).Profiles;
+            }
+        }
+
         /// <summary>
         /// Every method a type's own code calls, its nested types' included, the classes the
         /// compiler makes for anonymous methods among them, read off the IL as

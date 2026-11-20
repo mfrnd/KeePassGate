@@ -1318,7 +1318,7 @@ namespace KeePassGate.Ui
                 described.Answer = answer;
             }
 
-            var tip = Tooltips.Wrapped(listed.Record == null
+            var tip = Tooltips.Laid(listed.Record == null
                 ? Unidentified(listed.Unread)
                 : Identified(listed.Record, answer, Profiles(listed.Record), listed.Standing));
             foreach (DataGridViewCell cell in row.Cells)
@@ -1342,7 +1342,7 @@ namespace KeePassGate.Ui
         /// line.
         /// </summary>
         /// <remarks>
-        /// Broken into lines here, which `Tooltips.Wrapped` leaves as they are, because a key is
+        /// Broken into lines here, which `Tooltips.Laid` leaves as they are, because a key is
         /// sixty-four characters with no space to fold at, and one folded onto a line of its own
         /// would leave its label behind.
         ///

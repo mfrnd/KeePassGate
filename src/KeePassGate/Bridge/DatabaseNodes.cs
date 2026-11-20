@@ -1,29 +1,30 @@
 using System.Collections.Generic;
 using System.Linq;
 using KeePassGate.Acl;
+using KeePassGate.Store;
 using KeePassLib;
 
 namespace KeePassGate.Bridge
 {
     /// <summary>
-    /// Every group and entry in one database, as somewhere rules can be read.
+    /// Every group and entry in one database a rule can be in force at.
     /// </summary>
     /// <remarks>
-    /// The live tree, not a dialog's copy. This is read from the database settings dialog, which
-    /// carries no copy of any node's settings, to count what each profile is named in, and a count
-    /// has to reach nodes no dialog is open on at all.
+    /// The live tree, read from the database settings dialog, to count the nodes at which each
+    /// profile's rule stands, and a count has to reach nodes no dialog is open on at all.
     ///
-    /// **Not an entry's history.** Every item in `PwEntry.History` is a whole entry carrying the
-    /// rules of the moment KeePass took the backup, and none of them is in force: the resolver
-    /// walks the live tree. A count that included them would count as live a rule that decides
-    /// nothing until somebody restores that revision, and restoring one is an edit like any other.
+    /// **Not an entry's history.** Every item in `PwEntry.History` shares the entry's identifier
+    /// and is no node of its own: the resolver walks the live tree.
     ///
-    /// **Not the recycle bin either, for the same reason.** The vault reaches nothing in it,
-    /// `DESIGN.md` §138, so a rule on the bin or on anything removed into it decides nothing until
-    /// the operator moves the node back out. Counted, the Profiles page offered to put such rules
-    /// back in force by adding a name again, and counted them among the rules a removal leaves
-    /// inert, which they were already. The bin is the one the vault hides, through the same two
-    /// questions it asks.
+    /// **Not the recycle bin either.** The vault reaches nothing in it, `DESIGN.md` §138, so a
+    /// rule for the bin or for anything removed into it decides nothing until the operator moves
+    /// the node back out. Counted, the Profiles page offered to put such rules back in force by
+    /// adding a name again, and counted them among the rules a removal leaves inert, which they
+    /// were already. The bin is the bin the vault hides, through the same two questions it asks.
+    ///
+    /// **Nor the plugin's store**, which the vault hides as it hides the bin, `STORE.md` §633: a
+    /// rule naming a group of the store or a record of it reaches no client. Its groups are told by
+    /// their identifiers, and its entries as the reading handed over tells them, `StoreNodes`.
     /// </remarks>
     public sealed class DatabaseNodes : IRuledNodes
     {
@@ -34,7 +35,7 @@ namespace KeePassGate.Bridge
             _database = database;
         }
 
-        public IEnumerable<IRuledNode> All()
+        public IEnumerable<IRuledNode> All(StoreReading reading)
         {
             var root = _database == null ? null : _database.RootGroup;
             if (root == null)
@@ -43,51 +44,39 @@ namespace KeePassGate.Bridge
             }
 
             var bin = KdbxVault.Bin(_database, root);
+            var store = reading == null ? null : StoreNodes.Of(reading);
 
-            if (!KdbxVault.Discarded(root, bin))
+            if (!Left(root, bin))
             {
-                yield return new GroupNode(root);
+                yield return new Node(root.Uuid);
             }
 
-            foreach (var group in root.GetGroups(true).Where(group => !KdbxVault.Discarded(group, bin)))
+            foreach (var group in root.GetGroups(true).Where(group => !Left(group, bin)))
             {
-                yield return new GroupNode(group);
+                yield return new Node(group.Uuid);
             }
 
-            foreach (var entry in root.GetEntries(true).Where(entry => !KdbxVault.Discarded(entry, bin)))
+            foreach (var entry in root.GetEntries(true).Where(entry => !Left(entry.ParentGroup, bin)
+                                                                       && (store == null || !store.Holds(entry))))
             {
-                yield return new EntryNode(entry);
-            }
-        }
-
-        private sealed class GroupNode : IRuledNode
-        {
-            private readonly PwGroup _group;
-
-            public GroupNode(PwGroup group)
-            {
-                _group = group;
-            }
-
-            public string Read()
-            {
-                return _group.CustomData.Get(AclDocument.CustomDataKey);
+                yield return new Node(entry.Uuid);
             }
         }
 
-        private sealed class EntryNode : IRuledNode
+        /// <summary>Whether a group is the recycle bin, a group of the store, or inside either.</summary>
+        private static bool Left(PwGroup group, PwGroup bin)
         {
-            private readonly PwEntry _entry;
+            return KdbxVault.Discarded(group, bin) || StoreNodes.Holds(group);
+        }
 
-            public EntryNode(PwEntry entry)
+        private sealed class Node : IRuledNode
+        {
+            public Node(PwUuid uuid)
             {
-                _entry = entry;
+                Id = Hex.Of(uuid.UuidBytes);
             }
 
-            public string Read()
-            {
-                return _entry.CustomData.Get(AclDocument.CustomDataKey);
-            }
+            public string Id { get; private set; }
         }
     }
 }

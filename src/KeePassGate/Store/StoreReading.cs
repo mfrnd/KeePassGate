@@ -26,6 +26,11 @@ namespace KeePassGate.Store
     /// about its own key while keys are found, and past the ceiling about no other, so a file that
     /// brings a key for each of its entries costs a reading no more than a version each.
     ///
+    /// **It asks for the tree only where a deletion record of a rule's version is left** that no
+    /// node the objects of the file name explains, `STORE.md` §620, and only while it is made: the
+    /// identifiers of the groups and entries are handed over as a walk that the reading calls at
+    /// most once and never keeps, `StoreInForce`.
+    ///
     /// **A reading made afresh owns its forms, and whoever asked for it lets it go**, which
     /// overwrites every key they hold, `CA.md` §208: <see cref="Afresh"/>, what the plugin's own
     /// screens and writer read. A gate's reading does not, since the readings it keeps for a
@@ -138,7 +143,8 @@ namespace KeePassGate.Store
 
         /// <summary>
         /// Reads the store from these candidates afresh, into forms of its own that
-        /// <see cref="Dispose"/> lets go of.
+        /// <see cref="Dispose"/> lets go of, with no tree: a deletion record of a rule's version
+        /// is told of only at a node that an object the file names names, `StoreInForce`.
         /// </summary>
         /// <param name="deletions">The identifiers the database's deletion records name.</param>
         /// <param name="present">
@@ -148,11 +154,31 @@ namespace KeePassGate.Store
         internal static StoreReading Afresh(
             IReadOnlyList<StoreCandidate> candidates, IReadOnlyList<byte[]> deletions, IEnumerable<byte[]> present = null)
         {
+            return AfreshInTree(candidates, deletions, present, null);
+        }
+
+        /// <summary>
+        /// Reads the store from these candidates afresh, as <see cref="Afresh"/> does, asking for
+        /// the identifier of every group and entry of the tree only where a deletion record is left
+        /// that no object the file names explains.
+        /// </summary>
+        /// <param name="deletions">The identifiers the database's deletion records name.</param>
+        /// <param name="present">
+        /// The identifier of every entry in the tree, records or not, where the reading has a tree;
+        /// null where the candidates are all there is.
+        /// </param>
+        /// <param name="nodes">
+        /// The identifier of every group and entry of the tree, walked only when called and only
+        /// while this reading is made; null where the reading has no tree.
+        /// </param>
+        internal static StoreReading AfreshInTree(
+            IReadOnlyList<StoreCandidate> candidates, IReadOnlyList<byte[]> deletions, IEnumerable<byte[]> present, Func<IEnumerable<byte[]>> nodes)
+        {
             var owned = new StoreKept();
             StoreReading reading = null;
             try
             {
-                reading = Of(candidates, deletions, null, owned);
+                reading = Of(candidates, deletions, null, owned, nodes);
                 reading._owned = owned;
                 if (present != null)
                 {
@@ -189,11 +215,20 @@ namespace KeePassGate.Store
         /// <summary>
         /// Reads the store from these candidates, keeping in <paramref name="next"/> the checked
         /// form of every version it met, taken from <paramref name="kept"/> where the objects are
-        /// those kept.
+        /// those kept, and asking for the identifier of every group and entry of the tree only
+        /// where a deletion record is left that no object the file names explains.
         /// </summary>
         /// <param name="deletions">The identifiers the database's deletion records name.</param>
+        /// <param name="nodes">
+        /// The identifier of every group and entry of the tree, walked only when called and only
+        /// while this reading is made, as the candidates are; null where the reading has no tree.
+        /// </param>
         internal static StoreReading Of(
-            IReadOnlyList<StoreCandidate> candidates, IReadOnlyList<byte[]> deletions, StoreKept kept, StoreKept next)
+            IReadOnlyList<StoreCandidate> candidates,
+            IReadOnlyList<byte[]> deletions,
+            StoreKept kept,
+            StoreKept next,
+            Func<IEnumerable<byte[]>> nodes = null)
         {
             if (candidates == null)
             {
@@ -277,7 +312,7 @@ namespace KeePassGate.Store
 
                 var judged = beyond
                     ? Judgment.Beyond(keys.Count, candidates.Count)
-                    : Judgment.Of(candidates, forms, keys, deletions ?? Array.Empty<byte[]>());
+                    : Judgment.Of(candidates, forms, keys, deletions ?? Array.Empty<byte[]>(), nodes);
                 return new StoreReading(tags, passing, judged, candidates, deletions ?? Array.Empty<byte[]>());
             }
             finally

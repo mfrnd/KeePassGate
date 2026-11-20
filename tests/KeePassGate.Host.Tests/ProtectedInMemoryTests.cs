@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using KeePassGate.Acl;
 using KeePassGate.Audit;
 using KeePassGate.Bridge;
 using KeePassGate.Pipeline;
@@ -62,7 +61,7 @@ namespace KeePassGate.Host.Tests
             _database = TemporaryDatabase.New();
 
             _group = new PwGroup(true, true, "Fictitious", PwIcon.Folder);
-            _database.RootGroup.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "CRUSDLAP")));
+            DatabaseRules.Rule(_database.Database, _database.RootGroup, ("agent", "CRUSDLAP"));
             _database.RootGroup.AddGroup(_group, true);
 
             // A database that protects titles and addresses as well as passwords, so that the

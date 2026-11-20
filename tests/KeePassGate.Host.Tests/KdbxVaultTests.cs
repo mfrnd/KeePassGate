@@ -510,8 +510,7 @@ namespace KeePassGate.Host.Tests
             // the database is asked, the answer is the same whatever the culture makes of the name.
             var uuid = Created(_vault.CreateEntry(_vault.RootAlias, Named("an invented service")));
             _vault.UpdateField(uuid, PwDefs.PasswordField, "not-a-real-password", VaultAskings.Free);
-            _database.RootGroup.CustomData.Set(
-                Acl.AclDocument.CustomDataKey, Rules.Granting(("agent", "CRUSDLA")));
+            DatabaseRules.Rule(_database.Database, _database.RootGroup, ("agent", "CRUSDLA"));
 
             var router = Spec.GateOperations.Router("9.9.9", null, new Pipeline.AccessCheck(Audit.NullGateAudit.Instance));
             var names = Entry(uuid).Strings.Select(pair => pair.Key).ToList();

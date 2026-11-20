@@ -69,21 +69,25 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void The_group_dialog_page_lays_out_as_it_does_left_to_right()
         {
-            AssertLaidOutAlike(
-                () =>
-                {
-                    var dialog = new GroupForm();
-                    dialog.InitEx(_database.RootGroup, false, null, _database.Database);
-                    return dialog;
-                },
-                NodeInjector,
-                KeePassContract.NodeFormTabControlName,
-                GrantTab.PageControlName);
+            using (var window = new Control())
+            {
+                AssertLaidOutAlike(
+                    () =>
+                    {
+                        var dialog = new GroupForm();
+                        dialog.InitEx(_database.RootGroup, false, null, _database.Database);
+                        return dialog;
+                    },
+                    () => NodeInjector(window),
+                    KeePassContract.NodeFormTabControlName,
+                    GrantTab.PageControlName);
+            }
         }
 
         [Test]
         public void The_entry_dialog_page_lays_out_as_it_does_left_to_right()
         {
+            using (var window = new Control())
             using (var icons = new ImageList())
             {
                 AssertLaidOutAlike(
@@ -96,16 +100,17 @@ namespace KeePassGate.Host.Tests
                         dialog.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, icons, false, false);
                         return dialog;
                     },
-                    NodeInjector,
+                    () => NodeInjector(window),
                     KeePassContract.NodeFormTabControlName,
                     GrantTab.PageControlName);
             }
         }
 
-        private static TabPageInjector NodeInjector()
+        /// <summary>The grant tab's injector, telling the operator nothing, since nothing here presses OK.</summary>
+        private static TabPageInjector NodeInjector(Control window)
         {
             return new TabPageInjector(
-                new GrantPanelFactory(new NodeDialogs(null), null),
+                new GrantPanelFactory(new NodeDialogs(null, null), null, null, new NeverAsks(), window, null),
                 null,
                 KeePassContract.NodeFormTabControlName,
                 GrantTab.Text,

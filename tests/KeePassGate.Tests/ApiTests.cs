@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using KeePassGate.Acl;
 using KeePassGate.Audit;
 using KeePassGate.Authority;
 using KeePassGate.Pipeline;
@@ -30,7 +31,7 @@ namespace KeePassGate.Tests
     [TestFixture]
     public sealed class ApiTests
     {
-        private static readonly string AllButProtected = Rules.Granting(("agent", "CRUSDLA"));
+        private static readonly NodeRule AllButProtected = Rules.Granting(("agent", "CRUSDLA"));
 
         /// <summary>The reason the resolver gives when a rule holds the verb and not `P`.</summary>
         private const string NoProtectedReach = "a rule here does not reach protected values";
@@ -512,7 +513,7 @@ namespace KeePassGate.Tests
             Assert.That(_vault.Saw, Is.False);
         }
 
-        private void Named(string what, string rules)
+        private void Named(string what, NodeRule rules)
         {
             _vault.Granting(_group, rules);
             _vault.Plant(_entry, "Password", "not-a-real-password");

@@ -1,16 +1,21 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
 namespace KeePassGate.Acl
 {
     /// <summary>
-    /// What one node says one profile may do, which is a set of verbs and may be an empty one.
+    /// Letters of `CRUSDLAP` as a set: what a rule grants a profile, what a version recorded as
+    /// arriving, or what a walk lets through, any of which may be empty.
     /// </summary>
     /// <remarks>
     /// A type rather than a bare set, because the empty case is the one worth being unable to
     /// confuse. An empty grant is a rule: this profile may do nothing from here down. The absence
-    /// of a grant is silence, and silence is what the node's default answers for. Handing both back
+    /// of a grant is silence, and silence is what the node's switch answers for. Handing both back
     /// as collections would make them one `Count == 0` check apart.
+    ///
+    /// **The walk only ever cuts**, <see cref="Cut"/>: no two masks are united, so no answer holds
+    /// a verb beside a switch that no single mask held beside it, `STORE.md` §617.
     /// </remarks>
     public sealed class AclGrant : IEnumerable<AclVerb>
     {
@@ -32,32 +37,56 @@ namespace KeePassGate.Acl
             return _verbs.Contains(verb);
         }
 
-        /// <summary>
-        /// Whether what this rule grants reaches the attachments inside an entry as well as its
-        /// fields.
-        /// </summary>
-        /// <remarks>
-        /// The same question as `Holds(AclVerb.Attachments)`, named for what it means. A rule
-        /// holding nothing else is holding a scope over no verbs, which grants nothing at all.
-        /// </remarks>
-        public bool CoversAttachments
+        /// <summary>Every letter of `CRUSDLAP`: the limit a walk starts with.</summary>
+        public static AclGrant Every { get; } = new AclGrant(new HashSet<AclVerb>(AclVerbs.Grantable));
+
+        /// <summary>No letter at all.</summary>
+        public static AclGrant Nothing { get; } = new AclGrant(new HashSet<AclVerb>());
+
+        /// <summary>A grant of these letters, each once; a verb no rule can hold throws.</summary>
+        public static AclGrant Of(IEnumerable<AclVerb> letters)
         {
-            get { return _verbs.Contains(AclVerb.Attachments); }
+            if (letters == null)
+            {
+                throw new ArgumentNullException(nameof(letters));
+            }
+
+            var held = new HashSet<AclVerb>();
+            foreach (var letter in letters)
+            {
+                if (!AclVerbs.IsGrantable(letter))
+                {
+                    throw new ArgumentException(AclVerbs.Write(letter) + " is not something a rule can hold.", nameof(letters));
+                }
+
+                held.Add(letter);
+            }
+
+            return new AclGrant(held);
         }
 
-        /// <summary>
-        /// Whether what this rule grants reaches the values the database protects as well as the
-        /// ones it does not.
-        /// </summary>
+        /// <summary>The letters this grant and the limit both hold: this grant cut to the limit.</summary>
         /// <remarks>
-        /// The same question as `Holds(AclVerb.Protected)`, named for what it means. Without it a
-        /// read still answers with the entry and everything unprotected in it, and a protected
-        /// value comes back as `null` rather than as itself; an update may change what is not
-        /// protected and may not overwrite what is.
+        /// **A whole mask cut by a whole mask**, so a verb stays beside a switch only where both
+        /// masks hold the two together, and no cut can put a switch beside a verb that no mask held
+        /// with it. No limit at all cuts to nothing, which is the narrow direction.
         /// </remarks>
-        public bool CoversProtected
+        public AclGrant Cut(AclGrant limit)
         {
-            get { return _verbs.Contains(AclVerb.Protected); }
+            if (limit == null)
+            {
+                return Nothing;
+            }
+
+            var held = new HashSet<AclVerb>(_verbs);
+            held.IntersectWith(limit._verbs);
+            return new AclGrant(held);
+        }
+
+        /// <summary>Whether this grant holds exactly the letters another holds.</summary>
+        public bool SameAs(AclGrant other)
+        {
+            return other != null && _verbs.SetEquals(other._verbs);
         }
 
         public IEnumerator<AclVerb> GetEnumerator()

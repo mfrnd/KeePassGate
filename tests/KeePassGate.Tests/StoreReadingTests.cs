@@ -479,6 +479,45 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_object_out_of_the_form_of_a_rule_or_a_switch_stops_nothing_and_is_handed_on_as_its_text()
+        {
+            // `STORE.md` §617 and §658: the core compares an object's text and does not look into
+            // it, so the versions of an object no rule is read from, standing, lost beside their
+            // own deletion record, or told of by a deletion record at a node the file names, read
+            // as any version does, and the store stays whole.
+            var outOfForm = new[]
+            {
+                "rule:" + Node.ToUpperInvariant() + "/pf",
+                "rule:" + Node + "/",
+                "rule:" + Node,
+                "rule:short/pf",
+                "switch:" + Node + "/pf",
+                "switch:",
+            };
+            var store = new ComposedStore(One);
+            var standing = outOfForm.Select(objectName => store.Add(StoreComposer.RuleVersion(One, objectName, "not a rule"))).ToList();
+            var lost = store.Add(StoreComposer.RuleVersion(One, "rule:short/pg", "row:R"));
+            store.Delete(lost);
+            store.RestateAll(standing.Select((version, at) => StoreComposer.RuleVersionItem(version, outOfForm[at], "not a rule")));
+            var told = StoreComposer.IdentifierOf(One, "version", "rule:short", StoreComposer.ProfileTag(One, "pf"), new string('5', 64));
+            store.Deleted.Add(told);
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                var found = reading.InForce;
+                Assert.That(found.Objects, Is.EquivalentTo(outOfForm.Concat(new[] { "rule:short/pg" })));
+                for (var at = 0; at < outOfForm.Length; at++)
+                {
+                    Assert.That(found.VersionsOf(outOfForm[at]).Select(version => version.Id), Is.EqualTo(new[] { standing[at].Hex }), outOfForm[at]);
+                }
+
+                Assert.That(found.LostOf("rule:short/pg"), Is.EqualTo(new[] { lost.Hex }), "lost beside its own deletion record");
+                Assert.That(found.LostOf("rule:short/pf"), Is.EqualTo(new[] { KeePassGate.Hex.Of(told) }), "told of at a node the file names");
+            }
+        }
+
+        [Test]
         public void Keeping_lets_go_of_the_forms_of_versions_no_entry_holds_and_clearing_of_all()
         {
             var authority = Authority(One, 'a');

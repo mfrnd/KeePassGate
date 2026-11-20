@@ -51,6 +51,33 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Every_line_of_a_text_broken_by_hand_is_folded_to_the_width_and_the_break_kept()
+        {
+            // A tooltip of a row changed on the KPG tab is the row's own sentences, a break, and
+            // the line telling of the change: left whole, the first line runs to about 1,120
+            // pixels, past the dialog. Each line is folded as a text with no break is, and the
+            // break stays.
+            var first = string.Join(" ", Enumerable.Repeat("In this version the rule was removed.", 4));
+            var second = string.Join(" ", Enumerable.Repeat("Changed on this tab.", 5));
+
+            var lines = Tooltips.Wrapped(first + Environment.NewLine + second).Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+
+            Assert.That(lines.Length, Is.GreaterThan(3), "each of the two lines is long enough to be folded");
+            foreach (var line in lines)
+            {
+                Assert.That(line[0], Is.EqualTo(Mark), line);
+                Assert.That(line[line.Length - 1], Is.EqualTo(Mark), line);
+                Assert.That(line.Trim(Mark).IndexOf(Mark), Is.EqualTo(-1), line);
+                Assert.That(line.Trim(Mark).Length, Is.LessThanOrEqualTo(Tooltips.Width), line);
+            }
+
+            var read = lines.Select(line => line.Trim(Mark)).ToList();
+            var broken = read.FindIndex(line => line.StartsWith("Changed", StringComparison.Ordinal));
+            Assert.That(string.Join(" ", read.Take(broken)), Is.EqualTo(first), "the first line, folded");
+            Assert.That(string.Join(" ", read.Skip(broken)), Is.EqualTo(second), "the second, on a line of its own");
+        }
+
+        [Test]
         public void Nothing_is_added_to_nothing()
         {
             Assert.That(Tooltips.Wrapped(null), Is.Null);

@@ -40,7 +40,9 @@ namespace KeePassGate.Host.Tests
     /// before the store was added, so nothing of the store is in any listing.
     ///
     /// **With a rule granting everything at the root**, every verb and both switches, so that
-    /// nothing the store is answered with can be put down to a rule.
+    /// nothing the store is answered with can be put down to a rule: a rule the product wrote into
+    /// the store it keeps, beside rules granting everything at the plugin's own group and at a
+    /// record of it, which reach nothing.
     ///
     /// The real router over the real vault and a real database, as `DecidedAtTheReadTests` drives
     /// them, since identifiers, groups and the flat sweep are KeePass's.
@@ -164,7 +166,15 @@ namespace KeePassGate.Host.Tests
         {
             _database = TemporaryDatabase.New();
             var root = _database.RootGroup;
-            root.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting((Profile, Everything)));
+            DatabaseRules.Rule(_database.Database, root, (Profile, Everything));
+
+            // Rules naming the plugin's own group and a record of it, which the product writes for
+            // no node of the store and a file can hold all the same: they reach nothing.
+            var plugin = root.Groups.Single(StoreNodes.Holds);
+            DatabaseRules.Crafted(_database.Database, DatabaseRules.Id(plugin.Uuid), Profile, "row:" + Everything);
+            DatabaseRules.Crafted(_database.Database, DatabaseRules.Id(plugin.Entries.First().Uuid), Profile, "row:" + Everything);
+            _storeGroups.Add(plugin);
+            _storeEntries.AddRange(plugin.Entries);
 
             _fictitious = Group(root, "Fictitious");
             _holder = Group(root, "Holder");
@@ -515,9 +525,23 @@ namespace KeePassGate.Host.Tests
             var root = _database.RootGroup;
             var one = Key("one");
             var two = Key("two");
+            byte[] kept;
+            using (var reading = DatabaseRules.Keyed(_database.Database).Read())
+            {
+                kept = (byte[])reading.InForce.Key.Bytes.Clone();
+            }
 
             // The plugin's group under the root, with records in it and a group inside it.
             var group = StoreGroup(root);
+
+            // The store the product wrote, kept over the keys below as the operator keeps a
+            // store, so its rules are the rules read beside every record that follows.
+            foreach (var other in new[] { one, two })
+            {
+                Record(
+                    group, kept, "kept", "key:" + StoreComposer.KeyName(other),
+                    Data(("after", string.Empty), ("key", StoreComposer.KeyName(other))));
+            }
             var authority = Record(
                 group, one, "authority", "authority:" + Hex('a'), Data(("id", Hex('a')), ("storeKey", Hex(one))));
             Record(

@@ -115,14 +115,26 @@ a save and a reopen, and an operator's edit landing on KeePass's thread just bef
 which has to be refused.
 
 The access control rules are split the same way, and the split is worth reading as an example of the
-whole arrangement. What a grant **means** is decided against `IAclNode`, a document and a parent, so
-`AclResolverTests` builds the interesting trees in three lines each and runs in the unit tier.
-`AclInRealDatabaseTests` asks the questions KeePass alone can answer, which are that an entry
-carries custom data at all, that an unwritten key reads back as nothing, and that the parent chain
-really reaches the root from an entry three groups down. Then it runs the resolver's own rules over
-a real tree, to see them hold on what KeePass hands back rather than to settle what they mean:
-nearest wins, a seal, a tree with no rule granting nothing, the rules surviving a save and a
-reopen, a decision naming its node by identifier, and a walk taken while the rules move.
+whole arrangement. What a grant **means** is decided against `IAclNode`, a node's rules and a
+parent, so `AclResolverTests` builds the interesting trees in three lines each and runs in the
+unit tier. `AclInRealDatabaseTests` asks the questions KeePass alone can answer, which are that
+the parent chain really reaches the root from an entry three groups down, that a group KeePass
+moves keeps its rule and a duplicate KeePass makes holds none, and that nothing of a rule is
+written on any group or entry. Then it runs the resolver's own rules over a real tree, with
+rules the product wrote into the store, to see them hold on what KeePass hands back rather than
+to settle what they mean: nearest wins, a seal, a tree with no rule granting nothing, the rules
+surviving a save and a reopen, a decision naming its node by identifier, and a walk taken while
+KeePass moves the tree.
+
+**Every press the grant editor offers is played through the real acts**, in the unit tier, by
+`GrantSheetWritesTests`: from each of its starting stores, every sequence of up to two presses,
+each a press the tab offers where the press before left it, is handed to `RuleActs` over a
+store the tests compose and written. What holds each is a property and no list of cases: the
+table after OK is the table the tab showed before OK, no press offered comes to nothing, and
+what each node below holds afterwards is what a write above has to leave there, worked out in
+the test by letters from the texts the store holds and from nothing the product resolves. So a
+press added to the tab is covered when its row is, and a press whose write differs from what
+the tab promised fails without anybody having thought of its case.
 
 **It holds the plugin's store out of every route.** `StoreOnEveryRouteTests` is generated from the
 routing document: each operation it declares is a case, a case is held to the operation's own
@@ -147,33 +159,43 @@ measured reading answered for each, are the output of
 `spikes/storage/probes/store-as-a-whole/vectors.py` on `spikes/storage-survival`, committed there
 at `05c8cc64`, which calls nothing but `probe/store.py` and `probe/read.py` beside it; the versions
 of a profile's rule and of a node's switch and the tags of the profiles' names are its output at
-`53579025`, which also imports `model/bridge.py` and `model/crdt_model.py`, for the store as
+`53579025`, which also imports `probe/bridge.py` and `model/crdt_model.py`, for the store as
 decided and the model's profiles and letters. They are regenerated there and never from this
 side, offline, by
 `uv run --no-project python -I -X utf8 spikes/storage/probes/store-as-a-whole/vectors.py`, and the
 JSON file is that command's output with `--readings`, byte for byte, so a reader checks it with
 the one command. The three words of the measured reading's status are written as the product's
 states by the script's `STATES` table. `tests/Shared/StoreMeaningVectors.json`, small stores and
-what the measured reading found in force in each, is the same script's output with `--meanings`,
-byte for byte, at its commit `663384cc`, which reads the same two files. It keeps the measured
-reading's own words for a store's status, and `StoreInForceTests` names the state it holds each
-to, while `ProfileNamesTests` holds the names the product reads in each store to the names the
-measured reading found. `tests/Shared/StoreRecordVectors.json`, records composed by the measured
+what the measured reading found in force in each, and stores of rules in a tree with what the
+model gives at each node, is the same script's output with `--meanings`, byte for byte, at its
+commit `5d6d34d0`, which imports `probe/bridge.py` and `model/crdt_model.py` as well. It keeps
+the measured reading's own words for a store's status, and `StoreInForceTests` names the state it
+holds each to, while `ProfileNamesTests` holds the names the product reads in each store to the
+names the measured reading found, and `StoredRulesTests` holds what the product's walk gives at
+each node of each store of rules to what the model gave. `tests/Shared/StoreRecordVectors.json`,
+records composed by the measured
 code, and `tests/Shared/StoreWriteVectors.json`, the file after each act of sequences the measured
 model played, are the same script's output with `--records` and `--writes`, byte for byte, the
-first at `53579025` and the second at `b9d0ab03`. `StoreRecordTests` composes every record of the
+first at `53579025` and the second at `e90c3ca4`. `StoreRecordTests` composes every record of the
 first through the product, the versions of a profile's rule and of a node's switch and a summary
 entry restating them among them, and holds the content, the check, the identifier and every
-string to it, and `ProfileActsTests` holds the members of the additions and removals the
-product's acts compose to it; `StoreWriteShapeTests` holds the product's writes to the second by
-shape, since its records hold stand-ins the product does not compose. It plays each sequence
-through the product's own acts, `AuthorityService`, `AdmissionActs` and `ProfileActs`, with the
+string to it, `ProfileActsTests` holds the members of the additions and removals the product's
+acts compose to it, and `RuleActsTests` holds the versions the product's acts at a node compose
+to it byte for byte; `StoreWriteShapeTests` holds the product's writes to the second by shape,
+since its records hold stand-ins the product does not compose. It plays each sequence through the
+product's own acts, `AuthorityService`, `AdmissionActs`, `ProfileActs` and `RuleActs`, with the
 admissions compared as every other kind is; the third sequence, a revocation in a copy and a
 renewal of the same client in the other, synchronized, ends with the same records in both copies
 and the renewed certificate refused in each; the fourth, names added and removed in two copies
 and synchronized, ends with the names the model named and the same records in both copies. A
 merge in the fourth is held by what is present after it rather than by what it deleted, since the
 model derives a summary entry's identifier from its height and the product does not.
+
+**Where the product is stricter than the measured code on purpose, no vector is changed to
+agree.** A write above renews, where nothing arrived, only a version that recorded nothing, and
+a deletion record is judged for each object; the remark at each place states the difference,
+`STORE.md` §644 records each as owed to the model, and no sequence and no store of the vectors
+holds either state, so the product still reads and writes every vector as printed.
 
 **It writes the store into real databases.** `StoreWritesInRealDatabaseTests` writes through the
 product's own commands into a real tree and holds the entries KeePass keeps, the group a write
@@ -218,7 +240,10 @@ of the operator's and a pairing's write with its save hold the thread for, and i
 and read. Each line it prints names the configuration it was built in, since the figures are
 quoted from a Release build, whose command the fixture's remark gives, and it prints a figure
 as the first only for a hold with nothing kept. The filter names the fixture alone: joined
-with another test by `|`, only the other test ran.
+with another test by `|`, only the other test ran. `StoredRulesCostTests`, in the unit tier, is
+explicit in the same way: it times, and counts the bytes allocated for, working out the rules
+of a reading and walking every node where every version names many others, run alone since
+allocations are counted for the whole application domain.
 
 **It is also where KeePass's own compiler is asked.** `ReferenceVectorsTests` builds a database in
 memory holding the entries `tests/Shared/ReferenceVectors.json` writes down, compiles every value
@@ -371,10 +396,13 @@ client meets `DatabaseLocked`. The protected value is read on its own route with
 password changed with `update --password` from standard input, so both meet the plugin through the
 command line as well.
 
-**The grant editor**, in `LiveGrantEditorTests`: a rule made on the KPG tab of a real KeePass, kept by the
-group dialog's **OK**, and read out of the `.kdbx` after the process has gone. Pressing OK rather
-than Escape is what it is for: the dialog writes its own copy of the group's settings back over the
-group at that moment, so a rule written anywhere else would be destroyed exactly there.
+**The grant editor**, in `LiveGrantEditorTests`: a rule made on the KPG tab of the entry dialog
+of a real KeePass, written into the plugin's store as the dialog closes with **OK**, and read
+out of the `.kdbx` after the operator's save and after the process has gone. Pressing OK
+rather than Escape is what it is for: the tab holds every press until the dialog closes with
+OK, and any other close discards them. It is the entry dialog, with nothing of the entry
+changed, because KeePass marks nothing at that OK, so the mark the save needs is the mark the
+store's own write sets, which the fixture reads off KeePass's title.
 `LiveAuthorityTests` presses OK too, for the reason the paragraph on accepting dialogs below gives,
 so this is not the only fixture that does. It clicks with the pointer, because neither column on
 that table can be typed into and a list is not something the accessibility tree can be asked to
@@ -447,12 +475,13 @@ own client, either could pass against a protocol only it knew.
 
 **A test's rules and request bodies are written by the plugin's own writers**, through
 `tests/Shared/Rules.cs` and `tests/Shared/Bodies.cs`, compiled into both test assemblies the same
-way. Spelled by hand, either fails in the safe direction: a misspelled verb or a dropped quote is a
-document that will not read, and a value holding a quote or a line break is a body that is not
+way. Spelled by hand, either fails in the safe direction: a letter misplaced in a rule is a text
+out of form, and a value holding a quote or a line break is a body that is not
 JSON, and each is refused, so a test expecting a refusal passes for the wrong reason. `Rules` takes
-a `CRUSDLAP` mask and throws as the test sets up when the mask is not exactly one, and `Bodies`
+a `CRUSDLAP` mask, composes the versions an OK on the grant editor would leave in the store, and
+throws as the test sets up when the mask is not exactly a mask, and `Bodies`
 escapes every value as the plugin escapes what it writes and throws on a name given twice. Raw text
-stays where the text is what is being tested: a reader's own tests, a document no editor would
+stays where the text is what is being tested: a reader's own tests, a version no editor would
 write, an escape spelled one particular way, and a body that is not JSON.
 
 **Every certificate a C# test makes for itself is made through Bouncy Castle**, as the plugin makes
@@ -490,8 +519,8 @@ how a test sees from outside what the plugin did inside a process it does not ot
 something the test needs.** A test that closes a dialog with Cancel can never be the reason
 something was lost, which is why Escape is the default. The KPG tab holds everything until the
 dialog is accepted, so `LiveAuthorityTests` has to press OK or it would measure nothing;
-`LiveGrantEditorTests` presses OK because the snapshot KeePass writes back is exactly what it is
-asserting about; `LivePairingTests` and `LiveReferenceClientTests` accept the settings dialog
+`LiveGrantEditorTests` presses OK because the write a node dialog's OK makes is exactly what it
+is asserting about; `LivePairingTests` and `LiveReferenceClientTests` accept the settings dialog
 because any other close withdraws the invitation made on it, which the rest of the fixture needs;
 and `LiveRenewalTests` accepts it to apply Allow renewal. What the snapshot hazard still requires is
 measured directly in the host tier, against the group dialog that does carry one.

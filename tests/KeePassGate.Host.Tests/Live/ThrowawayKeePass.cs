@@ -1255,17 +1255,20 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
-        /// What the root group holds under a custom data key, read out of the file after KeePass
-        /// has gone. The value rather than the group, because a group outlives the database it came
-        /// from only by accident.
+        /// The rules the plugin's store holds, read out of the file after KeePass has gone, with the
+        /// root group's identifier as the store names a node. The rules rather than the reading,
+        /// because a reading outlives the database it came from only by accident.
         /// </summary>
-        public string ReadRootCustomData(string key)
+        public (StoredRules Rules, string Root) ReadRules()
         {
             var database = new PwDatabase();
             try
             {
                 database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
-                return database.RootGroup.CustomData.Get(key);
+                using (var reading = new KdbxStore(database, GateVersion.Current, null).Read())
+                {
+                    return (StoredRules.Of(reading), Hex.Of(database.RootGroup.Uuid.UuidBytes));
+                }
             }
             finally
             {
@@ -1396,21 +1399,21 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
-        /// Writes a grant on the root group, the way the KPG tab does, before KeePass is
-        /// started.
+        /// Writes rules on the root group into the plugin's store, the way an OK on the KPG tab
+        /// does, before KeePass is started.
         /// </summary>
         /// <remarks>
         /// Before, and it has to be: a running KeePass serves the database it holds in memory, so a
         /// rule written to the file underneath it would be invisible and then overwritten by its
         /// next save. That is the same reason a record is admitted before the process starts.
         /// </remarks>
-        public void Grant(string document)
+        public void Grant(params (string Profile, string Mask)[] rules)
         {
             var database = new PwDatabase();
             try
             {
                 database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
-                database.RootGroup.CustomData.Set(AclDocument.CustomDataKey, document);
+                StoreSeeds.Rule(DatabaseAuthority.Store(database), Hex.Of(database.RootGroup.Uuid.UuidBytes), rules);
                 database.Save(null);
             }
             finally

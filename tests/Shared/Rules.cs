@@ -2,67 +2,69 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
 
 namespace KeePassGate.Testing
 {
     /// <summary>
-    /// A node's rules as a test means them, written the way the grant editor writes them.
+    /// A node's rules as a test means them, composed the way an OK on the grant editor's dialog
+    /// leaves them in the store.
     /// </summary>
     /// <remarks>
-    /// **Through the plugin's own writer rather than spelled by hand**, because a document spelled
-    /// by hand fails in the safe direction: a verb misspelled, or a quote dropped, is a document
-    /// that will not read, and that refuses where it is found, so a test expecting a refusal passes
-    /// even when the rule it meant would have allowed the request. Built here, a mask that is not
-    /// exactly one throws as the test sets up, and so does a profile name the editor refuses and a
-    /// document <see cref="AclDocument.Read"/> would not take back, more profiles than it reads
-    /// among them, so what the node holds is a document the reader is held to and the editor
-    /// could have written.
+    /// **Through the plugin's own texts rather than spelled by hand**, because a version spelled
+    /// by hand fails in the safe direction: a letter misplaced is a text out of form, and that
+    /// refuses where it is found, so a test expecting a refusal passes even when the rule it meant
+    /// would have allowed the request. Built here, a mask that is not exactly a mask throws as the
+    /// test sets up, and so does a profile name the editor refuses or names twice, so what the
+    /// node holds is what the reading is held to and an OK could have left.
     ///
-    /// **No rules is no document**, which is what the editor leaves on a node whose rules have all
-    /// gone, so a document granting nothing and asking the group above for everything is refused
-    /// here: a test meaning a node with no rules writes nothing on it. Sealing with no rules is a
-    /// rule, and is written.
+    /// **No rules is `NodeRule.None`**, which is what the store answers for a node it holds
+    /// nothing for, so a node granting nothing and letting everything through is refused here: a
+    /// test meaning a node with no rules puts nothing on it. Sealing with no rules is a rule, the
+    /// switch refusing, and is put there.
     ///
-    /// A rule is a `CRUSDLAP` mask, as the editor shows it, in one of two forms: all eight places,
-    /// a dot for each verb it does not hold, as `.R...L..`, or only the letters it holds, as `RL`,
-    /// since counting dots is where a mask written by hand goes wrong. Either way the letters keep
-    /// their order and each is its own, so `LR` and `.L...R..` both throw rather than being read
-    /// as the rule they would have to be guessed into, and so does a short form with a dot in it,
-    /// which is a long one miscounted. An empty mask is a rule granting nothing.
+    /// A rule is a `CRUSDLAP` mask, as the editor shows it, in either of two forms: all eight
+    /// places, a dot for each verb it does not hold, as `.R...L..`, or only the letters it holds,
+    /// as `RL`, since counting dots is where a mask written by hand goes wrong. Either way the
+    /// letters keep their order and each is its own, so `LR` and `.L...R..` both throw rather than
+    /// being read as the rule they would have to be guessed into, and so does a short form with a
+    /// dot in it, which is a long form miscounted. An empty mask is a rule granting nothing.
     ///
-    /// Raw text stays where the text is what is being tested: the reader, and a document no
-    /// editor would write.
+    /// Versions as written, <see cref="Stored"/>, stay where the text is what is being tested: the
+    /// reading, a text out of form, a lost version, versions made apart.
     /// </remarks>
     public static class Rules
     {
         /// <summary>
-        /// A document granting each profile its mask, the rest asking the group above.
+        /// A node's rules granting each profile its mask, every other profile let through to the
+        /// group above.
         /// </summary>
         /// <remarks>
         /// A pair per profile rather than profiles and masks in turn, so a profile cannot lose its
         /// mask to a miscount, nor take the next profile's.
         /// </remarks>
-        public static string Granting(params (string Profile, string Mask)[] rules)
+        public static NodeRule Granting(params (string Profile, string Mask)[] rules)
         {
-            return Written(AclDefault.Inherit, rules);
+            return Node(false, rules);
         }
 
         /// <summary>
-        /// A document sealing the node, so a profile it does not name is refused here whatever is
-        /// granted above, with the profiles and masks it does name.
+        /// A node's rules with the switch refusing, so a profile they do not name is refused here
+        /// whatever is granted above, with the profiles and masks they do name.
         /// </summary>
-        public static string Sealing(params (string Profile, string Mask)[] rules)
+        public static NodeRule Sealing(params (string Profile, string Mask)[] rules)
         {
-            return Written(AclDefault.Deny, rules);
+            return Node(true, rules);
         }
 
         /// <summary>
-        /// A document granting one mask to each of as many profiles as asked for, named
+        /// A node's rules granting a single mask to each of as many profiles as asked for, named
         /// `profile-00` onwards, which is how a test fills a table past what it can show.
         /// </summary>
-        public static string Numbered(int count, string mask)
+        public static NodeRule Numbered(int count, string mask)
         {
             var rules = new List<(string Profile, string Mask)>();
             for (var i = 0; i < count; i++)
@@ -70,60 +72,110 @@ namespace KeePassGate.Testing
                 rules.Add(("profile-" + i.ToString("00", CultureInfo.InvariantCulture), mask));
             }
 
-            return Written(AclDefault.Inherit, rules);
+            return Node(false, rules.ToArray());
         }
 
-        private static string Written(AclDefault fallback, IEnumerable<(string Profile, string Mask)> rules)
+        /// <summary>
+        /// A node's rules as an OK on its dialog leaves them: a single version granting each
+        /// profile its mask, and the switch in a single version refusing where
+        /// <paramref name="refuses"/>, with no version otherwise.
+        /// </summary>
+        /// <remarks>
+        /// Held to what the editor could write: a profile named twice, a name the issuer could not
+        /// issue and a text that is a mask in neither form throw as the test sets up. A node with
+        /// no rule and a switch that lets the walk go on holds nothing at all, which is
+        /// `NodeRule.None`, so asking for such a node here throws too.
+        /// </remarks>
+        public static NodeRule Node(bool refuses, params (string Profile, string Mask)[] rules)
         {
-            var grants = new Dictionary<string, IEnumerable<AclVerb>>(StringComparer.Ordinal);
-            foreach (var rule in rules)
+            var versions = new List<(string Profile, string Text)>();
+            var named = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var rule in rules ?? Array.Empty<(string Profile, string Mask)>())
             {
                 if (rule.Profile == null)
                 {
                     throw new ArgumentException("A rule names no profile.", nameof(rules));
                 }
 
-                // What the editor holds a name to, `default` in any case included, so a rule no
-                // operator could write is not a rule a test can set up.
                 if (!AuthorityIssuer.IsUsableProfileName(rule.Profile))
                 {
                     throw new ArgumentException(
                         "\"" + rule.Profile + "\" is not a profile name the editor takes.", nameof(rules));
                 }
 
-                var verbs = Verbs(rule.Mask);
-                if (verbs == null)
-                {
-                    throw new ArgumentException(
-                        "\"" + rule.Mask + "\" for " + rule.Profile + " is not a mask: either all " +
-                        VerbMask.Width + " places of " + VerbMask.Letters + ", a dot for each verb it " +
-                        "does not hold, or only the letters it holds, in that order.", nameof(rules));
-                }
-
-                if (grants.ContainsKey(rule.Profile))
+                if (!named.Add(rule.Profile))
                 {
                     throw new ArgumentException(rule.Profile + " is named twice.", nameof(rules));
                 }
 
-                grants.Add(rule.Profile, verbs);
+                versions.Add((rule.Profile, RuleText.Row(Letters(rule.Mask))));
             }
 
-            if (grants.Count == 0 && fallback == AclDefault.Inherit)
+            if (refuses)
+            {
+                versions.Add((null, RuleText.SwitchRefusing));
+            }
+
+            if (versions.Count == 0)
             {
                 throw new ArgumentException(
-                    "A node with no rules holds no document at all, so a test meaning such a node writes nothing on it.",
-                    nameof(rules));
+                    "A node with no rules holds nothing in the store, which is NodeRule.None.", nameof(rules));
             }
 
-            var text = AclDocument.Of(fallback, grants).Write();
-            if (AclDocument.Read(text) == null)
+            return Stored(versions.ToArray());
+        }
+
+        /// <summary>
+        /// A node's rules as the store could hold them: each pair a standing version of the
+        /// profile's row, or of the switch where the profile is null, holding the text as written,
+        /// in form or not, or a lost version where the text is null; each version under an
+        /// identifier of its own, the same for the same arguments, naming nothing in `after`.
+        /// </summary>
+        /// <remarks>
+        /// The identifier is made of the place of the pair, its profile and its text, so that two
+        /// versions given alike are still two versions, as two copies of a database make them.
+        /// </remarks>
+        public static NodeRule Stored(params (string Profile, string Text)[] versions)
+        {
+            var objects = new List<RuleObject>();
+            var given = versions ?? Array.Empty<(string Profile, string Text)>();
+            for (var at = 0; at < given.Length; at++)
+            {
+                var version = given[at];
+                var id = Identifier(at, version.Profile, version.Text);
+                objects.Add(version.Text == null
+                    ? new RuleObject(version.Profile, null, new[] { id })
+                    : new RuleObject(version.Profile, new[] { new RuleVersion(id, version.Text, null) }, null));
+            }
+
+            return new NodeRule(objects);
+        }
+
+        /// <summary>The letters a mask holds, written in either form these rules take; anything else throws.</summary>
+        public static AclGrant Letters(string mask)
+        {
+            var verbs = Verbs(mask);
+            if (verbs == null)
             {
                 throw new ArgumentException(
-                    "These rules make a document the reader refuses, which refuses wherever it is found.",
-                    nameof(rules));
+                    "\"" + mask + "\" is not a mask: either all " + VerbMask.Width + " places of " +
+                    VerbMask.Letters + ", a dot for each verb it does not hold, or only the letters it " +
+                    "holds, in that order.", nameof(mask));
             }
 
-            return text;
+            return AclGrant.Of(verbs);
+        }
+
+        /// <summary>32 lowercase hexadecimal characters made of a version's place and what it holds.</summary>
+        private static string Identifier(int at, string profile, string text)
+        {
+            using (var sha = SHA256.Create())
+            {
+                var made = sha.ComputeHash(Encoding.UTF8.GetBytes(
+                    at.ToString(CultureInfo.InvariantCulture) + "\n" + (profile == null ? "-" : "+" + profile) + "\n"
+                    + (text == null ? "-" : "+" + text)));
+                return string.Concat(made.Take(16).Select(b => b.ToString("x2", CultureInfo.InvariantCulture)));
+            }
         }
 
         /// <summary>What a mask in either form holds, or null for anything that is not one.</summary>
