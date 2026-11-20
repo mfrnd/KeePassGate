@@ -184,8 +184,10 @@ namespace KeePassGate.Ui
     ///
     /// **A buffer and no store**, `STORE.md` §629. A press changes the sheet and nothing else, and
     /// the sheet keeps, with each press, the node's rules as the tab showed them then: what a
-    /// version written at OK names in `after`, and what each renewal is taken from. Nothing reaches
-    /// the database before the dialog closes with OK, and any other close throws the sheet away.
+    /// version written at OK names in `after`, and what each renewal is taken from. It keeps the
+    /// standing versions at the nodes below as well, the only versions below an OK may renew.
+    /// Nothing reaches the database before the dialog closes with OK, and any other close throws
+    /// the sheet away.
     ///
     /// **The table shows what OK makes.** Every row a press changes is drawn as the OK writes it,
     /// marked as changed: a version the box's press renews with what arrives shows the letters OK
@@ -210,6 +212,9 @@ namespace KeePassGate.Ui
 
         private NodeRule _rule;
         private AclInheritance _above;
+
+        /// <summary>The standing versions at the nodes below, as the reading the sheet shows holds them: none until the tab hands them over.</summary>
+        private IReadOnlyCollection<string> _below = RowChange.Kept(null);
 
         /// <summary>The database's list exactly as given, or null when none was.</summary>
         private HashSet<string> _named;
@@ -407,10 +412,11 @@ namespace KeePassGate.Ui
                         pressed.Key,
                         press.Kind == RowChangeKind.RemoveVersions ? null : press.Letters,
                         press.Removed.OrderBy(id => id, StringComparer.Ordinal),
-                        press.Shown));
+                        press.Shown,
+                        press.Below));
                 }
 
-                var box = BoxChanged ? new SwitchChange(_box.Refuses, _box.Shown, _box.Arriving) : null;
+                var box = BoxChanged ? new SwitchChange(_box.Refuses, _box.Shown, _box.Arriving, _box.Below) : null;
                 return rows.Count == 0 && box == null ? RuleChanges.None : new RuleChanges(rows, box);
             }
         }
@@ -476,7 +482,7 @@ namespace KeePassGate.Ui
                 return GrantTab.MaskRule;
             }
 
-            Take(name, new Press(RowChangeKind.Set, AclGrant.Of(held), _rule));
+            Take(name, new Press(RowChangeKind.Set, AclGrant.Of(held), _rule, _below));
             return null;
         }
 
@@ -510,7 +516,7 @@ namespace KeePassGate.Ui
                 return true;
             }
 
-            Take(profile, new Press(RowChangeKind.TakeOff, Arriving(profile), _rule));
+            Take(profile, new Press(RowChangeKind.TakeOff, Arriving(profile), _rule, _below));
             return true;
         }
 
@@ -544,7 +550,7 @@ namespace KeePassGate.Ui
             Press press;
             if (!_presses.TryGetValue(profile, out press) || press.Kind != RowChangeKind.RemoveVersions)
             {
-                press = new Press(RowChangeKind.RemoveVersions, null, _rule);
+                press = new Press(RowChangeKind.RemoveVersions, null, _rule, _below);
                 _presses[profile] = press;
             }
 
@@ -570,7 +576,7 @@ namespace KeePassGate.Ui
             // lets through what arrives is the rule taken off: a single version naming every
             // version the tab showed, the removed ones among them, where settling would write the
             // version left anew and leave the removed versions standing.
-            Take(profile, new Press(removing ? RowChangeKind.TakeOff : RowChangeKind.Settle, Arriving(profile), _rule));
+            Take(profile, new Press(removing ? RowChangeKind.TakeOff : RowChangeKind.Settle, Arriving(profile), _rule, _below));
             return true;
         }
 
@@ -624,7 +630,7 @@ namespace KeePassGate.Ui
                 }
             }
 
-            _box = new BoxPress(refuses, _rule, arriving);
+            _box = new BoxPress(refuses, _rule, arriving, _below);
             return true;
         }
 
@@ -648,6 +654,17 @@ namespace KeePassGate.Ui
             {
                 ReadOnlyReason = readOnlyReason;
             }
+        }
+
+        /// <summary>
+        /// Takes the standing versions at the nodes below the node, as the reading the sheet shows
+        /// holds them, `StoredRules.Below`: what each press from now on keeps for the write above,
+        /// `STORE.md` §617, so that an OK renews below only what the tab's reading held at the
+        /// press. A press made before keeps what it kept.
+        /// </summary>
+        public void TakeBelow(IEnumerable<string> versions)
+        {
+            _below = RowChange.Kept(versions);
         }
 
         /// <summary>The names to offer and to mark rows by, from the database's list.</summary>
@@ -1038,11 +1055,12 @@ namespace KeePassGate.Ui
         /// <summary>A press on a profile's row, with the node's rules as the tab showed them.</summary>
         private sealed class Press
         {
-            public Press(RowChangeKind kind, AclGrant letters, NodeRule shown)
+            public Press(RowChangeKind kind, AclGrant letters, NodeRule shown, IReadOnlyCollection<string> below)
             {
                 Kind = kind;
                 Letters = letters;
                 Shown = shown;
+                Below = below;
                 Removed = new HashSet<string>(StringComparer.Ordinal);
             }
 
@@ -1055,21 +1073,28 @@ namespace KeePassGate.Ui
             public HashSet<string> Removed { get; }
 
             public NodeRule Shown { get; }
+
+            /// <summary>The standing versions at the nodes below as the tab's reading held them at the press.</summary>
+            public IReadOnlyCollection<string> Below { get; }
         }
 
         /// <summary>The last press on the box, with the node's rules as the tab showed them.</summary>
         private sealed class BoxPress
         {
-            public BoxPress(bool refuses, NodeRule shown, IEnumerable<KeyValuePair<string, AclGrant>> arriving)
+            public BoxPress(bool refuses, NodeRule shown, IEnumerable<KeyValuePair<string, AclGrant>> arriving, IReadOnlyCollection<string> below)
             {
                 Refuses = refuses;
                 Shown = shown;
                 Arriving = arriving.ToList();
+                Below = below;
             }
 
             public bool Refuses { get; }
 
             public NodeRule Shown { get; }
+
+            /// <summary>The standing versions at the nodes below as the tab's reading held them at the press.</summary>
+            public IReadOnlyCollection<string> Below { get; }
 
             public IReadOnlyList<KeyValuePair<string, AclGrant>> Arriving { get; }
         }

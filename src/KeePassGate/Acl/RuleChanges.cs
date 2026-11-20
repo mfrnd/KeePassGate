@@ -28,7 +28,7 @@ namespace KeePassGate.Acl
     /// **What the tab showed, and nothing read at OK.** A version the OK writes names what the tab
     /// showed at the press and never a version that reached the database while the dialog stood,
     /// `STORE.md` §629, so the rules shown are held here with the press, and the letters shown
-    /// arriving with them.
+    /// arriving with them, and the versions below the node that the write above may renew.
     /// </remarks>
     public sealed class RowChange
     {
@@ -41,7 +41,12 @@ namespace KeePassGate.Acl
         /// </param>
         /// <param name="removed">For <see cref="RowChangeKind.RemoveVersions"/> the identifiers of every version removed; none otherwise.</param>
         /// <param name="shown">The node's rules as the tab showed them at the press.</param>
-        public RowChange(RowChangeKind kind, string profile, AclGrant letters, IEnumerable<string> removed, NodeRule shown)
+        /// <param name="below">
+        /// The identifiers of the standing versions at each node below the node that held a version
+        /// letting a profile through, as the tab's reading held them at the press,
+        /// `StoredRules.Below`; none where the tab read none.
+        /// </param>
+        public RowChange(RowChangeKind kind, string profile, AclGrant letters, IEnumerable<string> removed, NodeRule shown, IEnumerable<string> below)
         {
             Kind = kind;
             Profile = profile;
@@ -53,6 +58,7 @@ namespace KeePassGate.Acl
                 .ToList()
                 .AsReadOnly();
             Shown = shown ?? NodeRule.None;
+            Below = Kept(below);
         }
 
         /// <summary>What the press asks for.</summary>
@@ -76,6 +82,18 @@ namespace KeePassGate.Acl
         /// `after`, and what each version renewed at the node is taken from.
         /// </summary>
         public NodeRule Shown { get; private set; }
+
+        /// <summary>
+        /// The identifiers of the standing versions at the nodes below that the tab's reading held
+        /// at the press: the only versions below the write above may renew, `STORE.md` §617.
+        /// </summary>
+        public IReadOnlyCollection<string> Below { get; private set; }
+
+        /// <summary>These identifiers, each once, none for none given.</summary>
+        internal static IReadOnlyCollection<string> Kept(IEnumerable<string> below)
+        {
+            return new HashSet<string>((below ?? Enumerable.Empty<string>()).Where(id => id != null), StringComparer.Ordinal);
+        }
     }
 
     /// <summary>
@@ -89,10 +107,16 @@ namespace KeePassGate.Acl
         /// At a press that clears the box, the letters the tab showed arriving for every profile
         /// that at least a single letter arrived for; none at a press that ticks it.
         /// </param>
-        public SwitchChange(bool refuses, NodeRule shown, IEnumerable<KeyValuePair<string, AclGrant>> arriving)
+        /// <param name="below">
+        /// The identifiers of the standing versions at each node below the node that held a version
+        /// letting a profile through, as the tab's reading held them at the press; none where the
+        /// tab read none.
+        /// </param>
+        public SwitchChange(bool refuses, NodeRule shown, IEnumerable<KeyValuePair<string, AclGrant>> arriving, IEnumerable<string> below)
         {
             Refuses = refuses;
             Shown = shown ?? NodeRule.None;
+            Below = RowChange.Kept(below);
 
             // A profile given twice holds what both hold, the narrower way, as the text of the
             // switch writes it.
@@ -122,6 +146,12 @@ namespace KeePassGate.Acl
         /// names in `after`, and what each version renewed at the node is taken from.
         /// </summary>
         public NodeRule Shown { get; private set; }
+
+        /// <summary>
+        /// The identifiers of the standing versions at the nodes below that the tab's reading held
+        /// at the press: the only versions below the write above may renew, `STORE.md` §617.
+        /// </summary>
+        public IReadOnlyCollection<string> Below { get; private set; }
 
         /// <summary>
         /// The letters the tab showed arriving at the press for every profile that at least a

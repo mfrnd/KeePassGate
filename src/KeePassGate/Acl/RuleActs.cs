@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Linq;
 using KeePassGate.Authority;
 using KeePassGate.Store;
-using KeePassGate.Transport;
 
 namespace KeePassGate.Acl
 {
@@ -22,6 +21,13 @@ namespace KeePassGate.Acl
 
         /// <summary>The store holds no key, or cannot be read as a whole, so no rule is written.</summary>
         Unread,
+
+        /// <summary>
+        /// A version below that the write above would have written anew, left because the tab did
+        /// not hold, at every press concerning its profile, every version standing at its node for
+        /// that profile, `STORE.md` §617.
+        /// </summary>
+        NotHeld,
     }
 
     /// <summary>
@@ -31,14 +37,23 @@ namespace KeePassGate.Acl
     /// </summary>
     public sealed class RuleLeft
     {
-        /// <summary>A change of this profile's row, or of the node's switch where the profile is null, not written for this reason.</summary>
+        /// <summary>A change of this profile's row at this node, or of the node's switch where the profile is null, not written for this reason.</summary>
+        /// <param name="node">The node the change or the version is at, as the OK handed it over.</param>
         /// <param name="pressed">Whether the change is the operator's own press, not a version written anew for another.</param>
-        public RuleLeft(string profile, bool pressed, RuleLeftReason reason)
+        public RuleLeft(string node, string profile, bool pressed, RuleLeftReason reason)
         {
+            Node = node;
             Profile = profile;
             Pressed = pressed;
             Reason = reason;
         }
+
+        /// <summary>
+        /// The node the change or the version is at, as 32 lowercase hexadecimal characters: the
+        /// dialog's node for a press of the tab and for a version written anew there, and a node
+        /// below it for a version the write above would have renewed.
+        /// </summary>
+        public string Node { get; private set; }
 
         /// <summary>The profile of the row, or null for the switch.</summary>
         public string Profile { get; private set; }
@@ -93,6 +108,20 @@ namespace KeePassGate.Acl
     /// **The ceiling of a string**, `STORE.md` §643: a version whose content or the item restating
     /// it would not fit is left as it was and reported, and the rest is composed again as though
     /// it had not been pressed, so that nothing written depends on a version that was left.
+    ///
+    /// **The write above**, `STORE.md` §617: once the versions at the node are settled, the same
+    /// act renews each version below the node that was following it, in the same reading, so a
+    /// change above reaches the nodes below that let it through without the operator visiting
+    /// each, and never a node that was being held back. "Before" is the reading without the act,
+    /// and "after" is the reading with the act's versions and the renewals made so far laid over
+    /// it, so a version that reached the database under the dialog is judged as it stands at the
+    /// OK. Only versions the tab's reading held at the press are renewed: for a profile, none at a
+    /// node where a version of the profile's row or of the node's switch stands that the tab did
+    /// not hold at every press concerning the profile, and such a node is handed back, as no
+    /// press, so that the log names why the change above did not reach it.
+    ///
+    /// **The rules are worked out once for the act**, and the node's parent and the tree are made
+    /// from them: the reading's objects are walked a single time whatever the act asks.
     /// </remarks>
     internal static class RuleActs
     {
@@ -106,11 +135,23 @@ namespace KeePassGate.Acl
         /// <paramref name="left"/> with why.
         /// </summary>
         /// <param name="above">
-        /// The node's parent with the rules of this same reading, which every mask recorded is cut
-        /// to what it gives; null for the root, above which nothing arrives. Walked where it is
-        /// asked, inside the caller's turn, once for each profile a mask is recorded for.
+        /// The node's parent holding the rules it is handed, which are this reading's: every mask
+        /// recorded is cut to what it gives. Null for the root, above which nothing arrives, and
+        /// a parent made null likewise. Walked where it is asked, inside the caller's turn, once
+        /// for each profile a mask is recorded for.
         /// </param>
-        public static StoreAct Of(StoreReading reading, string node, IAclNode above, RuleChanges changes, out IReadOnlyList<RuleLeft> left)
+        /// <param name="tree">
+        /// The tree as it stands in the caller's turn, which the write above is carried down, made
+        /// from the rules it is handed, which are this reading's; asked for only where the act
+        /// changes what the node gives a profile. Null for a node with nothing below it.
+        /// </param>
+        public static StoreAct Of(
+            StoreReading reading,
+            string node,
+            Func<StoredRules, IAclNode> above,
+            Func<StoredRules, IRuledTree> tree,
+            RuleChanges changes,
+            out IReadOnlyList<RuleLeft> left)
         {
             left = Array.Empty<RuleLeft>();
             if (changes == null || changes.IsEmpty)
@@ -121,21 +162,23 @@ namespace KeePassGate.Acl
             var inForce = reading == null ? null : reading.InForce;
             if (inForce == null || reading.State != StoreState.Whole)
             {
-                left = Every(changes, RuleLeftReason.Unread);
+                left = Every(node, changes, RuleLeftReason.Unread);
                 return null;
             }
 
             if (!IsNode(node) || Owned(reading, node))
             {
-                left = Every(changes, RuleLeftReason.OutOfForm);
+                left = Every(node, changes, RuleLeftReason.OutOfForm);
                 return null;
             }
 
             var key = (byte[])inForce.Key.Bytes.Clone();
             try
             {
-                var composing = new Composing(inForce, key, node, above, StoredRules.Of(reading).At(node), changes);
-                var records = composing.Records();
+                var rules = StoredRules.Of(reading);
+                var composing = new Composing(inForce, key, node, above == null ? null : above(rules), rules.At(node), changes);
+                var records = composing.Records().ToList();
+                records.AddRange(composing.Below(rules, tree, records));
                 left = composing.Left;
                 return records.Count == 0
                     ? null
@@ -147,13 +190,13 @@ namespace KeePassGate.Acl
             }
         }
 
-        /// <summary>Each change, of every row and of the box, told as not written for this reason.</summary>
-        private static IReadOnlyList<RuleLeft> Every(RuleChanges changes, RuleLeftReason reason)
+        /// <summary>Each change at the node, of every row and of the box, told as not written for this reason.</summary>
+        private static IReadOnlyList<RuleLeft> Every(string node, RuleChanges changes, RuleLeftReason reason)
         {
-            var every = changes.Rows.Select(change => new RuleLeft(change.Profile, true, reason)).ToList();
+            var every = changes.Rows.Select(change => new RuleLeft(node, change.Profile, true, reason)).ToList();
             if (changes.Switch != null)
             {
-                every.Add(new RuleLeft(null, true, reason));
+                every.Add(new RuleLeft(node, null, true, reason));
             }
 
             return every.AsReadOnly();
@@ -251,6 +294,10 @@ namespace KeePassGate.Acl
             private readonly List<RuleLeft> _left = new List<RuleLeft>();
             private readonly HashSet<string> _leftKeys = new HashSet<string>(StringComparer.Ordinal);
             private readonly Dictionary<string, string> _places = new Dictionary<string, string>(StringComparer.Ordinal);
+            private readonly Dictionary<string, int> _profileTags = new Dictionary<string, int>(StringComparer.Ordinal);
+
+            /// <summary>The tag of `version` under the key, as hexadecimal, once worked out.</summary>
+            private string _versionTag;
 
             public Composing(StoreInForce inForce, byte[] key, string node, IAclNode above, NodeRule stands, RuleChanges changes)
             {
@@ -300,7 +347,282 @@ namespace KeePassGate.Acl
                 }
             }
 
+            /// <summary>
+            /// The renewals of the write above, `STORE.md` §617: each standing version below the
+            /// node, the nearer first, that let a profile through and followed what arrived for it
+            /// before the act, written anew with what arrives after, where what arrives changed,
+            /// the tab kept it, and nothing stands beside it that the tab did not keep.
+            /// </summary>
+            /// <param name="rules">The rules of the reading the act was composed over: "before".</param>
+            /// <param name="tree">The tree below the node, made from those rules where it is asked for.</param>
+            /// <param name="act">The versions settled at the node, which "after" lays over the reading.</param>
+            /// <remarks>
+            /// **"After" grows as the nodes are walked**: a node is renewed against what arrives
+            /// with the act and every renewal made above it, so a group renewed passes on what it
+            /// lets through, and a group left passes on what it still cuts to. Nodes are taken by
+            /// their distance below the node, and by identifier within a distance, and a renewal
+            /// changes what arrives at no node of its own distance or nearer, so the order the tree
+            /// hands the nodes over in, and the order of the profiles, change nothing.
+            ///
+            /// **The tree is asked for only where the act changes what the node gives a profile**,
+            /// and working that out asks nothing of the tree, the node's parent being the parent
+            /// handed over.
+            ///
+            /// **A renewal that does not fit is left** and told as a renewal, `STORE.md` §643: the
+            /// version goes on cutting, which is narrower, and the nodes below it receive what it
+            /// still lets through.
+            /// </remarks>
+            public IReadOnlyList<StoreRecord> Below(StoredRules rules, Func<StoredRules, IRuledTree> tree, IReadOnlyList<StoreRecord> act)
+            {
+                var renewals = new List<StoreRecord>();
+                if (tree == null || act.Count == 0)
+                {
+                    return renewals;
+                }
+
+                var laid = new Dictionary<string, List<StoreRecord>>(StringComparer.Ordinal) { { _node, act.ToList() } };
+                var laidRules = new Dictionary<string, NodeRule>(StringComparer.Ordinal);
+                Func<string, NodeRule> after = at =>
+                {
+                    NodeRule rule;
+                    List<StoreRecord> held;
+                    if (!laid.TryGetValue(at, out held))
+                    {
+                        return rules.At(at);
+                    }
+
+                    if (!laidRules.TryGetValue(at, out rule))
+                    {
+                        rule = rules.At(at, held);
+                        laidRules[at] = rule;
+                    }
+
+                    return rule;
+                };
+
+                // Only a profile for which what the node gives changed can arrive otherwise below
+                // it: what arrives at a node below depends on the node only through what the node
+                // gives.
+                var atNode = new Walks(null, _node, _above, rules.At);
+                var atNodeAfter = new Walks(null, _node, _above, after);
+                var concerned = rules.Profiles.Concat(_rows.Select(row => row.Profile))
+                    .Distinct(StringComparer.Ordinal)
+                    .Where(profile => !atNode.Gives(_node, profile).SameAs(atNodeAfter.Gives(_node, profile)))
+                    .OrderBy(profile => profile, StringComparer.Ordinal)
+                    .ToList();
+                var walked = concerned.Count == 0 ? null : tree(rules);
+                if (walked == null)
+                {
+                    return renewals;
+                }
+
+                var before = new Walks(walked, _node, _above, rules.At);
+                var afterAct = new Walks(walked, _node, _above, after);
+                var kept = concerned.ToDictionary(profile => profile, Kept, StringComparer.Ordinal);
+                foreach (var below in Following(rules, walked))
+                {
+                    var drafts = Renewed(below, rules.At(below), walked.Above(below), concerned, kept, before, afterAct);
+                    foreach (var draft in drafts)
+                    {
+                        var record = draft.Compose(_key, below);
+                        if (!Fits(record))
+                        {
+                            _left.Add(new RuleLeft(below, draft.Profile, false, RuleLeftReason.TooLong));
+                            continue;
+                        }
+
+                        renewals.Add(record);
+                        List<StoreRecord> held;
+                        if (!laid.TryGetValue(below, out held))
+                        {
+                            held = new List<StoreRecord>();
+                            laid.Add(below, held);
+                        }
+
+                        held.Add(record);
+                        laidRules.Remove(below);
+                    }
+                }
+
+                return renewals;
+            }
+
+            /// <summary>
+            /// The nodes below the node in the tree at which a standing version lets a profile
+            /// through, the nearer first and by identifier within a distance; a node whose way up
+            /// does not reach the node within the depth the resolver walks is no node below it.
+            /// </summary>
+            private IEnumerable<string> Following(StoredRules rules, IRuledTree tree)
+            {
+                var placed = new List<KeyValuePair<int, string>>();
+                foreach (var below in tree.Below(_node).Where(rules.LetsThrough).Distinct(StringComparer.Ordinal))
+                {
+                    var depth = 0;
+                    var at = below;
+                    while (at != null && !string.Equals(at, _node, StringComparison.Ordinal) && depth <= AclResolver.MaxDepth)
+                    {
+                        at = tree.Above(at);
+                        depth++;
+                    }
+
+                    if (at != null && depth > 0 && depth <= AclResolver.MaxDepth)
+                    {
+                        placed.Add(new KeyValuePair<int, string>(depth, below));
+                    }
+                }
+
+                return placed.OrderBy(pair => pair.Key).ThenBy(pair => pair.Value, StringComparer.Ordinal).Select(pair => pair.Value);
+            }
+
+            /// <summary>
+            /// The identifiers of the versions below that every press concerning the profile kept:
+            /// a press of its row and the press on the box, none where no press concerns it.
+            /// </summary>
+            private ISet<string> Kept(string profile)
+            {
+                var presses = _rows.Where(row => string.Equals(row.Profile, profile, StringComparison.Ordinal)).Select(row => row.Below)
+                    .Concat(_changes.Switch == null ? Enumerable.Empty<IReadOnlyCollection<string>>() : new[] { _changes.Switch.Below })
+                    .ToList();
+                var kept = new HashSet<string>(presses.FirstOrDefault() ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
+                foreach (var press in presses.Skip(1))
+                {
+                    kept.IntersectWith(press);
+                }
+
+                return kept;
+            }
+
+            /// <summary>
+            /// The versions written anew at a node below, a version for each version renewed:
+            /// each that the profiles following it record, by profile, `STORE.md` §617.
+            /// </summary>
+            private List<Draft> Renewed(
+                string node,
+                NodeRule rule,
+                string parent,
+                IEnumerable<string> concerned,
+                IReadOnlyDictionary<string, ISet<string>> kept,
+                Walks before,
+                Walks after)
+            {
+                var drafts = new List<Draft>();
+
+                // A node whose switch refuses lets nothing through, whatever arrives.
+                if (rule.Switch.Refuses)
+                {
+                    return drafts;
+                }
+
+                var inheriting = rule.Switch.Versions;
+                var follows = new SortedDictionary<string, AclGrant>(StringComparer.Ordinal);
+                foreach (var profile in concerned)
+                {
+                    var row = rule.Row(profile);
+                    var lets = row.Versions.Where(TakesOff).ToList();
+                    if (row.Refuses || row.Answers || (lets.Count == 0 && inheriting.Count == 0))
+                    {
+                        continue;
+                    }
+
+                    var arrived = before.Gives(parent, profile);
+                    var arrives = after.Gives(parent, profile);
+                    if (arrived.SameAs(arrives))
+                    {
+                        continue;
+                    }
+
+                    // Every version that lets the profile through followed what arrived: a version
+                    // that was cutting, `off:deny` among them, leaves every version of the node for
+                    // the profile as it is, the switch's among them.
+                    var whole = lets.All(version => version.Kind == RowVersionKind.TakenOff && Followed(version.Letters, arrived))
+                                && inheriting.All(version => Followed(version.LettersFor(profile), arrived));
+                    if (!whole)
+                    {
+                        continue;
+                    }
+
+                    // And the tab held every version standing there for the profile, of its row and
+                    // of the switch, at every press concerning the profile: where it did not, the
+                    // node is handed back, as no press, so that the log names why the change above
+                    // did not reach it.
+                    var held = kept[profile];
+                    if (row.Versions.Any(version => !held.Contains(version.Id)) || inheriting.Any(version => !held.Contains(version.Id)))
+                    {
+                        _left.Add(new RuleLeft(node, profile, false, RuleLeftReason.NotHeld));
+                        continue;
+                    }
+
+                    follows[profile] = arrives;
+                }
+
+                if (follows.Count == 0)
+                {
+                    return drafts;
+                }
+
+                foreach (var version in inheriting.Where(version => follows.Any(pair => !version.LettersFor(pair.Key).SameAs(pair.Value))))
+                {
+                    var letters = version.Profiles.Concat(follows.Keys).Distinct(StringComparer.Ordinal)
+                        .Select(profile =>
+                        {
+                            AclGrant arrives;
+                            return new KeyValuePair<string, AclGrant>(
+                                profile, follows.TryGetValue(profile, out arrives) ? arrives : version.LettersFor(profile));
+                        });
+                    drafts.Add(new Draft(null, RuleText.Inheriting(letters), Names(RuleText.SwitchObject(node), version.Id, version.After)));
+                }
+
+                foreach (var pair in follows)
+                {
+                    var renewed = RuleText.TakenOff(pair.Value);
+                    foreach (var version in rule.Row(pair.Key).Versions.Where(version => version.Kind == RowVersionKind.TakenOff && Text(version) != renewed))
+                    {
+                        drafts.Add(new Draft(pair.Key, renewed, Names(RuleText.RowObject(node, pair.Key), version.Id, version.After)));
+                    }
+                }
+
+                return drafts;
+            }
+
+            /// <summary>Whether these letters hold every letter of those.</summary>
+            private static bool Holds(AclGrant letters, AclGrant those)
+            {
+                return those.Cut(letters).SameAs(those);
+            }
+
+            /// <summary>
+            /// Whether a version below recording these letters followed what arrived for its
+            /// profile before the act: it held every letter that arrived, and where nothing
+            /// arrived, it recorded nothing itself.
+            /// </summary>
+            /// <remarks>
+            /// **Where nothing arrived, a version that recorded letters is left**, since nothing
+            /// tells whether it was cutting: where a version above is lost, or a refusal made above
+            /// in another copy arrives by a merge, a version that followed and a limit made apart
+            /// look alike, and renewing every such version would let a repair above lift a limit
+            /// that nobody settled at its own node, `STORE.md` §639. A version that recorded
+            /// nothing was following whatever arrived, and follows; a version that followed until
+            /// an act above emptied what arrived was written anew by that act as recording
+            /// nothing. **This is stricter than the measured model**, which takes every version
+            /// standing where nothing arrived as following; `STORE.md` §617 records the difference
+            /// as owed to the model.
+            /// </remarks>
+            private static bool Followed(AclGrant recorded, AclGrant arrived)
+            {
+                return arrived.Count == 0 ? recorded.Count == 0 : Holds(recorded, arrived);
+            }
+
             /// <summary>Whether a version's content and the item that restates it each fit the ceiling of a string.</summary>
+            /// <remarks>
+            /// **The item's length is had from the version's content**, which the same writer
+            /// composed: the content holds `after`, `doc`, `nonce` and `object`, sorted by name in
+            /// ordinal order with no white space, and the item a summary entry restates the version
+            /// by holds `after`, `doc`, `id`, `kind` and `object` written the same way, `STORE.md`
+            /// §611. So the item is the content with the member `nonce` giving way to `id` and
+            /// `kind`, each of whose names and values needs no escape, and no text is composed
+            /// again to measure it. The tests that crowd a version to the ceiling hold this to the
+            /// item composed in full.
+            /// </remarks>
             private static bool Fits(StoreRecord record)
             {
                 if (record.Strings.Values.Any(value => value.Length > StoreFormat.MaxWritten))
@@ -308,25 +630,20 @@ namespace KeePassGate.Acl
                     return false;
                 }
 
-                // The item a summary entry restates the version by, written as a record writes its
-                // members: sorted by name in ordinal order, with no white space, `STORE.md` §611.
-                var item = new SortedDictionary<string, string>(StringComparer.Ordinal)
-                {
-                    { StoreKinds.ItemKind, StoreKinds.Version },
-                    { StoreKinds.Id, record.Hex },
-                    { StoreKinds.ObjectMember, record.Member(StoreKinds.ObjectMember) },
-                    { StoreKinds.After, record.Member(StoreKinds.After) },
-                    { StoreKinds.Doc, record.Member(StoreKinds.Doc) },
-                };
-                using (var json = new JsonWriter())
-                {
-                    foreach (var member in item)
-                    {
-                        json.Text(member.Key, member.Value);
-                    }
+                var item = record.Content.Length
+                           - Written(StoreKinds.Nonce, record.Member(StoreKinds.Nonce))
+                           + Written(StoreKinds.Id, record.Hex)
+                           + Written(StoreKinds.ItemKind, StoreKinds.Version);
+                return item <= StoreFormat.MaxWritten;
+            }
 
-                    return json.Done().Length <= StoreFormat.MaxWritten;
-                }
+            /// <summary>
+            /// The characters a member whose name and value need no escape takes in a flat object
+            /// written with no white space, with the comma that parts it from the member after it.
+            /// </summary>
+            private static int Written(string name, string value)
+            {
+                return name.Length + value.Length + "\"\":\"\",".Length;
             }
 
             private bool IsLeft(string key)
@@ -339,7 +656,7 @@ namespace KeePassGate.Acl
             {
                 if (_leftKeys.Add(key))
                 {
-                    _left.Add(new RuleLeft(profile, pressed, reason));
+                    _left.Add(new RuleLeft(_node, profile, pressed, reason));
                 }
             }
 
@@ -702,9 +1019,12 @@ namespace KeePassGate.Acl
             /// identifier whose first bytes are not those of a version of this object under the
             /// key.
             /// </summary>
+            /// <remarks>
+            /// The first bytes of this object's versions are worked out only for an identifier the
+            /// reading carries nowhere, which is where they decide anything.
+            /// </remarks>
             private IReadOnlyCollection<string> Names(string objectText, IEnumerable<string> identifiers)
             {
-                var place = Place(objectText);
                 return identifiers
                     .Where(id => id != null && id.Length == NodeLength)
                     .Distinct(StringComparer.Ordinal)
@@ -716,7 +1036,7 @@ namespace KeePassGate.Acl
                             return string.Equals(carried.Object, objectText, StringComparison.Ordinal);
                         }
 
-                        return !_inForce.Others.Contains(id) && id.StartsWith(place, StringComparison.Ordinal);
+                        return !_inForce.Others.Contains(id) && id.StartsWith(Place(objectText), StringComparison.Ordinal);
                     })
                     .OrderBy(id => id, StringComparer.Ordinal)
                     .ToList()
@@ -724,6 +1044,11 @@ namespace KeePassGate.Acl
             }
 
             /// <summary>The first bytes of the identifier of every version of this object under the key, as hexadecimal, `STORE.md` §609.</summary>
+            /// <remarks>
+            /// **The tag of `version` and a profile's tag are worked out once for the act**, and only
+            /// the object's own subject for each object: an OK above many nodes names as many
+            /// objects, each under the same tag and the same profile's.
+            /// </remarks>
             private string Place(string objectText)
             {
                 string place;
@@ -734,11 +1059,104 @@ namespace KeePassGate.Acl
 
                 string tagged;
                 var subject = StoreFormat.SubjectOf(StoreKinds.Find(StoreKinds.Version), objectText, out tagged);
-                var number = tagged == null ? 0 : StoreFormat.ProfileTag(_key, tagged);
-                place = Hex.Of(StoreFormat.Tag(_key, StoreKinds.Version)) + Hex.Of(StoreFormat.Subject(_key, subject))
-                        + number.ToString("x4", CultureInfo.InvariantCulture);
+                var number = 0;
+                if (tagged != null && !_profileTags.TryGetValue(tagged, out number))
+                {
+                    number = StoreFormat.ProfileTag(_key, tagged);
+                    _profileTags[tagged] = number;
+                }
+
+                if (_versionTag == null)
+                {
+                    _versionTag = Hex.Of(StoreFormat.Tag(_key, StoreKinds.Version));
+                }
+
+                place = _versionTag + Hex.Of(StoreFormat.Subject(_key, subject)) + number.ToString("x4", CultureInfo.InvariantCulture);
                 _places[objectText] = place;
                 return place;
+            }
+        }
+
+        /// <summary>
+        /// What the nodes of the tree give, each node's rules read from a single place: the
+        /// reading's, before the act, or the reading's with the act and the renewals so far laid
+        /// over it, after. Each node's answer is kept once asked for, which holds because the
+        /// nodes are walked the nearer first, and nothing is laid over a node once a node below it
+        /// has asked what it gives.
+        /// </summary>
+        private sealed class Walks
+        {
+            private readonly IRuledTree _tree;
+            private readonly string _top;
+            private readonly IAclNode _above;
+            private readonly Func<string, NodeRule> _rules;
+            private readonly Dictionary<string, AclGrant> _gives = new Dictionary<string, AclGrant>(StringComparer.Ordinal);
+
+            /// <summary>The walks of this tree, each node's rules read from <paramref name="rules"/>.</summary>
+            /// <param name="tree">The tree below the dialog's node, or null where only that node is asked about.</param>
+            /// <param name="top">The node of the dialog, above which the walk goes on to <paramref name="above"/>.</param>
+            public Walks(IRuledTree tree, string top, IAclNode above, Func<string, NodeRule> rules)
+            {
+                _tree = tree;
+                _top = top;
+                _above = above;
+                _rules = rules;
+            }
+
+            /// <summary>What a node gives a profile: the walk of `STORE.md` §617 from it upward.</summary>
+            public AclGrant Gives(string node, string profile)
+            {
+                var asked = node + "/" + profile;
+                AclGrant letters;
+                if (!_gives.TryGetValue(asked, out letters))
+                {
+                    letters = AclResolver.Arrives(new Placed(this, node), profile);
+                    _gives[asked] = letters;
+                }
+
+                return letters;
+            }
+
+            /// <summary>A node of the tree as the resolver walks it, walked where it is asked.</summary>
+            private sealed class Placed : IAclNode
+            {
+                private readonly Walks _walks;
+                private readonly string _node;
+
+                public Placed(Walks walks, string node)
+                {
+                    _walks = walks;
+                    _node = node;
+                }
+
+                public NodeRule Rule
+                {
+                    get { return _walks._rules(_node); }
+                }
+
+                public IAclNode Parent
+                {
+                    get
+                    {
+                        if (string.Equals(_node, _walks._top, StringComparison.Ordinal))
+                        {
+                            return _walks._above;
+                        }
+
+                        var above = _walks._tree == null ? null : _walks._tree.Above(_node);
+                        return above == null ? null : new Placed(_walks, above);
+                    }
+                }
+
+                public string Name
+                {
+                    get { return _node; }
+                }
+
+                public T Held<T>(Func<T> walk)
+                {
+                    return walk();
+                }
             }
         }
 
@@ -748,6 +1166,7 @@ namespace KeePassGate.Acl
             /// <summary>What the switch's own version is left under.</summary>
             public const string SwitchKey = "switch";
 
+            /// <summary>A version at the node, left under this key where it does not fit.</summary>
             public Draft(string key, string profile, string doc, IReadOnlyCollection<string> after, bool pressed)
             {
                 Key = key;
@@ -757,7 +1176,22 @@ namespace KeePassGate.Acl
                 Pressed = pressed;
             }
 
-            /// <summary>What the version is left under where it does not fit: a row, a version written anew, or the switch.</summary>
+            /// <summary>
+            /// A version below written anew by the write above, which no press asked for: a version
+            /// below that does not fit is handed back by its node, and no key leaves it out of a
+            /// composing.
+            /// </summary>
+            public Draft(string profile, string doc, IReadOnlyCollection<string> after)
+            {
+                Profile = profile;
+                Doc = doc;
+                After = after;
+            }
+
+            /// <summary>
+            /// What a version at the node is left under where it does not fit: a row, a version
+            /// written anew, or the switch; none for a version below.
+            /// </summary>
             public string Key { get; private set; }
 
             /// <summary>The profile of the row, or null for the switch.</summary>

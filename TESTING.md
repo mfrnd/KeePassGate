@@ -245,6 +245,12 @@ explicit in the same way: it times, and counts the bytes allocated for, working 
 of a reading and walking every node where every version names many others, run alone since
 allocations are counted for the whole application domain.
 
+**What a write above costs is timed there as well**, in
+`What_an_OK_above_versions_that_follow_holds_the_thread_for`: an OK at the root group above
+versions that follow it, with the reading in the writer's turn, the composition, the plan and
+the application each timed apart, the opening of that group's tab, and a hold of the gate
+before and after the OKs. `STORE.md` §643 has the figures.
+
 **It is also where KeePass's own compiler is asked.** `ReferenceVectorsTests` builds a database in
 memory holding the entries `tests/Shared/ReferenceVectors.json` writes down, compiles every value
 in it with KeePass's `SprEngine`, as a copy of the field compiles one less what acts, and holds the

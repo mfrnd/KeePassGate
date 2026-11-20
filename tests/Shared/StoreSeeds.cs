@@ -140,7 +140,7 @@ namespace KeePassGate.Testing
         /// <summary>The box ticked at the node and these rules chosen there, in a single OK on its dialog as the product writes it.</summary>
         public static void Seal(IGateStore store, string node, params (string Profile, string Mask)[] rules)
         {
-            Changed(store, "the box ticked", node, shown => new RuleChanges(Chosen(rules, shown), new SwitchChange(true, shown, null)));
+            Changed(store, "the box ticked", node, shown => new RuleChanges(Chosen(rules, shown), new SwitchChange(true, shown, null, null)));
         }
 
         /// <summary>
@@ -151,7 +151,7 @@ namespace KeePassGate.Testing
         public static void TakeOff(IGateStore store, string node, string profile, string arriving)
         {
             Changed(store, "a rule taken off", node, shown => new RuleChanges(
-                new[] { new RowChange(RowChangeKind.TakeOff, profile, Rules.Letters(arriving), null, shown) }, null));
+                new[] { new RowChange(RowChangeKind.TakeOff, profile, Rules.Letters(arriving), null, shown, null) }, null));
         }
 
         /// <summary>
@@ -161,14 +161,14 @@ namespace KeePassGate.Testing
         public static void Unseal(IGateStore store, string node, params (string Profile, string Mask)[] arriving)
         {
             Changed(store, "the box cleared", node, shown => new RuleChanges(null, new SwitchChange(
-                false, shown, arriving.Select(pair => new KeyValuePair<string, AclGrant>(pair.Profile, Rules.Letters(pair.Mask))))));
+                false, shown, arriving.Select(pair => new KeyValuePair<string, AclGrant>(pair.Profile, Rules.Letters(pair.Mask))), null)));
         }
 
         /// <summary>A rule chosen for each profile, over the rules the tab shows.</summary>
         private static IEnumerable<RowChange> Chosen((string Profile, string Mask)[] rules, NodeRule shown)
         {
             return (rules ?? Array.Empty<(string Profile, string Mask)>())
-                .Select(rule => new RowChange(RowChangeKind.Set, rule.Profile, Rules.Letters(rule.Mask), null, shown))
+                .Select(rule => new RowChange(RowChangeKind.Set, rule.Profile, Rules.Letters(rule.Mask), null, shown, null))
                 .ToList();
         }
 
@@ -176,7 +176,7 @@ namespace KeePassGate.Testing
         /// The act of an OK on the node's dialog, its changes made over the node's rules as the
         /// store holds them, composed by the product and written by the store's own write; the
         /// node's parent lets through every letter, so each mask a seed gives as arriving is the
-        /// mask recorded.
+        /// mask recorded, and no node below is handed over, so a seed writes at its node alone.
         /// </summary>
         private static void Changed(IGateStore store, string name, string node, Func<NodeRule, RuleChanges> changes)
         {
@@ -190,7 +190,7 @@ namespace KeePassGate.Testing
                 }
 
                 var made = changes(StoredRules.Of(reading).At(node));
-                act = RuleActs.Of(reading, node, Open.Over(made), made, out left);
+                act = RuleActs.Of(reading, node, _ => Open.Over(made), null, made, out left);
             }
 
             if (left.Count > 0 || act == null)

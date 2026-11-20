@@ -489,6 +489,455 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        [Test]
+        public void A_renewal_below_that_does_not_fit_is_named_in_the_log_by_its_node_and_told_in_no_message()
+        {
+            // `STORE.md` §643: the version below is left as it was, the rest of the OK is written,
+            // and since no press of the operator's was left out, nothing is told after the close.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var entry = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "R"));
+            CrowdedBelow(entry, "reader");
+            var prompt = new Telling();
+
+            using (var groupDialog = GroupDialog(group))
+            {
+                var tab = Tabs().TabFor(groupDialog);
+                Assume.That(tab.Sheet.CanEdit, Is.True, tab.Sheet.ReadOnlyReason);
+                Closed(tab, prompt, DialogResult.OK, panel => panel.SetGrant("reader", ".RU....."));
+            }
+
+            Assert.That(prompt.Told, Is.Zero, "a renewal left is told in no message");
+            Assert.That(VerbMask.Of(Read().At(NodeOf(group)).Row("reader").Grants), Is.EqualTo(".RU....."), "the rest of the OK is written");
+            Assert.That(VerbMask.Of(Read().At(NodeOf(entry)).Row("reader").Versions.Single().Letters), Is.EqualTo(".R......"), "left as it was");
+            Assert.That(
+                _log.Warnings,
+                Has.Some.Matches<string>(warning => warning.Contains(NodeOf(entry).Substring(0, 8)) && warning.Contains("was left as it was")),
+                "the log names the node below: " + string.Join(" | ", _log.Warnings));
+        }
+
+        /// <summary>
+        /// A rule of the profile taken off at the entry, seeing read arrive, in a single version
+        /// naming as many identifiers a version of its object could have as the version and its
+        /// item fit a string with: a renewal naming the version as well fits no string.
+        /// </summary>
+        private void CrowdedBelow(PwEntry entry, string profile)
+        {
+            var store = Store();
+            byte[] key;
+            using (var reading = store.Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+
+            try
+            {
+                var objectName = StoreComposer.RowObject(NodeOf(entry), profile);
+                var place = StoreComposer.Version(key, objectName, StoreComposer.Content(("doc", "off:R"))).Hex.Substring(0, 20);
+                var names = new System.Collections.Generic.List<string>();
+                string Named(int at) => place + at.ToString("x12", System.Globalization.CultureInfo.InvariantCulture);
+                for (var at = 0; at < (StoreFormat.MaxWritten / 33) - 20; at++)
+                {
+                    names.Add(Named(at));
+                }
+
+                string Item(System.Collections.Generic.IEnumerable<string> after)
+                {
+                    var listed = after.ToArray();
+                    return StoreComposer.RuleVersionItem(StoreComposer.RuleVersion(key, objectName, "off:R", listed), objectName, "off:R", listed);
+                }
+
+                while (Item(names.Concat(new[] { Named(names.Count) })).Length <= StoreFormat.MaxWritten)
+                {
+                    names.Add(Named(names.Count));
+                }
+
+                var version = StoreRecord.Compose(key, StoreKinds.Version, new System.Collections.Generic.Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    { StoreKinds.After, string.Join(" ", names) },
+                    { StoreKinds.Doc, "off:R" },
+                    { StoreKinds.ObjectMember, objectName },
+                });
+                var written = store.Write(new[] { new StoreAct("a rule crowded", key, StoreFormat.KeyName(key), new[] { version }, null) });
+                Assume.That(written.Taken, Is.True, written.Reason);
+            }
+            finally
+            {
+                Array.Clear(key, 0, key.Length);
+            }
+        }
+
+        [Test]
+        public void OK_at_a_group_carries_a_widening_into_the_versions_below_that_follow_it()
+        {
+            // `STORE.md` §617: N took the rule off seeing read arrive, and follows its group; the
+            // OK at the group writes N anew with what arrives now, and deletes the version it
+            // replaces with a single deletion record, in the same write.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var below = new PwGroup(true, true, "Fictitious below", PwIcon.Folder);
+            group.AddGroup(below, true);
+            var entry = EntryIn(below);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "R"));
+            StoreSeeds.TakeOff(Store(), NodeOf(below), "reader", "R");
+            StoreSeeds.TakeOff(Store(), NodeOf(entry), "reader", "R");
+            var replaced = Read().At(NodeOf(entry)).Row("reader").Versions.Single().Id;
+            var deletions = _database.Database.DeletedObjects.UCount;
+
+            using (var dialog = GroupDialog(group))
+            {
+                var tab = Tabs().TabFor(dialog);
+                Assert.That(tab.Sheet.Set("reader", ".RU....."), Is.Null);
+                Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+            }
+
+            foreach (var node in new[] { NodeOf(below), NodeOf(entry) })
+            {
+                var version = Read().At(node).Row("reader").Versions.Single();
+                Assert.That(version.Kind, Is.EqualTo(RowVersionKind.TakenOff), node);
+                Assert.That(VerbMask.Of(version.Letters), Is.EqualTo(".RU....."), node);
+            }
+
+            Assert.That(_database.RootGroup.FindEntry(new PwUuid(StoreComposer.BytesOf(replaced)), true), Is.Null, "the version renewed is deleted");
+            Assert.That(
+                _database.Database.DeletedObjects.Count(deleted => Hex.Of(deleted.Uuid.UuidBytes) == replaced), Is.EqualTo(1),
+                "with a single deletion record");
+            Assert.That(_database.Database.DeletedObjects.UCount - deletions, Is.EqualTo(3), "the two versions renewed and the summary entry");
+        }
+
+        [Test]
+        public void A_version_below_made_apart_and_merged_in_under_the_open_dialog_is_left_and_goes_on_cutting()
+        {
+            // `STORE.md` §617: the version reaches the database by a merge while the group's dialog
+            // stands, so the tab never held it, and the OK leaves it as it is.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var entry = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "R"));
+            using (var copy = TemporaryDatabase.New())
+            {
+                copy.Database.RootGroup.Uuid = _database.RootGroup.Uuid;
+                copy.Database.MergeIn(_database.Database, PwMergeMethod.Synchronize, null);
+                StoreSeeds.TakeOff(DatabaseAuthority.Store(copy.Database), NodeOf(entry), "reader", "R");
+
+                using (var dialog = GroupDialog(group))
+                {
+                    var tab = Tabs().TabFor(dialog);
+                    Assert.That(tab.Sheet.Set("reader", ".RU....."), Is.Null);
+
+                    _database.Database.MergeIn(copy.Database, PwMergeMethod.Synchronize, null);
+                    Assume.That(Read().At(NodeOf(entry)).Row("reader").Versions, Has.Count.EqualTo(1), "the version made apart landed");
+
+                    Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+                }
+            }
+
+            var version = Read().At(NodeOf(entry)).Row("reader").Versions.Single();
+            Assert.That(VerbMask.Of(version.Letters), Is.EqualTo(".R......"), "not renewed");
+            Assert.That(VerbMask.Of(Read().At(NodeOf(group)).Row("reader").Grants), Is.EqualTo(".RU....."), "and the rest of the OK written");
+            Assert.That(
+                _log.Warnings,
+                Has.Some.Matches<string>(warning => warning.Contains(NodeOf(entry).Substring(0, 8)) && warning.Contains("not carried")),
+                "the log names the node below the change did not reach, and why: " + string.Join(" | ", _log.Warnings));
+        }
+
+        [Test]
+        public void A_reading_made_again_before_a_press_lets_the_OK_carry_a_version_below_that_landed_before_it()
+        {
+            // `STORE.md` §617: the entry's rule is taken off while the group's dialog stands, and
+            // the tab reads the store again as a record that lands makes it; the press made after
+            // that reading keeps the entry's version, so the OK carries the widening there.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var entry = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "R"));
+
+            using (var dialog = GroupDialog(group))
+            {
+                var tab = Tabs().TabFor(dialog);
+                StoreSeeds.TakeOff(Store(), NodeOf(entry), "reader", "R");
+                var again = tab.Again();
+                tab.Sheet.Rebase(again.Rule, again.Above, again.Names, again.ReadOnlyReason);
+                Assert.That(tab.Sheet.Set("reader", ".RU....."), Is.Null);
+                Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+            }
+
+            Assert.That(Letters(entry), Is.EqualTo(".RU....."), "the version the reading made again held is renewed");
+        }
+
+        [Test]
+        public void OK_at_a_group_carries_a_narrowing_into_a_version_below_that_follows_and_leaves_a_limit()
+        {
+            // `STORE.md` §617: an entry took its rule off seeing what the group gave and another
+            // turned its switch off seeing the same, while a third recorded less, a limit; the
+            // group narrowed carries the first two and leaves the third.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var follower = EntryIn(group);
+            var switched = EntryIn(group);
+            var limit = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "RUL"));
+            StoreSeeds.TakeOff(Store(), NodeOf(follower), "reader", "RUL");
+            StoreSeeds.Seal(Store(), NodeOf(switched));
+            StoreSeeds.Unseal(Store(), NodeOf(switched), ("reader", "RUL"));
+            StoreSeeds.TakeOff(Store(), NodeOf(limit), "reader", "R");
+
+            using (var dialog = GroupDialog(group))
+            {
+                var tab = Tabs().TabFor(dialog);
+                Assert.That(tab.Sheet.Set("reader", ".RU....."), Is.Null);
+                Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+            }
+
+            Assert.That(Letters(follower), Is.EqualTo(".RU....."), "the version that followed records the narrower rule");
+            Assert.That(
+                VerbMask.Of(Read().At(NodeOf(switched)).Switch.Versions.Single().LettersFor("reader")),
+                Is.EqualTo(".RU....."),
+                "and so does the switch that followed");
+            Assert.That(Letters(limit), Is.EqualTo(".R......"), "the limit is left");
+        }
+
+        [Test]
+        public void The_box_ticked_and_cleared_on_a_group_s_tab_carries_the_version_below_that_followed_and_leaves_a_limit()
+        {
+            // `STORE.md` §617: the box ticked renews the entry that followed to nothing and leaves
+            // the limit; cleared again, it renews the entry that recorded nothing arriving, and
+            // leaves the limit, whose letters nothing tells apart from a limit while nothing
+            // arrived.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var follower = EntryIn(group);
+            var limit = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "RL"));
+            StoreSeeds.TakeOff(Store(), NodeOf(follower), "reader", "RL");
+            StoreSeeds.TakeOff(Store(), NodeOf(limit), "reader", "R");
+
+            foreach (var (box, followed) in new[] { (GrantBox.Ticked, "........"), (GrantBox.Cleared, ".R...L..") })
+            {
+                using (var dialog = GroupDialog(group))
+                {
+                    var tab = Tabs().TabFor(dialog);
+                    Assert.That(tab.Sheet.PressBox(), Is.True);
+                    Assume.That(tab.Sheet.Box, Is.EqualTo(box));
+                    Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+                }
+
+                Assert.That(Letters(follower), Is.EqualTo(followed), "the box " + box + ": the version that followed");
+                Assert.That(Letters(limit), Is.EqualTo(".R......"), "the box " + box + ": the limit is left");
+            }
+        }
+
+        [Test]
+        public void A_node_in_the_recycle_bin_follows_a_narrowing_and_a_widening_above_it_by_the_bin_s_path()
+        {
+            // `STORE.md` §617: the entry took its rule off seeing read and write arrive, and was
+            // deleted to the recycle bin. A change at the root reaches it there by the bin's own
+            // path, a narrowing as a widening.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var entry = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "RU"));
+            StoreSeeds.TakeOff(Store(), NodeOf(entry), "reader", "RU");
+            Discard(_database.Database, entry);
+
+            foreach (var (mask, recorded) in new[] { (".R......", ".R......"), (".R...L..", ".R...L..") })
+            {
+                using (var dialog = GroupDialog(_database.RootGroup))
+                {
+                    var tab = Tabs().TabFor(dialog);
+                    Assert.That(tab.Sheet.Set("reader", mask), Is.Null);
+                    Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+                }
+
+                Assert.That(Letters(entry), Is.EqualTo(recorded), "the root set to " + mask);
+            }
+        }
+
+        [Test]
+        public void A_narrowing_above_reaches_a_node_in_the_recycle_bin_and_a_merge_then_gives_no_more_than_either_copy()
+        {
+            // `STORE.md` §617 and §639: both copies grant read at the root and hold an empty rule
+            // at the entry, in a group with no rule. The first takes the entry's rule off, deletes
+            // the entry to the recycle bin, narrows the root to nothing and restores the entry; the
+            // second, apart, gives the group read. The narrowing reached the entry in the bin, so
+            // once the copies meet, the entry gives nothing, which both copies gave.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var entry = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "R"));
+            StoreSeeds.Rule(Store(), NodeOf(entry), ("reader", string.Empty));
+            using (var copy = TemporaryDatabase.New())
+            {
+                copy.Database.RootGroup.Uuid = _database.RootGroup.Uuid;
+                copy.Database.MergeIn(_database.Database, PwMergeMethod.Synchronize, null);
+                var copied = copy.Database.RootGroup.FindGroup(group.Uuid, true);
+                Assume.That(copied, Is.Not.Null);
+
+                using (var dialog = EntryDialog(entry, PwEditMode.EditExistingEntry))
+                {
+                    var tab = Tabs().TabFor(dialog);
+                    Assert.That(tab.Sheet.Remove("reader"), Is.True);
+                    Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+                }
+
+                var bin = Discard(_database.Database, entry);
+                using (var dialog = GroupDialog(_database.RootGroup))
+                {
+                    var tab = Tabs().TabFor(dialog);
+                    Assert.That(tab.Sheet.Set("reader", "........"), Is.Null);
+                    Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+                }
+
+                bin.Entries.Remove(entry);
+                group.AddEntry(entry, true, true);
+                Assert.That(Gives(_database.Database, entry.Uuid), Is.EqualTo("........"), "the first copy gives nothing at the entry");
+
+                using (var dialog = GroupDialog(copied, copy.Database))
+                {
+                    var tab = Tabs().TabFor(dialog);
+                    Assert.That(tab.Sheet.Set("reader", ".R......"), Is.Null);
+                    Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+                }
+
+                Assert.That(Gives(copy.Database, entry.Uuid), Is.EqualTo("........"), "the second copy gives nothing at the entry");
+
+                using (var other = TemporaryDatabase.New())
+                {
+                    other.Database.RootGroup.Uuid = copy.Database.RootGroup.Uuid;
+                    other.Database.MergeIn(copy.Database, PwMergeMethod.Synchronize, null);
+                    other.Database.MergeIn(_database.Database, PwMergeMethod.Synchronize, null);
+                    _database.Database.MergeIn(copy.Database, PwMergeMethod.Synchronize, null);
+
+                    Assert.That(Gives(_database.Database, entry.Uuid), Is.EqualTo("........"), "the first copy, the second merged in");
+                    Assert.That(Gives(other.Database, entry.Uuid), Is.EqualTo("........"), "the second copy, the first merged in");
+                }
+            }
+        }
+
+        /// <summary>
+        /// The entry deleted to the recycle bin as KeePass deletes it: the bin made under the root
+        /// where the database names none, and the entry moved into it.
+        /// </summary>
+        private static PwGroup Discard(PwDatabase database, PwEntry entry)
+        {
+            var bin = database.RootGroup.FindGroup(database.RecycleBinUuid, true);
+            if (bin == null)
+            {
+                bin = new PwGroup(true, true, "Recycle Bin", PwIcon.TrashBin) { EnableAutoType = false, EnableSearching = false };
+                database.RootGroup.AddGroup(bin, true);
+                database.RecycleBinUuid = bin.Uuid;
+                database.RecycleBinChanged = DateTime.UtcNow;
+            }
+
+            entry.ParentGroup.Entries.Remove(entry);
+            bin.AddEntry(entry, true, true);
+            return bin;
+        }
+
+        /// <summary>The letters the single standing version of the rule of the profile `reader` at the entry records.</summary>
+        private string Letters(PwEntry entry)
+        {
+            return VerbMask.Of(Read().At(NodeOf(entry)).Row("reader").Versions.Single().Letters);
+        }
+
+        /// <summary>What the entry of this identifier gives the profile `reader` in this database, as the gate's next hold reads the rules.</summary>
+        private static string Gives(PwDatabase database, PwUuid entry)
+        {
+            using (var reading = new KdbxStore(database, GateVersion.Current, null).Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                var rules = StoredRules.Of(reading);
+                var found = database.RootGroup.FindEntry(entry, true);
+                return VerbMask.Of(AclResolver.Arrives(KdbxNodes.Of(found, CurrentThread.Instance, () => rules), "reader"));
+            }
+        }
+
+        [Test]
+        public void A_node_moved_by_KeePass_out_from_under_the_group_before_the_OK_is_not_carried_along()
+        {
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var below = new PwGroup(true, true, "Fictitious below", PwIcon.Folder);
+            group.AddGroup(below, true);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "R"));
+            StoreSeeds.TakeOff(Store(), NodeOf(below), "reader", "R");
+
+            using (var dialog = GroupDialog(group))
+            {
+                var tab = Tabs().TabFor(dialog);
+                Assert.That(tab.Sheet.Set("reader", ".RU....."), Is.Null);
+
+                // Moved as KeePass's drag and drop in the tree moves a group.
+                group.Groups.Remove(below);
+                _database.RootGroup.AddGroup(below, true, true);
+
+                Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+            }
+
+            var version = Read().At(NodeOf(below)).Row("reader").Versions.Single();
+            Assert.That(VerbMask.Of(version.Letters), Is.EqualTo(".R......"), "no longer below the group, and not renewed");
+        }
+
+        [TestCaseSource(nameof(Kinds))]
+        public void An_entry_whose_identifier_begins_with_a_kind_s_tag_is_the_store_s_to_the_tree_the_gate_the_write_above_and_the_tab(string kind)
+        {
+            // `STORE.md` §633: an entry whose identifier's first three bytes are the tag of a kind
+            // under a key found is the store's wherever it sits, an entry of the operator's in a
+            // group of the operator's among them. All four agree on it: the tree holds no such
+            // node, the gate finds none, the write above renews nothing there, and its tab takes
+            // no press. An entry beside it with an identifier of its own follows the group.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            byte[] key;
+            using (var reading = new KdbxStore(_database.Database, GateVersion.Current, null).Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+
+            var tagged = new PwEntry(true, true);
+            var identifier = tagged.Uuid.UuidBytes;
+            Buffer.BlockCopy(StoreFormat.Tag(key, kind), 0, identifier, 0, StoreFormat.TagLength);
+            tagged.Uuid = new PwUuid(identifier);
+            group.AddEntry(tagged, true);
+            var plain = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "R"));
+            StoreSeeds.TakeOff(Store(), NodeOf(tagged), "reader", "R");
+            StoreSeeds.TakeOff(Store(), NodeOf(plain), "reader", "R");
+
+            using (var reading = new KdbxStore(_database.Database, GateVersion.Current, null).Read())
+            {
+                var below = new DatabaseNodes(_database.Database).Tree(reading, StoredRules.Of(reading), _database.RootGroup).Below(NodeOf(_database.RootGroup)).ToList();
+                Assert.That(below, Has.Member(NodeOf(plain)));
+                Assert.That(below, Has.No.Member(NodeOf(tagged)), "the tree holds no such node");
+            }
+
+            var vault = new KdbxVault(_database.Database, null, TestTags.Fixed, null);
+            Assert.That(vault.Entry(tagged.Uuid.ToHexString()), Is.Null, "the gate finds no such entry");
+            Assert.That(AclResolver.Permits(vault.Entry(plain.Uuid.ToHexString()).Node, new[] { "reader" }, AclVerb.Read), Is.True);
+
+            using (var dialog = GroupDialog(_database.RootGroup))
+            {
+                var tab = Tabs().TabFor(dialog);
+                Assert.That(tab.Sheet.Set("reader", ".RU....."), Is.Null);
+                Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+            }
+
+            Assert.That(VerbMask.Of(Read().At(NodeOf(plain)).Row("reader").Versions.Single().Letters), Is.EqualTo(".RU....."));
+            Assert.That(VerbMask.Of(Read().At(NodeOf(tagged)).Row("reader").Versions.Single().Letters), Is.EqualTo(".R......"), "the write above renews nothing there");
+
+            using (var dialog = EntryDialog(tagged, PwEditMode.EditExistingEntry))
+            {
+                Assert.That(Tabs().TabFor(dialog).Sheet.ReadOnlyReason, Is.EqualTo(GrantTab.StoreNode), "its tab takes no press");
+            }
+        }
+
+        /// <summary>The name of every kind of record, each of which a tag tells.</summary>
+        private static System.Collections.Generic.IEnumerable<string> Kinds()
+        {
+            return StoreKinds.All.Select(kind => kind.Name);
+        }
+
         /// <summary>
         /// The tab a KeePass dialog gives, on a plain modal form closed with this result once the
         /// press has been made on the tab, and the message loop run until what was posted ran.
@@ -566,8 +1015,13 @@ namespace KeePassGate.Host.Tests
 
         private Form GroupDialog(PwGroup group)
         {
+            return GroupDialog(group, _database.Database);
+        }
+
+        private static Form GroupDialog(PwGroup group, PwDatabase database)
+        {
             var dialog = new GroupForm();
-            dialog.InitEx(group, false, null, _database.Database);
+            dialog.InitEx(group, false, null, database);
             return dialog;
         }
 

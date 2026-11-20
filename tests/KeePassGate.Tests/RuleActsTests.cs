@@ -27,6 +27,8 @@ namespace KeePassGate.Tests
         private const string Root = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         private const string N = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
         private const string M = "cccccccccccccccccccccccccccccccc";
+        private const string G = "dddddddddddddddddddddddddddddddd";
+        private const string E = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
         private const string Nonce = "00112233445566778899aabbccddeeff";
 
         private static readonly string[] Alphabet = { string.Empty, "R", "U", "A", "RU", "RA", "UA", "RUA" };
@@ -38,7 +40,7 @@ namespace KeePassGate.Tests
             var store = new ComposedStore(MeasuredKey());
             using (var reading = store.Read())
             {
-                var act = RuleActs.Of(reading, N, Open(), Rows(Set(profile, mask, NodeRule.None)), out var left);
+                var act = RuleActs.Of(reading, N, _ => Open(), null, Rows(Set(profile, mask, NodeRule.None)), out var left);
 
                 Assert.That(left, Is.Empty);
                 AssertMeasured(act.Records.Single(), vector);
@@ -52,7 +54,7 @@ namespace KeePassGate.Tests
             var store = new ComposedStore(MeasuredKey());
             using (var reading = store.Read())
             {
-                var act = RuleActs.Of(reading, N, Open(), Rows(TakeOff("pf", arriving, NodeRule.None)), out _);
+                var act = RuleActs.Of(reading, N, _ => Open(), null, Rows(TakeOff("pf", arriving, NodeRule.None)), out _);
 
                 AssertMeasured(act.Records.Single(), vector);
             }
@@ -69,7 +71,7 @@ namespace KeePassGate.Tests
                 var shown = StoredRules.Of(reading).At(N);
                 Assume.That(shown.Switch.Refuses, Is.True);
 
-                var act = RuleActs.Of(reading, N, Open(), Rows(TakeOff("pf", "RU", shown)), out _);
+                var act = RuleActs.Of(reading, N, _ => Open(), null, Rows(TakeOff("pf", "RU", shown)), out _);
 
                 AssertMeasured(act.Records.Single(), "version, a rule taken off while the switch refused");
             }
@@ -94,7 +96,7 @@ namespace KeePassGate.Tests
                 var shown = StoredRules.Of(reading).At(N);
                 Assume.That(shown.Row("pf").Versions, Has.Count.EqualTo(2));
 
-                var act = RuleActs.Of(reading, N, Open(), Rows(Set("pf", "R", shown)), out _);
+                var act = RuleActs.Of(reading, N, _ => Open(), null, Rows(Set("pf", "R", shown)), out _);
 
                 AssertMeasured(act.Records.Single(), "version, a row naming the versions it replaces");
             }
@@ -108,7 +110,7 @@ namespace KeePassGate.Tests
             store.Restate(StoreComposer.RuleVersionItem(takenOff, RowOf(N, "pf"), "off:RLA"));
             using (var reading = store.Read())
             {
-                var act = RuleActs.Of(reading, N, Open(), Rows(Settle("pf", "CRUDLA", StoredRules.Of(reading).At(N))), out _);
+                var act = RuleActs.Of(reading, N, _ => Open(), null, Rows(Settle("pf", "CRUDLA", StoredRules.Of(reading).At(N))), out _);
 
                 AssertMeasured(act.Records.Single(), "version, a rule taken off renewed by a write above");
             }
@@ -124,7 +126,7 @@ namespace KeePassGate.Tests
             Assume.That(inheriting.Hex, Is.EqualTo((string)Records()["version, the switch inheriting, with a mask for each profile"]["id"]));
             using (var reading = store.Read())
             {
-                var act = RuleActs.Of(reading, N, Open(), Rows(Settle("pf", "CRUDLA", StoredRules.Of(reading).At(N))), out _);
+                var act = RuleActs.Of(reading, N, _ => Open(), null, Rows(Settle("pf", "CRUDLA", StoredRules.Of(reading).At(N))), out _);
 
                 AssertMeasured(act.Records.Single(), "version, the switch renewed by a write above");
             }
@@ -136,7 +138,7 @@ namespace KeePassGate.Tests
             var store = new ComposedStore(MeasuredKey());
             using (var reading = store.Read())
             {
-                var act = RuleActs.Of(reading, N, Open(), Box(true, NodeRule.None), out _);
+                var act = RuleActs.Of(reading, N, _ => Open(), null, Box(true, NodeRule.None), out _);
 
                 AssertMeasured(act.Records.Single(), "version, the switch refusing");
             }
@@ -157,7 +159,7 @@ namespace KeePassGate.Tests
                 .ToArray();
             using (var reading = store.Read())
             {
-                var act = RuleActs.Of(reading, N, Open(), Box(false, NodeRule.None, pairs), out _);
+                var act = RuleActs.Of(reading, N, _ => Open(), null, Box(false, NodeRule.None, pairs), out _);
 
                 AssertMeasured(act.Records.Single(), vector);
             }
@@ -263,7 +265,7 @@ namespace KeePassGate.Tests
             var granting = Put(store, RowOf(N, "pf"), "row:R");
             var shown = Shown(store);
 
-            var act = Act(store, new RuleChanges(new[] { TakeOff("pf", "RU", shown) }, new SwitchChange(true, shown, null)));
+            var act = Act(store, new RuleChanges(new[] { TakeOff("pf", "RU", shown) }, new SwitchChange(true, shown, null, null)));
 
             Assert.That(Written(act), Is.EquivalentTo(new[]
             {
@@ -282,7 +284,7 @@ namespace KeePassGate.Tests
 
             var act = Act(store, new RuleChanges(
                 new[] { TakeOff("pf", "RU", shown) },
-                new SwitchChange(false, shown, Arriving(("pf", "RU"), ("pg", "R")))));
+                new SwitchChange(false, shown, Arriving(("pf", "RU"), ("pg", "R")), null)));
 
             Assert.That(Written(act), Is.EquivalentTo(new[]
             {
@@ -377,7 +379,7 @@ namespace KeePassGate.Tests
             var denied = Put(store, RowOf(N, "pf"), "off:deny");
             var shown = Shown(store);
 
-            var act = Act(store, new RuleChanges(new[] { Set("pf", "L", shown) }, new SwitchChange(false, shown, Arriving(("pf", "RU")))));
+            var act = Act(store, new RuleChanges(new[] { Set("pf", "L", shown) }, new SwitchChange(false, shown, Arriving(("pf", "RU")), null)));
 
             Assert.That(Written(act), Is.EquivalentTo(new[]
             {
@@ -394,7 +396,7 @@ namespace KeePassGate.Tests
             var granting = Put(store, RowOf(N, "pf"), "row:R");
             var shown = Shown(store);
 
-            var act = Act(store, new RuleChanges(new[] { TakeOff("pf", "RUA", shown) }, new SwitchChange(false, shown, Arriving(("pf", "RU")))));
+            var act = Act(store, new RuleChanges(new[] { TakeOff("pf", "RUA", shown) }, new SwitchChange(false, shown, Arriving(("pf", "RU")), null)));
 
             Assert.That(Written(act), Is.EquivalentTo(new[]
             {
@@ -432,7 +434,7 @@ namespace KeePassGate.Tests
             StoreAct act;
             using (var reading = store.Read())
             {
-                act = RuleActs.Of(reading, N, Open(), Rows(Settle("pf", "RU", shown)), out left);
+                act = RuleActs.Of(reading, N, _ => Open(), null, Rows(Settle("pf", "RU", shown)), out left);
             }
 
             Assert.That(act, Is.Null);
@@ -478,7 +480,7 @@ namespace KeePassGate.Tests
             // through what arrives. The store gives the box as cleared already, so the box writes
             // nothing.
             here.Synchronize(there);
-            var act = ActAt(here, N, new RuleChanges(new[] { TakeOff("pf", "RU", shown) }, new SwitchChange(false, shown, Arriving(("pf", "RU")))));
+            var act = ActAt(here, N, new RuleChanges(new[] { TakeOff("pf", "RU", shown) }, new SwitchChange(false, shown, Arriving(("pf", "RU")), null)));
 
             Assert.That(Written(act), Is.EqualTo(new[] { (RowOf(N, "pf"), "off:RU", Sorted(granting.Hex)) }));
         }
@@ -497,7 +499,7 @@ namespace KeePassGate.Tests
             using (var reading = store.Read())
             {
                 act = RuleActs.Of(
-                    reading, N, Open(), new RuleChanges(new[] { Set("pf", "L", shown) }, new SwitchChange(false, shown, Arriving(("pf", "RU")))), out left);
+                    reading, N, _ => Open(), null, new RuleChanges(new[] { Set("pf", "L", shown) }, new SwitchChange(false, shown, Arriving(("pf", "RU")), null)), out left);
             }
 
             Assert.That(Told(left), Is.EqualTo(new[] { ("pf", true, RuleLeftReason.TooLong) }), "the rule chosen does not fit");
@@ -564,7 +566,7 @@ namespace KeePassGate.Tests
             StoreAct act;
             using (var reading = store.Read())
             {
-                act = RuleActs.Of(reading, N, Open(), Rows(Remove(shown, "pf", only.Hex)), out left);
+                act = RuleActs.Of(reading, N, _ => Open(), null, Rows(Remove(shown, "pf", only.Hex)), out left);
             }
 
             Assert.That(act, Is.Null);
@@ -675,7 +677,7 @@ namespace KeePassGate.Tests
                         Rows(Settle("pf", arriving, shown)),
                         Rows(Remove(shown, "pf", granting.Hex)),
                         Box(false, shown, ("pf", arriving)),
-                        new RuleChanges(new[] { TakeOff("pf", arriving, shown) }, new SwitchChange(false, shown, Arriving(("pf", arriving)))),
+                        new RuleChanges(new[] { TakeOff("pf", arriving, shown) }, new SwitchChange(false, shown, Arriving(("pf", arriving)), null)),
                     };
 
                     foreach (var act in changes.Select(change => Act(store, change)))
@@ -709,9 +711,9 @@ namespace KeePassGate.Tests
                             StoreAct act;
                             using (var reading = store.Read())
                             {
-                                act = RuleActs.Of(reading, N, Giving(("pf", now), ("pg", now)), new RuleChanges(
+                                act = RuleActs.Of(reading, N, _ => Giving(("pf", now), ("pg", now)), null, new RuleChanges(
                                     new[] { TakeOff("pg", arriving, shown) },
-                                    new SwitchChange(false, shown, Arriving(("pf", atTheBox), ("pg", atTheBox)))), out _);
+                                    new SwitchChange(false, shown, Arriving(("pf", atTheBox), ("pg", atTheBox)), null)), out _);
                             }
 
                             // The bound by letters, each a letter of every mask the presses showed
@@ -773,7 +775,7 @@ namespace KeePassGate.Tests
             using (var reading = store.Read())
             {
                 act = RuleActs.Of(
-                    reading, N, Giving(("pf", "R"), ("pg", "RL")), Box(false, StoredRules.Of(reading).At(N), ("pf", "RU"), ("pg", "RL"), ("px", "C")), out _);
+                    reading, N, _ => Giving(("pf", "R"), ("pg", "RL")), null, Box(false, StoredRules.Of(reading).At(N), ("pf", "RU"), ("pg", "RL"), ("px", "C")), out _);
             }
 
             Assert.That(Written(act), Is.EqualTo(new[] { (SwitchOf(N), "sw:inherit pf=R pg=RL", Sorted(refusing.Hex)) }));
@@ -789,7 +791,7 @@ namespace KeePassGate.Tests
             var granting = Put(store, RowOf(N, "pf"), "row:R");
             var shown = Shown(store);
 
-            var act = ActAt(store, N, new RuleChanges(new[] { TakeOff("pf", "RUA", shown) }, new SwitchChange(false, shown, Arriving(("pf", "RUA"), ("pg", "RL")))));
+            var act = ActAt(store, N, new RuleChanges(new[] { TakeOff("pf", "RUA", shown) }, new SwitchChange(false, shown, Arriving(("pf", "RUA"), ("pg", "RL")), null)));
 
             Assert.That(Written(act), Is.EquivalentTo(new[]
             {
@@ -839,7 +841,7 @@ namespace KeePassGate.Tests
             StoreAct act;
             using (var reading = store.Read())
             {
-                act = RuleActs.Of(reading, N, above, Box(false, StoredRules.Of(reading).At(N), profiles.Select(profile => (profile, "RU")).ToArray()), out _);
+                act = RuleActs.Of(reading, N, _ => above, null, Box(false, StoredRules.Of(reading).At(N), profiles.Select(profile => (profile, "RU")).ToArray()), out _);
             }
 
             Assert.That(walks, Is.EqualTo(profiles.Length), "a walk for each profile recorded");
@@ -885,7 +887,7 @@ namespace KeePassGate.Tests
             StoreAct act;
             using (var reading = store.Read())
             {
-                act = RuleActs.Of(reading, N, Open(), Rows(Set("pf", "RU", shown), Set("pg", "R", shown)), out left);
+                act = RuleActs.Of(reading, N, _ => Open(), null, Rows(Set("pf", "RU", shown), Set("pg", "R", shown)), out left);
             }
 
             Assert.That(Told(left), Is.EqualTo(new[] { ("pf", true, RuleLeftReason.TooLong) }));
@@ -906,7 +908,7 @@ namespace KeePassGate.Tests
             StoreAct act;
             using (var reading = store.Read())
             {
-                act = RuleActs.Of(reading, N, Open(), Rows(TakeOff("pf", "RU", StoredRules.Of(reading).At(N))), out left);
+                act = RuleActs.Of(reading, N, _ => Open(), null, Rows(TakeOff("pf", "RU", StoredRules.Of(reading).At(N))), out left);
             }
 
             Assert.That(Told(left), Is.EqualTo(new (string, bool, RuleLeftReason)[] { (null, false, RuleLeftReason.TooLong) }));
@@ -929,7 +931,7 @@ namespace KeePassGate.Tests
             using (var reading = store.Read())
             {
                 act = RuleActs.Of(
-                    reading, N, Open(), new RuleChanges(new[] { TakeOff("pf", "RU", shown) }, new SwitchChange(false, shown, Arriving(("pf", "RU"), ("pg", "R")))), out left);
+                    reading, N, _ => Open(), null, new RuleChanges(new[] { TakeOff("pf", "RU", shown) }, new SwitchChange(false, shown, Arriving(("pf", "RU"), ("pg", "R")), null)), out left);
             }
 
             // The box cleared is left, so the switch still refuses once the OK is written: the rule
@@ -964,7 +966,7 @@ namespace KeePassGate.Tests
         {
             var store = Store();
 
-            Assert.That(Composed(store, Rows(new RowChange(RowChangeKind.Set, "pf", null, null, NodeRule.None)), out var left), Is.Null);
+            Assert.That(Composed(store, Rows(new RowChange(RowChangeKind.Set, "pf", null, null, NodeRule.None, null)), out var left), Is.Null);
             Assert.That(Told(left), Is.EqualTo(new[] { ("pf", true, RuleLeftReason.OutOfForm) }));
         }
 
@@ -1002,7 +1004,7 @@ namespace KeePassGate.Tests
                 store,
                 new RuleChanges(
                     new[] { Set("pf", "R", shown), Set("not a profile", "R", shown), Remove(shown, "pg", new string('e', 32)) },
-                    new SwitchChange(true, shown, null)),
+                    new SwitchChange(true, shown, null, null)),
                 out var left);
 
             Assert.That(Written(act), Is.EquivalentTo(new[]
@@ -1021,8 +1023,11 @@ namespace KeePassGate.Tests
             var store = Store();
             using (var reading = store.Read())
             {
-                Assert.That(RuleActs.Of(reading, node, Open(), new RuleChanges(new[] { Set("pf", "R", NodeRule.None) }, new SwitchChange(true, NodeRule.None, null)), out var left), Is.Null);
+                Assert.That(
+                    RuleActs.Of(reading, node, _ => Open(), null, new RuleChanges(new[] { Set("pf", "R", NodeRule.None) }, new SwitchChange(true, NodeRule.None, null, null)), out var left),
+                    Is.Null);
                 Assert.That(Told(left), Is.EquivalentTo(new (string, bool, RuleLeftReason)[] { ("pf", true, RuleLeftReason.OutOfForm), (null, true, RuleLeftReason.OutOfForm) }));
+                Assert.That(left.Select(change => change.Node), Is.All.EqualTo(node), "each change is told at the node it was handed over at");
             }
         }
 
@@ -1035,9 +1040,9 @@ namespace KeePassGate.Tests
                 var entry = reading.Candidates[0].Hex;
                 var group = KeePassGate.Hex.Of(StoreFormat.NewGroupIdentifier());
 
-                Assert.That(RuleActs.Of(reading, entry, Open(), Rows(Set("pf", "R", NodeRule.None)), out var atEntry), Is.Null);
+                Assert.That(RuleActs.Of(reading, entry, _ => Open(), null, Rows(Set("pf", "R", NodeRule.None)), out var atEntry), Is.Null);
                 Assert.That(Told(atEntry), Is.EqualTo(new[] { ("pf", true, RuleLeftReason.OutOfForm) }));
-                Assert.That(RuleActs.Of(reading, group, Open(), Rows(Set("pf", "R", NodeRule.None)), out var atGroup), Is.Null);
+                Assert.That(RuleActs.Of(reading, group, _ => Open(), null, Rows(Set("pf", "R", NodeRule.None)), out var atGroup), Is.Null);
                 Assert.That(Told(atGroup), Is.EqualTo(new[] { ("pf", true, RuleLeftReason.OutOfForm) }));
             }
         }
@@ -1047,7 +1052,7 @@ namespace KeePassGate.Tests
         {
             using (var reading = new MemoryStore().Read())
             {
-                Assert.That(RuleActs.Of(reading, N, Open(), Rows(Set("pf", "R", NodeRule.None)), out var noKey), Is.Null);
+                Assert.That(RuleActs.Of(reading, N, _ => Open(), null, Rows(Set("pf", "R", NodeRule.None)), out var noKey), Is.Null);
                 Assert.That(Told(noKey), Is.EqualTo(new[] { ("pf", true, RuleLeftReason.Unread) }));
             }
 
@@ -1060,7 +1065,7 @@ namespace KeePassGate.Tests
             using (var reading = store.Read())
             {
                 Assume.That(reading.State, Is.Not.EqualTo(StoreState.Whole));
-                Assert.That(RuleActs.Of(reading, N, Open(), Rows(Set("pf", "R", NodeRule.None)), out var stopped), Is.Null);
+                Assert.That(RuleActs.Of(reading, N, _ => Open(), null, Rows(Set("pf", "R", NodeRule.None)), out var stopped), Is.Null);
                 Assert.That(Told(stopped), Is.EqualTo(new[] { ("pf", true, RuleLeftReason.Unread) }));
             }
         }
@@ -1079,7 +1084,7 @@ namespace KeePassGate.Tests
             var store = Store();
             using (var reading = store.Read())
             {
-                var act = RuleActs.Of(reading, N, Open(), Rows(Set("pf", "R", NodeRule.None)), out _);
+                var act = RuleActs.Of(reading, N, _ => Open(), null, Rows(Set("pf", "R", NodeRule.None)), out _);
 
                 Assert.That(act.Against, Is.EqualTo(reading.InForce.Key.Name));
                 Assert.That(act.KeyName, Is.EqualTo(reading.InForce.Key.Name));
@@ -1093,7 +1098,7 @@ namespace KeePassGate.Tests
                 () => new RuleChanges(new[] { Set("pf", "R", NodeRule.None), TakeOff("pf", "R", NodeRule.None) }, null),
                 Throws.ArgumentException);
 
-            var changes = new RuleChanges(new[] { Set("pg", "R", null), Set("pf", "U", null) }, new SwitchChange(true, null, Arriving(("pf", "R"))));
+            var changes = new RuleChanges(new[] { Set("pg", "R", null), Set("pf", "U", null) }, new SwitchChange(true, null, Arriving(("pf", "R")), null));
             Assert.That(changes.Rows.Select(row => row.Profile), Is.EqualTo(new[] { "pf", "pg" }));
             Assert.That(changes.Rows.All(row => row.Shown == NodeRule.None), Is.True, "nothing shown is no rule shown");
             Assert.That(changes.Switch.Arriving, Is.Empty, "a press that ticks the box records nothing arriving");
@@ -1120,6 +1125,616 @@ namespace KeePassGate.Tests
             StoreSeeds.Rule(store, N, ("pf", "R"), ("pg", ".R......"));
             Assert.That(Standing(store, RowOf(N, "pf")), Is.EqualTo(new[] { "row:R" }));
             Assert.That(Standing(store, RowOf(N, "pg")), Is.EqualTo(new[] { "row:R" }));
+        }
+
+        [Test]
+        public void A_widening_above_renews_each_version_below_that_let_through_all_that_arrived_the_nearer_first()
+        {
+            // `STORE.md` §617, the write above: G follows the root, and N follows G as G lets it
+            // through once renewed, so N is written with what arrives after both.
+            var store = Store();
+            var root = Put(store, RowOf(Root, "pf"), "row:R");
+            var group = Put(store, RowOf(G, "pf"), "off:R");
+            var node = Put(store, RowOf(N, "pf"), "off:R");
+            var tree = Three();
+
+            var act = Ok(store, Root, tree, (shown, below) => Rows(Set("pf", "RU", shown, below)));
+
+            Assert.That(Written(act), Is.EqualTo(new[]
+            {
+                (RowOf(Root, "pf"), "row:RU", Sorted(root.Hex)),
+                (RowOf(N, "pf"), "off:RU", Sorted(node.Hex)),
+                (RowOf(G, "pf"), "off:RU", Sorted(group.Hex)),
+            }));
+            Write(store, act);
+            Assert.That(Standing(store, RowOf(N, "pf")), Is.EqualTo(new[] { "off:RU" }), "the version renewed replaces the version it names");
+            Assert.That(new[] { G, N, M, E }.Select(at => GivesIn(store, tree, at, "pf")), Is.EqualTo(new[] { "RU", "RU", "RU", "RU" }));
+        }
+
+        [Test]
+        public void No_renewal_widens_a_version_that_was_cutting_nor_records_more_than_arrives_after_the_act()
+        {
+            // Every mask of a small alphabet at the root before and after the act, and recorded at
+            // G and at N below it, masks that hold each other and masks that do not: a version
+            // renewed held all that arrived before, or recorded nothing where nothing arrived,
+            // records exactly what arrives after in the write's reading, and such a version is
+            // renewed wherever what arrives changed and it records otherwise. Whether a mask holds
+            // another is asked of the letters themselves, so that no count of them can stand in.
+            var masks = new[] { string.Empty, "R", "U", "RU", "RA", "UA" };
+            var tree = Three();
+            var start = Store();
+            foreach (var before in masks)
+            {
+                foreach (var after in masks)
+                {
+                    foreach (var atG in masks)
+                    {
+                        foreach (var atN in masks)
+                        {
+                            var store = start.Copy();
+                            Put(store, RowOf(Root, "pf"), "row:" + before);
+                            Put(store, RowOf(G, "pf"), "off:" + atG);
+                            Put(store, RowOf(N, "pf"), "off:" + atN);
+                            var arrived = new Dictionary<string, string> { { G, GivesIn(store, tree, Root, "pf") }, { N, GivesIn(store, tree, G, "pf") } };
+                            var recorded = new Dictionary<string, string> { { G, atG }, { N, atN } };
+                            var where = "the root " + before + " to " + after + ", G off:" + atG + ", N off:" + atN;
+
+                            var act = Ok(store, Root, tree, (shown, below) => Rows(Set("pf", after, shown, below)));
+                            if (act == null)
+                            {
+                                Assert.That(before, Is.EqualTo(after), where + ": nothing written");
+                                continue;
+                            }
+
+                            var renewed = Written(act).Where(version => version.Object != RowOf(Root, "pf")).ToList();
+                            Write(store, act);
+                            var arriving = new Dictionary<string, string> { { G, GivesIn(store, tree, Root, "pf") }, { N, GivesIn(store, tree, G, "pf") } };
+                            foreach (var node in new[] { G, N })
+                            {
+                                var whole = arrived[node].Length == 0 ? recorded[node].Length == 0 : arrived[node].All(recorded[node].Contains);
+                                var renewal = renewed.Where(version => version.Object == RowOf(node, "pf")).Select(version => version.Doc).ToList();
+                                var follows = whole && arrived[node] != arriving[node] && recorded[node] != arriving[node];
+                                Assert.That(renewal, Is.EqualTo(follows ? new[] { "off:" + arriving[node] } : Array.Empty<string>()), where + ": at " + node.Substring(0, 2));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        [Test]
+        public void A_loss_above_set_again_leaves_every_version_below_that_recorded_letters_as_it_was()
+        {
+            // `STORE.md` §617 and §639: G granted RL, N took its rule off recording R and M turned
+            // its switch off recording R, each a limit made apart. G's row is then lost, so nothing
+            // arrives below it, and G is set to RL again. Nothing tells whether a version that
+            // recorded letters was cutting while nothing arrived, so N and M are left and go on
+            // cutting, while E below N, which recorded nothing, follows what N lets through.
+            var store = Store();
+            var standing = Put(store, RowOf(G, "pf"), "row:RL");
+            var lost = Lost(store, RowOf(G, "pf"), "row:RL");
+            Put(store, RowOf(N, "pf"), "off:R");
+            Put(store, SwitchOf(M), "sw:inherit pf=R");
+            var follower = Put(store, RowOf(E, "pf"), "off:");
+            var tree = Three();
+            Assume.That(ShownAt(store, G).Row("pf").Refuses, Is.True, "G's row is lost");
+            Assume.That(new[] { N, M, E }.Select(at => GivesIn(store, tree, at, "pf")), Is.EqualTo(new[] { string.Empty, string.Empty, string.Empty }));
+
+            var act = Ok(store, G, tree, (shown, below) => Rows(Set("pf", "RL", shown, below)));
+
+            Assert.That(Written(act), Is.EqualTo(new[]
+            {
+                (RowOf(G, "pf"), "row:RL", Sorted(standing.Hex, lost.Hex)),
+                (RowOf(E, "pf"), "off:R", Sorted(follower.Hex)),
+            }));
+            Write(store, act);
+            Assert.That(new[] { N, M, E }.Select(at => GivesIn(store, tree, at, "pf")), Is.EqualTo(new[] { "R", "R", "R" }));
+        }
+
+        [Test]
+        public void The_box_ticked_and_cleared_above_leaves_a_limit_below_and_carries_the_version_that_followed()
+        {
+            // `STORE.md` §617: the root grants RL; under G, N took its rule off recording R, which
+            // cuts, and M recording RL, which follows. G's box ticked renews M to nothing and
+            // leaves N. G's box cleared then renews M, which recorded that nothing arrived, and
+            // leaves N, whose letters nothing tells apart from a limit while nothing arrived.
+            var store = Store();
+            Put(store, RowOf(Root, "pf"), "row:RL");
+            Put(store, RowOf(N, "pf"), "off:R");
+            var follower = Put(store, RowOf(M, "pf"), "off:RL");
+            var tree = Three();
+
+            var ticked = Ok(store, G, tree, (shown, below) => new RuleChanges(null, new SwitchChange(true, shown, null, below)));
+            Assert.That(
+                Written(ticked).Where(version => version.Object != SwitchOf(G)),
+                Is.EqualTo(new[] { (RowOf(M, "pf"), "off:", Sorted(follower.Hex)) }));
+            Write(store, ticked);
+            Assume.That(new[] { N, M }.Select(at => GivesIn(store, tree, at, "pf")), Is.EqualTo(new[] { string.Empty, string.Empty }));
+
+            var cleared = Ok(store, G, tree, (shown, below) => new RuleChanges(null, new SwitchChange(false, shown, Arriving(("pf", "RL")), below)));
+            Assert.That(
+                Written(cleared).Where(version => version.Object != SwitchOf(G)).Select(version => (version.Object, version.Doc)),
+                Is.EqualTo(new[] { (RowOf(M, "pf"), "off:RL") }));
+            Write(store, cleared);
+            Assert.That(GivesIn(store, tree, N, "pf"), Is.EqualTo("R"), "the limit stays");
+            Assert.That(GivesIn(store, tree, M, "pf"), Is.EqualTo("RL"), "the version that followed follows");
+        }
+
+        [Test]
+        public void A_rule_set_where_nothing_arrived_carries_a_version_below_that_recorded_nothing()
+        {
+            // `STORE.md` §617: no rule stands above N, so nothing arrived when its rule was taken
+            // off and it recorded nothing; the rule set at the root reaches it.
+            var store = Store();
+            var node = Put(store, RowOf(N, "pf"), "off:");
+            var tree = Three();
+
+            var act = Ok(store, Root, tree, (shown, below) => Rows(Set("pf", "R", shown, below)));
+
+            Assert.That(Written(act), Is.EqualTo(new[]
+            {
+                (RowOf(Root, "pf"), "row:R", string.Empty),
+                (RowOf(N, "pf"), "off:R", Sorted(node.Hex)),
+            }));
+            Write(store, act);
+            Assert.That(GivesIn(store, tree, N, "pf"), Is.EqualTo("R"));
+        }
+
+        [Test]
+        public void A_version_below_is_renewed_only_where_the_row_s_press_and_the_box_s_both_kept_it()
+        {
+            // `STORE.md` §617: the box was pressed before the reading that brought M's version, and
+            // the row after it, so the row's press alone kept M's version. N, which both presses
+            // kept, follows; M is left and told, where holding what either press kept would have
+            // widened it.
+            var store = Store();
+            Put(store, RowOf(Root, "pf"), "row:R");
+            var node = Put(store, RowOf(N, "pf"), "off:R");
+            var tree = Three();
+            var first = Tab(store, G, tree);
+            var other = Put(store, RowOf(M, "pf"), "off:R");
+            var second = Tab(store, G, tree);
+            Assume.That(first.Below, Is.EquivalentTo(new[] { node.Hex }));
+            Assume.That(second.Below, Is.EquivalentTo(new[] { node.Hex, other.Hex }));
+
+            var changes = new RuleChanges(
+                new[] { Set("pf", "RU", second.Shown, second.Below) },
+                new SwitchChange(true, first.Shown, null, first.Below));
+            var act = Above(store, G, tree, changes, out var left);
+
+            Assert.That(Written(act), Is.EqualTo(new[]
+            {
+                (RowOf(N, "pf"), "off:RU", Sorted(node.Hex)),
+                (RowOf(G, "pf"), "row:RU", string.Empty),
+                (SwitchOf(G), "sw:deny", string.Empty),
+            }));
+            Assert.That(
+                left.Select(version => (version.Node, version.Profile, version.Pressed, version.Reason)),
+                Is.EqualTo(new[] { (M, "pf", false, RuleLeftReason.NotHeld) }));
+        }
+
+        [Test]
+        public void A_narrowing_above_is_carried_as_a_widening_is()
+        {
+            var store = Store();
+            var root = Put(store, RowOf(Root, "pf"), "row:RU");
+            var group = Put(store, RowOf(G, "pf"), "off:RU");
+            var node = Put(store, RowOf(N, "pf"), "off:RU");
+
+            var act = Ok(store, Root, Three(), (shown, below) => Rows(Set("pf", "R", shown, below)));
+
+            Assert.That(Written(act), Is.EqualTo(new[]
+            {
+                (RowOf(Root, "pf"), "row:R", Sorted(root.Hex)),
+                (RowOf(N, "pf"), "off:R", Sorted(node.Hex)),
+                (RowOf(G, "pf"), "off:R", Sorted(group.Hex)),
+            }));
+        }
+
+        [Test]
+        public void A_version_that_was_cutting_already_is_left_and_goes_on_cutting()
+        {
+            // N recorded L while R arrived: it was made apart, or the operator never settled it.
+            // A widening above renews G, which followed, and never widens N.
+            var store = Store();
+            var root = Put(store, RowOf(Root, "pf"), "row:R");
+            var group = Put(store, RowOf(G, "pf"), "off:R");
+            Put(store, RowOf(N, "pf"), "off:L");
+            var tree = Three();
+
+            var act = Ok(store, Root, tree, (shown, below) => Rows(Set("pf", "RUL", shown, below)));
+
+            Assert.That(Written(act), Is.EqualTo(new[]
+            {
+                (RowOf(Root, "pf"), "row:RUL", Sorted(root.Hex)),
+                (RowOf(G, "pf"), "off:RUL", Sorted(group.Hex)),
+            }));
+            Write(store, act);
+            Assert.That(Standing(store, RowOf(N, "pf")), Is.EqualTo(new[] { "off:L" }));
+            Assert.That(GivesIn(store, tree, N, "pf"), Is.EqualTo("L"), "cut to what N recorded, and no more");
+            Assert.That(GivesIn(store, tree, M, "pf"), Is.EqualTo("RUL"));
+        }
+
+        [Test]
+        public void A_node_held_back_above_passes_on_nothing_new_to_the_nodes_below_it()
+        {
+            // G was cutting and is left; what arrives at N after the act is what G lets through,
+            // which the widening did not change, so N is not written either.
+            var store = Store();
+            var root = Put(store, RowOf(Root, "pf"), "row:R");
+            Put(store, RowOf(G, "pf"), "off:L");
+            Put(store, RowOf(N, "pf"), "off:");
+
+            var act = Ok(store, Root, Three(), (shown, below) => Rows(Set("pf", "RU", shown, below)));
+
+            Assert.That(Written(act), Is.EqualTo(new[] { (RowOf(Root, "pf"), "row:RU", Sorted(root.Hex)) }));
+        }
+
+        [TestCase("off:deny", "", "sw:inherit pg=R")]
+        [TestCase("off:", "RU", "sw:inherit pf=RU pg=R")]
+        public void Off_deny_below_is_left_and_off_with_nothing_arrived_follows(string recorded, string gives, string switchAfter)
+        {
+            // `STORE.md` §617: nothing arrived for pf, and N's switch was turned to inherit apart.
+            // Off deny was let through by nobody and leaves every version of N for pf as it is, the
+            // switch's among them; off with no letter was following what arrived, and follows.
+            var store = Store();
+            Put(store, RowOf(Root, "pf"), "row:");
+            Put(store, RowOf(Root, "pg"), "row:R");
+            Put(store, RowOf(N, "pf"), recorded);
+            Put(store, SwitchOf(N), "sw:inherit pg=R");
+            var tree = Three();
+
+            var act = Ok(store, Root, tree, (shown, below) => Rows(Set("pf", "RU", shown, below)));
+            Write(store, act);
+
+            Assert.That(GivesIn(store, tree, N, "pf"), Is.EqualTo(gives));
+            Assert.That(Standing(store, SwitchOf(N)), Is.EqualTo(new[] { switchAfter }));
+            Assert.That(GivesIn(store, tree, N, "pg"), Is.EqualTo("R"), "the other profile is kept");
+        }
+
+        [Test]
+        public void A_switch_turned_to_refuse_above_renews_the_versions_below_that_followed_holding_no_letter()
+        {
+            var store = Store();
+            Put(store, RowOf(Root, "pf"), "row:R");
+            Put(store, RowOf(Root, "pg"), "row:L");
+            var taken = Put(store, RowOf(N, "pf"), "off:R");
+            var other = Put(store, RowOf(N, "pg"), "off:L");
+            var inheriting = Put(store, SwitchOf(N), "sw:inherit pf=R pg=L");
+            Put(store, RowOf(M, "pf"), "row:R");
+
+            var act = Ok(store, G, Three(), (shown, below) => new RuleChanges(null, new SwitchChange(true, shown, null, below)));
+
+            Assert.That(Written(act), Is.EqualTo(new[]
+            {
+                (RowOf(N, "pf"), "off:", Sorted(taken.Hex)),
+                (RowOf(N, "pg"), "off:", Sorted(other.Hex)),
+                (SwitchOf(N), "sw:inherit", Sorted(inheriting.Hex)),
+                (SwitchOf(G), "sw:deny", string.Empty),
+            }));
+        }
+
+        [Test]
+        public void An_inheriting_version_below_is_renewed_with_that_profile_s_letters_changed_and_every_other_kept()
+        {
+            var store = Store();
+            var root = Put(store, RowOf(Root, "pf"), "row:R");
+            Put(store, RowOf(Root, "pg"), "row:L");
+            var first = Put(store, SwitchOf(N), "sw:inherit pf=C pg=L");
+            var inheriting = Put(store, SwitchOf(N), "sw:inherit pf=R pg=L", first.Hex);
+
+            var act = Ok(store, Root, Three(), (shown, below) => Rows(Set("pf", "RU", shown, below)));
+
+            Assert.That(Written(act), Is.EqualTo(new[]
+            {
+                (RowOf(Root, "pf"), "row:RU", Sorted(root.Hex)),
+                (SwitchOf(N), "sw:inherit pf=RU pg=L", Sorted(inheriting.Hex, first.Hex)),
+            }));
+        }
+
+        [Test]
+        public void A_renewal_names_the_version_it_renews_and_what_that_version_names_and_no_version_beside_it()
+        {
+            var store = Store();
+            Put(store, RowOf(Root, "pf"), "row:R");
+            var earlier = Put(store, RowOf(N, "pf"), "off:R");
+            var renewed = Put(store, RowOf(N, "pf"), "off:R", earlier.Hex);
+            var apart = Put(store, RowOf(N, "pf"), "off:RUA");
+            Assume.That(ShownAt(store, N).Row("pf").Versions.Select(version => version.Id), Is.EquivalentTo(new[] { renewed.Hex, apart.Hex }));
+
+            var act = Ok(store, Root, Three(), (shown, below) => Rows(Set("pf", "RU", shown, below)));
+
+            Assert.That(Written(act).Where(version => version.Object == RowOf(N, "pf")), Is.EquivalentTo(new[]
+            {
+                (RowOf(N, "pf"), "off:RU", Sorted(renewed.Hex, earlier.Hex)),
+                (RowOf(N, "pf"), "off:RU", Sorted(apart.Hex)),
+            }));
+        }
+
+        [Test]
+        public void A_renewal_is_only_for_a_profile_whose_arrival_the_act_changed()
+        {
+            var store = Store();
+            Put(store, RowOf(Root, "pf"), "row:R");
+            Put(store, RowOf(Root, "pg"), "row:R");
+            Put(store, RowOf(N, "pf"), "off:R");
+            Put(store, RowOf(N, "pg"), "off:R");
+            Put(store, SwitchOf(N), "sw:inherit pf=R pg=R");
+
+            var act = Ok(store, Root, Three(), (shown, below) => Rows(Set("pf", "RU", shown, below)));
+
+            Assert.That(Written(act).Select(version => (version.Object, version.Doc)), Is.EqualTo(new[]
+            {
+                (RowOf(Root, "pf"), "row:RU"),
+                (RowOf(N, "pf"), "off:RU"),
+                (SwitchOf(N), "sw:inherit pf=RU pg=R"),
+            }));
+        }
+
+        [Test]
+        public void A_node_that_answers_or_refuses_by_itself_is_not_looked_at()
+        {
+            var store = Store();
+            var root = Put(store, RowOf(Root, "pf"), "row:R");
+            Put(store, RowOf(N, "pf"), "row:R");
+            Put(store, SwitchOf(N), "sw:inherit pf=R");
+            Put(store, RowOf(M, "pf"), "off:R");
+            Put(store, SwitchOf(M), "sw:deny");
+            Put(store, SwitchOf(M), "sw:inherit pf=R");
+
+            var act = Ok(store, Root, Three(), (shown, below) => Rows(Set("pf", "RU", shown, below)));
+
+            Assert.That(Written(act), Is.EqualTo(new[] { (RowOf(Root, "pf"), "row:RU", Sorted(root.Hex)) }));
+        }
+
+        [Test]
+        public void A_version_of_a_rule_in_several_versions_removed_above_is_an_act_above()
+        {
+            var store = Store();
+            var narrow = Put(store, RowOf(Root, "pf"), "row:R");
+            var wide = Put(store, RowOf(Root, "pf"), "row:RU");
+            var node = Put(store, RowOf(N, "pf"), "off:R");
+
+            var act = Ok(store, Root, Three(), (shown, below) =>
+                Rows(new RowChange(RowChangeKind.RemoveVersions, "pf", null, new[] { narrow.Hex }, shown, below)));
+
+            Assert.That(Written(act), Is.EqualTo(new[]
+            {
+                (RowOf(Root, "pf"), "row:RU", Sorted(narrow.Hex, wide.Hex)),
+                (RowOf(N, "pf"), "off:RU", Sorted(node.Hex)),
+            }));
+        }
+
+        [TestCase("a version made apart, where none stood")]
+        [TestCase("a version that grants, beside the version kept")]
+        [TestCase("a version of the switch, beside the version kept")]
+        [TestCase("a version replacing the version kept")]
+        public void A_node_where_a_version_stands_that_the_tab_did_not_keep_is_left(string landed)
+        {
+            // `STORE.md` §617: only versions the tab's reading held at the press are renewed, and
+            // where a version reached the node while the dialog stood, every version of that node
+            // for the profile is left.
+            var store = Store();
+            var root = Put(store, RowOf(Root, "pf"), "row:R");
+            var group = Put(store, RowOf(G, "pf"), "off:R");
+            StoreComposer.Composed kept = null;
+            if (landed != "a version made apart, where none stood")
+            {
+                kept = Put(store, RowOf(N, "pf"), "off:R");
+            }
+
+            var tree = Three();
+            var tab = Tab(store, Root, tree);
+            Assume.That(tab.Below, Has.Member(group.Hex));
+            switch (landed)
+            {
+                case "a version made apart, where none stood":
+                    Put(store, RowOf(N, "pf"), "off:R");
+                    break;
+                case "a version that grants, beside the version kept":
+                    Put(store, RowOf(N, "pf"), "row:RUL");
+                    break;
+                case "a version of the switch, beside the version kept":
+                    Put(store, SwitchOf(N), "sw:inherit pf=RUL");
+                    break;
+                default:
+                    Put(store, RowOf(N, "pf"), "off:R", kept.Hex);
+                    break;
+            }
+
+            var act = Above(store, Root, tree, Rows(Set("pf", "RU", tab.Shown, tab.Below)), out var left);
+
+            Assert.That(Written(act), Is.EqualTo(new[]
+            {
+                (RowOf(Root, "pf"), "row:RU", Sorted(root.Hex)),
+                (RowOf(G, "pf"), "off:RU", Sorted(group.Hex)),
+            }));
+            Assert.That(
+                left.Select(version => (version.Node, version.Profile, version.Pressed, version.Reason)),
+                Is.EqualTo(new[] { (N, "pf", false, RuleLeftReason.NotHeld) }),
+                "told at the node below, as no press, so that the log names why the change above did not reach it");
+        }
+
+        [Test]
+        public void Before_is_the_write_s_own_reading_and_not_the_tab_s()
+        {
+            // `STORE.md` §617: G's rule was taken off in another copy, and the version landed under
+            // the dialog at the root. N held all that arrived when the tab read it, and is cutting
+            // by the OK, so the widening at the root does not carry it along.
+            var store = Store();
+            var root = Put(store, RowOf(Root, "pf"), "row:RU");
+            var granting = Put(store, RowOf(G, "pf"), "row:R");
+            Put(store, RowOf(N, "pf"), "off:R");
+            var tree = Three();
+            var tab = Tab(store, Root, tree);
+
+            Put(store, RowOf(G, "pf"), "off:RU", granting.Hex);
+            var act = Above(store, Root, tree, Rows(Set("pf", "RUA", tab.Shown, tab.Below)), out _);
+
+            Assert.That(Written(act), Is.EqualTo(new[] { (RowOf(Root, "pf"), "row:RUA", Sorted(root.Hex)) }));
+            Write(store, act);
+            Assert.That(GivesIn(store, tree, N, "pf"), Is.EqualTo("R"));
+        }
+
+        [Test]
+        public void A_node_not_below_the_dialog_s_node_in_the_write_s_tree_is_not_renewed()
+        {
+            // N was below G when the tab read, and is moved out before the OK; M was elsewhere and
+            // is moved in. Neither is carried along: N is no longer below, and M's versions are not
+            // what the tab kept.
+            var store = Store();
+            var group = Put(store, RowOf(G, "pf"), "row:R");
+            Put(store, RowOf(Root, "pf"), "row:R");
+            Put(store, RowOf(N, "pf"), "off:R");
+            Put(store, RowOf(M, "pf"), "off:R");
+            var tree = TestRuledTree.Of((Root, null), (G, Root), (N, G), (M, Root));
+            var tab = Tab(store, G, tree);
+            Assume.That(tab.Below, Has.Count.EqualTo(1), "N's version, and not M's");
+
+            var moved = tree.Moved(N, Root).Moved(M, G);
+            var act = Above(store, G, moved, Rows(Set("pf", "RU", tab.Shown, tab.Below)), out _);
+            var unmoved = Above(store, G, tree, Rows(Set("pf", "RU", tab.Shown, tab.Below)), out _);
+
+            Assert.That(Written(act), Is.EqualTo(new[] { (RowOf(G, "pf"), "row:RU", Sorted(group.Hex)) }));
+            Assert.That(Written(unmoved).Select(version => version.Object), Is.EqualTo(new[] { RowOf(N, "pf"), RowOf(G, "pf") }), "where it was not moved, N follows");
+        }
+
+        [Test]
+        public void The_result_does_not_depend_on_the_order_nodes_or_profiles_are_walked()
+        {
+            var store = Store();
+            Put(store, RowOf(Root, "pf"), "row:R");
+            Put(store, RowOf(Root, "pg"), "row:R");
+            Put(store, RowOf(G, "pg"), "off:R");
+            Put(store, SwitchOf(G), "sw:inherit pf=R pg=R");
+            foreach (var node in new[] { N, M, E })
+            {
+                Put(store, RowOf(node, "pf"), "off:R");
+                Put(store, RowOf(node, "pg"), "off:R");
+            }
+
+            Put(store, SwitchOf(E), "sw:inherit pf=R");
+            var tree = Three();
+
+            var walked = Written(Ok(store, Root, tree, (shown, below) => Rows(Set("pg", "RU", shown, below), Set("pf", "RU", shown, below))));
+            var reversed = Written(Ok(store, Root, tree.Reversed(), (shown, below) => Rows(Set("pf", "RU", shown, below), Set("pg", "RU", shown, below))));
+
+            Assert.That(reversed, Is.EqualTo(walked));
+            Assert.That(
+                walked.Select(version => version.Doc),
+                Has.Exactly(6).StartsWith("off:RU"),
+                "G for pg, N and M for both, and E for pf alone, since E's switch records nothing for pg");
+        }
+
+        [Test]
+        public void A_renewal_that_no_longer_fits_is_left_told_as_a_renewal_and_cuts_below_it()
+        {
+            // `STORE.md` §643: N's version is left as it was and the rest of the OK is written; E
+            // below it then receives what N still lets through, which the act did not change.
+            var store = Store();
+            var root = Put(store, RowOf(Root, "pf"), "row:R");
+            var group = Put(store, RowOf(G, "pf"), "off:R");
+            Put(store, RowOf(N, "pf"), "off:R", Crowd(store, RowOf(N, "pf"), "off:R"));
+            Put(store, RowOf(E, "pf"), "off:R");
+            var tree = Three();
+            var tab = Tab(store, Root, tree);
+
+            var act = Above(store, Root, tree, Rows(Set("pf", "RU", tab.Shown, tab.Below)), out var left);
+
+            Assert.That(
+                left.Select(version => (version.Node, version.Profile, version.Pressed, version.Reason)),
+                Is.EqualTo(new[] { (N, "pf", false, RuleLeftReason.TooLong) }),
+                "told at the node below, as a version written anew and not as a press");
+            Assert.That(Written(act), Is.EqualTo(new[]
+            {
+                (RowOf(Root, "pf"), "row:RU", Sorted(root.Hex)),
+                (RowOf(G, "pf"), "off:RU", Sorted(group.Hex)),
+            }));
+            Write(store, act);
+            Assert.That(GivesIn(store, tree, E, "pf"), Is.EqualTo("R"));
+        }
+
+        [Test]
+        public void An_OK_with_its_renewals_is_a_single_write_whose_summary_entry_holds_no_item_more()
+        {
+            // `STORE.md` §643: k nodes below that follow a row of the root write k + 1 versions and
+            // k + 2 deletion records, the summary entry replaced among them, and an item each
+            // replaced.
+            var store = Store();
+            Put(store, RowOf(Root, "pf"), "row:R");
+            foreach (var node in new[] { G, N, M, E })
+            {
+                Put(store, RowOf(node, "pf"), "off:R");
+            }
+
+            int items;
+            int deletions;
+            using (var reading = store.Read())
+            {
+                items = reading.InForce.HeadsInForce.Single().Form.Items.Count;
+                deletions = reading.Deletions.Count;
+            }
+
+            var act = Ok(store, Root, Three(), (shown, below) => Rows(Set("pf", "RU", shown, below)));
+            Assert.That(act.Records, Has.Count.EqualTo(5));
+            Write(store, act);
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.InForce.HeadsInForce, Has.Count.EqualTo(1));
+                Assert.That(reading.InForce.HeadsInForce.Single().Form.Items, Has.Count.EqualTo(items));
+                Assert.That(reading.Deletions.Count - deletions, Is.EqualTo(6));
+            }
+        }
+
+        [Test]
+        public void The_residual_of_two_rules_taken_off_apart_one_above_the_other_ends_as_measured()
+        {
+            // `STORE.md` §639, accepted: G's rule gave what arrived at G anyway, so taking it off in
+            // a copy cut nothing and marked nothing; N's rule was taken off in the other. Once the
+            // copies meet, a widening at the root carries G and N along, as the model does.
+            var tree = Three();
+            var first = Store();
+            Put(first, RowOf(Root, "pf"), "row:R");
+            Put(first, RowOf(Root, "pg"), "row:R");
+            Write(first, Ok(first, G, tree, (shown, below) => Rows(Set("pf", "R", shown, below))));
+            Write(first, Ok(first, N, tree, (shown, below) => Rows(Set("pf", string.Empty, shown, below))));
+            var second = first.Copy();
+
+            Write(first, Ok(first, N, tree, (shown, below) => Rows(TakeOff("pf", "R", shown, below))));
+            Write(second, Ok(second, G, tree, (shown, below) => Rows(TakeOff("pf", "R", shown, below))));
+            second.Synchronize(first);
+            first.Synchronize(second);
+            Assume.That(GivesIn(first, tree, N, "pf"), Is.EqualTo("R"), "no merge is beyond both copies");
+
+            Write(first, Ok(first, Root, tree, (shown, below) => Rows(Set("pf", "RU", shown, below))));
+
+            Assert.That(GivesIn(first, tree, N, "pf"), Is.EqualTo("RU"));
+        }
+
+        [Test]
+        public void The_residual_of_a_narrowing_above_widened_again_apart_ends_as_measured()
+        {
+            // `STORE.md` §639, accepted: a narrowing above reaches the copy that took N's rule off
+            // in a single direction, and the other copy widens the root again apart. N gives what it
+            // gave when its rule was taken off, beyond what either copy gave just before they met.
+            var tree = Three();
+            var first = Store();
+            Put(first, RowOf(Root, "pf"), "row:R");
+            Put(first, RowOf(Root, "pg"), "row:R");
+            Write(first, Ok(first, N, tree, (shown, below) => Rows(Set("pf", string.Empty, shown, below))));
+            var second = first.Copy();
+
+            Write(first, Ok(first, N, tree, (shown, below) => Rows(TakeOff("pf", "R", shown, below))));
+            Write(second, Ok(second, Root, tree, (shown, below) => Rows(Set("pf", string.Empty, shown, below))));
+            first.Synchronize(second);
+            Assume.That(GivesIn(first, tree, N, "pf"), Is.Empty);
+
+            Write(second, Ok(second, Root, tree, (shown, below) => Rows(Set("pf", "R", shown, below))));
+            Assume.That(GivesIn(second, tree, N, "pf"), Is.Empty);
+            first.Synchronize(second);
+
+            Assert.That(GivesIn(first, tree, N, "pf"), Is.EqualTo("R"));
         }
 
         /// <summary>A store with an authority, under a key of its own.</summary>
@@ -1254,7 +1869,7 @@ namespace KeePassGate.Tests
         {
             using (var reading = store.Read())
             {
-                return RuleActs.Of(reading, N, Open(), changes, out _);
+                return RuleActs.Of(reading, N, _ => Open(), null, changes, out _);
             }
         }
 
@@ -1266,7 +1881,7 @@ namespace KeePassGate.Tests
         {
             using (var reading = store.Read())
             {
-                return RuleActs.Of(reading, node, node == Root ? null : Tree(reading).Item1, changes, out _);
+                return RuleActs.Of(reading, node, node == Root ? null : (Func<StoredRules, IAclNode>)(_ => Tree(reading).Item1), null, changes, out _);
             }
         }
 
@@ -1357,7 +1972,7 @@ namespace KeePassGate.Tests
         {
             using (var reading = store.Read())
             {
-                return RuleActs.Of(reading, N, Open(), changes, out left);
+                return RuleActs.Of(reading, N, _ => Open(), null, changes, out left);
             }
         }
 
@@ -1402,7 +2017,7 @@ namespace KeePassGate.Tests
 
         private static RuleChanges Box(bool refuses, NodeRule shown, params (string Profile, string Mask)[] arriving)
         {
-            return new RuleChanges(null, new SwitchChange(refuses, shown, Arriving(arriving)));
+            return new RuleChanges(null, new SwitchChange(refuses, shown, Arriving(arriving), null));
         }
 
         private static IEnumerable<KeyValuePair<string, AclGrant>> Arriving(params (string Profile, string Mask)[] arriving)
@@ -1410,24 +2025,104 @@ namespace KeePassGate.Tests
             return arriving.Select(pair => new KeyValuePair<string, AclGrant>(pair.Profile, Rules.Letters(pair.Mask))).ToList();
         }
 
-        private static RowChange Set(string profile, string mask, NodeRule shown)
+        private static RowChange Set(string profile, string mask, NodeRule shown, IEnumerable<string> below = null)
         {
-            return new RowChange(RowChangeKind.Set, profile, Rules.Letters(mask), null, shown);
+            return new RowChange(RowChangeKind.Set, profile, Rules.Letters(mask), null, shown, below);
         }
 
-        private static RowChange TakeOff(string profile, string arriving, NodeRule shown)
+        private static RowChange TakeOff(string profile, string arriving, NodeRule shown, IEnumerable<string> below = null)
         {
-            return new RowChange(RowChangeKind.TakeOff, profile, Rules.Letters(arriving), null, shown);
+            return new RowChange(RowChangeKind.TakeOff, profile, Rules.Letters(arriving), null, shown, below);
         }
 
-        private static RowChange Settle(string profile, string arriving, NodeRule shown)
+        private static RowChange Settle(string profile, string arriving, NodeRule shown, IEnumerable<string> below = null)
         {
-            return new RowChange(RowChangeKind.Settle, profile, Rules.Letters(arriving), null, shown);
+            return new RowChange(RowChangeKind.Settle, profile, Rules.Letters(arriving), null, shown, below);
         }
 
         private static RowChange Remove(NodeRule shown, string profile, params string[] removed)
         {
-            return new RowChange(RowChangeKind.RemoveVersions, profile, null, removed, shown);
+            return new RowChange(RowChangeKind.RemoveVersions, profile, null, removed, shown, null);
+        }
+
+        /// <summary>
+        /// The tree the writes above are carried down: G under the root, N and M under G, and E
+        /// under N.
+        /// </summary>
+        private static TestRuledTree Three()
+        {
+            return TestRuledTree.Of((Root, null), (G, Root), (N, G), (M, G), (E, N));
+        }
+
+        /// <summary>The nodes of a tree, each holding the rules of a reading.</summary>
+        private static Dictionary<string, TestNode> Nodes(StoreReading reading, IRuledTree tree, IEnumerable<string> known)
+        {
+            var rules = StoredRules.Of(reading);
+            var nodes = new Dictionary<string, TestNode>(StringComparer.Ordinal);
+            TestNode Placed(string node)
+            {
+                if (!nodes.TryGetValue(node, out var placed))
+                {
+                    var above = tree.Above(node);
+                    placed = (above == null ? TestNode.Root(node.Substring(0, 2)) : Placed(above).Child(node.Substring(0, 2))).Holding(rules.At(node));
+                    nodes[node] = placed;
+                }
+
+                return placed;
+            }
+
+            foreach (var node in known)
+            {
+                Placed(node);
+            }
+
+            return nodes;
+        }
+
+        /// <summary>
+        /// What the KPG tab of a node's dialog keeps as it opens on the store as it stands now: the
+        /// node's rules and the standing versions below it.
+        /// </summary>
+        private static (NodeRule Shown, IReadOnlyCollection<string> Below) Tab(MemoryStore store, string node, IRuledTree tree)
+        {
+            using (var reading = store.Read())
+            {
+                var rules = StoredRules.Of(reading);
+                return (rules.At(node), rules.Below(node, tree));
+            }
+        }
+
+        /// <summary>
+        /// The act of an OK at a node of the tree, composed over a reading made now, its parent
+        /// holding the rules of that reading and the write above carried down the tree.
+        /// </summary>
+        private static StoreAct Above(MemoryStore store, string node, IRuledTree tree, RuleChanges changes, out IReadOnlyList<RuleLeft> left)
+        {
+            using (var reading = store.Read())
+            {
+                var above = tree.Above(node);
+                return RuleActs.Of(reading, node, above == null ? null : (Func<StoredRules, IAclNode>)(_ => Nodes(reading, tree, new[] { above })[above]), _ => tree, changes, out left);
+            }
+        }
+
+        /// <summary>
+        /// An OK at a node whose tab was opened on the store as it stands now, as the model composes
+        /// every act at its write: the tab's reading is the write's own.
+        /// </summary>
+        private static StoreAct Ok(MemoryStore store, string node, IRuledTree tree, Func<NodeRule, IReadOnlyCollection<string>, RuleChanges> press)
+        {
+            var tab = Tab(store, node, tree);
+            return Above(store, node, tree, press(tab.Shown, tab.Below), out _);
+        }
+
+        /// <summary>What a node of the tree gives a profile, as the store holds the rules now.</summary>
+        private static string GivesIn(MemoryStore store, IRuledTree tree, string node, string profile)
+        {
+            using (var reading = store.Read())
+            {
+                var grant = AclResolver.Arrives(Nodes(reading, tree, new[] { node })[node], profile);
+                return string.Concat(Enumerable.Range(0, VerbMask.Width).Where(at => grant.Holds(AclVerbs.Grantable[at])).Select(at => VerbMask.Letters[at]));
+            }
         }
 
         private static string RowOf(string node, string profile)

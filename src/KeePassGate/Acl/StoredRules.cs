@@ -24,14 +24,17 @@ namespace KeePassGate.Acl
     internal sealed class StoredRules
     {
         private static readonly StoredRules Empty =
-            new StoredRules(new Dictionary<string, NodeRule>(StringComparer.Ordinal));
+            new StoredRules(new Dictionary<string, List<RuleObject>>(StringComparer.Ordinal));
 
         private readonly IReadOnlyDictionary<string, NodeRule> _nodes;
+        private readonly IReadOnlyDictionary<string, List<RuleObject>> _objects;
+        private HashSet<string> _lettingThrough;
 
-        private StoredRules(IReadOnlyDictionary<string, NodeRule> nodes)
+        private StoredRules(IReadOnlyDictionary<string, List<RuleObject>> objects)
         {
-            _nodes = nodes;
-            Profiles = nodes.Values.SelectMany(rule => rule.Profiles)
+            _objects = objects;
+            _nodes = objects.ToDictionary(pair => pair.Key, pair => new NodeRule(pair.Value), StringComparer.Ordinal);
+            Profiles = _nodes.Values.SelectMany(rule => rule.Profiles)
                 .Distinct(StringComparer.Ordinal)
                 .OrderBy(profile => profile, StringComparer.Ordinal)
                 .ToList()
@@ -71,8 +74,7 @@ namespace KeePassGate.Acl
                 held.Add(new RuleObject(profile, standing, inForce.LostOf(objectText)));
             }
 
-            return new StoredRules(objects.ToDictionary(
-                pair => pair.Key, pair => new NodeRule(pair.Value), StringComparer.Ordinal));
+            return new StoredRules(objects);
         }
 
         /// <summary>
@@ -100,6 +102,127 @@ namespace KeePassGate.Acl
                 .Select(node => node.Key)
                 .ToList()
                 .AsReadOnly();
+        }
+
+        /// <summary>
+        /// Whether a standing version at the node, given as 32 lowercase hexadecimal characters,
+        /// lets a profile through: a version of a row that takes the rule off, `off:deny` among
+        /// them, or a version of the switch that lets the walk go on. The nodes are worked out
+        /// where this is first asked, which only a write above and the tab of a node's dialog do.
+        /// </summary>
+        public bool LetsThrough(string node)
+        {
+            return node != null && Lets().Contains(node);
+        }
+
+        /// <summary>
+        /// Every node, as 32 lowercase hexadecimal characters, at which a standing version lets a
+        /// profile through, as <see cref="LetsThrough"/> asks: what the tree a write above is
+        /// carried down is walked for, `DatabaseNodes.Tree`.
+        /// </summary>
+        public IReadOnlyCollection<string> LettingThrough
+        {
+            get { return Lets(); }
+        }
+
+        /// <summary>The nodes that let a profile through, worked out where they are first asked for.</summary>
+        private HashSet<string> Lets()
+        {
+            if (_lettingThrough == null)
+            {
+                _lettingThrough = new HashSet<string>(
+                    _nodes.Where(held => Letting(held.Value)).Select(held => held.Key), StringComparer.Ordinal);
+            }
+
+            return _lettingThrough;
+        }
+
+        /// <summary>
+        /// The identifiers of every standing version at each node below <paramref name="node"/> in
+        /// the tree that holds a version letting a profile through: what the KPG tab keeps with
+        /// each press for the write above, `STORE.md` §617, so that an OK renews only versions its
+        /// tab's reading held.
+        /// </summary>
+        /// <remarks>
+        /// **Every version at such a node**, the versions that grant and those of other profiles
+        /// among them, and not only the versions that let through: a version of a profile's row
+        /// that stands at the node at the OK and is not among these reached the database after
+        /// the tab read it, and leaves every version of that node for that profile as it is, and
+        /// such a version of the switch leaves them for every profile.
+        /// </remarks>
+        public IReadOnlyCollection<string> Below(string node, IRuledTree tree)
+        {
+            var kept = new HashSet<string>(StringComparer.Ordinal);
+            if (node == null || tree == null)
+            {
+                return kept;
+            }
+
+            foreach (var rule in tree.Below(node).Where(LetsThrough).Select(below => _nodes[below]))
+            {
+                kept.UnionWith(rule.Switch.Versions.Select(version => version.Id));
+                kept.UnionWith(rule.Profiles.SelectMany(profile => rule.Row(profile).Versions).Select(version => version.Id));
+            }
+
+            return kept;
+        }
+
+        /// <summary>
+        /// The rules of a node with these versions laid over the versions the reading holds there:
+        /// each version given stands, and every version of its own object that it names, standing
+        /// or lost, stands no more and is lost no more, `STORE.md` §617. What "after" an act is.
+        /// </summary>
+        /// <param name="laid">Versions of objects of this node; a version of another node is passed over.</param>
+        public NodeRule At(string node, IEnumerable<StoreRecord> laid)
+        {
+            var given = (laid ?? Enumerable.Empty<StoreRecord>())
+                .Select(record => new
+                {
+                    Record = record,
+                    Object = record.Member(StoreKinds.ObjectMember),
+                })
+                .Where(version =>
+                {
+                    string at;
+                    string profile;
+                    return RuleText.ReadObject(version.Object, out at, out profile) && string.Equals(at, node, StringComparison.Ordinal);
+                })
+                .ToList();
+            if (given.Count == 0)
+            {
+                return At(node);
+            }
+
+            List<RuleObject> held;
+            var objects = node != null && _objects.TryGetValue(node, out held) ? held : new List<RuleObject>();
+            var laidOver = new List<RuleObject>();
+            foreach (var objectText in given.Select(version => version.Object).Distinct(StringComparer.Ordinal))
+            {
+                string at;
+                string profile;
+                RuleText.ReadObject(objectText, out at, out profile);
+                var versions = given.Where(version => version.Object == objectText)
+                    .Select(version => RuleVersion.Stored(
+                        version.Record.Hex, version.Record.Member(StoreKinds.Doc), version.Record.Member(StoreKinds.After)))
+                    .ToList();
+                var named = new HashSet<string>(versions.SelectMany(version => version.After), StringComparer.Ordinal);
+                var same = objects.Where(item => string.Equals(item.Profile, profile, StringComparison.Ordinal)).ToList();
+                laidOver.Add(new RuleObject(
+                    profile,
+                    same.SelectMany(item => item.Standing).Where(version => !named.Contains(version.Id)).Concat(versions),
+                    same.SelectMany(item => item.Lost).Where(id => !named.Contains(id))));
+            }
+
+            var touched = new HashSet<string>(laidOver.Select(item => item.Profile ?? string.Empty), StringComparer.Ordinal);
+            return new NodeRule(objects.Where(item => !touched.Contains(item.Profile ?? string.Empty)).Concat(laidOver));
+        }
+
+        /// <summary>Whether a standing version of the node's rules lets some profile through.</summary>
+        private static bool Letting(NodeRule rule)
+        {
+            return rule.Switch.Versions.Any(version => version.Kind == SwitchVersionKind.Inherits)
+                   || rule.Profiles.Any(profile => rule.Row(profile).Versions.Any(version =>
+                       version.Kind == RowVersionKind.TakenOff || version.Kind == RowVersionKind.TakenOffRefusing));
         }
 
         /// <summary>

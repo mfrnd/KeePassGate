@@ -46,8 +46,9 @@ namespace KeePassGate.Host.Tests
                     var act = RuleActs.Of(
                         reading,
                         node,
-                        RealNode.Of(database.RootGroup, StoredRules.Of(reading)),
-                        new RuleChanges(new[] { new RowChange(RowChangeKind.TakeOff, "pf", Rules.Letters("RU"), null, shown) }, null),
+                        rules => RealNode.Of(database.RootGroup, rules),
+                        null,
+                        new RuleChanges(new[] { new RowChange(RowChangeKind.TakeOff, "pf", Rules.Letters("RU"), null, shown, null) }, null),
                         out _);
 
                     // A version of another row reaches the database between the composing and the
@@ -115,7 +116,7 @@ namespace KeePassGate.Host.Tests
                 Assume.That(database.Database.Modified, Is.False);
 
                 var written = store.Write(reading => RuleActs.Of(
-                    reading, node, RealNode.Of(database.RootGroup, StoredRules.Of(reading)), Chosen("pf", "RL", StoredRules.Of(reading).At(node)), out _));
+                    reading, node, rules => RealNode.Of(database.RootGroup, rules), null, Chosen("pf", "RL", StoredRules.Of(reading).At(node)), out _));
 
                 Assert.That(written.Taken && written.Wrote, Is.True, written.Reason);
                 Assert.That(database.Database.Modified, Is.True, "the database is marked, and nothing is saved");
@@ -164,7 +165,7 @@ namespace KeePassGate.Host.Tests
 
         private static RuleChanges Chosen(string profile, string mask, NodeRule shown)
         {
-            return new RuleChanges(new[] { new RowChange(RowChangeKind.Set, profile, Rules.Letters(mask), null, shown) }, null);
+            return new RuleChanges(new[] { new RowChange(RowChangeKind.Set, profile, Rules.Letters(mask), null, shown, null) }, null);
         }
 
         /// <summary>A version of this object composed under the reading's store key, as another copy composes it.</summary>

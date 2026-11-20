@@ -943,5 +943,30 @@ namespace KeePassGate.Tests
             Assert.That(changes.Select(change => change.Profile), Is.EqualTo(new[] { "ops", "reader" }));
             Assert.That(changes.Select(change => change.Shown), Is.EqualTo(shown), "the rules the tab showed at each press");
         }
+
+        [Test]
+        public void Each_press_keeps_the_versions_below_as_the_tab_s_reading_held_them_at_the_press()
+        {
+            // `STORE.md` §617: an OK renews below only versions the tab's reading held at the
+            // press, so a reading made since, as a record that lands makes it, reaches the presses
+            // made after it and no press made before.
+            var sheet = Sheets.Of(Rules.Node(false, ("reader", "R"), ("ops", "R")), Sheets.Arriving(("reader", "RL")));
+            sheet.Set("reader", "CR......");
+            Assert.That(sheet.Changes.Rows.Single().Below, Is.Empty, "nothing kept where the tab read nothing below");
+
+            var first = new[] { new string('1', 32), new string('2', 32) };
+            sheet.TakeBelow(first);
+            sheet.Set("ops", "CR...L..");
+            sheet.PressBox();
+
+            var second = new[] { new string('3', 32) };
+            sheet.TakeBelow(second);
+            sheet.Remove("reader");
+
+            var changes = sheet.Changes;
+            Assert.That(changes.Rows.Single(change => change.Profile == "ops").Below, Is.EquivalentTo(first));
+            Assert.That(changes.Switch.Below, Is.EquivalentTo(first));
+            Assert.That(changes.Rows.Single(change => change.Profile == "reader").Below, Is.EquivalentTo(second), "the press that replaced the first press on the row");
+        }
     }
 }

@@ -42,13 +42,14 @@ namespace KeePassGate.Tests
     /// Where the model writes otherwise than `STORE.md` fixes, as a renewal's admission without
     /// `from`, the shape is the same and the members are left to the product's own tests.
     ///
-    /// **The sequences of rules at single nodes are played through the acts of an OK** on a node's
-    /// dialog, `RuleActs`, each press over the rules the copy holds as the model composes every act
-    /// at its write, with what arrives taken from the model's own answer before the act. Their
-    /// start holds the root's rows as the model's does, restated by its first summary entry. Held
-    /// beside the shape: the versions written and deleted, by object, the texts that stand, what
-    /// every node gives every profile, and what each new version names, the model's identifiers
-    /// taken for the product's. The sequences that renew versions below a node are not among them.
+    /// **The sequences of rules are played through the acts of an OK** on a node's dialog,
+    /// `RuleActs`, each press over the rules the copy holds as the model composes every act at its
+    /// write, with what arrives taken from the model's own answer before the act, and the write
+    /// above carried down the sequence's tree. Their start holds the root's rows as the model's
+    /// does, restated by its first summary entry. Held beside the shape: the versions written and
+    /// deleted, by object, the texts that stand, what every node gives every profile, and what
+    /// each new version names, the model's identifiers taken for the product's, the versions
+    /// renewed below the node acted on among them.
     /// </remarks>
     [TestFixture]
     public sealed class StoreWriteShapeTests
@@ -231,19 +232,14 @@ namespace KeePassGate.Tests
             }
         }
 
-        /// <summary>The sequences of rules whose writes stay at the node acted on, by name.</summary>
+        /// <summary>The sequences of rules, the writes above among them, by name.</summary>
         private static IEnumerable<TestCaseData> RuleSequences()
         {
-            foreach (var name in ((JObject)Vectors()["sequences"]).Properties().Select(sequence => sequence.Name))
+            foreach (var name in ((JObject)Vectors()["sequences"]).Properties()
+                         .Select(sequence => sequence.Name)
+                         .Where(name => name.StartsWith("rules, ", StringComparison.Ordinal) || name.StartsWith("form, ", StringComparison.Ordinal)))
             {
-                var rules = name.StartsWith("rules, ", StringComparison.Ordinal) || name.StartsWith("form, ", StringComparison.Ordinal);
-
-                // A write above renews versions below the node acted on, which this build leaves.
-                var above = name.StartsWith("form, above", StringComparison.Ordinal) || name.StartsWith("form, R1a", StringComparison.Ordinal);
-                if (rules && !above)
-                {
-                    yield return new TestCaseData(name).SetArgDisplayNames(name.Substring(0, name.IndexOf(':')));
-                }
+                yield return new TestCaseData(name).SetArgDisplayNames(name.Substring(0, name.IndexOf(':')));
             }
         }
 
@@ -301,44 +297,49 @@ namespace KeePassGate.Tests
             IReadOnlyList<KeePassGate.Acl.RuleLeft> left;
             using (var reading = store.Read())
             {
-                var shown = KeePassGate.Acl.StoredRules.Of(reading).At(node);
+                // The model composes every act at its write: the tab's reading is the write's own,
+                // so what arrives now is what the press showed arriving, and the versions below the
+                // press kept are every version the reading holds there.
+                var rules = KeePassGate.Acl.StoredRules.Of(reading);
+                var shown = rules.At(node);
+                var tree = RuledTree((JObject)sequence["tree"]);
+                var below = rules.Below(node, tree);
                 var arriving = Arriving(sequence, gives, node);
                 KeePassGate.Acl.RuleChanges changes;
                 switch (command)
                 {
                     case "Set row":
-                        changes = Pressed(Change(KeePassGate.Acl.RowChangeKind.Set, (string)act[3], ModelLetters((string)act[4]), shown));
+                        changes = Pressed(Change(KeePassGate.Acl.RowChangeKind.Set, (string)act[3], ModelLetters((string)act[4]), shown, below));
                         break;
                     case "Set rows":
                         var spec = (string)act[3];
                         var rows = spec.Contains("=")
                             ? spec.Split(',').Select(pair => (pair.Split('=')[0], pair.Split('=')[1]))
                             : profiles.Select(profile => (profile, spec));
-                        changes = Pressed(rows.Select(row => Change(KeePassGate.Acl.RowChangeKind.Set, row.Item1, ModelLetters(row.Item2), shown)).ToArray());
+                        changes = Pressed(rows.Select(row => Change(KeePassGate.Acl.RowChangeKind.Set, row.Item1, ModelLetters(row.Item2), shown, below)).ToArray());
                         break;
                     case "Remove row":
-                        changes = Pressed(Change(KeePassGate.Acl.RowChangeKind.TakeOff, (string)act[3], Letters(arriving, (string)act[3]), shown));
+                        changes = Pressed(Change(KeePassGate.Acl.RowChangeKind.TakeOff, (string)act[3], Letters(arriving, (string)act[3]), shown, below));
                         break;
                     case "Settle limit":
-                        changes = Pressed(Change(KeePassGate.Acl.RowChangeKind.Settle, (string)act[3], Letters(arriving, (string)act[3]), shown));
+                        changes = Pressed(Change(KeePassGate.Acl.RowChangeKind.Settle, (string)act[3], Letters(arriving, (string)act[3]), shown, below));
                         break;
                     case "Set switch":
                         var refuses = (string)act[3] == "deny";
                         changes = new KeePassGate.Acl.RuleChanges(null, new KeePassGate.Acl.SwitchChange(
-                            refuses, shown, refuses ? null : arriving.Where(pair => pair.Value.Count > 0)));
+                            refuses, shown, refuses ? null : arriving.Where(pair => pair.Value.Count > 0), below));
                         break;
                     case "Remove version":
-                        changes = Pressed(Removed(sequence, step, shown, (string)act[3], (int)act[4]));
+                        changes = Pressed(Removed(sequence, step, shown, (string)act[3], (int)act[4], below));
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(step), command, "a command this test does not play");
                 }
 
-                // The node's parent with the rules of the same reading: the model composes every
-                // act at its write, so what arrives now is what the press showed arriving.
+                // The node's parent with the rules of the same reading.
                 var parent = (string)sequence["tree"]["groups"][node];
-                var above = parent == null ? null : Tree((JObject)sequence["tree"], KeePassGate.Acl.StoredRules.Of(reading))[parent];
-                written = KeePassGate.Acl.RuleActs.Of(reading, node, above, changes, out left);
+                var above = parent == null ? null : Tree((JObject)sequence["tree"], rules)[parent];
+                written = KeePassGate.Acl.RuleActs.Of(reading, node, _ => above, _ => tree, changes, out left);
             }
 
             Assert.That(left, Is.Empty, where + ": every version fits");
@@ -364,14 +365,15 @@ namespace KeePassGate.Tests
         /// The X on a version of a bound group: the version the model removed, taken by its place
         /// among the versions the model's copy held standing before the step, with its text.
         /// </summary>
-        private static KeePassGate.Acl.RowChange Removed(JObject sequence, JToken step, KeePassGate.Acl.NodeRule shown, string profile, int index)
+        private static KeePassGate.Acl.RowChange Removed(
+            JObject sequence, JToken step, KeePassGate.Acl.NodeRule shown, string profile, int index, IEnumerable<string> below)
         {
             var node = (string)sequence["nodes"][(string)step["act"][2]];
             var objectText = StoreComposer.RowObject(node, profile);
             var previous = PreviousAnswer(step);
             var text = (string)previous["rules"]["standing"][objectText][index];
             var version = shown.Row(profile).Versions.Single(held => Text(held) == text);
-            return new KeePassGate.Acl.RowChange(KeePassGate.Acl.RowChangeKind.RemoveVersions, profile, null, new[] { version.Id }, shown);
+            return new KeePassGate.Acl.RowChange(KeePassGate.Acl.RowChangeKind.RemoveVersions, profile, null, new[] { version.Id }, shown, below);
         }
 
         /// <summary>What the model's copy answered before this step: its last step's answer, or the start's.</summary>
@@ -401,9 +403,19 @@ namespace KeePassGate.Tests
             return new KeePassGate.Acl.RuleChanges(rows, null);
         }
 
-        private static KeePassGate.Acl.RowChange Change(KeePassGate.Acl.RowChangeKind kind, string profile, KeePassGate.Acl.AclGrant letters, KeePassGate.Acl.NodeRule shown)
+        private static KeePassGate.Acl.RowChange Change(
+            KeePassGate.Acl.RowChangeKind kind, string profile, KeePassGate.Acl.AclGrant letters, KeePassGate.Acl.NodeRule shown, IEnumerable<string> below)
         {
-            return new KeePassGate.Acl.RowChange(kind, profile, letters, null, shown);
+            return new KeePassGate.Acl.RowChange(kind, profile, letters, null, shown, below);
+        }
+
+        /// <summary>The tree of a sequence, every group under the node above it, as the write above is carried down it.</summary>
+        private static TestRuledTree RuledTree(JObject tree)
+        {
+            var root = new (string Node, string Above)[] { ((string)tree["root"], null) };
+            return TestRuledTree.Of(root
+                .Concat(((JObject)tree["groups"]).Properties().Select(property => (property.Name, (string)property.Value)))
+                .ToArray());
         }
 
         /// <summary>

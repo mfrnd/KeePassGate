@@ -1,5 +1,7 @@
 using System.Linq;
+using KeePassGate.Acl;
 using KeePassGate.Bridge;
+using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassLib;
 using KeePassLib.Security;
@@ -99,6 +101,76 @@ namespace KeePassGate.Host.Tests
                     Assert.That(nodes, Does.Not.Contain(IdOf(moved.Uuid)), "a record wherever it sits");
                     Assert.That(nodes, Does.Contain(IdOf(database.RootGroup.Uuid)));
                 }
+            }
+        }
+
+        [Test]
+        public void The_tree_a_write_above_is_carried_down_holds_the_recycle_bin_by_its_own_path_and_the_count_leaves_it_out()
+        {
+            // `STORE.md` §617 and §639: a write above reaches a node while it lies in the bin, by
+            // the bin's place in the tree, where the Profiles page counts no rule in the bin. The
+            // plugin's group stays out of both, a version standing for it among the rules.
+            using (var temporary = TemporaryDatabase.New())
+            {
+                var database = temporary.Database;
+                var store = new KdbxStore(database, GateVersion.Current, null);
+                StoreSeeds.Authority(store);
+                var bin = new PwGroup(true, true, "Recycle Bin", PwIcon.TrashBin);
+                var inside = new PwGroup(true, true, "deleted", PwIcon.Folder);
+                database.RootGroup.AddGroup(bin, true);
+                bin.AddGroup(inside, true);
+                var entry = Entry("deleted too");
+                inside.AddEntry(entry, true);
+                database.RecycleBinUuid = bin.Uuid;
+                var plugin = database.RootGroup.Groups.Single(StoreNodes.Holds);
+                StoreSeeds.TakeOff(store, IdOf(entry.Uuid), "pf", "R");
+                StoreSeeds.TakeOff(store, IdOf(inside.Uuid), "pf", "R");
+                TakenOffAt(store, IdOf(plugin.Uuid));
+
+                using (var reading = store.Read())
+                {
+                    var tree = new DatabaseNodes(database).Tree(reading, StoredRules.Of(reading), database.RootGroup);
+                    var below = tree.Below(IdOf(database.RootGroup.Uuid)).ToList();
+
+                    Assert.That(below, Is.SupersetOf(new[] { IdOf(entry.Uuid), IdOf(inside.Uuid) }), "the nodes in the bin");
+                    Assert.That(tree.Above(IdOf(entry.Uuid)), Is.EqualTo(IdOf(inside.Uuid)));
+                    Assert.That(tree.Above(IdOf(inside.Uuid)), Is.EqualTo(IdOf(bin.Uuid)), "by the bin's own path");
+                    Assert.That(tree.Above(IdOf(bin.Uuid)), Is.EqualTo(IdOf(database.RootGroup.Uuid)));
+                    Assert.That(below, Has.No.Member(IdOf(plugin.Uuid)), "and not the plugin's group");
+
+                    var counted = new DatabaseNodes(database).All(reading).Select(node => node.Id).ToList();
+                    Assert.That(counted, Has.No.Member(IdOf(entry.Uuid)).And.No.Member(IdOf(inside.Uuid)).And.No.Member(IdOf(bin.Uuid)), "the count leaves the bin out");
+                    Assert.That(counted, Has.No.Member(IdOf(plugin.Uuid)));
+                }
+            }
+        }
+
+        /// <summary>
+        /// A rule taken off at a node of the plugin's group, composed by hand: the product writes
+        /// no rule there, and a store merged in can hold such a rule.
+        /// </summary>
+        private static void TakenOffAt(KdbxStore store, string node)
+        {
+            byte[] key;
+            using (var reading = store.Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+
+            try
+            {
+                var version = StoreRecord.Compose(key, StoreKinds.Version, new System.Collections.Generic.Dictionary<string, string>
+                {
+                    { StoreKinds.After, string.Empty },
+                    { StoreKinds.Doc, "off:R" },
+                    { StoreKinds.ObjectMember, StoreComposer.RowObject(node, "pf") },
+                });
+                var written = store.Write(new[] { new StoreAct("a rule at the plugin's group", key, StoreFormat.KeyName(key), new[] { version }, null) });
+                Assume.That(written.Taken, Is.True, written.Reason);
+            }
+            finally
+            {
+                System.Array.Clear(key, 0, key.Length);
             }
         }
 

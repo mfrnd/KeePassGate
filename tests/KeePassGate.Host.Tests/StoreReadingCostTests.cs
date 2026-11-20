@@ -24,7 +24,8 @@ namespace KeePassGate.Host.Tests
     /// What reading the plugin's store holds KeePass's thread for, through the real router and
     /// vault, `STORE.md` §620 and §644, with the admission of a connection read by meaning,
     /// §615 and §648, and the names read beside it, §616, and what a write of the operator's and
-    /// a pairing's write into it hold the thread for, §627, recorded in `FINDINGS.md` section 22.
+    /// a pairing's write into it hold the thread for, §627, recorded in `FINDINGS.md` section 22,
+    /// an OK above versions that follow among them, §617 and §643.
     /// </summary>
     /// <remarks>
     /// **A measurement to read, and not a gate to pass**, since a time on a shared machine is no
@@ -51,6 +52,9 @@ namespace KeePassGate.Host.Tests
 
         /// <summary>The versions a write deletes in the measurement of a write that replaces many.</summary>
         private const int ReplacedVersions = 2000;
+
+        /// <summary>The OKs above versions that follow timed after a first, each renewing every version below.</summary>
+        private const int OkRuns = 10;
 
         /// <summary>The clients of the gate the growth run measured, `STORE.md` §643.</summary>
         private const int GrowthClients = 10;
@@ -337,6 +341,178 @@ namespace KeePassGate.Host.Tests
             }
 
             Print("a write deleting " + ReplacedVersions + " replaced versions, history " + history, times);
+        }
+
+        [TestCase(200)]
+        [TestCase(2000)]
+        [TestCase(9000)]
+        public void What_an_OK_above_versions_that_follow_holds_the_thread_for(int following)
+        {
+            // An OK at the root group's dialog that widens or narrows a rule for the fixture's
+            // profile above as many entries whose rule was taken off and follows it, `STORE.md`
+            // §617: the reading in the writer's turn, the composition with every renewal, the
+            // plan with every entry it touches asked about, and the application, each timed
+            // apart on the thread that makes it, beside 10,000 entries in a hundred groups. Each
+            // OK renews every version below, so each leaves a deletion record for each; a hold of
+            // the gate is timed after those writes. The tab's opening, which reads the versions
+            // below, is timed beside them.
+            using (var database = TemporaryDatabase.New())
+            {
+                var entries = Fill(database.Database, 0);
+                Counted(database.Database);
+                var plain = new KdbxStore(database.Database, GateVersion.Current, null, entry => null);
+                StoreSeeds.Authority(plain);
+                var root = Hex.Of(database.RootGroup.Uuid.UuidBytes);
+                byte[] key;
+                using (var reading = plain.Read())
+                {
+                    key = (byte[])reading.InForce.Key.Bytes.Clone();
+                }
+
+                var versions = entries.Take(following)
+                    .Select(entry => RuleVersionOf(key, StoreComposer.RowObject(Hex.Of(entry.Uuid.UuidBytes), Profile), "off:R"))
+                    .Concat(new[] { RuleVersionOf(key, StoreComposer.RowObject(root, Profile), "row:R") })
+                    .ToList();
+                Assert.That(plain.Write(new[] { new StoreAct("versions", key, StoreFormat.KeyName(key), versions, null) }).Taken, Is.True);
+                var read = "/entries/" + entries[0].Uuid.ToHexString();
+                Held(database.Database, "a read of an entry beside those versions, before any OK", read);
+
+                var opening = new List<double>();
+                var readings = new List<double>();
+                var compositions = new List<double>();
+                var plans = new List<double>();
+                var applications = new List<double>();
+                var totals = new List<double>();
+                for (var run = 0; run <= OkRuns; run++)
+                {
+                    // The tab, as it opens on the root group's dialog: the store read, the rules
+                    // worked out and the versions below kept.
+                    var clock = Stopwatch.StartNew();
+                    RuleChanges changes;
+                    using (var reading = plain.Read())
+                    {
+                        var rules = StoredRules.Of(reading);
+                        var below = rules.Below(root, new DatabaseNodes(database.Database).Tree(reading, rules, database.RootGroup));
+                        changes = new RuleChanges(
+                            new[] { new RowChange(RowChangeKind.Set, Profile, Rules.Letters(run % 2 == 0 ? "RU" : "R"), null, rules.At(root), below) },
+                            null);
+                    }
+
+                    opening.Add(clock.Elapsed.TotalMilliseconds);
+
+                    clock = Stopwatch.StartNew();
+                    using (var reading = plain.ForWrite())
+                    {
+                        readings.Add(clock.Elapsed.TotalMilliseconds);
+
+                        var part = Stopwatch.StartNew();
+                        var act = RuleActs.Of(
+                            reading, root, null, rules => new DatabaseNodes(database.Database).Tree(reading, rules, database.RootGroup), changes, out var left);
+                        compositions.Add(part.Elapsed.TotalMilliseconds);
+                        Assert.That(left, Is.Empty);
+
+                        // Every entry seeded is a node below the root, since no counted identifier
+                        // begins with the tag of a kind, `STORE.md` §633, and every version below
+                        // that follows is renewed.
+                        var renewed = new HashSet<string>(act.Records.Select(record => record.Member(StoreKinds.ObjectMember)), StringComparer.Ordinal);
+                        Assert.That(
+                            entries.Take(following).Count(entry => renewed.Contains(StoreComposer.RowObject(Hex.Of(entry.Uuid.UuidBytes), Profile))),
+                            Is.EqualTo(following));
+                        Assert.That(act.Records, Has.Count.EqualTo(following + 1), "a renewal for every version below");
+
+                        try
+                        {
+                            part = Stopwatch.StartNew();
+                            var staged = plain.Stage(reading, new[] { act });
+                            plans.Add(part.Elapsed.TotalMilliseconds);
+                            Assert.That(staged.Refused ?? staged.Held, Is.Null);
+
+                            part = Stopwatch.StartNew();
+                            staged.Apply();
+                            applications.Add(part.Elapsed.TotalMilliseconds);
+                        }
+                        finally
+                        {
+                            act.Forget();
+                        }
+                    }
+
+                    totals.Add(clock.Elapsed.TotalMilliseconds);
+                }
+
+                var what = "an OK above " + following.ToString(CultureInfo.InvariantCulture) + " versions that follow";
+                Print(what + ", the tab's opening", opening);
+                Print(what + ", the reading", readings);
+                Print(what + ", the composition", compositions);
+                Print(what + ", the plan", plans);
+                Print(what + ", the application", applications);
+                Print(what + ", the whole write", totals);
+
+                Held(database.Database, "a read of an entry after " + OkRuns.ToString(CultureInfo.InvariantCulture) + " more of those writes", read);
+                Assert.That(database.Database.DeletedObjects.UCount, Is.GreaterThanOrEqualTo((uint)((OkRuns + 1) * following)), "a deletion record for every version renewed");
+            }
+        }
+
+        /// <summary>
+        /// Every group under the root and every entry given an identifier counted out rather than
+        /// drawn: a mark of its own in the first four bytes and its place in the last four, so a
+        /// run repeats what the tree holds, and no identifier begins with the tag of a kind but
+        /// where a tag meets the mark, which the run asserts against.
+        /// </summary>
+        private static void Counted(PwDatabase database)
+        {
+            var groups = database.RootGroup.GetGroups(true).ToList();
+            var entries = database.RootGroup.GetEntries(true).ToList();
+            for (var index = 0; index < groups.Count; index++)
+            {
+                groups[index].Uuid = new PwUuid(Counter(0x67, index));
+            }
+
+            for (var index = 0; index < entries.Count; index++)
+            {
+                entries[index].Uuid = new PwUuid(Counter(0x65, index));
+            }
+        }
+
+        /// <summary>Sixteen bytes: `k`, `p`, `g` and a byte for the kind of node, eight zeros, and the place.</summary>
+        private static byte[] Counter(byte kind, int index)
+        {
+            var bytes = new byte[16];
+            bytes[0] = 0x6b;
+            bytes[1] = 0x70;
+            bytes[2] = 0x67;
+            bytes[3] = kind;
+            bytes[12] = (byte)(index >> 24);
+            bytes[13] = (byte)(index >> 16);
+            bytes[14] = (byte)(index >> 8);
+            bytes[15] = (byte)index;
+            return bytes;
+        }
+
+        /// <summary>A request of the gate's timed in its holds, through a vault of its own, the first hold printed apart.</summary>
+        private static void Held(PwDatabase database, string what, string path)
+        {
+            var hold = new Timed();
+            var vault = new KdbxVault(
+                database,
+                new DatabaseWriter(CurrentThread.Instance, saved => saved.Save(null), null, null, null),
+                TestTags.Fixed,
+                hold,
+                null,
+                new StoreReadings(database, hold, null));
+            var router = GateOperations.Router("9.9.9", null, new AccessCheck(NullGateAudit.Instance));
+            Report(what, hold, () => Send(router, vault, path), true);
+        }
+
+        /// <summary>A version of a rule's object under this key, holding this text and naming nothing.</summary>
+        private static StoreRecord RuleVersionOf(byte[] key, string objectName, string doc)
+        {
+            return StoreRecord.Compose(key, "version", new Dictionary<string, string>
+            {
+                { "after", string.Empty },
+                { "doc", doc },
+                { "object", objectName },
+            });
         }
 
         /// <summary>A version of this object under this key, naming these identifiers as replaced.</summary>

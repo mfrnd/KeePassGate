@@ -1465,8 +1465,10 @@ So the rules here:
   window so that KeePass has handled the dialog's result first; a box of KeePass's own would
   count among the windows KeePass is waiting on, and every write of the API's would be refused
   while it stood. **This reverses a rule written into the dialog's own copy of the node's
-  custom data at every press**, which KeePass put back onto the node at OK, §124. What that
-  write costs KeePass's thread is not measured yet.
+  custom data at every press**, which KeePass put back onto the node at OK, §124. What an OK
+  above many nodes holds KeePass's thread for is measured, beside ten thousand entries, in
+  Release: an OK at the root group above 200, 2,000 and 9,000 versions that follow it, each
+  written anew, took 126, 489 and 1,928 milliseconds at the median, `STORE.md` §643.
 
   **The rules are read in the hold that asks**, from the store's reading of that hold, worked
   out at the first question about a rule and kept with that reading alone, `STORE.md` §620. So a

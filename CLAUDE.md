@@ -179,9 +179,9 @@ designing around them.
   pairing in the admission's own write and added and removed by the Profiles page at the settings
   dialog's OK, `ProfileActs`. And the rules, §617, a version of a profile's rule and of a node's
   switch as records: read by the walk from the reading of the hold a rule is asked in,
-  `StoredRules`, and written as a group's or an entry's dialog closes with OK, `RuleActs`, §629; the
-  versions below a node that a change above writes anew are not built yet. The standing answers to a
-  renewal are still where CA.md §204 keeps them.
+  `StoredRules`, and written as a group's or an entry's dialog closes with OK, `RuleActs`, §629,
+  with the versions below a node that a change above writes anew in the same write, §617. The
+  standing answers to a renewal are still where CA.md §204 keeps them.
 - **The admission record is load bearing.** A certificate that chains, passes its EKU check and has
   no record in the database is refused, and so is a certificate whose client is revoked, that was
   itself taken away, or that more than a single record admits, STORE.md §615. The
