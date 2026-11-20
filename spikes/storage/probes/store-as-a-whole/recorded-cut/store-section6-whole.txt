@@ -1,0 +1,304 @@
+== the store as decided: no repair after a Synchronize
+## row 2: a revocation deleted in both carriers where made, with records; KeePassXC into the other copy
+   history: revoke 0 c0 ; del 0 ('ref', 'revoked') 1 ; del 0 ('head', 'new') 1 ; merge xc 1 0   (file asked: 1)
+   store     its own ideal: WIDER (client c0 admitted) | every decision: WIDER (client c0 admitted)  [++++]
+             file 0: incomplete, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: safety at step 3 (file 1: client c0 admitted)
+
+## row 2: the same through an import method (Overwrite if newer, existing, Keep existing)
+   history: revoke 0 c0 ; del 0 ('ref', 'revoked') 1 ; del 0 ('head', 'new') 1 ; merge kp_other 1 0   (file asked: 1)
+   store     its own ideal: WIDER (client c0 admitted) | every decision: WIDER (client c0 admitted)  [++++]
+             file 0: incomplete, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: safety at step 3 (file 1: client c0 admitted)
+
+## row 2: the same through KeePassDX
+   history: revoke 0 c0 ; del 0 ('ref', 'revoked') 1 ; del 0 ('head', 'new') 1 ; merge dx 1 0   (file asked: 1)
+   store     its own ideal: refuses, the whole database (store incomplete) | every decision: refuses, the whole database (store incomplete)  [++++]
+             file 0: incomplete, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: incomplete, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row 2: the same through Synchronize (the records travel)
+   history: revoke 0 c0 ; del 0 ('ref', 'revoked') 1 ; del 0 ('head', 'new') 1 ; merge kp_sync 1 0   (file asked: 1)
+   store     its own ideal: refuses, the whole database (store incomplete) | every decision: refuses, the whole database (store incomplete)  [++++]
+             file 0: incomplete, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: incomplete, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row 2: a name removal deleted in both carriers where made; Overwrite if newer into the other copy
+   history: prem 0 pf ; del 0 ('head', 'new') 1 ; del 0 ('prem',) 1 ; merge kp_other 1 0   (file asked: 1)
+   store     its own ideal: WIDER (client c0 holds ['pf']) | every decision: WIDER (client c0 holds ['pf'])  [++++]
+             file 0: incomplete, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names []
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: safety at step 3 (file 1: client c0 holds ['pf'])
+
+## row 2: the same with the deleting clock behind, through Synchronize
+   history: revoke 0 c0 ; del 0 ('ref', 'revoked') 2 ; del 0 ('head', 'new') 2 ; merge kp_sync 1 0   (file asked: 1)
+   store     its own ideal: refuses, the whole database (store incomplete) | every decision: refuses, the whole database (store incomplete)  [++++]
+             file 0: incomplete, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: incomplete, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row 3: the decision's entry deleted where made, KeePassXC delivers the head alone, the head deleted there with no record
+   history: revoke 0 c0 ; del 0 ('ref', 'revoked') 1 ; merge xc 1 0 ; del 1 ('head', 'new') 0   (file asked: 1)
+   store     its own ideal: WIDER (client c0 admitted) | every decision: WIDER (client c0 admitted)  [++++]
+             file 0: ok, served a0, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: safety at step 3 (file 1: client c0 admitted); one-loss at step 3 (file 1: client c0 admitted)
+
+## row 3: two deletions with no record after KeePassDX merges
+   history: revoke 0 c0 ; merge dx 1 0 ; del 1 ('ref', 'revoked') 0 ; del 1 ('head', 'new') 0   (file asked: 1)
+   store     its own ideal: refuses, the whole database (store incomplete) | every decision: refuses, the whole database (store incomplete)  [++++]
+             file 0: ok, served a0, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: incomplete, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row 3: a narrowed rule: KeePassXC brings the new version beside the old, both new entries removed by a script
+   history: rule 0 N rw ; save 0 ; merge kp_sync 1 0 ; rule 0 N none ; save 0 ; merge xc 1 0 ; del 1 ('ver', 'rule:N', 'new') 0 ; del 1 ('head', 'new') 0   (file asked: 1)
+   store     its own ideal: WIDER (node N grants rw) | every decision: WIDER (node N grants rw)  [++++++++]
+             file 0: ok, served a0, admitted ['c0'], words {'N': '', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: safety at step 7 (file 1: node N grants rw); one-loss at step 7 (file 1: node N grants rw)
+
+## row 3: the same, and then a Synchronize with the copy that holds the decision
+   history: rule 0 N rw ; save 0 ; merge kp_sync 1 0 ; rule 0 N none ; save 0 ; merge xc 1 0 ; del 1 ('ver', 'rule:N', 'new') 0 ; del 1 ('head', 'new') 0 ; merge kp_sync 1 0   (file asked: 1)
+   store     its own ideal: as decided | every decision: as decided  [+++++++++]
+             file 0: ok, served a0, admitted ['c0'], words {'N': '', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': '', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: safety at step 7 (file 1: node N grants rw); one-loss at step 7 (file 1: node N grants rw)
+
+## row 4: records cleared while a loss stands unsettled, then a stale copy synchronized (design scenario 9)
+   history: rule 0 N rw ; save 0 ; merge kp_sync 1 0 ; rule 0 N none ; save 0 ; del 0 ('ver', 'rule:N', 'new') 1 ; del 0 ('head', 'new') 1 ; clear 0 ; merge kp_sync 0 1   (file asked: 0)
+   store     its own ideal: WIDER (node N grants rw) | every decision: WIDER (node N grants rw)  [+++++++++]
+             file 0: ok, served a0, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: safety at step 8 (file 0: node N grants rw)
+
+## row 4: the same with Seal again pressed before the stale copy arrives (design scenario 10), without the mark
+   history: rule 0 N rw ; save 0 ; merge kp_sync 1 0 ; rule 0 N none ; save 0 ; del 0 ('ver', 'rule:N', 'new') 1 ; del 0 ('head', 'new') 1 ; clear 0 ; reseal 0 ; merge kp_sync 0 1   (file asked: 0)
+   store     its own ideal: WIDER (node N grants rw) | every decision: WIDER (node N grants rw)  [++++++++++]
+             file 0: ok, served a0, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: sealed-after-a-loss at step 8 (file 0: node N grants r)
+
+## row 6: a copy of a narrowed node beside its original under a granting root
+   history: rule 0 root rw ; save 0 ; rule 0 N none ; save 0 ; copy 0   (file asked: 0)
+   store     its own ideal: as decided | every decision: as decided | accepted: copy M1 gives rw, its original N gives   [+++++]
+             file 0: ok, served a0, admitted ['c0'], words {'M1': 'rw', 'N': '', 'root': 'rw'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: accepted:copy-wider at step 4 (file 0: M1)
+
+## row 7: a newer copy imported into a stale copy with Create new IDs
+   history: rule 0 N none ; save 0 ; revoke 0 c0 ; import 1 0   (file asked: 1)
+   store     its own ideal: as decided | every decision: WIDER (client c0 admitted)  [++++]
+             file 0: ok, served a0, admitted [], words {'N': '', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row 9: a file made with the store key from a stale copy, granting, merged in
+   history: rule 0 N none ; save 0 ; plantk 1 rule ; merge kp_sync 0 1   (file asked: 0)
+   store     its own ideal: as decided | every decision: as decided  [++++]
+             file 0: ok, served a0, admitted ['c0'], words {'N': '', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: safety at step 2 (file 1: node N grants rw)
+
+## row 9: a file made with the store key from a current copy, granting, merged in
+   history: rule 0 N none ; save 0 ; merge kp_sync 1 0 ; plantk 1 rule ; merge kp_sync 0 1   (file asked: 0)
+   store     its own ideal: WIDER (node N grants rw) | every decision: WIDER (node N grants rw)  [+++++]
+             file 0: ok, served a0, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: safety at step 3 (file 1: node N grants rw)
+
+## row 10: a revocation at gate 0; gate 1 has not synchronized
+   history: revoke 0 c0   (file asked: 1)
+   store     its own ideal: as decided | every decision: WIDER (client c0 admitted)  [+]
+             file 0: ok, served a0, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row 10: the same, and gate 1 renews the revoked client's key; then Synchronize at gate 0
+   history: revoke 0 c0 ; renewcert 1 c0 ; merge kp_sync 0 1   (file asked: 0)
+   store     its own ideal: as decided | every decision: as decided  [+++]
+             file 0: ok, served a0, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0', 'c0.1'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row 10: the same, then Synchronize at gate 1
+   history: revoke 0 c0 ; renewcert 1 c0 ; merge kp_sync 1 0   (file asked: 1)
+   store     its own ideal: as decided | every decision: as decided  [+++]
+             file 0: ok, served a0, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row 10: the same through KeePassXC into gate 0
+   history: revoke 0 c0 ; renewcert 1 c0 ; merge xc 0 1   (file asked: 0)
+   store     its own ideal: as decided | every decision: as decided  [+++]
+             file 0: ok, served a0, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0', 'c0.1'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row 11: a client's record deleted for good in another program to take it away; KeePassXC into the other copy
+   history: del 0 ('rec',) 1 ; merge xc 1 0   (file asked: 1)
+   store     its own ideal: as decided | every decision: as decided  [++]
+             file 0: ok, served a0, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row 14: a revocation and the head deleted for good with no record; Seal again; KeePassXC into a stale copy
+   history: revoke 0 c0 ; del 0 ('ref', 'revoked') 0 ; del 0 ('head', 'new') 0 ; reseal 0 ; merge xc 1 0   (file asked: 1)
+   store     its own ideal: WIDER (client c0 admitted) | every decision: WIDER (client c0 admitted)  [+++++]
+             file 0: ok, served a0, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: sealed-after-a-loss at step 4 (file 1: client c0 admitted)
+
+## row 14: the same with records
+   history: revoke 0 c0 ; del 0 ('ref', 'revoked') 1 ; del 0 ('head', 'new') 1 ; reseal 0 ; merge xc 1 0   (file asked: 1)
+   store     its own ideal: as decided | every decision: as decided  [+++++]
+             file 0: ok, served a0, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted [], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row 14: a narrowed node's version and the head deleted with no record; Seal again; KeePassXC into a stale copy
+   history: rule 0 N rw ; save 0 ; merge kp_sync 1 0 ; rule 0 N none ; save 0 ; del 0 ('ver', 'rule:N', 'new') 0 ; del 0 ('head', 'new') 0 ; reseal 0 ; merge xc 1 0   (file asked: 1)
+   store     its own ideal: as decided | every decision: as decided  [+++++++++]
+             file 0: ok, served a0, admitted ['c0'], words {'N': '', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': '', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row 14: a first rule narrowing a node, its version and the head deleted with no record; Seal again
+   history: rule 0 N none ; save 0 ; del 0 ('ver', 'rule:N', 'new') 0 ; del 0 ('head', 'new') 0 ; reseal 0   (file asked: 0)
+   store     its own ideal: WIDER (node N grants r) | every decision: WIDER (node N grants r)  [+++++]
+             file 0: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: sealed-after-a-loss at step 4 (file 0: node N grants r)
+
+## row 14: the same, then KeePassXC into a copy that never had the rule
+   history: rule 0 N none ; save 0 ; del 0 ('ver', 'rule:N', 'new') 0 ; del 0 ('head', 'new') 0 ; reseal 0 ; merge xc 1 0   (file asked: 1)
+   store     its own ideal: WIDER (node N grants r) | every decision: WIDER (node N grants r)  [++++++]
+             file 0: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: sealed-after-a-loss at step 4 (file 0: node N grants r)
+
+## row 14: a renewal refused forever, its answer and the head deleted with no record; Seal again (design 6.4 item 5)
+   history: renew 0 c0 forever ; del 0 ('head', 'new') 0 ; del 0 ('ver', 'renew:c0', 'new') 0 ; reseal 0   (file asked: 0)
+   store     its own ideal: WIDER (renewal of c0 asked) | every decision: WIDER (renewal of c0 asked)  [++++]
+             file 0: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: sealed-after-a-loss at step 3 (file 0: renewal of c0 asked)
+
+## row 15: the head deleted for good
+   history: del 0 ('head', 'new') 1   (file asked: 0)
+   store     its own ideal: refuses, the whole database (store incomplete) | every decision: refuses, the whole database (store incomplete)  [+]
+             file 0: incomplete, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row 15: a refusal's KPG. string edited by hand
+   history: revoke 0 c0 ; edit 0 ('ref', 'revoked')   (file asked: 0)
+   store     its own ideal: refuses, the whole database (store incomplete) | every decision: refuses, the whole database (store incomplete)  [++]
+             file 0: incomplete, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row 16: Create new IDs, then Delete Duplicate Entries; a third copy synchronized with the result
+   history: import 0 1 ; dedupe 0 ; merge kp_sync 2 0   (file asked: 2)
+   store     its own ideal: refuses, the whole database (store incomplete) | every decision: refuses, the whole database (store incomplete)  [+++]
+             file 0: incomplete, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names []
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 2: incomplete, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names []
+             the model's checks: none failed
+
+## row 17: the authority's entry deleted for good by hand, the deletion synchronized
+   history: del 0 ('auth',) 1 ; merge kp_sync 1 0   (file asked: 1)
+   store     its own ideal: refuses, the whole database (store nostore) | every decision: refuses, the whole database (store nostore)  [++]
+             file 0: nostore, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names []
+             file 1: nostore, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names []
+             the model's checks: none failed
+
+## row 18: a second authority arrives intact
+   history: plant 0 auth   (file asked: 0)
+   store     its own ideal: refuses, nothing served | every decision: refuses, nothing served  [+]
+             file 0: ok, served None, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row 19: a rule narrowed in a node's dialog; KeePass ends before a save
+   history: rule 0 root rw ; save 0 ; rule 0 root none ; quit 0   (file asked: 0)
+   store     its own ideal: as decided | every decision: as decided  [++++]
+             file 0: ok, served a0, admitted ['c0'], words {'N': 'rw', 'root': 'rw'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: accepted:unsaved-rule-lost at step 3 (file 0: node root grants rw)
+
+## row 20: two gates change the same rule apart: read at one, read and write at the other
+   history: rule 0 N r ; save 0 ; rule 1 N rw ; save 1 ; merge kp_sync 0 1   (file asked: 0)
+   store     its own ideal: as decided | every decision: as decided  [+++++]
+             file 0: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row 21: a name removed in one copy, removed and added again in the other (design scenario 4)
+   history: prem 1 pf ; padd 1 pf ; prem 0 pf ; merge kp_sync 0 1 ; merge kp_sync 1 0   (file asked: 0)
+   store     its own ideal: as decided | every decision: as decided  [+++++]
+             file 0: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names []
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names []
+             the model's checks: none failed
+
+## row -: the authority deleted on the tab, none created; a later Create
+   history: rule 0 N none ; save 0 ; delauth 0 ; create 0   (file asked: 0)
+   store     its own ideal: as decided | every decision: as decided  [++++]
+             file 0: ok, served a8, admitted [], words {'N': '', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row -: the same, then the root ruled again, granting
+   history: rule 0 N none ; save 0 ; delauth 0 ; create 0 ; rule 0 root rw ; save 0   (file asked: 0)
+   store     its own ideal: as decided | every decision: as decided  [++++++]
+             file 0: ok, served a8, admitted [], words {'N': '', 'root': 'rw'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row -: the retirement that carries the key deleted for good by hand after a Delete; a later Create
+   history: rule 0 N none ; save 0 ; delauth 0 ; del 0 ('ref', 'retired') 1 ; create 0   (file asked: 0)
+   store     its own ideal: narrower (node root lacks r) | every decision: narrower (node root lacks r)  [+++++]
+             file 0: ok, served a8, admitted [], words {'N': '', 'root': ''}, renewals {'c0': 'ask'}, names []
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row -: the same, then the root ruled again, granting
+   history: rule 0 N none ; save 0 ; delauth 0 ; del 0 ('ref', 'retired') 1 ; create 0 ; rule 0 root rw ; save 0   (file asked: 0)
+   store     its own ideal: WIDER (node root grants rw) | every decision: WIDER (node root grants rw)  [+++++++]
+             file 0: ok, served a8, admitted [], words {'N': 'rw', 'root': 'rw'}, renewals {'c0': 'ask'}, names []
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: safety at step 5 (file 0: node root grants rw)
+
+## row -: a widening decided at another gate that saw the narrowing, then Synchronize at this gate
+   history: rule 0 N none ; save 0 ; merge kp_sync 1 0 ; rule 1 N rw ; save 1 ; merge kp_sync 0 1   (file asked: 0)
+   store     its own ideal: as decided | every decision: as decided  [++++++]
+             file 0: ok, served a0, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row -: a name added again at another gate that saw its removal, then Synchronize at this gate
+   history: prem 0 pf ; merge kp_sync 1 0 ; padd 1 pf ; merge kp_sync 0 1   (file asked: 0)
+   store     its own ideal: as decided | every decision: as decided  [++++]
+             file 0: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row -: a renewal allowed again at another gate that saw the refusal, then Synchronize at this gate
+   history: renew 0 c0 forever ; merge kp_sync 1 0 ; renew 1 c0 allowed ; merge kp_sync 0 1   (file asked: 0)
+   store     its own ideal: as decided | every decision: as decided  [++++]
+             file 0: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+## row -: a copy from before a Recreate synchronized into a copy after it
+   history: rule 0 N none ; save 0 ; merge kp_sync 1 0 ; recreate 0 ; rule 1 N rw ; save 1 ; merge kp_sync 0 1   (file asked: 0)
+   store     its own ideal: as decided | every decision: as decided  [+++++++]
+             file 0: ok, served a7, admitted [], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             file 1: ok, served a0, admitted ['c0'], words {'N': 'rw', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+             the model's checks: none failed
+
+== 6 s

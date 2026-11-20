@@ -1390,6 +1390,184 @@ Reported, not fixed.
 - Merges other than Synchronize in `afters` and `moves`; the slow key derivation.
 - The tab, a second KeePass with the plugin, a phone.
 
+## The parts cut from rules per profile
+
+Added on 2026-11-20 for `papers\ground\measured-rules-cut-parts.md`. The run of "Rules per
+profile" cut parts of the earlier runs to keep within its time, and `STORE.md` §644 item 24 holds
+them as owed: `b-slow`, `b-dedupe`, `b-dupes`, `b-repair` and `b-growth` per profile; `store-ext`
+and the replays; and the KeePassXC releases other than 2.8.0 in `b-history`, `b-deletions`,
+`b-clear` and the random parts. It also left untraced the histories behind the four
+configurations whose counts of `safety` differ from the store as decided's record, and every
+failure of `safety` beyond the shortest that `search` prints. `run-cut.ps1` runs all of them, in
+the configuration of `run.ps1 -Rows` and, where no record holds it, in the whole-rule form beside
+it. Its record is `recorded-cut\`.
+
+### What it runs
+
+`run-cut.ps1 -Run N` runs these parts, each into `out\cut-N\<part>.txt`. `compare_cut.py check N`
+holds the run to the earlier records it can be held to, `compare_cut.py analyze N` writes the
+comparisons the report quotes into `out\cut-N\analysis.txt`, with the single histories it plays
+in `out\cut-N\replays\`, and `compare_cut.py second` holds run 2 to `recorded-cut\`.
+
+| Part | What it is |
+| --- | --- |
+| `b-deletions-<release>`, `b-clear-<release>`, `b-history-<release>` | `probe\cut.py --rows empty`: the part of `run.ps1 -Rows` with `keepassxc-cli` of that release in every merge of KeePassXC, for 2.4.2, 2.6.6, 2.7.12 and 2.8.0. With 2.8.0 each prints `recorded-rows\` line for line |
+| the same names ending in `-whole` | `probe\cut.py --decided`: the same in the whole-rule form, for the three releases `recorded-decided\` does not hold |
+| `b-random-rows-<release>`, `b-random-rows-off-<release>` | `probe\cut.py --rows empty` or `--rows off` `random-rows <release> 300 11`: the same 300 histories with that release in every merge of KeePassXC, then the class of each file at the end of each history |
+| `b-random-draws` | `probe\cut.py draws 300 7`: the merges the 300 histories of `b-random` draw, by program; no file is made |
+| `b-slow`, `b-dedupe`, `b-dupes`, `b-repair`, `b-growth` | `probe\cut.py --rows empty`: the parts of `cases.py` and `growth.py`, unchanged, per profile. `b-slow` plays each cell in the whole-rule form as well, as `b-merges` does |
+| `store-ext`, `store-scenarios`, `store-section6` | `model\cut_runs.py rows`: the extended model, the design's 20 replays and the sequences of `EVALUATION.md` section 6, on the store as decided per profile |
+| the same names ending in `-whole` | `model\cut_runs.py whole`: the same in the whole-rule form |
+| `trace-<form>-<search>-<files>` | `model\search_trace.py`: the searches of `store_runs.py`, the same histories from the same seeds, every history in which a property is counted written to `<part>.jsonl` (not recorded), every history that fails `safety` printed with the history shrunk as `search` shrinks its shortest. `rows` with `search`, `acts` and `noauth` as `run.ps1 -Rows` runs them, `whole` with `search` and `noauth` as `run.ps1 -Decided` runs them, each for 2 and 3 files |
+
+**`b-random` has no part here.** Its alphabet draws every merge of KeePassXC from the four
+releases (`cases.alphabet`, `bridge.RELEASES`), in the record of the store as decided and in that
+of rules per profile alike: of the 578 merges its 300 histories draw, 79 are by 2.4.2, 59 by 2.6.6,
+74 by 2.7.12 and 74 by 2.8.0 (`b-random-draws`).
+
+**The replays run in the column of the store as decided alone.** The first record's columns with
+a decision undone hold the repair after a Synchronize, which reads no row (`World.repair`). A
+replay's predicate reads a node's words as letters; per profile, `cut_runs.py` gives it the words
+of a node that grants every profile the same letters as those letters, and the words of any other
+node as they are. The view of section 6 prints words as `words_text` does, which in the
+whole-rule form is the text the first record printed. In the whole-rule form both parts print
+the first record's column with the repair undone (`check`).
+
+**What `analyze` adds for item 2.** For each history that fails `safety` in a form alone, both
+forms played step by step by `model\search_replay.py`, beside the oracle of `safety` (what was
+delivered to that file) and the oracle of every decision any gate made; the first step at which
+an act applies in a form alone; and, where that act is a rule act, both forms played again with
+it taken out. For each history in which another property is counted in a form alone, the first
+such step. For item 3, each failing history shrunk is named by what it deletes (`kind_of`), and
+a failing history per profile that holds an act on a row, of a kind other than a store key lost,
+is played again in the whole-rule form with each act on a row made the act on the node's whole
+rule with the same letters.
+
+### The command
+
+From the branch root, in Windows PowerShell 5.1:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run-cut.ps1 -Run 1 -Parallel 4
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\compare_cut.py check 1
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\compare_cut.py analyze 1
+```
+
+and the same with `-Run 2`, `check 2` and `analyze 2`, then `compare_cut.py second`. A run writes
+its outputs and its databases under names of its own (`out\cut-N\`, `work\pe-rN-*`,
+`work\po-rN-*`, `work\d-rN-*` and `work\rN\`), so that two runs can go at once; `-Parts` runs
+some parts, and replaces only their outputs. **Nothing may hold `out\cut-N\times.txt` open** while
+a run writes it: a reader that keeps it open, as `tail -F` does, makes the runner's write fail,
+and the runner waits a minute for it and then ends, leaving the parts it started to end on their
+own. Both runs here were made under an ordinary user token, four parts at once, half of what the
+runs before used, on a machine another measurement was sharing.
+
+**How long**, in seconds, each part's own time; for a part with a release, the releases in the
+order 2.4.2, 2.6.6, 2.7.12, 2.8.0. The parts of run 1 that ran first shared the machine with a
+search of another worktree and took longer.
+
+| Part | Run 1 | Run 2 |
+| --- | --- | --- |
+| `b-slow` | 1,524 | 1,798 |
+| `trace-rows-search-2`, `-3` | 259, 358 | 278, 376 |
+| `trace-rows-acts-2`, `-3` | 259, 371 | 277, 402 |
+| `trace-rows-noauth-2`, `-3` | 288, 414 | 277, 412 |
+| `trace-whole-search-2`, `-3` | 194, 270 | 198, 247 |
+| `trace-whole-noauth-2`, `-3` | 198, 312 | 181, 243 |
+| `b-deletions-<release>` | 216, 151, 144, 51 | 52, 61, 73, 48 |
+| `b-deletions-<release>-whole` | 214, 149, 136 | 51, 58, 53 |
+| `b-clear-<release>` | 259, 199, 151, 79 | 80, 88, 77, 78 |
+| `b-clear-<release>-whole` | 270, 192, 91 | 79, 85, 72 |
+| `b-history-<release>` | 289, 228, 101, 87 | 115, 119, 88, 88 |
+| `b-history-<release>-whole` | 250, 227, 89 | 105, 112, 79 |
+| `b-random-rows-<release>` | 321, 319, 103, 91 | 143, 171, 95, 93 |
+| `b-random-rows-off-<release>` | 283, 306, 96, 115 | 138, 170, 94, 86 |
+| `store-ext`, `store-ext-whole` | 232, 157 | 191, 126 |
+| `store-scenarios`, `-whole`, `store-section6`, `-whole` | 1, 1, 6, 6 | 1, 1, 5, 3 |
+| `b-repair`, `b-dupes`, `b-growth`, `b-dedupe`, `b-random-draws` | 13, 5, 6, 1, 5 | 14, 5, 5, 1, 5 |
+
+**How the two runs were made.** Run 1 was started with every part and its runner ended after
+starting six, when a reader of this session held `times.txt` open; the four parts still running,
+`b-slow` among them, ran to their end on their own. The runner was given its retry, and the parts
+not yet started ran with `-Parts` in two further starts. The first of them ended the same way after
+starting four parts, which ran to their end, because the reader had outlived the first start; once
+that reader was stopped, the second ran the other 41.
+Every part of run 1 ran once and to its end, and `check 1` held each to its record. Run 2 was
+`run-cut.ps1 -Run 2` with every part.
+
+**Compared.** Every output of run 2 is the same as `recorded-cut\` line for line, with the masks of
+"Running it": 52 files, `analysis.txt` among them; the 10 traces of run 2 are the same as run 1's
+byte for byte, and so are the 70 files of the replays. Both runs were held to the earlier records
+by `check`, and both held.
+
+| Figure | Recorded | Second run | Reproduced |
+| --- | --- | --- | --- |
+| `check`: with KeePassXC 2.8.0, `b-deletions`, `b-clear`, `b-history` per profile against `recorded-rows\`; `b-random-rows`, `-off` the lines the record holds | 274, 316, 924 lines the same; 3 and 3 | the same | yes |
+| `check`: `store-ext-whole` against `recorded-decided\`; the replays in the whole-rule form against the first record's column with the repair undone | 53 lines the same; 20 of 20 replays, 43 of 43 sequences | the same | yes |
+| `check`: each trace against its search's record, counts and the shortest failing history | 10 traces, 12 configurations each, every shortest `safety` history the same | the same | yes |
+| `b-deletions`, `b-clear`, `b-history`: cells whose class differs between the four releases; between the forms | 0 of 216, 252, 660 per profile and 216, 252, 600 whole-rule; 0 in every release | the same | yes |
+| the same, cells merged by KeePassXC in every release | 72: 66, 4, 2; 84: 84; 220: 156, 2, 62 per profile and 200: 142, 2, 56 whole-rule (as decided, narrower, refuses) | the same | yes |
+| `b-random-rows`, `-off`, every release: steps; files at the end; merges beyond both copies; histories differing between releases | 1,724 and 1,725; WIDER 234, as decided 383, narrower 95; 0; 0 of 300 | the same | yes |
+| `b-random-draws`: merges by KeePassXC 2.4.2, 2.6.6, 2.7.12, 2.8.0 | 79, 59, 74, 74 of 578 | the same | yes |
+| `b-slow`: the 24 cells of H3, H6, H13 per profile and whole-rule; cells as under the fast derivation | as decided 24 in both; 32 of 32 | the same | yes |
+| `b-dedupe`, `b-dupes`, `b-repair`: outcomes of the same class as `recorded-decided\`; the others | 4 of 4, 15 of 15, 85 of 96; 11 WIDER to refusing (R1 6, R2 5) | the same | yes |
+| `b-growth` after 1,000 writes: summary entry bytes; entries; deletion records | 103,745; 352; 2,527 | the same | yes |
+| `store-ext`: lines that differ from the whole-rule form | the header alone | the same | yes |
+| replays and sequences of section 6 whose answer differs between the forms | 2 of 20 (9, 10); 6 of 43 | the same | yes |
+| the search: histories failing `safety` in a form alone; histories differing in another property | 4 (C, E, G per profile, F whole-rule); 14; each parting at a rule act, the control the same in 4 of 4 | the same | yes |
+| failures of `safety`, per profile `search`, `acts`, `noauth`; whole-rule `search`, `noauth` | 36, 20, 5; 34, 3 | the same | yes |
+
+### What was added for it
+
+Every file is new; no file of the family was changed. Each part prints what the part it calls
+prints, and the parts with a release of KeePassXC print, with 2.8.0, what `run.ps1 -Rows` printed
+(`check`).
+
+- `probe\cut.py`: the configuration (`--rows VARIANT` or `--decided`) and `--run TAG`, which puts
+  the databases under `work\<prefix>r<TAG>-`; `deletions`, `clear` and `random-rows`, copies of
+  the functions of `cases.py` with the release of KeePassXC a parameter, `random-rows` printing at
+  its end the class of each file of each history; `history`, `cases.part_history` with its table
+  of merges replaced; `draws`; and `slow`, `dedupe`, `dupes`, `repair` and `growth`, which call
+  `cases.py` and `growth.py` unchanged.
+- `model\cut_runs.py`: `store_runs.part_ext`, `part_scenarios` and `part_section6` in either form,
+  on the store as decided, with the predicate and the view described above.
+- `model\search_trace.py`: the loop of `crdt_model.search` drawing the same histories, keeping each
+  history in which a property is counted and shrinking each that fails `safety`.
+- `model\search_replay.py`: a single history step by step in either form.
+- `run-cut.ps1`, `compare_cut.py`: the command, and the checks and comparisons.
+
+### Defects and limits of this configuration
+
+Reported, not fixed.
+
+- **A hand deletion of "the newest rule version" takes a single row's version per profile** (the
+  newest row by identifier, `pg`'s at N), where the whole-rule form takes the node's whole rule.
+  So in `b-repair`, the replays and the sequences of section 6, a loss per profile is the loss of a
+  single row, and pf's row stays: the store stops where the whole-rule form ends wider, or gives
+  pg alone what the whole-rule form gives both. The loss of every row of a node was not run.
+- **A rule act that changes no row writes nothing per profile and a version in the whole-rule
+  form.** Under change 4 that version waits in memory for a save, and while it waits the model
+  lets no other program change that copy, so the same drawn history plays differently from that
+  act on: this is every history the two forms of the search count differently (item 2).
+- **The kinds of item 3 are named by rule** from the history as `search` shrinks it: a store key
+  lost where the authority's entry is deleted or edited and Create follows, a refusal deleted with
+  a summary entry where the history deletes both. The shrunk history is not unique: `shrink` keeps
+  the first history it reaches whose removal of any further step stops the failure.
+- **The model holds the defects of the configurations before**: two profiles and two letters, no
+  history of an entry, the oracle that reads under every store key of the lineage, and the repair
+  that reads no row.
+- **KeePassLib stands for KeePass's window** in every edit, as in the configurations before.
+
+### Not run in this configuration
+
+- The replays with a decision undone, per profile: those columns hold the repair.
+- `store-ablations`, `store-repair-closes` and `design-full`, which the store as decided did not
+  run either; the forms `void`, `limit` and `split` beyond the parts that name them, and more than
+  300 random histories on files, which `measured-rules-per-profile.md` lists as cut beside the
+  parts run here.
+- The loss of every row of a node at once, by hand.
+- Everything rules per profile does not run.
+
 ## Vectors for the product
 
 Added on 2026-11-18. `vectors.py`, beside `run.ps1`, prints values the product's tests hold its

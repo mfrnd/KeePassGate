@@ -1,0 +1,84 @@
+== whole, configuration J, 2 files: rule 1 N inherit ; del 0 ('ver', 'renew:c0', 'new') 1 ; merge kp_sync 1 0 ; copy 1 ; rule 0 N none ; revoke 0 c0 ; merge k2a 1 0
+-- the start
+  file 0: ok, served a0, admitted {'c0': ['pf']}, words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+    its own oracle: words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    every decision: served a0, words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    holds: H001.3[head store {'prem': {}, 'ref': {}, 'regs': {'ver:rule:root#2'}}] ; auth:a0[auth a0] ; padd:pf#1[padd pf] ; rec:c0[rec c0 ('a0', {'pf'})] ; ver:rule:root#2[ver rule:root const r]
+  file 1: ok, served a0, admitted {'c0': ['pf']}, words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+    its own oracle: words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    every decision: served a0, words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    holds: H001.3[head store {'prem': {}, 'ref': {}, 'regs': {'ver:rule:root#2'}}] ; auth:a0[auth a0] ; padd:pf#1[padd pf] ; rec:c0[rec c0 ('a0', {'pf'})] ; ver:rule:root#2[ver rule:root const r]
+-- step 0: rule 1 N inherit; run finds: nothing
+  file 0: ok, served a0, admitted {'c0': ['pf']}, words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+    its own oracle: words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    every decision: served a0, words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    holds: H001.3[head store {'prem': {}, 'ref': {}, 'regs': {'ver:rule:root#2'}}] ; auth:a0[auth a0] ; padd:pf#1[padd pf] ; rec:c0[rec c0 ('a0', {'pf'})] ; ver:rule:root#2[ver rule:root const r]
+  file 1: ok, served a0, admitted {'c0': ['pf']}, words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+    its own oracle: words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    every decision: served a0, words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    holds: H002.5[head store {'prem': {}, 'ref': {}, 'regs': {'ver:rule:N#4', 'ver:rule:root#2'}} after H001.3] ; auth:a0[auth a0] ; padd:pf#1[padd pf] ; rec:c0[rec c0 ('a0', {'pf'})] ; ver:rule:N#4[ver rule:N cap rw] ; ver:rule:root#2[ver rule:root const r]
+    deletion records: H001.3@20
+-- step 1: del 0 ('ver', 'renew:c0', 'new') 1 (does not apply); run finds: nothing
+  file 0: ok, served a0, admitted {'c0': ['pf']}, words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+    its own oracle: words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    every decision: served a0, words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    holds: H001.3[head store {'prem': {}, 'ref': {}, 'regs': {'ver:rule:root#2'}}] ; auth:a0[auth a0] ; padd:pf#1[padd pf] ; rec:c0[rec c0 ('a0', {'pf'})] ; ver:rule:root#2[ver rule:root const r]
+  file 1: ok, served a0, admitted {'c0': ['pf']}, words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+    its own oracle: words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    every decision: served a0, words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    holds: H002.5[head store {'prem': {}, 'ref': {}, 'regs': {'ver:rule:N#4', 'ver:rule:root#2'}} after H001.3] ; auth:a0[auth a0] ; padd:pf#1[padd pf] ; rec:c0[rec c0 ('a0', {'pf'})] ; ver:rule:N#4[ver rule:N cap rw] ; ver:rule:root#2[ver rule:root const r]
+    deletion records: H001.3@20
+-- step 2: merge kp_sync 1 0; run finds: nothing
+  file 0: ok, served a0, admitted {'c0': ['pf']}, words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+    its own oracle: words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    every decision: served a0, words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    holds: H001.3[head store {'prem': {}, 'ref': {}, 'regs': {'ver:rule:root#2'}}] ; auth:a0[auth a0] ; padd:pf#1[padd pf] ; rec:c0[rec c0 ('a0', {'pf'})] ; ver:rule:root#2[ver rule:root const r]
+  file 1: ok, served a0, admitted {'c0': ['pf']}, words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+    its own oracle: words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    every decision: served a0, words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    holds: H002.5[head store {'prem': {}, 'ref': {}, 'regs': {'ver:rule:N#4', 'ver:rule:root#2'}} after H001.3] ; auth:a0[auth a0] ; padd:pf#1[padd pf] ; rec:c0[rec c0 ('a0', {'pf'})] ; ver:rule:N#4[ver rule:N cap rw] ; ver:rule:root#2[ver rule:root const r]
+    deletion records: H001.3@20
+-- step 3: copy 1; run finds: nothing
+  file 0: ok, served a0, admitted {'c0': ['pf']}, words {'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+    its own oracle: words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    every decision: served a0, words {'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    holds: H001.3[head store {'prem': {}, 'ref': {}, 'regs': {'ver:rule:root#2'}}] ; auth:a0[auth a0] ; padd:pf#1[padd pf] ; rec:c0[rec c0 ('a0', {'pf'})] ; ver:rule:root#2[ver rule:root const r]
+  file 1: ok, served a0, admitted {'c0': ['pf']}, words {'M1': 'r', 'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+    its own oracle: words {'M1': 'r', 'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    every decision: served a0, words {'M1': 'r', 'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    holds: H002.5[head store {'prem': {}, 'ref': {}, 'regs': {'ver:rule:N#4', 'ver:rule:root#2'}} after H001.3] ; auth:a0[auth a0] ; padd:pf#1[padd pf] ; rec:c0[rec c0 ('a0', {'pf'})] ; ver:rule:N#4[ver rule:N cap rw] ; ver:rule:root#2[ver rule:root const r]
+    deletion records: H001.3@20
+-- step 4: rule 0 N none; run finds: nothing
+  file 0: ok, served a0, admitted {'c0': ['pf']}, words {'N': '', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+    its own oracle: words {'N': '', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    every decision: served a0, words {'N': '', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    holds: H002.7[head store {'prem': {}, 'ref': {}, 'regs': {'ver:rule:N#6', 'ver:rule:root#2'}} after H001.3] ; auth:a0[auth a0] ; padd:pf#1[padd pf] ; rec:c0[rec c0 ('a0', {'pf'})] ; ver:rule:N#6[ver rule:N const -] ; ver:rule:root#2[ver rule:root const r]
+    deletion records: H001.3@50
+  file 1: ok, served a0, admitted {'c0': ['pf']}, words {'M1': 'r', 'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+    its own oracle: words {'M1': 'r', 'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    every decision: served a0, words {'M1': 'r', 'N': '', 'root': 'r'}, valid {'c0': ['pf']}; wider: node N grants r
+    holds: H002.5[head store {'prem': {}, 'ref': {}, 'regs': {'ver:rule:N#4', 'ver:rule:root#2'}} after H001.3] ; auth:a0[auth a0] ; padd:pf#1[padd pf] ; rec:c0[rec c0 ('a0', {'pf'})] ; ver:rule:N#4[ver rule:N cap rw] ; ver:rule:root#2[ver rule:root const r]
+    deletion records: H001.3@20
+-- step 5: revoke 0 c0; run finds: nothing
+  file 0: ok, served a0, admitted {}, words {'N': '', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+    its own oracle: words {'N': '', 'root': 'r'}, valid {}; wider: no
+    every decision: served a0, words {'N': '', 'root': 'r'}, valid {}; wider: no
+    holds: H003.9[head store {'prem': {}, 'ref': {('revoked', 'c0')}, 'regs': {'ver:rule:N#6', 'ver:rule:root#2'}} after H001.3,H002.7] ; auth:a0[auth a0] ; padd:pf#1[padd pf] ; ref:c0#8[ref c0 ('revoked', 'c0')] ; ver:rule:N#6[ver rule:N const -] ; ver:rule:root#2[ver rule:root const r]
+    deletion records: H001.3@60, H002.7@60, rec:c0@60
+  file 1: ok, served a0, admitted {'c0': ['pf']}, words {'M1': 'r', 'N': 'r', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+    its own oracle: words {'M1': 'r', 'N': 'r', 'root': 'r'}, valid {'c0': ['pf']}; wider: no
+    every decision: served a0, words {'M1': 'r', 'N': '', 'root': 'r'}, valid {}; wider: client c0 admitted
+    holds: H002.5[head store {'prem': {}, 'ref': {}, 'regs': {'ver:rule:N#4', 'ver:rule:root#2'}} after H001.3] ; auth:a0[auth a0] ; padd:pf#1[padd pf] ; rec:c0[rec c0 ('a0', {'pf'})] ; ver:rule:N#4[ver rule:N cap rw] ; ver:rule:root#2[ver rule:root const r]
+    deletion records: H001.3@20
+-- step 6: merge k2a 1 0; run finds: accepted:copy-wider (file 1: M1)
+  file 0: ok, served a0, admitted {}, words {'N': '', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+    its own oracle: words {'N': '', 'root': 'r'}, valid {}; wider: no
+    every decision: served a0, words {'N': '', 'root': 'r'}, valid {}; wider: no
+    holds: H003.9[head store {'prem': {}, 'ref': {('revoked', 'c0')}, 'regs': {'ver:rule:N#6', 'ver:rule:root#2'}} after H001.3,H002.7] ; auth:a0[auth a0] ; padd:pf#1[padd pf] ; ref:c0#8[ref c0 ('revoked', 'c0')] ; ver:rule:N#6[ver rule:N const -] ; ver:rule:root#2[ver rule:root const r]
+    deletion records: H001.3@60, H002.7@60, rec:c0@60
+  file 1: ok, served a0, admitted {}, words {'M1': 'r', 'N': '', 'root': 'r'}, renewals {'c0': 'ask'}, names ['pf']
+    its own oracle: words {'M1': 'r', 'N': '', 'root': 'r'}, valid {}; wider: no
+    every decision: served a0, words {'M1': 'r', 'N': '', 'root': 'r'}, valid {}; wider: no
+    holds: H002.5[head store {'prem': {}, 'ref': {}, 'regs': {'ver:rule:N#4', 'ver:rule:root#2'}} after H001.3] ; H003.9[head store {'prem': {}, 'ref': {('revoked', 'c0')}, 'regs': {'ver:rule:N#6', 'ver:rule:root#2'}} after H001.3,H002.7] ; auth:a0[auth a0] ; padd:pf#1[padd pf] ; ref:c0#8[ref c0 ('revoked', 'c0')] ; ver:rule:N#4[ver rule:N cap rw] ; ver:rule:N#6[ver rule:N const -] ; ver:rule:root#2[ver rule:root const r]
+    deletion records: H001.3@60, H002.7@60, rec:c0@60
+== every failure of run, with the convergence check: accepted:copy-wider at step 6 (file 1: M1)

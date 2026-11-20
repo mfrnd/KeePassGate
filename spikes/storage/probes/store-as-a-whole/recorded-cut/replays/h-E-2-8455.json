@@ -1,0 +1,1 @@
+{"cfg": "E", "nrep": 2, "ops": [["prem", 1, "pf"], ["delauth", 0], ["merge", "kp_sync", 0, 1], ["rule", 0, "root", "r"], ["del", 0, ["head", "new"], 0], ["del", 0, ["ref", "retired"], 1], ["merge", "kp_other", 1, 0], ["del", 1, ["prem"], 0], ["merge", "kp_sync", 0, 1]], "search": "search"}

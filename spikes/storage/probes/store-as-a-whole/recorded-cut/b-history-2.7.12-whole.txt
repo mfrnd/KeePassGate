@@ -1,0 +1,851 @@
+== B of the decided store: the history rule with the summary entries. Each kind of store
+   entry edited at copy 0 by one operation; copy 1 the same database unedited. Columns: copy
+   0 as it is; each merge with the other copy; copy 0 after the gate writes again. Each read
+   under the history rule, and beside it under the plain stop. With the retirement that
+   holds the store key no authority is served, so each read is followed by Create there.
+   History limits: KeePass's defaults (10 items, 6 MiB) unless the operation names 0.
+   base: revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0
+   base of the last kind: revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; delauth 0 ; merge kp_sync 1 0
+## the authority
+   dialog: a character of the payload changed in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store nostore)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store nostore)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store nostore)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store nostore)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store nostore)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   field: the payload string deleted in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store nostore)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store nostore)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store nostore)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store nostore)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store nostore)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   move: moved to the group General (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   bin: deleted to the recycle bin (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   delete: deleted for good, with a deletion record (ok; history items of the entry at copy 0: gone)
+      copy 0 as it is                refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      Synchronize into 1             refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      Synchronize into 0             refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        refuses: nothing served (0 authorities stand) [store ok, by history 0] | plain stop: refuses: nothing served (0 authorities stand)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store nostore) [store nostore, by history 0]
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store nostore)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store nostore)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store nostore)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store nostore)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store nostore)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      Synchronize into 1             refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      Synchronize into 0             refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store nostore) [store nostore, by history 0]
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      Synchronize into 1             refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      Synchronize into 0             refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store nostore) [store nostore, by history 0]
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0; history items of the entry at copy 0: 0)
+      copy 0 as it is                refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      Synchronize into 1             refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      Synchronize into 0             refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store nostore) [store nostore, by history 0] | plain stop: refuses: the whole database (store nostore)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store nostore) [store nostore, by history 0]
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## a retirement (from Recreate)
+   dialog: a character of the payload changed in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   field: the payload string deleted in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   move: moved to the group General (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   bin: deleted to the recycle bin (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   delete: deleted for good, with a deletion record (ok; history items of the entry at copy 0: gone)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0; history items of the entry at copy 0: 0)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+## an admission record (c1)
+   dialog: a character of the payload changed in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   field: the payload string deleted in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   move: moved to the group General (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   bin: deleted to the recycle bin (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   delete: deleted for good, with a deletion record (ok; history items of the entry at copy 0: gone)
+      copy 0 as it is                narrower: client c1 refused [store ok, by history 0] | plain stop: narrower: client c1 refused
+      Synchronize into 1             narrower: client c1 refused [store ok, by history 0] | plain stop: narrower: client c1 refused
+      Synchronize into 0             narrower: client c1 refused [store ok, by history 0] | plain stop: narrower: client c1 refused
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        narrower: client c1 refused [store ok, by history 0] | plain stop: narrower: client c1 refused
+      copy 0, the gate writes again  narrower: client c1 refused [store ok, by history 0]
+      C read, step 20, file 1: model ('ok', 'a7', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a7', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 0: model ('ok', 'a7', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a7', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 30, file 0: model ('ok', 'a7', [], [('N', ''), ('root', 'r')], ['c1'], ['pg', 'ph']); read.py ('ok', 'a7', [], [('N', ''), ('root', 'r')], [], ['pg', 'ph'])
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0; history items of the entry at copy 0: 0)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pg'])
+## a revocation (c0)
+   dialog: a character of the payload changed in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   field: the payload string deleted in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   move: moved to the group General (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   bin: deleted to the recycle bin (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   delete: deleted for good, with a deletion record (ok; history items of the entry at copy 0: gone)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0; history items of the entry at copy 0: 0)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+## a profile addition (pg)
+   dialog: a character of the payload changed in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   field: the payload string deleted in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   move: moved to the group General (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   bin: deleted to the recycle bin (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   delete: deleted for good, with a deletion record (ok; history items of the entry at copy 0: gone)
+      copy 0 as it is                narrower: client c1 lacks ['pg'] [store ok, by history 0] | plain stop: narrower: client c1 lacks ['pg']
+      Synchronize into 1             narrower: client c1 lacks ['pg'] [store ok, by history 0] | plain stop: narrower: client c1 lacks ['pg']
+      Synchronize into 0             narrower: client c1 lacks ['pg'] [store ok, by history 0] | plain stop: narrower: client c1 lacks ['pg']
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        narrower: client c1 lacks ['pg'] [store ok, by history 0] | plain stop: narrower: client c1 lacks ['pg']
+      copy 0, the gate writes again  narrower: client c1 lacks ['pg'] [store ok, by history 0]
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0; history items of the entry at copy 0: 0)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+## a profile removal (pf)
+   dialog: a character of the payload changed in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   field: the payload string deleted in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   move: moved to the group General (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   bin: deleted to the recycle bin (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   delete: deleted for good, with a deletion record (ok; history items of the entry at copy 0: gone)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0; history items of the entry at copy 0: 0)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+## a rule version (N, nothing)
+   dialog: a character of the payload changed in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   field: the payload string deleted in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   move: moved to the group General (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   bin: deleted to the recycle bin (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   delete: deleted for good, with a deletion record (ok; history items of the entry at copy 0: gone)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0; history items of the entry at copy 0: 0)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+## a renewal answer (c1, forever)
+   dialog: a character of the payload changed in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   field: the payload string deleted in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   move: moved to the group General (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   bin: deleted to the recycle bin (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   delete: deleted for good, with a deletion record (ok; history items of the entry at copy 0: gone)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 1]
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0; history items of the entry at copy 0: 0)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+## the summary entry
+   dialog: a character of the payload changed in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   field: the payload string deleted in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   move: moved to the group General (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   bin: deleted to the recycle bin (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   delete: deleted for good, with a deletion record (ok; history items of the entry at copy 0: gone)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  as decided [store ok, by history 0]
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0; history items of the entry at copy 0: 0)
+      copy 0 as it is                refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 1             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      Synchronize into 0             refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 1        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      KeePassXC 2.7.12 into 0        refuses: the whole database (store incomplete) [store incomplete, by history 0] | plain stop: refuses: the whole database (store incomplete)
+      copy 0, the gate writes again  cannot write; refuses: the whole database (store incomplete) [store incomplete, by history 0]
+## the retirement that holds the store key
+   dialog: a character of the payload changed in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: as decided || then Create at 1: as decided [keys 1]
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: as decided || then Create at 1: as decided [keys 1]
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      copy 0, the gate writes again  (the Create above)
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 91, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 91, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+   field: the payload string deleted in the entry dialog (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: as decided || then Create at 1: as decided [keys 1]
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: as decided || then Create at 1: as decided [keys 1]
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      copy 0, the gate writes again  (the Create above)
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 91, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 91, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+   quick: a quick edit, Expires: Now (nothing the check covers) (ok 1; history items of the entry at copy 0: 1)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided || then Create at 1: as decided [keys 1]
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided || then Create at 1: as decided [keys 1]
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      copy 0, the gate writes again  (the Create above)
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 91, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 91, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+   move: moved to the group General (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided || then Create at 1: as decided [keys 1]
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided || then Create at 1: as decided [keys 1]
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      copy 0, the gate writes again  (the Create above)
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 91, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 91, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+   bin: deleted to the recycle bin (ok; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store ok, by history 0] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      Synchronize into 1             as decided [store ok, by history 0] | plain stop: as decided || then Create at 1: as decided [keys 1]
+      Synchronize into 0             as decided [store ok, by history 0] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided || then Create at 1: as decided [keys 1]
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      copy 0, the gate writes again  (the Create above)
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 91, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 91, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+   delete: deleted for good, with a deletion record (ok; history items of the entry at copy 0: gone)
+      copy 0 as it is                as decided [store nostore, by history 0] | plain stop: as decided || then Create at 0: narrower: node root lacks r [keys 1]
+      Synchronize into 1             as decided [store nostore, by history 0] | plain stop: as decided || then Create at 1: narrower: node root lacks r [keys 1]
+      Synchronize into 0             as decided [store nostore, by history 0] | plain stop: as decided || then Create at 0: narrower: node root lacks r [keys 1]
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 0] | plain stop: as decided || then Create at 1: as decided [keys 1]
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 0] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      copy 0, the gate writes again  (the Create above)
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 91, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+   edits10: the dialog edit and 9 more dialog edits (of the title): 10 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                as decided [store ok, by history 1] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      Synchronize into 1             as decided [store ok, by history 1] | plain stop: as decided || then Create at 1: as decided [keys 1]
+      Synchronize into 0             as decided [store ok, by history 1] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      KeePassXC 2.7.12 into 1        as decided [store ok, by history 1] | plain stop: as decided || then Create at 1: as decided [keys 1]
+      KeePassXC 2.7.12 into 0        as decided [store ok, by history 1] | plain stop: as decided || then Create at 0: as decided [keys 1]
+      copy 0, the gate writes again  (the Create above)
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 91, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 91, file 1: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+      C read, step 20, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 90, file 0: model ('ok', 'a20', [], [('N', ''), ('root', 'r')], ['c1'], ['pg']); read.py ('ok', 'a20', [], [('N', ''), ('root', 'r')], [], ['pg'])
+   edits11: the dialog edit and 10 more dialog edits (of the title): 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                as decided [store nostore, by history 0] | plain stop: as decided || then Create at 0: narrower: node root lacks r [keys 1]
+      Synchronize into 1             as decided [store nostore, by history 0] | plain stop: as decided || then Create at 1: narrower: node root lacks r [keys 1]
+      Synchronize into 0             as decided [store nostore, by history 0] | plain stop: as decided || then Create at 0: narrower: node root lacks r [keys 1]
+      KeePassXC 2.7.12 into 1        as decided [store nostore, by history 0] | plain stop: as decided || then Create at 1: narrower: node root lacks r [keys 1]
+      KeePassXC 2.7.12 into 0        as decided [store nostore, by history 0] | plain stop: as decided || then Create at 0: narrower: node root lacks r [keys 1]
+      copy 0, the gate writes again  (the Create above)
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   quick10: the dialog edit and 10 quick edits: 11 edits (ok 10; history items of the entry at copy 0: 10)
+      copy 0 as it is                as decided [store nostore, by history 0] | plain stop: as decided || then Create at 0: narrower: node root lacks r [keys 1]
+      Synchronize into 1             as decided [store nostore, by history 0] | plain stop: as decided || then Create at 1: narrower: node root lacks r [keys 1]
+      Synchronize into 0             as decided [store nostore, by history 0] | plain stop: as decided || then Create at 0: narrower: node root lacks r [keys 1]
+      KeePassXC 2.7.12 into 1        as decided [store nostore, by history 0] | plain stop: as decided || then Create at 1: narrower: node root lacks r [keys 1]
+      KeePassXC 2.7.12 into 0        as decided [store nostore, by history 0] | plain stop: as decided || then Create at 0: narrower: node root lacks r [keys 1]
+      copy 0, the gate writes again  (the Create above)
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   off: history kept by neither copy (0 items), then the dialog edit (ok 0; history items of the entry at copy 0: 0)
+      copy 0 as it is                as decided [store nostore, by history 0] | plain stop: as decided || then Create at 0: narrower: node root lacks r [keys 1]
+      Synchronize into 1             as decided [store nostore, by history 0] | plain stop: as decided || then Create at 1: narrower: node root lacks r [keys 1]
+      Synchronize into 0             as decided [store nostore, by history 0] | plain stop: as decided || then Create at 0: narrower: node root lacks r [keys 1]
+      KeePassXC 2.7.12 into 1        as decided [store nostore, by history 0] | plain stop: as decided || then Create at 1: narrower: node root lacks r [keys 1]
+      KeePassXC 2.7.12 into 0        as decided [store nostore, by history 0] | plain stop: as decided || then Create at 0: narrower: node root lacks r [keys 1]
+      copy 0, the gate writes again  (the Create above)
+      C read, step 7, file 0: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 8, file 1: model ('ok', None, [], [('N', ''), ('root', '')], ['c1'], ['pg']); read.py ('ok', None, [], [('N', ''), ('root', '')], [], ['pg'])
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 20, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+== tally of every cell under the history rule (after Create for the last kind): as decided 390, narrower 28, refuses 172
+   the authority                              as decided 37, refuses 23
+   a retirement (from Recreate)               as decided 42, refuses 18
+   an admission record (c1)                   as decided 37, narrower 5, refuses 18
+   a revocation (c0)                          as decided 42, refuses 18
+   a profile addition (pg)                    as decided 37, narrower 5, refuses 18
+   a profile removal (pf)                     as decided 42, refuses 18
+   a rule version (N, nothing)                as decided 42, refuses 18
+   a renewal answer (c1, forever)             as decided 42, refuses 18
+   the summary entry                          as decided 37, refuses 23
+   the retirement that holds the store key    as decided 32, narrower 18
+== 89 s

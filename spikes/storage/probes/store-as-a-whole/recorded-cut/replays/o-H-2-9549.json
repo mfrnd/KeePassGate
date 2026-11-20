@@ -1,0 +1,1 @@
+{"cfg": "H", "nrep": 2, "ops": [["quit", 0], ["merge", "kp_sync", 0, 1], ["save", 0], ["del", 1, ["ver", "rule:N", "old"], 1], ["padd", 1, "pf"], ["del", 1, ["ver", "renew:c0", "new"], 1], ["prem", 1, "pf"], ["rule", 1, "N", "inherit"], ["over", 1, 0]], "search": "search"}

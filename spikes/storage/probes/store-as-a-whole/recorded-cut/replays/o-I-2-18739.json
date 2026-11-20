@@ -1,0 +1,1 @@
+{"cfg": "I", "nrep": 2, "ops": [["merge", "k2a", 0, 1], ["prem", 0, "pg"], ["rule", 1, "N", "inherit"], ["renew", 0, "c0", "forever"], ["edit", 1, ["head", "new"]], ["renewcert", 1, "c1"], ["over", 0, 1]], "search": "search"}

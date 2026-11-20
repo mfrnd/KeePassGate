@@ -1,0 +1,1 @@
+{"cfg": "H", "nrep": 2, "ops": [["revoke", 0, "c0"], ["rule", 1, "root", "r"], ["rule", 0, "root", "r"], ["over", 0, 1], ["revoke", 0, "c0"], ["merge", "xc", 0, 1], ["rule", 0, "root", "inherit"], ["del", 0, ["ver", "rule:root", "new"], 1], ["revoke", 0, "c0"]], "search": "search"}

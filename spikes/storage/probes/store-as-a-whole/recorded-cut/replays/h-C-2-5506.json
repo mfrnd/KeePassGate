@@ -1,0 +1,1 @@
+{"cfg": "C", "nrep": 2, "ops": [["rule", 1, "N", "inherit"], ["del", 0, ["auth"], 0], ["del", 1, ["auth"], 0], ["create", 1], ["revoke", 1, "c1"], ["rule", 0, "root", "r"], ["revoke", 1, "c1"], ["renew", 1, "c0", "forever"], ["rule", 1, "root", "rw"]], "search": "search"}

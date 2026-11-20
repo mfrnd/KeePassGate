@@ -1,0 +1,26 @@
+== the store as decided, a rule as a record for each node and profile, a removed row written as empty; the search noauth, 2 files; every history traced
+A merges only (every program)                                      2 files  20000 histories  accepted:copy-wider x13, accepted:unsaved-rule-lost x100
+B + deletions by hand with a deletion record                       2 files  20000 histories  accepted:copy-wider x11, accepted:unsaved-rule-lost x101, safety x1
+    history 16786: safety at step 3 (file 0: client c0 admitted)
+        drawn:  revoke 1 c0 ; del 1 ('head', 'old') 1 ; del 1 ('ref', 'revoked') 1 ; merge kp_other 0 1 ; prem 0 pf ; del 0 ('padd',) 1 ; merge kp_sync 1 0 ; adopt 1 0 r
+        shrunk: revoke 1 c0 ; del 1 ('head', 'old') 1 ; del 1 ('ref', 'revoked') 1 ; merge kp_other 0 1   (safety at step 3, file 0: client c0 admitted)
+C + deletions that leave no record                                 2 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x119, one-loss x1, safety x2
+    history 10220: safety at step 7 (file 0: client c0 admitted)
+        drawn:  merge kp_sync 1 0 ; merge dx 1 0 ; delauth 1 ; merge kp_other 1 0 ; del 1 ('head', 'new') 0 ; del 1 ('ref', 'retired') 0 ; del 1 ('head', 'new') 0 ; merge xc 0 1 ; save 0
+        shrunk: delauth 1 ; del 1 ('ref', 'retired') 0 ; del 1 ('head', 'new') 0 ; merge xc 0 1   (safety at step 3, file 0: client c0 admitted)
+    history 12934: safety at step 7 (file 0: node root grants r)
+        drawn:  row 1 root pg  ; merge k2a 0 1 ; merge kp_other 1 0 ; del 1 ('ver', 'rule:root', 'new') 0 ; merge xc 0 1 ; merge dx 1 0 ; renewcert 1 c0 ; del 0 ('head', 'new') 0 ; merge kp_sync 1 0
+        shrunk: row 1 root pg  ; merge kp_other 1 0 ; del 1 ('ver', 'rule:root', 'new') 0 ; merge xc 0 1 ; del 0 ('head', 'new') 0   (safety at step 4, file 0: node root grants r)
+D + records dated before the entry (a clock behind)                2 files  20000 histories  accepted:copy-wider x1, accepted:unsaved-rule-lost x124
+E + deletion records cleared                                       2 files  20000 histories  accepted:copy-wider x8, accepted:unsaved-rule-lost x111, safety x1
+    history 217: safety at step 6 (file 0: client c0 holds ['pf'])
+        drawn:  merge xc 0 1 ; prem 1 pf ; prem 0 pg ; merge kp_sync 1 0 ; del 1 ('head', 'new') 1 ; del 1 ('prem',) 0 ; merge xc 0 1 ; merge dx 0 1
+        shrunk: prem 1 pf ; del 1 ('head', 'new') 1 ; del 1 ('prem',) 0 ; merge xc 0 1   (safety at step 3, file 0: client c0 holds ['pf'])
+F + foreign: edits, import with new identifiers, planted entries   2 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x110
+G + a copy stripped of its reference                               2 files  20000 histories  accepted:copy-wider x7, accepted:unsaved-rule-lost x114
+H + a whole file written over another                              2 files  20000 histories  accepted:copy-wider x9, accepted:unsaved-rule-lost x108, rollback-by-overwrite x125
+I everything at once                                               2 files  20000 histories  accepted:copy-wider x10, accepted:unsaved-rule-lost x99, rollback-by-overwrite x33
+J only KeePass Synchronize and Keepass2Android; deletions with a record 2 files  20000 histories  accepted:copy-wider x11, accepted:unsaved-rule-lost x103
+J2 the same; every kind of deletion                                2 files  20000 histories  accepted:copy-wider x6, accepted:unsaved-rule-lost x115
+K the same, and foreign edits, imports and planted entries         2 files  20000 histories  accepted:copy-wider x10, accepted:unsaved-rule-lost x120
+== 288 s

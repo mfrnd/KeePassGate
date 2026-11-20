@@ -1,0 +1,227 @@
+== B.6: the repair after a Synchronize at a gate. Each history ends with KeePass's
+   Synchronize at gate 0. Modes: the repair written inside the save, and the merged
+   database then written to the other file as well (as KeePass writes both; read, not run);
+   the same with the other file written before the repair; and no repair (the control).
+   Added from the desktop measurement: a Synchronize with the trigger system off is announced
+   to no plugin, so it is the mode "no repair, both files"; a repair made at the save's own
+   event is the mode "repair, both files". File, Import raises no event: the same merge as an
+   import with each method, the open file only, without the repair and with the repair made
+   at the person's next save against the state the plugin held before.
+   The store as decided: no repair. Only the modes without it are run.
+## R1: records cleared after an unsettled loss, then the stale copy synchronized at gate 0 (row 4)
+   history: rule 0 N rw ; merge kp_sync 1 0 ; rule 0 N none ; del 0 ('ver', 'rule:N', 'new') 1 ; del 0 ('head', 'new') 1 ; clear 0 ; merge kp_sync 0 1
+   no repair, both files [entries 0, read 0]
+      file 0: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      file 1: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+      the other file of the Synchronize written from gate 0
+   import with Synchronize, no repair [entries 0, read 0]
+      file 0: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      file 1: WIDER: node N grants rw | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with OverwriteIfNewer, no repair [entries 0, read 0]
+      file 0: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      file 1: WIDER: node N grants rw | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with OverwriteExisting, no repair [entries 0, read 0]
+      file 0: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      file 1: WIDER: node N grants rw | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with KeepExisting, no repair [entries 0, read 0]
+      file 0: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      file 1: WIDER: node N grants rw | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with CreateNewUuids, no repair [entries 0, read 0]
+      file 0: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      file 1: WIDER: node N grants rw | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+## R2: copy 1 removes a narrowed rule's new version and head by script after a KeePassXC merge; gate 0 synchronizes with it
+   history: rule 0 N rw ; merge kp_sync 1 0 ; rule 0 N none ; merge xc 1 0 2.8.0 ; del 1 ('ver', 'rule:N', 'new') 0 ; del 1 ('head', 'new') 0 ; merge kp_sync 0 1
+   no repair, both files [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': '', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': '', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+      the other file of the Synchronize written from gate 0
+   import with Synchronize, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': '', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with OverwriteIfNewer, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': '', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with OverwriteExisting, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': '', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with KeepExisting, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': '', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with CreateNewUuids, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': '', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+## R3: a revocation's entry and head deleted in copy 1 with records dated before them; gate 0 synchronizes
+   history: revoke 0 c0 ; merge kp_sync 1 0 ; del 1 ('ref', 'revoked') 2 ; del 1 ('head', 'new') 2 ; merge kp_sync 0 1
+   no repair, both files [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+      the other file of the Synchronize written from gate 0
+   import with Synchronize, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with OverwriteIfNewer, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with OverwriteExisting, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with KeepExisting, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with CreateNewUuids, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+## R4: a name removal's entry and head deleted in copy 1 by script; gate 0 synchronizes
+   history: prem 0 pf ; merge kp_sync 1 0 ; del 1 ('prem',) 0 ; del 1 ('head', 'new') 0 ; merge kp_sync 0 1
+   no repair, both files [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': ''}, words {'N': 'r', 'root': 'r'}, refused renewals [], names []
+      file 1: as decided | ok, served a0, admitted {'c0': ''}, words {'N': 'r', 'root': 'r'}, refused renewals [], names []
+      the other file of the Synchronize written from gate 1
+      the other file of the Synchronize written from gate 0
+   import with Synchronize, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': ''}, words {'N': 'r', 'root': 'r'}, refused renewals [], names []
+      file 1: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names []
+      the other file of the Synchronize written from gate 1
+   import with OverwriteIfNewer, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': ''}, words {'N': 'r', 'root': 'r'}, refused renewals [], names []
+      file 1: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names []
+      the other file of the Synchronize written from gate 1
+   import with OverwriteExisting, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': ''}, words {'N': 'r', 'root': 'r'}, refused renewals [], names []
+      file 1: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names []
+      the other file of the Synchronize written from gate 1
+   import with KeepExisting, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': ''}, words {'N': 'r', 'root': 'r'}, refused renewals [], names []
+      file 1: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names []
+      the other file of the Synchronize written from gate 1
+   import with CreateNewUuids, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': ''}, words {'N': 'r', 'root': 'r'}, refused renewals [], names []
+      file 1: refuses: the whole database (store incomplete) | incomplete, served None, admitted {}, words {'N': '', 'root': ''}, refused renewals [], names []
+      the other file of the Synchronize written from gate 1
+## R5: a widening decided at gate 1, which saw the narrowing; gate 0 synchronizes (the repair's cost)
+   history: rule 0 N none ; merge kp_sync 1 0 ; rule 1 N rw ; merge kp_sync 0 1
+   no repair, both files [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+      the other file of the Synchronize written from gate 0
+   import with Synchronize, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with OverwriteIfNewer, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with OverwriteExisting, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with KeepExisting, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with CreateNewUuids, no repair [entries 0, read 0]
+      file 0: narrower: node N lacks rw | ok, served a0, admitted {'c0': 'pf'}, words {'N': '', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'rw', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+## R6: a name added again at gate 1, which saw its removal; gate 0 synchronizes (the repair's cost)
+   history: prem 0 pf ; merge kp_sync 1 0 ; padd 1 pf ; merge kp_sync 0 1
+   no repair, both files [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+      the other file of the Synchronize written from gate 0
+   import with Synchronize, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with OverwriteIfNewer, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with OverwriteExisting, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with KeepExisting, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with CreateNewUuids, no repair [entries 0, read 0]
+      file 0: narrower: client c0 lacks ['pf'] | ok, served a0, admitted {'c0': ''}, words {'N': 'r', 'root': 'r'}, refused renewals [], names []
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+## R7: renewals allowed again at gate 1, which saw the refusal; gate 0 synchronizes (the repair's cost)
+   history: renew 0 c0 forever ; merge kp_sync 1 0 ; renew 1 c0 allowed ; merge kp_sync 0 1
+   no repair, both files [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+      the other file of the Synchronize written from gate 0
+   import with Synchronize, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with OverwriteIfNewer, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with OverwriteExisting, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with KeepExisting, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with CreateNewUuids, no repair [entries 0, read 0]
+      file 0: narrower: renewal of c0 refused | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals ['c0'], names ['pf']
+      file 1: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'r', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+## R8: a version granting read and write at N made with the store key in a current copy (row 9); gate 0 synchronizes
+   history: rule 0 N none ; merge kp_sync 1 0 ; plantk 1 rule ; merge kp_sync 0 1
+   no repair, both files [entries 0, read 0]
+      file 0: WIDER: node N grants pf:rw pg:- | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'pf:rw pg:-', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: WIDER: node N grants pf:rw pg:- | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'pf:rw pg:-', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+      the other file of the Synchronize written from gate 0
+   import with Synchronize, no repair [entries 0, read 0]
+      file 0: WIDER: node N grants pf:rw pg:- | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'pf:rw pg:-', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: WIDER: node N grants pf:rw pg:- | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'pf:rw pg:-', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with OverwriteIfNewer, no repair [entries 0, read 0]
+      file 0: WIDER: node N grants pf:rw pg:- | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'pf:rw pg:-', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: WIDER: node N grants pf:rw pg:- | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'pf:rw pg:-', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with OverwriteExisting, no repair [entries 0, read 0]
+      file 0: WIDER: node N grants pf:rw pg:- | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'pf:rw pg:-', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: WIDER: node N grants pf:rw pg:- | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'pf:rw pg:-', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with KeepExisting, no repair [entries 0, read 0]
+      file 0: WIDER: node N grants pf:rw pg:- | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'pf:rw pg:-', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: WIDER: node N grants pf:rw pg:- | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'pf:rw pg:-', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+   import with CreateNewUuids, no repair [entries 0, read 0]
+      file 0: as decided | ok, served a0, admitted {'c0': 'pf'}, words {'N': '', 'root': 'r'}, refused renewals [], names ['pf']
+      file 1: WIDER: node N grants pf:rw pg:- | ok, served a0, admitted {'c0': 'pf'}, words {'N': 'pf:rw pg:-', 'root': 'r'}, refused renewals [], names ['pf']
+      the other file of the Synchronize written from gate 1
+== 13 s

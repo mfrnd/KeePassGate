@@ -1,0 +1,1 @@
+{"cfg": "J", "nrep": 2, "ops": [["rule", 0, "N", "none"], ["adopt", 0, 0, "r"], ["recreate", 0], ["renew", 0, "c0", "forever"], ["del", 0, ["ver", "rule:N", "new"], 1], ["merge", "k2a", 1, 0], ["rule", 1, "N", "none"], ["del", 1, ["ref", "revoked"], 1], ["copy", 1]], "search": "search"}

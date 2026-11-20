@@ -1,0 +1,41 @@
+== the store as decided, a rule as a record for each node and profile, a removed row written as empty; the search search, 3 files; every history traced
+A merges only (every program)                                      3 files  20000 histories  accepted:copy-wider x5, accepted:unsaved-rule-lost x67
+B + deletions by hand with a deletion record                       3 files  20000 histories  accepted:copy-wider x6, accepted:unsaved-rule-lost x71, safety x2
+    history 4756: safety at step 4 (file 0: renewal of c0 asked)
+        drawn:  renew 0 c0 forever ; del 0 ('auth',) 1 ; merge kp_sync 1 0 ; merge dx 2 1 ; create 0 ; rule 2 N r ; del 2 ('auth',) 1 ; del 2 ('ver', 'rule:N', 'new') 1
+        shrunk: renew 0 c0 forever ; del 0 ('auth',) 1 ; create 0   (safety at step 2, file 0: renewal of c0 asked)
+    history 12677: safety at step 6 (file 0: renewal of c0 asked)
+        drawn:  renew 2 c0 forever ; del 0 ('head', 'new') 1 ; del 2 ('prem',) 1 ; merge dx 1 2 ; del 0 ('auth',) 1 ; merge k2a 0 2 ; create 0 ; create 2 ; merge kp_sync 2 0
+        shrunk: renew 2 c0 forever ; del 0 ('auth',) 1 ; create 0 ; merge kp_sync 2 0   (safety at step 3, file 2: renewal of c0 asked)
+C + deletions that leave no record                                 3 files  20000 histories  accepted:unsaved-rule-lost x89, safety x2
+    history 9721: safety at step 5 (file 1: client c0 admitted)
+        drawn:  delauth 0 ; merge kp_other 1 2 ; del 0 ('ref', 'retired') 0 ; del 2 ('head', 'new') 1 ; del 0 ('head', 'old') 0 ; merge xc 1 0 ; merge kp_sync 1 0
+        shrunk: delauth 0 ; del 0 ('ref', 'retired') 0 ; del 0 ('head', 'old') 0 ; merge xc 1 0   (safety at step 3, file 1: client c0 admitted)
+    history 10803: safety at step 7 (file 2: client c0 holds ['pf'])
+        drawn:  prem 1 pf ; del 1 ('head', 'old') 1 ; del 1 ('prem',) 0 ; rule 2 N r ; del 1 ('ref', 'retired') 1 ; del 2 ('ref', 'retired') 1 ; prem 0 pg ; merge kp_other 2 1
+        shrunk: prem 1 pf ; del 1 ('head', 'old') 1 ; del 1 ('prem',) 0 ; merge kp_other 2 1   (safety at step 3, file 2: client c0 holds ['pf'])
+D + records dated before the entry (a clock behind)                3 files  20000 histories  accepted:copy-wider x6, accepted:unsaved-rule-lost x82
+E + deletion records cleared                                       3 files  20000 histories  accepted:copy-wider x7, accepted:unsaved-rule-lost x74
+F + foreign: edits, import with new identifiers, planted entries   3 files  20000 histories  accepted:copy-wider x3, accepted:unsaved-rule-lost x60
+G + a copy stripped of its reference                               3 files  20000 histories  accepted:copy-wider x6, accepted:unsaved-rule-lost x71
+H + a whole file written over another                              3 files  20000 histories  accepted:copy-wider x3, accepted:unsaved-rule-lost x76, rollback-by-overwrite x245, safety x1
+    history 5501: safety at step 6 (file 2: renewal of c0 asked)
+        drawn:  renew 2 c0 forever ; merge kp_sync 2 0 ; merge kp_sync 2 0 ; del 2 ('auth',) 1 ; del 0 ('auth',) 1 ; del 1 ('ver', 'rule:N', 'old') 1 ; create 2
+        shrunk: renew 2 c0 forever ; del 2 ('auth',) 1 ; create 2   (safety at step 2, file 2: renewal of c0 asked)
+I everything at once                                               3 files  20000 histories  accepted:copy-wider x2, accepted:unsaved-rule-lost x77, rollback-by-overwrite x66, safety x1
+    history 11483: safety at step 6 (file 1: renewal of c0 asked)
+        drawn:  recreate 1 ; recreate 1 ; renew 1 c0 forever ; edit 1 ('auth',) ; rule 0 N inherit ; plant 1 retire ; create 1
+        shrunk: renew 1 c0 forever ; edit 1 ('auth',) ; create 1   (safety at step 2, file 1: renewal of c0 asked)
+J only KeePass Synchronize and Keepass2Android; deletions with a record 3 files  20000 histories  accepted:copy-wider x6, accepted:unsaved-rule-lost x84, safety x1
+    history 6936: safety at step 8 (file 1: node root grants rw)
+        drawn:  del 1 ('auth',) 1 ; del 0 ('ver', 'rule:N', 'new') 1 ; renewcert 0 c1 ; merge k2a 1 2 ; create 1 ; save 1 ; del 2 ('head', 'old') 1 ; merge kp_sync 2 0 ; rule 1 root rw
+        shrunk: del 1 ('auth',) 1 ; create 1 ; rule 1 root rw   (safety at step 2, file 1: node root grants rw)
+J2 the same; every kind of deletion                                3 files  20000 histories  accepted:copy-wider x6, accepted:unsaved-rule-lost x64
+K the same, and foreign edits, imports and planted entries         3 files  20000 histories  accepted:copy-wider x5, accepted:unsaved-rule-lost x72, safety x2
+    history 244: safety at step 3 (file 2: renewal of c0 asked)
+        drawn:  renew 2 c0 forever ; del 2 ('auth',) 0 ; merge k2a 1 2 ; create 2 ; edit 1 ('padd',) ; del 2 ('auth',) 2
+        shrunk: renew 2 c0 forever ; del 2 ('auth',) 0 ; create 2   (safety at step 2, file 2: renewal of c0 asked)
+    history 1438: safety at step 8 (file 0: renewal of c0 asked)
+        drawn:  renew 0 c0 forever ; rule 2 N rw ; revoke 0 c1 ; edit 1 ('auth',) ; renew 2 c0 allowed ; recreate 2 ; merge kp_sync 0 1 ; create 1 ; merge k2a 0 1
+        shrunk: renew 0 c0 forever ; edit 1 ('auth',) ; create 1 ; merge k2a 0 1   (safety at step 3, file 0: renewal of c0 asked)
+== 358 s

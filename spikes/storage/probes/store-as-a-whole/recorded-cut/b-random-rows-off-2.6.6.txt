@@ -1,0 +1,305 @@
+== random histories of rows and switches, the removal written as off: 300 histories, steps 1725, entry disagreements 0, read differences 0, 292 s
+   files at the end against every decision: WIDER 234, as decided 383, narrower 95
+   merges that gave a letter neither copy gave just before: 0
+== the class of each file at the end of each history; KeePassXC 2.6.6 in every merge of that program
+     0: WIDER, WIDER
+     1: WIDER, narrower, narrower
+     2: as decided, WIDER, WIDER
+     3: WIDER, narrower
+     4: as decided, WIDER
+     5: WIDER, as decided
+     6: as decided, WIDER
+     7: as decided, WIDER
+     8: as decided, as decided, as decided
+     9: narrower, narrower, WIDER
+    10: narrower, narrower, as decided
+    11: WIDER, narrower
+    12: as decided, as decided
+    13: WIDER, narrower
+    14: as decided, WIDER, as decided
+    15: as decided, as decided, as decided
+    16: as decided, WIDER
+    17: as decided, WIDER
+    18: as decided, as decided, as decided
+    19: WIDER, narrower
+    20: WIDER, WIDER, narrower
+    21: as decided, narrower
+    22: WIDER, WIDER, WIDER
+    23: as decided, narrower
+    24: as decided, as decided
+    25: as decided, as decided
+    26: as decided, as decided
+    27: as decided, narrower, narrower
+    28: narrower, WIDER
+    29: narrower, as decided
+    30: as decided, as decided
+    31: as decided, WIDER
+    32: as decided, as decided
+    33: WIDER, as decided
+    34: as decided, as decided
+    35: WIDER, narrower, WIDER
+    36: as decided, narrower
+    37: WIDER, as decided
+    38: narrower, as decided
+    39: as decided, WIDER
+    40: as decided, as decided
+    41: WIDER, WIDER, as decided
+    42: as decided, as decided
+    43: as decided, narrower
+    44: as decided, as decided
+    45: as decided, WIDER, as decided
+    46: as decided, as decided
+    47: WIDER, narrower
+    48: as decided, as decided
+    49: WIDER, as decided
+    50: as decided, WIDER, as decided
+    51: as decided, as decided
+    52: as decided, as decided
+    53: WIDER, WIDER, WIDER
+    54: WIDER, as decided, as decided
+    55: WIDER, narrower
+    56: as decided, as decided, as decided
+    57: WIDER, WIDER, as decided
+    58: as decided, WIDER
+    59: as decided, as decided, as decided
+    60: as decided, as decided
+    61: narrower, WIDER, WIDER
+    62: as decided, as decided
+    63: WIDER, as decided
+    64: as decided, as decided
+    65: as decided, as decided
+    66: as decided, as decided, WIDER
+    67: as decided, WIDER
+    68: WIDER, WIDER, as decided
+    69: as decided, WIDER
+    70: as decided, WIDER
+    71: as decided, as decided, as decided
+    72: WIDER, as decided, WIDER
+    73: as decided, as decided
+    74: WIDER, WIDER, narrower
+    75: as decided, as decided
+    76: as decided, as decided
+    77: as decided, WIDER
+    78: as decided, as decided
+    79: as decided, WIDER
+    80: WIDER, WIDER, WIDER
+    81: as decided, WIDER
+    82: WIDER, WIDER, WIDER
+    83: WIDER, as decided, WIDER
+    84: as decided, narrower
+    85: as decided, WIDER, as decided
+    86: narrower, as decided
+    87: as decided, WIDER, narrower
+    88: as decided, WIDER
+    89: as decided, as decided
+    90: narrower, WIDER
+    91: as decided, as decided
+    92: as decided, as decided, as decided
+    93: WIDER, narrower, WIDER
+    94: as decided, as decided
+    95: as decided, narrower, narrower
+    96: narrower, as decided, narrower
+    97: as decided, narrower
+    98: WIDER, WIDER, WIDER
+    99: as decided, as decided
+   100: narrower, WIDER, narrower
+   101: as decided, WIDER
+   102: as decided, narrower
+   103: as decided, WIDER, WIDER
+   104: WIDER, WIDER
+   105: narrower, narrower
+   106: as decided, as decided, as decided
+   107: as decided, as decided
+   108: WIDER, as decided, WIDER
+   109: WIDER, WIDER
+   110: WIDER, WIDER
+   111: as decided, as decided
+   112: as decided, WIDER
+   113: as decided, as decided
+   114: WIDER, WIDER, as decided
+   115: WIDER, narrower
+   116: as decided, as decided
+   117: as decided, as decided, as decided
+   118: WIDER, as decided, WIDER
+   119: WIDER, as decided, WIDER
+   120: as decided, as decided
+   121: WIDER, as decided
+   122: WIDER, WIDER, as decided
+   123: as decided, as decided, narrower
+   124: WIDER, WIDER, as decided
+   125: as decided, WIDER
+   126: as decided, as decided
+   127: as decided, WIDER
+   128: WIDER, as decided, WIDER
+   129: as decided, as decided
+   130: as decided, as decided
+   131: WIDER, as decided
+   132: as decided, narrower, as decided
+   133: as decided, as decided
+   134: narrower, WIDER
+   135: as decided, as decided
+   136: narrower, as decided
+   137: WIDER, as decided
+   138: as decided, as decided
+   139: WIDER, WIDER, as decided
+   140: as decided, as decided, as decided
+   141: as decided, WIDER
+   142: as decided, as decided, as decided
+   143: as decided, as decided, as decided
+   144: WIDER, as decided
+   145: narrower, as decided
+   146: as decided, as decided
+   147: as decided, as decided
+   148: as decided, as decided
+   149: as decided, narrower
+   150: as decided, WIDER, WIDER
+   151: as decided, as decided
+   152: narrower, WIDER, WIDER
+   153: as decided, WIDER
+   154: as decided, as decided
+   155: as decided, as decided
+   156: as decided, WIDER, WIDER
+   157: WIDER, WIDER, as decided
+   158: as decided, WIDER, as decided
+   159: as decided, narrower
+   160: as decided, WIDER
+   161: as decided, WIDER
+   162: as decided, narrower
+   163: narrower, as decided
+   164: as decided, narrower
+   165: as decided, WIDER
+   166: WIDER, WIDER
+   167: WIDER, as decided, WIDER
+   168: narrower, as decided
+   169: as decided, narrower
+   170: as decided, as decided
+   171: as decided, as decided, as decided
+   172: as decided, as decided
+   173: narrower, WIDER
+   174: as decided, as decided, as decided
+   175: WIDER, as decided
+   176: narrower, as decided, narrower
+   177: as decided, as decided, as decided
+   178: as decided, as decided, as decided
+   179: as decided, WIDER, narrower
+   180: as decided, as decided
+   181: WIDER, narrower, as decided
+   182: WIDER, as decided
+   183: WIDER, as decided, as decided
+   184: WIDER, WIDER
+   185: WIDER, WIDER, as decided
+   186: as decided, as decided
+   187: as decided, WIDER
+   188: as decided, as decided
+   189: as decided, as decided
+   190: WIDER, WIDER, as decided
+   191: WIDER, as decided, WIDER
+   192: as decided, as decided
+   193: as decided, narrower
+   194: as decided, WIDER
+   195: as decided, narrower
+   196: WIDER, WIDER
+   197: as decided, as decided
+   198: as decided, narrower
+   199: narrower, WIDER, as decided
+   200: as decided, as decided
+   201: as decided, as decided
+   202: as decided, as decided, as decided
+   203: WIDER, as decided, WIDER
+   204: as decided, as decided
+   205: WIDER, as decided
+   206: as decided, WIDER, WIDER
+   207: as decided, WIDER
+   208: WIDER, as decided
+   209: as decided, WIDER
+   210: as decided, WIDER
+   211: narrower, as decided, narrower
+   212: WIDER, WIDER, narrower
+   213: WIDER, narrower
+   214: as decided, as decided
+   215: as decided, as decided
+   216: as decided, WIDER, WIDER
+   217: as decided, as decided
+   218: narrower, as decided
+   219: as decided, as decided, as decided
+   220: narrower, narrower, as decided
+   221: as decided, as decided
+   222: as decided, WIDER, WIDER
+   223: narrower, as decided, narrower
+   224: WIDER, as decided, WIDER
+   225: narrower, as decided, narrower
+   226: narrower, WIDER
+   227: WIDER, as decided
+   228: as decided, narrower
+   229: as decided, as decided, as decided
+   230: as decided, as decided
+   231: WIDER, WIDER
+   232: as decided, WIDER, WIDER
+   233: narrower, as decided
+   234: narrower, WIDER, WIDER
+   235: WIDER, WIDER, narrower
+   236: WIDER, as decided, WIDER
+   237: as decided, WIDER, WIDER
+   238: as decided, WIDER, as decided
+   239: as decided, WIDER, WIDER
+   240: WIDER, as decided, WIDER
+   241: WIDER, WIDER, WIDER
+   242: as decided, as decided
+   243: narrower, as decided
+   244: WIDER, WIDER, WIDER
+   245: as decided, as decided
+   246: as decided, WIDER
+   247: as decided, WIDER
+   248: as decided, as decided
+   249: WIDER, as decided, WIDER
+   250: as decided, as decided
+   251: as decided, WIDER
+   252: WIDER, as decided, as decided
+   253: as decided, as decided, as decided
+   254: narrower, as decided
+   255: as decided, as decided
+   256: narrower, as decided
+   257: as decided, as decided, as decided
+   258: as decided, as decided
+   259: WIDER, WIDER, narrower
+   260: as decided, narrower
+   261: narrower, WIDER
+   262: narrower, as decided
+   263: WIDER, narrower, WIDER
+   264: as decided, as decided
+   265: as decided, WIDER, as decided
+   266: narrower, as decided
+   267: as decided, as decided
+   268: as decided, WIDER
+   269: narrower, WIDER
+   270: as decided, WIDER
+   271: as decided, narrower
+   272: as decided, WIDER
+   273: WIDER, as decided
+   274: as decided, WIDER, WIDER
+   275: as decided, as decided
+   276: WIDER, as decided, as decided
+   277: as decided, as decided
+   278: WIDER, as decided
+   279: narrower, WIDER
+   280: WIDER, as decided
+   281: WIDER, as decided
+   282: as decided, narrower
+   283: as decided, narrower
+   284: WIDER, as decided, WIDER
+   285: narrower, WIDER, WIDER
+   286: WIDER, as decided
+   287: WIDER, as decided, WIDER
+   288: as decided, as decided, WIDER
+   289: WIDER, WIDER, as decided
+   290: WIDER, as decided
+   291: WIDER, as decided
+   292: as decided, as decided
+   293: WIDER, as decided, as decided
+   294: as decided, as decided
+   295: WIDER, WIDER, as decided
+   296: as decided, as decided
+   297: WIDER, as decided, WIDER
+   298: WIDER, WIDER, as decided
+   299: as decided, narrower
+== 306 s

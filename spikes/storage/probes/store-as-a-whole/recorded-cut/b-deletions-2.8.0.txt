@@ -1,0 +1,274 @@
+== B.5: each kind of record deleted by hand at copy 0, each way; then what the read rule
+   answers; then Seal again (without the mark and the witness) when the store is
+   incomplete, and what the store then holds; then a merge with copy 1, a stale copy that
+   still holds what was deleted, both ways, by Synchronize and by KeePassXC 2.8.0.
+   history: revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c0 forever ; merge kp_sync 1 0
+## ref revoked, to the recycle bin
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ref revoked, for good, with a record
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ref revoked, for good, no record
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ref revoked, to the bin, the bin emptied
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ref retired, to the recycle bin
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ref retired, for good, with a record
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ref retired, for good, no record
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ref retired, to the bin, the bin emptied
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## rec, to the recycle bin
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## rec, for good, with a record
+   after the deletion: narrower: client c1 refused
+   Seal again: not needed
+   Synchronize into 0: narrower: client c1 refused [entries 0, read 0]
+   Synchronize into 1: narrower: client c1 refused [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: narrower: client c1 refused [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## rec, for good, no record
+   after the deletion: narrower: client c1 refused
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## rec, to the bin, the bin emptied
+   after the deletion: narrower: client c1 refused
+   Seal again: not needed
+   Synchronize into 0: narrower: client c1 refused [entries 0, read 0]
+   Synchronize into 1: narrower: client c1 refused [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: narrower: client c1 refused [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## auth, to the recycle bin
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## auth, for good, with a record
+   after the deletion: refuses: the whole database (store nostore)
+   Seal again: Seal again does not apply
+   Synchronize into 0: refuses: the whole database (store nostore) [entries 0, read 2]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 10, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   Synchronize into 1: refuses: the whole database (store nostore) [entries 0, read 2]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 10, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   KeePassXC 2.8.0 into 0: refuses: nothing served (0 authorities stand) [entries 0, read 1]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 1]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## auth, for good, no record
+   after the deletion: refuses: the whole database (store nostore)
+   Seal again: Seal again does not apply
+   Synchronize into 0: as decided [entries 0, read 1]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   Synchronize into 1: as decided [entries 0, read 1]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 1]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 1]
+      C read, step 8, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## auth, to the bin, the bin emptied
+   after the deletion: refuses: the whole database (store nostore)
+   Seal again: Seal again does not apply
+   Synchronize into 0: refuses: the whole database (store nostore) [entries 0, read 2]
+      C read, step 9, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 11, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   Synchronize into 1: refuses: the whole database (store nostore) [entries 0, read 2]
+      C read, step 9, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+      C read, step 11, file 1: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   KeePassXC 2.8.0 into 0: refuses: nothing served (0 authorities stand) [entries 0, read 1]
+      C read, step 9, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 1]
+      C read, step 9, file 0: model ('incomplete', None, [], [('N', ''), ('root', '')], [], []); read.py ('nostore', None, [], [('N', ''), ('root', '')], [], [])
+## padd, to the recycle bin
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## padd, for good, with a record
+   after the deletion: narrower: client c1 lacks ['pg']
+   Seal again: not needed
+   Synchronize into 0: narrower: client c1 lacks ['pg'] [entries 0, read 0]
+   Synchronize into 1: narrower: client c1 lacks ['pg'] [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: narrower: client c1 lacks ['pg'] [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## padd, for good, no record
+   after the deletion: narrower: client c1 lacks ['pg']
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## padd, to the bin, the bin emptied
+   after the deletion: narrower: client c1 lacks ['pg']
+   Seal again: not needed
+   Synchronize into 0: narrower: client c1 lacks ['pg'] [entries 0, read 0]
+   Synchronize into 1: narrower: client c1 lacks ['pg'] [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: narrower: client c1 lacks ['pg'] [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## prem, to the recycle bin
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## prem, for good, with a record
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## prem, for good, no record
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## prem, to the bin, the bin emptied
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ver rule:N new, to the recycle bin
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ver rule:N new, for good, with a record
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ver rule:N new, for good, no record
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ver rule:N new, to the bin, the bin emptied
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ver renew:c0 new, to the recycle bin
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ver renew:c0 new, for good, with a record
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ver renew:c0 new, for good, no record
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## ver renew:c0 new, to the bin, the bin emptied
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## head new, to the recycle bin
+   after the deletion: as decided
+   Seal again: not needed
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## head new, for good, with a record
+   after the deletion: refuses: the whole database (store incomplete)
+   Seal again: as decided (holds 12 elements, 1 heads)
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## head new, for good, no record
+   after the deletion: refuses: the whole database (store incomplete)
+   Seal again: as decided (holds 12 elements, 1 heads)
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+## head new, to the bin, the bin emptied
+   after the deletion: refuses: the whole database (store incomplete)
+   Seal again: as decided (holds 12 elements, 1 heads)
+   Synchronize into 0: as decided [entries 0, read 0]
+   Synchronize into 1: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0: as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1: as decided [entries 0, read 0]
+== 51 s

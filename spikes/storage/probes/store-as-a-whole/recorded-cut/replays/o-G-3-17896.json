@@ -1,0 +1,1 @@
+{"cfg": "G", "nrep": 3, "ops": [["rule", 2, "N", "none"], ["save", 2], ["merge", "dx", 0, 1], ["strip", 1], ["rule", 2, "N", "none"], ["merge", "kp_other", 1, 0], ["del", 0, ["head", "new"], 1], ["copy", 2], ["adopt", 2, 0, "r"]], "search": "search"}

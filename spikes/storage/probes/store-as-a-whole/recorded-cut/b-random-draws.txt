@@ -1,0 +1,1 @@
+== the merges `cases.py random 300 7` draws: 578, by program: KeePassXC 2.4.2 79, KeePassXC 2.6.6 59, KeePassXC 2.7.12 74, KeePassXC 2.8.0 74, KeepExisting 72, OverwriteExisting 73, OverwriteIfNewer 76, kp_sync 71

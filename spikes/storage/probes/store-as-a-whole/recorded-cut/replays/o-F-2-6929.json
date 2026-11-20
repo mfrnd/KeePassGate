@@ -1,0 +1,1 @@
+{"cfg": "F", "nrep": 2, "ops": [["renew", 1, "c0", "forever"], ["rule", 0, "N", "inherit"], ["del", 0, ["head", "new"], 1], ["rule", 1, "root", "r"], ["merge", "kp_sync", 0, 1], ["renew", 0, "c0", "forever"], ["copy", 0], ["rule", 0, "N", "none"], ["rule", 1, "root", "rw"]], "search": "search"}

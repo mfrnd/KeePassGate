@@ -1,0 +1,1 @@
+{"cfg": "F", "nrep": 2, "ops": [["del", 0, ["auth"], 1], ["del", 1, ["auth"], 1], ["renew", 1, "c0", "forever"], ["create", 0], ["merge", "kp_sync", 1, 0], ["create", 0], ["rule", 1, "N", "r"], ["merge", "xc", 0, 1]], "search": "search"}

@@ -1,0 +1,17 @@
+== the store as decided, a version of a node's whole rule; the search noauth, 3 files; every history traced
+A merges only (every program)                                      3 files  20000 histories  accepted:copy-wider x6, accepted:unsaved-rule-lost x67
+B + deletions by hand with a deletion record                       3 files  20000 histories  accepted:copy-wider x7, accepted:unsaved-rule-lost x76
+C + deletions that leave no record                                 3 files  20000 histories  accepted:copy-wider x3, accepted:unsaved-rule-lost x90
+D + records dated before the entry (a clock behind)                3 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x86
+E + deletion records cleared                                       3 files  20000 histories  accepted:copy-wider x7, accepted:unsaved-rule-lost x73
+F + foreign: edits, import with new identifiers, planted entries   3 files  20000 histories  accepted:copy-wider x2, accepted:unsaved-rule-lost x73
+G + a copy stripped of its reference                               3 files  20000 histories  accepted:copy-wider x7, accepted:unsaved-rule-lost x66
+H + a whole file written over another                              3 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x76, rollback-by-overwrite x267, safety x1
+    history 1910: safety at step 8 (file 0: client c0 holds ['pf'])
+        drawn:  adopt 1 0 r ; del 1 ('head', 'old') 1 ; revoke 0 c1 ; prem 2 pf ; del 2 ('head', 'old') 1 ; del 2 ('prem',) 1 ; renewcert 2 c1 ; merge xc 1 2 ; merge kp_other 0 2
+        shrunk: prem 2 pf ; del 2 ('head', 'old') 1 ; del 2 ('prem',) 1 ; merge kp_other 0 2   (safety at step 3, file 0: client c0 holds ['pf'])
+I everything at once                                               3 files  20000 histories  accepted:copy-wider x4, accepted:unsaved-rule-lost x71, rollback-by-overwrite x76
+J only KeePass Synchronize and Keepass2Android; deletions with a record 3 files  20000 histories  accepted:copy-wider x5, accepted:unsaved-rule-lost x81
+J2 the same; every kind of deletion                                3 files  20000 histories  accepted:copy-wider x6, accepted:unsaved-rule-lost x68
+K the same, and foreign edits, imports and planted entries         3 files  20000 histories  accepted:copy-wider x8, accepted:unsaved-rule-lost x78
+== 312 s

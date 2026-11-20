@@ -1,0 +1,1 @@
+{"cfg": "I", "nrep": 2, "ops": [["rule", 1, "N", "inherit"], ["recreate", 0], ["plant", 1, "retire"], ["prem", 1, "pf"], ["merge", "xc", 0, 1], ["merge", "kp_other", 0, 1], ["copy", 1], ["rule", 1, "N", "none"]], "search": "search"}
