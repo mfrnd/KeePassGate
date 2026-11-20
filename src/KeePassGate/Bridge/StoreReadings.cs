@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
 using KeePassGate.Acl;
+using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Store;
@@ -151,6 +153,35 @@ namespace KeePassGate.Bridge
             return reading.Answering.Any(record => string.Equals(record.Form.Member(StoreKinds.Id), authority, StringComparison.Ordinal))
                 ? HeldBackTarget.Undecided
                 : null;
+        }
+
+        /// <summary>
+        /// Whether this authority is the authority the reading serves, `StoreAuthorities.Served`:
+        /// asked where <see cref="WordOf"/> has no word, so that a pairing's dialog and its write
+        /// answer the same store alike, a request under an authority that is not served being a
+        /// request whose authority went.
+        /// </summary>
+        public static bool Serves(StoreReading reading, string authority)
+        {
+            return string.Equals(StoreAuthorities.Served(reading), authority, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// What a pairing's dialog is built from in this reading, judged by <see cref="WordOf"/>
+        /// and <see cref="Serves"/> as the write judges the same store: the profiles asked for,
+        /// `AskedProfiles.Of`, where the reading serves this authority, and otherwise the word the
+        /// write answers with, `AskedProfiles.Unserved`.
+        /// </summary>
+        /// <param name="reading">A reading made afresh in this turn, let go by its caller.</param>
+        /// <param name="authority">The `id` of the authority the pairing arrived under.</param>
+        /// <param name="profiles">The profiles asked for.</param>
+        /// <param name="now">The moment a client's certificate is held to.</param>
+        public static AskedProfiles Asked(StoreReading reading, string authority, IReadOnlyCollection<string> profiles, DateTimeOffset now)
+        {
+            var word = WordOf(reading, authority);
+            return word == null && Serves(reading, authority)
+                ? AskedProfiles.Of(reading, profiles, now)
+                : AskedProfiles.Unserved(word);
         }
 
         private string WordNow(string authority)

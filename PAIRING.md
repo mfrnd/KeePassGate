@@ -251,6 +251,31 @@ The marks are held by `AskedProfilesTests`, by
 and, through the real target and the real dialog over a database synchronized by KeePass,
 `PairingInRealDatabaseTests.A_removal_synchronized_in_before_the_dialog_is_built_is_a_removal_the_approval_puts_the_name_back_over`.
 
+**A dialog is built only over a reading that serves the authority the pairing arrived under**, a
+dialog shown again, §311, as well as a first dialog. Its connection was answered the store's word
+if the store held the gate back when it arrived, `STORE.md` §656, and what the connection was
+judged on can change before the dialog's reading is taken, or between a write that found an
+approval stale and the reading of the dialog shown again, as a synchronize brings a second
+authority or a retirement of the authority served, or the database is locked or closed. A reading
+that does not serve holds no list, so every name a dialog built from it showed would be marked
+untruly: a name on the list as "(new)", or as "(removed)" where a client holds it. So the request
+is answered as its write would be answered over the same store, through the same two members,
+`StoreReadings.WordOf` and `StoreReadings.Serves`, and in every round by the same lines of
+`PairingHandler`: the store's word under `503` where the store holds the gate back,
+`503 undecided` where several authorities stand, the authority it arrived under among them,
+`409 no invitation` where that authority is no longer the authority served, and `503 locked` for a
+database locked or closed. Nothing is spent but the hello's challenge, and the plugin's log names
+the invitation, the database and the cause. **The reading is taken before the dialog is shown**,
+and before a first dialog's wait for the screen, which can last as long as another pairing or a
+renewal stands in front of the operator, and every dialog stands as long again: a synchronize in
+that time still leaves a dialog over a store no longer served, its names as the reading found
+them, and its approval answered by the write with the store's word. Held by
+`PairingHandlerTests.A_store_that_stopped_serving_before_the_dialog_is_answered_as_its_write_would_be`,
+for a dialog shown again by
+`PairingHandlerTests.A_later_dialog_over_a_reading_that_is_not_served_is_answered_as_its_write_would_be`,
+and, through the real target,
+`PairingInRealDatabaseTests.A_store_that_stopped_serving_before_the_dialog_is_answered_as_its_write_would_be`.
+
 **Every answer is written to the audit**, `DESIGN.md` §120, naming the invitation the request
 arrived on: approved, with the admission key of the certificate it admitted, which is the new
 client's client key as well, once the record is saved and before the bundle is handed over;
@@ -674,15 +699,15 @@ What a refusal says, and deliberately no more:
 | `404 no such route` | the caller is a client the database already admits, which has nothing to pair. Answered as an undeclared path is, and nothing is spent |
 | `401 proof` | the proof did not verify. No dialog was raised and nothing was spent |
 | `409 no exchange` | there was no hello, or it was answered by a different certificate |
-| `409 no invitation` | it was spent or it ran out between the gate and here, or the authority it was made under was recreated or deleted before the write: then the approval is used up, and the invitation is left unspent and pairs with nothing, its authority being gone |
+| `409 no invitation` | it was spent or it ran out between the gate and here, or the authority it was made under was recreated or deleted before the dialog's reading, §303, or before the write: then any approval is used up, and the invitation is left unspent and pairs with nothing, its authority being gone |
 | `400 name` / `400 profile` / `400 malformed` | it could never have been issued as asked |
 | `403 refused` | the operator said no, and the invitation is spent |
 | `504 unanswered` | the dialog came up and nobody answered it. **Nothing is spent** |
-| `503 busy` | a dialog is open that would take the write back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing or a renewal is already in front of the operator, so little of the pairing's time is left once the request reaches the screen, for its first dialog or for a dialog it puts to the operator again once its write found the approval stale, that the dialog would stand for under thirty seconds, a save this plugin is making for another client outlasts the wait for the screen, KeePass's thread never put the dialog up, there is no screen to ask, or, before a dialog put up again, the database's store no longer serves the authority asked under; or the operator approved and KeePass was still busy a moment later, and then the body carries `heldUntil`, the moment the approval stops being held. **Nothing is spent**, and the client is never told which. An approval its write finds stale is answered no `503`: the same request puts the dialog to the operator again |
+| `503 busy` | a dialog is open that would take the write back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for work such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the file KeePass read, another pairing or a renewal is already in front of the operator, so little of the pairing's time is left once the request reaches the screen, for its first dialog or for a dialog it puts to the operator again once its write found the approval stale, that the dialog would stand for under thirty seconds, a save this plugin is making for another client outlasts the wait for the screen, KeePass's thread never put the dialog up, or there is no screen to ask; or the operator approved and KeePass was still busy a moment later, and then the body carries `heldUntil`, the moment the approval stops being held. **Nothing is spent**, and the client is never told which. An approval its write finds stale is answered no `503`: the same request puts the dialog to the operator again |
 | `500 not recorded` | the operator approved and the record did not reach the disk. **The invitation is spent** |
 | `500 internal error` | the operator approved and no certificate could be issued: the authority's key would not sign, or the authority has outlived its hundred years. **The invitation is not spent**, and the client starts again from a hello |
-| `503 undecided` | the database holds more than one authority and the operator has not yet kept any of them. Answered before the request is read, as `503 locked` is; or, where a second authority arrived while the operator was deciding, when the write comes to it, and then the approval is used up. It is answered only while the authority the invitation was made under is among the authorities standing: an invitation whose authority is gone is answered `409 no invitation`, above. **Nothing is spent** either way |
-| `503 lost`, `503 split`, `503 outdated`, `503 stopped` | the plugin's store holds the gate back, `STORE.md` §656. Answered before the request is read; or, where the store came to hold the gate back while the operator was deciding, when the write comes to it, and then the approval is used up and the next request is put to the operator again. **Nothing is spent** |
+| `503 undecided` | the database holds more than one authority and the operator has not yet kept any of them. Answered before the request is read, as `503 locked` is; where a second authority arrived after the request was read, before the dialog, §303; or, where it arrived while the operator was deciding, when the write comes to it, and then the approval is used up. It is answered only while the authority the invitation was made under is among the authorities standing: an invitation whose authority is gone is answered `409 no invitation`, above. **Nothing is spent** either way |
+| `503 lost`, `503 split`, `503 outdated`, `503 stopped` | the plugin's store holds the gate back, `STORE.md` §656. Answered before the request is read; where the store came to hold the gate back after the request was read, before the dialog, §303; or, where it did so while the operator was deciding, when the write comes to it, and then the approval is used up and the next request is put to the operator again. **Nothing is spent** |
 
 The `503 busy` row is the one to be careful with. A caller learns that it should try later and nothing
 about what is open on somebody's desk. **An approval KeePass is too busy to write is held rather
@@ -768,9 +793,9 @@ the write after a dialog shown again waits for its turn, and while a dialog show
 which the lock or the close takes away as it takes a first dialog away, §308. An invitation spent
 or run out since is answered `409 no invitation`, and no dialog is raised, since an Approve on it
 could do nothing. A database whose store no longer serves the authority the pairing was asked under
-is answered `503 busy`, as a database that cannot be written is, since a dialog over such a reading
-would show every row as new and its approval would be stale again until the time is used up.
-Everything else ahead of a dialog shown again is asked as it is ahead of a first dialog. A refusal
+is answered as the write would answer it, with no dialog raised, as before a first dialog, §303:
+the store's word, `503 undecided`, `409 no invitation` or `503 locked`. Everything else ahead of
+a dialog shown again is asked as it is ahead of a first dialog. A refusal
 on the dialog shown again is a refusal, `403 refused` with the invitation spent, and a dialog shown
 again that nobody answers is `504 unanswered` with nothing spent, as on a first dialog. **Whether
 the client is still there is not asked**: the transport gives the handler no way to tell without
@@ -827,7 +852,7 @@ what is asked before a dialog shown again by
 `PairingHandlerTests.A_lock_or_a_close_that_takes_a_later_dialog_away_is_answered_locked`,
 `PairingHandlerTests.A_later_dialog_is_not_raised_once_the_invitation_is_gone`
 and
-`PairingHandlerTests.A_later_dialog_over_a_reading_that_is_not_served_is_not_raised`;
+`PairingHandlerTests.A_later_dialog_over_a_reading_that_is_not_served_is_answered_as_its_write_would_be`;
 a dialog never shown by
 `PairingHandlerTests.A_dialog_never_shown_is_answered_busy_and_written_down_as_nothing`,
 `PairingApprovalPromptTests.A_dialog_KeePass_s_thread_never_shows_is_answered_as_never_shown_rather_than_unanswered`,

@@ -126,6 +126,13 @@ none, since it releases both.
   adds no name. A pairing or renewal dialog that KeePass never put on the screen is answered
   `503 busy` and written to the audit as nothing, as nobody saw it. `STORE.md` §616
   and `PAIRING.md` §311.
+- **No approval dialog is shown over a store that stopped serving the authority the pairing
+  arrived under**, as a synchronize bringing a second authority or a retirement of the authority
+  served, or the database being locked or closed, can leave it between the arrival of the
+  pairing and the dialog's reading, a dialog shown again included. The client is answered as the
+  write answers the same store: the store's word under `503`, `503 undecided`,
+  `409 no invitation` for an authority no longer served, or `503 locked`. Nothing is spent, and
+  the plugin's log names the invitation, the database and the cause. `PAIRING.md` §303.
 - **Breaking: the rules are records in the plugin's store, and every rule is entered again.** A
   profile's rule at a group or an entry, and the setting **Refuse any profile not named here**,
   are entries of the group `KeePassGate`, each under the identifier of the group or entry it is

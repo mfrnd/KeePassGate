@@ -605,12 +605,14 @@ paths:
         write finds that the profiles no longer stand as the dialog showed them, nothing is written
         or spent and nothing is answered yet: the same request puts the dialog in front of the
         operator again, stating that it is shown again, and is answered once an approval is
-        written, the operator refuses, or the pairing budget is used up. A plugin's
-        store that came to hold the gate back while the operator was deciding is answered its
-        word under `503` when the write comes to it, as a connection is, and a second authority
-        that arrived meanwhile is answered `503 undecided` the same way: nothing is issued or
-        written, the invitation is not spent, and the approval is used up, so the next request
-        raises the dialog again.
+        written, the operator refuses, or the pairing budget is used up. A plugin's store that
+        came to hold the gate back after the request was read is answered its word under `503`,
+        as a connection is, a second authority standing beside the authority the invitation was
+        made under `503 undecided`, an authority no longer served `409 no invitation` and a
+        database locked or closed `503 locked`: before a dialog, a dialog shown again included,
+        where the dialog's reading finds it, and when the write comes to it where it arrived while
+        the operator was deciding. Nothing is issued or written, the invitation is not spent, and
+        an approval is used up, so the next request raises the dialog again.
       x-kpg-unauthenticated: true
       x-kpg-verb: none
       requestBody:
@@ -2515,10 +2517,13 @@ components:
         `409 no invitation` to a pairing and `401 unpaired` to a renewal, as a record that went
         is, also where several other authorities stand by then. A second authority standing
         beside it is answered `503 undecided`, and a plugin's store that came to hold the gate
-        back its word, as `Unavailable` has them. A lock and KeePass exiting let go of every
-        approval held, and a close of a database lets go of that database's, and then the next
-        request raises the dialog again too. `heldUntil` is there only while an approval is held;
-        every other `503` here is `Unavailable`'s.
+        back its word, as `Unavailable` has them. A pairing whose store stopped serving its
+        authority after the request was read is answered the same before a dialog, a dialog shown
+        again included, as the dialog's reading finds the store, and `locked` for a database
+        locked or closed by then. A lock and KeePass exiting let go of every approval held, and a
+        close of a database lets go of that database's, and then the next request raises the
+        dialog again too. `heldUntil` is there only while an approval is held; every other `503`
+        here is `Unavailable`'s.
       headers:
         Retry-After:
           $ref: "#/components/headers/RetryAfter"

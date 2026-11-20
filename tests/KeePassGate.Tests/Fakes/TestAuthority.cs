@@ -181,21 +181,27 @@ namespace KeePassGate.Tests.Fakes
         }
 
         /// <summary>
+        /// Set to stand for a database that closed after a pairing's connection was judged: the
+        /// dialog's reading throws, as the real target's does.
+        /// </summary>
+        public bool Shut { get; set; }
+
+        /// <summary>
         /// What this fake's store holds of the profiles a pairing asks for, read from a single
         /// reading as the real target reads it in a single hold, where the store serves this
-        /// authority.
+        /// authority, and the word the write answers otherwise, judged as the real target judges
+        /// it. Throws as the real target does where the database has gone, <see cref="Shut"/>.
         /// </summary>
         public AskedProfiles Asked(IReadOnlyCollection<string> profiles)
         {
-            if (AskedAnswers != null)
+            if (Shut)
             {
-                return AskedAnswers;
+                throw new KeePassGate.Diagnostics.DatabaseShut("the database closed before the dialog was read");
             }
 
             using (var reading = _store.Read())
             {
-                var served = string.Equals(StoreAuthorities.Served(reading), DatabaseId, StringComparison.Ordinal);
-                return AskedProfiles.Of(reading, served, profiles, DateTimeOffset.UtcNow);
+                return StoreReadings.Asked(reading, DatabaseId, profiles, DateTimeOffset.UtcNow);
             }
         }
 
@@ -337,11 +343,6 @@ namespace KeePassGate.Tests.Fakes
         /// answers so before its condition is asked, as the writer does.
         /// </summary>
         public bool ClosedUnderTheWrite { get; set; }
-
-        /// <summary>
-        /// What <see cref="Asked"/> answers in place of this fake's store, where a test sets it.
-        /// </summary>
-        public AskedProfiles AskedAnswers { get; set; }
 
         private AdmissionWrite Admitting(AdmissionRecord record, Func<IWriteGround, string> condition, Action audit)
         {

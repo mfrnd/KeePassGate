@@ -89,10 +89,13 @@ namespace KeePassGate.Gate
             get { return string.Empty; }
         }
 
-        /// <summary>Nothing, for the same reason: there is no tree to read the profiles from.</summary>
+        /// <summary>
+        /// Nothing but the word, for the same reason: there is no tree to read the profiles from,
+        /// and a pairing is answered as every connection to a locked database is.
+        /// </summary>
         public AskedProfiles Asked(IReadOnlyCollection<string> profiles)
         {
-            return AskedProfiles.None;
+            return AskedProfiles.Unserved(Error);
         }
 
         public string DatabaseId

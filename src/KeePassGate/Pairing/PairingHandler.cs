@@ -664,19 +664,44 @@ namespace KeePassGate.Pairing
             // marked removed are each name off the list whose removal the dialog holds, whether or
             // not a client holds it, and the dialog is shown again with what the operator approved
             // before where a write of this request found that approval stale.
-            var reading = target.Asked(once) ?? AskedProfiles.None;
-
-            // **A dialog shown again over a reading that does not serve this authority is not
-            // raised**: such a reading holds no name and no removal, so the dialog would show every
-            // row as new and its approval would be stale again, dialog after dialog until the time
-            // is used up. The request ends as a blocked pairing ends, `503 busy` with nothing
-            // written or spent. Which answer such a reading is given, a first dialog's included, is
-            // the store's word, which is decided where a connection's is.
-            if (again && !reading.Served)
+            var what = "pairing on invitation " + invitation.Id + " to " + CertificateDigest.Shorten(target.DatabaseId);
+            var notPut = what + (again ? " was not put to the operator again" : " was not put to the operator");
+            AskedProfiles reading;
+            try
             {
-                _log.Warn("pairing on invitation " + invitation.Id + " was not put to the operator again, because " +
-                          "the database's store no longer serves the authority it was asked under");
+                reading = target.Asked(once);
+            }
+            catch (DatabaseShut error)
+            {
+                _log.Warn(notPut + ", since the database closed: " + error.Message);
+                context.Respond(503, HttpResponse.ErrorBody(LockedTarget.Error));
+                return null;
+            }
+            catch (Exception error) when (Expected.OfCustomData(error))
+            {
+                _log.Warn(notPut + " for now: " + error.Message);
                 context.Respond(503, HttpResponse.ErrorBody("busy"));
+                return null;
+            }
+
+            // **A reading that does not serve this authority holds nothing a dialog may show**, a
+            // first dialog's or a dialog's shown again: a store judged served when this connection
+            // arrived, or when a write of this request found its approval stale, can stop serving
+            // before the reading. Answered as the write answers the same store, with nothing
+            // spent, and the next hello arrives on a connection judged afresh, `PAIRING.md` §303. A
+            // dialog over it would show every row as new, and its approval would be answered the
+            // same by its write.
+            if (!reading.Served)
+            {
+                if (reading.Word != null)
+                {
+                    _log.Warn(notPut + ", since " + Why(reading.Word));
+                    context.Respond(503, HttpResponse.ErrorBody(reading.Word));
+                    return null;
+                }
+
+                _log.Warn(notPut + ", since the authority it was made under is no longer the authority served");
+                context.Respond(409, HttpResponse.ErrorBody("no invitation"));
                 return null;
             }
 
@@ -1229,6 +1254,12 @@ namespace KeePassGate.Pairing
                     }
                 }
             }
+        }
+
+        /// <summary>Why a request answered this word under `503` was not put to the operator.</summary>
+        private static string Why(string word)
+        {
+            return word == LockedTarget.Error ? "the database is locked" : HeldBackTarget.Why(word);
         }
 
         /// <summary>

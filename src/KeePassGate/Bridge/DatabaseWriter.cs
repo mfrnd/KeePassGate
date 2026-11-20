@@ -2023,7 +2023,7 @@ namespace KeePassGate.Bridge
                     // retry under it can be written, whatever stands beside it.
                     var why = staged.Refused ?? "the write adds no admission";
                     _log.Warn("an admission was not written into the plugin's store: " + why);
-                    return string.Equals(StoreAuthorities.Served(reading), record.Issuer, StringComparison.Ordinal)
+                    return StoreReadings.Serves(reading, record.Issuer)
                         ? AdmissionWrite.Failed(why)
                         : AdmissionWrite.Unserved(why);
                 }

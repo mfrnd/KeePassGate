@@ -1747,6 +1747,56 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        [TestCase(StoreWords.Split, 503, StoreWords.Split, "holds the gate back")]
+        [TestCase(StoreWords.Outdated, 503, StoreWords.Outdated, "holds the gate back")]
+        [TestCase(StoreWords.Stopped, 503, StoreWords.Stopped, "holds the gate back")]
+        [TestCase(HeldBackTarget.Undecided, 503, HeldBackTarget.Undecided, "several authorities stand")]
+        [TestCase(Retired, 409, "no invitation", "no longer the authority served")]
+        public void A_store_that_stopped_serving_before_the_dialog_is_answered_as_its_write_would_be(
+            string how, int status, string word, string why)
+        {
+            // The real target, served as the pairing arrived, and by the time the dialog's reading
+            // is taken a store that holds the gate back, several authorities standing, or the
+            // authority retired: no dialog is raised over that reading, the client is told what
+            // the write would tell it, and nothing is spent or written. A database closed by then
+            // is turned away by the check before the reading, and where it closes between the
+            // two, the reading throws, `OpenDatabaseTargetsTests`, which the handler answers
+            // `locked`, `PairingHandlerTests`.
+            var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+            StoreSeeds.Name(store, "ops");
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            using (var target = targets.Current().Single())
+            {
+                var invitation = book.Invite(target.DatabaseId);
+                if (how == Retired)
+                {
+                    StoreSeeds.Retire(store, target.DatabaseId);
+                }
+                else
+                {
+                    new StoredAdmissions(_database.Database).HoldBack(how);
+                }
+
+                var before = Snapshot();
+                var shown = 0;
+                var operatorAt = new LookingOperator(request => shown++);
+
+                var answered = Pair(book, target, invitation, "agent-fictitious", new[] { "ops" }, operatorAt);
+
+                Assert.That(shown, Is.Zero, "no dialog");
+                Assert.That(answered.Status, Is.EqualTo(status), answered.Json);
+                Assert.That(answered.Json, Is.EqualTo(HttpResponse.ErrorBody(word)));
+                Assert.That(book.Outstanding(), Has.Count.EqualTo(1), "the invitation is not spent");
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+                Assert.That(Snapshot(), Is.EqualTo(before), "nothing was written");
+                Assert.That(_log.Warnings, Has.Some.Contains("pairing on invitation " + invitation.Id)
+                    .And.Contains(CertificateDigest.Shorten(target.DatabaseId)).And.Contains(why));
+            }
+        }
+
+        private const string Retired = "retired";
+
         /// <summary>What the real form shows for this request: every label and every row.</summary>
         private static string Shown(PairingRequest request)
         {

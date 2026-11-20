@@ -25,6 +25,12 @@ namespace KeePassGate.Gate
     ///
     /// **Read and never changed**, so that the approval holding it compares with what the dialog
     /// was built from, whichever thread asks.
+    ///
+    /// **Read before the dialog is shown**, and true of the store when it was read and no later: a
+    /// first dialog waits for the screen as long as another pairing or a renewal stands in front of
+    /// the operator, and every dialog stands as long again, so a synchronize in that time still
+    /// leaves a dialog over a store no longer served, its names as this reading found them, and the
+    /// write answers its approval with the store's word, `PAIRING.md` §303.
     /// </remarks>
     public sealed class AskedProfiles
     {
@@ -32,11 +38,13 @@ namespace KeePassGate.Gate
 
         private AskedProfiles(
             bool served,
+            string word,
             IReadOnlyList<string> listed,
             IReadOnlyDictionary<string, IReadOnlyList<AdmissionRecord>> returning,
             IReadOnlyDictionary<string, IReadOnlyCollection<string>> removals)
         {
             Served = served;
+            Word = word;
             Listed = listed ?? Array.Empty<string>();
             Returning = returning ?? new Dictionary<string, IReadOnlyList<AdmissionRecord>>(StringComparer.Ordinal);
             _removals = removals ?? new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
@@ -44,19 +52,50 @@ namespace KeePassGate.Gate
         }
 
         /// <summary>
-        /// Nothing read: no name on the list, nobody holding a name, and no removal, for a store
-        /// that serves nothing.
+        /// Nothing read, which an approval held without a dialog keeps: not served, no name on the
+        /// list, nobody holding a name, and no removal.
         /// </summary>
         public static AskedProfiles None
         {
-            get { return new AskedProfiles(false, null, null, null); }
+            get { return new AskedProfiles(false, null, null, null, null); }
         }
 
         /// <summary>
-        /// Whether the reading served the authority asked under: where it did not, it holds no
-        /// name and no removal, whatever the store holds.
+        /// A reading that did not serve the authority the pairing is asked under, which holds
+        /// nothing a dialog may show, and the word its request is answered with.
         /// </summary>
+        /// <param name="word">
+        /// The word under `503`, as the write answers the same store: the store's word, `undecided`
+        /// or `locked`; null where the authority asked under is no longer the authority served,
+        /// which is answered `409 no invitation`.
+        /// </param>
+        public static AskedProfiles Unserved(string word)
+        {
+            return new AskedProfiles(false, word, null, null, null);
+        }
+
+        /// <summary>
+        /// Whether the reading served the authority the pairing is asked under. A reading that did
+        /// not holds nothing else, <see cref="Unserved"/>, and no dialog is built from it.
+        /// </summary>
+        /// <remarks>
+        /// **Asked again here, after its connection was judged on it**: a connection to a store
+        /// that holds the gate back is answered the store's word before any handler runs, and a
+        /// synchronize bringing a second authority or a retirement of the authority, or the
+        /// database being locked or closed, can come between that and this reading, or between a
+        /// write that found an approval stale and the reading of the dialog shown again. A dialog
+        /// built from a reading that does not serve would mark untruly every name it showed: a name
+        /// on the list as new, as the reading holds no list, or as removed where an admission holds
+        /// it, `PAIRING.md` §303.
+        /// </remarks>
         public bool Served { get; private set; }
+
+        /// <summary>
+        /// Where the reading did not serve, the word under `503` that the write answers the same
+        /// store with, and null where the authority asked under went, <see cref="Unserved"/>; null
+        /// where it served.
+        /// </summary>
+        public string Word { get; private set; }
 
         /// <summary>The names on the list, in ordinal order.</summary>
         public IReadOnlyList<string> Listed { get; private set; }
@@ -107,23 +146,24 @@ namespace KeePassGate.Gate
         public IReadOnlyList<string> Removed { get; private set; }
 
         /// <summary>
-        /// What a single reading holds of these profiles: the names on the list and the removals
-        /// only where the store serves the authority asked under; the clients holding a name from
-        /// the admissions the reading lists, which a store that cannot be judged lists none of.
+        /// What a single reading holds of these profiles where the store serves the authority
+        /// asked under: the names on the list, and of each name off it, the clients holding it
+        /// from the admissions the reading lists and the removals of it.
         /// </summary>
-        /// <param name="reading">The reading of a single hold, from which no key is taken.</param>
-        /// <param name="served">Whether the store serves the authority the pairing is asked under.</param>
+        /// <param name="reading">
+        /// The reading of a single hold, from which no key is taken, of a store that serves the
+        /// authority the pairing is asked under; a reading that does not is <see cref="Unserved"/>.
+        /// </param>
         /// <param name="profiles">The profiles asked for.</param>
         /// <param name="now">The moment a client's certificate is held to, as the gate holds it.</param>
-        public static AskedProfiles Of(StoreReading reading, bool served, IReadOnlyCollection<string> profiles, DateTimeOffset now)
+        public static AskedProfiles Of(StoreReading reading, IReadOnlyCollection<string> profiles, DateTimeOffset now)
         {
-            if (reading == null)
+            if (reading == null || reading.InForce == null)
             {
-                return None;
+                throw new ArgumentException("A reading that serves an authority holds a store in force.", nameof(reading));
             }
 
-            served = served && reading.InForce != null;
-            var listed = served ? ProfileNames.Of(reading).Names : Array.Empty<string>();
+            var listed = ProfileNames.Of(reading).Names;
             var named = new HashSet<string>(listed, StringComparer.Ordinal);
             var off = new HashSet<string>(
                 (profiles ?? Array.Empty<string>()).Where(profile => !string.IsNullOrEmpty(profile) && !named.Contains(profile)),
@@ -153,17 +193,14 @@ namespace KeePassGate.Gate
             // The removals each name has as the reading tells them, without the store key, which
             // no connection thread takes from a reading. Copied, as the names are, so that
             // nothing of the reading is held past its hold while an approval holds this.
-            var removals = new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
-            if (served)
-            {
-                foreach (var profile in off)
-                {
-                    removals[profile] = new HashSet<string>(reading.InForce.RemovalsOf(profile), StringComparer.Ordinal);
-                }
-            }
+            var removals = off.ToDictionary(
+                profile => profile,
+                profile => (IReadOnlyCollection<string>)new HashSet<string>(reading.InForce.RemovalsOf(profile), StringComparer.Ordinal),
+                StringComparer.Ordinal);
 
             return new AskedProfiles(
-                served,
+                true,
+                null,
                 listed.ToList(),
                 returning.ToDictionary(pair => pair.Key, pair => (IReadOnlyList<AdmissionRecord>)pair.Value, StringComparer.Ordinal),
                 removals);
@@ -198,7 +235,7 @@ namespace KeePassGate.Gate
                 removals[pair.Key] = held;
             }
 
-            return new AskedProfiles(Served, Listed, Returning, removals);
+            return new AskedProfiles(Served, Word, Listed, Returning, removals);
         }
 
         /// <summary>

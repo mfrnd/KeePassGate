@@ -1888,36 +1888,51 @@ namespace KeePassGate.Tests
             Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops", "reader" }));
         }
 
-        [Test]
-        public void A_later_dialog_over_a_reading_that_is_not_served_is_not_raised()
+        [TestCase(SeveralAuthorities, 503, "undecided", "several authorities stand")]
+        [TestCase(AuthorityRetired, 409, "no invitation", "no longer the authority served")]
+        [TestCase(ShutUnderTheReading, 503, "locked", "the database closed")]
+        public void A_later_dialog_over_a_reading_that_is_not_served_is_answered_as_its_write_would_be(
+            string how, int status, string word, string why)
         {
             // The store stops serving this database's authority once the first write found the
-            // approval stale. The next reading holds no name and no removal, so a dialog over it
-            // would show every row as new and its approval would be stale again, dialog after
-            // dialog until the time is used up. The request ends there as a blocked pairing does,
-            // with nothing written or spent. From a third dialog on the operator refuses, so that
-            // a request raising dialogs over such a reading still ends.
+            // approval stale, or the database closes under the next reading. A dialog over that
+            // reading would show every row as new, so none is raised: the request is answered as
+            // a first dialog's reading is answered over the same store, which is what its write
+            // would answer, with nothing written or spent. From a third dialog on the operator
+            // refuses, so that a request raising dialogs over such a reading still ends.
             var dialogs = 0;
-            var approval = Answering(request =>
-            {
-                if (++dialogs == 1)
-                {
-                    _target.AskedAnswers = AskedProfiles.None;
-                }
-
-                return dialogs < 3 ? PairingApproval.Approved(request.Profiles) : PairingApproval.Refused();
-            });
+            var approval = Answering(request => ++dialogs < 3 ? PairingApproval.Approved(request.Profiles) : PairingApproval.Refused());
             ARemovalOfOpsUnderTheFirstWrite();
+            _target.AfterWrite = () =>
+            {
+                _target.AfterWrite = null;
+                if (how == SeveralAuthorities)
+                {
+                    StoreSeeds.Beside(_target.Store);
+                }
+                else if (how == AuthorityRetired)
+                {
+                    StoreSeeds.Retire(_target.Store, _target.DatabaseId);
+                }
+                else
+                {
+                    _target.Shut = true;
+                }
+            };
             Hello(ClientProof());
 
             var context = Request("agent-fictitious", new[] { "ops" }, approval);
 
-            Assert.That(approval.Asked, Is.EqualTo(1));
-            Assert.That(context.Status, Is.EqualTo(503), context.Json);
-            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
+            Assert.That(approval.Asked, Is.EqualTo(1), "no dialog shown again");
+            Assert.That(context.Status, Is.EqualTo(status), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(word)));
             Assert.That(_target.Admitted, Is.Null);
-            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1));
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "the invitation is not spent");
+            Assert.That(_held.Count, Is.Zero);
             Assert.That(_audit.Entries, Is.Empty);
+            Assert.That(
+                _log.Warnings.Select(entry => entry.Message),
+                Has.Some.Contains("pairing on invitation " + _invitation.Id).And.Contains("was not put to the operator again").And.Contains(why));
         }
 
         [Test]
@@ -2211,6 +2226,69 @@ namespace KeePassGate.Tests
             Assert.That(looking.Asked, Is.EqualTo(1));
             return looking.LastRequest;
         }
+
+        [TestCase(SeveralAuthorities, 503, "undecided", "several authorities stand")]
+        [TestCase(AuthorityRetired, 409, "no invitation", "no longer the authority served")]
+        public void A_store_that_stopped_serving_before_the_dialog_is_answered_as_its_write_would_be(
+            string how, int status, string word, string why)
+        {
+            // Judged served when its connection arrived, and no longer when the dialog's reading
+            // is taken: a dialog from that reading would mark `ops`, on the list, as removed for
+            // the client holding it. No dialog is raised, nothing is spent, and the client is told
+            // what the write would tell it for the same store.
+            using (var holder = _target.IssueClient("agent-holding", "ops"))
+            {
+                _target.Admit(holder, "ops");
+            }
+
+            Hello(ClientProof());
+            if (how == SeveralAuthorities)
+            {
+                StoreSeeds.Beside(_target.Store);
+            }
+            else
+            {
+                StoreSeeds.Retire(_target.Store, _target.DatabaseId);
+            }
+
+            var approval = Approving("ops");
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(approval.Asked, Is.Zero, "no dialog");
+            Assert.That(context.Status, Is.EqualTo(status), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(word)));
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "the invitation is not spent");
+            Assert.That(_held.Count, Is.Zero);
+            Assert.That(_target.Admitted, Is.Null, "nothing written");
+            Assert.That(
+                _log.Warnings.Select(entry => entry.Message),
+                Has.Some.Contains("pairing on invitation " + _invitation.Id).And.Contains("was not put to the operator").And.Contains(why));
+        }
+
+        [Test]
+        public void A_database_closed_before_the_dialog_s_reading_is_answered_locked_with_no_dialog()
+        {
+            // As a renewal's reading and every connection to a locked database are answered: a
+            // database that closed under the connection is a lock nearly always.
+            Hello(ClientProof());
+            _target.Shut = true;
+
+            var approval = Approving("ops");
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(approval.Asked, Is.Zero, "no dialog");
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("locked")));
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "the invitation is not spent");
+            Assert.That(_target.Admitted, Is.Null, "nothing written");
+            Assert.That(
+                _log.Warnings.Select(entry => entry.Message),
+                Has.Some.Contains("pairing on invitation " + _invitation.Id).And.Contains("the database closed"));
+        }
+
+        private const string SeveralAuthorities = "several authorities stand";
+        private const string AuthorityRetired = "its authority retired";
+        private const string ShutUnderTheReading = "the database shut under the reading";
 
         /// <summary>
         /// This name, on the list, taken off it apart: a copy of the store removes it, which

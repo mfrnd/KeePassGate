@@ -1581,9 +1581,10 @@ namespace KeePassGate.Bridge
 
             /// <summary>
             /// What the store holds now of the profiles a pairing asks for, `STORE.md` §616, read in
-            /// a single hold over a single reading. The names and the removals only where the store
-            /// serves this target's authority; the clients holding a name from the admissions that
-            /// reading lists, which a store that cannot be judged lists none of.
+            /// a single hold over a single reading, and where the store does not serve this target's
+            /// authority, nothing but the word the write answers the same store with,
+            /// `AskedProfiles.Unserved`. Throws `DatabaseShut` where the database has gone, as
+            /// `Unavailable` does.
             /// </summary>
             public AskedProfiles Asked(IReadOnlyCollection<string> profiles)
             {
@@ -1600,11 +1601,13 @@ namespace KeePassGate.Bridge
                 var database = _database;
                 if (database == null || database.RootGroup == null)
                 {
-                    return AskedProfiles.None;
+                    throw new DatabaseShut("the database closed before a pairing's dialog was read");
                 }
 
+                // Judged by the two members the write judges the same store by, so that the two
+                // answer it alike, `PAIRING.md` §303.
                 var reading = _store.Now(database, database.RootGroup);
-                return AskedProfiles.Of(reading, Served(reading), profiles, DateTimeOffset.UtcNow);
+                return StoreReadings.Asked(reading, _databaseId, profiles, DateTimeOffset.UtcNow);
             }
 
             public byte[] GateKey

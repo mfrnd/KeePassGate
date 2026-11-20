@@ -12,7 +12,8 @@ namespace KeePassGate.Tests
     /// <summary>
     /// What a pairing's approval dialog is built from, read off a single reading of the plugin's
     /// store: the names on the list, and the names off it a removal is known of, as the reading
-    /// tells it or as the write of a stale approval found it.
+    /// tells it or as the write of a stale approval found it; and what a reading that does not
+    /// serve the authority asked under holds instead.
     /// </summary>
     [TestFixture]
     public sealed class AskedProfilesTests
@@ -53,7 +54,7 @@ namespace KeePassGate.Tests
                 Assert.That(reading.InForce.RemovalsOf("apart"), Is.Empty, "a name the file does not know");
 
                 var asked = AskedProfiles.Of(
-                    reading, true, new[] { "listed", "gone", "item", "back", "known", "apart", "fresh" }, Now);
+                    reading, new[] { "listed", "gone", "item", "back", "known", "apart", "fresh" }, Now);
 
                 Assert.That(asked.Listed, Is.EqualTo(new[] { "back", "listed" }));
                 Assert.That(asked.Removed, Is.EqualTo(new[] { "gone", "item", "known" }));
@@ -78,13 +79,55 @@ namespace KeePassGate.Tests
 
             using (var reading = store.Read())
             {
-                var asked = AskedProfiles.Of(reading, true, new[] { "apart", "listed", "fresh" }, Now).With(found);
+                var asked = AskedProfiles.Of(reading, new[] { "apart", "listed", "fresh" }, Now).With(found);
 
                 Assert.That(asked.Removed, Is.EqualTo(new[] { "apart" }));
                 Assert.That(asked.Held("apart", "r1"), Is.True);
                 Assert.That(asked.Held("listed", "r2"), Is.False);
                 Assert.That(asked.Held("unasked", "r3"), Is.False);
             }
+        }
+
+        [Test]
+        public void A_reading_that_does_not_serve_holds_its_word_and_nothing_to_show()
+        {
+            // A dialog built from it would mark names on the list as new, or as removed where a
+            // client holds them: so it holds nothing but the word the write answers it with, and
+            // no word where the authority asked under went.
+            var asked = AskedProfiles.Unserved("split");
+
+            Assert.That(asked.Served, Is.False);
+            Assert.That(asked.Word, Is.EqualTo("split"));
+            Assert.That(asked.Listed, Is.Empty);
+            Assert.That(asked.Returning, Is.Empty);
+            Assert.That(asked.Removed, Is.Empty);
+            Assert.That(AskedProfiles.Unserved(null).Word, Is.Null);
+        }
+
+        [Test]
+        public void A_reading_that_serves_holds_the_list_and_the_removals_it_tells_of()
+        {
+            // Seeded so that each of these can fail: a name on the list, and a name off it whose
+            // removal the reading holds by its identifier.
+            var store = new MemoryStore();
+            StoreSeeds.Authority(store);
+            StoreSeeds.Name(store, "ops");
+            StoreSeeds.Name(store, "gone");
+            StoreSeeds.Unname(store, "gone");
+
+            using (var reading = store.Read())
+            {
+                var removal = reading.InForce.RemovalsOf("gone").Single();
+                var asked = AskedProfiles.Of(reading, new[] { "ops", "gone" }, Now);
+
+                Assert.That(asked.Served, Is.True);
+                Assert.That(asked.Word, Is.Null);
+                Assert.That(asked.Listed, Is.EqualTo(new[] { "ops" }));
+                Assert.That(asked.Held("gone", removal), Is.True);
+                Assert.That(asked.Held("ops", removal), Is.False, "a name on the list was not asked about");
+            }
+
+            Assert.Throws<ArgumentException>(() => AskedProfiles.Of(null, new[] { "ops" }, Now));
         }
     }
 }

@@ -249,6 +249,7 @@ namespace KeePassGate.Host.Tests
                 var asked = target.Asked(new[] { "ops", "gone", "unknown", "fresh" });
 
                 Assert.That(hold.Taken - before, Is.EqualTo(1), "a single hold");
+                Assert.That(asked.Served, Is.True);
                 Assert.That(asked.Listed, Is.EqualTo(new[] { "ops" }));
                 Assert.That(asked.Removed, Is.EqualTo(new[] { "gone" }), "not a name only a deletion record tells of");
                 Assert.That(asked.Returning.Keys, Is.EqualTo(new[] { "gone" }));
@@ -257,6 +258,61 @@ namespace KeePassGate.Host.Tests
                 Assert.That(asked.Held("unknown", unknown), Is.False, "a removal only a deletion record tells of");
                 Assert.That(asked.Held("fresh", unknown), Is.False, "a deletion record of another name's removal");
                 Assert.That(asked.Held("ops", gone), Is.False, "a name on the list was not asked about");
+            }
+        }
+
+        [Test]
+        public void A_target_whose_store_stopped_serving_its_authority_holds_nothing_for_a_dialog()
+        {
+            // Served when the target was built, and a second authority standing since: the reading
+            // the dialog would be built from serves nothing, and holds the word the write answers
+            // with. Seeded so that each emptiness can fail: served, the same reading lists `ops`,
+            // finds the client holding `gone` and holds the removal of `gone`.
+            CreateAuthorityIn(_first);
+            var store = new KdbxStore(_first.Database, GateVersion.Current, null);
+            StoreSeeds.Name(store, "ops");
+            StoreSeeds.Name(store, "gone");
+            using (var target = _targets.Current().Single())
+            using (var client = new AuthorityIssuer().IssueClient(target.AuthorityKey, "agent-fictitious", new[] { "gone" }).Read())
+            {
+                new StoredAdmissions(_first.Database).Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "gone" }, target.DatabaseId));
+                StoreSeeds.Unname(store, "gone");
+                string gone;
+                using (var reading = store.Read())
+                {
+                    gone = reading.InForce.RemovalsOf("gone").Single();
+                }
+
+                var served = target.Asked(new[] { "ops", "gone" });
+                Assert.That(served.Served, Is.True, "not served to begin with, so nothing below is measured");
+                Assert.That(served.Listed, Is.EqualTo(new[] { "ops" }));
+                Assert.That(served.Returning.Keys, Is.EqualTo(new[] { "gone" }));
+                Assert.That(served.Held("gone", gone), Is.True);
+
+                StoreSeeds.Beside(store);
+                var asked = target.Asked(new[] { "ops", "gone" });
+
+                Assert.That(asked.Served, Is.False);
+                Assert.That(asked.Word, Is.EqualTo(HeldBackTarget.Undecided));
+                Assert.That(asked.Listed, Is.Empty);
+                Assert.That(asked.Returning, Is.Empty);
+                Assert.That(asked.Held("gone", gone), Is.False);
+            }
+        }
+
+        [Test]
+        public void A_target_whose_database_closed_reads_nothing_for_a_dialog_and_throws_that_the_database_is_shut()
+        {
+            // As `Unavailable` and a client's admission are read: a database gone is never a
+            // reading of a store, which the pairing handler answers `locked`.
+            CreateAuthorityIn(_first);
+            using (var target = _targets.Current().Single())
+            {
+                Assert.That(target.Asked(new[] { "ops" }).Served, Is.True, "not served to begin with, so nothing below is measured");
+
+                _first.Database.Close();
+
+                Assert.Throws<KeePassGate.Diagnostics.DatabaseShut>(() => target.Asked(new[] { "ops" }));
             }
         }
 

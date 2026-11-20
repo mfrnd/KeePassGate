@@ -95,8 +95,10 @@ namespace KeePassGate.Gate
         /// For the pairing dialog, read before it is shown, and for the approval it gives. The
         /// names are what the store's records give, `STORE.md` §616, and a damaged record of a name
         /// stops the store, which is answered its word before anything is read of it: so there is no
-        /// list that fails to read on its own. None where the store serves nothing. A client's
-        /// profiles and a renewal's are read with the admission, <see cref="Admission"/>.
+        /// list that fails to read on its own. <see cref="AskedProfiles.Unserved"/>, with the word
+        /// the write answers the same store with, where the store does not serve this target's
+        /// authority, and no dialog is built from it, `AskedProfiles.Served`. A client's profiles
+        /// and a renewal's are read with the admission, <see cref="Admission"/>.
         ///
         /// **The clients holding a name off the list**: an admission keeps every name it was
         /// approved for, so a profile the operator removed is still held, granting nothing, by every

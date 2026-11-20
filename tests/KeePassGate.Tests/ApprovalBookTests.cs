@@ -427,7 +427,7 @@ namespace KeePassGate.Tests
         {
             using (var reading = store.Read())
             {
-                return AskedProfiles.Of(reading, true, profiles, _now);
+                return AskedProfiles.Of(reading, profiles, _now);
             }
         }
 
