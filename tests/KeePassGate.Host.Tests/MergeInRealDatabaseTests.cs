@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
@@ -174,6 +175,179 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_replaced_version_a_merge_brings_back_stays_out_of_force_under_each_method_in_each_direction()
+        {
+            // `STORE.md` §623 and §627 step 3: the copy that wrote a version over another deleted
+            // the version it replaced, with a deletion record, and the other copy still holds that
+            // version. Whatever a merge brings, through the file each time and whatever became of
+            // the entries' times, the reading directly after the merge has the version that
+            // replaced stand and the version replaced not, and the next write of the plugin's own
+            // leaves no entry under the replaced version's identifier. KeePass applies a deletion
+            // record only to an entry last changed before it, and drops the record otherwise, and
+            // only Synchronize carries a deletion record, so a version that comes back may come
+            // back beside none: what keeps it from standing there is the version naming it. Create
+            // new IDs into the copy that holds the version brings no record, so that copy stands as
+            // it stood, `STORE.md` §640. The copy that replaced is dated as the revocations' tests
+            // date the copy that revoked.
+            var node = "switch:" + new string('1', 32);
+            var wrong = new List<string>();
+            var measured = new System.Text.StringBuilder();
+            foreach (var method in Methods)
+            {
+                foreach (var times in new[] { Times.AsWritten, Times.HolderNewer, Times.RevokerOlder, Times.Both })
+                {
+                    foreach (var intoReplacer in new[] { true, false })
+                    {
+                        using (var replacer = TemporaryDatabase.New())
+                        using (var holder = TemporaryDatabase.New())
+                        {
+                            Assert.That(Authority(replacer).Create().Succeeded, Is.True);
+                            var replaced = Versioned(replacer, node, string.Empty, "sw:deny");
+                            Copy(replacer, holder);
+                            var replacing = Versioned(replacer, node, replaced.Hex, "sw:inherit");
+                            Assert.That(replacer.RootGroup.FindEntry(new PwUuid(replaced.Identifier), true), Is.Null,
+                                "the write that replaced the version deleted it");
+
+                            if (times == Times.HolderNewer || times == Times.Both)
+                            {
+                                Date(holder, DateTime.UtcNow.AddDays(1));
+                            }
+
+                            if (times == Times.RevokerOlder || times == Times.Both)
+                            {
+                                Date(replacer, DateTime.UtcNow.AddYears(-1));
+                            }
+
+                            replacer.SaveCloseAndReopen();
+                            holder.SaveCloseAndReopen();
+
+                            var target = intoReplacer ? replacer : holder;
+                            var source = intoReplacer ? holder : replacer;
+                            target.Database.MergeIn(source.Database, method, null);
+                            target.SaveCloseAndReopen();
+
+                            var named = method + ", " + times + (intoReplacer ? ", into the copy that replaced" : ", into the copy that held");
+                            var stale = method == PwMergeMethod.CreateNewUuids && !intoReplacer;
+                            var back = target.RootGroup.FindEntry(new PwUuid(replaced.Identifier), true) != null;
+                            var told = target.Database.DeletedObjects.Any(deleted => deleted.Uuid.Equals(new PwUuid(replaced.Identifier)));
+                            measured.AppendLine(named + ": the version replaced " + (back ? "is an entry" : "is no entry")
+                                                + (told ? ", with its deletion record" : ", with no deletion record"));
+                            var standing = Standing(target);
+                            if (standing == null)
+                            {
+                                wrong.Add(named + ": the store is not whole");
+                                continue;
+                            }
+
+                            var wanted = stale ? replaced.Hex : replacing.Hex;
+                            if (!standing.SequenceEqual(new[] { wanted }))
+                            {
+                                wrong.Add(named + ": the versions standing are " + string.Join(", ", standing));
+                            }
+
+                            StoreSeeds.Name(new KdbxStore(target.Database, GateVersion.Current, NullGateLog.Instance), "reader");
+                            if (!stale && target.RootGroup.FindEntry(new PwUuid(replaced.Identifier), true) != null)
+                            {
+                                wrong.Add(named + ": the version replaced is an entry after the next write");
+                            }
+
+                            if (!(Standing(target) ?? Array.Empty<string>()).SequenceEqual(new[] { wanted }))
+                            {
+                                wrong.Add(named + ": the next write changed the versions standing");
+                            }
+                        }
+                    }
+                }
+            }
+
+            TestContext.Out.WriteLine(measured.ToString());
+            Assert.That(wrong, Is.Empty, string.Join(Environment.NewLine, wrong));
+        }
+
+        [Test]
+        public void Two_copies_whose_trees_hold_the_versions_in_another_order_keep_alike_what_their_writes_replace()
+        {
+            // Y, and M and N each naming Y, in force in a copy whose tree a second copy holds in
+            // another order; each copy writes a version naming M and N and not Y. Each keeps both,
+            // which go on naming Y, so once the copies are synchronized Y's deletion record is
+            // named by a version in force.
+            var node = "switch:" + new string('1', 32);
+            using (var first = TemporaryDatabase.New())
+            using (var second = TemporaryDatabase.New())
+            using (var third = TemporaryDatabase.New())
+            using (var reordered = TemporaryDatabase.New())
+            {
+                Assert.That(Authority(first).Create().Succeeded, Is.True);
+                var y = Versioned(first, node, string.Empty, "sw:deny");
+                Copy(first, second);
+                Copy(first, third);
+                var m = Versioned(second, node, y.Hex, "sw:inherit");
+                var n = Versioned(third, node, y.Hex, "sw:inherit");
+                first.Database.MergeIn(second.Database, PwMergeMethod.KeepExisting, null);
+                first.Database.MergeIn(third.Database, PwMergeMethod.KeepExisting, null);
+                Assert.That(new[] { y, m, n }.All(version => first.RootGroup.FindEntry(new PwUuid(version.Identifier), true) != null), Is.True);
+                Assert.That(Standing(first), Is.Not.Null, "the copy is whole");
+
+                reordered.Database.RootGroup.Uuid = first.Database.RootGroup.Uuid;
+                Copy(first, reordered);
+                var group = reordered.RootGroup.FindEntry(new PwUuid(m.Identifier), true).ParentGroup;
+                var held = new[] { m, n }
+                    .Select(version => group.Entries.Single(entry => entry.Uuid.Equals(new PwUuid(version.Identifier))))
+                    .OrderByDescending(group.Entries.IndexOf)
+                    .ToList();
+                foreach (var entry in held)
+                {
+                    group.Entries.Remove(entry);
+                }
+
+                foreach (var entry in held)
+                {
+                    group.AddEntry(entry, true);
+                }
+
+                var names = string.Join(" ", new[] { m.Hex, n.Hex }.OrderBy(hex => hex, StringComparer.Ordinal));
+                Versioned(first, node, names, "sw:deny");
+                Versioned(reordered, node, names, "sw:inherit");
+                first.Database.MergeIn(reordered.Database, PwMergeMethod.Synchronize, null);
+
+                Assert.That(first.RootGroup.FindEntry(new PwUuid(y.Identifier), true), Is.Null, "Y deleted");
+                Assert.That(first.RootGroup.FindEntry(new PwUuid(m.Identifier), true), Is.Not.Null, "M kept, naming Y");
+                Assert.That(first.RootGroup.FindEntry(new PwUuid(n.Identifier), true), Is.Not.Null, "N kept, naming Y");
+                Assert.That(Standing(first), Is.Not.Null, "the copies met whole");
+            }
+        }
+
+        [Test]
+        public void The_deletion_record_of_a_replaced_version_takes_an_older_copy_of_it_out_by_Synchronize()
+        {
+            // What the deletion record a write leaves is for, `STORE.md` §627 step 3: the other
+            // copy's entry of the version replaced, last changed before the deletion, is deleted
+            // by Synchronize in that copy, and is not brought back into the copy that replaced.
+            var node = "switch:" + new string('1', 32);
+            foreach (var intoReplacer in new[] { true, false })
+            {
+                using (var replacer = TemporaryDatabase.New())
+                using (var holder = TemporaryDatabase.New())
+                {
+                    Assert.That(Authority(replacer).Create().Succeeded, Is.True);
+                    var replaced = Versioned(replacer, node, string.Empty, "sw:deny");
+                    Copy(replacer, holder);
+                    Date(holder, DateTime.UtcNow.AddDays(-1));
+                    Versioned(replacer, node, replaced.Hex, "sw:inherit");
+                    replacer.SaveCloseAndReopen();
+                    holder.SaveCloseAndReopen();
+
+                    var target = intoReplacer ? replacer : holder;
+                    target.Database.MergeIn((intoReplacer ? holder : replacer).Database, PwMergeMethod.Synchronize, null);
+
+                    Assert.That(
+                        target.RootGroup.FindEntry(new PwUuid(replaced.Identifier), true), Is.Null,
+                        intoReplacer ? "brought back into the copy that replaced" : "kept in the copy that held");
+                }
+            }
+        }
+
+        [Test]
         public void Of_two_standing_answers_made_apart_the_later_is_the_one_kept()
         {
             // `CA.md` §204: a standing answer is changed rather than only added, so a merge decides
@@ -307,6 +481,58 @@ namespace KeePassGate.Host.Tests
             HolderNewer,
             RevokerOlder,
             Both,
+        }
+
+        /// <summary>Every method of KeePass's merge.</summary>
+        private static readonly PwMergeMethod[] Methods =
+        {
+            PwMergeMethod.Synchronize,
+            PwMergeMethod.OverwriteIfNewer,
+            PwMergeMethod.OverwriteExisting,
+            PwMergeMethod.KeepExisting,
+            PwMergeMethod.CreateNewUuids,
+        };
+
+        /// <summary>
+        /// A version of this object written by itself, under the store key that stands, naming
+        /// these identifiers as replaced: the record it wrote.
+        /// </summary>
+        private static StoreRecord Versioned(TemporaryDatabase database, string objectName, string after, string doc)
+        {
+            var store = new KdbxStore(database.Database, GateVersion.Current, NullGateLog.Instance);
+            byte[] key;
+            using (var reading = store.Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+
+            var version = StoreRecord.Compose(key, "version", new Dictionary<string, string>
+            {
+                { "after", after },
+                { "doc", doc },
+                { "object", objectName },
+            });
+            var written = store.Write(new[] { new StoreAct("a version", key, StoreFormat.KeyName(key), new[] { version }, null) });
+            Assert.That(written.Taken, Is.True, written.Reason);
+            return version;
+        }
+
+        /// <summary>
+        /// The identifiers of the versions that stand in a copy, as the summary entry a write
+        /// makes now restates them, in ordinal order; null where the store is not whole.
+        /// </summary>
+        private static string[] Standing(TemporaryDatabase database)
+        {
+            using (var reading = new KdbxStore(database.Database, GateVersion.Current, NullGateLog.Instance).Read())
+            {
+                return reading.State != StoreState.Whole
+                    ? null
+                    : reading.InForce.Restated()
+                        .Where(item => item.Kind == StoreKinds.Version)
+                        .Select(item => item.Member(StoreKinds.Id))
+                        .OrderBy(id => id, StringComparer.Ordinal)
+                        .ToArray();
+            }
         }
 
         /// <summary>

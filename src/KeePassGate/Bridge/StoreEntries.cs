@@ -23,6 +23,11 @@ namespace KeePassGate.Bridge
     /// a group made is removed, and the database's mark is put back as it was. Each step is a part
     /// of its own that pushes its undo, in the order the application takes them.
     ///
+    /// **Each step finds its entries by a walk of the tree of its own**: the deletions, the records
+    /// set back and the content protected again each walk the tree once, and asking which entries
+    /// a write touches walks it once more, so applying a write costs a few walks and never a
+    /// search for each entry.
+    ///
     /// **A write applied hands its undo back**, every step but the mark, for a writer that saves
     /// and takes the write back out where the save does not land, `STORE.md` §627: the writer
     /// decides the mark from the file. An entry put back goes to its place, or to the end of its
@@ -165,41 +170,120 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Each entry deleted, with a deletion record; the undo puts the entry back where it was
-        /// and takes the deletion record away.
+        /// Each entry deleted, with a deletion record; the undo puts the entries back where they
+        /// were and takes the deletion records away.
         /// </summary>
+        /// <remarks>
+        /// **Every entry under an identifier goes**, where the tree holds several, each reading as
+        /// the record: a deletion that left an entry would leave the record beside its own
+        /// deletion record. **Linear in the entries of the tree**: the entries are found by a single walk of
+        /// the tree, and each group losing entries is written once, its other entries kept in their
+        /// order, so a write that deletes thousands of entries costs a walk and a pass over each
+        /// such group.
+        /// </remarks>
         internal static void Delete(PwDatabase database, IEnumerable<string> entries, ISet<string> held, Stack<Action> undo)
         {
-            var root = database.RootGroup;
-            foreach (var hex in entries)
+            var identifiers = entries.ToList();
+            var tree = EntriesOf(database);
+            var losing = new Dictionary<PwGroup, HashSet<PwEntry>>();
+            foreach (var hex in identifiers)
             {
-                var entry = root.FindEntry(new PwUuid(Bytes(hex)), true);
-                if (entry != null && entry.ParentGroup != null)
+                List<PwEntry> under;
+                if (!tree.TryGetValue(hex, out under))
                 {
-                    var parent = entry.ParentGroup;
-                    var at = parent.Entries.IndexOf(entry);
-                    parent.Entries.Remove(entry);
-                    undo.Push(() => PutBack(parent, entry, at));
+                    continue;
                 }
 
+                foreach (var entry in under.Where(entry => entry.ParentGroup != null))
+                {
+                    HashSet<PwEntry> lost;
+                    if (!losing.TryGetValue(entry.ParentGroup, out lost))
+                    {
+                        lost = new HashSet<PwEntry>();
+                        losing[entry.ParentGroup] = lost;
+                    }
+
+                    lost.Add(entry);
+                }
+            }
+
+            foreach (var pair in losing)
+            {
+                var group = pair.Key;
+                var before = group.Entries.CloneShallowToList();
+                var after = before.Where(entry => !pair.Value.Contains(entry)).ToList();
+                group.Entries.Clear();
+                group.Entries.Add(after);
+                undo.Push(() => PutBack(group, before, after));
+            }
+
+            foreach (var hex in identifiers)
+            {
                 Record(database, hex, held, undo);
             }
         }
 
         /// <summary>
-        /// An entry deleted put back at its place in its group, or at the end where the list no
-        /// longer reaches that place.
+        /// A group's entries as they were before a deletion: in a single pass where the group
+        /// holds what the deletion left, and otherwise each entry deleted at its place, or at the
+        /// end where the list is too short for that place.
         /// </summary>
-        private static void PutBack(PwGroup parent, PwEntry entry, int at)
+        private static void PutBack(PwGroup group, List<PwEntry> before, List<PwEntry> after)
         {
-            if (at >= 0 && (uint)at <= parent.Entries.UCount)
+            if (group.Entries.UCount == after.Count && group.Entries.SequenceEqual(after))
             {
-                parent.Entries.Insert((uint)at, entry);
+                group.Entries.Clear();
+                group.Entries.Add(before);
+                return;
             }
-            else
+
+            var left = new HashSet<PwEntry>(after);
+            for (var at = 0; at < before.Count; at++)
             {
-                parent.Entries.Add(entry);
+                if (left.Contains(before[at]))
+                {
+                    continue;
+                }
+
+                if ((uint)at <= group.Entries.UCount)
+                {
+                    group.Entries.Insert((uint)at, before[at]);
+                }
+                else
+                {
+                    group.Entries.Add(before[at]);
+                }
             }
+        }
+
+        /// <summary>
+        /// Every entry of the tree by its identifier, as lowercase hexadecimal, from a single
+        /// walk of the tree: each identifier with every entry under it, in the order walked.
+        /// </summary>
+        private static Dictionary<string, List<PwEntry>> EntriesOf(PwDatabase database)
+        {
+            var tree = new Dictionary<string, List<PwEntry>>(StringComparer.Ordinal);
+            foreach (var entry in database.RootGroup.GetEntries(true))
+            {
+                var hex = Hex.Of(entry.Uuid.UuidBytes);
+                List<PwEntry> under;
+                if (!tree.TryGetValue(hex, out under))
+                {
+                    under = new List<PwEntry>();
+                    tree[hex] = under;
+                }
+
+                under.Add(entry);
+            }
+
+            return tree;
+        }
+
+        /// <summary>The first entry walked under an identifier, as KeePass's own search finds an entry, or null.</summary>
+        private static PwEntry First(Dictionary<string, List<PwEntry>> tree, string hex)
+        {
+            List<PwEntry> under;
+            return tree.TryGetValue(hex, out under) ? under[0] : null;
         }
 
         /// <summary>A deletion record for each identifier the file names none of yet, which the undo takes away.</summary>
@@ -214,10 +298,10 @@ namespace KeePassGate.Bridge
         /// <summary>Each record that counts by its history set back, `STORE.md` §628.</summary>
         internal static void SetBack(PwDatabase database, IEnumerable<KeyValuePair<string, int>> records, Stack<Action> undo)
         {
-            var root = database.RootGroup;
+            var tree = EntriesOf(database);
             foreach (var pair in records)
             {
-                var entry = root.FindEntry(new PwUuid(Bytes(pair.Key)), true);
+                var entry = First(tree, pair.Key);
                 if (entry != null)
                 {
                     SetBack(database, entry, pair.Value, undo);
@@ -232,7 +316,7 @@ namespace KeePassGate.Bridge
         /// </summary>
         internal static void Protect(PwDatabase database, StoreReading reading, IEnumerable<string> deleted, Stack<Action> undo)
         {
-            foreach (var entry in Carriers(database, reading, deleted))
+            foreach (var entry in Carriers(EntriesOf(database), reading, deleted).ToList())
             {
                 Protect(database, entry, undo);
             }
@@ -244,11 +328,15 @@ namespace KeePassGate.Bridge
         /// </summary>
         internal static IEnumerable<PwEntry> Touched(PwDatabase database, StoreWrite write, StoreReading reading)
         {
-            var root = database.RootGroup;
-            return write.Delete.Concat(write.SetBack.Select(pair => pair.Key))
-                .Select(hex => root.FindEntry(new PwUuid(Bytes(hex)), true))
-                .Where(entry => entry != null)
-                .Concat(Carriers(database, reading, write.Delete).Where(Unprotected));
+            var tree = EntriesOf(database);
+            return write.Delete
+                .SelectMany(hex =>
+                {
+                    List<PwEntry> under;
+                    return tree.TryGetValue(hex, out under) ? under : Enumerable.Empty<PwEntry>();
+                })
+                .Concat(write.SetBack.Select(pair => First(tree, pair.Key)).Where(entry => entry != null))
+                .Concat(Carriers(tree, reading, write.Delete).Where(Unprotected));
         }
 
         /// <summary>The entry that holds a record, in no group yet, `STORE.md` §607.</summary>
@@ -385,18 +473,17 @@ namespace KeePassGate.Bridge
         /// The entry of every record holding the store key that the reading found, but those the
         /// write deletes.
         /// </summary>
-        private static IEnumerable<PwEntry> Carriers(PwDatabase database, StoreReading reading, IEnumerable<string> deleted)
+        private static IEnumerable<PwEntry> Carriers(Dictionary<string, List<PwEntry>> tree, StoreReading reading, IEnumerable<string> deleted)
         {
             if (reading.InForce == null)
             {
                 return Enumerable.Empty<PwEntry>();
             }
 
-            var root = database.RootGroup;
             var deleting = new HashSet<string>(deleted, StringComparer.Ordinal);
             return reading.InForce.Records
                 .Where(record => record.Form.StoreKey != null && !deleting.Contains(record.Hex))
-                .Select(record => root.FindEntry(new PwUuid(Bytes(record.Hex)), true))
+                .Select(record => First(tree, record.Hex))
                 .Where(entry => entry != null);
         }
 

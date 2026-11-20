@@ -17,9 +17,10 @@ namespace KeePassGate.Store
     ///
     /// **What it restates is what the room counted.** The summary entry it writes names
     /// `StoreInForce.After` and holds `StoreInForce.Restated`, the very sets the room of a store
-    /// is measured from, with the acts' own items beside them, so a store judged to have room is
-    /// never refused a write that adds an item at most, and a store judged to have none is
-    /// stopped before a plan is asked.
+    /// is measured from, its versions as `StoreReplaced` settles them with the acts' own versions,
+    /// and the acts' own items beside them. A version of the acts takes the place of what it
+    /// replaces or keeps it, so a store judged to have room is never refused a write that adds an
+    /// item at most, and a store judged to have none is stopped before a plan is asked.
     /// </remarks>
     internal sealed class StoreWrite
     {
@@ -259,6 +260,17 @@ namespace KeePassGate.Store
             var revoked = Taking(starts ? null : inForce, added, StoreKinds.Revoked, StoreKinds.ClientMember);
             var withdrawn = Taking(starts ? null : inForce, added, StoreKinds.Withdrawn, StoreKinds.Certificate);
 
+            // The versions replaced, `STORE.md` §617 and §627 step 3: what a version in force or a
+            // version of this write names of its own object, deleted only where no answer changes
+            // for it. A version that only a version out of force names stands, §623 step 3, so it
+            // is not among them.
+            var held = new HashSet<string>(reading.Deletions.Select(Hex.Of), StringComparer.Ordinal);
+            var replaced = StoreReplaced.Of(key, starts ? null : inForce, added, reading.Present, held);
+            if (replaced.NamesItsOwn)
+            {
+                return Refusal("a version of the write names a version the same write adds", leftOut);
+            }
+
             // Step 3, the version record, `STORE.md` §650: with the store's first write, and where
             // the plugin's version is above the highest the store states.
             var format = starts ? 0 : inForce.Format;
@@ -281,7 +293,8 @@ namespace KeePassGate.Store
             // or not the record reads as an admission, so no certificate is read here, and no
             // other record of that kind is deleted, since an admission that does not count now,
             // among several admissions of a certificate, may count once a merge brings a deletion
-            // record of the others. And every addition that a removal of its name defeats.
+            // record of the others. And every addition that a removal of its name defeats, and
+            // every record of kind `version` replaced that the write deletes.
             var delete = new List<string>();
             if (!starts)
             {
@@ -289,6 +302,7 @@ namespace KeePassGate.Store
                     .Where(record => (record.Is(StoreKinds.Authority) && retired.Contains(record.Form.Member(StoreKinds.Id)))
                                      || record.Is(StoreKinds.Head))
                     .Select(record => record.Hex));
+                delete.AddRange(replaced.Deleted);
                 delete.AddRange(inForce.Admissions
                     .Where(admission => revoked.Contains(admission.Form.Member(StoreKinds.ClientMember))
                                         || retired.Contains(admission.Form.Member(StoreKinds.Issuer))
@@ -311,18 +325,17 @@ namespace KeePassGate.Store
                 return Refusal("the write would leave no entry holding the store key", leftOut);
             }
 
-            // Step 5, a deletion record for every summary entry named and not in the file, so that
-            // a merge bringing it back finds it out of force. Not in the file is no entry of the
+            // Step 5, a deletion record for every summary entry named and every version replaced
+            // that a version staying names, each where it is not in the file, once, so that a
+            // merge bringing it back finds it out of force. Not in the file is no entry of the
             // tree under that identifier, a record or not: an entry with every string of the store
             // gone stays where it is, and a deletion record for it would have a merge delete it.
-            var deletions = new List<string>();
-            if (!starts)
-            {
-                var held = new HashSet<string>(reading.Deletions.Select(Hex.Of), StringComparer.Ordinal);
-                deletions.AddRange(inForce.After
-                    .Where(identifier => !reading.Present.Contains(identifier) && !held.Contains(identifier))
-                    .OrderBy(identifier => identifier, StringComparer.Ordinal));
-            }
+            var deletions = (starts ? Enumerable.Empty<string>() : inForce.After)
+                .Where(identifier => !reading.Present.Contains(identifier) && !held.Contains(identifier))
+                .Concat(replaced.Told)
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(identifier => identifier, StringComparer.Ordinal)
+                .ToList();
 
             // Step 6, the summary entry, `STORE.md` §611.
             var items = new List<IReadOnlyDictionary<string, string>>
@@ -330,9 +343,14 @@ namespace KeePassGate.Store
                 Item(StoreKinds.Format, StoreKinds.FormatMember, format.ToString(CultureInfo.InvariantCulture), StoreKinds.PluginMember, stated),
             };
 
+            // The versions as the write settles them: every standing version, and every version
+            // replaced that stays and that no record in force carries, `StoreReplaced`.
             if (!starts)
             {
-                items.AddRange(inForce.Restated().Where(item => item.Kind != StoreKinds.Format).Select(Members));
+                items.AddRange(inForce.Restated()
+                    .Where(item => item.Kind != StoreKinds.Format && item.Kind != StoreKinds.Version)
+                    .Select(Members));
+                items.AddRange(replaced.Restated.Select(id => Members(new StoreItem(StoreKinds.Version, inForce.Versions[id].Members))));
             }
 
             items.AddRange(added.Select(Restating).Where(item => item != null));

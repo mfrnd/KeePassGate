@@ -227,13 +227,14 @@ namespace KeePassGate.Tests
         public void A_version_a_version_in_force_replaces_is_not_counted_whichever_carries_it()
         {
             // `STORE.md` §611 restates a standing version, and §623 step 3: a version that a
-            // version in force names in `after` does not stand. Two summary entries in force,
-            // made apart, the second carrying a version that replaces the first's.
+            // version in force of the same object names in `after` does not stand. Two summary
+            // entries in force, made apart, the second carrying a version that replaces the
+            // first's.
             var first = new string('1', 32);
             var store = new ComposedStore(One);
             store.Drop(store.Head);
             store.Add(Head(One, 1, string.Empty, VersionItemOf(first, string.Empty)));
-            store.Add(Head(One, 1, string.Empty, VersionItemOf(new string('2', 32), first)));
+            store.Add(Head(One, 1, string.Empty, VersionItemOf(new string('2', 32), first, "rule:" + first)));
 
             var reading = store.Read();
 
@@ -301,10 +302,11 @@ namespace KeePassGate.Tests
             }
         }
 
-        private static string VersionItemOf(string id, string after)
+        /// <summary>The item of a version under this identifier, of its own object unless another is given.</summary>
+        private static string VersionItemOf(string id, string after, string objectName = null)
         {
             return StoreComposer.Item(
-                ("after", after), ("doc", "a rule"), ("id", id), ("kind", "version"), ("object", "rule:" + id));
+                ("after", after), ("doc", "a rule"), ("id", id), ("kind", "version"), ("object", objectName ?? "rule:" + id));
         }
 
         /// <summary>A whole store whose summary entry stands at this height.</summary>

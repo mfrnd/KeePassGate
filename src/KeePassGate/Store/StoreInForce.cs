@@ -74,10 +74,6 @@ namespace KeePassGate.Store
         /// </summary>
         private readonly Dictionary<string, List<string>> _removalDeletions = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 
-        /// <summary>The versions a summary entry carries, by identifier, each with its item's members.</summary>
-        private readonly Dictionary<string, IReadOnlyDictionary<string, string>> _versions =
-            new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal);
-
         /// <summary>The keep records a summary entry carries, by identifier, each with its item's members.</summary>
         private readonly Dictionary<string, IReadOnlyDictionary<string, string>> _kept =
             new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal);
@@ -100,6 +96,9 @@ namespace KeePassGate.Store
         /// <summary>The records of kind `client`, by the text of their `certificate`.</summary>
         private readonly Dictionary<string, List<FoundRecord>> _admissionsOf =
             new Dictionary<string, List<FoundRecord>>(StringComparer.Ordinal);
+
+        /// <summary>What a write that adds no version does with the versions present: what the room counts.</summary>
+        private StoreReplaced _settled;
 
         private HashSet<string> _after = new HashSet<string>(StringComparer.Ordinal);
 
@@ -252,8 +251,17 @@ namespace KeePassGate.Store
         public StoreRoom Room { get; private set; }
 
         /// <summary>
-        /// The versions that a version in force names in `after`: replaced, so that no summary
-        /// entry carries them, `STORE.md` §658.
+        /// Every version present, a record of kind `version` or an item `version` of a summary
+        /// entry present, by its identifier, `STORE.md` §623 step 3.
+        /// </summary>
+        public IReadOnlyDictionary<string, StoreNaming> Versions { get; private set; }
+
+        /// <summary>The identifiers of the records present of a kind other than `version`.</summary>
+        public ISet<string> Others { get; private set; }
+
+        /// <summary>
+        /// The versions present that a version in force names of its own object in `after`:
+        /// replaced, so that none stands, `STORE.md` §617 and §658.
         /// </summary>
         private ISet<string> ReplacedVersions { get; set; }
 
@@ -797,18 +805,56 @@ namespace KeePassGate.Store
                 }
             }
 
-            // What a version in force names as replaced: a version record in force, and an item
-            // of a summary entry in force.
-            ReplacedVersions = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var record in Records.Where(record => record.Is(StoreKinds.Version) && record.InForce))
+            // Every version present: what its record holds, or where no record carries it what an
+            // item holds; whether its record is in force, and whether an item of a summary entry
+            // in force carries it, with that item's members, which restate it.
+            var versions = new Dictionary<string, StoreNaming>(StringComparer.Ordinal);
+            foreach (var record in Records.Where(record => record.Is(StoreKinds.Version) && !versions.ContainsKey(record.Hex)))
             {
-                ReplacedVersions.UnionWith(Listed(record.Form.Member(StoreKinds.After)));
+                versions[record.Hex] = new StoreNaming(
+                    record.Hex,
+                    record.Form.Member(StoreKinds.ObjectMember),
+                    record.Form.Member(StoreKinds.After),
+                    true,
+                    record.InForce,
+                    WithId(record.Hex, record.Form.Members));
             }
 
-            foreach (var item in HeadsInForce.SelectMany(head => head.Form.Items).Where(item => item.Kind == StoreKinds.Version))
+            foreach (var head in Heads)
             {
-                ReplacedVersions.UnionWith(Listed(item.Member(StoreKinds.After)));
+                foreach (var item in head.Form.Items.Where(item => item.Kind == StoreKinds.Version))
+                {
+                    var id = item.Member(StoreKinds.Id);
+                    StoreNaming version;
+                    if (!versions.TryGetValue(id, out version))
+                    {
+                        version = new StoreNaming(
+                            id, item.Member(StoreKinds.ObjectMember), item.Member(StoreKinds.After), false, false, WithId(id, item.Members));
+                        versions[id] = version;
+                    }
+
+                    if (head.InForce && !version.ItemInForce)
+                    {
+                        version.CarriedInForce(WithId(id, item.Members));
+                    }
+                }
             }
+
+            Versions = versions;
+            Others = new HashSet<string>(Records.Where(record => !record.Is(StoreKinds.Version)).Select(record => record.Hex), StringComparer.Ordinal);
+
+            // What a version in force names of its own object is replaced, `STORE.md` §617.
+            ReplacedVersions = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var naming in versions.Values.Where(version => version.InForce))
+            {
+                ReplacedVersions.UnionWith(Listed(naming.After).Where(identifier =>
+                {
+                    StoreNaming named;
+                    return versions.TryGetValue(identifier, out named) && string.Equals(named.Object, naming.Object, StringComparison.Ordinal);
+                }));
+            }
+
+            _settled = StoreReplaced.Settle(versions, Others, Array.Empty<StoreRecord>());
         }
 
         /// <summary>
@@ -857,24 +903,11 @@ namespace KeePassGate.Store
             items += _statements.Count;
 
             // A version and a keep record are carried whole, each by its identifier, with the
-            // members its item holds: from an item where a summary entry holds an item, and from its
-            // record where none does.
-            // A standing version only, `STORE.md` §611: an item of a version that a version in
-            // force replaces is no more carried than its record is, whichever summary entry
-            // holds it.
-            foreach (var item in HeadsInForce.SelectMany(head => head.Form.Items)
-                         .Where(item => item.Kind == StoreKinds.Version && !ReplacedVersions.Contains(item.Member(StoreKinds.Id))))
-            {
-                Carry(_versions, item.Member(StoreKinds.Id), item.Members);
-            }
-
-            foreach (var record in Records
-                         .Where(record => record.Is(StoreKinds.Version) && record.InForce && !ReplacedVersions.Contains(record.Hex)))
-            {
-                Carry(_versions, record.Hex, record.Form.Members);
-            }
-
-            items += _versions.Count;
+            // members its item holds: from an item where a summary entry in force holds an item,
+            // and from its record where none does. The versions carried are those a write that
+            // adds no version restates, `StoreReplaced`: every standing version, and every version
+            // replaced that only an item carries and that alone names a version.
+            items += _settled.Restated.Count;
 
             foreach (var item in Items.Where(item => item.Kind == StoreKinds.Kept))
             {
@@ -961,7 +994,7 @@ namespace KeePassGate.Store
                 items.Add(Item(StoreKinds.Withdrawn, members));
             }
 
-            items.AddRange(_versions.Select(version => Item(StoreKinds.Version, version.Value)));
+            items.AddRange(_settled.Restated.Select(id => Item(StoreKinds.Version, Versions[id].Members)));
             items.AddRange(_kept.Select(kept => Item(StoreKinds.Kept, kept.Value)));
             return items;
         }
@@ -989,6 +1022,12 @@ namespace KeePassGate.Store
                 return;
             }
 
+            carried[id] = WithId(id, members);
+        }
+
+        /// <summary>An item's members: these members and the identifier as `id`.</summary>
+        private static IReadOnlyDictionary<string, string> WithId(string id, IReadOnlyDictionary<string, string> members)
+        {
             var item = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var member in members)
             {
@@ -996,7 +1035,7 @@ namespace KeePassGate.Store
             }
 
             item[StoreKinds.Id] = id;
-            carried[id] = item;
+            return item;
         }
 
         /// <summary>The higher of two plugin versions, each three whole numbers joined by periods, either may be null.</summary>
@@ -1036,6 +1075,58 @@ namespace KeePassGate.Store
         private static IReadOnlyList<string> Listed(string list)
         {
             return StoreFormat.Identifiers(list) ?? Array.Empty<string>();
+        }
+    }
+
+    /// <summary>
+    /// A version present, `STORE.md` §623 step 3: what its record holds, or where no record
+    /// carries it what an item of a summary entry present holds, and where it is in force.
+    /// </summary>
+    internal sealed class StoreNaming
+    {
+        public StoreNaming(
+            string id, string objectText, string after, bool record, bool recordInForce, IReadOnlyDictionary<string, string> members)
+        {
+            Id = id;
+            Object = objectText;
+            After = after;
+            Record = record;
+            RecordInForce = recordInForce;
+            Members = members;
+        }
+
+        /// <summary>The version's identifier: its record's, or its item's `id`.</summary>
+        public string Id { get; private set; }
+
+        /// <summary>What it is a version of.</summary>
+        public string Object { get; private set; }
+
+        /// <summary>The identifiers it names, as its `after` holds them.</summary>
+        public string After { get; private set; }
+
+        /// <summary>Whether a record of kind `version` present carries it, in force or not.</summary>
+        public bool Record { get; private set; }
+
+        /// <summary>Whether a record of kind `version` in force carries it.</summary>
+        public bool RecordInForce { get; private set; }
+
+        /// <summary>Whether an item of a summary entry in force carries it.</summary>
+        public bool ItemInForce { get; private set; }
+
+        /// <summary>Whether it is in force, by its record or by an item of a summary entry in force.</summary>
+        public bool InForce
+        {
+            get { return RecordInForce || ItemInForce; }
+        }
+
+        /// <summary>The members of the item that restates it, its `id` among them.</summary>
+        public IReadOnlyDictionary<string, string> Members { get; private set; }
+
+        /// <summary>Marks it carried by an item of a summary entry in force, which restates it as it holds it.</summary>
+        internal void CarriedInForce(IReadOnlyDictionary<string, string> members)
+        {
+            ItemInForce = true;
+            Members = members;
         }
     }
 }

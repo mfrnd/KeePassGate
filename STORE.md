@@ -3479,9 +3479,50 @@ force or not and whatever its `name`, whose `after` does not hold every removal 
 the store or the write's own records know, a removal known as a record by its identifier, as an
 item by its `id` and as a deletion record by its own identifier; no other addition, and none the
 write adds. So what this deletes is an addition a merge brought, or an addition that a removal
-arrived after. **The acts about a name are built as the buffer holds them**: the last press for each
-name, composed again at OK, the additions of a pairing in the admission's own act, and an
-addition left out at OK for a removal the press never saw named in the log.
+arrived after. **Every write deletes the versions that step 3 names, where no answer changes for
+it.** A version names only versions of its own object (§617): a name in its `after` is of its
+object where a version present or a version the write adds carries the name with that object,
+and a name that a version of another object or a record of another kind carries is passed over,
+so the reading holds a version named only by a version of another object standing. A name
+nothing carries may be of any object: it is held named as a name of the object is, and a
+deletion record is written for it only where its tag, its subject hash and its number are those
+of the naming version's object under the key (§609), which cannot tell apart the rows of two
+names whose tags meet, nor a rule's object with no `/` from a row at its node whose name's tag is
+0. A version is in force where a record of kind `version` in force or an item of a summary entry
+in force carries it, and it names what its record holds, or its item where no record carries it.
+A version in force that a version in force or a version of the write names stays in force after
+the write only where a name of its own is named by no version that stays; every version in force
+that nothing names stays, and so does every version of the write. What stays is settled at once,
+round by round, so the outcome does not depend on the order the entries are walked in, and copies
+that hold the same entries settle alike. A version that does not stay has every entry under its
+identifier deleted, with a single deletion record, and is restated no more; a version that stays
+keeps its record in force, or is restated by the summary entry where no record in force carries
+it, and goes on naming. So no deletion record is left that nothing in force names, where the
+`after` of a version is not closed as well, and no record is left in force that nothing restates.
+A version present out of force names nothing, and its record is deleted where a version in force
+or of the write names it; a version that only a version out of force names stands (§623 step 3)
+and is left. A deletion record is written, once, for each name of a version that stays that
+nothing carries and the tree does not hold. A write whose version names a version of the same
+write is refused (§610), so no version is written beside its own deletion record, and a write
+whose records the file holds already writes and deletes nothing. The summary entry restates each
+standing version and each version that stays that no record in force carries, and no other
+version. **What keeps a version
+replaced out of force where a merge brings it back** is the version that names it, and its
+deletion record only where its entry is older than the deletion: KeePass applies a deletion
+record only to an entry last changed before it, drops the record otherwise, and only Synchronize
+carries a deletion record. In the merges run, under each method in each direction and whatever
+became of the entries' times, the version replaced came back with its deletion record dropped
+wherever its entry was last changed in the second of its deletion or after it, and did not
+stand; where its entry was last changed before the deletion, Synchronize deleted it in the copy
+that held it and did not bring it back into the copy that replaced it. **The entries a write
+deletes, sets back and protects again are each found by a walk of the tree**, with a further walk
+for the entries it touches, and each group that loses entries is written once: the store's write
+deleting 2,000 replaced versions beside 10,000 entries took 140 ms at the median of 21 after a
+first, and 174 ms where every entry holds ten history items
+(`StoreReadingCostTests.What_a_write_deleting_2000_replaced_versions_holds_the_thread_for`,
+explicit, in Release). **The acts about a name are built as the buffer holds them**: the last
+press for each name, composed again at OK, the additions of a pairing in the admission's own act,
+and an addition left out at OK for a removal the press never saw named in the log.
 **A client's write is answered the
 store's word** where the store holds the gate back in the writer's turn, above (§644 item 26).
 **The tab's OK meets no save of the plugin's own**, above (§644 item 30), so nothing was built
@@ -3502,10 +3543,22 @@ own record, in force or not and read or not, and left where it names nothing ref
 admission that reads), and a profile addition deleted where a removal of its name that it does
 not name is known by a record, an item, a deletion record and the write's own record, in force
 or not and whatever its name, and left where it names every removal of its name or is the
-write's own;
-`PendingRecordsTests`; `StoreWritesInRealDatabaseTests`, the group a write goes into and a
-write applied to a database read as the same write applied in memory among them; and the writes
-that save by `PairingInRealDatabaseTests` and `RenewalInRealDatabaseTests`, among them
+write's own, and a record of kind `version` deleted where a version in force names it, by a
+record, an item of a summary entry in force and the write's own record, in force or not, left
+where only a version out of force names it, every standing version left and restated and no
+version replaced, an identifier named that the tree does not hold told of by a single deletion
+record where it is an identifier a version of the naming object has and passed over otherwise, a
+version of another object never deleted, a version left where what it names would be named by
+no version staying, a write whose version names a version of the same write refused, and the
+deletion records of a write that starts a store;
+`PendingRecordsTests`; `StoreWritesInRealDatabaseTests`, the group a write goes into, a write
+applied to a database read as the same write applied in memory, and a version replaced deleted
+and put back by the write's undo with its deletion record removed among them;
+`MergeInRealDatabaseTests.A_replaced_version_a_merge_brings_back_stays_out_of_force_under_each_method_in_each_direction`
+and
+`MergeInRealDatabaseTests.The_deletion_record_of_a_replaced_version_takes_an_older_copy_of_it_out_by_Synchronize`;
+and the writes that save by `PairingInRealDatabaseTests` and `RenewalInRealDatabaseTests`, among
+them
 `A_pairing_deletes_an_admission_that_came_back_beside_its_revocation`,
 `A_pairing_leaves_the_admission_of_an_expired_certificate_where_it_is`,
 `A_pairing_that_lands_rebuilds_the_tree_and_the_entry_list`,

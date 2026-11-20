@@ -49,6 +49,9 @@ namespace KeePassGate.Host.Tests
         private const int Runs = 21;
         private const string Profile = "agent";
 
+        /// <summary>The versions a write deletes in the measurement of a write that replaces many.</summary>
+        private const int ReplacedVersions = 2000;
+
         /// <summary>The clients of the gate the growth run measured, `STORE.md` §643.</summary>
         private const int GrowthClients = 10;
 
@@ -294,6 +297,59 @@ namespace KeePassGate.Host.Tests
                     later[later.Count / 2],
                     later[later.Count - 1]));
             }
+        }
+
+        [TestCase(0)]
+        [TestCase(10)]
+        public void What_a_write_deleting_2000_replaced_versions_holds_the_thread_for(int history)
+        {
+            // A write whose version names 2,000 versions of its object, each deleted with a
+            // deletion record, `STORE.md` §627 step 3: the store's write timed alone on the thread
+            // that makes it, the reading in the writer's turn, the plan, every entry it touches
+            // asked about, and the application. Each run is a database of its own, the 2,000
+            // versions written by a write before the write timed.
+            var times = new List<double>();
+            for (var run = 0; run <= Runs; run++)
+            {
+                using (var database = TemporaryDatabase.New())
+                {
+                    Fill(database.Database, history);
+                    var plain = new KdbxStore(database.Database, GateVersion.Current, null, entry => null);
+                    StoreSeeds.Authority(plain);
+                    byte[] key;
+                    using (var reading = plain.Read())
+                    {
+                        key = (byte[])reading.InForce.Key.Bytes.Clone();
+                    }
+
+                    var objectName = "switch:" + new string('5', 32);
+                    var replaced = Enumerable.Range(0, ReplacedVersions).Select(index => VersionOf(key, objectName, string.Empty)).ToList();
+                    Assert.That(plain.Write(new[] { new StoreAct("versions", key, StoreFormat.KeyName(key), replaced, null) }).Taken, Is.True);
+                    var naming = VersionOf(
+                        key, objectName, string.Join(" ", replaced.Select(record => record.Hex).OrderBy(hex => hex, StringComparer.Ordinal)));
+
+                    var store = new TimedStore(plain);
+                    var written = store.Write(new[] { new StoreAct("a version replacing them", key, StoreFormat.KeyName(key), new[] { naming }, null) });
+                    Assert.That(written.Taken, Is.True, written.Reason);
+                    Assert.That(
+                        replaced.Count(record => database.RootGroup.FindEntry(new PwUuid(record.Identifier), true) != null), Is.EqualTo(0),
+                        "every version replaced is deleted");
+                    times.Add(store.Times[0]);
+                }
+            }
+
+            Print("a write deleting " + ReplacedVersions + " replaced versions, history " + history, times);
+        }
+
+        /// <summary>A version of this object under this key, naming these identifiers as replaced.</summary>
+        private static StoreRecord VersionOf(byte[] key, string objectName, string after)
+        {
+            return StoreRecord.Compose(key, "version", new Dictionary<string, string>
+            {
+                { "after", after },
+                { "doc", "sw:deny" },
+                { "object", objectName },
+            });
         }
 
         /// <summary>A store whose writes are timed, each from its call to its answer.</summary>

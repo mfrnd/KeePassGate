@@ -265,6 +265,118 @@ namespace KeePassGate.Host.Tests
             Assert.That(database.Database.DeletedObjects.Any(deleted => deleted.Uuid.Equals(authority.Uuid)), Is.True);
         }
 
+        [Test]
+        public void A_write_deletes_a_version_it_finds_replaced_and_its_undo_puts_the_version_back_with_its_deletion_record_removed()
+        {
+            // `STORE.md` §627 step 3: a version that a version of the write names is deleted with
+            // a deletion record, and a write taken back puts the entry back where it was and takes
+            // its deletion record away.
+            var database = Database();
+            StoreSeeds.Authority(Store(database));
+            var node = new string('1', 32);
+            var replaced = Versioned(database, "switch:" + node, string.Empty, "sw:deny");
+            var entry = database.RootGroup.FindEntry(new PwUuid(replaced.Identifier), true);
+            Assert.That(entry, Is.Not.Null, "the version is an entry of the store");
+            var before = Snapshot(database);
+
+            System.Action undo;
+            using (var reading = Store(database).Read())
+            {
+                var key = (byte[])reading.InForce.Key.Bytes.Clone();
+                var replacing = StoreRecord.Compose(key, "version", new Dictionary<string, string>
+                {
+                    { "after", replaced.Hex },
+                    { "doc", "sw:inherit" },
+                    { "object", "switch:" + node },
+                });
+                var write = StoreWrite.Plan(reading, new[] { new StoreAct("a switch", key, StoreFormat.KeyName(key), new[] { replacing }, null) }, GateVersion.Current);
+                Assert.That(write.Refused, Is.Null, write.Refused);
+                Assert.That(write.Delete, Does.Contain(replaced.Hex));
+                undo = Application.Apply(database.Database, write, reading);
+            }
+
+            Assert.That(database.RootGroup.FindEntry(new PwUuid(replaced.Identifier), true), Is.Null, "the version replaced is deleted");
+            Assert.That(database.Database.DeletedObjects.Count(deleted => deleted.Uuid.Equals(entry.Uuid)), Is.EqualTo(1), "with a deletion record");
+            using (var reading = Store(database).Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            }
+
+            undo();
+
+            Assert.That(database.RootGroup.FindEntry(new PwUuid(replaced.Identifier), true), Is.SameAs(entry), "the version is back");
+            Assert.That(database.Database.DeletedObjects.Any(deleted => deleted.Uuid.Equals(entry.Uuid)), Is.False, "and its deletion record gone");
+            Assert.That(Snapshot(database), Is.EqualTo(before));
+        }
+
+        [Test]
+        public void A_write_deletes_every_entry_under_an_identifier_it_deletes_and_its_undo_puts_them_all_back()
+        {
+            // Two entries under a single identifier, each reading as the record: a write that
+            // deletes the record deletes both, with a single deletion record, and taken back puts
+            // both back where they were.
+            var database = Database();
+            StoreSeeds.Authority(Store(database));
+            var node = "switch:" + new string('1', 32);
+            var replaced = Versioned(database, node, string.Empty, "sw:deny");
+            var first = database.RootGroup.FindEntry(new PwUuid(replaced.Identifier), true);
+            first.ParentGroup.AddEntry(first.CloneDeep(), true);
+            Assert.That(Under(database, replaced), Is.EqualTo(2));
+            var before = Snapshot(database);
+
+            System.Action undo;
+            using (var reading = Store(database).Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                var key = (byte[])reading.InForce.Key.Bytes.Clone();
+                var replacing = StoreRecord.Compose(key, "version", new Dictionary<string, string>
+                {
+                    { "after", replaced.Hex },
+                    { "doc", "sw:inherit" },
+                    { "object", node },
+                });
+                var write = StoreWrite.Plan(reading, new[] { new StoreAct("a switch", key, StoreFormat.KeyName(key), new[] { replacing }, null) }, GateVersion.Current);
+                Assert.That(write.Refused, Is.Null, write.Refused);
+                undo = Application.Apply(database.Database, write, reading);
+            }
+
+            Assert.That(Under(database, replaced), Is.EqualTo(0), "both entries deleted");
+            Assert.That(database.Database.DeletedObjects.Count(deleted => deleted.Uuid.Equals(first.Uuid)), Is.EqualTo(1), "with a single deletion record");
+
+            undo();
+
+            Assert.That(Under(database, replaced), Is.EqualTo(2), "both back");
+            Assert.That(Snapshot(database), Is.EqualTo(before));
+        }
+
+        [Test]
+        public void A_deletion_taken_back_after_its_group_changed_puts_each_entry_back_and_keeps_what_came_since()
+        {
+            var database = Database();
+            StoreSeeds.Authority(Store(database));
+            var replaced = Versioned(database, "switch:" + new string('1', 32), string.Empty, "sw:deny");
+            var entry = database.RootGroup.FindEntry(new PwUuid(replaced.Identifier), true);
+            var group = entry.ParentGroup;
+            var at = group.Entries.IndexOf(entry);
+            var undo = new Stack<System.Action>();
+            Application.Delete(database.Database, new[] { replaced.Hex }, Application.DeletionsHeld(database.Database), undo);
+            Assert.That(group.Entries.IndexOf(entry), Is.EqualTo(-1));
+
+            var since = new PwEntry(true, true);
+            group.AddEntry(since, true);
+            Application.Undo(undo);
+
+            Assert.That(group.Entries.IndexOf(entry), Is.EqualTo(at), "back at its place");
+            Assert.That(group.Entries.IndexOf(since), Is.Not.EqualTo(-1), "and what came since stays");
+            Assert.That(database.Database.DeletedObjects.Any(deleted => deleted.Uuid.Equals(entry.Uuid)), Is.False);
+        }
+
+        /// <summary>How many entries of the tree are under the identifier of this record.</summary>
+        private static int Under(TemporaryDatabase database, StoreRecord record)
+        {
+            return database.RootGroup.GetEntries(true).Count(entry => entry.Uuid.Equals(new PwUuid(record.Identifier)));
+        }
+
         [TestCase(10)]
         [TestCase(1)]
         public void A_record_edited_in_the_entry_dialog_is_set_back_at_the_next_write_with_the_edit_kept_in_its_history(int limit)
@@ -527,6 +639,30 @@ namespace KeePassGate.Host.Tests
             entry.CreateBackup(database.Database);
             entry.Strings.Set("KPG.Data", new ProtectedString(protect, content));
             entry.Touch(true, false);
+        }
+
+        /// <summary>
+        /// A version of this object written by itself, under the store key that stands, naming
+        /// these identifiers as replaced: the record it wrote.
+        /// </summary>
+        private static StoreRecord Versioned(TemporaryDatabase database, string objectName, string after, string doc)
+        {
+            var store = Store(database);
+            byte[] key;
+            using (var reading = store.Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+
+            var version = StoreRecord.Compose(key, "version", new Dictionary<string, string>
+            {
+                { "after", after },
+                { "doc", doc },
+                { "object", objectName },
+            });
+            var written = store.Write(new[] { new StoreAct("a version", key, StoreFormat.KeyName(key), new[] { version }, null) });
+            Assert.That(written.Taken, Is.True, written.Reason);
+            return version;
         }
 
         /// <summary>
