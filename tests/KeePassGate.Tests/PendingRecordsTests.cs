@@ -684,6 +684,57 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_Add_of_a_name_whose_removal_only_a_deletion_record_tells_of_is_asked_about_shown_and_written_in_force()
+        {
+            // The page shows the name off the list and asks before adding it back, as for any
+            // removed name a rule still names. The addition names the removal that the deletion
+            // record tells of once the name is known, so the page shows the name added and OK
+            // writes it in force, `STORE.md` §616.
+            var live = Keyed();
+            live.Nodes = new TestRuledNodes(new TestRuledNode("a group", "{\"ops\":[\"read\"]}"));
+            StoreRecords.RemovedApart(live.Records, "ops");
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            var page = new DatabaseProfiles(pending, null);
+            Assert.That(page.Names(), Does.Not.Contain("ops"), "off the list");
+            Assert.That(page.Returning("ops"), Is.EqualTo("Adding ops again puts the rule naming it back in force."));
+
+            Assert.That(page.Add("ops"), Is.Null);
+            Assert.That(page.Names(), Does.Contain("ops"), "the page reads what OK would write");
+            Assert.That(page.Overtaken("ops"), Is.False);
+
+            pending.Apply();
+
+            Assert.That(NamesOf(live), Is.EqualTo(new[] { "ops" }));
+        }
+
+        [Test]
+        public void An_Add_a_removal_only_a_deletion_record_tells_of_overtook_under_the_dialog_writes_nothing()
+        {
+            // A removal made in another copy after the press, of which the file keeps nothing but
+            // its deletion record, is a removal the operator was not shown.
+            var live = Keyed();
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            var page = new DatabaseProfiles(pending, null);
+            Assert.That(page.Add("ops"), Is.Null);
+
+            StoreRecords.RemovedApart(live.Records, "ops");
+            Assert.That(page.Names(), Does.Not.Contain("ops"), "the page reads what OK would write");
+            Assert.That(page.Overtaken("ops"), Is.True, "and tells why");
+
+            pending.Apply();
+
+            Assert.That(NamesOf(live), Is.Empty);
+            using (var reading = live.Records.Read())
+            {
+                Assert.That(reading.InForce.Additions.Where(addition => addition.Form.Member(StoreKinds.NameMember) == "ops"), Is.Empty,
+                    "no addition of it is written");
+            }
+
+            Assert.That(log.Warnings.Any(entry => entry.Message.Contains("adding a profile ops")), Is.True, "the log names it");
+        }
+
+        [Test]
         public void An_Add_a_store_split_under_the_dialog_leaves_out_is_not_overtaken()
         {
             // An authority under a key of its own, as a copy that made a store of its own leaves

@@ -15,11 +15,12 @@ namespace KeePassGate.Acl
     /// settings dialog's OK, under the key that stands then.
     ///
     /// **An addition names the removals of its name that the reading it was pressed over held**,
-    /// and is composed again naming those same removals and no others: where the store knows a
-    /// removal of the name beyond them, or has the name on the list, nothing is left of it to
-    /// write. A removal made apart, which the operator never saw, is not overruled by a press made
-    /// before it arrived. **A removal holds the name alone**, and is written where the name is on
-    /// the list.
+    /// those a deletion record tells of once the name counts as known among them,
+    /// `StoreInForce.RemovalsOnceKnown`, and is composed again naming those same removals and no
+    /// others: where the store knows a removal of the name beyond them, counted the same way, or
+    /// has the name on the list, nothing is left of it to write. A removal made apart, which the
+    /// operator never saw, is not overruled by a press made before it arrived. **A removal holds
+    /// the name alone**, and is written where the name is on the list.
     ///
     /// **A store with no key is given no act**: only an authority starts a store, `STORE.md` §627
     /// step 1, and the caller states what the database lacks.
@@ -34,7 +35,7 @@ namespace KeePassGate.Acl
 
         /// <summary>
         /// An act of a single addition of this name, naming every removal of it that the reading
-        /// holds, or null where the reading holds no store key.
+        /// holds or tells of once the name is known, or null where the reading holds no store key.
         /// </summary>
         public static StoreAct Add(StoreReading reading, string name)
         {
@@ -43,7 +44,7 @@ namespace KeePassGate.Acl
                 return null;
             }
 
-            return Adding(reading, name, reading.InForce.RemovalsOf(name).ToList());
+            return Adding(reading, name, reading.InForce.RemovalsOnceKnown(name).ToList());
         }
 
         /// <summary>
@@ -114,7 +115,7 @@ namespace KeePassGate.Acl
             return Act(reading, AddName, key => new[] { Addition(key, name, seen) }, again =>
             {
                 var known = new HashSet<string>(seen, StringComparer.Ordinal);
-                if (ProfileNames.Of(again).Holds(name) || again.InForce.RemovalsOf(name).Any(removal => !known.Contains(removal)))
+                if (ProfileNames.Of(again).Holds(name) || again.InForce.RemovalsOnceKnown(name).Any(removal => !known.Contains(removal)))
                 {
                     return null;
                 }

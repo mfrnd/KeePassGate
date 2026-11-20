@@ -66,10 +66,11 @@ namespace KeePassGate.Authority
         /// **The names are records of the admission's own act**, `STORE.md` §616: the same decision
         /// as the admission and the same write, so that the names and the admission are planned,
         /// saved and taken back together, and left out together where the issuer does not stand
-        /// alone. Each addition names every removal of its name the reading holds, so a name the
-        /// operator approved after its removal is back on the list, and it is written whatever the
-        /// list already holds, since the list keeps no ceiling. A renewal's admission holds only
-        /// names the list holds, and adds none.
+        /// alone. Each addition names every removal of its name the reading holds or tells of once
+        /// the name is known, `StoreInForce.RemovalsOnceKnown`, so a name the operator approved
+        /// after its removal is back on the list, and it is written whatever the list already
+        /// holds, since the list keeps no ceiling. A renewal's admission holds only names the list
+        /// holds, and adds none.
         /// </remarks>
         public static StoreAct Admit(StoreReading reading, AdmissionRecord record)
         {
@@ -89,7 +90,7 @@ namespace KeePassGate.Authority
                 reading,
                 AdmitName,
                 key => new[] { StoreRecord.Compose(key, StoreKinds.Client, record.Members()) }
-                    .Concat(adding.Select(profile => ProfileActs.Addition(key, profile, reading.InForce.RemovalsOf(profile))))
+                    .Concat(adding.Select(profile => ProfileActs.Addition(key, profile, reading.InForce.RemovalsOnceKnown(profile))))
                     .ToList(),
                 ground => ground.Standing.Count == 1 && ground.Standing.Contains(issuer)
                     ? null

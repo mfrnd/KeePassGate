@@ -136,6 +136,73 @@ namespace KeePassGate.Host.Tests
                 before: copy => Name(copy, "ops"));
         }
 
+        [TestCase("added on the Profiles page")]
+        [TestCase("approved for a pairing")]
+        public void A_name_whose_removal_only_a_deletion_record_tells_of_is_on_the_list_once_it_is_added_back(string how)
+        {
+            // The first copy removes the name, and that write deletes the addition it defeats.
+            // There the removal is then deleted for good, as KeePass deletes an entry, and the
+            // summary entry restating it by a program that keeps no deletion record. A
+            // Synchronize brings the deletion records into the second copy, which wrote a summary
+            // entry of its own: nothing in it names the name but the deletion record of its
+            // removal, which the reading tells of once the name is known to the file, `STORE.md`
+            // §616 and §623 step 2. Added back, the name is on the list in the file, and after
+            // the next write of the plugin's own.
+            //
+            // The addition is dated a minute back before the copy, as an addition written before a
+            // removal is: KeePass keeps whole seconds, and a Synchronize keeps an entry last
+            // changed in the second of its deletion, with the name it names.
+            using (var first = TemporaryDatabase.New())
+            {
+                StoreSeeds.Authority(Store(first));
+                Name(first, "ops");
+                Stamped(first, StoreKinds.Profile, DateTime.UtcNow.AddMinutes(-1));
+                first.Save();
+                using (var second = Opened(first))
+                {
+                    Unname(first, "ops");
+                    var removal = new StoredAdmissions(first.Database).Entries(StoreKinds.Removed).Single().Uuid;
+                    Assert.That(new StoredAdmissions(first.Database).Entries(StoreKinds.Profile), Is.Empty);
+                    DeleteForGood(first, StoreKinds.Removed);
+                    DeleteLeavingNoRecord(first, StoreKinds.Head);
+                    first.Save();
+
+                    Name(second, "reader");
+                    using (var source = Opened(first))
+                    {
+                        second.Database.MergeIn(source.Database, PwMergeMethod.Synchronize, null);
+                    }
+
+                    second.SaveCloseAndReopen();
+                    Assert.That(State(second), Is.EqualTo(StoreState.Whole));
+                    Assert.That(second.Database.DeletedObjects.Any(deleted => deleted.Uuid.Equals(removal)), Is.True,
+                        "the deletion record of the removal is in the file");
+                    using (var reading = Store(second).Read())
+                    {
+                        Assert.That(reading.InForce.RemovalsOf("ops"), Is.Empty, "a name the file does not know");
+                        Assert.That(ProfileNames.Of(reading).Names, Is.EqualTo(new[] { "reader" }));
+                    }
+
+                    if (how == "approved for a pairing")
+                    {
+                        Pair(second, "ops");
+                    }
+                    else
+                    {
+                        Name(second, "ops");
+                    }
+
+                    second.SaveCloseAndReopen();
+                    Assert.That(Answers(second, new[] { "ops" })["ops"], Is.True, "on the list once added back");
+
+                    Pair(second);
+                    second.SaveCloseAndReopen();
+                    Assert.That(Answers(second, new[] { "ops" })["ops"], Is.True, "and after the next write");
+                    Assert.That(Defeated(second), Is.Empty);
+                }
+            }
+        }
+
         [Test]
         public void A_name_removed_in_a_copy_stays_off_whatever_became_of_the_entries_times()
         {
@@ -518,6 +585,16 @@ namespace KeePassGate.Host.Tests
             // A second after now, as a deletion made after the entry was written is: a merge
             // applies a deletion record only to an entry last changed before it.
             copy.Database.DeletedObjects.Add(new PwDeletedObject(entry.Uuid, DateTime.UtcNow.AddSeconds(1)));
+        }
+
+        /// <summary>
+        /// The single entry of this kind deleted with no deletion record, as a program that keeps
+        /// none does.
+        /// </summary>
+        private static void DeleteLeavingNoRecord(TemporaryDatabase copy, string kind)
+        {
+            var entry = new StoredAdmissions(copy.Database).Entries(kind).Single();
+            entry.ParentGroup.Entries.Remove(entry);
         }
     }
 }

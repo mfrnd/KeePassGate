@@ -990,14 +990,15 @@ authority writes, so the Profiles page refuses a name until an authority stands 
 an authority waits for the same dialog's OK, `STORE.md` §627.
 
 **An Add never overrules a removal the operator was not shown.** An addition names the removals of
-its name that the Profiles page held at the press, so an Add that meets at OK a removal merged in
-since is not written: a removal wins over an addition that did not see it, on the tab as
-everywhere else. The page's line states while the dialog is open that OK will not add the name,
-and the log names the name at OK, `STORE.md` §627. The name comes back by being added on the page
-again, an addition that names the removal, and the page asks before that wherever rules or
-clients regain the name, as for any removed name typed back in. Where nothing is written into the
-store in the session, or the store is split or outdated, the page offers neither the row that
-adds a name nor an X, `STORE.md` §636.
+its name that the Profiles page held at the press, a removal that only a deletion record tells of
+once the name is known among them, so an Add that meets at OK a removal merged in since is not
+written: a removal wins over an addition that did not see it, on the tab as everywhere else. The
+page's line states while the dialog is open that OK will not add the name, and the log names the
+name at OK, `STORE.md` §627. The name comes back by being added on the page again, an addition
+that names the removal, and the page asks before that wherever rules or clients regain the name,
+as for any removed name typed back in. Where nothing is written into the store in the session, or
+the store is split or outdated, the page offers neither the row that adds a name nor an X,
+`STORE.md` §636.
 
 The one rule it applies is the issuer's, `AuthorityIssuer.IsUsableProfileName`, because a name that
 cannot travel as a claim is a name no client can ever hold: it would be granted here and refused at

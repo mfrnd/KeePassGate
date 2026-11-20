@@ -252,6 +252,65 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_removals_an_addition_names_are_those_known_and_those_a_deletion_record_tells_of_once_the_name_is_known_each_once()
+        {
+            // `STORE.md` §616: the removals of a name the reading holds, and every removal a
+            // deletion record tells of once the name counts as known, which the addition makes it;
+            // a removal known several ways, and known both by the reading and once the name is
+            // known, is a single removal.
+            var store = new ComposedStore(One);
+            var thrice = store.Add(StoreComposer.Record(One, "removed", "profile:reader", StoreComposer.Content(("name", "reader"))));
+            store.Delete(thrice);
+            var further = Told(One, "removed", "profile:reader");
+            store.Deleted.Add(further);
+            var itemOnly = new string('7', 32);
+            var unknown = Told(One, "removed", "profile:ops");
+            store.Deleted.Add(unknown);
+            store.RestateAll(new[]
+            {
+                StoreComposer.Item(("id", thrice.Hex), ("kind", "removed"), ("name", "reader")),
+                StoreComposer.Item(("id", itemOnly), ("kind", "removed"), ("name", "auditor")),
+            });
+
+            var reading = store.Read();
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            var both = new[] { thrice.Hex, KeePassGate.Hex.Of(further) };
+            Assert.That(reading.InForce.RemovalsOf("reader"), Is.EquivalentTo(both), "known by the reading");
+            Assert.That(reading.InForce.RemovalsOnceKnown("reader"), Is.EquivalentTo(both), "each once, however it is known");
+            Assert.That(reading.InForce.RemovalsOnceKnown("auditor"), Is.EqualTo(new[] { itemOnly }), "an item alone");
+            Assert.That(reading.InForce.RemovalsOf("ops"), Is.Empty, "a name the file does not know");
+            Assert.That(reading.InForce.RemovalsOnceKnown("ops"), Is.EqualTo(new[] { KeePassGate.Hex.Of(unknown) }), "told once it is known");
+            Assert.That(reading.InForce.RemovalsOnceKnown("nobody"), Is.Empty);
+            Assert.That(reading.InForce.RemovalsOnceKnown("Ops"), Is.Empty, "a name is compared exactly");
+
+            var none = new ComposedStore(One);
+            none.Restate(none.Decision("removed"));
+            var held = none.Read();
+            Assert.That(held.InForce.RemovalsOf("reader"), Has.Count.EqualTo(1));
+            Assert.That(held.InForce.RemovalsOnceKnown("reader"), Is.EqualTo(held.InForce.RemovalsOf("reader")),
+                "with no deletion record of a removal, what the reading holds");
+        }
+
+        [Test]
+        public void The_removals_an_addition_names_are_refused_from_a_reading_whose_key_was_overwritten()
+        {
+            // A reading let go overwrites its key, and a name hashed under the bytes left would
+            // find none of the deletion records that tell of its removals.
+            var store = new Fakes.MemoryStore();
+            StoreSeeds.Authority(store);
+            RemovedApart(store, "reader");
+            StoreInForce letGo;
+            using (var reading = store.Read())
+            {
+                letGo = reading.InForce;
+                Assert.That(letGo.RemovalsOnceKnown("reader"), Has.Count.EqualTo(1));
+            }
+
+            Assert.Throws<System.InvalidOperationException>(() => letGo.RemovalsOnceKnown("reader"));
+        }
+
+        [Test]
         public void The_additions_are_every_record_of_kind_profile_in_force_or_not()
         {
             var store = new ComposedStore(One);

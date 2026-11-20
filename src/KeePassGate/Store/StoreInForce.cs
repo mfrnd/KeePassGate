@@ -20,10 +20,12 @@ namespace KeePassGate.Store
     ///
     /// **Where it may be asked from.** It is made inside the reading, on the thread making it,
     /// which is the only caller of `FoundKey.Subject` and `FoundKey.TagOf`; what is handed out is
-    /// read and never asked for a subject. <see cref="Key"/> holds bytes a writer composes under
-    /// only where the reading was made afresh in the writer's own turn, `StoreReading.Afresh`: a
-    /// gate's reading may hand out forms whose keys were overwritten as it ended, which is why no
-    /// connection thread takes a key from one.
+    /// read and asks the key's cache for no subject, <see cref="RemovalsOnceKnown"/> hashing the
+    /// name an addition is composed for under the key's bytes, for whoever composes it.
+    /// <see cref="Key"/> holds bytes a writer composes under only where the reading was made
+    /// afresh in the writer's own turn, `StoreReading.Afresh`: a gate's reading may hand out
+    /// forms whose keys were overwritten as it ended, which is why no connection thread takes a
+    /// key from a gate's reading.
     ///
     /// **What takes access away is a union**, `STORE.md` §623 step 2: the records present, the
     /// items of every summary entry present, in force or not, and the deletion records that tell
@@ -48,8 +50,8 @@ namespace KeePassGate.Store
     /// under the key once. A subject is hashed only where a deletion record under the key carries
     /// the tag of a kind about that subject, and the hash is kept with the key, so a hold of a
     /// store whose deletion records tell of nothing hashes nothing, `FoundKey.Subject`. Everything
-    /// is worked out as the reading is made, and nothing after: what is handed out is read and
-    /// never changed, by whichever thread holds the reading.
+    /// is worked out as the reading is made, but the hash of the name an addition is composed
+    /// for: what is handed out is read and never changed, by whichever thread holds the reading.
     /// </remarks>
     internal sealed class StoreInForce
     {
@@ -65,6 +67,12 @@ namespace KeePassGate.Store
 
         /// <summary>The identifiers of <see cref="_removals"/>, by name.</summary>
         private readonly Dictionary<string, HashSet<string>> _removalsOf = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// The deletion records under the tag of kind `removed`, by the subject hash each carries:
+        /// what tells of a removal of a name once the name is known, <see cref="RemovalsOnceKnown"/>.
+        /// </summary>
+        private readonly Dictionary<string, List<string>> _removalDeletions = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 
         /// <summary>The versions a summary entry carries, by identifier, each with its item's members.</summary>
         private readonly Dictionary<string, IReadOnlyDictionary<string, string>> _versions =
@@ -152,6 +160,56 @@ namespace KeePassGate.Store
         {
             HashSet<string> removals;
             return name != null && _removalsOf.TryGetValue(name, out removals) ? removals : Nothing;
+        }
+
+        /// <summary>
+        /// The identifiers of the removals of this name that an addition of it names, `STORE.md`
+        /// §616: those <see cref="RemovalsOf"/> holds, and every removal that a deletion record
+        /// tells of once the name counts as known. None for a name nothing removes; names are
+        /// compared exactly.
+        /// </summary>
+        /// <remarks>
+        /// **The addition is what makes the name known.** A deletion record tells of a removal
+        /// only of a name the file knows, `STORE.md` §623 step 2, so where the removal's record
+        /// and every item restating it are gone, the reading holds no removal of a name that
+        /// nothing else names, and the file the addition is written into tells of the removal by
+        /// its deletion record. It rules out an addition naming only what
+        /// <see cref="RemovalsOf"/> holds, which its own write would put out of force.
+        ///
+        /// **Asked by whoever composes an addition**, over a reading whose key it composes under:
+        /// the name is hashed under the key's bytes, as composing the addition hashes it, and not
+        /// through the key's cache, which only the thread making the reading asks. Nothing is
+        /// hashed where no deletion record carries the tag of kind `removed`, and where the key's
+        /// bytes were overwritten, as letting the reading go overwrites them, the call throws
+        /// rather than answer with fewer removals.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">The key's bytes were overwritten.</exception>
+        public IReadOnlyCollection<string> RemovalsOnceKnown(string name)
+        {
+            var held = RemovalsOf(name);
+            if (name == null || _removalDeletions.Count == 0)
+            {
+                return held;
+            }
+
+            // Bytes that no longer give the key's name were overwritten as the reading was let
+            // go, and a name hashed under them finds nothing: refused, as an act composed under
+            // them is, `StoreAct`.
+            if (!string.Equals(StoreFormat.KeyName(Key.Bytes), Key.Name, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("The removals an addition names were asked of a reading whose store key was overwritten.");
+            }
+
+            List<string> told;
+            var subject = Hex.Of(StoreFormat.Subject(Key.Bytes, StoreKinds.Find(StoreKinds.Removed).SubjectPrefix + name));
+            if (!_removalDeletions.TryGetValue(subject, out told))
+            {
+                return held;
+            }
+
+            var removals = new HashSet<string>(held, StringComparer.Ordinal);
+            removals.UnionWith(told);
+            return removals;
         }
 
         /// <summary>The summary entries present, `STORE.md` §611.</summary>
@@ -486,7 +544,8 @@ namespace KeePassGate.Store
         /// <summary>
         /// What each kind a summary entry restates by a member takes away: its records, its items,
         /// and the deletion records that tell of it about a subject the file knows, `STORE.md`
-        /// §623 step 2; and the identifiers of the removals of each name.
+        /// §623 step 2; the identifiers of the removals of each name; and the deletion records
+        /// under the tag of kind `removed`, by subject hash.
         /// </summary>
         private void Take(FoundKey key, IReadOnlyDictionary<string, List<string>> byKind)
         {
@@ -534,6 +593,19 @@ namespace KeePassGate.Store
                 }
 
                 of.Add(removal.Id);
+            }
+
+            foreach (var identifier in byKind[StoreKinds.Removed])
+            {
+                List<string> sharing;
+                var subject = SubjectOf(identifier);
+                if (!_removalDeletions.TryGetValue(subject, out sharing))
+                {
+                    sharing = new List<string>();
+                    _removalDeletions[subject] = sharing;
+                }
+
+                sharing.Add(identifier);
             }
 
             TakeStatements(key, byKind);

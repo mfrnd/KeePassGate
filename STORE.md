@@ -1562,17 +1562,25 @@ without case, and a store stopped for a name out of form.
 
 **What the plugin writes** (this document's own, as the measured code writes an addition and a
 removal).
-An addition names every removal of its name that the reading it is composed over holds, and is
-composed only where the name is not on the list. A removal holds `name` alone, and is composed
-only where the name is on the list, so no removal is written for a name already off it, which
-would add an item for good with nothing to take away. **A pairing's additions are records of the
-admission's own act**, after its record of kind `client`: an addition for each approved name the
-list does not hold in the reading of the write's turn, so that the names and the admission are
-planned, saved and taken back together, and left out together where the admission's issuer does
-not stand alone (§627). **A name is added only where a store key stands** (§627 step 1): where
-none stands, the Profiles page refuses the press and states that the database has no certificate
-authority yet, and with a Create held by the same dialog the act is composed under the key that
-Create brings and written in the same write, after it.
+An addition names every removal of its name that the reading it is composed over holds, and every
+removal that a deletion record of that reading tells of once the name counts as known, and is
+composed only where the name is not on the list. A deletion record tells of a removal only of a
+name the file knows (§623 step 2), and the addition is what makes the name known: where the
+removal's record and every item restating it are gone, as a Synchronize with a copy that deleted
+them leaves it, the reading the addition is composed over holds no removal of the name, and the
+file the addition is written into tells of the removal by its deletion record. It rules out an
+addition naming only the removals that reading holds, which its own write would put out of force
+and the plugin's next write would delete, so that the name would stay off the list until it was
+added again. A removal holds `name` alone, and is composed only where the name is on the list, so
+no removal is written for a name already off it, which would add an item for good with nothing to
+take away. **A pairing's additions are records of the admission's own act**, after its record of
+kind `client`: an addition for each approved name the list does not hold in the reading of the
+write's turn, naming the removals of its name as any addition does, so that the names and the
+admission are planned, saved and taken back together, and left out together where the
+admission's issuer does not stand alone (§627). **A name is added only where a store key
+stands** (§627 step 1): where none stands, the Profiles page refuses the press and states that
+the database has no certificate authority yet, and with a Create held by the same dialog the act
+is composed under the key that Create brings and written in the same write, after it.
 
 **The list keeps no ceiling** (S21). No write of the plugin's own refuses a name for the count of
 names the list holds, and the reading cuts nothing short. What stays is a rule of a request and
@@ -1600,8 +1608,11 @@ the store, refuses a name where no store key stands and offers no Add and no rem
 nothing is written into the store or the store cannot be judged (§636), and the grant editor's
 pick list is read from the store. An Add that a removal of its name overtook before OK is not
 written: the page's line states it while the dialog is open, the log names the name at OK, and
-the name comes back by being added on the page again (§627). The names over copies that are
-synchronized are run over real databases, with what of that run stays owed in §644 item 32.
+the name comes back by being added on the page again (§627). An addition, the page's and a
+pairing's alike, names a removal of its name that only a deletion record tells of, and a removal
+of that kind that arrives after the press overtakes an Add as any other does. The names over
+copies that are synchronized are run over real databases, with what of that run stays owed in
+§644 item 32.
 *Held by* `ProfileNamesTests`,
 against the store's meanings of the measured code (`tests/Shared/StoreMeaningVectors.json`), and
 by every rule of this section over the product's reading, a hundred names among them;
@@ -1610,7 +1621,8 @@ by every rule of this section over the product's reading, a hundred names among 
 and `DatabaseProfilesTests` for the page; `GateTabFitsTests` for the page with a hundred
 names, and with the longest of each sentence its line holds, the refusal where no store key
 stands among them; and `StoreProfileMergeTests` for names added and removed in copies of a real
-database, each merged into the other under each of KeePass's methods.
+database, each merged into the other under each of KeePass's methods, and for a name added back
+where a copy kept nothing of its removal but a deletion record.
 
 ### Rules §617
 
@@ -2780,12 +2792,14 @@ name out of the buffer, and is held itself only where it still has something to 
 the store with the acts left. So a name added and removed on a single dialog, or removed and
 added again, writes nothing; written as records, the pair would leave an item in every later
 summary entry for good. **An addition names the removals of its name that the page's reading held
-at the press.** Where the store at OK knows a removal of the name beyond those, or has the name
-on the list, nothing is written for the press, and the log names it. A removal is written where
-the name is on the list at OK. That is the reading this section gives **Allow renewal**: a
-removal made apart, which the operator never saw, is not overruled by a press made before it
-arrived, as §610 has records made apart give the narrower answer. It rules out an addition
-composed at OK against whatever stands then, and an act composed once under a key that went.
+at the press**, those a deletion record tells of once the name counts as known among them
+(§616). Where the store at OK knows a removal of the name beyond those, counted the same way, or
+has the name on the list, nothing is written for the press, and the log names it. A removal is
+written where the name is on the list at OK. That is the reading this section gives **Allow
+renewal**: a removal made apart, which the operator never saw, is not overruled by a press made
+before it arrived, as §610 has records made apart give the narrower answer. It rules out an
+addition composed at OK against whatever stands then, and an act composed once under a key that
+went.
 
 | Under the dialog | Held on the tab | At OK |
 | --- | --- | --- |
