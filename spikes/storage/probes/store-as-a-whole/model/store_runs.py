@@ -784,8 +784,11 @@ def part_dep(n, nodes, values, seed, lo, hi, form, extra=()):
         shown.append((len(small), ' ; '.join(fmt(o) for o in small), node, kind, gtxt, what))
     for what, c in sorted(kinds.items()):
         print('   the form\'s histories beyond both copies, by what the walk holds: %s %d' % (what, c))
-    for length, text, node, kind, gtxt, what in sorted(set(shown))[:40]:
-        print('   beyond both copies (%d steps), %s at %s, gives %s; %s: %s' % (length, kind, node, gtxt, what, text))
+    # each failure shrunk, by what the walk holds and then by length; a history that shrinks to the
+    # same steps as another is printed once
+    for what in sorted(kinds):
+        for length, text, node, kind, gtxt, w in sorted(set(x for x in shown if x[5] == what))[:100]:
+            print('   beyond both copies (%d steps), %s at %s, gives %s; %s: %s' % (length, kind, node, gtxt, w, text))
     for key in ('less', 'nothing', 'more'):
         if key in short_cost:
             ops, (i, node, p) = short_cost[key]
@@ -883,7 +886,7 @@ def part_subtree(form):
         follow = sum(1 for j in range(k) if set(x for x in v['words_raw'].get('N%04d' % j, ())
                                                 if x.startswith('pf.')) == {'pf.r', 'pf.w'})
         print('   %4d nodes: the write %s: %d versions (%d of them below the root) and %d summary entry written,'
-              ' %d deletion records added; nodes that give pf rw after it %d of %d; %.1f s in the model' % (
+              ' %d deletion records added; nodes that give pf rw after it %d of %d; in the model, %.0f s' % (
                   k, 'applied' if ok else 'did not apply', sum(1 for e in made if e.kind == 'ver'),
                   sum(1 for e in made if e.kind == 'ver' and not e.obj.startswith('rule:root/')),
                   sum(1 for e in made if e.kind == 'head'), len(rep.dels) - d0, follow, k, dt))
