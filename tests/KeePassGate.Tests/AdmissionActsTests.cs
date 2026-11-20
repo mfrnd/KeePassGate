@@ -126,10 +126,13 @@ namespace KeePassGate.Tests
         public void A_write_that_adds_no_admission_is_not_one_a_pairing_is_believed_on()
         {
             // A plan adds no record the tree already holds, so an act planned against a store
-            // holding its own record plans nothing. Believed on a save of nothing, a pairing or a
-            // renewal would hand a certificate over with no admission in the file.
+            // holding its own record, with its name on the list, plans nothing. Believed on a save
+            // of nothing, a pairing or a renewal would hand a certificate over with no admission in
+            // the file.
             var store = new ComposedStore(One);
+            store.Add(Addition("ops", string.Empty));
             var act = AdmissionActs.Admit(store.Read(), AdmissionRecord.For(_first, Then, new[] { "ops" }, Hex('a')));
+            Assert.That(act.Records.Select(written => written.Kind), Is.EqualTo(new[] { "client" }), "the list holds the name");
 
             Assert.That(AdmissionActs.AddsAdmission(StoreWrite.Plan(store.Read(), new[] { act }, GateVersion.Current)), Is.True);
 
@@ -140,8 +143,8 @@ namespace KeePassGate.Tests
                     written.Strings.ToDictionary(pair => pair.Key, pair => pair.Value), StringComparer.Ordinal)));
             var write = StoreWrite.Plan(store.Read(), new[] { act }, GateVersion.Current);
 
-            Assume.That(write.Refused, Is.Null);
-            Assume.That(write.Empty, Is.True, "a store that holds the act's own record plans nothing");
+            Assert.That(write.Refused, Is.Null);
+            Assert.That(write.Empty, Is.True, "a store that holds the act's own record plans nothing");
             Assert.That(AdmissionActs.AddsAdmission(write), Is.False);
         }
 
