@@ -106,6 +106,13 @@ words:
   - delauth
   - renewcert
   - padd
+  - undoc
+
+  # the letters of rules in the vectors the measured code printed: its own alphabet of them, and
+  # masks that are out of form and held as such
+  - acdlprsu
+  - CRUDLA
+  - RLLA
 
   # own the transport, because the name rotates
   - REUSEADDR

@@ -15,6 +15,13 @@ namespace KeePassGate.Store
 
         /// <summary>The format number a version record states.</summary>
         Format,
+
+        /// <summary>
+        /// For a version whose object is of the type `rule` and holds `/`, the tag of the name
+        /// after its first `/`, the subject ending before it; zero for every other version,
+        /// `STORE.md` §609. `StoreFormat.SubjectOf` makes the subject and the text tagged.
+        /// </summary>
+        ProfileTag,
     }
 
     /// <summary>The form a member the core reads has to take, `STORE.md` §658.</summary>
@@ -248,11 +255,14 @@ namespace KeePassGate.Store
         /// <summary>What separates the type of a version's object from the rest, `STORE.md` §658.</summary>
         public const char ObjectTypeEnd = ':';
 
+        /// <summary>The type of the object of a profile's rule at a node, `STORE.md` §617.</summary>
+        public const string RuleType = "rule";
+
         /// <summary>
         /// The types of object a version is of: a profile's rule at a node, a node's switch, and
         /// an answer to a renewal. A version of another type is of a kind the plugin does not know.
         /// </summary>
-        public static readonly IReadOnlyList<string> ObjectTypes = Array.AsReadOnly(new[] { "rule", "switch", "renew" });
+        public static readonly IReadOnlyList<string> ObjectTypes = Array.AsReadOnly(new[] { RuleType, "switch", "renew" });
 
         /// <summary>The rows of `STORE.md` §658, in its order.</summary>
         public static readonly IReadOnlyList<StoreKind> All = Array.AsReadOnly(new[]
@@ -307,7 +317,7 @@ namespace KeePassGate.Store
                 true, StoreRestated.BySameMember, "name",
                 Members(new StoreMember("name", StoreForm.Text), new StoreMember(Id, StoreForm.Text))),
             new StoreKind(
-                Version, string.Empty, ObjectMember, StoreNumber.None,
+                Version, string.Empty, ObjectMember, StoreNumber.ProfileTag,
                 Members(
                     new StoreMember(ObjectMember, StoreForm.Text),
                     new StoreMember(After, StoreForm.Identifiers),

@@ -103,11 +103,24 @@ namespace KeePassGate.Store
         /// <summary>The store key an authority's or a retirement's content holds, or null.</summary>
         public FoundKey StoreKey { get; private set; }
 
-        /// <summary>What its identifier's subject is made of, where it reads as its kind.</summary>
+        /// <summary>
+        /// What its identifier's subject is made of, where it reads as its kind, as
+        /// `StoreFormat.SubjectOf` makes it from its row.
+        /// </summary>
         public string Subject { get; private set; }
 
-        /// <summary>What bytes 9 and 10 of its identifier hold, where it reads as its kind.</summary>
+        /// <summary>
+        /// What bytes 9 and 10 of its identifier hold, where it reads as its kind: the height or
+        /// the format number, and 0 for every other record, a version of a profile's rule among
+        /// them, whose bytes hold the tag of <see cref="Tagged"/> under each key instead.
+        /// </summary>
         public int Number { get; private set; }
+
+        /// <summary>
+        /// The text whose tag bytes 9 and 10 of its identifier hold, the profile's name of a
+        /// version of that profile's rule, `StoreFormat.SubjectOf`; null for every other record.
+        /// </summary>
+        public string Tagged { get; private set; }
 
         public string Check { get; private set; }
 
@@ -251,7 +264,8 @@ namespace KeePassGate.Store
 
             if (ReadsAsKind)
             {
-                return Same(StoreFormat.Identifier(key, Kind, Subject, Number, Check), entry);
+                var number = Tagged == null ? Number : StoreFormat.ProfileTag(key, Tagged);
+                return Same(StoreFormat.Identifier(key, Kind, Subject, number, Check), entry);
             }
 
             if (!Unknown)
@@ -429,7 +443,9 @@ namespace KeePassGate.Store
             }
 
             Members = members;
-            Subject = Row.SubjectPrefix + (Row.SubjectMember == null ? string.Empty : members[Row.SubjectMember]);
+            string tagged;
+            Subject = StoreFormat.SubjectOf(Row, Row.SubjectMember == null ? null : members[Row.SubjectMember], out tagged);
+            Tagged = tagged;
             ReadsAsKind = true;
         }
 

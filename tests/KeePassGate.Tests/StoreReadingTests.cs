@@ -339,6 +339,146 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_row_s_version_is_a_record_only_under_the_identifier_that_holds_its_profile_s_tag()
+        {
+            // `STORE.md` §609: a version of a profile's rule is placed by the subject hash of
+            // `rule:` and the node and the tag of the profile's name. The same strings under the
+            // tag of another name, or under the subject hash of the whole object and 0, sit under
+            // an identifier of the store and are not what was written: damage, and no record.
+            var row = Row("agent-455");
+            var store = new ComposedStore(One);
+            store.Add(row);
+            store.Restate(ItemOf(row));
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(reading.InForce.Records.Single(record => record.Hex == row.Hex).Is("version"), Is.True);
+
+            var check = row.Strings[StoreComposer.Check];
+            var elsewhere = new Dictionary<string, byte[]>
+            {
+                { "under the tag of another name", StoreComposer.IdentifierOf(One, "version", "rule:" + Node, StoreComposer.ProfileTag(One, "writer"), check) },
+                { "under the whole object and 0", StoreComposer.IdentifierOf(One, "version", Rule("agent-455"), 0, check) },
+            };
+            foreach (var pair in elsewhere)
+            {
+                var copied = new ComposedStore(One);
+                copied.Add(new StoreComposer.Composed(pair.Value, row.Strings));
+                var read = copied.Read();
+                Assert.That(read.Damage, Is.EqualTo(1), pair.Key);
+                Assert.That(read.InForce.Records.Any(record => record.Is("version")), Is.False, pair.Key);
+            }
+        }
+
+        [Test]
+        public void A_rule_s_object_with_no_slash_is_placed_by_the_whole_object_and_a_tag_of_0_is_a_tag()
+        {
+            // `STORE.md` §609: an object `rule:` with no `/` has the subject and the number of any
+            // other version, and stops nothing. A name whose tag is 0, found by a search run once
+            // over `agent-` and a counter under the key `one`, is placed under the subject of its
+            // node with 0, and not under the whole object.
+            var bare = StoreComposer.Version(One, "rule:" + Node, RowContent("rule:" + Node));
+            Assert.That(bare.Identifier, Is.EqualTo(StoreComposer.IdentifierOf(One, "version", "rule:" + Node, 0, bare.Strings[StoreComposer.Check])));
+            Assert.That(StoreComposer.ProfileTag(One, "agent-144433"), Is.EqualTo(0), "the name the search found");
+            var zero = Row("agent-144433");
+
+            var store = new ComposedStore(One);
+            store.Add(bare);
+            store.Add(zero);
+            store.RestateAll(new[] { ItemOf(bare), ItemOf(zero) });
+            var reading = store.Read();
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(
+                reading.InForce.Records.Where(record => record.Is("version")).Select(record => record.Hex),
+                Is.EquivalentTo(new[] { bare.Hex, zero.Hex }));
+
+            var whole = new ComposedStore(One);
+            whole.Add(new StoreComposer.Composed(
+                StoreComposer.IdentifierOf(One, "version", Rule("agent-144433"), 0, zero.Strings[StoreComposer.Check]), zero.Strings));
+            Assert.That(whole.Read().Damage, Is.EqualTo(1), "a row whose tag is 0 is not placed by its whole object");
+        }
+
+        private static IEnumerable<TestCaseData> Placements()
+        {
+            yield return new TestCaseData("rule:" + Node + "/a/b", "rule:" + Node, "a/b").SetArgDisplayNames("a name holding a slash");
+            yield return new TestCaseData("rule:" + Node + "/", "rule:" + Node, string.Empty).SetArgDisplayNames("an empty name");
+            yield return new TestCaseData("rule:/p", "rule:", "p").SetArgDisplayNames("no node");
+            yield return new TestCaseData("rule:" + Node, "rule:" + Node, null).SetArgDisplayNames("a rule's object with no slash");
+            yield return new TestCaseData("rule:", "rule:", null).SetArgDisplayNames("the type alone");
+            yield return new TestCaseData("switch:" + Node + "/x", "switch:" + Node + "/x", null).SetArgDisplayNames("a switch's object holding a slash");
+            yield return new TestCaseData("renew:a/b", "renew:a/b", null).SetArgDisplayNames("an answer's object holding a slash");
+        }
+
+        [TestCaseSource(nameof(Placements))]
+        public void A_version_is_placed_by_its_object_split_at_the_first_slash_of_a_rule_and_nowhere_else(
+            string objectName, string subject, string tagged)
+        {
+            // `STORE.md` §609 and §658: an object of the type `rule` is split at its first `/`, the
+            // subject before it and the tag of the text after it in bytes 9 and 10, and holds
+            // neither part to a form; every other object is its own subject, with 0. Each other
+            // way of placing the same strings is no place of the version.
+            var strings = StoreComposer.Record(One, "version", subject, RowContent(objectName)).Strings;
+            var check = strings[StoreComposer.Check];
+            var number = tagged == null ? 0 : StoreComposer.ProfileTag(One, tagged);
+            Assert.That(tagged == null || number != 0, Is.True, "a tag that is not 0, so that 0 places nothing");
+
+            Assert.That(
+                StoreVersions.PassesAt(One, StoreComposer.IdentifierOf(One, "version", subject, number, check), strings), Is.True,
+                "under its subject and its number");
+
+            var elsewhere = new List<(string Subject, int Number, string Why)>
+            {
+                (objectName, 0, "the whole object and 0"),
+                (subject, number == 0 ? StoreComposer.ProfileTag(One, "agent-455") : 0, "its subject and another number"),
+            };
+            var first = objectName.IndexOf('/');
+            var last = objectName.LastIndexOf('/');
+            if (first >= 0)
+            {
+                elsewhere.Add((objectName.Substring(0, first), StoreComposer.ProfileTag(One, objectName.Substring(first + 1)), "split at the first slash"));
+                elsewhere.Add((objectName.Substring(0, last), StoreComposer.ProfileTag(One, objectName.Substring(last + 1)), "split at the last slash"));
+            }
+
+            foreach (var place in elsewhere.Where(place => place.Subject != subject || place.Number != number))
+            {
+                Assert.That(
+                    StoreVersions.PassesAt(One, StoreComposer.IdentifierOf(One, "version", place.Subject, place.Number, check), strings), Is.False,
+                    place.Why);
+            }
+
+            var store = new ComposedStore(One);
+            var placed = store.Add(new StoreComposer.Composed(StoreComposer.IdentifierOf(One, "version", subject, number, check), strings));
+            store.Restate(ItemOf(placed));
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), "an object out of the form of a rule stops nothing: " + reading.Reason);
+        }
+
+        [Test]
+        public void The_rows_of_two_names_whose_tags_meet_under_a_key_are_two_records_told_apart_by_their_checks()
+        {
+            // Found by a search run once over `agent-` and a counter: under the key `one` both
+            // names' tags are `d7d6`. Two tags meet by chance, and the check is what tells the two
+            // records apart, `STORE.md` §609.
+            Assert.That(StoreComposer.ProfileTag(One, "agent-455"), Is.EqualTo(StoreComposer.ProfileTag(One, "agent-604")), "the names the search found");
+            var first = Row("agent-455");
+            var second = Row("agent-604");
+            Assert.That(first.Hex.Substring(0, 20), Is.EqualTo(second.Hex.Substring(0, 20)), "the same tag, subject and number");
+            var store = new ComposedStore(One);
+            store.Add(first);
+            store.Add(second);
+            store.RestateAll(new[] { ItemOf(first), ItemOf(second) });
+
+            var reading = store.Read();
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            var versions = reading.InForce.Records.Where(record => record.Is("version")).ToList();
+            Assert.That(versions.Select(record => record.Hex), Is.EquivalentTo(new[] { first.Hex, second.Hex }));
+            Assert.That(
+                versions.Select(record => record.Form.Member("object")),
+                Is.EquivalentTo(new[] { Rule("agent-455"), Rule("agent-604") }));
+        }
+
+        [Test]
         public void Keeping_lets_go_of_the_forms_of_versions_no_entry_holds_and_clearing_of_all()
         {
             var authority = Authority(One, 'a');
@@ -363,6 +503,9 @@ namespace KeePassGate.Tests
         }
 
         private const string Nonce = "00112233445566778899aabbccddeeff";
+
+        /// <summary>The node the rows are about.</summary>
+        private const string Node = "0123456789abcdef0123456789abcdef";
 
         private static readonly IReadOnlyList<byte[]> NoDeletions = Array.Empty<byte[]>();
 
@@ -390,6 +533,33 @@ namespace KeePassGate.Tests
                 StoreComposer.Content(("after", string.Empty), ("height", height.ToString(System.Globalization.CultureInfo.InvariantCulture))),
                 height,
                 items);
+        }
+
+        /// <summary>The object of this profile's rule at <see cref="Node"/>.</summary>
+        private static string Rule(string profile)
+        {
+            return "rule:" + Node + "/" + profile;
+        }
+
+        /// <summary>A content of a version of this object granting read, naming nothing as replaced.</summary>
+        private static string RowContent(string objectName)
+        {
+            return StoreComposer.Content(("after", string.Empty), ("doc", "row:R"), ("object", objectName));
+        }
+
+        /// <summary>A version of this profile's rule at <see cref="Node"/>, as the composer places it.</summary>
+        private static StoreComposer.Composed Row(string profile)
+        {
+            return StoreComposer.Version(One, Rule(profile), RowContent(Rule(profile)));
+        }
+
+        /// <summary>The item `version` that restates this version.</summary>
+        private static string ItemOf(StoreComposer.Composed version)
+        {
+            var content = Newtonsoft.Json.Linq.JObject.Parse(version.Strings[StoreComposer.Data]);
+            return StoreComposer.Item(
+                ("after", (string)content["after"]), ("doc", (string)content["doc"]), ("id", version.Hex), ("kind", "version"),
+                ("object", (string)content["object"]));
         }
 
         private static string Format(string number = "1")

@@ -21,9 +21,11 @@ namespace KeePassGate.Tests
     /// `kpg-store-as-a-whole/store-key/` and a label. The values of the kinds and the subjects
     /// that code never wrote are its `hm`, `tag`, `subject_hash`, `mac` and `ident`, called over
     /// the inputs here by `spikes/storage/probes/store-as-a-whole/vectors.py`, committed on that
-    /// branch at `05c8cc64`, which prints every value written here. Regenerate them from that
-    /// code and never from this side, since two halves written here could agree on a format
-    /// neither measured.
+    /// branch at `05c8cc64`, which prints every value written here but the versions of a
+    /// profile's rule and of a node's switch, which it prints at `53579025`; the tags of the
+    /// profiles' names, `profile_tag`, are held to the same commit's output by `StoreRecordTests`.
+    /// Regenerate them from that code and never from this side, since two halves written here
+    /// could agree on a format neither measured.
     /// </remarks>
     [TestFixture]
     public sealed class StoreFormatTests
@@ -50,6 +52,9 @@ namespace KeePassGate.Tests
         private static readonly string HeadItem = "{\"client\":\"" + Repeat("c3") + "\",\"kind\":\"revoked\"}";
 
         private const string FormatItem = "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}";
+
+        /// <summary>The node the vectors' versions are about, `bb` 16 times.</summary>
+        private const string Node = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
         // A tag in hexadecimal that reads as a word to the spelling check.
         // cspell:ignore cabae
@@ -227,6 +232,54 @@ namespace KeePassGate.Tests
 
             Assert.That(composed.Hex, Is.EqualTo("e3e857bd9fc6f65100002d3857b66556"));
             Assert.That(StoreComposer.KeyName(Two), Is.EqualTo(StoreFormat.KeyName(Two)));
+
+            var row = StoreComposer.Version(
+                One,
+                "rule:" + Node + "/pf",
+                StoreComposer.Content(("after", string.Empty), ("doc", "row:RU"), ("nonce", Nonce), ("object", "rule:" + Node + "/pf")));
+            Assert.That(row.Hex, Is.EqualTo("d19b349eecd02b8ebf7f9349081d494a"), "a version of a profile's rule");
+        }
+
+        // Versions of a profile's rule and of a node's switch, printed by vectors.py with
+        // `--records` at `53579025`: a row's identifier holds the subject hash of `rule:` and the
+        // node and its profile's tag, and the switch's the subject hash of its whole object and 0.
+        [TestCase("rule:" + Node + "/pf", "row:RU", "9349081d494afdaef3453e481bf03a96df86404e238291953fee37459ba37c81", "d19b349eecd02b8ebf7f9349081d494a")]
+        [TestCase("rule:" + Node + "/pg", "row:", "421c65a4fc6b09e34f7419921817b7d8844e88a8a627c79646c643ff177677ca", "d19b349eecd02b8ec5f4421c65a4fc6b")]
+        [TestCase("switch:" + Node, "sw:deny", "0a6daa1c9f61be0f61c5e0575238d44517a305eb7cfb74bf72adc3fa470e9b19", "d19b34e20b58655d00000a6daa1c9f61")]
+        public void A_version_passes_at_the_identifier_its_object_gives_and_nowhere_else(
+            string objectText, string doc, string check, string identifier)
+        {
+            var version = Version(
+                "version",
+                "{\"after\":\"\",\"doc\":\"" + doc + "\",\"nonce\":\"" + Nonce + "\",\"object\":\"" + objectText + "\"}",
+                check);
+
+            Assert.That(StoreVersions.PassesAt(One, Bytes(identifier), version), Is.True);
+            var whole = StoreFormat.Identifier(One, "version", objectText, 0, check);
+            Assert.That(
+                StoreVersions.PassesAt(One, whole, version),
+                Is.EqualTo(objectText.StartsWith("switch:", StringComparison.Ordinal)),
+                "the subject hash of the whole object and 0 place a switch and no row");
+        }
+
+        [Test]
+        public void Every_subject_is_made_by_its_kind_s_row_and_a_rule_s_object_is_split_there()
+        {
+            // `STORE.md` §609 and §658: the table is where a subject is made from, so whatever
+            // tells a record by its subject, the reading of a deletion record among it, makes a
+            // row's subject as the row's identifier holds it.
+            foreach (var kind in StoreKinds.All.Where(kind => kind.Number != StoreNumber.ProfileTag))
+            {
+                var value = kind.SubjectMember == null ? null : "x";
+                Assert.That(StoreFormat.SubjectOf(kind, value, out var none), Is.EqualTo(kind.SubjectPrefix + value), kind.Name);
+                Assert.That(none, Is.Null, kind.Name);
+            }
+
+            var version = StoreKinds.Find(StoreKinds.Version);
+            Assert.That(StoreFormat.SubjectOf(version, "rule:" + Node + "/a/b", out var name), Is.EqualTo("rule:" + Node));
+            Assert.That(name, Is.EqualTo("a/b"));
+            Assert.That(StoreFormat.SubjectOf(version, "switch:" + Node + "/x", out name), Is.EqualTo("switch:" + Node + "/x"));
+            Assert.That(name, Is.Null);
         }
 
         [Test]

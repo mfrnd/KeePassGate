@@ -94,6 +94,30 @@ namespace KeePassGate.Testing
             return new Composed(IdentifierOf(key, kind, subject, number, strings[Check]), strings);
         }
 
+        /// <summary>
+        /// A record of kind `version` of this object, `STORE.md` §609: for an object `rule:` that
+        /// holds `/`, the subject is the object before its first `/` and the number the tag of the
+        /// profile's name after it, and for every other object the subject is the object and the
+        /// number 0, as the measured code's `ident` makes them.
+        /// </summary>
+        public static Composed Version(byte[] key, string objectName, string content)
+        {
+            var slash = objectName.StartsWith("rule:", StringComparison.Ordinal) ? objectName.IndexOf('/') : -1;
+            return slash < 0
+                ? Record(key, "version", objectName, content)
+                : Record(key, "version", objectName.Substring(0, slash), content, ProfileTag(key, objectName.Substring(slash + 1)));
+        }
+
+        /// <summary>
+        /// The tag of a profile's name under a key, `STORE.md` §609: the first two bytes of the
+        /// HMAC over `name`, a line feed and the name, as a number read big-endian.
+        /// </summary>
+        public static int ProfileTag(byte[] key, string name)
+        {
+            var tag = Hmac(key, "name\n" + name);
+            return (tag[0] << 8) | tag[1];
+        }
+
         /// <summary>The check of `STORE.md` §608 over these strings, as lowercase hexadecimal.</summary>
         public static string CheckOf(byte[] key, IReadOnlyDictionary<string, string> strings)
         {

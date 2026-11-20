@@ -1,6 +1,11 @@
 {
-  "about": "Records in the forms STORE.md 614, 615 and 648 fix, and summary entries in the form of 611, composed by dumps, mac and ident of probe/store.py of spikes/storage/probes/store-as-a-whole on spikes/storage-survival, as rec of vectors.py beside the probe composes them, and never from this side. Each record holds the store key, its kind, the members it was composed from, its content text, its check, the subject and the number in bytes 9 and 10 its identifier was made of, its identifier, and every string of its entry. A summary entry also holds its items in the order they were given; its strings number them in ordinal order of their text, as the probe's Encoder numbers them. The store key is keybytes('one') of store.py. The values are invented. In an authority, ca and host are 96 invented bytes each in base64 and no PKCS#12, sniKey is 32 invented bytes in base64, and id is 32 invented bytes in hexadecimal and the digest of nothing in ca: the core reads such a record as an authority, and the reading of STORE.md 614 finds the authority not whole. Every der is a certificate in DER made here that decodes, with the base point of P-256 as its key and a signature nobody checks, and every admission key is the SHA-256 of a der, so an admission reads as STORE.md 615 has it. The client paired with the first certificate, renewed it to the second, and renewed the second to the third and the fourth. Every list, in profiles, renewed and after, is sorted, as the probe writes every list. No record holds v, as STORE.md 607 has it. An item withdrawn is in the form that S29 settles for STORE.md 611, 648 and 658: it restates a single withdrawn record of this file, holding that record's identifier as id and its certificate, renewed and from text for text, and no from where the record holds none. The second summary entry of height 2 restates both withdrawn records of this file. An addition and a removal of a profile name are in the form STORE.md 616 fixes, each naming reader: the addition holds name and after, and the removal name alone. The second addition names the removal of this file in after, and the summary entry that restates a removal holds the item removed of STORE.md 611, with the removal's name and its identifier as id.",
+  "about": "Records in the forms STORE.md 614, 615 and 648 fix, and summary entries in the form of 611, composed by dumps, mac and ident of probe/store.py of spikes/storage/probes/store-as-a-whole on spikes/storage-survival, as rec of vectors.py beside the probe composes them, and never from this side. Each record holds the store key, its kind, the members it was composed from, its content text, its check, the subject and the number in bytes 9 and 10 its identifier was made of, its identifier, and every string of its entry. A summary entry also holds its items in the order they were given; its strings number them in ordinal order of their text, as the probe's Encoder numbers them. The store key is keybytes('one') of store.py. The values are invented. In an authority, ca and host are 96 invented bytes each in base64 and no PKCS#12, sniKey is 32 invented bytes in base64, and id is 32 invented bytes in hexadecimal and the digest of nothing in ca: the core reads such a record as an authority, and the reading of STORE.md 614 finds the authority not whole. Every der is a certificate in DER made here that decodes, with the base point of P-256 as its key and a signature nobody checks, and every admission key is the SHA-256 of a der, so an admission reads as STORE.md 615 has it. The client paired with the first certificate, renewed it to the second, and renewed the second to the third and the fourth. Every list, in profiles, renewed and after, is sorted, as the probe writes every list. No record holds v, as STORE.md 607 has it. An item withdrawn is in the form that S29 settles for STORE.md 611, 648 and 658: it restates a single withdrawn record of this file, holding that record's identifier as id and its certificate, renewed and from text for text, and no from where the record holds none. The second summary entry of height 2 restates both withdrawn records of this file. An addition and a removal of a profile name are in the form STORE.md 616 fixes, each naming reader: the addition holds name and after, and the removal name alone. The second addition names the removal of this file in after, and the summary entry that restates a removal holds the item removed of STORE.md 611, with the removal's name and its identifier as id. A version of a profile's row at a node and a version of a node's switch are records of kind version, with the store's rows switched on and the identifier in the form split of store.py, in the form by what arrived (the form seen of S34-DESIGN.md) with a removed row taken off for real. The object of a row is rule:, the node's identifier in 32 lowercase hexadecimal characters, a slash and the profile's name; the object of a switch is switch: and the node's identifier. Each text is store.py's doc over the model's value, configured for the full mask, with the model's letters written as the product writes them: row: and the letters granted, row: alone for an empty rule; off: and the letters that arrived for the profile when the rule was taken off, off: alone where nothing arrived; off:deny for a rule taken off while the node's own switch refused; sw:deny; and sw:inherit followed, for each profile at least a letter arrived for, by a space, the name, = and its letters, sw:inherit alone where nothing arrived for any profile. The model writes every mask in lower case and in alphabetical order (off:alr, sw:inherit pf=alr); the texts here write it in capitals in the order of CRUSDLAP (off:RLA, sw:inherit pf=RLA), each letter at most once. Both write a switch's items with the names in ascending ordinal order, which puts Zeta before p-b and p-b before pa. The identifier of a row's version holds the subject hash over the object before the slash and, in bytes 9 and 10, the profile's tag, the first two bytes of HMAC-SHA256 under the store key over name, a line feed and the profile's name; its subject and its number are those, the number the tag read as a big-endian number, and profileTags holds each tag. The label name is that of no kind and of nothing else keyed under a store key: the check is keyed under the kind's name, a kind's tag under tag, a subject's hash under subject and a key's name under key. The identifier of a switch's version holds the subject hash over its object and zero. The node is bb repeated 16 times and the rows are of the model's pf and pg. The versions of a row and of the switch here are composed apart and name nothing, but for three: the rule taken off renewed by a write above names the version taken off with RLA and records CRUDLA, what arrives after that write; the switch renewed by a write above names the switch inheriting with a mask for each profile and changes the letters of pf alone; and a version of pf that grants R names in after the version that grants RU and the version taken off with RLA, which it replaces. The summary entry of height 1 that restates rules holds the item format and an item version for each of those versions, each with the version's identifier as id and its object, after and text. texts holds texts of a row and of a switch, each with the model's own text where the script's reader takes it and null where it refuses it: a mask in capitals of the letters of CRUSDLAP in that order, each at most once; off:deny exactly; sw:deny exactly; sw:inherit and items, each a single space, a name of 1 to 64 ASCII letters, digits, - and _ other than default, = and a mask of at least a letter, the names in ascending ordinal order and so each once, and nothing after the last item. That reader is the script's own, before store.py's undoc, which takes some of the texts refused here; read.py raises on every text the reader refuses, so no store of these vectors holds such a text and no reading answers for it. The model holds a switch under an object of its own name, sw: and the node, which store.py writes as switch: and the node's identifier, and its acts compose a version at the write, with no buffer between a press and the write; the records here are composed by rec and by no act.",
   "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+  "profileTags": {
+    "pf": "bf7f",
+    "pg": "c5f4",
+    "px": "e708"
+  },
   "records": {
     "authority": {
       "check": "0e2272624eafcbac155bd8fccc24788b04afcc3167dff6f69545c881cad034c3",
@@ -157,6 +162,121 @@
         "KPG.Mac": "38b1edb1f975299b399bc8de0373b37622a8153c46a067872699e3c0d0f3a809",
         "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}",
         "KPG.S.0002": "{\"id\":\"3f3cb0f2b5a1afa0000077b5cbd11779\",\"kind\":\"removed\",\"name\":\"reader\"}"
+      },
+      "subject": "store"
+    },
+    "head of height 1, restating rules": {
+      "check": "f7cb7bffa0b2b5d7c05ce12dd26f968b89aa0e5eb7c13820bc78383bee84fe47",
+      "content": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+      "id": "e34b4d9d4d36de780001f7cb7bffa0b2",
+      "items": [
+        {
+          "format": "1",
+          "kind": "format",
+          "plugin": "0.3.0"
+        },
+        {
+          "after": "",
+          "doc": "row:RU",
+          "id": "d19b349eecd02b8ebf7f9349081d494a",
+          "kind": "version",
+          "object": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf"
+        },
+        {
+          "after": "",
+          "doc": "row:",
+          "id": "d19b349eecd02b8ec5f4421c65a4fc6b",
+          "kind": "version",
+          "object": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pg"
+        },
+        {
+          "after": "",
+          "doc": "off:RLA",
+          "id": "d19b349eecd02b8ebf7ffb4f223af7c6",
+          "kind": "version",
+          "object": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf"
+        },
+        {
+          "after": "",
+          "doc": "off:",
+          "id": "d19b349eecd02b8ebf7fbb626f3d126d",
+          "kind": "version",
+          "object": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf"
+        },
+        {
+          "after": "",
+          "doc": "off:deny",
+          "id": "d19b349eecd02b8ebf7f787cb91ceff4",
+          "kind": "version",
+          "object": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf"
+        },
+        {
+          "after": "",
+          "doc": "sw:deny",
+          "id": "d19b34e20b58655d00000a6daa1c9f61",
+          "kind": "version",
+          "object": "switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "after": "",
+          "doc": "sw:inherit Zeta=C p-b=U pa=RL pf=RLA pg=R",
+          "id": "d19b34e20b58655d00005221af506e91",
+          "kind": "version",
+          "object": "switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "after": "",
+          "doc": "sw:inherit",
+          "id": "d19b34e20b58655d00006d8ea1c2599e",
+          "kind": "version",
+          "object": "switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "after": "d19b349eecd02b8ebf7ffb4f223af7c6",
+          "doc": "off:CRUDLA",
+          "id": "d19b349eecd02b8ebf7fd6862c2b9137",
+          "kind": "version",
+          "object": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf"
+        },
+        {
+          "after": "d19b34e20b58655d00005221af506e91",
+          "doc": "sw:inherit Zeta=C p-b=U pa=RL pf=CRUDLA pg=R",
+          "id": "d19b34e20b58655d0000d83f0dbda6a1",
+          "kind": "version",
+          "object": "switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "after": "d19b349eecd02b8ebf7f9349081d494a d19b349eecd02b8ebf7ffb4f223af7c6",
+          "doc": "row:R",
+          "id": "d19b349eecd02b8ebf7fbb981776e184",
+          "kind": "version",
+          "object": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf"
+        }
+      ],
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "head",
+      "members": {
+        "after": "",
+        "height": "1",
+        "nonce": "00112233445566778899aabbccddeeff"
+      },
+      "number": 1,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+        "KPG.Kind": "head",
+        "KPG.Mac": "f7cb7bffa0b2b5d7c05ce12dd26f968b89aa0e5eb7c13820bc78383bee84fe47",
+        "KPG.S.0001": "{\"after\":\"\",\"doc\":\"off:\",\"id\":\"d19b349eecd02b8ebf7fbb626f3d126d\",\"kind\":\"version\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+        "KPG.S.0002": "{\"after\":\"\",\"doc\":\"off:RLA\",\"id\":\"d19b349eecd02b8ebf7ffb4f223af7c6\",\"kind\":\"version\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+        "KPG.S.0003": "{\"after\":\"\",\"doc\":\"off:deny\",\"id\":\"d19b349eecd02b8ebf7f787cb91ceff4\",\"kind\":\"version\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+        "KPG.S.0004": "{\"after\":\"\",\"doc\":\"row:\",\"id\":\"d19b349eecd02b8ec5f4421c65a4fc6b\",\"kind\":\"version\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pg\"}",
+        "KPG.S.0005": "{\"after\":\"\",\"doc\":\"row:RU\",\"id\":\"d19b349eecd02b8ebf7f9349081d494a\",\"kind\":\"version\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+        "KPG.S.0006": "{\"after\":\"\",\"doc\":\"sw:deny\",\"id\":\"d19b34e20b58655d00000a6daa1c9f61\",\"kind\":\"version\",\"object\":\"switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+        "KPG.S.0007": "{\"after\":\"\",\"doc\":\"sw:inherit Zeta=C p-b=U pa=RL pf=RLA pg=R\",\"id\":\"d19b34e20b58655d00005221af506e91\",\"kind\":\"version\",\"object\":\"switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+        "KPG.S.0008": "{\"after\":\"\",\"doc\":\"sw:inherit\",\"id\":\"d19b34e20b58655d00006d8ea1c2599e\",\"kind\":\"version\",\"object\":\"switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+        "KPG.S.0009": "{\"after\":\"d19b349eecd02b8ebf7f9349081d494a d19b349eecd02b8ebf7ffb4f223af7c6\",\"doc\":\"row:R\",\"id\":\"d19b349eecd02b8ebf7fbb981776e184\",\"kind\":\"version\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+        "KPG.S.0010": "{\"after\":\"d19b349eecd02b8ebf7ffb4f223af7c6\",\"doc\":\"off:CRUDLA\",\"id\":\"d19b349eecd02b8ebf7fd6862c2b9137\",\"kind\":\"version\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+        "KPG.S.0011": "{\"after\":\"d19b34e20b58655d00005221af506e91\",\"doc\":\"sw:inherit Zeta=C p-b=U pa=RL pf=CRUDLA pg=R\",\"id\":\"d19b34e20b58655d0000d83f0dbda6a1\",\"kind\":\"version\",\"object\":\"switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+        "KPG.S.0012": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
       },
       "subject": "store"
     },
@@ -358,6 +478,226 @@
       },
       "subject": "client:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
     },
+    "version, a row naming the versions it replaces": {
+      "check": "bb981776e184d95f588808e88b6af7977e9d3a1e68aabfbd9e0d4f960e2df669",
+      "content": "{\"after\":\"d19b349eecd02b8ebf7f9349081d494a d19b349eecd02b8ebf7ffb4f223af7c6\",\"doc\":\"row:R\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+      "id": "d19b349eecd02b8ebf7fbb981776e184",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "d19b349eecd02b8ebf7f9349081d494a d19b349eecd02b8ebf7ffb4f223af7c6",
+        "doc": "row:R",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf"
+      },
+      "number": 49023,
+      "strings": {
+        "KPG.Data": "{\"after\":\"d19b349eecd02b8ebf7f9349081d494a d19b349eecd02b8ebf7ffb4f223af7c6\",\"doc\":\"row:R\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "bb981776e184d95f588808e88b6af7977e9d3a1e68aabfbd9e0d4f960e2df669"
+      },
+      "subject": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "version, a row that grants": {
+      "check": "9349081d494afdaef3453e481bf03a96df86404e238291953fee37459ba37c81",
+      "content": "{\"after\":\"\",\"doc\":\"row:RU\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+      "id": "d19b349eecd02b8ebf7f9349081d494a",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "",
+        "doc": "row:RU",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf"
+      },
+      "number": 49023,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"doc\":\"row:RU\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "9349081d494afdaef3453e481bf03a96df86404e238291953fee37459ba37c81"
+      },
+      "subject": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "version, a rule taken off renewed by a write above": {
+      "check": "d6862c2b913741ed423ebc453e02e2173d2eb88258f9ea2ba2becb092554d329",
+      "content": "{\"after\":\"d19b349eecd02b8ebf7ffb4f223af7c6\",\"doc\":\"off:CRUDLA\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+      "id": "d19b349eecd02b8ebf7fd6862c2b9137",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "d19b349eecd02b8ebf7ffb4f223af7c6",
+        "doc": "off:CRUDLA",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf"
+      },
+      "number": 49023,
+      "strings": {
+        "KPG.Data": "{\"after\":\"d19b349eecd02b8ebf7ffb4f223af7c6\",\"doc\":\"off:CRUDLA\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "d6862c2b913741ed423ebc453e02e2173d2eb88258f9ea2ba2becb092554d329"
+      },
+      "subject": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "version, a rule taken off while the switch refused": {
+      "check": "787cb91ceff4d94aaa0609a3739306ba2d404a2477d31d5ad5521f4769d3704d",
+      "content": "{\"after\":\"\",\"doc\":\"off:deny\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+      "id": "d19b349eecd02b8ebf7f787cb91ceff4",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "",
+        "doc": "off:deny",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf"
+      },
+      "number": 49023,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"doc\":\"off:deny\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "787cb91ceff4d94aaa0609a3739306ba2d404a2477d31d5ad5521f4769d3704d"
+      },
+      "subject": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "version, a rule taken off, nothing having arrived": {
+      "check": "bb626f3d126d63e9649c6d4e222086e7103e85f8a332799233dd893489a1ba4f",
+      "content": "{\"after\":\"\",\"doc\":\"off:\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+      "id": "d19b349eecd02b8ebf7fbb626f3d126d",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "",
+        "doc": "off:",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf"
+      },
+      "number": 49023,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"doc\":\"off:\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "bb626f3d126d63e9649c6d4e222086e7103e85f8a332799233dd893489a1ba4f"
+      },
+      "subject": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "version, a rule taken off, with the mask that arrived": {
+      "check": "fb4f223af7c6b06f198d411679aef6a245c244d5fb55fd5c69dd768d6ab10d7e",
+      "content": "{\"after\":\"\",\"doc\":\"off:RLA\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+      "id": "d19b349eecd02b8ebf7ffb4f223af7c6",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "",
+        "doc": "off:RLA",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf"
+      },
+      "number": 49023,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"doc\":\"off:RLA\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "fb4f223af7c6b06f198d411679aef6a245c244d5fb55fd5c69dd768d6ab10d7e"
+      },
+      "subject": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "version, an empty rule": {
+      "check": "421c65a4fc6b09e34f7419921817b7d8844e88a8a627c79646c643ff177677ca",
+      "content": "{\"after\":\"\",\"doc\":\"row:\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pg\"}",
+      "id": "d19b349eecd02b8ec5f4421c65a4fc6b",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "",
+        "doc": "row:",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pg"
+      },
+      "number": 50676,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"doc\":\"row:\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pg\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "421c65a4fc6b09e34f7419921817b7d8844e88a8a627c79646c643ff177677ca"
+      },
+      "subject": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "version, the switch inheriting, nothing having arrived": {
+      "check": "6d8ea1c2599ed301d309c3b5963ceb1dbb38d3e10e273c7ee217324dcdc0db6d",
+      "content": "{\"after\":\"\",\"doc\":\"sw:inherit\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+      "id": "d19b34e20b58655d00006d8ea1c2599e",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "",
+        "doc": "sw:inherit",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"doc\":\"sw:inherit\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "6d8ea1c2599ed301d309c3b5963ceb1dbb38d3e10e273c7ee217324dcdc0db6d"
+      },
+      "subject": "switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "version, the switch inheriting, with a mask for each profile": {
+      "check": "5221af506e91c6f5108a9f809dbcf341d94a8fa843b405afa7f6d7c17d51ea4c",
+      "content": "{\"after\":\"\",\"doc\":\"sw:inherit Zeta=C p-b=U pa=RL pf=RLA pg=R\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+      "id": "d19b34e20b58655d00005221af506e91",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "",
+        "doc": "sw:inherit Zeta=C p-b=U pa=RL pf=RLA pg=R",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"doc\":\"sw:inherit Zeta=C p-b=U pa=RL pf=RLA pg=R\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "5221af506e91c6f5108a9f809dbcf341d94a8fa843b405afa7f6d7c17d51ea4c"
+      },
+      "subject": "switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "version, the switch refusing": {
+      "check": "0a6daa1c9f61be0f61c5e0575238d44517a305eb7cfb74bf72adc3fa470e9b19",
+      "content": "{\"after\":\"\",\"doc\":\"sw:deny\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+      "id": "d19b34e20b58655d00000a6daa1c9f61",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "",
+        "doc": "sw:deny",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"doc\":\"sw:deny\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "0a6daa1c9f61be0f61c5e0575238d44517a305eb7cfb74bf72adc3fa470e9b19"
+      },
+      "subject": "switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "version, the switch renewed by a write above": {
+      "check": "d83f0dbda6a167148addf6493e7b4dc70a60c4c3a4d8d8e835259a760fbb9fd1",
+      "content": "{\"after\":\"d19b34e20b58655d00005221af506e91\",\"doc\":\"sw:inherit Zeta=C p-b=U pa=RL pf=CRUDLA pg=R\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+      "id": "d19b34e20b58655d0000d83f0dbda6a1",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "d19b34e20b58655d00005221af506e91",
+        "doc": "sw:inherit Zeta=C p-b=U pa=RL pf=CRUDLA pg=R",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"after\":\"d19b34e20b58655d00005221af506e91\",\"doc\":\"sw:inherit Zeta=C p-b=U pa=RL pf=CRUDLA pg=R\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "d83f0dbda6a167148addf6493e7b4dc70a60c4c3a4d8d8e835259a760fbb9fd1"
+      },
+      "subject": "switch:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
     "withdrawn": {
       "check": "757d9fc339d82423f5671596d1f5e195e241994549f368044c8ac3c9ae161608",
       "content": "{\"certificate\":\"cbeb1b2e5e943a9f5fbee268808ea4352f99a4bfbd4fd3f2a94d18a6e9dd2c5d\",\"from\":\"1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"renewed\":\"45c258b369ba672883e307000d57ecbb8026f18d2f1120feb9832e5237434d58 cd0f5b36fc5627ce71842b25ddb40178d7a57d9ae53521ba6305827639a60f6a\"}",
@@ -397,5 +737,54 @@
       },
       "subject": "certificate:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
     }
+  },
+  "texts": {
+    "cut:R": null,
+    "off:": "off:",
+    "off:-": null,
+    "off:A": "off:a",
+    "off:ALR": null,
+    "off:CRUSDLAP": "off:acdlprsu",
+    "off:Deny": null,
+    "off:RLA": "off:alr",
+    "off:RLLA": null,
+    "off:R|U": null,
+    "off:deny": "off:deny",
+    "off:deny ": null,
+    "row:": "row:",
+    "row: ": null,
+    "row:CRUSDLAP": "row:acdlprsu",
+    "row:RR": null,
+    "row:RU": "row:ru",
+    "row:UR": null,
+    "row:W": null,
+    "row:r": null,
+    "sw:": null,
+    "sw:Inherit": null,
+    "sw:allow": null,
+    "sw:deny": "sw:deny",
+    "sw:deny pf=R": null,
+    "sw:inherit": "sw:inherit",
+    "sw:inherit ": null,
+    "sw:inherit  pf=R": null,
+    "sw:inherit Zeta=C p-b=U pa=RL pf=RLA pg=R": "sw:inherit Zeta=c p-b=u pa=lr pf=alr pg=r",
+    "sw:inherit default=R": null,
+    "sw:inherit p.f=R": null,
+    "sw:inherit pa=R Zeta=C": null,
+    "sw:inherit pa=R p-b=U": null,
+    "sw:inherit pf": null,
+    "sw:inherit pf=": null,
+    "sw:inherit pf=R": "sw:inherit pf=r",
+    "sw:inherit pf=R ": null,
+    "sw:inherit pf=R pf=U": null,
+    "sw:inherit pf=RLA pg=U": "sw:inherit pf=alr pg=u",
+    "sw:inherit pf=RR": null,
+    "sw:inherit pf=UR": null,
+    "sw:inherit pf=r": null,
+    "sw:inherit pg=R pf=R": null,
+    "sw:inherit qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq=R": "sw:inherit qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq=r",
+    "sw:inherit qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq=R": null,
+    "sw:inherit/deny": null,
+    "void:": null
   }
 }

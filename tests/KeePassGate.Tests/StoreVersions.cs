@@ -63,6 +63,15 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>
+        /// Whether a version passes under a key as the version of the entry under this identifier:
+        /// its check, and the identifier its content gives, `STORE.md` §609.
+        /// </summary>
+        public static bool PassesAt(byte[] key, byte[] identifier, IReadOnlyDictionary<string, string> strings)
+        {
+            return StoreChecked.Read(new StoreVersions().Version(strings)).Passes(new FoundKey((byte[])key.Clone()), identifier);
+        }
+
+        /// <summary>
         /// The store key a version gives as the version of the entry under this identifier, or
         /// null, `STORE.md` §621.
         /// </summary>

@@ -408,7 +408,7 @@ namespace KeePassGate.Store
             }
 
             var byKind = ByKind(key, byTag);
-            made.Told = Telling(key, byKind, StoreKinds.Head, StoreKinds.StoreSubject).ToList();
+            made.Told = Telling(key, byKind, StoreKinds.Head, StoreFormat.SubjectOf(StoreKinds.Find(StoreKinds.Head), null, out _)).ToList();
             made.Highest(key, byKind);
             made.Take(key, byKind);
             made.Restate();
@@ -487,7 +487,7 @@ namespace KeePassGate.Store
             if (byTag.TryGetValue(key.TagOf(retirement), out told) && told.Count > 0)
             {
                 var subjects = new HashSet<string>(told.Select(SubjectOf), StringComparer.Ordinal);
-                retired.UnionWith(ids.Where(id => subjects.Contains(key.Subject(retirement.SubjectPrefix + id))));
+                retired.UnionWith(ids.Where(id => subjects.Contains(key.Subject(StoreFormat.SubjectOf(retirement, id, out _)))));
             }
 
             return retired;
@@ -534,7 +534,8 @@ namespace KeePassGate.Store
             foreach (var identifier in byKind[StoreKinds.Format])
             {
                 var number = NumberOf(identifier);
-                if (number >= 1 && SubjectOf(identifier) == key.Subject("format:" + number.ToString(CultureInfo.InvariantCulture)))
+                var told = StoreFormat.SubjectOf(StoreKinds.Find(StoreKinds.Format), number.ToString(CultureInfo.InvariantCulture), out _);
+                if (number >= 1 && SubjectOf(identifier) == key.Subject(told))
                 {
                     Format = Math.Max(Format, number);
                 }
@@ -751,7 +752,7 @@ namespace KeePassGate.Store
             foreach (var value in known)
             {
                 List<string> sharing;
-                var hash = key.Subject(row.SubjectPrefix + value);
+                var hash = key.Subject(StoreFormat.SubjectOf(row, value, out _));
                 if (!hashes.TryGetValue(hash, out sharing))
                 {
                     sharing = new List<string>();

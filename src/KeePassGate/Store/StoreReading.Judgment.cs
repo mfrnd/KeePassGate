@@ -346,7 +346,7 @@ namespace KeePassGate.Store
                     {
                         List<string> starting;
                         if (target == source
-                            || !byStart.TryGetValue(tag + keys[source].Subject("key:" + keys[target].Name), out starting))
+                            || !byStart.TryGetValue(tag + keys[source].Subject(StoreFormat.SubjectOf(keptKind, keys[target].Name, out _)), out starting))
                         {
                             continue;
                         }

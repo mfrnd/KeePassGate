@@ -145,8 +145,11 @@ plugin's code could make.
 `StoreFormatTests` and the stores in `tests/Shared/StoreReadingVectors.json`, with what the
 measured reading answered for each, are the output of
 `spikes/storage/probes/store-as-a-whole/vectors.py` on `spikes/storage-survival`, committed there
-at `05c8cc64`, which calls nothing but `probe/store.py` and `probe/read.py` beside it. They are
-regenerated there and never from this side, offline, by
+at `05c8cc64`, which calls nothing but `probe/store.py` and `probe/read.py` beside it; the versions
+of a profile's rule and of a node's switch and the tags of the profiles' names are its output at
+`53579025`, which also imports `model/bridge.py` and `model/crdt_model.py`, for the store as
+decided and the model's profiles and letters. They are regenerated there and never from this
+side, offline, by
 `uv run --no-project python -I -X utf8 spikes/storage/probes/store-as-a-whole/vectors.py`, and the
 JSON file is that command's output with `--readings`, byte for byte, so a reader checks it with
 the one command. The three words of the measured reading's status are written as the product's
@@ -158,18 +161,19 @@ to, while `ProfileNamesTests` holds the names the product reads in each store to
 measured reading found. `tests/Shared/StoreRecordVectors.json`, records composed by the measured
 code, and `tests/Shared/StoreWriteVectors.json`, the file after each act of sequences the measured
 model played, are the same script's output with `--records` and `--writes`, byte for byte, the
-first at `663384cc` and the second at `b9d0ab03`. `StoreRecordTests` composes every record of the
-first through the product and holds the content, the check, the identifier and every string to
-it, and `ProfileActsTests` holds the members of the additions and removals the product's acts
-compose to it; `StoreWriteShapeTests` holds the product's writes to the second by shape, since
-its records hold stand-ins the product does not compose. It plays each sequence through the
-product's own acts, `AuthorityService`, `AdmissionActs` and `ProfileActs`, with the admissions
-compared as every other kind is; the third sequence, a revocation in a copy and a renewal of the
-same client in the other, synchronized, ends with the same records in both copies and the renewed
-certificate refused in each; the fourth, names added and removed in two copies and synchronized,
-ends with the names the model named and the same records in both copies. A merge in the fourth
-is held by what is present after it rather than by what it deleted, since the model derives a
-summary entry's identifier from its height and the product does not.
+first at `53579025` and the second at `b9d0ab03`. `StoreRecordTests` composes every record of the
+first through the product, the versions of a profile's rule and of a node's switch and a summary
+entry restating them among them, and holds the content, the check, the identifier and every
+string to it, and `ProfileActsTests` holds the members of the additions and removals the
+product's acts compose to it; `StoreWriteShapeTests` holds the product's writes to the second by
+shape, since its records hold stand-ins the product does not compose. It plays each sequence
+through the product's own acts, `AuthorityService`, `AdmissionActs` and `ProfileActs`, with the
+admissions compared as every other kind is; the third sequence, a revocation in a copy and a
+renewal of the same client in the other, synchronized, ends with the same records in both copies
+and the renewed certificate refused in each; the fourth, names added and removed in two copies
+and synchronized, ends with the names the model named and the same records in both copies. A
+merge in the fourth is held by what is present after it rather than by what it deleted, since the
+model derives a summary entry's identifier from its height and the product does not.
 
 **It writes the store into real databases.** `StoreWritesInRealDatabaseTests` writes through the
 product's own commands into a real tree and holds the entries KeePass keeps, the group a write
