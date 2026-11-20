@@ -1672,13 +1672,17 @@ and the plugin's next write would delete, so that the name would stay off the li
 added again. A removal holds `name` alone, and is composed only where the name is on the list, so
 no removal is written for a name already off it, which would add an item for good with nothing to
 take away. **A pairing's additions are records of the admission's own act**, after its record of
-kind `client`: an addition for each approved name the list does not hold in the reading of the
-write's turn, naming the removals of its name as any addition does, so that the names and the
-admission are planned, saved and taken back together, and left out together where the
-admission's issuer does not stand alone (§627). **A name is added only where a store key
-stands** (§627 step 1): where none stands, the Profiles page refuses the press and states that
-the database has no certificate authority yet, and with a Create held by the same dialog the act
-is composed under the key that Create brings and written in the same write, after it.
+kind `client`, so that the names and the admission are planned, saved and taken back together,
+and left out together where the admission's issuer does not stand alone (§627): an addition for
+each approved name the list does not hold in the reading of the write's turn, naming the removals
+of its name in that reading as any addition does. Each of those removals is a removal the approval
+dialog held, as its reading told it or as an earlier write of the same request found it, since a
+removal beyond them makes the approval stale and writes nothing (`PAIRING.md` §311), as an Add
+that a removal overtook writes nothing (§627).
+**A name is added only where a store key stands** (§627 step 1): where none stands, the Profiles
+page refuses the press and states that the database has no certificate authority yet, and with a
+Create held by the same dialog the act is composed under the key that Create brings and written
+in the same write, after it.
 
 **The list keeps no ceiling** (S21). No write of the plugin's own refuses a name for the count of
 names the list holds, and the reading cuts nothing short. What stays is a rule of a request and
@@ -1688,14 +1692,22 @@ not of the list: a pairing asks for 32 names at most, which is what the wire tak
 reads its admission, from the same reading, and a reading that serves no authority gives the gate
 no names: a hold of its own for the names would hold KeePass's thread again at every request. A
 held approval is compared at its write, name by name, with the names on the list in the reading of
-the write's turn, `PAIRING.md` §311. The log names an act about a name by the name at the settings
-dialog's OK, and the audit holds no line for a name added or removed, `DESIGN.md` §120. The grant
-editor's pick list is read from the store at each redraw of its tab, and is empty where the store
-names nothing or cannot be read, so it never offers a name removed since. The Profiles page
-offers no Add and no removal where nothing is written into the store in the session, as the
-clients page offers no revocation, and the first page of the tab states why (§636); nor where the
-store cannot be judged, under several keys or in a form the plugin does not read, where the
-clients page lists nobody and so offers nothing.
+the write's turn, and for each approved name off the list with the removals of it in that reading,
+each of which the dialog has to have held, `PAIRING.md` §311. The dialog's reading is a single
+hold over a single reading, taken by a connection, from which no key is taken: the names on the
+list, the clients that regain a name off it and the removals of such a name that the reading tells
+of it, `AskedProfiles`. A removal that only a deletion record tells of, of a name the file does
+not know otherwise, is no removal of any name there, so the write, which counts with the key,
+finds a removal the dialog did not hold: the first approval of such a name writes nothing, the
+same request puts the dialog to the operator again holding what that write found, and its
+approval puts the name back.
+The log names an act about a name by the name at the settings dialog's OK, and the audit holds no
+line for a name added or removed, `DESIGN.md` §120. The grant editor's pick list is read from the
+store at each redraw of its tab, and is empty where the store names nothing or cannot be read, so
+it never offers a name removed since. The Profiles page offers no Add and no removal where nothing
+is written into the store in the session, as the clients page offers no revocation, and the first
+page of the tab states why (§636); nor where the store cannot be judged, under several keys or in
+a form the plugin does not read, where the clients page lists nobody and so offers nothing.
 
 **What is built.** The records, their reading and their writes as this section has them:
 `ProfileNames` reads the names from a reading of the store, `ProfileActs` composes an addition and

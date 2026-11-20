@@ -199,6 +199,73 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        [TestCase(1.00f)]
+        [TestCase(1.25f)]
+        [TestCase(1.50f)]
+        [TestCase(2.00f)]
+        public void The_notice_of_a_dialog_shown_again_fits_beside_the_longest_of_every_other_line(float scaling)
+        {
+            // A line of its own above the list, measured with every other line at its longest: as
+            // many profiles as a request carries, each as long as a name may be, each removed and
+            // held by more clients than the line under the list names, with names as long as a
+            // client's may be, and the notice, which reads the same whatever Approve found.
+            var names = Enumerable.Range(0, 32)
+                .Select(at => at.ToString("00", System.Globalization.CultureInfo.InvariantCulture) + new string('W', 62))
+                .ToArray();
+
+            using (var authority = TestAuthority.New())
+            {
+                using (var holders = new IssuedClients(Enumerable.Range(0, 15)
+                    .Select(at => authority.IssueClient(new string('W', 62) + at.ToString("00", System.Globalization.CultureInfo.InvariantCulture)))))
+                {
+                    var records = holders.Select(holder => AdmissionRecord.For(holder, DateTimeOffset.UtcNow, names, InventedIssuer.Id)).ToList();
+                    var returning = names.ToDictionary(
+                        name => name, name => (IReadOnlyList<AdmissionRecord>)records, StringComparer.Ordinal);
+                    var request = new PairingRequest(
+                        "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious", names, new[] { "ops" },
+                        "127.0.0.1:60001", returning, TimeSpan.FromDays(365), names, PairingApproval.Approved(names, TimeSpan.FromDays(365)));
+
+                    using (var larger = Scaled(Control.DefaultFont, scaling))
+                    using (var dialog = new PairingApprovalForm(request, Timeout, larger))
+                    {
+                        dialog.CreateControl();
+                        dialog.PerformLayout();
+
+                        var notice = ControlTree.FindByName<Label>(dialog, GateTab.ApprovalAgainName);
+                        Assert.That(notice, Is.Not.Null, "no notice on a dialog shown again");
+                        Assert.That(notice.Text, Is.EqualTo(PairingApprovalForm.Again(request)));
+
+                        var list = Profiles(dialog);
+                        Assert.That(InDialog(notice, dialog).Bottom, Is.LessThanOrEqualTo(InDialog(list, dialog).Top),
+                            "the notice is not above the list at " + scaling);
+                        Assert.That(InDialog(notice, dialog).Right, Is.LessThanOrEqualTo(Asked(dialog).Width),
+                            "the notice is off the side of the dialog at " + scaling);
+                        Assert.That(
+                            TextRenderer.MeasureText(notice.Text, notice.Font, new Size(notice.Width, 0), TextFormatFlags.WordBreak).Height,
+                            Is.LessThanOrEqualTo(notice.Height),
+                            "the notice is cut at " + scaling);
+
+                        foreach (var name in new[] { GateTab.ApproveButtonName, GateTab.RefuseButtonName })
+                        {
+                            Assert.That(InDialog(Button(dialog, name), dialog).Bottom, Is.LessThanOrEqualTo(Asked(dialog).Height),
+                                name + " is off the bottom of the dialog at " + scaling);
+                        }
+
+                        Assert.That(InDialog(Lifetime(dialog).Parent, dialog).Bottom, Is.LessThanOrEqualTo(Asked(dialog).Height),
+                            "the lifetime is off the bottom of the dialog at " + scaling);
+                        Assert.That(dialog.PreferredSize.Width, Is.LessThanOrEqualTo(SmallestScreenWidth * scaling),
+                            "the dialog is wider than the smallest screen at " + scaling);
+
+                        TestContext.Out.WriteLine(
+                            "at " + scaling.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)
+                            + " the dialog shown again asks for " + dialog.PreferredSize + ", the notice " + notice.Size
+                            + ": " + notice.Text);
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Asserts that every row of a list of check boxes is drawn whole: its text, measured as a
         /// list box draws it, fits beside a check box no wider than the row is tall.
@@ -432,6 +499,86 @@ namespace KeePassGate.Tests
                 Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut),
                     "nobody has answered yet");
             }
+        }
+
+        [Test]
+        public void Approve_on_a_dialog_shown_again_takes_no_press_for_a_moment_through_the_real_loop()
+        {
+            // A dialog shown again comes up where the dialog before stood, just after Approve on it
+            // was pressed, so a press still on its way would answer it unread. Approve is held back
+            // for `ApproveHeldBack` from when the dialog comes up, by a timer on the dialog's own
+            // loop, takes no press meanwhile, and is enabled without taking the focus.
+            using (var dialog = new PairingApprovalForm(ShownAgain(), TimeSpan.FromMinutes(2)))
+            {
+                var approve = Button(dialog, GateTab.ApproveButtonName);
+                var since = ShownOffScreen(dialog);
+
+                Assert.That(approve.Enabled, Is.False, "Approve takes no press as the dialog comes up");
+                approve.PerformClick();
+                OffScreenForm.Pump();
+                Assert.That(dialog.Visible, Is.True, "a press in flight answers nothing");
+                Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut), "nobody has answered yet");
+
+                Assert.That(PumpUntil(() => approve.Enabled, TimeSpan.FromSeconds(10)), Is.True, "Approve is enabled again");
+                Assert.That(since.Elapsed, Is.GreaterThanOrEqualTo(PairingApprovalForm.ApproveHeldBack - TimeSpan.FromMilliseconds(50)));
+                Assert.That(approve.Focused, Is.False, "enabling it takes no focus");
+
+                approve.PerformClick();
+                Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.Approved));
+            }
+        }
+
+        [Test]
+        public void Enter_on_a_dialog_shown_again_refuses_while_Approve_is_held_back()
+        {
+            using (var dialog = new PairingApprovalForm(ShownAgain(), TimeSpan.FromMinutes(2)))
+            {
+                var lifetime = Focused(dialog);
+                Assert.That(Button(dialog, GateTab.ApproveButtonName).Enabled, Is.False);
+
+                Press(lifetime, Keys.Enter);
+
+                Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.Refused));
+            }
+        }
+
+        [Test]
+        public void A_first_dialog_holds_Approve_back_for_no_moment_and_carries_no_notice()
+        {
+            using (var dialog = New("ops"))
+            {
+                ShownOffScreen(dialog);
+
+                Assert.That(Button(dialog, GateTab.ApproveButtonName).Enabled, Is.True);
+                Assert.That(ControlTree.FindByName<Label>(dialog, GateTab.ApprovalAgainName), Is.Null);
+            }
+        }
+
+        /// <summary>
+        /// A request whose earlier dialog's approval a write found stale: `ops` asked for and on the
+        /// list, approved and marked the same before.
+        /// </summary>
+        private static PairingRequest ShownAgain()
+        {
+            var known = new[] { "ops" };
+            return new PairingRequest(
+                "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious", known, known, "127.0.0.1:60001",
+                null, null, null, PairingApproval.Approved(known));
+        }
+
+        /// <summary>
+        /// The dialog shown where nobody sees it, and the time since it came up, once it has.
+        /// </summary>
+        private static System.Diagnostics.Stopwatch ShownOffScreen(PairingApprovalForm dialog)
+        {
+            var since = new System.Diagnostics.Stopwatch();
+            dialog.Shown += delegate { since.Start(); };
+            dialog.StartPosition = FormStartPosition.Manual;
+            dialog.Location = new Point(-4000, -4000);
+            dialog.ShowInTaskbar = false;
+            dialog.Show();
+            Assert.That(PumpUntil(() => since.IsRunning, TimeSpan.FromSeconds(10)), Is.True, "the dialog came up");
+            return since;
         }
 
         /// <summary>The dialog shown where nobody sees it, with the focus on the lifetime.</summary>
@@ -1084,14 +1231,51 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_user_interface_that_never_runs_the_work_is_a_timeout_rather_than_a_wait()
+        public void A_dialog_KeePass_s_thread_never_shows_is_answered_as_never_shown_rather_than_unanswered()
         {
+            // KeePass's thread never took the turn, so nobody saw the dialog: answered as a request
+            // that never got the screen, which the audit records nothing of, and not as a dialog
+            // that went unanswered, for a pairing and a renewal alike.
             var prompt = new PairingApprovalPrompt(new FakeUiThread { Runs = false }, _log);
 
-            var answer = prompt.Ask(Request(), Timeout, Ample);
+            var pairing = prompt.Ask(Request(), Timeout, Ample);
+            var renewal = prompt.Ask(Renewal(), Timeout, Ample);
 
-            Assert.That(answer.Decision, Is.EqualTo(PairingDecision.TimedOut));
-            Assert.That(_log.Warnings, Is.Not.Empty);
+            Assert.That(pairing.Decision, Is.EqualTo(PairingDecision.Unavailable));
+            Assert.That(pairing.Shown, Is.False);
+            Assert.That(renewal.Decision, Is.EqualTo(PairingDecision.Unavailable));
+            Assert.That(_log.Warnings.Select(entry => entry.Message), Has.Some.Contains("was never shown"));
+        }
+
+        [Test]
+        public void A_dialog_answered_in_its_last_seconds_is_not_logged_as_shown_late()
+        {
+            // `IUiThread.Run` answers false for a dialog that came up at once and outlasted the
+            // wait for its turn, which a dialog given more time than that wait does: it was not
+            // shown late, and its answer is the one given.
+            var prompt = new PairingApprovalPrompt(new FakeUiThread { RunsLate = true }, _log)
+            {
+                Dialog = (request, allowed) => PairingApproval.Approved(new[] { "ops" })
+            };
+
+            var answer = prompt.Ask(Request(), Timeout, PairingApprovalPrompt.Shortest + TimeSpan.FromSeconds(5));
+
+            Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Approved));
+            Assert.That(_log.Entries.Select(entry => entry.Message), Has.None.Contains("shown late"));
+        }
+
+        [Test]
+        public void A_dialog_that_came_up_after_its_wait_is_logged_as_shown_late()
+        {
+            var prompt = new PairingApprovalPrompt(new FakeUiThread { RunsLate = true, Late = TimeSpan.FromMilliseconds(400) }, _log)
+            {
+                Dialog = (request, allowed) => PairingApproval.Refused()
+            };
+
+            var answer = prompt.Ask(Request(), TimeSpan.FromMilliseconds(100), Ample);
+
+            Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Refused));
+            Assert.That(_log.Entries.Select(entry => entry.Message), Has.Some.Contains("shown late"));
         }
 
         [TestCase(PairingDecision.Refused)]
@@ -1231,6 +1415,51 @@ namespace KeePassGate.Tests
             Assert.That(pairing.Decision, Is.EqualTo(PairingDecision.Unavailable));
             Assert.That(renewal.Decision, Is.EqualTo(PairingDecision.Unavailable));
             Assert.That(_log.Warnings.Select(entry => entry.Message), Has.Some.Contains("was not shown"));
+        }
+
+        [Test]
+        public void A_dialog_left_little_of_its_time_waits_for_its_turn_no_longer_than_it_could_still_be_shown()
+        {
+            // A dialog the request puts to the operator again, once its write found the approval
+            // stale, comes up with less than the operator's own time left. Every wait ahead of it
+            // ends by the moment it could still be shown for the shortest time, so that the
+            // request stays inside the budget it arrived in: the wait for KeePass's thread is that,
+            // with the grace on it.
+            var ui = new FakeUiThread { Runs = false };
+            var beyond = TimeSpan.FromSeconds(5);
+
+            new PairingApprovalPrompt(ui, _log).Ask(Request(), Timeout, PairingApprovalPrompt.Shortest + beyond);
+
+            Assert.That(ui.LastTimeout, Is.EqualTo(beyond + PairingApprovalPrompt.Grace));
+        }
+
+        [Test]
+        public void A_dialog_left_little_of_its_time_gives_up_on_the_screen_by_then()
+        {
+            // The same for the wait for the screen: a request behind another is answered as a
+            // request that never got the screen once its dialog could no longer be shown for the
+            // shortest time, rather than at the end of its operator's whole time.
+            var ui = new HeldUiThread();
+            var prompt = new PairingApprovalPrompt(ui, _log);
+            var first = new Thread(() => prompt.Ask(Request(), Timeout, Ample)) { IsBackground = true };
+            first.Start();
+
+            try
+            {
+                Assert.That(ui.Reached(Patience), Is.True, "the first pairing has the screen");
+                var waited = System.Diagnostics.Stopwatch.StartNew();
+
+                var second = prompt.Ask(Request(), Timeout, PairingApprovalPrompt.Shortest + TimeSpan.FromMilliseconds(200));
+
+                Assert.That(second.Decision, Is.EqualTo(PairingDecision.Unavailable));
+                Assert.That(waited.Elapsed, Is.LessThan(Patience), "not the whole of its operator's time");
+            }
+            finally
+            {
+                ui.Release();
+            }
+
+            Assert.That(first.Join(Patience), Is.True, "the first pairing finished with the screen");
         }
 
         [Test]

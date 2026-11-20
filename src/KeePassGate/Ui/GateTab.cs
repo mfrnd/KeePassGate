@@ -337,6 +337,9 @@ namespace KeePassGate.Ui
         /// <summary>The line naming the clients that regain a removed profile if it is approved.</summary>
         public const string ApprovalRegainingName = "KpgApprovalRegaining";
 
+        /// <summary>The line stating that the dialog is shown again after Approve.</summary>
+        public const string ApprovalAgainName = "KpgApprovalAgain";
+
         public const string ApprovalProfilesListName = "KpgApprovalProfilesList";
 
         /// <summary>The choice of how long the certificate lasts.</summary>

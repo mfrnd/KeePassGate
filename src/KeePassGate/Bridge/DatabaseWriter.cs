@@ -1880,6 +1880,17 @@ namespace KeePassGate.Bridge
 
                 return _named.Holds(profile);
             }
+
+            /// <summary>
+            /// The removals of a name that an addition written in this turn names: this turn's
+            /// reading was made afresh, so its key is the key the addition is composed under.
+            /// </summary>
+            public IReadOnlyCollection<string> Removals(string profile)
+            {
+                return _reading.InForce == null
+                    ? (IReadOnlyCollection<string>)Array.Empty<string>()
+                    : _reading.InForce.RemovalsOnceKnown(profile);
+            }
         }
 
         /// <summary>What one write wrote of the answers owed, and what it wrote over.</summary>

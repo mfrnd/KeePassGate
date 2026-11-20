@@ -89,16 +89,10 @@ namespace KeePassGate.Gate
             get { return string.Empty; }
         }
 
-        /// <summary>Nothing, for the same reason: there is no tree to read them from.</summary>
-        public IReadOnlyList<string> KnownProfiles
+        /// <summary>Nothing, for the same reason: there is no tree to read the profiles from.</summary>
+        public AskedProfiles Asked(IReadOnlyCollection<string> profiles)
         {
-            get { return Array.Empty<string>(); }
-        }
-
-        /// <summary>Nobody, for the same reason.</summary>
-        public IReadOnlyList<AdmissionRecord> Holding(string profile)
-        {
-            return Array.Empty<AdmissionRecord>();
+            return AskedProfiles.None;
         }
 
         public string DatabaseId

@@ -74,7 +74,10 @@ namespace KeePassGate.Ui
         /// cannot answer the request they are looking at, and it times out in front of them.
         ///
         /// Taken on the connection thread, and the user interface thread never asks for it, so
-        /// there is no order in which this and the marshal can deadlock.
+        /// there is no order in which this and the marshal can deadlock. A pairing request keeps it
+        /// between its dialogs as well, through the write that finds its approval stale,
+        /// <see cref="ScreenPlace"/>, and takes the writer's lock only with it held, never the
+        /// other way round.
         /// </remarks>
         private readonly object _screen = new object();
 
@@ -204,7 +207,8 @@ namespace KeePassGate.Ui
                 PairingApproval.LockedWhileWaiting,
                 _audit == null
                     ? (Action)null
-                    : () => _audit.PairingUnanswered(request.DatabaseId, request.InvitationId));
+                    : () => _audit.PairingUnanswered(request.DatabaseId, request.InvitationId),
+                request.Place);
         }
 
         public RenewalApproval Ask(RenewalRequest request, TimeSpan timeout, TimeSpan left)
@@ -225,7 +229,8 @@ namespace KeePassGate.Ui
                 RenewalApproval.LockedWhileWaiting,
                 _audit == null
                     ? (Action)null
-                    : () => _audit.RenewalWithdrawn(request.DatabaseId, request.Client, request.ClientKey));
+                    : () => _audit.RenewalWithdrawn(request.DatabaseId, request.Client, request.ClientKey),
+                null);
         }
 
         /// <summary>
@@ -313,7 +318,7 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <param name="dialog">Shows the dialog for as long as it is handed.</param>
         /// <param name="timeout">
-        /// How long the operator is given, and how long this waits for the screen.
+        /// How long the operator is given, and the longest this waits for the screen.
         /// </param>
         /// <param name="left">
         /// How long from now the dialog may stand at most, so that what follows it still fits the
@@ -329,6 +334,10 @@ namespace KeePassGate.Ui
         /// What the audit records of the request if a lock or a close takes its dialog away, or
         /// null for nothing.
         /// </param>
+        /// <param name="place">
+        /// The place on the screen the request keeps between its dialogs, which keeps the screen
+        /// from the moment this gets it, or null for a request that keeps none.
+        /// </param>
         private TAnswer OnScreen<TAnswer>(
             Func<TimeSpan, TAnswer> dialog,
             string databaseId,
@@ -338,15 +347,27 @@ namespace KeePassGate.Ui
             Func<string, TAnswer> unavailable,
             Func<TAnswer> timedOut,
             Func<TAnswer> lockedWhileWaiting,
-            Action unanswered)
+            Action unanswered,
+            ScreenPlace place)
             where TAnswer : class
         {
+            // **No wait ahead of the dialog outlasts the moment it could still be shown for the
+            // shortest time**: a request with less than its operator's own time left, as a request
+            // has whose write found its approval stale, would only be turned away after that, and
+            // waiting longer would take it past the budget it arrived in.
+            var wait = left - Shortest < timeout ? left - Shortest : timeout;
+            if (wait < TimeSpan.Zero)
+            {
+                wait = TimeSpan.Zero;
+            }
+
             // Waited for rather than queued behind indefinitely: a request that cannot get the
-            // screen inside the time its own operator was going to be given has nothing left to do
-            // with it. Nothing is spent by this answer, so the client can ask again. The wait for
-            // the plugin's own save below is part of the same wait, not added to it.
+            // screen inside that wait has nothing left to do with it. Nothing is spent by this
+            // answer, so the client can ask again. The wait for the plugin's own save below is part
+            // of the same wait, not added to it. A request that keeps its place gets the screen at
+            // once, its lock being held on this thread already.
             var waiting = Stopwatch.StartNew();
-            if (!Monitor.TryEnter(_screen, timeout))
+            if (!Monitor.TryEnter(_screen, wait))
             {
                 _log.Warn("another request was already in front of the operator, so this " + what +
                           " waited and gave up");
@@ -355,9 +376,16 @@ namespace KeePassGate.Ui
 
             try
             {
+                if (place != null)
+                {
+                    place.Keep(_screen);
+                }
+
                 TAnswer answer = null;
 
-                bool shown;
+                // When the dialog came up, counted as the wait is, or null while none has: a dialog
+                // never put up was seen by nobody, whatever `IUiThread.Run` answers.
+                TimeSpan? cameUp = null;
                 while (true)
                 {
                     // **The plugin's own save is waited out, and KeePass's own work is not.** A
@@ -365,7 +393,7 @@ namespace KeePassGate.Ui
                     // request it would turn away is one the operator has not seen yet. KeePass's
                     // own work is answered `503 busy` as a write is: a message box before the call
                     // below is queued, and anything else inside it.
-                    if (!Quiet(timeout - waiting.Elapsed))
+                    if (!Quiet(wait - waiting.Elapsed))
                     {
                         _log.Warn("this plugin's own save was still running when the wait for the screen " +
                                   "ran out, so this " + what + " was never shown");
@@ -390,7 +418,8 @@ namespace KeePassGate.Ui
                         // And asked there for the second reason a write asks there: the turn waits
                         // for KeePass to be idle, and a dialog of WinForms' own shown inside a save
                         // is idle enough to start one.
-                        shown = _ui.Run(
+                        // What it answers is not asked: whether the dialog came up is `cameUp`.
+                        _ui.Run(
                             () =>
                             {
                                 if (!_serving(databaseId))
@@ -447,6 +476,7 @@ namespace KeePassGate.Ui
                                 // For as long as this request's dialog can stand, on the thread
                                 // that withdraws it.
                                 _unanswered = unanswered;
+                                cameUp = waiting.Elapsed;
                                 try
                                 {
                                     answer = dialog(remaining < timeout ? remaining : timeout);
@@ -456,7 +486,7 @@ namespace KeePassGate.Ui
                                     _unanswered = null;
                                 }
                             },
-                            timeout + Grace);
+                            wait + Grace);
                     }
                     catch (Exception error) when (Expected.OfUserInterface(error))
                     {
@@ -469,7 +499,7 @@ namespace KeePassGate.Ui
                         break;
                     }
 
-                    if (waiting.Elapsed >= timeout)
+                    if (waiting.Elapsed >= wait)
                     {
                         _log.Warn("this plugin's own save was still running when the wait for the screen " +
                                   "ran out, so this " + what + " was never shown");
@@ -477,27 +507,39 @@ namespace KeePassGate.Ui
                     }
                 }
 
-                if (!shown && answer == null)
+                // **A dialog never put up was seen by nobody**: KeePass's thread did not take the
+                // turn inside the wait, and `IUiThread.Run` withdrew it. Answered as a request that
+                // never got the screen, which the audit records nothing of, and not as a dialog
+                // nobody answered, which it records as unanswered.
+                if (answer == null && cameUp == null)
+                {
+                    _log.Warn("the " + what + " dialog was never shown, because KeePass's thread did not take " +
+                              "its turn in time");
+                    return unavailable("KeePass's thread did not take its turn in time");
+                }
+
+                if (answer == null)
                 {
                     _log.Warn("the " + what + " dialog did not come back, so nothing was approved");
                     return timedOut();
                 }
 
                 // **An answer given after the wait ran out is still the answer.** `IUiThread.Run`
-                // says false for work it withdrew before it began and for work that began too late
-                // to finish inside the wait, which it then waits out. The dialog's own countdown
-                // starts when the dialog is built, so a thread that reached the dialog late gave the
-                // operator what was left of the pairing budget after this wait was over, and what
-                // they decided is here. That used to be their whole two minutes, deliberately,
-                // which is reversed where the dialog is built above. Answering a timeout instead
-                // turned a refusal into one that spends nothing, so the client could raise the
-                // dialog again, and an approval into nothing issued.
-                if (!shown)
+                // answers false for work that began too late to finish inside the wait, which it
+                // then waits out, and for a dialog given more time than that wait, which outlasts
+                // it however promptly it came up: whether it was late is when it came up, after
+                // the wait this allowed for it or not. The dialog's own countdown starts when the
+                // dialog is built, so a thread that reached the dialog late gave the operator what
+                // was left of the pairing budget after this wait was over, and what they decided
+                // is here. Answering a timeout instead turned a refusal into a refusal that spends
+                // nothing, so the client could raise the dialog again, and an approval into
+                // nothing issued.
+                if (cameUp > wait)
                 {
                     _log.Warn("the " + what + " dialog was shown late, and its answer is the one given");
                 }
 
-                return answer ?? timedOut();
+                return answer;
             }
             finally
             {

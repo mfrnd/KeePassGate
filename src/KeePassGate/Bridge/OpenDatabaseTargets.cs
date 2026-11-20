@@ -1580,15 +1580,17 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>
-            /// The profiles this database names now, `STORE.md` §616, read from the store in a hold
-            /// of their own. None where the store does not serve this target's authority.
+            /// What the store holds now of the profiles a pairing asks for, `STORE.md` §616, read in
+            /// a single hold over a single reading. The names and the removals only where the store
+            /// serves this target's authority; the clients holding a name from the admissions that
+            /// reading lists, which a store that cannot be judged lists none of.
             /// </summary>
-            public IReadOnlyList<string> KnownProfiles
+            public AskedProfiles Asked(IReadOnlyCollection<string> profiles)
             {
-                get { return _hold.Hold(ProfilesNow); }
+                return _hold.Hold(() => AskedNow(profiles));
             }
 
-            private IReadOnlyList<string> ProfilesNow()
+            private AskedProfiles AskedNow(IReadOnlyCollection<string> profiles)
             {
                 // Read into a local first, for the reason `DatabaseName` below gives: this is asked
                 // from a connection thread, and the field goes away underneath it when the last
@@ -1598,43 +1600,11 @@ namespace KeePassGate.Bridge
                 var database = _database;
                 if (database == null || database.RootGroup == null)
                 {
-                    return Array.Empty<string>();
+                    return AskedProfiles.None;
                 }
 
                 var reading = _store.Now(database, database.RootGroup);
-                return Served(reading) ? ProfileNames.Of(reading).Names : Array.Empty<string>();
-            }
-
-            /// <summary>
-            /// The admitted clients whose admissions hold a profile, read now. Nobody where the
-            /// database has gone or its store cannot be judged, since such a store admits nobody,
-            /// which leaves the approval dialog with no warning to give rather than a wrong
-            /// warning.
-            /// </summary>
-            public IReadOnlyList<AdmissionRecord> Holding(string profile)
-            {
-                return _hold.Hold(() => HoldingNow(profile));
-            }
-
-            private IReadOnlyList<AdmissionRecord> HoldingNow(string profile)
-            {
-                // Into a local first, for the reason `KnownProfiles` gives.
-                var database = _database;
-                if (database == null || database.RootGroup == null || string.IsNullOrEmpty(profile))
-                {
-                    return Array.Empty<AdmissionRecord>();
-                }
-
-                // The admissions of the store as this hold read it that admit their certificate,
-                // and not an admission whose certificate has expired: it regains nothing, being
-                // refused on its dates before its admission is read.
-                var now = DateTimeOffset.UtcNow;
-                var listing = StoreAdmissions.Listing(_store.Now(database, database.RootGroup));
-                return listing.Records
-                    .Where(record => listing.StandingOf(record) == AdmissionStanding.Admitted
-                                     && record.Profiles.Contains(profile, StringComparer.Ordinal)
-                                     && !record.HasExpired(now))
-                    .ToList();
+                return AskedProfiles.Of(reading, Served(reading), profiles, DateTimeOffset.UtcNow);
             }
 
             public byte[] GateKey
@@ -1785,7 +1755,7 @@ namespace KeePassGate.Bridge
             {
                 return _hold.Hold(() =>
                 {
-                    // Into a local first, for the reason `KnownProfiles` gives.
+                    // Into a local first, for the reason `Asked` gives.
                     var database = _database;
                     if (database == null || database.RootGroup == null)
                     {
@@ -1902,7 +1872,7 @@ namespace KeePassGate.Bridge
 
             private Admitted AdmissionNow(string admissionKey)
             {
-                // Into a local first, for the reason `KnownProfiles` gives.
+                // Into a local first, for the reason `Asked` gives.
                 var database = _database;
                 if (database == null || database.RootGroup == null)
                 {

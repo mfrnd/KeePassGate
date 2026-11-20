@@ -42,6 +42,31 @@ namespace KeePassGate.Ui
         private readonly LifetimeChoice _lifetime;
         private readonly Label _countdown;
         private readonly Timer _clock;
+
+        /// <summary>Approve, which a dialog shown again holds back for a moment.</summary>
+        private readonly ApproveButton _approve;
+
+        /// <summary>
+        /// What enables Approve once <see cref="ApproveHeldBack"/> has passed since a dialog shown
+        /// again came up, and null on a first dialog, whose Approve is enabled from the start.
+        /// </summary>
+        private readonly Timer _arming;
+
+        /// <summary>
+        /// How long Approve stays disabled once a dialog shown again comes up: twice the 500
+        /// milliseconds that Windows takes by default for the two presses of a double click.
+        /// </summary>
+        /// <remarks>
+        /// **A dialog shown again comes up where the dialog before stood, just after Approve on it
+        /// was pressed**, so a press still on its way, the second press of a double click or a
+        /// press made as the first dialog closed, would land on the same place and answer the
+        /// dialog shown again unread. Held back for this moment, such a press lands on a button
+        /// that takes none. Fixed rather than read from the system's double click setting, so that
+        /// the moment is the same on every desk; Refuse stays enabled, Enter refuses wherever the
+        /// focus is, as on every approval dialog, and no focus is taken when Approve is enabled.
+        /// </remarks>
+        public static readonly TimeSpan ApproveHeldBack = TimeSpan.FromMilliseconds(1000);
+
         /// <summary>
         /// What approving costs, said once. Separate from the table above it because this is a
         /// sentence to read rather than a value to check.
@@ -69,14 +94,16 @@ namespace KeePassGate.Ui
             "The client is asking for no profiles, so it would be admitted and reach nothing.";
 
         /// <summary>
-        /// What marks a profile this database does not name now and no client holds. Approving one
-        /// adds it to the list.
+        /// What marks a profile this database does not name now and is not shown as removed,
+        /// `PairingRequest.IsRemoved`. Approving such a profile adds it to the list.
         /// </summary>
         /// <remarks>
-        /// **Not "never named"**: a name the operator removed, whose every holder has since been
-        /// revoked or has expired, looks the same from here, and the rules naming it were left in
-        /// place when it was removed. Whether any rule names it is a walk of the whole tree, which
-        /// a connection does not make, so the dialog says what approving does either way.
+        /// **Not "never named" in every case**: a name whose removal only a deletion record tells
+        /// of, of a name the file does not know otherwise, looks new from here until a write of the
+        /// same request finds that removal, since the reading of a connection takes no store key to
+        /// tie that deletion record to the name. Whether any rule names a new name is a walk
+        /// of the whole tree, which a connection does not make, so the dialog states what approving
+        /// does either way.
         /// </remarks>
         public const string NewSuffix = " (new)";
 
@@ -87,8 +114,10 @@ namespace KeePassGate.Ui
             "at once. Uncheck any it should not get:";
 
         /// <summary>
-        /// What marks a profile this database named once and removed, which clients still hold.
-        /// Approving one gives it back to all of them.
+        /// What marks a profile off the list that a removal known to this database names, made in
+        /// this copy or brought in by a synchronize, whether or not clients still hold it,
+        /// `PairingRequest.IsRemoved`. Approving such a profile puts it on the list, every rule
+        /// still naming it applies again, and every client still holding it regains it.
         /// </summary>
         public const string RemovedSuffix = " (removed)";
 
@@ -99,6 +128,12 @@ namespace KeePassGate.Ui
         public static string Listed(string profile, bool isNew, bool removed)
         {
             return removed ? profile + RemovedSuffix : isNew ? profile + NewSuffix : profile;
+        }
+
+        /// <summary>How a profile of this request reads in the list, as the dialog shows it.</summary>
+        public static string Row(PairingRequest request, string profile)
+        {
+            return Listed(profile, request.IsNew(profile), request.IsRemoved(profile));
         }
 
         /// <summary>The name back out of what the list shows, which is what gets approved.</summary>
@@ -117,7 +152,7 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// What the line under the list says about the clients that regain a removed profile, or
-        /// null when approving gives nothing back to anybody.
+        /// null when no profile is shown as removed.
         /// </summary>
         /// <remarks>
         /// The same warning the Profiles page gives before a removed name is added back, because
@@ -138,11 +173,15 @@ namespace KeePassGate.Ui
             var removed = new List<string>();
             var everyone = new Dictionary<string, AdmissionRecord>(StringComparer.Ordinal);
 
+            // A name marked removed that no client holds names nobody here, and still brings back
+            // every rule naming it, which the last sentence states.
+            var marked = false;
             foreach (var profile in request.Profiles)
             {
                 var holding = request.Returning(profile);
                 if (holding.Count == 0)
                 {
+                    marked |= request.IsRemoved(profile);
                     continue;
                 }
 
@@ -161,7 +200,7 @@ namespace KeePassGate.Ui
                     + string.Join(", ", names) + ".");
             }
 
-            if (said.Count == 0)
+            if (said.Count == 0 && !marked)
             {
                 return null;
             }
@@ -228,6 +267,26 @@ namespace KeePassGate.Ui
                 + " at a time: scroll through it, because Approve grants every one still checked, "
                 + "seen or not.";
         }
+
+        /// <summary>
+        /// The line above the list on the dialog shown again for a request whose approval Approve
+        /// found stale, <see cref="StateChanged"/>; null on any other dialog.
+        /// </summary>
+        /// <remarks>
+        /// **From the request that puts the dialog up again**, `PairingRequest.Again`, and never
+        /// from anything the client sends. **The line states only that the state changed**:
+        /// never which cause nor which profile, since the rows
+        /// show the state, and the plugin's log names each profile and each cause.
+        /// </remarks>
+        public static string Again(PairingRequest request)
+        {
+            return request != null && request.Again ? StateChanged : null;
+        }
+
+        /// <summary>
+        /// The line above the list on a dialog shown again, whatever Approve found.
+        /// </summary>
+        public const string StateChanged = "Shown again: the state of the profiles changed.";
 
         /// <summary>What the line above the list says, which depends on whether any are new.</summary>
         public static string Asking(PairingRequest request)
@@ -396,6 +455,23 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
             });
 
+            // On a dialog shown again after Approve, the notice, above the list and in bold, where
+            // the operator reads before deciding: the same request is in front of the operator a
+            // second time over a state that changed, which the rows show. Absent on a first dialog.
+            var again = Again(request);
+            if (again != null)
+            {
+                layout.Controls.Add(new TextLabel
+                {
+                    Name = GateTab.ApprovalAgainName,
+                    Text = again,
+                    Font = _valueFont,
+                    AutoSize = true,
+                    MaximumSize = new Size(_wrap, 0),
+                    Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
+                });
+            }
+
             // A gap under it, like everything else on this dialog and like the gap the footer keeps
             // above itself. The list is the one thing here an operator acts on, and less room
             // between it and the line introducing it than between it and the row after it would
@@ -426,10 +502,12 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0)
             };
 
+            // Every row checked on a first dialog. On a dialog shown again, the rows the operator
+            // left checked before and marked as they were then, `PairingRequest.Checks`, so that a
+            // single Approve grants no name in a state the operator did not approve it in.
             foreach (var profile in request.Profiles)
             {
-                _profiles.Items.Add(
-                    Listed(profile, request.IsNew(profile), request.Returning(profile).Count > 0), true);
+                _profiles.Items.Add(Row(request, profile), request.Checks(profile));
             }
 
             // Tall enough for what is being asked, up to a point, and never zero. This is the one
@@ -467,7 +545,7 @@ namespace KeePassGate.Ui
 
             // How long the certificate lasts, under the profiles because both are what approving
             // grants, and over the footer because the buttons are what acts on them.
-            _lifetime = new LifetimeChoice(request.Lifetime, Font);
+            _lifetime = new LifetimeChoice(request.Lifetime, Font, request.Picked);
 
             // A table rather than a flow, because the buttons go against the right edge and a flow
             // panel lays every child out at its own left one. A cell is what `Anchor` answers to.
@@ -548,6 +626,15 @@ namespace KeePassGate.Ui
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 Margin = new Padding(0, 0, 0, 0)
             };
+
+            _approve = approve;
+            if (request.Again)
+            {
+                approve.Enabled = false;
+                _arming = new Timer { Interval = (int)ApproveHeldBack.TotalMilliseconds };
+                _arming.Tick += (sender, e) =>
+                    WindowHandlers.Run("Approve on the pairing dialog could not be enabled", Arm);
+            }
 
             refuse.Click += delegate
             {
@@ -780,6 +867,29 @@ namespace KeePassGate.Ui
             };
         }
 
+        /// <summary>
+        /// Starts the moment Approve is held back for on a dialog shown again, from when the dialog
+        /// comes up rather than from when it was built.
+        /// </summary>
+        protected override void OnShown(EventArgs e)
+        {
+            WindowHandlers.Run("Approve on the pairing dialog could not be held back", () =>
+            {
+                base.OnShown(e);
+                if (_arming != null)
+                {
+                    _arming.Start();
+                }
+            });
+        }
+
+        /// <summary>Enables Approve once its moment has passed, and takes no focus.</summary>
+        private void Arm()
+        {
+            _arming.Stop();
+            _approve.Enabled = true;
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (disposing)
@@ -788,6 +898,12 @@ namespace KeePassGate.Ui
                 {
                     _clock.Stop();
                     _clock.Dispose();
+                }
+
+                if (_arming != null)
+                {
+                    _arming.Stop();
+                    _arming.Dispose();
                 }
 
                 if (_valueFont != null)

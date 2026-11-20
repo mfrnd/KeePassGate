@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using KeePassGate.Authority;
+using KeePassGate.Gate;
 
 namespace KeePassGate.Pairing
 {
@@ -18,6 +21,10 @@ namespace KeePassGate.Pairing
         private readonly IReadOnlyDictionary<string, IReadOnlyList<AdmissionRecord>> _returning;
         private readonly string _peer;
         private readonly TimeSpan? _lifetime;
+        private readonly HashSet<string> _removed;
+        private readonly PairingApproval _earlier;
+        private readonly AskedProfiles _before;
+        private readonly ScreenPlace _place;
 
         public PairingRequest(
             string databaseId,
@@ -36,7 +43,7 @@ namespace KeePassGate.Pairing
         /// </param>
         /// <param name="known">
         /// The profiles this database already names. What is asked for and is not among them is
-        /// new, and approving it is what creates it, unless a client already holds it.
+        /// new, and approving it is what creates it, unless it is shown as removed.
         /// </param>
         /// <param name="returning">
         /// For each profile asked for that the database does not name, the admitted clients whose
@@ -47,6 +54,24 @@ namespace KeePassGate.Pairing
         /// How long the client asked its certificate to last, already read off the wire and known
         /// to be one `Lifetime` allows, or null when it asked for nothing.
         /// </param>
+        /// <param name="removed">
+        /// The profiles asked for off the list that are shown as removed whether or not a client
+        /// holds them: each whose removal the dialog's reading holds, and each a write of the same
+        /// request found a removal of that the dialog before did not hold. Null or absent for none.
+        /// </param>
+        /// <param name="earlier">
+        /// What the operator approved on the dialog before, for the dialog the request puts to the
+        /// operator again once a write found that approval stale, which opens with it; null for a
+        /// first dialog. An approval, and never from anything the client sent.
+        /// </param>
+        /// <param name="before">
+        /// What the dialog before was built from, which gives how it marked each name; null for a
+        /// first dialog.
+        /// </param>
+        /// <param name="place">
+        /// The place on the screen the request keeps between its dialogs, or null for a request
+        /// that keeps none.
+        /// </param>
         public PairingRequest(
             string databaseId,
             string databaseName,
@@ -56,8 +81,15 @@ namespace KeePassGate.Pairing
             IReadOnlyList<string> known,
             string peer,
             IReadOnlyDictionary<string, IReadOnlyList<AdmissionRecord>> returning = null,
-            TimeSpan? lifetime = null)
+            TimeSpan? lifetime = null,
+            IReadOnlyCollection<string> removed = null,
+            PairingApproval earlier = null,
+            AskedProfiles before = null,
+            ScreenPlace place = null)
         {
+            _earlier = earlier;
+            _before = before;
+            _place = place;
             _databaseId = databaseId ?? string.Empty;
             _databaseName = databaseName ?? string.Empty;
             _invitationId = invitationId ?? string.Empty;
@@ -67,6 +99,7 @@ namespace KeePassGate.Pairing
             _returning = returning ?? new Dictionary<string, IReadOnlyList<AdmissionRecord>>();
             _peer = peer ?? string.Empty;
             _lifetime = lifetime;
+            _removed = new HashSet<string>(removed ?? Nothing, StringComparer.Ordinal);
         }
 
         /// <summary>Which database is about to admit somebody, by its authority's digest.</summary>
@@ -105,7 +138,7 @@ namespace KeePassGate.Pairing
 
         /// <summary>
         /// How long the client asked its certificate to last, or null when it asked for nothing.
-        /// The operator picks the lifetime, and this is what the dialog offers first.
+        /// The operator picks the lifetime, and this is what a first dialog offers first.
         /// </summary>
         public TimeSpan? Lifetime
         {
@@ -113,20 +146,75 @@ namespace KeePassGate.Pairing
         }
 
         /// <summary>
-        /// Whether a profile being asked for is one this database does not name now and no client
-        /// holds.
+        /// Whether the dialog is shown again, because a write found the approval of the dialog
+        /// before stale; false for a first dialog. Never from anything the client sent.
+        /// </summary>
+        public bool Again
+        {
+            get { return _earlier != null; }
+        }
+
+        /// <summary>
+        /// The lifetime the dialog opens on: the lifetime the operator picked on the dialog before,
+        /// for a dialog shown again, and otherwise what the client asked for.
+        /// </summary>
+        public TimeSpan? Picked
+        {
+            get { return _earlier == null ? _lifetime : _earlier.Lifetime; }
+        }
+
+        /// <summary>
+        /// Whether a profile's row opens checked: every row of a first dialog, and on a dialog
+        /// shown again a row the operator left checked before and marked as it was marked then.
+        /// </summary>
+        /// <remarks>
+        /// **A row whose mark changed opens unchecked**, whatever the operator had there: on the
+        /// list before and removed now, new before and removed now, and so on. What the operator
+        /// approved was the name as it was marked, so a single Approve on the dialog shown again
+        /// grants no name in a state the operator did not approve it in, as putting a name back
+        /// for every rule and client still holding it where the operator approved a name on the
+        /// list. Unchecked as well where nothing tells how the dialog before marked it.
+        /// </remarks>
+        public bool Checks(string profile)
+        {
+            return _earlier == null
+                   || (_earlier.Profiles.Contains(profile, StringComparer.Ordinal)
+                       && _before != null
+                       && _before.MarkOf(profile) == MarkOf(profile));
+        }
+
+        /// <summary>How the dialog marks a profile being asked for.</summary>
+        public ProfileMark MarkOf(string profile)
+        {
+            return IsRemoved(profile) ? ProfileMark.Removed : IsNew(profile) ? ProfileMark.New : ProfileMark.Listed;
+        }
+
+        /// <summary>
+        /// The place on the screen the request keeps between its dialogs, or null for a request
+        /// that keeps none: what the screen keeps for it from its first dialog on.
+        /// </summary>
+        public ScreenPlace Place
+        {
+            get { return _place; }
+        }
+
+        /// <summary>
+        /// Whether a profile being asked for is a name this database does not name now and that is
+        /// not shown as removed, <see cref="IsRemoved"/>.
         /// </summary>
         /// <remarks>
         /// Shown to the operator, because approving one of these does two things rather than one:
         /// it admits the client, and it puts a name on the list that every rule can then grant to.
         /// A dialog that showed a new name exactly like an existing one would be asking somebody to
-        /// notice a spelling. **It is not "never named"**: a name removed once, whose holders have
-        /// all been revoked or have expired since, reads the same here, and any rule still naming
-        /// it applies at once, which the dialog says.
+        /// notice a spelling. **It is not "never named" in every case**: a name whose removal only
+        /// a deletion record tells of, and that the file names nowhere else, reads as new on the
+        /// first dialog of a request, until a write of that request finds the removal,
+        /// <see cref="IsRemoved"/>. Any rule already naming a new name applies at once, as the
+        /// dialog states of every new name.
         /// </remarks>
         public bool IsNew(string profile)
         {
-            if (string.IsNullOrEmpty(profile) || Returning(profile).Count > 0)
+            if (string.IsNullOrEmpty(profile) || IsRemoved(profile))
             {
                 return false;
             }
@@ -158,6 +246,71 @@ namespace KeePassGate.Pairing
             return profile != null && _returning.TryGetValue(profile, out holding) && holding != null
                 ? holding
                 : Array.Empty<AdmissionRecord>();
+        }
+
+        /// <summary>
+        /// Whether a profile being asked for is shown as removed: a name off the list that clients
+        /// still hold from before, a name whose removal the dialog's reading holds, made in this
+        /// copy or brought in by a synchronize, or a name a write of the same request found a
+        /// removal of that the dialog before did not hold.
+        /// </summary>
+        /// <remarks>
+        /// **The last is what the write knows and the dialog's reading cannot**: a removal that
+        /// only a deletion record tells of, of a name the file does not know otherwise, is tied to
+        /// its name by a hash under the store key, which the reading of a connection does not
+        /// take, so the dialog would show the name as new again.
+        /// </remarks>
+        public bool IsRemoved(string profile)
+        {
+            return Returning(profile).Count > 0 || (profile != null && _removed.Contains(profile));
+        }
+    }
+
+    /// <summary>
+    /// The place a pairing request keeps on the operator's screen from its first dialog until the
+    /// request is answered, so that no other request's dialog comes up between its dialogs.
+    /// </summary>
+    /// <remarks>
+    /// **A single request at a time is put to the operator**, and a request whose write finds its
+    /// approval stale puts the dialog to the operator again. Between the two the request writes,
+    /// and a request waiting for the screen would take it there: its dialog would come up between
+    /// the operator's Approve and the dialog shown again, and use up time the request has left. So
+    /// the screen, on giving the request its first dialog, keeps its lock for the place as well,
+    /// <see cref="Keep"/>, and the request lets it go once it is answered, <see cref="Dispose"/>,
+    /// on the thread that took it. A request waiting behind waits within its own wait for the
+    /// screen, as behind any dialog.
+    ///
+    /// **No deadlock can come of it**: the screen's lock is taken on connection threads alone,
+    /// always before the writer's lock, and never on KeePass's thread, which is all the write
+    /// waits for.
+    /// </remarks>
+    public sealed class ScreenPlace : IDisposable
+    {
+        /// <summary>The screen's lock, while this place keeps it, and otherwise null.</summary>
+        private object _screen;
+
+        /// <summary>
+        /// Keeps this screen's lock for the place, unless the place keeps it already. Called by the
+        /// screen with that lock held, on the thread the request runs on.
+        /// </summary>
+        internal void Keep(object screen)
+        {
+            if (_screen == null)
+            {
+                Monitor.Enter(screen);
+                _screen = screen;
+            }
+        }
+
+        /// <summary>Lets the screen go, where this place keeps it.</summary>
+        public void Dispose()
+        {
+            var screen = _screen;
+            _screen = null;
+            if (screen != null)
+            {
+                Monitor.Exit(screen);
+            }
         }
     }
 

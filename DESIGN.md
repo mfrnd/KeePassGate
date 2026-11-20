@@ -1891,6 +1891,17 @@ So the rules here:
   turns away a request those waits alone delayed; what it turns away is a request that lost time
   before it reached the screen as well. `GateOptionsTests` pins that relation.
 
+  **A pairing whose write finds its approval stale puts the dialog up again inside the same
+  budget**, `PAIRING.md` §311. The deadline was dropped before that write, and is taken up again
+  before the dialog after it, to the end of the same budget counted from the request, so that the
+  gate bounds a dialog shown again as it bounds the first; the arithmetic keeps the dialog inside
+  that end: each is given what is left of the budget as a late dialog is, nothing ahead of a
+  dialog is waited for past the moment it could still be shown for thirty seconds, and a dialog
+  with less than that left is not shown. The request keeps the screen
+  from its first dialog on, so no other dialog stands between its writes and its further dialogs.
+  Whatever the number of further dialogs, everything ahead of the last save ends inside the six
+  minutes, and the client waiting as long as the budget is still waiting.
+
   **And the ordinary budget stops at the end of the request**, which is the half that was got wrong
   while pairing was being counted. A connection's deadline is dropped the moment the whole request
   is off the wire, because that is where the peer stops being able to make the connection take any
@@ -2438,12 +2449,21 @@ requests cannot interleave mutations of the same entry.
 **And whatever a record is written with is read again under that lock**, the operator's ruling R11
 for a value read off KeePass's thread. A pairing and a renewal read the names the database holds
 from the plugin's store to build their dialog, in a hold of KeePass's thread, and the operator
-answers what the dialog showed; the store can change between that hold and the write. So the
-write, on KeePass's thread and under the writer's lock, reads the store again and compares every
-name the answer rested on with what the dialog showed, a renewal's dropped names included. A name
-put on or taken off the list while the dialog stood makes the approval stale rather than part of a
-record: it is used up, the request answers `503 busy`, and the next request is put to the operator
-again, `PAIRING.md` §311.
+answers what the dialog showed; the store can change between that hold and the write. A pairing
+reads in that single hold, from a single reading, the names on the list and, for each name asked
+for off it, the clients that regain it and the removals of it. So the write, on KeePass's thread
+and under the writer's lock, reads the store again and compares every name the answer rested on
+with what the dialog showed, a renewal's dropped names included, and every removal of an approved
+name off the list with the removals the dialog held. A name put on or taken off the list while the
+dialog stood, or a removal of such a name that the dialog did not hold, as a removal that arrived
+since or a removal that only a deletion record tells of and the hold could not tie to the name,
+makes the approval stale rather than part of a record: it is used up, nothing is spent, and the
+log names the profile and every cause the write found. A renewal's request then answers
+`503 busy`, and the next request is put to the operator again. A pairing's request is answered
+nothing there: the same request puts the dialog to the operator again, from a reading taken
+afresh and holding the removals its writes found, stating that it is shown again, and nothing of
+the cause, and opening with what the operator approved before, and is answered once an approval
+is written, the operator refuses, or the pairing budget is used up, `PAIRING.md` §311.
 
 **And a write that a dialog would take back is refused rather than raced.** A dialog open on a node
 puts its copy back on OK, so a write to that node answers `503 busy` while it is open. A dialog that

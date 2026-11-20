@@ -115,6 +115,7 @@ sequenceDiagram
 
     Note over KPG,CL: Phase 5. Issuance. Single writer, on the UI thread, under one lock
     KPG->>KPG: generate the key pair, issue from that database's authority
+    KPG-->>OP: profiles moved since the dialog: nothing spent, the dialog again, §311
     KPG->>MEM: burn the token, under the plugin's own lock
     KPG->>DB: write the admission record into the plugin's store
     KPG->>DB: SaveDatabase, in a turn on KeePass's thread with a bounded wait, then read back to confirm
@@ -147,14 +148,19 @@ is: a save of unknown length. The invitation is spent inside that write, before 
 deadline still running through it could only close the socket over a record that lands anyway. The
 answer is then given the ordinary budget to be written in, as any other answer is. This reverses
 keeping the deadline until the answer, which rested on the write's own timeouts bounding it: they
-bound the waits for the writer's lock and turn, and not the save.
+bound the waits for the writer's lock and turn, and not the save. A pairing whose write finds its
+approval stale saves nothing and puts the dialog up again, and takes the deadline up again for it,
+to the end of the same budget, §311.
 
 **A dialog that comes up late has less than two minutes.** Its countdown starts from what is left
 of the budget once the waits after the dialog are set aside, when that is shorter, so everything
 ahead of the save, the writer's lock and turn included, still ends inside the budget; with less
 than thirty seconds left the dialog is not shown at all, and the request is answered `503 busy`
 with nothing spent. That reverses giving every dialog its whole two minutes however late it came
-up, which took the worst case past the budget: `DESIGN.md` §119 has the arithmetic.
+up, which took the worst case past the budget: `DESIGN.md` §119 has the arithmetic. **A dialog the
+request puts to the operator again is given what is left the same way**, §311, and nothing ahead
+of a dialog is waited for past the moment the dialog could still be shown for thirty seconds, so
+that the further dialogs of a request end inside its budget too.
 
 **Not when the name resolves**, which is earlier and asks for less. The reason for the longer
 budget is that the connection is about to wait on a person, and a connection that has named an
@@ -183,7 +189,10 @@ gray in front of the operator, cannot be answered, and times out. The second one
 as long as it was going to give the operator anyway, and answers `503 busy` if it never gets the
 screen. Nothing is spent by that, so the invitee can simply ask again. The reference client does
 so by itself when it is given a budget for waiting, starting again from the hello rather than
-repeating the approval request alone.
+repeating the approval request alone. **A request keeps the screen from its first dialog until it
+is answered**, so that where its write finds the approval stale and it puts the dialog to the
+operator again, §311, no other request's dialog comes up between the two: a request waiting
+behind it waits through that write and the dialogs after it, within the same wait.
 
 **Nor is a dialog put up inside a save.** Showing it is a turn on KeePass's thread, and KeePass's
 save pumps that thread while it runs, so a dialog posted during one, as it once was, opened inside
@@ -205,28 +214,52 @@ takes them first, and Approve has no mnemonic, is never the default button and c
 in the tab order, so a click on it, or Space while it has the focus, is the only way to approve. The
 renewal dialog, §312, is built the same way.
 
-**The dialog shows what approving a profile brings back.** Pairing adds each approved name the
-database does not hold in the same write as the admission, as a record of the plugin's store that
-names every removal of the name the write read, a removal that only a deletion record tells of
-among them, `STORE.md` §616, and the names the database holds decide which names are in force
-(`DESIGN.md` §139). A name the database does not name now and no client holds is marked "(new)",
-because approving adds it, and the dialog states that any rule already naming it applies at once:
-a name removed once, whose every holder has since been revoked or has expired, looks the same from
-a connection, which does not walk the tree to count rules. A name the operator removed that other
-clients still hold is marked "(removed)", and the dialog names those clients: approving puts the
-name back, each of those clients regains it through whichever certificate still holds it, and
-every rule still naming it applies again. A client that renewed while the name was off the list
+**The dialog shows what approving a profile brings back.** It is built from the dialog's reading:
+a single hold over a single reading of the plugin's store, taken before the dialog is shown, of
+the names on the list and, for each name asked for off it, the clients that regain it and the
+removals of it. Pairing adds each approved name the database does not hold in the same write as
+the admission, as a record of the plugin's store that names the removals of the name that the
+dialog held, `STORE.md` §616: a removal of it that the write finds beyond those, as a synchronize
+brings it while the dialog stands or while the approval is held, or as only a deletion record
+tells of it, which the dialog's reading cannot tie to the name, makes the approval stale, §311,
+so that no approval puts a name back over a removal the operator was not shown. The names the
+database holds decide which names are in force (`DESIGN.md` §139). A name off the list is marked
+"(removed)" where the dialog's reading holds a removal of it, made here or in another copy and
+brought in by a synchronize, by its record, by an item of a summary entry, or by a deletion record
+of a name the file knows otherwise, `STORE.md` §623 step 2; where admitted clients still hold it;
+or where a write of the same request found a removal of it, §311. The dialog names any clients
+holding it: approving puts the name back, each of those
+clients regains it through whichever certificate still holds it, and every rule still naming it
+applies again. A client that renewed while the name was off the list
 regains it only through its older certificate, until it gives that up, since the certificate it
 renewed to was recorded without the name. Each client is named once, by its client key, `CA.md`
 §223, however many of its certificates hold the name, and two clients that paired under one name
-are named apart, each with the start of its client key as the clients page shows it.
+are named apart, each with the start of its client key as the clients page shows it. A name off
+the list that is none of those is marked "(new)", because approving adds it, and the dialog
+states that any rule already naming it applies at once, which a connection cannot count, since it
+does not walk the tree. **A name the file does not know otherwise, whose removal only a deletion
+record tells of, reads as new until a write finds that removal**: the dialog's reading takes no
+store key, `StoreInForce`, and a deletion record is tied to its name only by a hash under that
+key, so the first dialog of a request shows the name "(new)", Approve writes nothing, and the
+dialog the request puts to the operator again marks it "(removed)" and holds that removal, §311.
+The marks are held by `AskedProfilesTests`, by
+`PairingHandlerTests.A_first_dialog_marks_a_name_removed_here_that_nobody_holds_as_removed`,
+`PairingHandlerTests.A_first_dialog_marks_a_name_another_copy_removed_as_removed_and_its_approval_is_written`,
+`PairingHandlerTests.A_first_dialog_marks_each_name_by_what_the_reading_holds_of_it`,
+`PairingHandlerTests.A_first_dialog_shows_a_name_removed_and_added_back_without_a_mark` and
+`PairingHandlerTests.A_first_dialog_over_a_removal_only_a_deletion_record_tells_of_marks_the_name_new`
+and, through the real target and the real dialog over a database synchronized by KeePass,
+`PairingInRealDatabaseTests.A_removal_synchronized_in_before_the_dialog_is_built_is_a_removal_the_approval_puts_the_name_back_over`.
 
 **Every answer is written to the audit**, `DESIGN.md` §120, naming the invitation the request
 arrived on: approved, with the admission key of the certificate it admitted, which is the new
 client's client key as well, once the record is saved and before the bundle is handed over;
 refused; or unanswered, those two naming no client. An approval that admitted nobody, because the
-record did not land or the invitation was gone by the time the operator answered, gets no line,
-and no line carries a profile.
+record did not land, the invitation was gone by the time the operator answered, or the approval
+was stale at its write, §311, gets no line, and no line carries a profile. A stale approval is
+named in the plugin's log, with the profile and the cause. Unanswered is a dialog that came up and
+closed itself, or that a lock or a close took away: a dialog KeePass's thread never put up was seen
+by nobody, is answered `503 busy`, and gets no line.
 
 **The client proposes how long its certificate lasts, and the operator picks.** A request may ask
 for anything from a day to a year, and the dialog offers 1, 7, 30, 90 and 365 days under the
@@ -644,8 +677,8 @@ What a refusal says, and deliberately no more:
 | `409 no invitation` | it was spent or it ran out between the gate and here, or the authority it was made under was recreated or deleted before the write: then the approval is used up, and the invitation is left unspent and pairs with nothing, its authority being gone |
 | `400 name` / `400 profile` / `400 malformed` | it could never have been issued as asked |
 | `403 refused` | the operator said no, and the invitation is spent |
-| `504 unanswered` | nobody was at the screen. **Nothing is spent** |
-| `503 busy` | a dialog is open that would take the write back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing or a renewal is already in front of the operator, so little of the pairing's time is left once the request reaches the screen that the dialog would stand for under thirty seconds, a save this plugin is making for another client outlasts the wait for the screen, or there is no screen to ask; or the operator approved and KeePass was still busy a moment later, and then the body carries `heldUntil`, the moment the approval stops being held; or the operator approved and, when the write came to it, the list of profiles no longer held a name the answer rested on as the dialog showed it, and then the approval is used up and the next request is put to the operator again. **Nothing is spent**, and the client is never told which |
+| `504 unanswered` | the dialog came up and nobody answered it. **Nothing is spent** |
+| `503 busy` | a dialog is open that would take the write back, KeePass is part way through a save, an import, a synchronize, an export or a message box of its own, or shows its progress window for one such as XML Replace, saving the database would stop to ask the operator something, such as what to do about a file on disk that is not the one KeePass read, another pairing or a renewal is already in front of the operator, so little of the pairing's time is left once the request reaches the screen, for its first dialog or for a dialog it puts to the operator again once its write found the approval stale, that the dialog would stand for under thirty seconds, a save this plugin is making for another client outlasts the wait for the screen, KeePass's thread never put the dialog up, there is no screen to ask, or, before a dialog put up again, the database's store no longer serves the authority asked under; or the operator approved and KeePass was still busy a moment later, and then the body carries `heldUntil`, the moment the approval stops being held. **Nothing is spent**, and the client is never told which. An approval its write finds stale is answered no `503`: the same request puts the dialog to the operator again |
 | `500 not recorded` | the operator approved and the record did not reach the disk. **The invitation is spent** |
 | `500 internal error` | the operator approved and no certificate could be issued: the authority's key would not sign, or the authority has outlived its hundred years. **The invitation is not spent**, and the client starts again from a hello |
 | `503 undecided` | the database holds more than one authority and the operator has not yet kept any of them. Answered before the request is read, as `503 locked` is; or, where a second authority arrived while the operator was deciding, when the write comes to it, and then the approval is used up. It is answered only while the authority the invitation was made under is among the authorities standing: an invitation whose authority is gone is answered `409 no invitation`, above. **Nothing is spent** either way |
@@ -666,8 +699,161 @@ dialog the operator had just answered in front of them again.
 
 **What it was approved against is compared at the write, under the writer's lock**: the authority
 served, and for each approved profile whether the list holds it exactly as it did when the operator
-answered, since the write would otherwise put a name back that was taken off in between. The
-authority is held first, by the plan of the write: an admission is planned only while the
+answered, since the write would otherwise put a name back that was taken off in between. **And
+for each approved profile off the list, the removals of it**: the write puts such a name back
+over the removals of it that the dialog held, and a removal the write finds beyond those, by its
+record, by an item of a summary entry or by its deletion record, counted with the store key, is a
+removal the operator was not shown, however long ago it was made, as an Add on the Profiles page
+that a removal overtook writes nothing, `STORE.md` §627. That is a removal a synchronize brought
+in while the dialog stood or while the approval was held, and it is as well a removal that only a
+deletion record tells of, of a name the file does not know otherwise, present before the dialog:
+the dialog's reading takes no store key and cannot tie that deletion record to the name. That
+holds for an approval written in the request it was given in as for an approval held, since a
+synchronize can land while the dialog stands; a renewal adds no name, and an approved name on the
+list is held to its place there alone. **Every cause is found in a single pass**: a write that
+finds a name moved on the list and a removal beyond the dialog's together keeps both, and keeps as
+well the removals of an approved name that left the list, which a later reading may not be able to
+tie to it either. The plugin's log names each profile and each cause: a place on the list other
+than the dialog showed, or a removal the reading taken before the dialog did not hold.
+
+**An approval its write finds stale writes nothing and spends nothing, and the request is not
+answered there**. The approval is used up, the invitation
+stays good, and the same request puts the dialog to the operator again, from a reading taken
+afresh, and is answered only once an approval is written, the operator refuses, or its time is
+up. A second request would be a different request, whose body can differ, so nothing shown for it
+could rest on what the dialog before showed or what the operator chose there; and a client told to
+ask again that does not would leave the operator believing in a pairing that never landed. **The
+dialog shown again** carries a line above the list, "Shown again: the state of the profiles
+changed.", the same whatever the write found, since the rows show the state and the plugin's log
+names each profile and each cause. It opens with the lifetime picked on the dialog before, and
+with a row checked only where the operator left it checked there and it is marked as it was
+marked there: **a row whose mark changed opens unchecked**, on the list before and removed now,
+new before and removed now, and so on, so that a single Approve grants no name in a state the
+operator did not approve it in. **Approve on it takes no press for a second** from when it comes
+up, twice the 500 milliseconds Windows takes by default for a double click, since it comes up where
+the dialog before stood just after Approve there was pressed, and a press still on its way would
+otherwise answer it unread; Refuse stays enabled, Enter refuses as on every approval dialog, and no
+focus is taken. It marks "(removed)", with the line about every rule still naming it and naming any
+client that still holds it, each name off the list whose removal the dialog before held or a write
+of the request found, and holds those removals beside the removals its own reading tells of, so
+that its approval is not stale over the same removals again. A first dialog carries no such line,
+opens with every row checked, and takes a press on Approve at once. **What a request carries from
+one dialog to the next is its own**, in the plugin's memory for as long as the request runs and
+never written to the database or taken from anything a client sends, and it goes with the request:
+nothing of it reaches another request, a request on a new code for the same name among them, whose
+own write finds what it finds.
+
+**Each dialog shown again stays inside the budget the request arrived in**: it is given what is
+left of the pairing budget once the waits after the dialog are set aside, and never more than the
+operator's two minutes, as a dialog that comes up late is, §303, and nothing ahead of it is waited
+for past the moment it could still be shown for thirty seconds. With less than that left it is not
+shown, and the request is answered `503 busy` with nothing written or spent, as a request too late
+for the screen is. So the dialogs of a request end within its budget, however often its writes
+find the approval stale. **The connection's deadline is taken up again for it**, to the end of the
+pairing budget counted from the request: the write that found the approval stale dropped it, as
+every write does, and the dialog after it waits on a person as the first did, so the gate bounds
+it as it bounds the first, and the next write drops it once more. **The request keeps the screen
+between its dialogs**, through the write that finds its approval stale, so that no other request's
+dialog comes up between the operator's Approve and the dialog shown again: a request waiting behind
+it waits through that write and the dialogs after it, within its own wait for the screen, and is
+answered `503 busy` if that wait runs out, as behind any dialog. **A dialog KeePass's thread never
+puts up**, for the dialog shown again as for a first dialog and a renewal's, is answered `503 busy`
+as a request that never got the screen is, and the audit records nothing of it, since nobody saw
+it; only a dialog that came up and closed itself unanswered is `504 unanswered`.
+
+**Before a dialog shown again, what the request rests on is asked once more.** A lock of KeePass,
+or a close of the database, since the request arrived is answered `503 locked`, with nothing
+written or spent, as a lock is answered wherever it meets a pairing: between two dialogs, while
+the write after a dialog shown again waits for its turn, and while a dialog shown again stands,
+which the lock or the close takes away as it takes a first dialog away, §308. An invitation spent
+or run out since is answered `409 no invitation`, and no dialog is raised, since an Approve on it
+could do nothing. A database whose store no longer serves the authority the pairing was asked under
+is answered `503 busy`, as a database that cannot be written is, since a dialog over such a reading
+would show every row as new and its approval would be stale again until the time is used up.
+Everything else ahead of a dialog shown again is asked as it is ahead of a first dialog. A refusal
+on the dialog shown again is a refusal, `403 refused` with the invitation spent, and a dialog shown
+again that nobody answers is `504 unanswered` with nothing spent, as on a first dialog. **Whether
+the client is still there is not asked**: the transport gives the handler no way to tell without
+reading from the connection, so the dialog is shown, and an approval given after the client went
+away is written as the approval of a pairing whose client hangs up while its dialog stands is,
+§303. **The audit records what the request ends as**, §303: an approval its write found stale
+admitted nobody and has no line of its own, wherever the request then ends, as an approval whose
+record did not land has none; the plugin's log names it with each cause, and names the ending.
+
+**A held approval is the only approval a later request can find stale.** KeePass too busy to write
+is answered `503 busy` with `heldUntil`, and the client sends the same request again, since a
+connection cannot wait out a dialog of KeePass's that may stand for minutes. Where that request's
+write finds the held approval stale, that request puts the dialog to the operator with the line
+above the list, as the dialog after the dialog the approval was given on: opening with its
+profiles and lifetime, its rows checked as above, and holding the removals that dialog held, and
+goes on as above. That is the single case in which a second request carries the line, and it is
+bound to the held approval's own key, the request exactly as written.
+
+Held by
+`PairingHandlerTests.A_profile_taken_off_the_list_under_the_write_voids_the_approval_and_spends_nothing`,
+`PairingHandlerTests.A_profile_put_on_the_list_under_the_write_voids_the_approval_and_the_dialog_comes_back`,
+`PairingHandlerTests.The_dialog_after_an_approval_a_removal_it_did_not_show_made_stale_marks_the_name_removed`,
+`PairingHandlerTests.The_mark_a_stale_approval_leaves_names_every_client_that_regains_the_name_as_a_removed_name_does`,
+`PairingHandlerTests.A_removal_only_a_deletion_record_tells_of_before_the_first_dialog_is_put_back_at_the_second_approval`,
+`PairingHandlerTests.A_list_change_and_a_removal_found_by_the_same_write_put_the_dialog_up_again_once`,
+`PairingHandlerTests.A_name_taken_off_the_list_by_a_removal_the_next_reading_cannot_tie_puts_the_dialog_up_again_once`,
+`PairingHandlerTests.A_further_removal_while_the_dialog_shown_again_stands_puts_the_dialog_up_a_third_time`,
+`PairingHandlerTests.The_dialog_shown_again_opens_with_what_the_operator_approved_before`,
+`PairingHandlerTests.The_notice_reads_the_same_whatever_the_write_found_and_the_log_names_each_cause`,
+`PairingHandlerTests.A_name_found_removed_and_unchecked_on_the_dialog_shown_again_stays_off_the_list`,
+`PairingHandlerTests.Refusing_the_dialog_shown_again_is_answered_as_a_refusal_and_spends_the_invitation`,
+`PairingHandlerTests.Nobody_answering_the_dialog_shown_again_spends_nothing`,
+`PairingHandlerTests.Nothing_of_a_request_s_dialogs_reaches_the_next_request`,
+`PairingHandlerTests.A_held_approval_found_stale_at_its_retry_opens_the_dialog_as_the_operator_approved_it`,
+`ApprovalBookTests.A_held_approval_is_stale_for_every_cause_its_write_finds_in_a_single_pass`,
+`ApprovalBookTests.A_removal_only_a_deletion_record_tells_of_is_unseen_until_a_dialog_holds_what_the_write_found`
+and, through the real target and the real dialog,
+`PairingInRealDatabaseTests.A_name_a_synchronize_takes_off_the_list_while_the_dialog_stands_is_marked_removed_at_the_next_dialog`,
+`PairingInRealDatabaseTests.A_name_taken_off_the_list_while_the_dialog_stands_brings_the_dialog_back_with_the_name_removed`,
+`PairingInRealDatabaseTests.The_real_form_shown_again_opens_with_what_the_operator_approved_before`,
+`PairingInRealDatabaseTests.A_refusal_of_the_dialog_shown_again_spends_the_invitation_and_the_next_request_starts_from_its_own_reading`;
+its fit beside the longest of every other line by
+`PairingApprovalFormTests.The_notice_of_a_dialog_shown_again_fits_beside_the_longest_of_every_other_line`.
+The rows and the held-back Approve are held by
+`PairingHandlerTests.A_row_whose_mark_changed_opens_unchecked_on_the_dialog_shown_again`,
+`PairingHandlerTests.A_held_approval_carries_the_removals_its_dialog_held_into_the_dialogs_of_its_retry`,
+`PairingApprovalFormTests.Approve_on_a_dialog_shown_again_takes_no_press_for_a_moment_through_the_real_loop`,
+`PairingApprovalFormTests.Enter_on_a_dialog_shown_again_refuses_while_Approve_is_held_back`
+and
+`PairingApprovalFormTests.A_first_dialog_holds_Approve_back_for_no_moment_and_carries_no_notice`;
+what is asked before a dialog shown again by
+`PairingHandlerTests.A_lock_or_a_close_between_two_dialogs_is_answered_locked`,
+`PairingHandlerTests.A_lock_or_a_close_while_a_later_write_waits_is_answered_locked`,
+`PairingHandlerTests.A_lock_or_a_close_that_takes_a_later_dialog_away_is_answered_locked`,
+`PairingHandlerTests.A_later_dialog_is_not_raised_once_the_invitation_is_gone`
+and
+`PairingHandlerTests.A_later_dialog_over_a_reading_that_is_not_served_is_not_raised`;
+a dialog never shown by
+`PairingHandlerTests.A_dialog_never_shown_is_answered_busy_and_written_down_as_nothing`,
+`PairingApprovalPromptTests.A_dialog_KeePass_s_thread_never_shows_is_answered_as_never_shown_rather_than_unanswered`,
+`PairingApprovalPromptTests.A_dialog_answered_in_its_last_seconds_is_not_logged_as_shown_late`
+and
+`PairingApprovalPromptTests.A_dialog_that_came_up_after_its_wait_is_logged_as_shown_late`.
+The budget and the screen are held by
+`PairingGateTests.A_dialog_shown_again_is_bounded_by_the_pairing_budget_as_the_first_dialog_is`,
+over a real socket,
+`PairingHandlerTests.The_dialog_shown_again_is_given_what_is_left_of_the_pairing_budget`,
+`PairingHandlerTests.A_dialog_shown_again_with_too_little_of_the_budget_left_is_not_shown`,
+`PairingHandlerTests.The_screen_stays_with_the_request_until_the_request_is_answered`,
+`PairingApprovalPromptTests.A_dialog_left_little_of_its_time_waits_for_its_turn_no_longer_than_it_could_still_be_shown`
+and
+`PairingApprovalPromptTests.A_dialog_left_little_of_its_time_gives_up_on_the_screen_by_then`.
+The comparison is held by
+`PairingHandlerTests.A_held_approval_of_a_name_off_the_list_is_stale_once_a_removal_the_dialog_did_not_hold_arrives`,
+`PairingHandlerTests.An_approval_of_a_name_off_the_list_is_stale_once_a_removal_arrives_while_the_dialog_stands`,
+`PairingHandlerTests.A_name_on_the_list_whose_addition_names_earlier_removals_is_written_at_the_first_approval`,
+`PairingHandlerTests.An_approval_of_a_name_on_the_list_is_written_whatever_removal_arrives_while_it_stays_on_the_list`
+and, over real databases synchronized by KeePass,
+`PairingInRealDatabaseTests.A_removal_synchronized_in_while_the_dialog_stands_makes_the_approval_of_its_name_stale`,
+`PairingInRealDatabaseTests.A_removal_synchronized_in_while_an_approval_is_held_makes_it_stale_at_the_retry`
+and
+`PairingInRealDatabaseTests.A_name_the_file_does_not_know_whose_removal_a_deletion_record_alone_tells_of_is_put_back_at_the_second_approval`.
+The authority is held first, by the plan of the write: an admission is planned only while the
 authority that issued its certificate stands alone in the store, `STORE.md` §627, and a write
 whose plan is refused for it is answered `409 no invitation`, with the approval used up and the
 invitation unspent, since no retry under that authority can be written. That answer is for an

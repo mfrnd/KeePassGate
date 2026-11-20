@@ -180,15 +180,22 @@ namespace KeePassGate.Tests.Fakes
             }
         }
 
-        /// <summary>The admitted clients whose admissions hold a profile.</summary>
-        public IReadOnlyList<AdmissionRecord> Holding(string profile)
+        /// <summary>
+        /// What this fake's store holds of the profiles a pairing asks for, read from a single
+        /// reading as the real target reads it in a single hold, where the store serves this
+        /// authority.
+        /// </summary>
+        public AskedProfiles Asked(IReadOnlyCollection<string> profiles)
         {
+            if (AskedAnswers != null)
+            {
+                return AskedAnswers;
+            }
+
             using (var reading = _store.Read())
             {
-                var listing = StoreAdmissions.Listing(reading);
-                return listing.Records
-                    .Where(record => listing.StandingOf(record) == AdmissionStanding.Admitted && record.Profiles.Contains(profile))
-                    .ToList();
+                var served = string.Equals(StoreAuthorities.Served(reading), DatabaseId, StringComparison.Ordinal);
+                return AskedProfiles.Of(reading, served, profiles, DateTimeOffset.UtcNow);
             }
         }
 
@@ -292,6 +299,11 @@ namespace KeePassGate.Tests.Fakes
             {
                 return ProfileNames.Of(_reading).Holds(profile);
             }
+
+            public IReadOnlyCollection<string> Removals(string profile)
+            {
+                return _reading.InForce == null ? (IReadOnlyCollection<string>)Array.Empty<string>() : _reading.InForce.RemovalsOnceKnown(profile);
+            }
         }
 
         /// <summary>
@@ -300,6 +312,38 @@ namespace KeePassGate.Tests.Fakes
         /// anything else hears of it.
         /// </summary>
         public AdmissionWrite Admit(AdmissionRecord record, Func<IWriteGround, string> condition, Action audit)
+        {
+            try
+            {
+                return Admitting(record, condition, audit);
+            }
+            finally
+            {
+                if (AfterWrite != null)
+                {
+                    AfterWrite();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Run once a write has answered, whatever it answered: a test stands there what lands
+        /// between a write and what the handler does next.
+        /// </summary>
+        public Action AfterWrite { get; set; }
+
+        /// <summary>
+        /// Set where the database closed under the write: the write finds nothing to write to and
+        /// answers so before its condition is asked, as the writer does.
+        /// </summary>
+        public bool ClosedUnderTheWrite { get; set; }
+
+        /// <summary>
+        /// What <see cref="Asked"/> answers in place of this fake's store, where a test sets it.
+        /// </summary>
+        public AskedProfiles AskedAnswers { get; set; }
+
+        private AdmissionWrite Admitting(AdmissionRecord record, Func<IWriteGround, string> condition, Action audit)
         {
             if (AdmitThrows != null)
             {
@@ -318,6 +362,11 @@ namespace KeePassGate.Tests.Fakes
             if (BeforeWrite != null)
             {
                 BeforeWrite();
+            }
+
+            if (ClosedUnderTheWrite)
+            {
+                return AdmissionWrite.Failed("the database is not open");
             }
 
             using (var reading = _store.Read())

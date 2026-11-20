@@ -15,6 +15,7 @@ using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
 using NUnit.Framework;
+using PairingApprovalForm = KeePassGate.Ui.PairingApprovalForm;
 
 namespace KeePassGate.Tests
 {
@@ -47,11 +48,21 @@ namespace KeePassGate.Tests
         private RecordingAudit _audit;
         private ApprovalBook _held;
         private GateIncidents _incidents;
+        private PairingOptions _options;
+
+        /// <summary>The handler's clock where a test sets a clock, or null for the system's.</summary>
+        private Func<DateTimeOffset> _clock;
+
+        /// <summary>What stood as each dialog came up, <see cref="Standing"/>, in order.</summary>
+        private List<string> _atEachDialog;
 
         [SetUp]
         public void SetUp()
         {
             _issuer = null;
+            _options = null;
+            _clock = null;
+            _atEachDialog = new List<string>();
             _audit = new RecordingAudit();
             _held = new ApprovalBook();
             _target = TestAuthority.New();
@@ -562,23 +573,25 @@ namespace KeePassGate.Tests
             // list after the dialog took in the name another approval put on it meanwhile, so the
             // write found the list agreeing with it and wrote the record as though the name had
             // been listed all along. What the write compares now is the list the dialog was built
-            // from, which is what the operator answered.
+            // from, which is what the operator answered: nothing is written, and the same request
+            // puts the dialog up again over the list as it stands.
             Hello(ClientProof());
-            PairingRequest shown = null;
-            var approval = new FakePairingApproval(request =>
+            var approval = Answering(request =>
             {
-                shown = request;
-                _target.KnownProfiles = _target.KnownProfiles.Concat(new[] { "ops" }).ToArray();
+                if (_atEachDialog.Count == 1)
+                {
+                    _target.KnownProfiles = _target.KnownProfiles.Concat(new[] { "ops" }).ToArray();
+                }
+
                 return PairingApproval.Approved(new[] { "ops" });
             });
 
             var context = Request("agent-fictitious", new[] { "ops" }, approval);
 
-            Assert.That(shown.IsNew("ops"), Is.True, "the operator was told the name was new");
-            Assert.That(context.Status, Is.EqualTo(503), context.Json);
-            Assert.That(context.Json, Does.Contain("busy"));
-            Assert.That(_target.Admitted, Is.Null, "nothing is recorded for an approval of what is no longer so");
-            Assert.That(_book.Outstanding().Count, Is.EqualTo(1), "and the invitation is whole");
+            Assert.That(approval.Requests[0].IsNew("ops"), Is.True, "the operator was told the name was new");
+            Assert.That(_atEachDialog[1], Is.EqualTo(NothingWritten), "nothing is recorded for an approval of what is no longer so");
+            Assert.That(approval.Requests[1].IsNew("ops"), Is.False, "the dialog shown again shows the name on the list");
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
         }
 
         [Test]
@@ -1147,18 +1160,1263 @@ namespace KeePassGate.Tests
         public void A_profile_taken_off_the_list_under_the_write_voids_the_approval_and_spends_nothing()
         {
             // Compared under the writer's lock: the write would put the name back on the list,
-            // with every rule naming it, after the operator took it off.
+            // with every rule naming it, after the operator took it off. Nothing is written or
+            // spent, and the same request puts the dialog to the operator again over the name as
+            // it stands, answered once its approval is written.
             _target.KnownProfiles = new[] { "ops" };
-            _target.BeforeWrite = () => _target.Forget("ops");
+            _target.BeforeWrite = () =>
+            {
+                _target.BeforeWrite = null;
+                _target.Forget("ops");
+            };
+            var approval = Agreeing();
             Hello(ClientProof());
 
-            var context = Request("agent-fictitious", new[] { "ops" }, Approving("ops"));
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
 
-            Assert.That(context.Status, Is.EqualTo(503));
-            Assert.That(context.Json, Does.Not.Contain("heldUntil"), "the operator is asked again");
-            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1), "the invitation is not spent");
-            Assert.That(_held.Count, Is.Zero);
+            AskedAgainInTheSameRequest(context, approval);
+        }
+
+        [Test]
+        public void A_profile_put_on_the_list_under_the_write_voids_the_approval_and_the_dialog_comes_back()
+        {
+            // Shown as new, and on the list by the write, as another pairing or the Profiles page
+            // put it there: not the name the operator was shown. The dialog shown again shows it
+            // on the list.
+            var approval = Agreeing();
+            _target.BeforeWrite = () =>
+            {
+                _target.BeforeWrite = null;
+                _target.KnownProfiles = new[] { "ops" };
+            };
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(approval.Asked, Is.EqualTo(2));
+            Assert.That(PairingApprovalForm.Row(approval.Requests[0], "ops"), Is.EqualTo("ops" + PairingApprovalForm.NewSuffix));
+            Assert.That(_atEachDialog[1], Is.EqualTo(NothingWritten), "nothing written or spent before the second Approve");
+            Assert.That(PairingApprovalForm.Again(approval.Requests[1]), Is.EqualTo(StateChanged));
+            Assert.That(PairingApprovalForm.Row(approval.Requests[1], "ops"), Is.EqualTo("ops"));
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+        }
+
+        [Test]
+        public void A_held_approval_of_a_name_off_the_list_is_stale_once_a_removal_the_dialog_did_not_hold_arrives(
+            [Values(NeverNamed, RemovedHere)] string before,
+            [Values(AsRecordAndItem, AsItemAlone, AsDeletionRecordAlone)] string how)
+        {
+            // The operator approved `ops` off the list and the write was answered busy, the
+            // approval held. A synchronize brings a removal of `ops` made in another copy: the
+            // retry writes nothing, as an Add on the Profiles page that a removal overtook writes
+            // nothing, `STORE.md` §627, and the retry puts the dialog to the operator again over
+            // the name as it stands.
+            OffTheList(before);
+            var approval = Agreeing();
+            _target.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
+            Hello(ClientProof());
+            Assert.That(Request("agent-fictitious", new[] { "ops" }, approval).Status, Is.EqualTo(503));
+            Assert.That(_held.Count, Is.EqualTo(1), "the approval is held");
+            _target.AdmitAnswers = null;
+            RemovedElsewhere(how);
+
+            Hello(ClientProof());
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            AskedAgainInTheSameRequest(context, approval);
+        }
+
+        [Test]
+        public void An_approval_of_a_name_off_the_list_is_stale_once_a_removal_arrives_while_the_dialog_stands(
+            [Values(NeverNamed, RemovedHere)] string before,
+            [Values(AsRecordAndItem, AsItemAlone, AsDeletionRecordAlone)] string how)
+        {
+            // The dialog is built from a reading made before it is shown, and a synchronize lands
+            // while the operator reads it. The operator unchecks `deploy` and picks thirty days:
+            // the dialog shown again opens with that answer, `deploy` unchecked and thirty days
+            // chosen, and `ops` checked only where it was marked removed before as well; a name
+            // shown as new before opens unchecked, and the operator checks it again. Its Approve
+            // writes what the operator approved.
+            OffTheList(before);
+            var dialogs = 0;
+            var approval = Answering(request =>
+            {
+                if (++dialogs == 1)
+                {
+                    RemovedElsewhere(how);
+                    return PairingApproval.Approved(new[] { "ops" }, TimeSpan.FromDays(30));
+                }
+
+                return PairingApproval.Approved(new[] { "ops" }, request.Picked);
+            });
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops", "deploy" }, approval);
+
+            AskedAgainInTheSameRequest(context, approval);
+            Assert.That(approval.Requests[1].Checks("ops"), Is.EqualTo(before == RemovedHere), "checked only where its mark is the same");
+            Assert.That(approval.Requests[1].Checks("deploy"), Is.False, "unchecked on the dialog before");
+            Assert.That(approval.Requests[1].Picked, Is.EqualTo(TimeSpan.FromDays(30)));
+            Assert.That(_target.Admitted.Profiles, Is.EqualTo(new[] { "ops" }));
+        }
+
+        [Test]
+        public void A_removal_only_a_deletion_record_tells_of_before_the_first_dialog_is_put_back_at_the_second_approval(
+            [Values(false, true)] bool heldFirst)
+        {
+            // `ops` named nowhere in the file, and its removal a deletion record alone before the
+            // first dialog: the dialog's reading cannot tie that deletion record to the name, so the
+            // dialog shows `ops` as new. The write counts with the store key, finds the removal the
+            // dialog did not show, and writes nothing, an approval held first as well. The request
+            // puts the dialog to the operator again, marking `ops` removed and holding that
+            // removal, and its approval puts the name back over it.
+            RemovedElsewhere(AsDeletionRecordAlone);
+            var approval = Agreeing();
+            if (heldFirst)
+            {
+                _target.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
+                Hello(ClientProof());
+                Assert.That(Request("agent-fictitious", new[] { "ops" }, approval).Status, Is.EqualTo(503));
+                Assert.That(_held.Count, Is.EqualTo(1), "the approval is held");
+                _target.AdmitAnswers = null;
+            }
+
+            Hello(ClientProof());
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(PairingApprovalForm.Row(approval.Requests[0], "ops"), Is.EqualTo("ops" + PairingApprovalForm.NewSuffix));
+            AskedAgainInTheSameRequest(context, approval);
+        }
+
+        [Test]
+        public void A_removal_the_dialog_held_lets_the_approval_of_its_name_through(
+            [Values(AsRecordAndItem, AsItemAlone)] string how,
+            [Values(false, true)] bool heldFirst)
+        {
+            // A removal in the database before the dialog was shown, which its reading tells by
+            // the removal's record or an item, is a removal the operator saw, since the dialog
+            // shows the name off the list: approving it puts the name back.
+            RemovedElsewhere(how);
+            var approval = Approving("ops");
+            if (heldFirst)
+            {
+                _target.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
+                Hello(ClientProof());
+                Assert.That(Request("agent-fictitious", new[] { "ops" }, approval).Status, Is.EqualTo(503));
+                _target.AdmitAnswers = null;
+            }
+
+            Hello(ClientProof());
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(approval.Asked, Is.EqualTo(1));
+            Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops" }));
+        }
+
+        [Test]
+        public void An_approval_of_a_name_on_the_list_is_written_whatever_removal_arrives_while_it_stays_on_the_list()
+        {
+            // A name on the list as the dialog showed it is held to being there at the write, and
+            // to nothing else: a removal of it that another copy made and added the name back
+            // over, brought in by a synchronize while the dialog stands, leaves it on the list and
+            // is not compared, and a removal of another name changes nothing the operator decided.
+            _target.KnownProfiles = new[] { "ops" };
+            var approval = Approving("ops");
+            _target.BeforeWrite = () =>
+            {
+                _target.BeforeWrite = null;
+                var copy = _target.Store.Copy();
+                StoreSeeds.Unname(copy, "ops");
+                StoreSeeds.Name(copy, "ops");
+                _target.Store.Synchronize(copy);
+                StoreRecords.RemovedApart(_target.Store, "other");
+            };
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            using (var reading = _target.Store.Read())
+            {
+                Assert.That(reading.InForce.RemovalsOnceKnown("ops"), Has.Count.EqualTo(1), "a removal the dialog did not hold");
+            }
+
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(approval.Asked, Is.EqualTo(1));
+            Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops" }));
+        }
+
+        [Test]
+        public void A_name_on_the_list_whose_addition_names_earlier_removals_is_written_at_the_first_approval()
+        {
+            // `ops` removed and added back before the dialog, so the addition that puts it on the
+            // list names that removal: the dialog shows it on the list, its approval is held to
+            // that place alone, and the removal is not compared.
+            _target.KnownProfiles = new[] { "ops" };
+            _target.Forget("ops");
+            _target.KnownProfiles = new[] { "ops" };
+            using (var reading = _target.Store.Read())
+            {
+                Assert.That(reading.InForce.RemovalsOnceKnown("ops"), Has.Count.EqualTo(1));
+            }
+
+            var approval = Agreeing();
+            Hello(ClientProof());
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(PairingApprovalForm.Row(approval.LastRequest, "ops"), Is.EqualTo("ops"));
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(approval.Asked, Is.EqualTo(1));
+            Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops" }));
+        }
+
+        [Test]
+        public void The_dialog_after_an_approval_a_removal_it_did_not_show_made_stale_marks_the_name_removed()
+        {
+            // The first dialog shows `ops` as new. A removal of it arrives as a deletion record
+            // alone, which a reading taken without the store key cannot tie to a name, and the
+            // write, which counts with the key, finds it: the approval is stale. The dialog the
+            // same request puts to the operator again marks `ops` as removed, with the line about
+            // every rule still naming it, as a removed name is shown, and approving that puts the
+            // name back.
+            var approval = Agreeing();
+            ARemovalOfOpsUnderTheFirstWrite();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            var first = approval.Requests[0];
+            Assert.That(PairingApprovalForm.Row(first, "ops"), Is.EqualTo("ops" + PairingApprovalForm.NewSuffix));
+            Assert.That(PairingApprovalForm.Regaining(first), Is.Null);
+            Assert.That(PairingApprovalForm.Again(first), Is.Null);
+            var shown = approval.Requests[1];
+            Assert.That(approval.Asked, Is.EqualTo(2));
+            Assert.That(PairingApprovalForm.Again(shown), Is.EqualTo(StateChanged));
+            Assert.That(PairingApprovalForm.Row(shown, "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(shown.IsNew("ops"), Is.False);
+            Assert.That(PairingApprovalForm.Asking(shown), Is.EqualTo(PairingApprovalForm.ProfilesAsked));
+            Assert.That(PairingApprovalForm.Regaining(shown), Is.EqualTo(AddsBack));
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops" }));
+        }
+
+        [Test]
+        public void The_mark_a_stale_approval_leaves_names_every_client_that_regains_the_name_as_a_removed_name_does()
+        {
+            // A client still holds `ops`, so the first dialog shows it as removed already, naming
+            // that client; the dialog shown again shows it the same way.
+            using (var holder = _target.IssueClient("agent-holding", "ops"))
+            {
+                _target.Admit(holder, "ops");
+                _target.Forget("ops");
+                var approval = Agreeing();
+                ARemovalOfOpsUnderTheFirstWrite();
+                Hello(ClientProof());
+
+                var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+                var first = PairingApprovalForm.Regaining(approval.Requests[0]);
+                Assert.That(first, Does.Contain("agent-holding"));
+                Assert.That(approval.Asked, Is.EqualTo(2));
+                Assert.That(PairingApprovalForm.Row(approval.Requests[1], "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+                Assert.That(PairingApprovalForm.Regaining(approval.Requests[1]), Is.EqualTo(first));
+                Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            }
+        }
+
+        [Test]
+        public void Nothing_of_a_request_s_dialogs_reaches_the_next_request()
+        {
+            // What a write found and what the operator answered belong to the request. A request
+            // whose dialog shown again is refused leaves nothing behind: the request on the code
+            // handed out next starts from its own reading, its first dialog carries no notice and
+            // shows `ops` as that reading shows it, new, and its own write finds the removal.
+            var dialogs = 0;
+            var approval = Answering(request => ++dialogs == 2
+                ? PairingApproval.Refused()
+                : PairingApproval.Approved(request.Profiles));
+            ARemovalOfOpsUnderTheFirstWrite();
+            Hello(ClientProof());
+
+            var refused = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(refused.Status, Is.EqualTo(403), refused.Json);
+            AnotherInvitation();
+            Hello(ClientProof());
+
+            var context = Request("agent-other", new[] { "ops" }, approval);
+
+            Assert.That(approval.Asked, Is.EqualTo(4));
+            Assert.That(PairingApprovalForm.Again(approval.Requests[2]), Is.Null, "the first dialog of a request carries no notice");
+            Assert.That(PairingApprovalForm.Row(approval.Requests[2], "ops"), Is.EqualTo("ops" + PairingApprovalForm.NewSuffix));
+            Assert.That(PairingApprovalForm.Again(approval.Requests[3]), Is.EqualTo(StateChanged));
+            Assert.That(PairingApprovalForm.Row(approval.Requests[3], "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops" }));
+        }
+
+        [Test]
+        public void A_list_change_and_a_removal_found_by_the_same_write_put_the_dialog_up_again_once()
+        {
+            // Every cause in a single pass: `reader` taken off the list and a removal of `ops` that
+            // only a deletion record tells of, both under the same write. The log names both in a
+            // single line, the dialog shown again marks both names removed, and its approval is
+            // written.
+            _target.KnownProfiles = new[] { "reader" };
+            var approval = Agreeing();
+            _target.BeforeWrite = () =>
+            {
+                _target.BeforeWrite = null;
+                _target.Forget("reader");
+                StoreRecords.RemovedApart(_target.Store, "ops");
+            };
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops", "reader" }, approval);
+
+            Assert.That(
+                _log.Warnings.Single(entry => entry.Message.Contains(StaleLine)).Message,
+                Does.Contain("the profile reader is off the list").And.Contain("a removal of the profile ops"),
+                "a single line names both causes");
+            var shown = approval.Requests[1];
+            Assert.That(approval.Asked, Is.EqualTo(2));
+            Assert.That(_atEachDialog[1], Is.EqualTo(NothingWritten));
+            Assert.That(PairingApprovalForm.Again(shown), Is.EqualTo(StateChanged));
+            Assert.That(
+                shown.Profiles.Select(profile => PairingApprovalForm.Row(shown, profile)),
+                Is.EqualTo(new[] { "ops" + PairingApprovalForm.RemovedSuffix, "reader" + PairingApprovalForm.RemovedSuffix }));
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops", "reader" }));
+        }
+
+        [Test]
+        public void A_name_taken_off_the_list_by_a_removal_the_next_reading_cannot_tie_puts_the_dialog_up_again_once()
+        {
+            // `ops` on the list as the dialog showed it. Under the write a synchronize brings in a
+            // copy that removed it, deleted its addition, then deleted the removal for good and
+            // lost the summary entry restating it: `ops` is off the list, and nothing in the store
+            // names it but a deletion record, which the next reading cannot tie to the name. The
+            // write finds that removal with the move, so the dialog shown again marks `ops`
+            // removed and holds the removal, and its approval is written.
+            _target.KnownProfiles = new[] { "ops" };
+            var approval = Agreeing();
+            _target.BeforeWrite = () =>
+            {
+                _target.BeforeWrite = null;
+                TakenOffApartLeavingADeletionRecord("ops");
+            };
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(approval.Asked, Is.EqualTo(2));
+            Assert.That(_atEachDialog[1], Is.EqualTo(NothingWritten));
+            Assert.That(PairingApprovalForm.Again(approval.Requests[1]), Is.EqualTo(StateChanged));
+            Assert.That(PairingApprovalForm.Row(approval.Requests[1], "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(_log.Warnings.Count(entry => entry.Message.Contains(StaleLine)), Is.EqualTo(1));
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops", "reader" }));
+        }
+
+        [Test]
+        public void A_further_removal_while_the_dialog_shown_again_stands_puts_the_dialog_up_a_third_time()
+        {
+            // A removal of `ops` under the first write, and a further removal of `ops` arriving while
+            // the dialog shown again stands, each a deletion record alone, which no reading ties to
+            // the name. Each write finds the removal its dialog did not hold, and the third dialog
+            // holds both as the two writes found them, so that its approval is written over both.
+            // The log names each write's cause in a line of its own. From a fifth dialog on the
+            // operator refuses, so that a request whose dialogs hold fewer than both still ends.
+            var dialogs = 0;
+            var approval = Answering(request =>
+            {
+                if (++dialogs == 2)
+                {
+                    RemovedElsewhere(AsDeletionRecordAlone);
+                }
+
+                return dialogs < 5 ? PairingApproval.Approved(request.Profiles) : PairingApproval.Refused();
+            });
+            ARemovalOfOpsUnderTheFirstWrite();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(approval.Asked, Is.EqualTo(3));
+            Assert.That(PairingApprovalForm.Again(approval.Requests[0]), Is.Null);
+            Assert.That(PairingApprovalForm.Again(approval.Requests[1]), Is.EqualTo(StateChanged));
+            Assert.That(PairingApprovalForm.Again(approval.Requests[2]), Is.EqualTo(StateChanged));
+            Assert.That(PairingApprovalForm.Row(approval.Requests[2], "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(_atEachDialog[2], Is.EqualTo(NothingWritten), "nothing written or spent before the third Approve");
+            Assert.That(_log.Warnings.Count(entry => entry.Message.Contains(StaleLine)), Is.EqualTo(2));
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops" }));
+        }
+
+        [Test]
+        public void Refusing_the_dialog_shown_again_is_answered_as_a_refusal_and_spends_the_invitation()
+        {
+            // Answered as a refusal on a first dialog is: `403 refused`, the invitation spent, the
+            // refusal written down by its invitation, and nothing written.
+            var dialogs = 0;
+            var approval = Answering(request => ++dialogs == 1
+                ? PairingApproval.Approved(request.Profiles)
+                : PairingApproval.Refused());
+            ARemovalOfOpsUnderTheFirstWrite();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(approval.Asked, Is.EqualTo(2));
+            Assert.That(context.Status, Is.EqualTo(403), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("refused")));
+            Assert.That(_book.Outstanding(), Is.Empty, "a refusal is a decision, and it spends the invitation");
             Assert.That(_target.Admitted, Is.Null);
+            Assert.That(_target.KnownProfiles, Is.Empty);
+            Assert.That(_held.Count, Is.Zero);
+            Assert.That(_audit.Entries.Single().Decision, Is.EqualTo(AuditEntry.Refused));
+            Assert.That(_audit.Entries.Single().Invitation, Is.EqualTo(_invitation.Id));
+        }
+
+        [Test]
+        public void Nobody_answering_the_dialog_shown_again_spends_nothing()
+        {
+            // Answered as a first dialog nobody answers is: `504 unanswered`, nothing written or
+            // spent, and the request written down as unanswered.
+            var dialogs = 0;
+            var approval = Answering(request => ++dialogs == 1
+                ? PairingApproval.Approved(request.Profiles)
+                : PairingApproval.TimedOut());
+            ARemovalOfOpsUnderTheFirstWrite();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(approval.Asked, Is.EqualTo(2));
+            Assert.That(context.Status, Is.EqualTo(504), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("unanswered")));
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1));
+            Assert.That(_target.Admitted, Is.Null);
+            Assert.That(_held.Count, Is.Zero);
+            Assert.That(_audit.Entries.Single().Decision, Is.EqualTo(AuditEntry.Unanswered));
+        }
+
+        [Test]
+        public void The_dialog_shown_again_is_given_what_is_left_of_the_pairing_budget()
+        {
+            // A further dialog stays inside the budget its request arrived in: it is given what is
+            // left of that budget once the waits after the dialog are set aside, as a dialog that
+            // comes up late is, and never more than the operator's own time.
+            var now = DateTimeOffset.UtcNow;
+            _clock = () => now;
+            _options = new PairingOptions();
+            var thought = TimeSpan.FromSeconds(100);
+            var approval = Answering(request =>
+            {
+                now += thought;
+                return PairingApproval.Approved(request.Profiles);
+            });
+            ARemovalOfOpsUnderTheFirstWrite();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            var budget = _options.ApprovalHeld - _options.AfterTheDialog;
+            Assert.That(approval.Lefts, Is.EqualTo(new[] { budget, budget - thought }));
+            Assert.That(approval.LastTimeout, Is.EqualTo(_options.ApprovalTimeout));
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+        }
+
+        [Test]
+        public void A_dialog_shown_again_with_too_little_of_the_budget_left_is_not_shown()
+        {
+            // The screen puts up no dialog that cannot be read, `PairingApprovalPrompt.Shortest`.
+            // Where the first round used so much of the budget that too little is left for a
+            // dialog, the request is answered as a request too late for the screen is, `503 busy`,
+            // with nothing written or spent.
+            var now = DateTimeOffset.UtcNow;
+            _clock = () => now;
+            _options = new PairingOptions();
+            var shown = 0;
+            var prompt = new KeePassGate.Ui.PairingApprovalPrompt(new FakeUiThread(), _log)
+            {
+                Dialog = (request, allowed) =>
+                {
+                    shown++;
+                    now += _options.ApprovalHeld - _options.AfterTheDialog - KeePassGate.Ui.PairingApprovalPrompt.Shortest
+                           + TimeSpan.FromSeconds(1);
+                    return PairingApproval.Approved(request.Profiles);
+                }
+            };
+            ARemovalOfOpsUnderTheFirstWrite();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, prompt);
+
+            Assert.That(shown, Is.EqualTo(1));
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
+            Assert.That(_log.Warnings.Any(entry => entry.Message.Contains("too little of its time was left")), Is.True);
+            Assert.That(_target.Admitted, Is.Null);
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1));
+            Assert.That(_held.Count, Is.Zero);
+        }
+
+        [Test]
+        public void The_screen_stays_with_the_request_until_the_request_is_answered()
+        {
+            // A single request is put to the operator at a time, and a request whose write found its
+            // approval stale keeps the screen through that write and into its next dialog, so that
+            // no other request's dialog comes up between them: a request asking meanwhile waits
+            // within its own wait for the screen, and here gives up. Once the request is answered
+            // the screen is free.
+            var prompt = new KeePassGate.Ui.PairingApprovalPrompt(new FakeUiThread(), _log)
+            {
+                Dialog = (request, allowed) => PairingApproval.Approved(request.Profiles)
+            };
+            PairingApproval meanwhile = null;
+            _target.BeforeWrite = () =>
+            {
+                _target.BeforeWrite = null;
+                meanwhile = OnAnotherThread(() => prompt.Ask(AnotherRequest(), TimeSpan.FromMilliseconds(200), TimeSpan.FromMinutes(10)));
+                StoreRecords.RemovedApart(_target.Store, "ops");
+            };
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, prompt);
+
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(meanwhile.Decision, Is.EqualTo(PairingDecision.Unavailable), "no other dialog while the request writes");
+            Assert.That(
+                OnAnotherThread(() => prompt.Ask(AnotherRequest(), TimeSpan.FromMilliseconds(200), TimeSpan.FromMinutes(10))).Decision,
+                Is.EqualTo(PairingDecision.Approved),
+                "the screen is free once the request is answered");
+        }
+
+        [Test]
+        [Apartment(System.Threading.ApartmentState.STA)]
+        public void A_held_approval_found_stale_at_its_retry_opens_the_dialog_as_the_operator_approved_it()
+        {
+            // The client asks for `reader`, `admin` and `ops`; the operator unchecks `admin`, picks
+            // seven days and approves, KeePass is busy and the approval is held. A removal of `ops`
+            // that the dialog did not show arrives before the retry: the retry finds the approval
+            // stale at its write and puts the real dialog to the operator with its notice, `reader`
+            // checked, `admin` unchecked, `ops` unchecked as a row whose mark changed, and seven
+            // days chosen, the single case in which a second request carries the notice.
+            _target.KnownProfiles = new[] { "reader" };
+            var opened = new List<(IReadOnlyList<string> Checked, TimeSpan Lifetime)>();
+            var approval = Answering(request =>
+            {
+                opened.Add(Opened(request));
+                return opened.Count == 1
+                    ? PairingApproval.Approved(new[] { "reader", "ops" }, TimeSpan.FromDays(7))
+                    : PairingApproval.Approved(opened[1].Checked, opened[1].Lifetime);
+            });
+            _target.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
+            Hello(ClientProof());
+            var busy = Request("agent-fictitious", new[] { "reader", "admin", "ops" }, approval);
+            Assert.That(JsonBody.Read(busy.Json).Text("heldUntil"), Is.Not.Null, busy.Json);
+            _target.AdmitAnswers = null;
+            RemovedElsewhere(AsDeletionRecordAlone);
+
+            Hello(ClientProof());
+            var context = Request("agent-fictitious", new[] { "reader", "admin", "ops" }, approval);
+
+            Assert.That(approval.Asked, Is.EqualTo(2));
+            Assert.That(PairingApprovalForm.Again(approval.Requests[0]), Is.Null);
+            Assert.That(PairingApprovalForm.Again(approval.Requests[1]), Is.EqualTo(StateChanged));
+            Assert.That(opened[1].Checked, Is.EqualTo(new[] { "reader" }));
+            Assert.That(opened[1].Lifetime, Is.EqualTo(TimeSpan.FromDays(7)));
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(_target.Admitted.Profiles, Is.EqualTo(new[] { "reader" }));
+        }
+
+        [Test]
+        [Apartment(System.Threading.ApartmentState.STA)]
+        public void The_dialog_shown_again_opens_with_what_the_operator_approved_before()
+        {
+            // The client asks for `reader`, `admin` and `ops`; the operator unchecks `admin`, picks
+            // seven days and approves, and the write finds a removal of `ops` that the dialog did
+            // not show. The dialog shown again opens with `reader` checked, `admin` unchecked as
+            // the operator left it, `ops` unchecked as a row whose mark changed, and seven days
+            // chosen, so that a single Approve on it grants no more than the operator approved.
+            _target.KnownProfiles = new[] { "reader" };
+            var opened = new List<(IReadOnlyList<string> Checked, TimeSpan Lifetime)>();
+            var approval = Answering(request =>
+            {
+                opened.Add(Opened(request));
+                return opened.Count == 1
+                    ? PairingApproval.Approved(new[] { "reader", "ops" }, TimeSpan.FromDays(7))
+                    : PairingApproval.Approved(opened[1].Checked, opened[1].Lifetime);
+            });
+            ARemovalOfOpsUnderTheFirstWrite();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "reader", "admin", "ops" }, approval);
+
+            Assert.That(opened[0].Checked, Is.EqualTo(new[] { "reader", "admin", "ops" }), "a first dialog checks every row");
+            Assert.That(opened[1].Checked, Is.EqualTo(new[] { "reader" }));
+            Assert.That(opened[1].Lifetime, Is.EqualTo(TimeSpan.FromDays(7)));
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(_target.Admitted.Profiles, Is.EqualTo(new[] { "reader" }));
+        }
+
+        [TestCase(ByARemoval)]
+        [TestCase(ByAMove)]
+        [TestCase(ByBoth)]
+        public void The_notice_reads_the_same_whatever_the_write_found_and_the_log_names_each_cause(string how)
+        {
+            // The dialog shown again states only that the state changed: the rows show the state,
+            // and the log names each profile and each cause
+            // the write found, all of them in a single line.
+            _target.KnownProfiles = new[] { "reader" };
+            var approval = Agreeing();
+            _target.BeforeWrite = () =>
+            {
+                _target.BeforeWrite = null;
+                if (how != ByAMove)
+                {
+                    StoreRecords.RemovedApart(_target.Store, "ops");
+                }
+
+                if (how != ByARemoval)
+                {
+                    _target.Forget("reader");
+                }
+            };
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops", "reader" }, approval);
+
+            Assert.That(PairingApprovalForm.Again(approval.Requests[1]), Is.EqualTo(StateChanged));
+            var line = _log.Warnings.Select(entry => entry.Message).Single(message => message.Contains(StaleLine));
+            Assert.That(line.Contains("a removal of the profile ops"), Is.EqualTo(how != ByAMove), line);
+            Assert.That(line.Contains("the profile reader is off the list"), Is.EqualTo(how != ByARemoval), line);
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+        }
+
+        [Test]
+        public void A_name_found_removed_and_unchecked_on_the_dialog_shown_again_stays_off_the_list()
+        {
+            // The operator approved `ops` and `deploy`, and Approve found `ops` removed. On the
+            // dialog shown again `ops` is unchecked: the approval of `deploy` alone is written,
+            // and `ops` stays where its removal put it.
+            var dialogs = 0;
+            var approval = Answering(request => PairingApproval.Approved(
+                ++dialogs == 1 ? request.Profiles : request.Profiles.Where(profile => profile != "ops").ToList()));
+            ARemovalOfOpsUnderTheFirstWrite();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops", "deploy" }, approval);
+
+            Assert.That(PairingApprovalForm.Again(approval.Requests[1]), Is.EqualTo(StateChanged));
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "deploy" }));
+            Assert.That(_target.Admitted.Profiles, Is.EqualTo(new[] { "deploy" }));
+        }
+
+        [Test]
+        [Apartment(System.Threading.ApartmentState.STA)]
+        public void A_row_whose_mark_changed_opens_unchecked_on_the_dialog_shown_again()
+        {
+            // `ops` on the list, `deploy` and `admin` new; the operator unchecks `admin` and
+            // approves while a synchronize takes `ops` off the list. The dialog shown again marks
+            // `ops` removed, which is not what the operator approved it as, so its row opens
+            // unchecked and a single Approve on that dialog puts no name back. `deploy`, marked as
+            // before, opens as the operator left it, and so does `admin`.
+            _target.KnownProfiles = new[] { "ops" };
+            var dialogs = 0;
+            var approval = Answering(request =>
+            {
+                if (++dialogs == 1)
+                {
+                    _target.Forget("ops");
+                    return PairingApproval.Approved(new[] { "ops", "deploy" });
+                }
+
+                return PairingApproval.Approved(request.Profiles.Where(request.Checks).ToList());
+            });
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops", "deploy", "admin" }, approval);
+
+            var shown = approval.Requests[1];
+            Assert.That(PairingApprovalForm.Row(shown, "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(shown.Checks("ops"), Is.False, "on the list before, removed now");
+            Assert.That(shown.Checks("deploy"), Is.True, "new before and new now");
+            Assert.That(shown.Checks("admin"), Is.False, "unchecked before");
+            Assert.That(Opened(shown).Checked, Is.EqualTo(new[] { "deploy" }), "the real form opens so");
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(_target.Admitted.Profiles, Is.EqualTo(new[] { "deploy" }));
+            Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "deploy" }));
+        }
+
+        [Test]
+        public void A_held_approval_carries_the_removals_its_dialog_held_into_the_dialogs_of_its_retry()
+        {
+            // `ops` named nowhere in the file, its removal a deletion record alone, and `reader` on
+            // the list. The first write finds that removal, and the dialog shown again marks `ops`
+            // removed and holds it; the operator approves both names and KeePass is too busy to
+            // write, so the approval is held. `reader` then leaves the list, and the retry's write
+            // finds the held approval stale over `reader` alone. The retry's dialog holds what the
+            // held approval's dialog held, so `ops` is marked removed again and the approval of that
+            // dialog is written over that removal, with no further dialog.
+            _target.KnownProfiles = new[] { "reader" };
+            RemovedElsewhere(AsDeletionRecordAlone);
+            var dialogs = 0;
+            var approval = Answering(request =>
+            {
+                if (++dialogs == 2)
+                {
+                    _target.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
+                }
+
+                return PairingApproval.Approved(request.Profiles);
+            });
+            Hello(ClientProof());
+            var busy = Request("agent-fictitious", new[] { "ops", "reader" }, approval);
+            Assert.That(JsonBody.Read(busy.Json).Text("heldUntil"), Is.Not.Null, busy.Json);
+            _target.AdmitAnswers = null;
+            _target.Forget("reader");
+
+            Hello(ClientProof());
+            var context = Request("agent-fictitious", new[] { "ops", "reader" }, approval);
+
+            Assert.That(approval.Asked, Is.EqualTo(3));
+            Assert.That(PairingApprovalForm.Row(approval.Requests[2], "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops", "reader" }));
+        }
+
+        [Test]
+        public void A_later_dialog_over_a_reading_that_is_not_served_is_not_raised()
+        {
+            // The store stops serving this database's authority once the first write found the
+            // approval stale. The next reading holds no name and no removal, so a dialog over it
+            // would show every row as new and its approval would be stale again, dialog after
+            // dialog until the time is used up. The request ends there as a blocked pairing does,
+            // with nothing written or spent. From a third dialog on the operator refuses, so that
+            // a request raising dialogs over such a reading still ends.
+            var dialogs = 0;
+            var approval = Answering(request =>
+            {
+                if (++dialogs == 1)
+                {
+                    _target.AskedAnswers = AskedProfiles.None;
+                }
+
+                return dialogs < 3 ? PairingApproval.Approved(request.Profiles) : PairingApproval.Refused();
+            });
+            ARemovalOfOpsUnderTheFirstWrite();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(approval.Asked, Is.EqualTo(1));
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
+            Assert.That(_target.Admitted, Is.Null);
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1));
+            Assert.That(_audit.Entries, Is.Empty);
+        }
+
+        [Test]
+        public void A_dialog_never_shown_is_answered_busy_and_written_down_as_nothing()
+        {
+            // KeePass's thread never took the turn the dialog was queued for, so nobody saw it:
+            // answered `503 busy` with nothing spent, as a request that never got the screen is,
+            // and not written down as unanswered.
+            var prompt = new KeePassGate.Ui.PairingApprovalPrompt(new FakeUiThread { Runs = false }, _log);
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, prompt);
+
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
+            Assert.That(_audit.Entries, Is.Empty, "nobody saw it");
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1));
+            Assert.That(_log.Warnings.Any(entry => entry.Message.Contains("was never shown")), Is.True);
+        }
+
+        [TestCase(ByALock)]
+        [TestCase(ByAClose)]
+        public void A_lock_or_a_close_between_two_dialogs_is_answered_locked(string how)
+        {
+            // Between the write that found the approval stale and the next dialog, KeePass locks or
+            // closes the database, which the database answers as not open. Answered as a lock is
+            // answered elsewhere in a pairing, `503 locked`, with nothing written or spent.
+            _target.AfterWrite = () =>
+            {
+                _target.AfterWrite = null;
+                LockedOrClosed(how);
+                _target.AdmissionBlocked = "the database is not open";
+            };
+            ARemovalOfOpsUnderTheFirstWrite();
+            var approval = Agreeing();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(approval.Asked, Is.EqualTo(1));
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
+            Assert.That(_target.Admitted, Is.Null);
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1));
+        }
+
+        [TestCase(ByALock)]
+        [TestCase(ByAClose)]
+        public void A_lock_or_a_close_while_a_later_write_waits_is_answered_locked(string how)
+        {
+            // The dialog shown again is approved, and KeePass locks or closes the database while
+            // that write waits for its turn, which then finds nothing to write to: `503 locked`,
+            // as for a lock that takes an approval away before its write.
+            var writes = 0;
+            _target.BeforeWrite = () =>
+            {
+                if (++writes == 1)
+                {
+                    StoreRecords.RemovedApart(_target.Store, "ops");
+                    return;
+                }
+
+                LockedOrClosed(how);
+                _target.ClosedUnderTheWrite = true;
+            };
+            var approval = Agreeing();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(approval.Asked, Is.EqualTo(2));
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
+            Assert.That(_target.Admitted, Is.Null);
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1));
+        }
+
+        [TestCase(ByALock)]
+        [TestCase(ByAClose)]
+        public void A_lock_or_a_close_that_takes_a_later_dialog_away_is_answered_locked(string how)
+        {
+            // The screen closes the dialog shown again as unanswered, as it closes a first dialog.
+            var dialogs = 0;
+            var approval = Answering(request => ++dialogs == 1
+                ? PairingApproval.Approved(request.Profiles)
+                : how == ByALock ? PairingApproval.Locked() : PairingApproval.Closed());
+            ARemovalOfOpsUnderTheFirstWrite();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(approval.Asked, Is.EqualTo(2));
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody(LockedTarget.Error)));
+            Assert.That(_book.Outstanding(), Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public void A_later_dialog_is_not_raised_once_the_invitation_is_gone()
+        {
+            // The invitation is spent or runs out between the write that found the approval stale
+            // and the next dialog: nothing could come of an Approve on that dialog, so the request
+            // is answered `409 no invitation` and no dialog is raised.
+            _target.AfterWrite = () =>
+            {
+                _target.AfterWrite = null;
+                _book.Burn(_invitation.Id);
+            };
+            ARemovalOfOpsUnderTheFirstWrite();
+            var approval = Agreeing();
+            Hello(ClientProof());
+
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(approval.Asked, Is.EqualTo(1));
+            Assert.That(context.Status, Is.EqualTo(409), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("no invitation")));
+            Assert.That(_target.Admitted, Is.Null);
+        }
+
+        /// <summary>What the log line of an approval its write found stale holds.</summary>
+        private const string StaleLine = "was approved and not written, since the database no longer holds what the dialog showed";
+
+        private const string ByALock = "a lock";
+        private const string ByAClose = "a close";
+
+        /// <summary>KeePass locks, or closes this database, as the approvals are told of it.</summary>
+        private void LockedOrClosed(string how)
+        {
+            if (how == ByALock)
+            {
+                ((IApprovalScreen)_held).Locked();
+            }
+            else
+            {
+                ((IApprovalScreen)_held).Closed(new[] { _target.DatabaseId });
+            }
+        }
+
+        [TestCase(AsRecordAndItem)]
+        [TestCase(AsItemAlone)]
+        public void A_first_dialog_marks_a_name_another_copy_removed_as_removed_and_its_approval_is_written(string how)
+        {
+            // Another copy named and removed `ops`, and a synchronize brought the removal in before
+            // the request; no client holds the name. The dialog's reading holds the removal, so the
+            // name is marked removed rather than new, and approving it puts it back over a removal
+            // the operator was shown.
+            RemovedElsewhere(how);
+
+            var approval = Agreeing();
+            Hello(ClientProof());
+            var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+            Assert.That(PairingApprovalForm.Row(approval.LastRequest, "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(PairingApprovalForm.Regaining(approval.LastRequest), Is.EqualTo(AddsBack));
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(approval.Asked, Is.EqualTo(1));
+        }
+
+        [TestCase(AsRecordAndItem)]
+        [TestCase(AsItemAlone)]
+        public void A_first_dialog_marks_a_name_removed_here_that_nobody_holds_as_removed(string how)
+        {
+            // The dialog's reading holds a removal of `ops`, by its record or by an item of the
+            // summary entry, and no client holds the name: it is marked removed, with the line
+            // about every rule still naming it, as a removed name that clients hold is.
+            _target.KnownProfiles = new[] { "ops" };
+            _target.Forget("ops");
+            if (how == AsItemAlone)
+            {
+                using (var reading = _target.Store.Read())
+                {
+                    _target.Store.Drop(reading.InForce.Records.Single(record => record.Is(KeePassGate.Store.StoreKinds.Removed)).Hex);
+                }
+            }
+
+            using (var reading = _target.Store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(KeePassGate.Store.StoreState.Whole), reading.Reason);
+                Assert.That(reading.InForce.RemovalsOf("ops"), Has.Count.EqualTo(1));
+            }
+
+            var shown = FirstDialog("ops");
+
+            Assert.That(PairingApprovalForm.Row(shown, "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(shown.IsNew("ops"), Is.False);
+            Assert.That(PairingApprovalForm.Asking(shown), Is.EqualTo(PairingApprovalForm.ProfilesAsked));
+            Assert.That(PairingApprovalForm.Regaining(shown), Is.EqualTo(AddsBack));
+        }
+
+        [Test]
+        public void A_first_dialog_marks_a_name_never_named_as_new()
+        {
+            var shown = FirstDialog("ops");
+
+            Assert.That(PairingApprovalForm.Row(shown, "ops"), Is.EqualTo("ops" + PairingApprovalForm.NewSuffix));
+            Assert.That(PairingApprovalForm.Asking(shown), Is.EqualTo(PairingApprovalForm.NewProfilesAsked));
+            Assert.That(PairingApprovalForm.Regaining(shown), Is.Null);
+        }
+
+        [Test]
+        public void A_first_dialog_marks_a_name_removed_that_a_client_holds_as_removed_naming_the_client()
+        {
+            using (var holder = _target.IssueClient("agent-holding", "ops"))
+            {
+                _target.Admit(holder, "ops");
+                _target.Forget("ops");
+
+                var shown = FirstDialog("ops");
+
+                Assert.That(PairingApprovalForm.Row(shown, "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+                Assert.That(PairingApprovalForm.Regaining(shown),
+                    Is.EqualTo("One client still holds ops from before and will regain it: agent-holding. " + AddsBack));
+            }
+        }
+
+        [Test]
+        public void A_first_dialog_marks_each_name_by_what_the_reading_holds_of_it()
+        {
+            // A name on the list, a name never named and a name removed here that nobody holds,
+            // side by side.
+            _target.KnownProfiles = new[] { "reader", "ops" };
+            _target.Forget("ops");
+
+            var shown = FirstDialog("reader", "deploy", "ops");
+
+            Assert.That(
+                shown.Profiles.Select(profile => PairingApprovalForm.Row(shown, profile)),
+                Is.EqualTo(new[] { "reader", "deploy" + PairingApprovalForm.NewSuffix, "ops" + PairingApprovalForm.RemovedSuffix }));
+            Assert.That(PairingApprovalForm.Asking(shown), Is.EqualTo(PairingApprovalForm.NewProfilesAsked));
+            Assert.That(PairingApprovalForm.Regaining(shown), Is.EqualTo(AddsBack));
+        }
+
+        [Test]
+        public void A_first_dialog_shows_a_name_removed_and_added_back_without_a_mark()
+        {
+            // On the list, with a removal of it present that its addition names.
+            _target.KnownProfiles = new[] { "ops" };
+            _target.Forget("ops");
+            _target.KnownProfiles = new[] { "ops" };
+            using (var reading = _target.Store.Read())
+            {
+                Assert.That(reading.InForce.RemovalsOf("ops"), Has.Count.EqualTo(1));
+            }
+
+            var shown = FirstDialog("ops");
+
+            Assert.That(PairingApprovalForm.Row(shown, "ops"), Is.EqualTo("ops"));
+            Assert.That(PairingApprovalForm.Asking(shown), Is.EqualTo(PairingApprovalForm.ProfilesAsked));
+            Assert.That(PairingApprovalForm.Regaining(shown), Is.Null);
+        }
+
+        [Test]
+        public void A_first_dialog_over_a_removal_only_a_deletion_record_tells_of_marks_the_name_new()
+        {
+            // `ops` named nowhere in the file, and its removal known by a deletion record alone:
+            // the dialog's reading takes no store key to tie that deletion record to the name.
+            var removal = StoreRecords.RemovedApart(_target.Store, "ops");
+            using (var reading = _target.Store.Read())
+            {
+                Assert.That(reading.InForce.RemovalsOf("ops"), Is.Empty);
+                Assert.That(reading.InForce.RemovalsOnceKnown("ops"), Does.Contain(removal));
+            }
+
+            var shown = FirstDialog("ops");
+
+            Assert.That(PairingApprovalForm.Row(shown, "ops"), Is.EqualTo("ops" + PairingApprovalForm.NewSuffix));
+            Assert.That(PairingApprovalForm.Asking(shown), Is.EqualTo(PairingApprovalForm.NewProfilesAsked));
+            Assert.That(PairingApprovalForm.Regaining(shown), Is.Null);
+        }
+
+        private const string ByARemoval = "a removal";
+        private const string ByAMove = "a move on the list";
+        private const string ByBoth = "both";
+
+        /// <summary>
+        /// The line under the list for a profile marked removed that no client holds.
+        /// </summary>
+        private static readonly string AddsBack =
+            "Approving a profile marked" + PairingApprovalForm.RemovedSuffix
+            + " adds it back to this database, and every rule still naming it applies again.";
+
+        /// <summary>
+        /// The request the first dialog is built from for a pairing asking for these.
+        /// </summary>
+        private PairingRequest FirstDialog(params string[] profiles)
+        {
+            var looking = new FakePairingApproval(PairingApproval.Refused());
+            Hello(ClientProof());
+            Request("agent-fictitious", profiles, looking);
+            Assert.That(looking.Asked, Is.EqualTo(1));
+            return looking.LastRequest;
+        }
+
+        /// <summary>
+        /// This name, on the list, taken off it apart: a copy of the store removes it, which
+        /// deletes its addition with a deletion record, then deletes the removal for good and loses
+        /// the summary entry restating it with no deletion record, while this copy names `reader`,
+        /// keeping a summary entry of its own; a synchronize brings the copy in. Nothing then names
+        /// the name but the deletion record of its removal.
+        /// </summary>
+        private void TakenOffApartLeavingADeletionRecord(string name)
+        {
+            var copy = _target.Store.Copy();
+            StoreSeeds.Unname(copy, name);
+            using (var reading = copy.Read())
+            {
+                var removal = reading.InForce.Records.Single(record => record.Is(KeePassGate.Store.StoreKinds.Removed)).Hex;
+                copy.Delete(Enumerable.Range(0, removal.Length / 2).Select(at => Convert.ToByte(removal.Substring(at * 2, 2), 16)).ToArray());
+                copy.Drop(reading.InForce.Heads.Single().Hex);
+            }
+
+            StoreSeeds.Name(_target.Store, "reader");
+            _target.Store.Synchronize(copy);
+            using (var reading = _target.Store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(KeePassGate.Store.StoreState.Whole), reading.Reason);
+                Assert.That(reading.InForce.RemovalsOf(name), Is.Empty, "a name the store does not know");
+                Assert.That(reading.InForce.RemovalsOnceKnown(name), Has.Count.EqualTo(1));
+            }
+
+            Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "reader" }));
+        }
+
+        /// <summary>An operator who approves exactly what each dialog asks for.</summary>
+        private FakePairingApproval Agreeing()
+        {
+            return Answering(request => PairingApproval.Approved(request.Profiles));
+        }
+
+        /// <summary>
+        /// An operator who answers each dialog as this decides, noting first what stood as the
+        /// dialog came up, <see cref="Standing"/>, in <see cref="_atEachDialog"/>.
+        /// </summary>
+        private FakePairingApproval Answering(Func<PairingRequest, PairingApproval> answer)
+        {
+            return new FakePairingApproval(request =>
+            {
+                _atEachDialog.Add(Standing());
+                return answer(request);
+            });
+        }
+
+        /// <summary>
+        /// Whether an admission was written and how many invitations are outstanding, as a line.
+        /// </summary>
+        private string Standing()
+        {
+            return (_target.Admitted == null ? "nothing written" : "written") + ", "
+                   + _book.Outstanding().Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " outstanding";
+        }
+
+        /// <summary>What stands as a dialog comes up before anything is written or spent.</summary>
+        private const string NothingWritten = "nothing written, 1 outstanding";
+
+        /// <summary>What the screen answers, asked on a thread of its own.</summary>
+        private static PairingApproval OnAnotherThread(Func<PairingApproval> ask)
+        {
+            PairingApproval answer = null;
+            var thread = new System.Threading.Thread(() => answer = ask()) { IsBackground = true };
+            thread.Start();
+            Assert.That(thread.Join(TimeSpan.FromSeconds(10)), Is.True, "the screen answered");
+            return answer;
+        }
+
+        /// <summary>A pairing request of another client, on another invitation.</summary>
+        private PairingRequest AnotherRequest()
+        {
+            return new PairingRequest(_target.DatabaseId, "another invitation", "agent-other", new[] { "ops" }, "127.0.0.1:60002");
+        }
+
+        /// <summary>
+        /// A new code for this database, which replaces the code before it, and a connection that
+        /// arrived on it.
+        /// </summary>
+        private void AnotherInvitation()
+        {
+            _invitation = _book.Invite(_target.DatabaseId);
+            _token = _invitation.Token;
+            _connection = new PairingConnection(_invitation, _target, _binding, _nonce, "127.0.0.1:60002");
+        }
+
+        /// <summary>
+        /// A removal of `ops` arriving as a deletion record alone under the first write, which no
+        /// reading ties to the name and the write finds: an approval of `ops` off the list is stale
+        /// there.
+        /// </summary>
+        private void ARemovalOfOpsUnderTheFirstWrite()
+        {
+            _target.BeforeWrite = () =>
+            {
+                _target.BeforeWrite = null;
+                StoreRecords.RemovedApart(_target.Store, "ops");
+            };
+        }
+
+        private const string NeverNamed = "never named";
+        private const string RemovedHere = "removed here";
+        private const string AsRecordAndItem = "as a record and its item";
+        private const string AsItemAlone = "as an item alone";
+        private const string AsDeletionRecordAlone = "as a deletion record alone";
+
+        /// <summary>`ops` off the list at this desk: never named, or named and removed here.</summary>
+        private void OffTheList(string before)
+        {
+            if (before == RemovedHere)
+            {
+                _target.KnownProfiles = new[] { "ops" };
+                _target.Forget("ops");
+            }
+
+            Assert.That(_target.KnownProfiles, Is.Empty);
+        }
+
+        /// <summary>
+        /// A removal of `ops` made in another copy and brought in by a synchronize: its record and
+        /// the item of the summary entry its write made, that item alone where the record was
+        /// deleted with no deletion record, or a deletion record alone.
+        /// </summary>
+        private void RemovedElsewhere(string how)
+        {
+            HashSet<string> before;
+            using (var reading = _target.Store.Read())
+            {
+                before = new HashSet<string>(reading.InForce.RemovalsOnceKnown("ops"), StringComparer.Ordinal);
+            }
+
+            if (how == AsDeletionRecordAlone)
+            {
+                StoreRecords.RemovedApart(_target.Store, "ops");
+            }
+            else
+            {
+                var copy = _target.Store.Copy();
+                StoreSeeds.Name(copy, "ops");
+                StoreSeeds.Unname(copy, "ops");
+                _target.Store.Synchronize(copy);
+                if (how == AsItemAlone)
+                {
+                    using (var reading = _target.Store.Read())
+                    {
+                        _target.Store.Drop(reading.InForce.Records
+                            .Single(record => record.Is(KeePassGate.Store.StoreKinds.Removed) && !before.Contains(record.Hex)).Hex);
+                    }
+                }
+            }
+
+            using (var reading = _target.Store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(KeePassGate.Store.StoreState.Whole), reading.Reason);
+                Assert.That(reading.InForce.RemovalsOnceKnown("ops").Count(removal => !before.Contains(removal)), Is.EqualTo(1),
+                    "a single removal more");
+            }
+
+            Assert.That(_target.KnownProfiles, Does.Not.Contain("ops"));
+        }
+
+        /// <summary>
+        /// The request was answered once its approval was written, after a single write found the
+        /// approval stale: two dialogs in the same request, the first with no notice and the second
+        /// with the notice and `ops` marked removed, nothing written or spent before the second
+        /// Approve, and the approval held no longer.
+        /// </summary>
+        private void AskedAgainInTheSameRequest(GateContext context, FakePairingApproval approval)
+        {
+            Assert.That(approval.Asked, Is.EqualTo(2), "the dialog came up again, over the name as it stands");
+            Assert.That(_atEachDialog.Last(), Is.EqualTo(NothingWritten), "nothing written or spent before the second Approve");
+            Assert.That(PairingApprovalForm.Again(approval.Requests[0]), Is.Null, "a first dialog carries no notice");
+            Assert.That(PairingApprovalForm.Again(approval.Requests[1]), Is.EqualTo(StateChanged));
+            Assert.That(PairingApprovalForm.Row(approval.Requests[1], "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(
+                _log.Warnings.Count(entry => entry.Message.Contains(StaleLine)), Is.EqualTo(1),
+                "not stale again over the removals it was shown");
+            Assert.That(context.Status, Is.EqualTo(200), context.Json);
+            Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops" }));
+            Assert.That(_book.Outstanding(), Is.Empty, "spent by the write that landed");
+            Assert.That(_held.Count, Is.Zero);
+        }
+
+        /// <summary>
+        /// The notice of a dialog shown again, the same whatever Approve found, naming no profile.
+        /// </summary>
+        private const string StateChanged = "Shown again: the state of the profiles changed.";
+
+        /// <summary>
+        /// What the real dialog opens with for this request: the profiles checked, in the order of
+        /// the rows, and the lifetime chosen.
+        /// </summary>
+        private static (IReadOnlyList<string> Checked, TimeSpan Lifetime) Opened(PairingRequest request)
+        {
+            using (var dialog = new PairingApprovalForm(request, TimeSpan.FromMinutes(2)))
+            {
+                var list = KeePassGate.Ui.ControlTree.FindByName<System.Windows.Forms.CheckedListBox>(
+                    dialog, KeePassGate.Ui.GateTab.ApprovalProfilesListName);
+                var lifetime = KeePassGate.Ui.ControlTree.FindByName<System.Windows.Forms.ComboBox>(
+                    dialog, KeePassGate.Ui.GateTab.ApprovalLifetimeName);
+                var checkedRows = list.CheckedItems.Cast<object>().Select(row => PairingApprovalForm.Asked(row.ToString())).ToList();
+                return (checkedRows, KeePassGate.Ui.LifetimeChoice.Offered(request.Lifetime)[lifetime.SelectedIndex]);
+            }
         }
 
         [TestCase("split")]
@@ -1376,10 +2634,18 @@ namespace KeePassGate.Tests
         {
             // The default issuer unless a test named one, which is how a clock that moves between
             // the check and the issuance is reached at all.
-            return _issuer == null
+            return _issuer == null && _options == null && _clock == null
                 ? new PairingHandler(_book, approval, _held, new AdmissionAudit(_audit), _log, _incidents)
                 : new PairingHandler(
-                    _book, approval, new PairingOptions(), _issuer, null, new AdmissionAudit(_audit), _log, _held, _incidents);
+                    _book,
+                    approval,
+                    _options ?? new PairingOptions(),
+                    _issuer ?? new AuthorityIssuer(),
+                    _clock,
+                    new AdmissionAudit(_audit),
+                    _log,
+                    _held,
+                    _incidents);
         }
 
         private static FakePairingApproval Approving(params string[] profiles)

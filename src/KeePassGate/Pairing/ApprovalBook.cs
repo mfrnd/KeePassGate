@@ -17,13 +17,19 @@ namespace KeePassGate.Pairing
     /// nowhere else. What the operator decided, the profiles and the lifetime, and the state they
     /// decided it against: the authority being served, which the write's plan holds the admission
     /// to, which of the names the decision rested on the database's list held as the dialog showed
-    /// it, and for a renewal the record being renewed. <see cref="Stale"/> compares the last two
-    /// with the database's own under the writer's lock, at the moment of writing.
+    /// it, the removals of each approved name off the list that the dialog's reading held, and
+    /// for a renewal the record being renewed.
+    /// <see cref="Stale(IWriteGround, string, out string)"/> compares the last three with the
+    /// database's own under the writer's lock, at the moment of writing.
     /// </remarks>
     public sealed class HeldApproval
     {
+        private static readonly IReadOnlyDictionary<string, IReadOnlyCollection<string>> Nothing =
+            new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
+
         private readonly HashSet<string> _asked;
         private readonly HashSet<string> _listed;
+        private readonly AskedProfiles _shown;
 
         internal HeldApproval(
             string key,
@@ -32,6 +38,7 @@ namespace KeePassGate.Pairing
             TimeSpan lifetime,
             IEnumerable<string> asked,
             IEnumerable<string> listed,
+            AskedProfiles shown,
             string record,
             PairingMoment until)
         {
@@ -42,6 +49,7 @@ namespace KeePassGate.Pairing
             _asked = new HashSet<string>(asked ?? Array.Empty<string>(), StringComparer.Ordinal);
             _asked.UnionWith(Profiles);
             _listed = new HashSet<string>(listed ?? Array.Empty<string>(), StringComparer.Ordinal);
+            _shown = shown ?? AskedProfiles.None;
             Record = record;
             Ends = until;
         }
@@ -57,6 +65,15 @@ namespace KeePassGate.Pairing
 
         /// <summary>The lifetime the operator picked.</summary>
         public TimeSpan Lifetime { get; private set; }
+
+        /// <summary>
+        /// What the dialog of a pairing's approval was built from: the names on the list, how
+        /// each name asked for was marked, and the removals it held. None for a renewal's.
+        /// </summary>
+        internal AskedProfiles Shown
+        {
+            get { return _shown; }
+        }
 
         /// <summary>
         /// The identifier of the entry of the admission a renewal renews, as it was when the
@@ -90,9 +107,16 @@ namespace KeePassGate.Pairing
         public bool Taken { get; internal set; }
 
         /// <summary>
-        /// Why the database no longer holds what this was approved against, or null when it still
-        /// does. Asked under the writer's lock, on KeePass's thread, as part of the write.
+        /// Whether the database still holds what this was approved against, and where it does not,
+        /// which parts it no longer holds, with the profiles they are about. Asked under the
+        /// writer's lock, on KeePass's thread, as part of the write.
         /// </summary>
+        /// <param name="reason">
+        /// Where it no longer holds what this was approved against, every part, for the log: the
+        /// record a renewal renews, or each profile that moved on the list and each removal of an
+        /// approved profile that the reading taken before the dialog did not hold. Null where it
+        /// still does.
+        /// </param>
         /// <remarks>
         /// **The authority is not asked here**: the write's plan holds the admission to the
         /// authority that issued its certificate, which is the authority this was approved under,
@@ -104,6 +128,20 @@ namespace KeePassGate.Pairing
         /// and a name put on it since is not the "(new)" name the dialog showed. A name the
         /// decision did not rest on changes nothing it decided, so a pairing landing in between and
         /// naming something else voids nothing.
+        ///
+        /// **The removals of each approved name off the list**: the write puts such a name back
+        /// over every removal of it the store holds then, `StoreInForce.RemovalsOnceKnown`, and
+        /// each has to be a removal the dialog held: its reading's, or a removal an earlier write
+        /// of the same request found, `AskedProfiles.With`. A removal beyond those, which a
+        /// synchronize can bring at any time while the dialog stands or while this is held, however
+        /// long ago it was made, or which only a deletion record tells of and the dialog's reading
+        /// therefore could not tie to the name, is a removal the operator was not shown, and a
+        /// removal wins over an addition that did not see it, `STORE.md` §627. An approved name on
+        /// the list is held to its place there alone.
+        ///
+        /// **Every part in a single pass**: a name that moved on the list does not stop the
+        /// removals of the others being compared, so that the dialog shown again shows all of what
+        /// the write found and its approval is not stale over a part it was never shown.
         ///
         /// **This is the read a record's names are written from**, `DESIGN.md` §124: what the
         /// handler read on its connection thread built the dialog and nothing more. A renewal's
@@ -119,31 +157,99 @@ namespace KeePassGate.Pairing
         /// retirement of the authority it was issued under is answered by the write before this
         /// is asked, in its plan, or before it plans anything where several authorities stand.
         /// </remarks>
-        public HeldStaleness Stale(IWriteGround ground, string admissionKey)
+        public HeldStaleness Stale(IWriteGround ground, string admissionKey, out string reason)
         {
-            if (ground == null)
-            {
-                return HeldStaleness.Unpaired;
-            }
+            IReadOnlyDictionary<string, IReadOnlyCollection<string>> unseen;
+            return Stale(ground, admissionKey, out reason, out unseen);
+        }
 
+        /// <summary>
+        /// The same, with the removals the write found beside the reason: by name, the removals
+        /// the store holds of each approved name off the list at the write beyond those the dialog
+        /// held.
+        /// </summary>
+        /// <remarks>
+        /// What the write knows that the dialog's reading may not: a deletion record that tells
+        /// of a removal of a name the file does not know otherwise is tied to its name by a hash
+        /// under the store key, which the reading of a connection does not take. **That holds of a
+        /// name the dialog showed on the list as well**: a synchronize that takes it off the list
+        /// can leave nothing naming it but such a deletion record, and a later reading would show
+        /// it as new. The request that was approved holds these for the dialog it puts to the
+        /// operator again, and for every dialog after it, `PairingHandler`.
+        /// </remarks>
+        public HeldStaleness Stale(
+            IWriteGround ground,
+            string admissionKey,
+            out string reason,
+            out IReadOnlyDictionary<string, IReadOnlyCollection<string>> unseen)
+        {
+            reason = null;
+            unseen = Nothing;
             if (Record != null)
             {
                 var admission = ground.Admission(admissionKey);
                 if (admission == null || !string.Equals(admission.Entry, Record, StringComparison.Ordinal))
                 {
+                    reason = "the record it renews went, or changed, after the operator answered";
                     return HeldStaleness.Unpaired;
                 }
             }
 
-            foreach (var profile in _asked)
+            var causes = new List<string>();
+            var named = new HashSet<string>(StringComparer.Ordinal);
+            var moving = new List<string>();
+            foreach (var profile in _asked.OrderBy(profile => profile, StringComparer.Ordinal))
             {
-                if (ground.Named(profile) != _listed.Contains(profile))
+                var listed = _listed.Contains(profile);
+                if (ground.Named(profile))
                 {
-                    return HeldStaleness.Profiles;
+                    named.Add(profile);
+                }
+
+                if (named.Contains(profile) != listed)
+                {
+                    moving.Add(profile);
+                    causes.Add("the profile " + profile + (listed
+                        ? " is off the list, and the dialog showed it on the list"
+                        : " is on the list, and the dialog showed it off the list"));
                 }
             }
 
-            return HeldStaleness.None;
+            // Each approved name off the list as the write reads it, however the dialog showed it:
+            // of a name it showed on the list, no removal was held. Not for a renewal, which adds
+            // no name and approves only names its dialog offered from the list, so that a name of
+            // it off the list now has moved, which is its cause.
+            var found = new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
+            foreach (var profile in Profiles.Where(profile => Record == null && !named.Contains(profile)))
+            {
+                var beyond = ground.Removals(profile).Where(removal => !_shown.Held(profile, removal)).ToList();
+                if (beyond.Count > 0)
+                {
+                    found[profile] = beyond;
+                }
+            }
+
+            unseen = found;
+
+            // For the log, a name that left the list is named as having moved, and its removals are
+            // kept all the same; the removals of a name the dialog showed off the list are a cause
+            // of their own.
+            var removed = found.Keys.Except(moving, StringComparer.Ordinal).OrderBy(profile => profile, StringComparer.Ordinal).ToList();
+            if (removed.Count > 0)
+            {
+                causes.Add((removed.Count == 1
+                               ? "the store holds a removal of the profile " + removed[0]
+                               : "the store holds removals of the profiles " + string.Join(", ", removed))
+                           + " that the reading taken before the dialog did not hold");
+            }
+
+            if (causes.Count == 0)
+            {
+                return HeldStaleness.None;
+            }
+
+            reason = string.Join("; ", causes);
+            return HeldStaleness.Profiles;
         }
     }
 
@@ -156,7 +262,10 @@ namespace KeePassGate.Pairing
         /// <summary>The record a renewal renews has gone, been revoked or changed.</summary>
         Unpaired,
 
-        /// <summary>An approved profile's place on the list is not what it was.</summary>
+        /// <summary>
+        /// An approved profile's place on the list is not what it was, or a removal of an approved
+        /// profile off the list stands that the dialog's reading did not hold.
+        /// </summary>
         Profiles,
     }
 
@@ -197,6 +306,12 @@ namespace KeePassGate.Pairing
     /// same three things decide whether any of them may still be written: the entry is still
     /// held, the database still holds what it was approved against, and, for a pairing, the
     /// invitation is still unspent.
+    ///
+    /// **An approval its write finds stale is used up here like any other**, and what that write
+    /// found is no part of the book: the request that was approved puts the dialog to the operator
+    /// again itself, and what it carries from one dialog to the next is its own,
+    /// `PairingHandler`. A held approval is the only approval a later request can find stale, and
+    /// that request is then the request putting the dialog to the operator again.
     /// </remarks>
     public sealed class ApprovalBook : IApprovalScreen
     {
@@ -308,8 +423,9 @@ namespace KeePassGate.Pairing
         /// replacing anything held under the same key, unless its database was locked or closed
         /// since <paramref name="mark"/>.
         /// </summary>
-        /// <param name="listed">
-        /// Which of the names the decision rested on the list held as the dialog showed it.
+        /// <param name="shown">
+        /// What the dialog was built from: which of the approved names the list held, and the
+        /// removals of each approved name off it that the reading held.
         /// </param>
         /// <param name="mark">
         /// What <see cref="Mark"/> answered before the operator was asked. An approval whose
@@ -321,11 +437,13 @@ namespace KeePassGate.Pairing
             string databaseId,
             IReadOnlyList<string> profiles,
             TimeSpan lifetime,
-            IEnumerable<string> listed,
+            AskedProfiles shown,
             PairingMoment until,
             long mark)
         {
-            return Held(new HeldApproval(key, databaseId, profiles, lifetime, null, listed, null, until), mark);
+            shown = shown ?? AskedProfiles.None;
+            var listed = (profiles ?? Array.Empty<string>()).Where(shown.Listed.Contains);
+            return Held(new HeldApproval(key, databaseId, profiles, lifetime, null, listed, shown, null, until), mark);
         }
 
         /// <summary>
@@ -358,7 +476,7 @@ namespace KeePassGate.Pairing
                 throw new ArgumentException("A renewal is held with the entry of the admission it renews.", nameof(record));
             }
 
-            return Held(new HeldApproval(key, databaseId, profiles, lifetime, asked, listed, record, until), mark);
+            return Held(new HeldApproval(key, databaseId, profiles, lifetime, asked, listed, null, record, until), mark);
         }
 
         /// <summary>
@@ -386,6 +504,19 @@ namespace KeePassGate.Pairing
             }
 
             return held;
+        }
+
+        /// <summary>
+        /// Whether KeePass locked, or closed this database, since <paramref name="mark"/>: what a
+        /// pairing request asks before it puts the dialog to the operator again, so that a lock or
+        /// a close between two of its dialogs is answered as a lock is.
+        /// </summary>
+        public bool Cleared(string databaseId, long mark)
+        {
+            lock (_lock)
+            {
+                return ClearedSince(databaseId, mark);
+            }
         }
 
         /// <summary>

@@ -47,7 +47,12 @@ namespace KeePassGate.Ui
         /// <summary>The row, offering the presets and what the client asked for among them.</summary>
         /// <param name="asked">What the client asked for, or null for nothing.</param>
         /// <param name="font">The dialog's own, which every width here is measured in.</param>
-        public LifetimeChoice(TimeSpan? asked, Font font)
+        /// <param name="picked">
+        /// The lifetime to open on where it differs from what the client asked for: what the
+        /// operator picked on a dialog shown before for the same request. Null opens on the
+        /// lifetime asked for.
+        /// </param>
+        public LifetimeChoice(TimeSpan? asked, Font font, TimeSpan? picked = null)
         {
             _offered = Offered(asked);
 
@@ -93,7 +98,7 @@ namespace KeePassGate.Ui
                 _box.Items.Add(Listed(lifetime, asked));
             }
 
-            _box.SelectedIndex = Preselected(_offered, asked);
+            _box.SelectedIndex = Preselected(_offered, picked ?? asked);
 
             // As wide as the longest choice and the arrow beside it, measured in the font the list
             // is drawn in, so no choice is cut at any display scaling.
@@ -141,7 +146,7 @@ namespace KeePassGate.Ui
             return Lifetime.Shown(lifetime) + (asked.HasValue && asked.Value == lifetime ? AskedSuffix : string.Empty);
         }
 
-        /// <summary>Which choice the dialog opens on: the one asked for, or a year.</summary>
+        /// <summary>Which choice the dialog opens on: the lifetime given, or a year.</summary>
         public static int Preselected(IReadOnlyList<TimeSpan> offered, TimeSpan? asked)
         {
             var at = asked.HasValue ? IndexOf(offered, asked.Value) : -1;

@@ -102,23 +102,27 @@ a line under it states how many it holds, because **Approve grants every one sti
 not**. Scroll to the end before approving: a program that wanted something past the tenth row would
 put it there.
 
-**A profile marked "(new)" is one this database does not name now and no other client holds**, and
-approving it adds it, so that approval does two things rather than one. It is marked because a name
-never seen before and a name used every day would otherwise look identical, and the difference is
-usually a spelling. It is usually a name never used before, which grants nothing until a rule states
-so; but a name removed once, whose clients have all been revoked or have run out since, is marked
-the same way, and any rule still naming it applies to the new program at once. The dialog states so,
-and the Profiles page and the rules are where to look first.
+**A profile marked "(new)" is a name this database does not name now, knows no removal of and no
+client holds**, and approving it adds it, so that approval does two things rather than one. It is
+marked because a name never seen before and a name used every day would otherwise look identical,
+and the difference is usually a spelling. A name never used before grants nothing until a rule
+states so, and any rule already naming it applies to the new program at once. The dialog states so,
+and the Profiles page and the rules are where to look first. A removed name is marked "(new)" as
+well where the entry of its removal was deleted and nothing else in this database names it, as a
+synchronize with another copy of the database can leave it: the dialog cannot tell which name a
+deleted entry was for. Approve then writes nothing, and the dialog comes back with the name marked
+"(removed)", below.
 
-**A profile marked "(removed)" is one this database used to name**, took off its list, and other
-clients still hold. Approving it puts the name back on the list, and that brings more back than
-this one program: every client still holding it regains it, and every rule still naming it applies
-again. The dialog states so and names those clients, before anything is pressed: past three removed
-profiles or three clients it states how many and names the first three, and the Profiles page names
-them all. Each client is named once, however many of its certificates hold the name, and two that
-chose the same name are named apart by the start of their client keys, "agent (3f2a9c1e)", as
-[adding a profile back](access-control.md) names them. A client whose certificate has expired is not
-among them: it regains nothing.
+**A profile marked "(removed)" is a name off the list that this database knows a removal of**, made
+here or in another copy and brought in by a synchronize, **or that a client still holds**. Approving
+it puts the name back on the list, and every rule still naming it applies again. Where other clients
+still hold it, that brings more back than this one program: each of them regains it. The dialog
+states so and names those clients, before anything is pressed: past three removed profiles or three
+clients it states how many and names the first three, and the Profiles page names them all. Each
+client is named once, however many of its certificates hold the name, and two that chose the same
+name are named apart by the start of their client keys, "agent (3f2a9c1e)", as [adding a profile
+back](access-control.md) names them. A client whose certificate has expired is not among them: it
+regains nothing.
 
 A profile means nothing until a rule on a group or an entry names it, which is
 [`access-control.md`](access-control.md). Approving a program for `reader` when nothing grants
@@ -173,6 +177,40 @@ it was given for the whole pairing. When the same program asks again for exactly
 before then, it is written without the dialog coming back. A lock of KeePass, closing the
 database or exiting KeePass lets go of every approval kept this way, and asking again after that
 shows the dialog again.
+
+**The dialog can come back after Approve.** It shows the profiles as the database held them when
+it came up, and the approval is written only while they still stand that way. If, by the time it
+is written, a profile it showed off the list is on the list, a profile it showed on the list is
+off it, or a profile off the list has a removal the dialog did not show, nothing is issued,
+written or spent. Such a removal is a removal a synchronize with another copy of the database
+brought in while the dialog was open or while an approval was kept, or a removal the database
+knows of only as a deleted entry, which the dialog cannot tie to a profile before Approve, even
+where that entry was deleted before the dialog came up. **The program is not answered then, and
+the dialog comes straight back** for the same request, with no other program's dialog in
+between, over the profiles as they stand then. It states above the list "Shown again: the state
+of the profiles changed.", the same whatever Approve found: the rows show the state. It opens with
+the lifetime picked on the dialog before, and with a profile checked only where it was left
+checked there and is marked as it was there: **a profile whose mark changed comes back
+unchecked**, one that was on the list and is now marked "(removed)" for instance, so that
+approving it again is a decision about the profile as it stands. **Approve on it takes no press for
+a second** after it comes up, since it comes up where the dialog before stood and a second click
+meant for that dialog would otherwise answer this one unread; Refuse can be pressed at once. It
+marks "(removed)" each profile Approve found removed that is still off the list, with the line
+stating that approving it adds it back and that every rule still naming it applies again, even
+where no client holds it, and approving it writes the profile back. Refusing it is a refusal, and
+leaving it alone until it closes itself leaves the invitation unspent, as on any dialog. The program
+is answered once an approval is written, the dialog is refused or left alone, or the six minutes it
+was given for the whole pairing run out: the dialog that comes back has what is left of them, and
+with less than thirty seconds left it does not come back, the program is told to ask again, and
+nothing is issued or spent. **Locking KeePass or closing the database before it comes back** keeps
+it from coming back, and the program is told the database is locked; so does an invitation spent
+or run out meanwhile, and the program is told its invitation is gone. The plugin's log names each
+profile and each change Approve found.
+
+A program that asks again after an approval was kept, as above, and finds by then that the
+profiles moved, gets the same dialog back in the same way, opening with the profiles and the
+lifetime the kept approval carries. Every other request's first dialog carries no such line, opens
+with every profile checked and takes a press on Approve at once.
 
 **The Database Maintenance dialog refuses the whole thing before anybody is disturbed.** That
 dialog takes a copy of the database's plugin data when it opens and writes the copy back when it

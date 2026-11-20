@@ -27,10 +27,16 @@ namespace KeePassGate.Tests.Fakes
 
         public PairingRequest LastRequest { get; private set; }
 
+        /// <summary>Every request a dialog was built from, in the order the dialogs came up.</summary>
+        public List<PairingRequest> Requests { get; } = new List<PairingRequest>();
+
         public TimeSpan LastTimeout { get; private set; }
 
         /// <summary>How long the dialog was told it may stand at most, for the budget.</summary>
         public TimeSpan LastLeft { get; private set; }
+
+        /// <summary>The same for every dialog, in the order the dialogs came up.</summary>
+        public List<TimeSpan> Lefts { get; } = new List<TimeSpan>();
 
         public Exception Throws { get; set; }
 
@@ -59,8 +65,10 @@ namespace KeePassGate.Tests.Fakes
         {
             Asked++;
             LastRequest = request;
+            Requests.Add(request);
             LastTimeout = timeout;
             LastLeft = left;
+            Lefts.Add(left);
 
             if (Thinks > TimeSpan.Zero)
             {

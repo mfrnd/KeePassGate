@@ -205,10 +205,16 @@ designing around them.
   beside it, the operator's ruling of 2026-10-14 over an HMAC token on the wire: keyed by a digest of
   exactly the approved request, held for the rest of the pairing budget, used once, let go by a
   lock, a close of its database and an exit, and compared under the writer's lock at the write
-  with the authority, the profile list and the renewed record it was approved against. The client
-  is told `heldUntil` in its `503 busy`. And the settings dialog a token was made on withdraws it
-  unless that dialog is accepted, so Cancel means Cancel for the one thing on the tab that takes
-  effect before OK.
+  with the authority, the profile list, the removals of each approved name off the list that its
+  dialog held, and the renewed record it was approved against. The client is told `heldUntil` in
+  its `503 busy`. **A pairing whose write finds its approval stale is not answered there**: the
+  same request puts the dialog to the operator again, keeping
+  the screen, what the operator approved and the removals its writes found as state of its own
+  that goes with it, until an approval is written, the operator refuses, or the pairing budget is
+  used up, `PAIRING.md` §311. A held approval is the only approval a later request can find stale,
+  and that request puts the dialog up again the same way. And the settings dialog a
+  token was made on withdraws it unless that dialog is accepted, so Cancel means Cancel for the
+  one thing on the tab that takes effect before OK.
 - **The approval dialogs are not registered with `GlobalWindowManager`**, and that is the reverse of
   every dialog KeePass shows. A registered dialog holds KeePass's inactivity lock off and drops a
   Windows lock, a session switch or a suspend asked for while it stands, and a dialog a client can
@@ -1878,7 +1884,9 @@ and save. Pairing keeps its deadline until its write, and that asymmetry is the 
 than an exception to it, since what a pairing waits for ahead of its write is a list of waits
 somebody wrote down: the screen, because one pairing at a time is put to the operator and a second
 waits as long again just to get in front of them, then the dialog and the grace on it, then the
-settling of a busy KeePass. `PairingBudget` is what those are added up against. **A dialog that
+settling of a busy KeePass. `PairingBudget` is what those are added up against, and a pairing
+whose write finds its approval stale takes the deadline up again, to the same end, for the dialog
+it puts up again. **A dialog that
 comes up late is given only what is left of it**, once what follows the dialog up to the save is
 set aside, the writer's lock and turn included so that a client waiting the same six minutes is
 still waiting when the save begins, and is not shown at all with under thirty seconds left: that

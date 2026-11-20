@@ -147,9 +147,14 @@ namespace KeePassGate.Transport
         /// counting.
         /// </param>
         /// <param name="writing">
-        /// Told by a pairing or a renewal that its waits are over and its record is about to be
-        /// written, which is where the listener drops the deadline it kept for them: see
-        /// <see cref="ConnectionDeadline"/>. Null where nothing is counting.
+        /// Told by a pairing or a renewal that its record is about to be written, which is where
+        /// the listener drops the deadline it kept for them: see <see cref="ConnectionDeadline"/>.
+        /// Null where nothing is counting.
+        /// </param>
+        /// <param name="resuming">
+        /// Told by a pairing whose write found its approval stale that it puts the dialog to the
+        /// operator again, which is where the listener takes that deadline up again, to the end
+        /// of the pairing budget counted from the request. Null where nothing is counting.
         /// </param>
         public static void Serve(
             Stream stream,
@@ -163,7 +168,8 @@ namespace KeePassGate.Transport
             string peer = null,
             Action<HttpRequestHead> arrived = null,
             Action answering = null,
-            Action writing = null)
+            Action writing = null,
+            Action resuming = null)
         {
             if (stream == null)
             {
@@ -246,7 +252,7 @@ namespace KeePassGate.Transport
             }
 
             ConnectionPeer.PutOn(context, peer);
-            ConnectionDeadline.PutOn(context, writing);
+            ConnectionDeadline.PutOn(context, writing, resuming);
 
             try
             {

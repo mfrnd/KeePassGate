@@ -100,6 +100,32 @@ none, since it releases both.
   while the dialog is open, OK does not add the name. The line under the list states so while
   the dialog is open, and the plugin's log names the name at OK. Everything else on the tab is
   written, and the name comes back by being added on the page again. `STORE.md` §627.
+- **A pairing approved for a name off the list puts the name back only over the removals its
+  dialog showed.** The approval dialog marks a name off the list "(removed)" wherever the
+  database knows a removal of it, made in this copy or brought in by a synchronize, or a client
+  still holds it, and "(new)" only where neither holds. Where a synchronize brings a further
+  removal of the name while the dialog stands or while an approval KeePass was too busy to write
+  is held, or where the database knows the removal only as a deleted entry of a name it names
+  nowhere else, which the dialog cannot tie to the name before Approve, the pairing writes
+  nothing and spends nothing, and the client is not answered yet: the same request puts the
+  dialog in front of the operator again, with no other request's dialog in between. That dialog
+  states above the list "Shown again: the state of the profiles changed.", the same whatever
+  Approve found and naming no profile, since the rows show the state; it opens with the lifetime
+  the operator picked before and with each profile checked only where the operator left it
+  checked and its mark is unchanged, marks "(removed)" each name Approve found removed, so that
+  its approval writes the name back, and holds Approve disabled for a second from when it comes
+  up, so that a click meant for the dialog before cannot answer it. A lock of KeePass or a close
+  of the database before it comes back is answered `503 locked`, and an invitation gone by then
+  `409 no invitation`. The client is answered once an approval is
+  written, the operator refuses, or the pairing budget is used up: a dialog shown again has what
+  is left of that budget, and with less than thirty seconds left the client is answered
+  `503 busy` with nothing spent. Where the client asks again for an approval KeePass was too busy
+  to write and its write finds the profiles moved, that request puts the dialog up in the same
+  way. Nothing of it outlives the request. The plugin's log names each profile and each cause
+  Approve found. An approved name on the list is held to its place there alone, and a renewal
+  adds no name. A pairing or renewal dialog that KeePass never put on the screen is answered
+  `503 busy` and written to the audit as nothing, as nobody saw it. `STORE.md` §616
+  and `PAIRING.md` §311.
 - **Breaking: the rules are records in the plugin's store, and every rule is entered again.** A
   profile's rule at a group or an entry, and the setting **Refuse any profile not named here**,
   are entries of the group `KeePassGate`, each under the identifier of the group or entry it is
