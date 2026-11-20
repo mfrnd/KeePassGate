@@ -1,0 +1,5 @@
+== a write above under the form above, two profiles, read and write: k nodes under the root, each with pf's rule taken off at the root's r; then the root's row for pf set to rw
+     20 nodes: the write applied: 21 versions (20 of them below the root) and 1 summary entry written, 22 deletion records added; nodes that give pf rw after it 20 of 20; in the model, 0 s
+    200 nodes: the write applied: 201 versions (200 of them below the root) and 1 summary entry written, 202 deletion records added; nodes that give pf rw after it 200 of 200; in the model, 1 s
+   2000 nodes: the write applied: 2001 versions (2000 of them below the root) and 1 summary entry written, 2002 deletion records added; nodes that give pf rw after it 2000 of 2000; in the model, 139 s
+== 140 s

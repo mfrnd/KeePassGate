@@ -1,0 +1,52 @@
+== The hand histories of S34-DESIGN.md 5 on files, two profiles, read and write, the root and N. Each
+   under the store as decided, under no form with every removed row taken off (the control), and under
+   the form `seen` with every removed row taken off; the last step is the merge held to both copies, or for
+   H9 the last act of a single copy.
+## H1: S34 with a row: N holds an empty rule; copy 0 takes it off; copy 1 widens the root
+   row 0 N pf  ; merge kp_sync 1 0 ; row 0 N pf off ; row 1 root pf rw ; then merge kp_sync 1 0
+   before the merge, as decided: copy 1 root pf:rw pg:r; N pf:- pg:r | copy 0 root pf:r pg:r; N pf:r pg:r
+   decided                root pf:rw pg:r; N pf:rw pg:r; BEYOND BOTH COPIES, letters: N pf:w; the store as decided; oracle as decided [entries 0, read 0]
+   no form, taken off     root pf:rw pg:r; N pf:rw pg:r; BEYOND BOTH COPIES, letters: N pf:w; as the store as decided; oracle as decided [entries 0, read 0]
+   seen, taken off        root pf:rw pg:r; N pf:r pg:r; within what the copies gave; narrower than the store as decided: N pf w; oracle as decided [entries 0, read 0]
+## H2: S34 with the switch: N refuses, synchronized; copy 1 widens the root; copy 0 turns the switch off
+   switch 0 N deny ; merge kp_sync 1 0 ; row 1 root pf rw ; switch 0 N inherit ; then merge kp_sync 1 0
+   before the merge, as decided: copy 1 root pf:rw pg:r; N pf:- pg:- | copy 0 root pf:r pg:r; N pf:r pg:r
+   decided                root pf:rw pg:r; N pf:rw pg:r; BEYOND BOTH COPIES, letters: N pf:w; the store as decided; oracle as decided [entries 0, read 0]
+   no form, taken off     root pf:rw pg:r; N pf:rw pg:r; BEYOND BOTH COPIES, letters: N pf:w; as the store as decided; oracle as decided [entries 0, read 0]
+   seen, taken off        root pf:rw pg:r; N pf:r pg:r; within what the copies gave; narrower than the store as decided: N pf w; oracle as decided [entries 0, read 0]
+## H3: a profile N never named: N refuses, synchronized; copy 0 turns it off; copy 1 widens the root for pg
+   switch 0 N deny ; merge kp_sync 1 0 ; switch 0 N inherit ; row 1 root pg rw ; then merge kp_sync 1 0
+   before the merge, as decided: copy 1 root pf:r pg:rw; N pf:- pg:- | copy 0 root pf:r pg:r; N pf:r pg:r
+   decided                root pf:r pg:rw; N pf:r pg:rw; BEYOND BOTH COPIES, letters: N pg:w; the store as decided; oracle as decided [entries 0, read 0]
+   no form, taken off     root pf:r pg:rw; N pf:r pg:rw; BEYOND BOTH COPIES, letters: N pg:w; as the store as decided; oracle as decided [entries 0, read 0]
+   seen, taken off        root pf:r pg:rw; N pf:r pg:r; within what the copies gave; narrower than the store as decided: N pg w; oracle as decided [entries 0, read 0]
+## H4: a narrowing above arrives in a single direction and is widened again apart
+   row 0 N pf  ; merge kp_sync 1 0 ; row 0 N pf off ; row 1 root pf  ; merge kp_sync 0 1 ; row 1 root pf r ; then merge kp_sync 0 1
+   before the merge, as decided: copy 0 root pf:- pg:r; N pf:- pg:r | copy 1 root pf:r pg:r; N pf:- pg:r
+   decided                root pf:r pg:r; N pf:r pg:r; BEYOND BOTH COPIES, letters: N pf:r; the store as decided; oracle as decided [entries 0, read 0]
+   no form, taken off     root pf:r pg:r; N pf:r pg:r; BEYOND BOTH COPIES, letters: N pf:r; as the store as decided; oracle as decided [entries 0, read 0]
+   seen, taken off        root pf:r pg:r; N pf:r pg:r; BEYOND BOTH COPIES, letters: N pf:r; as the store as decided; oracle as decided [entries 0, read 0]
+## H9: removed for real, then opened by the copy that holds it (W6 in a single copy, no merge)
+   rule 0 root rw ; switch 0 N deny ; row 0 N pf r ; row 0 N pf off ; switch 0 N inherit
+   decided                root pf:rw pg:rw; N pf:- pg:rw; no merge; the store as decided; oracle as decided [entries 0, read 0]
+   no form, taken off     root pf:rw pg:rw; N pf:rw pg:rw; no merge; WIDER than the store as decided: N pf r pf w; oracle as decided [entries 0, read 0]
+   seen, taken off        root pf:rw pg:rw; N pf:rw pg:rw; no merge; WIDER than the store as decided: N pf r pf w; oracle as decided [entries 0, read 0]
+## H10: removed for real under a refusing switch, the switch turned off apart, the root widened after
+   switch 0 N deny ; row 0 N pf r ; merge kp_sync 1 0 ; row 0 N pf off ; switch 1 N inherit ; merge kp_sync 0 1 ; row 0 root pf rw ; then merge kp_sync 1 0
+   before the merge, as decided: copy 1 root pf:r pg:r; N pf:r pg:r | copy 0 root pf:rw pg:r; N pf:- pg:r
+   decided                root pf:rw pg:r; N pf:- pg:r; within what the copies gave; the store as decided; oracle as decided [entries 0, read 0]
+   no form, taken off     root pf:rw pg:r; N pf:rw pg:r; within what the copies gave; WIDER than the store as decided: N pf r pf w; oracle as decided [entries 0, read 0]
+   seen, taken off        root pf:rw pg:r; N pf:- pg:r; within what the copies gave; as the store as decided; oracle as decided [entries 0, read 0]
+## H11: the widening copy never saw the node closed: copy 0 sets an empty rule at N and takes it off; copy 1 widens the root
+   row 0 N pf  ; row 0 N pf off ; row 1 root pf rw ; then merge kp_sync 1 0
+   before the merge, as decided: copy 1 root pf:rw pg:r; N pf:rw pg:r | copy 0 root pf:r pg:r; N pf:r pg:r
+   decided                root pf:rw pg:r; N pf:rw pg:r; within what the copies gave; the store as decided; oracle as decided [entries 0, read 0]
+   no form, taken off     root pf:rw pg:r; N pf:rw pg:r; within what the copies gave; as the store as decided; oracle as decided [entries 0, read 0]
+   seen, taken off        root pf:rw pg:r; N pf:r pg:r; within what the copies gave; narrower than the store as decided: N pf w; oracle as decided [entries 0, read 0]
+## W3: S34 at a single node: under a refusing switch pf removed at copy 0; the switch off at copy 1
+   rule 0 root rw ; switch 0 N deny ; row 0 N pf r ; row 0 N pg r ; merge kp_sync 1 0 ; row 0 N pf off ; switch 1 N inherit ; then merge kp_sync 1 0
+   before the merge, as decided: copy 1 root pf:rw pg:rw; N pf:r pg:r | copy 0 root pf:rw pg:rw; N pf:- pg:r
+   decided                root pf:rw pg:rw; N pf:- pg:r; within what the copies gave; the store as decided; oracle as decided [entries 0, read 0]
+   no form, taken off     root pf:rw pg:rw; N pf:rw pg:r; BEYOND BOTH COPIES, letters: N pf:w; WIDER than the store as decided: N pf r pf w; oracle as decided [entries 0, read 0]
+   seen, taken off        root pf:rw pg:rw; N pf:- pg:r; within what the copies gave; as the store as decided; oracle as decided [entries 0, read 0]
+== 7 s

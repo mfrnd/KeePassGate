@@ -1,0 +1,4 @@
+== versions of a row made apart under form B, the full mask: 513 values of a version (each set granted, each set recorded by a rule taken off, and the rule taken off while the switch refused), 256 sets arriving, the switch of the node refusing or inheriting
+   pairs: 67502592 combinations checked; the row gives more than what both versions allow: 0; less: 0; the recorded sets cut what passes in 18275970
+   random triples: 200000; more than what all three allow: 0; less: 0
+== 95 s

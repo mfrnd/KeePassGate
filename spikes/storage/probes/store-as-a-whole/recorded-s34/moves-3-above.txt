@@ -1,0 +1,86 @@
+== 200000 histories over two copies, 4 to 10 steps, 2 profiles, letters rw, nodes root, G, N, moves, row values rw, r, empty, off
+   the store as decided: histories with a merge beyond both copies 134; by letters 134; by capabilities only 0
+   the form above, a removed row written as off: histories with a merge beyond both copies 79; by letters 79; by capabilities only 0
+   the cost, histories in which the store as decided had no merge beyond both copies: a copy gives a profile less at a node 315 (at the end 287); of them nothing where the store as decided gives something 314 (at the end 286); the form gives more 5 (at the end 5)
+   the form's histories beyond both copies, by what the walk holds: no version that lets the profile through on its walk 79
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: nmove 0 N root ; row 1 G pf  ; row 1 root pf rw ; merge kp_sync 1 0
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: nmove 0 N root ; row 1 G pf r ; row 1 root pf rw ; merge kp_sync 0 1
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: nmove 0 N root ; row 1 G pf r ; row 1 root pf rw ; merge kp_sync 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: nmove 0 N root ; row 1 G pg  ; row 1 root pg rw ; merge xc 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: nmove 0 N root ; row 1 G pg r ; row 1 root pg rw ; merge kp_sync 0 1
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: nmove 0 N root ; row 1 root pf rw ; row 1 G pf  ; merge kp_other 0 1
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: nmove 0 N root ; row 1 root pf rw ; row 1 G pf r ; merge kp_sync 0 1
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: nmove 0 N root ; row 1 root pf rw ; switch 1 G deny ; merge xc 0 1
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: nmove 1 N root ; row 0 G pf  ; row 0 root pf rw ; merge kp_sync 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: nmove 1 N root ; row 0 G pg  ; row 0 root pg rw ; merge kp_other 0 1
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: nmove 1 N root ; row 0 G pg  ; row 0 root pg rw ; merge kp_sync 0 1
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: nmove 1 N root ; row 0 G pg r ; row 0 root pg rw ; merge kp_other 0 1
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: nmove 1 N root ; row 0 root pf rw ; row 0 G pf  ; merge kp_other 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: nmove 1 N root ; row 0 root pg rw ; row 0 G pg r ; merge kp_sync 0 1
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: nmove 1 N root ; row 0 root pg rw ; row 0 G pg r ; merge xc 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: nmove 1 N root ; row 0 root pg rw ; switch 0 G deny ; merge kp_sync 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: nmove 1 N root ; row 0 root pg rw ; switch 0 G deny ; merge xc 0 1
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: nmove 1 N root ; switch 0 G deny ; row 0 root pf rw ; merge xc 0 1
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: nmove 1 N root ; switch 0 G deny ; row 0 root pg rw ; merge kp_sync 0 1
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 0 G pf  ; nmove 1 N root ; row 0 root pf rw ; merge kp_other 1 0
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 0 G pf  ; nmove 1 N root ; row 0 root pf rw ; merge kp_sync 0 1
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 0 G pf  ; row 0 root pf rw ; nmove 1 N root ; merge kp_sync 1 0
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 0 G pf r ; nmove 1 N root ; row 0 root pf rw ; merge kp_other 1 0
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 0 G pf r ; nmove 1 N root ; row 0 root pf rw ; merge xc 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 0 G pg r ; nmove 1 N root ; row 0 root pg rw ; merge kp_sync 1 0
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 0 root pf rw ; nmove 1 N root ; row 0 G pf r ; merge kp_other 1 0
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 0 root pf rw ; row 0 G pf  ; nmove 1 N root ; merge kp_sync 0 1
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 0 root pg rw ; nmove 1 N root ; row 0 G pg r ; merge kp_sync 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 0 root pg rw ; switch 0 G deny ; nmove 1 N root ; merge kp_other 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 0 root pg rw ; switch 0 G deny ; nmove 1 N root ; merge xc 1 0
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 1 G pf  ; nmove 0 N root ; row 1 root pf rw ; merge xc 0 1
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 1 G pf  ; nmove 0 N root ; row 1 root pf rw ; merge xc 1 0
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 1 G pf  ; row 1 root pf rw ; nmove 0 N root ; merge kp_sync 0 1
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 1 G pf r ; nmove 0 N root ; row 1 root pf rw ; merge kp_other 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 G pg  ; nmove 0 N root ; row 1 root pg rw ; merge kp_sync 0 1
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 G pg  ; nmove 0 N root ; row 1 root pg rw ; merge kp_sync 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 G pg  ; nmove 0 N root ; row 1 root pg rw ; merge xc 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 G pg  ; row 1 root pg rw ; nmove 0 N root ; merge kp_other 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 G pg r ; nmove 0 N root ; row 1 root pg rw ; merge kp_other 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 G pg r ; nmove 0 N root ; row 1 root pg rw ; merge kp_sync 0 1
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 G pg r ; nmove 0 N root ; row 1 root pg rw ; merge xc 0 1
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 1 root pf rw ; nmove 0 N root ; row 1 G pf  ; merge kp_sync 1 0
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 1 root pf rw ; nmove 0 N root ; row 1 G pf r ; merge xc 1 0
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 1 root pf rw ; row 1 G pf r ; nmove 0 N root ; merge kp_sync 0 1
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 1 root pf rw ; switch 1 G deny ; nmove 0 N root ; merge kp_other 0 1
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 1 root pf rw ; switch 1 G deny ; nmove 0 N root ; merge xc 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 root pg rw ; nmove 0 N root ; row 1 G pg  ; merge kp_other 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 root pg rw ; nmove 0 N root ; row 1 G pg  ; merge kp_sync 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 root pg rw ; nmove 0 N root ; row 1 G pg r ; merge kp_sync 0 1
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 root pg rw ; nmove 0 N root ; row 1 G pg r ; merge kp_sync 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 root pg rw ; nmove 0 N root ; row 1 G pg r ; merge xc 0 1
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 root pg rw ; nmove 0 N root ; switch 1 G deny ; merge kp_other 0 1
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 root pg rw ; row 1 G pg r ; nmove 0 N root ; merge xc 0 1
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 root pg rw ; switch 1 G deny ; nmove 0 N root ; merge kp_other 0 1
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 root pg rw ; switch 1 G deny ; nmove 0 N root ; merge kp_other 1 0
+   beyond both copies (4 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 root pg rw ; switch 1 G deny ; nmove 0 N root ; merge kp_sync 0 1
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: switch 0 G deny ; row 0 root pf rw ; nmove 1 N root ; merge kp_other 0 1
+   beyond both copies (4 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: switch 1 G deny ; row 1 root pf rw ; nmove 0 N root ; merge kp_sync 0 1
+   beyond both copies (5 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: nmove 0 N root ; merge kp_sync 1 0 ; nmove 0 N G ; row 1 G pg rw ; merge xc 1 0
+   beyond both copies (5 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: nmove 0 N root ; row 1 G pf rw ; merge kp_sync 1 0 ; nmove 0 N G ; merge xc 0 1
+   beyond both copies (5 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: nmove 0 N root ; row 1 G pf rw ; merge xc 1 0 ; nmove 0 N G ; merge kp_sync 0 1
+   beyond both copies (5 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: nmove 1 N root ; merge kp_other 0 1 ; nmove 1 N G ; row 0 G pf rw ; merge xc 1 0
+   beyond both copies (5 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: nmove 1 N root ; nmove 0 N root ; row 1 G pf rw ; nmove 0 N G ; merge xc 1 0
+   beyond both copies (5 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 0 G pf  ; merge kp_other 1 0 ; row 1 root pf rw ; nmove 0 N root ; merge kp_other 1 0
+   beyond both copies (5 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 0 G pf  ; merge kp_other 1 0 ; row 1 root pf rw ; nmove 0 N root ; merge kp_sync 0 1
+   beyond both copies (5 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 0 G pf r ; merge xc 1 0 ; row 1 root pf rw ; nmove 0 N root ; merge xc 1 0
+   beyond both copies (5 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 0 root pf rw ; switch 1 G deny ; merge kp_sync 0 1 ; nmove 1 N root ; merge xc 1 0
+   beyond both copies (5 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 1 G pf  ; merge kp_other 0 1 ; nmove 1 N root ; row 0 root pf rw ; merge kp_sync 0 1
+   beyond both copies (5 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: row 1 G pf  ; row 0 root pf rw ; merge kp_sync 0 1 ; nmove 1 N root ; merge xc 0 1
+   beyond both copies (5 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 G pg  ; merge kp_sync 0 1 ; row 0 root pg rw ; nmove 1 N root ; merge kp_sync 0 1
+   beyond both copies (5 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 G pg  ; merge kp_sync 0 1 ; row 0 root pg rw ; nmove 1 N root ; merge xc 1 0
+   beyond both copies (5 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 G pg  ; row 0 root pg rw ; merge xc 0 1 ; nmove 1 N root ; merge xc 0 1
+   beyond both copies (5 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 G pg r ; merge kp_other 0 1 ; row 0 root pg rw ; nmove 1 N root ; merge kp_other 1 0
+   beyond both copies (5 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: row 1 G pg r ; merge xc 0 1 ; row 0 root pg rw ; nmove 1 N root ; merge kp_sync 0 1
+   beyond both copies (5 steps), letters at N, gives pg:w; no version that lets the profile through on its walk: switch 0 G deny ; row 1 root pg rw ; merge kp_other 1 0 ; nmove 0 N root ; merge kp_sync 1 0
+   beyond both copies (5 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: switch 1 G deny ; merge kp_other 0 1 ; row 0 root pf rw ; nmove 1 N root ; merge xc 0 1
+   beyond both copies (5 steps), letters at N, gives pf:w; no version that lets the profile through on its walk: switch 1 G deny ; merge kp_sync 0 1 ; row 0 root pf rw ; nmove 1 N root ; merge xc 1 0
+   shortest drawn, the form gives less (4 steps), copy 0 at N for pf: row 0 G pf r ; row 0 N pf  ; row 0 N pf off ; nmove 0 N root
+   shortest drawn, the form gives nothing where the store as decided gives something (4 steps), copy 0 at N for pf: row 0 G pf r ; row 0 N pf  ; row 0 N pf off ; nmove 0 N root
+   shortest drawn, the form gives more (7 steps), copy 0 at G for pg: row 0 G pg r ; merge xc 1 0 ; merge kp_other 1 0 ; switch 1 G deny ; row 1 G pg off ; merge kp_other 0 1 ; switch 0 G inherit
+== 573 s

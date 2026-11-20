@@ -1,0 +1,27 @@
+== The `after` lists of a version below that lets through, under a rule above edited many times. N/pf
+   taken off under the root; then the root's row for pf set alternately to read and to read and write. A:
+   400 edits in copy 0. C: 200 edits, an edit in each copy apart, then Synchronize both ways, each round.
+   Each line read at copy 0, as measured-rules-owed-forms 7 reads N/pf. Under the form `seen`.
+## A: edits above in copy 0
+      1 edits: standing 1, after    2, content    195; summary entries in force 1, its after    3, items 3, item of N/pf    201, strings     799; deletion records    6; history items 0; file    3191 bytes; read 0.4 ms
+      2 edits: standing 1, after    3, content    227; summary entries in force 1, its after    4, items 3, item of N/pf    233, strings     896; deletion records    9; history items 0; file    3239 bytes; read 0.4 ms
+      5 edits: standing 1, after    6, content    327; summary entries in force 1, its after    7, items 3, item of N/pf    333, strings    1195; deletion records   18; history items 0; file    3431 bytes; read 0.4 ms
+     10 edits: standing 1, after   11, content    491; summary entries in force 1, its after   12, items 3, item of N/pf    497, strings    1689; deletion records   33; history items 0; file    3735 bytes; read 0.4 ms
+     20 edits: standing 1, after   21, content    821; summary entries in force 1, its after   22, items 3, item of N/pf    827, strings    2679; deletion records   63; history items 0; file    4359 bytes; read 0.4 ms
+     50 edits: standing 1, after   51, content   1811; summary entries in force 1, its after   52, items 3, item of N/pf   1817, strings    5649; deletion records  153; history items 0; file    6199 bytes; read 0.5 ms
+    100 edits: standing 1, after  101, content   3461; summary entries in force 1, its after  102, items 3, item of N/pf   3467, strings   10600; deletion records  303; history items 0; file    9287 bytes; read 0.6 ms
+    150 edits: standing 1, after  151, content   5111; summary entries in force 1, its after  152, items 3, item of N/pf   5117, strings   15550; deletion records  453; history items 0; file   12519 bytes; read 0.7 ms
+    200 edits: standing 1, after  201, content   6761; summary entries in force 1, its after  202, items 3, item of N/pf   6767, strings   20500; deletion records  603; history items 0; file   15559 bytes; read 1.7 ms
+    250 edits: standing 1, after  251, content   8411; summary entries in force 1, its after  252, items 3, item of N/pf   8417, strings   25450; deletion records  753; history items 0; file   20743 bytes; read 0.9 ms
+    300 edits: standing 1, after  301, content  10061; summary entries in force 1, its after  302, items 3, item of N/pf  10067, strings   30400; deletion records  903; history items 0; file   23911 bytes; read 1.7 ms
+    350 edits: standing 1, after  351, content  11711; summary entries in force 1, its after  352, items 3, item of N/pf  11717, strings   35350; deletion records 1053; history items 0; file   27239 bytes; read 1.1 ms
+    400 edits: standing 1, after  401, content  13361; summary entries in force 1, its after  402, items 3, item of N/pf  13367, strings   40300; deletion records 1203; history items 0; file   30215 bytes; read 1.2 ms
+## C: an edit above in each copy apart, then Synchronize both ways
+      2 edits: standing 1, after    2, content    195; summary entries in force 1, its after    3, items 3, item of N/pf    201, strings     799; deletion records    6; history items 0; file    3175 bytes; read 0.4 ms
+     10 edits: standing 1, after    6, content    327; summary entries in force 1, its after    7, items 3, item of N/pf    333, strings    1195; deletion records   18; history items 0; file    3447 bytes; read 0.4 ms
+     20 edits: standing 1, after   11, content    491; summary entries in force 1, its after   12, items 3, item of N/pf    497, strings    1689; deletion records   33; history items 0; file    3751 bytes; read 0.7 ms
+     50 edits: standing 1, after   26, content    987; summary entries in force 1, its after   27, items 3, item of N/pf    993, strings    3176; deletion records   78; history items 0; file    4663 bytes; read 0.4 ms
+    100 edits: standing 1, after   51, content   1811; summary entries in force 1, its after   52, items 3, item of N/pf   1817, strings    5649; deletion records  153; history items 0; file    6199 bytes; read 0.6 ms
+    150 edits: standing 1, after   76, content   2637; summary entries in force 1, its after   77, items 3, item of N/pf   2643, strings    8126; deletion records  228; history items 0; file    7719 bytes; read 0.5 ms
+    200 edits: standing 1, after  101, content   3461; summary entries in force 1, its after  102, items 3, item of N/pf   3467, strings   10600; deletion records  303; history items 0; file    9271 bytes; read 0.6 ms
+== 23 s

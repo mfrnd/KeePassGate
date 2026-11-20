@@ -1,0 +1,8 @@
+== 200000 histories over two copies, 8 to 14 steps, 2 profiles, letters rw, nodes root, N, row values rw, r, empty, off
+   the store as decided: histories with a merge beyond both copies 294; by letters 294; by capabilities only 0
+   the form above, a removed row written as off: histories with a merge beyond both copies 0; by letters 0; by capabilities only 0
+   the cost, histories in which the store as decided had no merge beyond both copies: a copy gives a profile less at a node 1233 (at the end 1020); of them nothing where the store as decided gives something 1232 (at the end 1019); the form gives more 116 (at the end 97)
+   shortest drawn, the form gives less (4 steps), copy 1 at N for pf: row 0 N pf  ; row 0 N pf off ; row 1 root pf rw ; merge xc 1 0
+   shortest drawn, the form gives nothing where the store as decided gives something (4 steps), copy 1 at N for pf: row 0 N pf  ; row 0 N pf off ; row 1 root pf rw ; merge xc 1 0
+   shortest drawn, the form gives more (5 steps), copy 0 at N for pg: switch 1 N deny ; row 1 N pg rw ; merge kp_sync 0 1 ; row 0 N pg off ; switch 0 N inherit
+== 700 s

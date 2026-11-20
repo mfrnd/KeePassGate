@@ -1,0 +1,14 @@
+== 200000 histories over two copies, 8 to 14 steps, 2 profiles, letters rw, nodes root, N, row values rw, r, empty, off
+   the store as decided: histories with a merge beyond both copies 294; by letters 294; by capabilities only 0
+   the form seen, a removed row written as off: histories with a merge beyond both copies 5; by letters 5; by capabilities only 0
+   the cost, histories in which the store as decided had no merge beyond both copies: a copy gives a profile less at a node 721 (at the end 564); of them nothing where the store as decided gives something 218 (at the end 197); the form gives more 117 (at the end 98)
+   the form's histories beyond both copies, by what the walk holds: within what the versions that let it through recorded 5
+   beyond both copies (7 steps), letters at N, gives pg:r; within what the versions that let it through recorded: row 0 N pg  ; merge kp_other 1 0 ; switch 1 N deny ; row 0 N pg off ; merge kp_other 0 1 ; switch 1 N inherit ; merge xc 0 1
+   beyond both copies (7 steps), letters at N, gives pg:r; within what the versions that let it through recorded: row 1 root pg  ; switch 0 N deny ; merge kp_other 1 0 ; switch 0 N inherit ; merge xc 0 1 ; row 1 root pg rw ; merge kp_other 0 1
+   beyond both copies (7 steps), letters at N, gives pg:r; within what the versions that let it through recorded: row 1 root pg off ; row 0 N pg  ; merge kp_other 1 0 ; row 0 N pg off ; merge kp_other 0 1 ; row 1 root pg r ; merge kp_other 1 0
+   beyond both copies (7 steps), letters at N, gives pg:r; within what the versions that let it through recorded: switch 0 N deny ; merge kp_other 1 0 ; switch 1 N inherit ; row 0 root pg off ; merge kp_sync 1 0 ; row 0 root pg rw ; merge kp_other 1 0
+   beyond both copies (7 steps), letters at N, gives pf:r; within what the versions that let it through recorded: switch 0 N deny ; row 1 root pf  ; merge kp_other 1 0 ; switch 0 N inherit ; merge kp_sync 0 1 ; row 1 root pf rw ; merge xc 1 0
+   shortest drawn, the form gives less (4 steps), copy 1 at N for pf: row 0 N pf  ; row 0 N pf off ; row 1 root pf rw ; merge xc 1 0
+   shortest drawn, the form gives nothing where the store as decided gives something (7 steps), copy 1 at root for pf: row 0 root pf  ; merge kp_sync 1 0 ; switch 0 root deny ; merge kp_sync 1 0 ; row 0 root pf rw ; row 1 root pf off ; merge xc 1 0
+   shortest drawn, the form gives more (5 steps), copy 0 at N for pg: switch 1 N deny ; row 1 N pg rw ; merge kp_sync 0 1 ; row 0 N pg off ; switch 0 N inherit
+== 710 s

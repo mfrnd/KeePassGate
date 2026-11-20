@@ -1,0 +1,20 @@
+== A node moved between G and the root, and a name put back on the list apart from a row widened,
+   two profiles, read and write, the root, G and N, N under G at the start. Each under the store as
+   decided, and under the form `seen` with every removed row taken off.
+## H7: a node with no rule moved apart from a change above (row 9 of STORE.md 639): G and the root give r; copy 0 moves N under the root; copy 1 widens the root
+   row 0 root pf r ; row 0 G pf r ; merge kp_sync 1 0 ; nmove 0 N root ; row 1 root pf rw ; then merge kp_sync 1 0
+   decided                root pf:rw pg:r; G pf:r pg:r; N pf:rw pg:r; BEYOND BOTH COPIES, letters: N pf:w; the store as decided; oracle as decided [entries 0, read 0]
+   seen, taken off        root pf:rw pg:r; G pf:r pg:r; N pf:rw pg:r; BEYOND BOTH COPIES, letters: N pf:w; as the store as decided; oracle as decided [entries 0, read 0]
+## H5: the same through a move: N under the root, its empty rule taken off at copy 0 seeing rw; copy 1 moves N under G, which grants r; copy 0 takes the move in; copy 1 widens G
+   nmove 0 N root ; row 0 root pf rw ; row 0 G pf r ; row 0 N pf  ; merge kp_sync 1 0 ; row 0 N pf off ; nmove 1 N G ; merge kp_sync 0 1 ; row 1 G pf rw ; then merge kp_sync 1 0
+   decided                root pf:rw pg:r; G pf:rw pg:r; N pf:rw pg:r; BEYOND BOTH COPIES, letters: N pf:w; the store as decided; oracle as decided [entries 0, read 0]
+   seen, taken off        root pf:rw pg:r; G pf:rw pg:r; N pf:rw pg:r; BEYOND BOTH COPIES, letters: N pf:w; as the store as decided; oracle as decided [entries 0, read 0]
+## H13: a node whose rule was once taken off moved into a wider group in a single copy (no merge)
+   nmove 0 N root ; row 0 root pf r ; row 0 G pf rw ; row 0 N pf  ; row 0 N pf off ; nmove 0 N G
+   decided                root pf:r pg:r; G pf:rw pg:r; N pf:rw pg:r; no merge; the store as decided; oracle as decided [entries 0, read 0]
+   seen, taken off        root pf:r pg:r; G pf:rw pg:r; N pf:r pg:r; no merge; narrower than the store as decided: N pf w; oracle as decided [entries 0, read 0]
+## H16: a name put back on the list apart from a row widened: c1 admitted with pf and pg; pg added, the root gives pg r, both copies; pg removed, both copies; copy 0 puts pg back; copy 1 widens the root's row for pg to rw; merge. Held at what c1 reaches at the root.
+   pair 0 ; padd 0 pg ; row 0 root pg r ; merge kp_sync 1 0 ; prem 0 pg ; merge kp_sync 1 0 ; padd 0 pg ; row 1 root pg rw ; then merge kp_sync 1 0
+   decided                c1 reaches at the root: copy 0 pf:r pg:r | copy 1 pf:r pg:- | merged pf:r pg:rw; BEYOND BOTH COPIES: pg:w [entries 0, read 0]
+   seen, taken off        c1 reaches at the root: copy 0 pf:r pg:r | copy 1 pf:r pg:- | merged pf:r pg:rw; BEYOND BOTH COPIES: pg:w [entries 0, read 0]
+== 2 s

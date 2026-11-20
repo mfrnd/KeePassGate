@@ -1,0 +1,7 @@
+== 200000 histories over two copies, 4 to 10 steps, 4 profiles, letters crusdlap, nodes root, N, row values crusdlap, crudl, rl, rla, rlp, cula, a, empty, off
+   the store as decided: histories with a merge beyond both copies 44; by letters 43; by capabilities only 1
+   the form above, a removed row written as off: histories with a merge beyond both copies 0; by letters 0; by capabilities only 0
+   the cost, histories in which the store as decided had no merge beyond both copies: a copy gives a profile less at a node 143 (at the end 135); of them nothing where the store as decided gives something 142 (at the end 135); the form gives more 0 (at the end 0)
+   shortest drawn, the form gives less (4 steps), copy 0 at N for ph: row 0 N ph crusdlap ; row 1 root ph rla ; row 0 N ph off ; merge kp_other 0 1
+   shortest drawn, the form gives nothing where the store as decided gives something (4 steps), copy 0 at N for ph: row 0 N ph crusdlap ; row 1 root ph rla ; row 0 N ph off ; merge kp_other 0 1
+== 748 s

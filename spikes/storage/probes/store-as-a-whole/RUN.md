@@ -38,6 +38,12 @@ and the full mask, a group between the root and N, a name off the list, two name
 and a row edited many times. Its record is `recorded-owed\`. The section "The forms rules per
 profile left owed" at the end holds it.
 
+**A further configuration, the two forms of a design for S34**, was added on 2026-11-20 for the
+report `measured-rules-across-levels.md`: `run.ps1 -S34`, the forms of the design `S34-DESIGN.md`
+(form B, a version that lets through records what arrived; form A, it names what stood above),
+each played beside the store as decided. Its record is `recorded-s34\`. The section "The two forms
+of S34" at the end holds it.
+
 | Path | What it is |
 | --- | --- |
 | `model\crdt_model.py` | a copy of `spikes\storage\model\crdt_model.py` with the switches of section "What was added" below; every new switch at its default is the design's model |
@@ -61,6 +67,8 @@ profile left owed" at the end holds it.
 | `recorded-rows\` | the output of the runs of rules per profile, which `measured-rules-per-profile.md` quotes |
 | `probe\owed.py` | the parts on real files of the forms rules per profile left owed (section "The forms rules per profile left owed") |
 | `recorded-owed\` | the output of the runs of those forms, which `measured-rules-owed-forms.md` quotes |
+| `probe\s34.py` | the parts on real files of the two forms of S34 (section "The two forms of S34") |
+| `recorded-s34\` | the output of the runs of those forms, which `measured-rules-across-levels.md` quotes |
 
 **Everything ran twice**, on 2026-11-16, on a machine other measurements were sharing. Every
 output of the second run is the same as the record line for line, apart from what `compare.py`
@@ -1240,6 +1248,147 @@ Reported, not fixed.
   derivation.
 - A row set again after it refuses; more than four profiles; the product's texts.
 - Everything rules per profile does not run.
+
+## The two forms of S34
+
+Added on 2026-11-20 for the report `measured-rules-across-levels.md`. The design
+`S34-DESIGN.md` (in the session's scratchpad, not in a repository) proposes two forms that close
+rules changed apart at two levels (`STORE.md` §639, S34), and its section 8 specifies this run.
+**Form B, by what arrived** (`seen`): a version that takes a rule off records the letters that
+arrived for the profile, `off:deny` where the node's own switch refused, and a version of the
+switch that inherits records them for each profile; the reading cuts what arrives to those
+letters; an act above writes anew the versions below that let through everything that arrived
+before it. **Form A, by identity** (`above`): the same versions name the versions the walk read
+above the node and the node's own switch, and the reading refuses the profile where what stands
+is not what was named. Both are switches beside the store as decided (`DEP`, none by default),
+and every part plays the store as decided beside the form on the same steps. `run.ps1 -S34` runs
+them; its record is `recorded-s34\`.
+
+### What it runs
+
+| Part | What it is |
+| --- | --- |
+| `beyond-2-rw-off-`, `beyond-4-rw-`, `beyond-2-mask-`, `beyond-4-mask-`, `beyond-4-mask-3-` and the form | `store_runs.py --dep FORM off P L V 200000 34`: the draws of `beyond` in each configuration of `recorded-owed\`, a removed row taken off for real; for the store as decided and for the form, the histories with a merge beyond both copies, by letters and by capabilities only; each history beyond both under the form shrunk, printed and named by what the walk from its node holds; the cost |
+| `beyond-2-rw-again-`, `beyond-2-rw-empty-` and the form; `beyond-2-rw-again-none`, `beyond-2-rw-off-none` | the same, two profiles, read and write, a removed row written as `again` and as decided, under each form; and with no form, the controls of `recorded-rows\` (68 and 69) |
+| `long-2-` and the form | the same with 8 to 14 steps, the search that draws H4 |
+| `moves-3-` and the form | three levels, with N moved between G and the root in the alphabet |
+| `combine` | `store_runs.py --dep combine 200000`: `combine` with a version that takes the rule off holding each recorded set, and `off:deny` |
+| `subtree-` and the form | a write above 20, 200 and 2,000 nodes that let through |
+| `search-acts-` and the form | `store_runs.py --depform FORM --rows off acts search`: the model's search with the acts on a row and on the switch, under the form |
+| `hand-`, `cells4-`, `cells3-`, `switch-`, `moves-`, `afters-` and the form | `s34.py PART FORM` on files: the design's hand histories; O1 to O8 and L1 to L10, every merge both ways; W1 to W8 with a removed row written as decided, as `again` and taken off; the moves and H16; the `after` lists under renewals |
+
+**What the cost counts.** For each history, a copy giving a profile less at a node than the
+store as decided gives on the same steps, by capabilities, counted only where the store as decided
+has no merge beyond both copies in that history, at any step and at the end; of them, a profile
+given nothing where the store as decided gives it something; and the form giving more.
+
+### The command
+
+From the branch root, in Windows PowerShell 5.1, under an ordinary user token, with
+`PSModulePath` removed when started from PowerShell 7:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1 -S34 -Parallel 4
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\compare.py --s34
+```
+
+A run of every part empties `out\s34\` and the databases `work\qss-*` and `work\qsa-*` and nothing
+of the other configurations'.
+
+**How long**, in seconds, four parts at once, on a machine other measurements were sharing; each
+cell is run 1 and run 2:
+
+| Part | Form B (`seen`) | Form A (`above`) |
+| --- | --- | --- |
+| `beyond-4-mask-3` | 1,012; 972 | 992; 987 |
+| `search-acts` | 857; 822 | 842; 837 |
+| `beyond-4-mask` | 736; 722 | 752; 737 |
+| `long-2` | 711; 686 | 702; 702 |
+| `beyond-4-rw` | 596; 591 | 606; 596 |
+| `moves-3` | 581; 566 | 576; 567 |
+| `beyond-2-mask` | 536; 536 | 546; 536 |
+| `beyond-2-rw-off`, `-again`, `-empty` | 441, 441, 436; 446, 446, 436 | 456, 476, 486; 456, 456, 456 |
+| `subtree` | 115; 115 | 140; 135 |
+| `switch`, `cells3`, `cells4` | 140, 95, 75; 186, 115, 90 | 185, 125, 85; 186, 135, 95 |
+| `afters`, `hand`, `moves` | 25, 10, 5; 30, 10, 5 | 45, 10, 5; 30, 10, 5 |
+| `beyond-2-rw-again-none`, `-off-none`, `combine` | 421, 421, 100; 406, 396, 95 | |
+
+**How the runs were made.** A first run 1 was stopped after its first part: its listing of a
+form's failures printed the first 40 by length, which the search with moves filled with a single
+class, and the time of `subtree` was not where the comparison masks it. Both were changed, and run
+1 and run 2 were then `run.ps1 -S34 -Parallel 4` with every part, run 1's outputs copied aside and
+kept as `recorded-s34\`. Before them, with both forms off, the 28 outputs named under "What was
+added for it" printed their records.
+
+**Compared.** Every output of run 2 is the same as `recorded-s34\` line for line, with the masks of
+"Running it": 37 files.
+
+| Figure | Recorded | Second run | Reproduced |
+| --- | --- | --- | --- |
+| the store as decided beside each form, beyond both copies: 2 profiles rw, 4 rw, 2 the mask, 4 the mask, 4 the mask at 3 levels | 67, 33, 129 (8 by capabilities only), 44 (1), 44 (1) | the same | yes |
+| no form, the removal as `again` and taken off | 68, 69 | the same | yes |
+| form B and form A, beyond both copies, in each of the 7 configurations of 4 to 10 steps | 0 in each | the same | yes |
+| form B cost, less (at the end), nothing (at the end), more, in the order of the first row | 181 (161), 23 (21), 19; 108 (96), 7 (7), 9; 327 (288), 71 (61), 3; 129 (124), 28 (28), 0; 115 (107), 25 (23), 0 | the same | yes |
+| form A cost, the same | 263 (241), 263 (241), 19; 128 (117), 128 (117), 9; 424 (377), 424 (377), 3; 143 (135), 142 (135), 0; 131 (123), 131 (122), 0 | the same | yes |
+| form B and form A, the removal written as decided; as `again` | 177 (157) and 259 (237); 182 (162) and 264 (242) | the same | yes |
+| `long-2`: the store as decided; form B (each of the shape H4); form A | 294; 5; 0 | the same | yes |
+| `moves-3`: the store as decided; form B; form A | 134; 80 (79 with no version on the walk, 1 of the shape H4); 79, the same 79 | the same | yes |
+| `combine`: pairs; more, less; the recorded sets cut | 67,502,592; 0, 0; 18,275,970 | the same | yes |
+| `subtree`, 20, 200, 2,000 nodes: versions, deletion records | k + 1, k + 2 under each form | the same | yes |
+| `search-acts` under each form | `recorded-rows\store-search-acts.txt` line for line but the header | the same | yes |
+| `cells4`, `cells3`: beyond both copies, as decided; under each form | 32 (O6, O7) and 48 (L8, L9, L10); 0 | the same | yes |
+| `cells4`, `cells3`: narrower than the store as decided, form B; form A | 32 and 48; 32 and 64 (L3 as well) | the same | yes |
+| `switch`: beyond both copies under each form, each way of writing a removal; wider than the store as decided | 0; W6 taken off, 16 cells and its import cell | the same | yes |
+| `afters`: identifiers in the version below after 400 edits above; after 200 edits apart | 401; 101 | the same | yes |
+
+### What was added for it
+
+Each line added or changed carries "ADDED (S34 forms)". With both forms off, every part printed
+what it printed before: after the addition, the 15 parts named under "The forms rules per profile
+left owed" ("How the runs were made") and the 13 parts of `recorded-owed\` were run again and each
+printed its record line for line, with the masks of "Running it": 28 files.
+
+- `crdt_model.py`: `DEP` and `MOVES`; `is_off` and `deps_of`; `meet` keeps the records of every
+  version; `dep_cut` and `rows_node`'s walk; the fold's `parent_of`, `standing_ids` and
+  `walk_above`, given to the acts under a form; `dep_act`, the acts of a form with the write
+  above; the act `lift`; `nmove`, a move of N; `row_text` and `rec_text` print a record.
+- `store_runs.py`: `--dep` (`part_dep`, the store as decided beside a form), `--dep combine`
+  (`part_combine_dep`), `--dep subtree` (`part_subtree`) and `--depform`, the model's search
+  under a form.
+- `store.py`: `DEP`, the texts of both forms in `doc` and `undoc`, the encoder handing `doc` the
+  identifiers on the file.
+- `read.py`: `deps_of`; `meet` keeps the records; `standing_ids`, `walk_above` and `dep_cut` over
+  the file's tree.
+- `bridge.py`: `dep`, the form and the way a removed row is written; the file side of `nmove`,
+  KeePassLib moving N between the groups General and the root.
+- `s34.py`: new, the parts on files.
+- `run.ps1`: `-S34`. `compare.py`: `--s34`.
+
+### Defects and limits of this configuration
+
+Reported, not fixed.
+
+- **The probe keeps form A's identifiers in `doc`**, where the design puts them in a member
+  `above`; the summary items restate `doc` whole, so the reading has the same identifiers.
+- **A dialog is not modeled**: every act composes at its write, so the design's condition that a
+  write above renews only versions the tab read at the press (H6), and the dialog's own state at
+  an X (H8), are not run.
+- **The tree is the root, G and N**, and the subtree of `subtree` is k nodes under the root in the
+  model alone; no file holds more than three levels.
+- **Seal again is no act above** here: it writes an empty rule or the switch refusing, and the
+  design does not state whether that renews the nodes below.
+- **The oracle compares by letters**; every merge is held to both copies by letters and by
+  capabilities, and every cell on files to the store as decided by capabilities.
+- **KeePassLib stands for KeePass's window** in every edit and every move, as in the
+  configurations before.
+
+### Not run in this configuration
+
+- `lift` in the alphabet of the searches, three copies, and the longer search over three levels;
+  the forms in `b-merges`, `apart`, `same`, `states`, `b-deletions`, `b-clear`, `b-history`,
+  `b-random` and `b-random-rows`.
+- Merges other than Synchronize in `afters` and `moves`; the slow key derivation.
+- The tab, a second KeePass with the plugin, a phone.
 
 ## Vectors for the product
 
