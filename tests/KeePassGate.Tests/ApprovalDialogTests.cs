@@ -253,18 +253,17 @@ namespace KeePassGate.Tests
             using (var dialog = Shown())
             {
                 var list = Focus(Profiles(dialog));
-                list.SelectedIndex = 0;
-                OffScreenForm.Pump();
-                Assert.That(list.GetItemChecked(0), Is.True, "the profile was not checked, so nothing below is measured");
+                SelectFirst(list);
+                Assert.That(FirstChecked(list), Is.True, "the profile was not checked, so nothing below is measured");
 
                 TestNativeMethods.PostMessage(list.Handle, WmChar, (IntPtr)'o', IntPtr.Zero);
                 OffScreenForm.Pump();
-                Assert.That(list.GetItemChecked(0), Is.True, "a letter unchecked a profile");
+                Assert.That(FirstChecked(list), Is.True, "a letter unchecked a profile");
 
                 Press(list, Keys.Space);
                 TestNativeMethods.PostMessage(list.Handle, WmChar, (IntPtr)' ', IntPtr.Zero);
                 OffScreenForm.Pump();
-                Assert.That(list.GetItemChecked(0), Is.False, "Space still toggles");
+                Assert.That(FirstChecked(list), Is.False, "Space still toggles");
             }
         }
 
@@ -402,12 +401,39 @@ namespace KeePassGate.Tests
             return approve;
         }
 
-        private static CheckedListBox Profiles(Control dialog)
+        /// <summary>
+        /// What the keyboard reaches of the profiles: the first box of a table, or a list of
+        /// check boxes.
+        /// </summary>
+        private static Control Profiles(Control dialog)
         {
-            var list = ControlTree.FindByName<CheckedListBox>(dialog, GateTab.ApprovalProfilesListName)
-                       ?? ControlTree.FindByName<CheckedListBox>(dialog, GateTab.RenewalProfilesListName);
-            Assert.That(list, Is.Not.Null);
-            return list;
+            var list = ControlTree.FindByName<CheckedListBox>(dialog, GateTab.RenewalProfilesListName);
+            if (list != null)
+            {
+                return list;
+            }
+
+            var name = dialog is PairingApprovalForm ? GateTab.ApprovalProfilesListName : GateTab.RenewalProfilesListName;
+            var boxes = ProfileRows.Boxes(ProfileRows.Table(dialog, name));
+            Assert.That(boxes, Is.Not.Empty, "no box in the table");
+            return boxes[0];
+        }
+
+        private static void SelectFirst(Control list)
+        {
+            var boxes = list as CheckedListBox;
+            if (boxes != null)
+            {
+                boxes.SelectedIndex = 0;
+            }
+
+            OffScreenForm.Pump();
+        }
+
+        private static bool FirstChecked(Control list)
+        {
+            var boxes = list as CheckedListBox;
+            return boxes != null ? boxes.GetItemChecked(0) : ((CheckBox)list).Checked;
         }
 
         private static void Press(Control control, Keys key)

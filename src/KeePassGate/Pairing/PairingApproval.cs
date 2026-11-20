@@ -178,9 +178,22 @@ namespace KeePassGate.Pairing
         public bool Checks(string profile)
         {
             return _earlier == null
-                   || (_earlier.Profiles.Contains(profile, StringComparer.Ordinal)
-                       && _before != null
-                       && _before.MarkOf(profile) == MarkOf(profile));
+                   || (_earlier.Profiles.Contains(profile, StringComparer.Ordinal) && !Changed(profile));
+        }
+
+        /// <summary>
+        /// Whether a profile's state changed since the dialog before: on a dialog shown again, a
+        /// profile marked otherwise than the dialog before marked it, or where nothing tells how
+        /// that dialog marked it; never on a first dialog.
+        /// </summary>
+        /// <remarks>
+        /// **Such a row opens unchecked**, <see cref="Checks"/>, as a row the operator unchecked
+        /// does, so the dialog shows the change apart from the check: the row is highlighted, and
+        /// its tooltip and the text read out as the row state the change, `PAIRING.md` §311.
+        /// </remarks>
+        public bool Changed(string profile)
+        {
+            return _earlier != null && (_before == null || _before.MarkOf(profile) != MarkOf(profile));
         }
 
         /// <summary>How the dialog marks a profile being asked for.</summary>

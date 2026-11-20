@@ -59,6 +59,7 @@ namespace KeePassGate.Host.Tests.Live
         private string _outstanding;
         private bool _serverProved;
         private PairingReply _paired;
+        private IReadOnlyList<ToggleState> _boxesBeforeApproving;
         private PairingReply _refused;
         private int _statusAfterPairing;
         private string _statusBody;
@@ -144,6 +145,15 @@ namespace KeePassGate.Host.Tests.Live
         public void An_approved_request_comes_back_with_a_certificate()
         {
             Assert.That(_paired.Status, Is.EqualTo(200), _paired.Failure ?? _paired.Body);
+        }
+
+        [Test]
+        public void The_dialog_opened_with_every_profile_asked_for_checked()
+        {
+            // Read off the real window through UI automation before Approve: the record carries
+            // what the boxes held, so a box that opened unchecked is a profile the client never
+            // gets, and Approve over no box issues a certificate holding none.
+            Assert.That(_boxesBeforeApproving, Is.EqualTo(new[] { ToggleState.On }));
         }
 
         [Test]
@@ -263,7 +273,26 @@ namespace KeePassGate.Host.Tests.Live
         private PairingReply ApproveTheNextRequest(
             KeePassDriver driver, PairingClient client, string name, params string[] profiles)
         {
-            return Decide(driver, client, name, profiles, GateTab.ApproveButtonText);
+            return Decide(driver, client, name, profiles, GateTab.ApproveButtonText,
+                dialog => _boxesBeforeApproving = Boxes(dialog));
+        }
+
+        /// <summary>
+        /// The check of every row of the table of profiles, as UI automation reads it: every check
+        /// box in the table, found by the identifier each row's box carries.
+        /// </summary>
+        private static IReadOnlyList<ToggleState> Boxes(AutomationElement dialog)
+        {
+            var table = dialog.FindFirst(
+                TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, GateTab.ApprovalProfilesListName));
+            Assert.That(table, Is.Not.Null, "no table of profiles on the dialog");
+            return table
+                .FindAll(TreeScope.Descendants, new AndCondition(
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.CheckBox),
+                    new PropertyCondition(AutomationElement.AutomationIdProperty, GateTab.ProfileBoxName)))
+                .Cast<AutomationElement>()
+                .Select(box => ((TogglePattern)box.GetCurrentPattern(TogglePattern.Pattern)).Current.ToggleState)
+                .ToList();
         }
 
         private PairingReply RefuseASecondAttempt(KeePassDriver driver, ThrowawayKeePass keePass)
@@ -283,11 +312,16 @@ namespace KeePassGate.Host.Tests.Live
             var client = new PairingClient(keePass.Port, token);
             Assert.That(client.Hello().ServerProved, Is.True);
 
-            return Decide(driver, client, "agent-unwanted", new[] { UnlistedProfile }, GateTab.RefuseButtonText);
+            return Decide(driver, client, "agent-unwanted", new[] { UnlistedProfile }, GateTab.RefuseButtonText, dialog => { });
         }
 
         private static PairingReply Decide(
-            KeePassDriver driver, PairingClient client, string name, string[] profiles, string button)
+            KeePassDriver driver,
+            PairingClient client,
+            string name,
+            string[] profiles,
+            string button,
+            Action<AutomationElement> before)
         {
             PairingReply reply = null;
             Exception failed = null;
@@ -309,6 +343,7 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(Uia.Describe(approval, ControlType.Text), Does.Contain(name),
                 "the dialog does not say who is asking");
 
+            before(approval);
             Assert.That(driver.PressButton(approval, button), Is.True, driver.Diagnostics);
             Assert.That(asking.Join(TimeSpan.FromSeconds(60)), Is.True,
                 "the client was still waiting after the operator answered");

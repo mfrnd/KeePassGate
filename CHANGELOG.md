@@ -101,18 +101,18 @@ none, since it releases both.
   the dialog is open, and the plugin's log names the name at OK. Everything else on the tab is
   written, and the name comes back by being added on the page again. `STORE.md` §627.
 - **A pairing approved for a name off the list puts the name back only over the removals its
-  dialog showed.** The approval dialog marks a name off the list "(removed)" wherever the
+  dialog showed.** The approval dialog shows a name off the list as removed wherever the
   database knows a removal of it, made in this copy or brought in by a synchronize, or a client
-  still holds it, and "(new)" only where neither holds. Where a synchronize brings a further
+  still holds it, and as new only where neither holds. Where a synchronize brings a further
   removal of the name while the dialog stands or while an approval KeePass was too busy to write
   is held, or where the database knows the removal only as a deleted entry of a name it names
   nowhere else, which the dialog cannot tie to the name before Approve, the pairing writes
   nothing and spends nothing, and the client is not answered yet: the same request puts the
   dialog in front of the operator again, with no other request's dialog in between. That dialog
-  states above the list "Shown again: the state of the profiles changed.", the same whatever
+  states above the table "Shown again: the state of the profiles changed.", the same whatever
   Approve found and naming no profile, since the rows show the state; it opens with the lifetime
   the operator picked before and with each profile checked only where the operator left it
-  checked and its mark is unchanged, marks "(removed)" each name Approve found removed, so that
+  checked and its state is unchanged, shows as removed each name Approve found removed, so that
   its approval writes the name back, and holds Approve disabled for a second from when it comes
   up, so that a click meant for the dialog before cannot answer it. A lock of KeePass or a close
   of the database before it comes back is answered `503 locked`, and an invitation gone by then
@@ -133,6 +133,54 @@ none, since it releases both.
   write answers the same store: the store's word under `503`, `503 undecided`,
   `409 no invitation` for an authority no longer served, or `503 locked`. Nothing is spent, and
   the plugin's log names the invitation, the database and the cause. `PAIRING.md` §303.
+- **The approval dialog shows the profiles asked for as a table, with the check boxes and what
+  Approve does for each name in columns of their own.** The columns are **Grant**, the check box
+  alone; **Profile**, the name alone; **Approve also**, empty for a name on the list, "adds the
+  profile" for a name the database knows no removal of, and "restores the profile" for a name it
+  knows a removal of, made in this copy or brought in by a synchronize, or that a client still
+  holds; and **Regained by**, the clients that regain a restored name, each on a line of its own
+  however many there are, the other cells of the row at its top. The headings stay in place over
+  rows that scroll by pixels, by the wheel, the small turns of a precision touchpad added up, the
+  scroll bar, and the arrows, Page Up, Page Down, Home and End while a box has the focus, so that a
+  row taller than the table is shown to its last line, and nothing scrolls sideways. A box keeps
+  the focus while the keys scroll it out of sight, and the table stays where the keys put it until
+  the focus moves to a box. A thin line parts each row from the next, and a row taller than the
+  table scrolls as the rest do, its box, name and state leaving with its first line. Scrolled to
+  the end, as a row brought into view there leaves it, the table's top cuts no line and no box, and
+  less than a row stays empty below the last row. A highlight reaches the table's edge, or the
+  scroll bar's where the table scrolls, and the focus on a box is drawn clear of the box and inside
+  its row. A screen reader reads every part of the dialog by a name of its own, a row by its
+  profile.
+  **No sentence of the dialog names a profile or a client.**
+  Above the table, "Profiles the client asks for:", and above that, "Approve issues a certificate
+  and saves this database. The KPG tab revokes the certificate." Nothing under the table explains
+  a state: the pointer resting on a cell under **Approve also** shows what Approve does, "Approve
+  adds the profile to this database. Rules already naming the profile apply at once." and "Approve
+  restores the profile for every rule and client still naming the profile.", which a screen
+  reader reads after the name, before the clients regaining it. A line too long for its column
+  ends in "..." and the cell shows its whole text in a tooltip. A check changes only by a click
+  on its box or by Space on a box in sight: Space on a box out of sight brings its row into view
+  and changes no check. A letter typed on a box changes nothing, and a double click is a single
+  click. A name whose removal the database knows only as a deleted entry, and that it names
+  nowhere else, as a synchronize with another copy can leave it, still reads "adds the profile" on
+  the first dialog, since the dialog cannot tell which name such a deletion was for; Approve then
+  writes nothing, and the dialog shown again reads "restores the profile".
+  On a dialog shown again, a row whose state changed since the dialog before opens unchecked and
+  is highlighted in light yellow over its whole height, whether or not it is then checked, with a
+  tooltip stating to what the state changed, which a screen reader reads with the name: "The row
+  changed after the profile was first shown: Approve now also adds the profile.", "... Approve now
+  also restores the profile." or "... this database names the profile now."; under a high
+  contrast setting its text takes the theme's link color instead. A
+  row the operator unchecked whose state did not change opens unchecked with no highlight. The
+  renewal dialog, which offers only names on the list, keeps its list, and a list of it longer
+  than it shows reads under it "The list scrolls: Approve grants every checked profile.", naming
+  no count. The pairing dialog's table, taller than it shows, ends at the top of its rows on a line
+  cut in half at the bottom of the table, half of whatever line the table's bottom meets, and no
+  line under the table states it in words; a table that shows everything ends where its rows end.
+  A scroll reaches the screen whole: the rows are painted into a single buffer and every scroll
+  paints the whole table, so that no picture of the screen shows a strip the scroll uncovered
+  still holding the lines it held before. `PAIRING.md` §303
+  and §311.
 - **Breaking: the rules are records in the plugin's store, and every rule is entered again.** A
   profile's rule at a group or an entry, and the setting **Refuse any profile not named here**,
   are entries of the group `KeePassGate`, each under the identifier of the group or entry it is

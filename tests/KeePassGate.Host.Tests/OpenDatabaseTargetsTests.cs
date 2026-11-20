@@ -295,6 +295,7 @@ namespace KeePassGate.Host.Tests
                 Assert.That(asked.Served, Is.False);
                 Assert.That(asked.Word, Is.EqualTo(HeldBackTarget.Undecided));
                 Assert.That(asked.Listed, Is.Empty);
+                Assert.That(asked.Removed, Is.Empty);
                 Assert.That(asked.Returning, Is.Empty);
                 Assert.That(asked.Held("gone", gone), Is.False);
             }

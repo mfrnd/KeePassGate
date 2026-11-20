@@ -36,9 +36,7 @@ namespace KeePassGate.Ui
     /// </remarks>
     public sealed class PairingApprovalForm : ApprovalDialog
     {
-        private readonly CheckedListBox _profiles;
-        private readonly Label _scrolling;
-        private readonly Label _regaining;
+        private readonly ProfileTable _profiles;
         private readonly LifetimeChoice _lifetime;
         private readonly Label _countdown;
         private readonly Timer _clock;
@@ -68,208 +66,284 @@ namespace KeePassGate.Ui
         public static readonly TimeSpan ApproveHeldBack = TimeSpan.FromMilliseconds(1000);
 
         /// <summary>
-        /// What approving costs, said once. Separate from the table above it because this is a
+        /// What approving costs, stated once. Separate from the table above it because this is a
         /// sentence to read rather than a value to check.
         /// </summary>
         /// <remarks>
         /// The save and where to undo it, which is what the operator acts on. That the admission
         /// is on disk before the client is told anything is how the save is ordered, which
-        /// `PAIRING.md` sets out, and it went with the operator's ruling of 2026-11-09 cutting the
-        /// dialog's words.
+        /// `PAIRING.md` sets out. **Every sentence of this dialog names its nouns and no profile
+        /// or client**: the table shows which rows a sentence is about, and a pronoun leaves the
+        /// reader looking for what it stands for.
         /// </remarks>
         public const string Consequence =
-            "Approving issues a certificate and saves this database. Revoke it later on the " +
-            GateName.OnATab + " tab.";
+            "Approve issues a certificate and saves this database. The " + GateName.OnATab +
+            " tab revokes the certificate.";
 
         /// <summary>
-        /// What the list underneath is, said in terms of what the client asked for rather than as
-        /// a bare "these". A reader arriving at that word has to look back up to find out what it
-        /// refers to, and what it refers to is the whole decision.
+        /// What the table underneath is, named in terms of what the client asked for rather than as
+        /// a bare "these", whatever the states in it: the heading of the boxes carries what a check
+        /// does, and the tooltip of each state's cell what Approve does for a profile in it.
         /// </summary>
-        public const string ProfilesAsked =
-            "Profiles it asks for; uncheck any it should not get:";
-
-        /// <summary>The same when it asked for nothing, which is unusual enough to say plainly.</summary>
-        public const string NoProfilesAsked =
-            "The client is asking for no profiles, so it would be admitted and reach nothing.";
+        public const string ProfilesAsked = ProfilesAskedName + ":";
 
         /// <summary>
-        /// What marks a profile this database does not name now and is not shown as removed,
-        /// `PairingRequest.IsRemoved`. Approving such a profile adds it to the list.
+        /// The table's name, which UI automation reads as the table's: the line above the table,
+        /// <see cref="ProfilesAsked"/>, without its colon.
+        /// </summary>
+        public const string ProfilesAskedName = "Profiles the client asks for";
+
+        /// <summary>The same when it asked for nothing, which is unusual enough to state plainly.</summary>
+        public const string NoProfilesAsked = "The client asks for no profiles and, approved, reaches nothing.";
+
+        /// <summary>
+        /// The heading of the column of check boxes: whether the client is granted the profile of
+        /// the row, which is what a check decides.
+        /// </summary>
+        public const string GrantHeading = "Grant";
+
+        /// <summary>
+        /// The tooltip of a cell of the column <see cref="StateHeading"/> holding
+        /// <see cref="NewState"/>, and what is read out after the name as its row: what Approve
+        /// does for such a profile.
+        /// </summary>
+        /// <remarks>
+        /// Whether any rule names a new name is a walk of the whole tree, which a connection does
+        /// not make, so the sentence states what approving does either way.
+        /// </remarks>
+        public const string NewTip = "Approve adds the profile to this database. Rules already naming the profile apply at once.";
+
+        /// <summary>
+        /// The tooltip of a cell of the column <see cref="StateHeading"/> holding
+        /// <see cref="RemovedState"/>, and what is read out after the name as its row: what Approve
+        /// does for such a profile.
+        /// </summary>
+        /// <remarks>
+        /// The same warning the Profiles page gives before a removed name is added back, because
+        /// approving a removed name here is exactly that: pairing writes the approved names onto
+        /// the list. Which clients regain the name is in its row, in a column of its own.
+        /// </remarks>
+        public const string RemovedTip = "Approve restores the profile for every rule and client still naming the profile.";
+
+        /// <summary>The heading of the table's column of names.</summary>
+        public const string ProfileHeading = "Profile";
+
+        /// <summary>
+        /// The heading of the column stating what Approve does besides admitting the client: for a
+        /// name off the list, that it adds the name or restores it, `NewState` and `RemovedState`.
+        /// </summary>
+        public const string StateHeading = "Approve also";
+
+        /// <summary>The heading of the column of the clients that regain a restored name.</summary>
+        public const string HeldByHeading = "Regained by";
+
+        /// <summary>
+        /// The background of a row whose state changed since the dialog was shown before, a light
+        /// yellow, #FFF3B0.
+        /// </summary>
+        /// <remarks>
+        /// **Light enough to read the row's text on**: with the window's text of the normal theme,
+        /// black, its contrast is near 19 to 1, and it stands clear of the window's white beside
+        /// it. A row whose state changed opens unchecked, as a row the operator unchecked does, so
+        /// unchecked alone would mean both; the color tells them apart, and the tooltip,
+        /// <see cref="ChangeTip"/>, and the row's own text, which UI automation reads, state the
+        /// change in words, so that the meaning rests on no color alone. Under a high contrast
+        /// setting no fixed color is drawn, <see cref="ChangedColors"/>.
+        /// </remarks>
+        public static readonly Color ChangedBackground = Color.FromArgb(0xFF, 0xF3, 0xB0);
+
+        /// <summary>
+        /// The tooltip anywhere on a row whose state changed after the profile was first shown, on
+        /// a dialog shown again, where the state now reads
+        /// <see cref="NewState"/>; and what is read out after its name as its box.
+        /// </summary>
+        /// <remarks>
+        /// **What changed, and to what the cell now reads**, in a sentence that names no profile
+        /// and no client: a highlight alone left the operator looking for the change, and a state
+        /// cell that went empty showed nothing at all, <see cref="ChangeTip"/>.
+        /// </remarks>
+        public const string NowAddsTip = "The row changed after the profile was first shown: Approve now also adds the profile.";
+
+        /// <summary>The same where the state now reads <see cref="RemovedState"/>.</summary>
+        public const string NowRestoresTip = "The row changed after the profile was first shown: Approve now also restores the profile.";
+
+        /// <summary>The same where the profile is on the list now, so that its state cell is empty.</summary>
+        public const string NowListedTip = "The row changed after the profile was first shown: this database names the profile now.";
+
+        /// <summary>
+        /// What changed in a profile's row after the profile was first shown, the tooltip of the
+        /// row and what is read out last as its box, or null for a row that did not change.
+        /// </summary>
+        /// <remarks>
+        /// **True of the row as it stands**: a state that changed is told by what the state cell
+        /// reads now, whatever it read in between.
+        /// </remarks>
+        public static string ChangeTip(PairingRequest request, string profile)
+        {
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            if (!request.Changed(profile))
+            {
+                return null;
+            }
+
+            return request.IsRemoved(profile) ? NowRestoresTip : request.IsNew(profile) ? NowAddsTip : NowListedTip;
+        }
+
+        /// <summary>
+        /// The colors of a row whose state changed since the dialog was shown before: its
+        /// background and its text.
+        /// </summary>
+        /// <param name="highContrast">Whether a high contrast setting is on, `SystemInformation.HighContrast`.</param>
+        /// <remarks>
+        /// **Under a high contrast setting, the theme's own pair**: the theme's background, and its
+        /// hyperlink color for the text, `SystemColors.HotTrack`, which a contrast theme keeps
+        /// legible on that background and apart from its ordinary text. A fixed yellow there
+        /// would be drawn behind the theme's text, which on a dark theme is light and unreadable on
+        /// it. Read as the dialog is built, which a setting changed while it stands does not
+        /// follow; the tooltip and the text read out stand either way.
+        /// </remarks>
+        internal static (Color Back, Color Fore) ChangedColors(bool highContrast)
+        {
+            return highContrast
+                ? (SystemColors.Window, SystemColors.HotTrack)
+                : (ChangedBackground, SystemColors.WindowText);
+        }
+
+        /// <summary>
+        /// The state of a name this database does not name now and is not shown as removed,
+        /// `PairingRequest.IsNew`. Approving such a name adds it to the list.
         /// </summary>
         /// <remarks>
         /// **Not "never named" in every case**: a name whose removal only a deletion record tells
         /// of, of a name the file does not know otherwise, looks new from here until a write of the
         /// same request finds that removal, since the reading of a connection takes no store key to
-        /// tie that deletion record to the name. Whether any rule names a new name is a walk
-        /// of the whole tree, which a connection does not make, so the dialog states what approving
-        /// does either way.
+        /// tie that deletion record to the name.
         /// </remarks>
-        public const string NewSuffix = " (new)";
-
-        /// <summary>Said under the list when any of them is new.</summary>
-        public const string NewProfilesAsked =
-            "Profiles it asks for. Those marked" + NewSuffix + " are not on this database's list " +
-            "now: approving adds them, and any rule already naming one grants it to this client " +
-            "at once. Uncheck any it should not get:";
+        public const string NewState = "adds the profile";
 
         /// <summary>
-        /// What marks a profile off the list that a removal known to this database names, made in
-        /// this copy or brought in by a synchronize, whether or not clients still hold it,
-        /// `PairingRequest.IsRemoved`. Approving such a profile puts it on the list, every rule
-        /// still naming it applies again, and every client still holding it regains it.
+        /// The state of a name off the list that a removal known to this database names, made in
+        /// this copy or brought in by a synchronize, that clients still hold, or that a write of
+        /// the same request found a removal of, `PairingRequest.IsRemoved`. Approving such a name
+        /// puts it back on the list, every rule still naming it applies again, and every client
+        /// still holding it regains it.
         /// </summary>
-        public const string RemovedSuffix = " (removed)";
+        public const string RemovedState = "restores the profile";
+
+        /// <summary>Every text a cell under <see cref="StateHeading"/> can hold, which its column is as wide as.</summary>
+        private static readonly string[] States = { NewState, RemovedState };
 
         /// <summary>
-        /// How a profile reads in the list: its name, and whether approving it would create it or
-        /// bring back one that was removed.
-        /// </summary>
-        public static string Listed(string profile, bool isNew, bool removed)
-        {
-            return removed ? profile + RemovedSuffix : isNew ? profile + NewSuffix : profile;
-        }
-
-        /// <summary>How a profile of this request reads in the list, as the dialog shows it.</summary>
-        public static string Row(PairingRequest request, string profile)
-        {
-            return Listed(profile, request.IsNew(profile), request.IsRemoved(profile));
-        }
-
-        /// <summary>The name back out of what the list shows, which is what gets approved.</summary>
-        public static string Asked(string shown)
-        {
-            foreach (var suffix in new[] { NewSuffix, RemovedSuffix })
-            {
-                if (shown != null && shown.EndsWith(suffix, StringComparison.Ordinal))
-                {
-                    return shown.Substring(0, shown.Length - suffix.Length);
-                }
-            }
-
-            return shown;
-        }
-
-        /// <summary>
-        /// What the line under the list says about the clients that regain a removed profile, or
-        /// null when no profile is shown as removed.
+        /// The cells of a profile's row, in the order of the columns: its name, its state, and the
+        /// clients still holding it.
         /// </summary>
         /// <remarks>
-        /// The same warning the Profiles page gives before a removed name is added back, because
-        /// approving one here is exactly that: pairing writes the approved names onto the list.
-        /// Every client by name, as the Clients page calls it, since which clients regain the name
-        /// is what the operator is being asked to agree to. The rules come back with it, which the
-        /// page counts and this cannot: counting them walks the whole tree, and this is asked from
-        /// a connection rather than from the window that owns the tree.
+        /// **The state in a column of its own**, never joined to the name: a name and its state
+        /// read as one word are a spelling to notice, and a long name cut at the edge of the list
+        /// would take its state with it. A name on the list has no state.
+        ///
+        /// **The clients each once, by their client keys**, as the Profiles page names them, and
+        /// each on a line of its own, however many there are: the row is as tall as its clients,
+        /// and the table scrolls to its last line. A client whose certificate has expired is not
+        /// among them, since it regains nothing.
         /// </remarks>
-        public static string Regaining(PairingRequest request)
+        public static IReadOnlyList<string> Cells(PairingRequest request, string profile)
         {
             if (request == null)
             {
-                return null;
+                throw new ArgumentNullException(nameof(request));
             }
 
-            var said = new List<string>();
-            var removed = new List<string>();
-            var everyone = new Dictionary<string, AdmissionRecord>(StringComparer.Ordinal);
-
-            // A name marked removed that no client holds names nobody here, and still brings back
-            // every rule naming it, which the last sentence states.
-            var marked = false;
-            foreach (var profile in request.Profiles)
-            {
-                var holding = request.Returning(profile);
-                if (holding.Count == 0)
-                {
-                    marked |= request.IsRemoved(profile);
-                    continue;
-                }
-
-                removed.Add(profile);
-                foreach (var record in holding)
-                {
-                    everyone[record.AdmissionKey] = record;
-                }
-
-                // Each client once, by its client key, as the Profiles page names them.
-                var names = ClientList.ClientNames(holding);
-
-                said.Add((names.Count == 1
-                        ? "One client still holds " + profile + " from before and will regain it: "
-                        : names.Count + " clients still hold " + profile + " from before and will regain it: ")
-                    + string.Join(", ", names) + ".");
-            }
-
-            if (said.Count == 0 && !marked)
-            {
-                return null;
-            }
-
-            var programs = ClientList.ClientNames(everyone.Values);
-            if (removed.Count > MostRegaining || programs.Count > MostRegaining)
-            {
-                // **Bounded, as the list above it is.** One sentence per profile, each naming every
-                // holder, grew without a limit and pushed Refuse, Approve and the countdown below
-                // the screen. Past a few, one sentence says how many of each and names the first
-                // clients, and the Profiles page names them all.
-                var shown = programs.Take(MostRegaining).ToList();
-                var more = programs.Count - shown.Count;
-                said.Clear();
-                said.Add(removed.Count.ToString(CultureInfo.InvariantCulture) + " of these profiles were removed and are "
-                    + "still held from before by " + programs.Count.ToString(CultureInfo.InvariantCulture)
-                    + " clients, who will regain them: " + string.Join(", ", shown)
-                    + (more > 0 ? ", and " + more.ToString(CultureInfo.InvariantCulture) + " more" : string.Empty)
-                    + ". The Profiles page names every one.");
-            }
-
-            said.Add("Approving a profile marked" + RemovedSuffix + " adds it back to this database, "
-                + "and every rule still naming it applies again.");
-            return string.Join(" ", said);
+            var state = request.IsRemoved(profile) ? RemovedState : request.IsNew(profile) ? NewState : string.Empty;
+            var heldBy = string.Join(Environment.NewLine, ClientList.ClientNames(request.Returning(profile)));
+            return new[] { profile, state, heldBy };
         }
 
         /// <summary>
-        /// The most removed profiles, and the most clients regaining them, the Regaining line names
-        /// one by one before it says how many instead.
-        /// </summary>
-        public const int MostRegaining = 3;
-
-        /// <summary>
-        /// What the line under the list says when the list holds more profiles than it shows at
-        /// once, or null when every one of them is on screen.
+        /// What Approve does for a profile in the state the dialog shows it in, the tooltip of its
+        /// state's cell: <see cref="NewTip"/> or <see cref="RemovedTip"/>, and null for a name on
+        /// the list, which has no state.
         /// </summary>
         /// <remarks>
-        /// **Approve grants every profile still checked, whether it was ever on screen or not**,
-        /// and a request may carry 32 of them in the order the client chose, every one checked.
-        /// Past the rows the list shows, the only sign of the rest was a scroll bar, so ten harmless
-        /// names first and the wanted ones after were approved by a glance at the ten, and a
-        /// profile marked as new could be the one out of sight. This says how many there are, next
-        /// to the button that grants them. Absent for a list that shows everything, so the
-        /// ordinary dialog is unchanged.
+        /// **On the cell rather than under the table**: a line for each state under the table
+        /// would stand apart from the rows it explains, and add to the dialog's height for words
+        /// an operator reads once.
         /// </remarks>
-        public static string Scrolling(PairingRequest request)
+        public static string StateTip(PairingRequest request, string profile)
         {
-            return request == null ? null : Scrolling(request.Profiles.Count);
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            return request.IsRemoved(profile) ? RemovedTip : request.IsNew(profile) ? NewTip : null;
         }
 
         /// <summary>
-        /// The same line for a list of this many profiles, which the renewal dialog's list says
-        /// too, in the same words.
+        /// A row's text read out, which UI automation reads as the row's box: the name, then what
+        /// Approve does for it in the state its row shows, <see cref="StateTip"/>, then the
+        /// clients regaining it where any do, then what changed, <see cref="ChangeTip"/>, where
+        /// the row changed after the profile was first shown.
+        /// </summary>
+        /// <remarks>
+        /// **The tooltip of the state's cell is read here**, and the clients beside it, so that
+        /// the box, which is what a keyboard reaches, carries the whole row.
+        /// </remarks>
+        public static string Spoken(PairingRequest request, string profile)
+        {
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            var lines = new List<string>();
+            var tip = StateTip(request, profile);
+            if (tip != null)
+            {
+                lines.Add(tip);
+            }
+
+            var holding = ClientList.ClientNames(request.Returning(profile));
+            if (holding.Count > 0)
+            {
+                lines.Add(HeldByHeading + ": " + string.Join(", ", holding) + ".");
+            }
+
+            var change = ChangeTip(request, profile);
+            if (change != null)
+            {
+                lines.Add(change);
+            }
+
+            return lines.Count == 0 ? profile : profile + ". " + string.Join(" ", lines);
+        }
+
+        /// <summary>
+        /// The line under the renewal dialog's list of this many profiles,
+        /// <see cref="ScrollingLine"/>, or null for a list that shows every profile.
         /// </summary>
         internal static string Scrolling(int profiles)
         {
-            if (profiles <= MostRows)
-            {
-                return null;
-            }
-
-            return "The list holds " + profiles.ToString(CultureInfo.InvariantCulture)
-                + " profiles and shows " + MostRows.ToString(CultureInfo.InvariantCulture)
-                + " at a time: scroll through it, because Approve grants every one still checked, "
-                + "seen or not.";
+            return profiles <= MostRows ? null : ScrollingLine;
         }
 
         /// <summary>
-        /// The line above the list on the dialog shown again for a request whose approval Approve
+        /// The line under the renewal dialog's list while it holds more profiles than it shows, so
+        /// that some are out of sight.
+        /// </summary>
+        /// <remarks>
+        /// **Approve grants every profile checked, whether it was ever on screen or not**, and a
+        /// list past the rows it shows has no other sign of the rest than its scroll bar. This
+        /// dialog's table shows the rest by a line cut in half at its bottom instead, `ProfileTable`.
+        /// </remarks>
+        internal const string ScrollingLine = "The list scrolls: Approve grants every checked profile.";
+
+        /// <summary>
+        /// The line above the table on the dialog shown again for a request whose approval Approve
         /// found stale, <see cref="StateChanged"/>; null on any other dialog.
         /// </summary>
         /// <remarks>
@@ -284,20 +358,17 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// The line above the list on a dialog shown again, whatever Approve found.
+        /// The line above the table on a dialog shown again, whatever Approve found.
         /// </summary>
         public const string StateChanged = "Shown again: the state of the profiles changed.";
 
-        /// <summary>What the line above the list says, which depends on whether any are new.</summary>
+        /// <summary>What UI automation reads as the whole of the dialog's content.</summary>
+        internal const string LayoutRead = "Pairing request";
+
+        /// <summary>The line above the table, which depends on whether any profile is asked for.</summary>
         public static string Asking(PairingRequest request)
         {
-            if (request == null || request.Profiles.Count == 0)
-            {
-                return NoProfilesAsked;
-            }
-
-            var anyNew = request.Profiles.Any(request.IsNew);
-            return anyNew ? NewProfilesAsked : ProfilesAsked;
+            return request == null || request.Profiles.Count == 0 ? NoProfilesAsked : ProfilesAsked;
         }
 
         private readonly Font _titleFont;
@@ -323,6 +394,12 @@ namespace KeePassGate.Ui
         /// <summary>Whether the answer above is one that was given, or the one it started at.</summary>
         private bool _decided;
 
+        /// <summary>
+        /// The profiles checked when Approve was pressed, read then rather than when the answer is
+        /// asked for, so that the answer is of the checks the press found.
+        /// </summary>
+        private string[] _approved = Array.Empty<string>();
+
         /// <summary>Whether a close of the database it is about withdrew it, rather than a lock.</summary>
         private bool _closedWithDatabase;
 
@@ -337,7 +414,7 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// **Everything that sizes this dialog is measured while it is built**, from the font it is
-        /// built at: how wide a line may be, and how tall the list is for the rows it holds. A
+        /// built at: how wide a line may be, and how tall the table is for the rows it holds. A
         /// larger font handed in here is measured exactly the way a larger system font is on a
         /// scaled display, which is the path the dialog takes in use. Changing the font of a dialog
         /// already built is a different path, and nothing takes it: KeePass never touches this
@@ -402,6 +479,7 @@ namespace KeePassGate.Ui
             var layout = new FlowLayoutPanel
             {
                 Name = "KpgApprovalLayout",
+                AccessibleName = LayoutRead,
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents = false,
                 AutoSize = true,
@@ -425,6 +503,7 @@ namespace KeePassGate.Ui
             var details = new TableLayoutPanel
             {
                 Name = GateTab.ApprovalDetailLabelName,
+                AccessibleName = DetailsRead,
                 ColumnCount = 2,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
@@ -455,7 +534,7 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
             });
 
-            // On a dialog shown again after Approve, the notice, above the list and in bold, where
+            // On a dialog shown again after Approve, the notice, above the table and in bold, where
             // the operator reads before deciding: the same request is in front of the operator a
             // second time over a state that changed, which the rows show. Absent on a first dialog.
             var again = Again(request);
@@ -473,7 +552,7 @@ namespace KeePassGate.Ui
             }
 
             // A gap under it, like everything else on this dialog and like the gap the footer keeps
-            // above itself. The list is the one thing here an operator acts on, and less room
+            // above itself. The table is the one thing here an operator acts on, and less room
             // between it and the line introducing it than between it and the row after it would
             // make it look attached to the wrong one of the two.
             layout.Controls.Add(new TextLabel
@@ -485,63 +564,59 @@ namespace KeePassGate.Ui
                 Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
             });
 
-            _profiles = new SteadyChecks
+            // As tall as its rows, between two rows of a single line and `MostRows` of them, never
+            // fewer than two, because a table showing a row of two reads as a table of a row and
+            // the operator is then approving what they cannot see; past the most, it scrolls, and
+            // at the top of its rows a line cut in half at its bottom shows so. Approve grants
+            // every profile checked, whether it was ever on screen or not, and past the lines the
+            // table shows harmless names first and wanted names after would otherwise be approved
+            // by a glance at the first: the line cut where the eye reaches the bottom of the table
+            // is what tells of the rest, in no words that name a profile or a count.
+            _profiles = new ProfileTable(
+                new ProfileColumn(GateTab.ApprovalGrantColumnName, GrantHeading),
+                new[]
+                {
+                    new ProfileColumn(GateTab.ApprovalProfileColumnName, ProfileHeading),
+                    new ProfileColumn(GateTab.ApprovalStateColumnName, StateHeading, States),
+                    new ProfileColumn(GateTab.ApprovalHeldByColumnName, HeldByHeading)
+                },
+                MostRows)
             {
                 Name = GateTab.ApprovalProfilesListName,
-                AccessibleName = GateTab.ApprovalProfilesListLabel,
-                CheckOnClick = true,
 
-                // The dialog's own, given before it is measured below: a list not yet on the dialog
-                // has no font of the dialog's to inherit, and its row height is what that measures.
+                // A table has no text of its own to be announced by, so the line above the table
+                // names the table, whatever the states in it; the headings name its columns.
+                AccessibleName = ProfilesAskedName,
+
+                // The dialog's own, given before it is measured below: a table not yet on the
+                // dialog has no font of the dialog's to inherit, and its rows are what that
+                // measures.
                 Font = Font,
 
-                // Off, so the height set below is the height it keeps rather than a whole number
-                // of rows. With it on, the list rounds itself down and leaves a strip of the
-                // dialog's background under the last row.
-                IntegralHeight = false,
+                // A line of the dialog's text, which the columns share, so that a long name or a
+                // long list of clients is cut at the edge of its own column rather than widening
+                // the dialog past the screen.
+                Width = _wrap,
                 Margin = new Padding(0)
             };
 
             // Every row checked on a first dialog. On a dialog shown again, the rows the operator
-            // left checked before and marked as they were then, `PairingRequest.Checks`, so that a
-            // single Approve grants no name in a state the operator did not approve it in.
+            // left checked before and in the state they were in then, `PairingRequest.Checks`, so
+            // that a single Approve grants no name in a state the operator did not approve it in;
+            // and a row whose state changed, which opens unchecked, highlighted as well, with the
+            // change in its tooltip and in the text read out, `ChangedBackground`.
             foreach (var profile in request.Profiles)
             {
-                _profiles.Items.Add(Row(request, profile), request.Checks(profile));
+                _profiles.Add(profile, request.Checks(profile));
             }
 
+            ShowRows(request);
+
             // Tall enough for what is being asked, up to a point, and never zero. This is the one
-            // control the operator has to act on, so it is sized from the list it holds rather
-            // than from whatever two docked bands leave over.
-            _profiles.Height = ListHeight(_profiles, request.Profiles.Count);
-
-            // And wide enough for every row whole, the name and its mark.
-            _profiles.Width = ListWidth(_profiles, _wrap);
-
-            // Straight under the list, because it is about the list: a list longer than it shows
-            // grants what is scrolled out of sight too.
-            var scrolling = Scrolling(request);
-            _scrolling = scrolling == null ? null : new TextLabel
-            {
-                Name = GateTab.ApprovalScrollingName,
-                Text = scrolling,
-                AutoSize = true,
-                MaximumSize = new Size(_wrap, 0),
-                Margin = new Padding(0, LogicalToDeviceUnits(Spacing.Gap), 0, 0)
-            };
-
-            // Under the list rather than above it, because it is about what checking one of those
-            // does, and the operator reads it with the check marks in front of them. Absent
-            // unless a removed profile is being asked for, so the ordinary dialog is unchanged.
-            var regaining = Regaining(request);
-            _regaining = regaining == null ? null : new TextLabel
-            {
-                Name = GateTab.ApprovalRegainingName,
-                Text = regaining,
-                AutoSize = true,
-                MaximumSize = new Size(_wrap, 0),
-                Margin = new Padding(0, LogicalToDeviceUnits(Spacing.Gap), 0, 0)
-            };
+            // control the operator has to act on, so it is sized from the rows it holds rather
+            // than from whatever two docked bands leave over, and measured again once it has a
+            // window, `OnLoad`.
+            _profiles.Lay(true);
 
             // How long the certificate lasts, under the profiles because both are what approving
             // grants, and over the footer because the buttons are what acts on them.
@@ -549,7 +624,7 @@ namespace KeePassGate.Ui
 
             // A table rather than a flow, because the buttons go against the right edge and a flow
             // panel lays every child out at its own left one. A cell is what `Anchor` answers to.
-            // The width is the list's, the widest thing on the dialog, since a column that sized
+            // The width is the table's, the widest thing on the dialog, since a column that sized
             // itself to its widest child would put the right edge wherever the buttons happen to
             // end and right align them against themselves.
             // One row of two. What is left is a sentence and what is right is the pair of
@@ -560,6 +635,7 @@ namespace KeePassGate.Ui
             var footer = new TableLayoutPanel
             {
                 Name = "KpgApprovalFooter",
+                AccessibleName = AnswerRead,
                 ColumnCount = 2,
                 RowCount = 1,
                 AutoSize = true,
@@ -567,7 +643,7 @@ namespace KeePassGate.Ui
                 GrowStyle = TableLayoutPanelGrowStyle.FixedSize,
                 MinimumSize = new Size(_profiles.Width, 0),
 
-                // A gap above, which is what separates this row from the list it answers
+                // A gap above, which is what separates this row from the table it answers
                 // about. Nothing below: the form's own padding closes the dialog.
                 Margin = new Padding(0, LogicalToDeviceUnits(Spacing.Gap), 0, 0)
             };
@@ -580,8 +656,7 @@ namespace KeePassGate.Ui
             {
                 Name = GateTab.ApprovalCountdownName,
                 Text = Remaining(timeout),
-                AutoSize = true,
-                MaximumSize = new Size(_wrap, 0),
+                Font = Font,
                 Margin = new Padding(0),
 
                 // Left, and nothing else: a control anchored to one side of a cell is centered on
@@ -590,11 +665,16 @@ namespace KeePassGate.Ui
                 Anchor = AnchorStyles.Left
             };
 
+            // Measured once, at its widest, and held at that size, so that its words changing
+            // every second lay nothing out, `CountdownSize`.
+            _countdown.Size = CountdownSize(_countdown, GateTab.ApprovalCountdownFormat, timeout, _wrap);
+
             footer.Controls.Add(_countdown, 0, 0);
 
             var buttons = new FlowLayoutPanel
             {
                 Name = "KpgApprovalButtonRow",
+                AccessibleName = ButtonsRead,
                 FlowDirection = FlowDirection.LeftToRight,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
@@ -653,16 +733,6 @@ namespace KeePassGate.Ui
             // filling what the other two left, which is how the list came to be the part that
             // disappeared: the bands grow with the font and the client area did not.
             layout.Controls.Add(_profiles);
-            if (_scrolling != null)
-            {
-                layout.Controls.Add(_scrolling);
-            }
-
-            if (_regaining != null)
-            {
-                layout.Controls.Add(_regaining);
-            }
-
             layout.Controls.Add(_lifetime);
             layout.Controls.Add(footer);
 
@@ -684,6 +754,30 @@ namespace KeePassGate.Ui
             _clock.Tick += (sender, e) =>
                 WindowHandlers.Run("the pairing dialog's countdown could not be moved on", () => OnTick(sender, e));
             _clock.Start();
+        }
+
+        /// <summary>
+        /// Shows each row as this request has it, in place: its cells, the tip of its state, the
+        /// text its box is read out by, and the highlight where its state changed. A row's check is
+        /// left as it is; the table is laid again by the caller.
+        /// </summary>
+        /// <remarks>
+        /// **In place, row by row**, since the rows are the profiles asked for in the order asked
+        /// and neither changes while the dialog stands. A highlight is never taken away, since a
+        /// row whose state changed once since the dialog was shown before keeps having changed.
+        /// </remarks>
+        private void ShowRows(PairingRequest request)
+        {
+            var colors = ChangedColors(SystemInformation.HighContrast);
+            foreach (var profile in request.Profiles)
+            {
+                _profiles.Show(profile, Cells(request, profile), new[] { null, StateTip(request, profile), null }, Spoken(request, profile));
+                var change = ChangeTip(request, profile);
+                if (change != null)
+                {
+                    _profiles.Mark(profile, change, colors.Back, colors.Fore);
+                }
+            }
         }
 
         /// <summary>
@@ -709,55 +803,29 @@ namespace KeePassGate.Ui
             return TextRenderer.MeasureText(new string('M', 56), font).Width;
         }
 
-        /// <summary>
-        /// How tall the profile list should be for this many profiles.
-        /// </summary>
-        /// <remarks>
-        /// Between two rows and <see cref="MostRows"/>. Never fewer than two, because a list
-        /// showing one row of two profiles reads as a list of one and the operator is then
-        /// approving what they cannot see; never more than that, because past it the dialog is
-        /// taller than the answer is worth and the list scrolls, which it can, and the line under
-        /// it says so. The border is added because a list box's height includes it and its rows
-        /// do not.
-        /// </remarks>
-        internal static int ListHeight(CheckedListBox list, int profiles)
-        {
-            var rows = Math.Max(2, Math.Min(MostRows, profiles));
-            return (list.ItemHeight * rows) + (SystemInformation.BorderSize.Height * 4);
-        }
-
-        /// <summary>The most rows the profile list shows at once, past which it scrolls.</summary>
+        /// <summary>The most rows of a single line the table shows at once, past which it scrolls.</summary>
         internal const int MostRows = 10;
 
         /// <summary>
-        /// How wide the profile list should be for the rows it holds: a line of the dialog's text,
-        /// or its widest row where that is wider.
+        /// Lays the table again once it has a window, before the dialog is centered and shown, as
+        /// the authority chooser sizes its lists and for its reason: the boxes are measured there
+        /// in the style the window draws them in.
         /// </summary>
         /// <remarks>
-        /// **Every row whole, the name and its mark.** A profile name is the client's to choose, up
-        /// to sixty-four letters, digits, hyphens and underscores, and a list as wide as a line of
-        /// text cut a row of wide letters at its edge: the mark after the name, the one thing on
-        /// screen telling the operator that approving adds the name or gives it back to the clients
-        /// holding it, was the part that went, and two names alike but for their ends looked the
-        /// same. A list box cuts a row with no ellipsis and has no tooltip for a row, so the list
-        /// is made wide enough instead, and the dialog, which is sized by what is in it, grows with
-        /// it for such a name and is as it was for every other name.
-        ///
-        /// Beside the text is a check box, which is square and no taller than a row; round the
-        /// whole is the border, as <see cref="ListHeight"/> counts it; and a list holding more rows
-        /// than it shows gives a scroll bar's width to it as well.
+        /// **The boxes' column as wide as the box with its margins or its heading**, whichever is
+        /// wider, and **the state's as wide as its longest text**, both held whole whatever is
+        /// beside them, the state being the one thing on screen telling the operator that approving
+        /// adds the name or gives it back. The names and the clients holding them share what is
+        /// left, and a line cut there ends in an ellipsis and shows its whole cell in a tooltip,
+        /// `ProfileTable`.
         /// </remarks>
-        internal static int ListWidth(CheckedListBox list, int wrap)
+        protected override void OnLoad(EventArgs e)
         {
-            var widest = 0;
-            foreach (var row in list.Items)
+            WindowHandlers.Run("the pairing dialog could not be fitted to its table", () =>
             {
-                widest = Math.Max(
-                    widest, TextRenderer.MeasureText(Convert.ToString(row, CultureInfo.InvariantCulture), list.Font).Width);
-            }
-
-            var scrollBar = list.Items.Count > MostRows ? SystemInformation.VerticalScrollBarWidth : 0;
-            return Math.Max(wrap, list.ItemHeight + widest + scrollBar + (SystemInformation.BorderSize.Width * 4));
+                _profiles.Lay(true);
+                base.OnLoad(e);
+            });
         }
 
         /// <summary>
@@ -802,7 +870,7 @@ namespace KeePassGate.Ui
             switch (_decision)
             {
                 case PairingDecision.Approved:
-                    return PairingApproval.Approved(Checked(), _lifetime.Chosen);
+                    return PairingApproval.Approved(_approved, _lifetime.Chosen);
 
                 case PairingDecision.Refused:
                     return PairingApproval.Refused();
@@ -932,19 +1000,14 @@ namespace KeePassGate.Ui
         /// What is still checked, by name, which is what the operator approved.
         /// </summary>
         /// <remarks>
-        /// The names are what went into the list, and the list is built from the request after the
-        /// handler has collapsed anything repeated in it. Two identical rows would be two rows the
-        /// operator has to clear to refuse one profile, and clearing one of them would grant it.
+        /// The names are each row's profile, never its text read out, and the table is built from
+        /// the request after the handler has collapsed anything repeated in it. Two identical rows
+        /// would be two rows the operator has to clear to refuse a profile, and clearing a single
+        /// row of the two would grant it.
         /// </remarks>
         private string[] Checked()
         {
-            var approved = new List<string>();
-            foreach (var item in _profiles.CheckedItems)
-            {
-                approved.Add(Asked(Convert.ToString(item, CultureInfo.InvariantCulture)));
-            }
-
-            return approved.ToArray();
+            return _profiles.Checked.ToArray();
         }
 
         private void OnTick(object sender, EventArgs e)
@@ -1015,6 +1078,11 @@ namespace KeePassGate.Ui
 
             _decided = true;
             _decision = decision;
+            if (decision == PairingDecision.Approved)
+            {
+                _approved = Checked();
+            }
+
             _clock.Stop();
         }
 

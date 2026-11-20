@@ -807,7 +807,14 @@ namespace KeePassGate.Tests
                 dialog.PerformLayout();
 
                 var list = Profiles(dialog);
-                PairingApprovalFormTests.ListedWhole(list);
+                foreach (var row in list.Items.Cast<string>())
+                {
+                    // As a list box draws it, beside a check box no wider than the row is tall.
+                    var width = TextRenderer.MeasureText(row, list.Font).Width;
+                    Assert.That(list.ItemHeight + width, Is.LessThanOrEqualTo(list.ClientSize.Width),
+                        "\"" + row + "\" is " + width + " pixels beside a check box of " + list.ItemHeight
+                        + " in a list " + list.ClientSize.Width + " wide");
+                }
 
                 var approve = ControlTree.FindByName<Button>(dialog, GateTab.ApproveButtonName);
                 Assert.That(InDialog(approve, dialog).Right, Is.EqualTo(InDialog(list, dialog).Right),

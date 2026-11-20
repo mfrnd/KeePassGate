@@ -1194,10 +1194,10 @@ namespace KeePassGate.Tests
             var context = Request("agent-fictitious", new[] { "ops" }, approval);
 
             Assert.That(approval.Asked, Is.EqualTo(2));
-            Assert.That(PairingApprovalForm.Row(approval.Requests[0], "ops"), Is.EqualTo("ops" + PairingApprovalForm.NewSuffix));
+            Assert.That(PairingApprovalForm.Cells(approval.Requests[0], "ops"), Is.EqualTo(Row("ops", PairingApprovalForm.NewState)));
             Assert.That(_atEachDialog[1], Is.EqualTo(NothingWritten), "nothing written or spent before the second Approve");
             Assert.That(PairingApprovalForm.Again(approval.Requests[1]), Is.EqualTo(StateChanged));
-            Assert.That(PairingApprovalForm.Row(approval.Requests[1], "ops"), Is.EqualTo("ops"));
+            Assert.That(PairingApprovalForm.Cells(approval.Requests[1], "ops"), Is.EqualTo(Row("ops", string.Empty)));
             Assert.That(context.Status, Is.EqualTo(200), context.Json);
         }
 
@@ -1284,7 +1284,7 @@ namespace KeePassGate.Tests
             Hello(ClientProof());
             var context = Request("agent-fictitious", new[] { "ops" }, approval);
 
-            Assert.That(PairingApprovalForm.Row(approval.Requests[0], "ops"), Is.EqualTo("ops" + PairingApprovalForm.NewSuffix));
+            Assert.That(PairingApprovalForm.Cells(approval.Requests[0], "ops"), Is.EqualTo(Row("ops", PairingApprovalForm.NewState)));
             AskedAgainInTheSameRequest(context, approval);
         }
 
@@ -1364,7 +1364,7 @@ namespace KeePassGate.Tests
             Hello(ClientProof());
             var context = Request("agent-fictitious", new[] { "ops" }, approval);
 
-            Assert.That(PairingApprovalForm.Row(approval.LastRequest, "ops"), Is.EqualTo("ops"));
+            Assert.That(PairingApprovalForm.Cells(approval.LastRequest, "ops"), Is.EqualTo(Row("ops", string.Empty)));
             Assert.That(context.Status, Is.EqualTo(200), context.Json);
             Assert.That(approval.Asked, Is.EqualTo(1));
             Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops" }));
@@ -1386,16 +1386,16 @@ namespace KeePassGate.Tests
             var context = Request("agent-fictitious", new[] { "ops" }, approval);
 
             var first = approval.Requests[0];
-            Assert.That(PairingApprovalForm.Row(first, "ops"), Is.EqualTo("ops" + PairingApprovalForm.NewSuffix));
-            Assert.That(PairingApprovalForm.Regaining(first), Is.Null);
+            Assert.That(PairingApprovalForm.Cells(first, "ops"), Is.EqualTo(Row("ops", PairingApprovalForm.NewState)));
+            Assert.That(Explained(first), Is.EqualTo(new[] { PairingApprovalForm.NewTip }));
             Assert.That(PairingApprovalForm.Again(first), Is.Null);
             var shown = approval.Requests[1];
             Assert.That(approval.Asked, Is.EqualTo(2));
             Assert.That(PairingApprovalForm.Again(shown), Is.EqualTo(StateChanged));
-            Assert.That(PairingApprovalForm.Row(shown, "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(PairingApprovalForm.Cells(shown, "ops"), Is.EqualTo(Row("ops", PairingApprovalForm.RemovedState)));
             Assert.That(shown.IsNew("ops"), Is.False);
             Assert.That(PairingApprovalForm.Asking(shown), Is.EqualTo(PairingApprovalForm.ProfilesAsked));
-            Assert.That(PairingApprovalForm.Regaining(shown), Is.EqualTo(AddsBack));
+            Assert.That(Explained(shown), Is.EqualTo(AddsBack));
             Assert.That(context.Status, Is.EqualTo(200), context.Json);
             Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops" }));
         }
@@ -1415,11 +1415,11 @@ namespace KeePassGate.Tests
 
                 var context = Request("agent-fictitious", new[] { "ops" }, approval);
 
-                var first = PairingApprovalForm.Regaining(approval.Requests[0]);
-                Assert.That(first, Does.Contain("agent-holding"));
+                var first = PairingApprovalForm.Cells(approval.Requests[0], "ops");
+                Assert.That(first, Is.EqualTo(Row("ops", PairingApprovalForm.RemovedState, "agent-holding")));
                 Assert.That(approval.Asked, Is.EqualTo(2));
-                Assert.That(PairingApprovalForm.Row(approval.Requests[1], "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
-                Assert.That(PairingApprovalForm.Regaining(approval.Requests[1]), Is.EqualTo(first));
+                Assert.That(PairingApprovalForm.Cells(approval.Requests[1], "ops"), Is.EqualTo(first));
+                Assert.That(Explained(approval.Requests[1]), Is.EqualTo(AddsBack));
                 Assert.That(context.Status, Is.EqualTo(200), context.Json);
             }
         }
@@ -1448,9 +1448,9 @@ namespace KeePassGate.Tests
 
             Assert.That(approval.Asked, Is.EqualTo(4));
             Assert.That(PairingApprovalForm.Again(approval.Requests[2]), Is.Null, "the first dialog of a request carries no notice");
-            Assert.That(PairingApprovalForm.Row(approval.Requests[2], "ops"), Is.EqualTo("ops" + PairingApprovalForm.NewSuffix));
+            Assert.That(PairingApprovalForm.Cells(approval.Requests[2], "ops"), Is.EqualTo(Row("ops", PairingApprovalForm.NewState)));
             Assert.That(PairingApprovalForm.Again(approval.Requests[3]), Is.EqualTo(StateChanged));
-            Assert.That(PairingApprovalForm.Row(approval.Requests[3], "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(PairingApprovalForm.Cells(approval.Requests[3], "ops"), Is.EqualTo(Row("ops", PairingApprovalForm.RemovedState)));
             Assert.That(context.Status, Is.EqualTo(200), context.Json);
             Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops" }));
         }
@@ -1483,8 +1483,8 @@ namespace KeePassGate.Tests
             Assert.That(_atEachDialog[1], Is.EqualTo(NothingWritten));
             Assert.That(PairingApprovalForm.Again(shown), Is.EqualTo(StateChanged));
             Assert.That(
-                shown.Profiles.Select(profile => PairingApprovalForm.Row(shown, profile)),
-                Is.EqualTo(new[] { "ops" + PairingApprovalForm.RemovedSuffix, "reader" + PairingApprovalForm.RemovedSuffix }));
+                shown.Profiles.Select(profile => PairingApprovalForm.Cells(shown, profile)),
+                Is.EqualTo(new[] { Row("ops", PairingApprovalForm.RemovedState), Row("reader", PairingApprovalForm.RemovedState) }));
             Assert.That(context.Status, Is.EqualTo(200), context.Json);
             Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops", "reader" }));
         }
@@ -1512,7 +1512,7 @@ namespace KeePassGate.Tests
             Assert.That(approval.Asked, Is.EqualTo(2));
             Assert.That(_atEachDialog[1], Is.EqualTo(NothingWritten));
             Assert.That(PairingApprovalForm.Again(approval.Requests[1]), Is.EqualTo(StateChanged));
-            Assert.That(PairingApprovalForm.Row(approval.Requests[1], "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(PairingApprovalForm.Cells(approval.Requests[1], "ops"), Is.EqualTo(Row("ops", PairingApprovalForm.RemovedState)));
             Assert.That(_log.Warnings.Count(entry => entry.Message.Contains(StaleLine)), Is.EqualTo(1));
             Assert.That(context.Status, Is.EqualTo(200), context.Json);
             Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops", "reader" }));
@@ -1546,7 +1546,7 @@ namespace KeePassGate.Tests
             Assert.That(PairingApprovalForm.Again(approval.Requests[0]), Is.Null);
             Assert.That(PairingApprovalForm.Again(approval.Requests[1]), Is.EqualTo(StateChanged));
             Assert.That(PairingApprovalForm.Again(approval.Requests[2]), Is.EqualTo(StateChanged));
-            Assert.That(PairingApprovalForm.Row(approval.Requests[2], "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(PairingApprovalForm.Cells(approval.Requests[2], "ops"), Is.EqualTo(Row("ops", PairingApprovalForm.RemovedState)));
             Assert.That(_atEachDialog[2], Is.EqualTo(NothingWritten), "nothing written or spent before the third Approve");
             Assert.That(_log.Warnings.Count(entry => entry.Message.Contains(StaleLine)), Is.EqualTo(2));
             Assert.That(context.Status, Is.EqualTo(200), context.Json);
@@ -1841,10 +1841,12 @@ namespace KeePassGate.Tests
             var context = Request("agent-fictitious", new[] { "ops", "deploy", "admin" }, approval);
 
             var shown = approval.Requests[1];
-            Assert.That(PairingApprovalForm.Row(shown, "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(PairingApprovalForm.Cells(shown, "ops"), Is.EqualTo(Row("ops", PairingApprovalForm.RemovedState)));
             Assert.That(shown.Checks("ops"), Is.False, "on the list before, removed now");
             Assert.That(shown.Checks("deploy"), Is.True, "new before and new now");
             Assert.That(shown.Checks("admin"), Is.False, "unchecked before");
+            Assert.That(shown.Profiles.Select(shown.Changed), Is.EqualTo(new[] { true, false, false }), "only the state of `ops` changed");
+            Assert.That(approval.Requests[0].Profiles.Select(approval.Requests[0].Changed), Is.All.False, "a first dialog");
             Assert.That(Opened(shown).Checked, Is.EqualTo(new[] { "deploy" }), "the real form opens so");
             Assert.That(context.Status, Is.EqualTo(200), context.Json);
             Assert.That(_target.Admitted.Profiles, Is.EqualTo(new[] { "deploy" }));
@@ -1883,7 +1885,7 @@ namespace KeePassGate.Tests
             var context = Request("agent-fictitious", new[] { "ops", "reader" }, approval);
 
             Assert.That(approval.Asked, Is.EqualTo(3));
-            Assert.That(PairingApprovalForm.Row(approval.Requests[2], "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(PairingApprovalForm.Cells(approval.Requests[2], "ops"), Is.EqualTo(Row("ops", PairingApprovalForm.RemovedState)));
             Assert.That(context.Status, Is.EqualTo(200), context.Json);
             Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops", "reader" }));
         }
@@ -2086,8 +2088,8 @@ namespace KeePassGate.Tests
             Hello(ClientProof());
             var context = Request("agent-fictitious", new[] { "ops" }, approval);
 
-            Assert.That(PairingApprovalForm.Row(approval.LastRequest, "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
-            Assert.That(PairingApprovalForm.Regaining(approval.LastRequest), Is.EqualTo(AddsBack));
+            Assert.That(PairingApprovalForm.Cells(approval.LastRequest, "ops"), Is.EqualTo(Row("ops", PairingApprovalForm.RemovedState)));
+            Assert.That(Explained(approval.LastRequest), Is.EqualTo(AddsBack));
             Assert.That(context.Status, Is.EqualTo(200), context.Json);
             Assert.That(approval.Asked, Is.EqualTo(1));
         }
@@ -2117,10 +2119,10 @@ namespace KeePassGate.Tests
 
             var shown = FirstDialog("ops");
 
-            Assert.That(PairingApprovalForm.Row(shown, "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(PairingApprovalForm.Cells(shown, "ops"), Is.EqualTo(Row("ops", PairingApprovalForm.RemovedState)));
             Assert.That(shown.IsNew("ops"), Is.False);
             Assert.That(PairingApprovalForm.Asking(shown), Is.EqualTo(PairingApprovalForm.ProfilesAsked));
-            Assert.That(PairingApprovalForm.Regaining(shown), Is.EqualTo(AddsBack));
+            Assert.That(Explained(shown), Is.EqualTo(AddsBack));
         }
 
         [Test]
@@ -2128,9 +2130,9 @@ namespace KeePassGate.Tests
         {
             var shown = FirstDialog("ops");
 
-            Assert.That(PairingApprovalForm.Row(shown, "ops"), Is.EqualTo("ops" + PairingApprovalForm.NewSuffix));
-            Assert.That(PairingApprovalForm.Asking(shown), Is.EqualTo(PairingApprovalForm.NewProfilesAsked));
-            Assert.That(PairingApprovalForm.Regaining(shown), Is.Null);
+            Assert.That(PairingApprovalForm.Cells(shown, "ops"), Is.EqualTo(Row("ops", PairingApprovalForm.NewState)));
+            Assert.That(PairingApprovalForm.Asking(shown), Is.EqualTo(PairingApprovalForm.ProfilesAsked));
+            Assert.That(Explained(shown), Is.EqualTo(new[] { PairingApprovalForm.NewTip }));
         }
 
         [Test]
@@ -2143,9 +2145,9 @@ namespace KeePassGate.Tests
 
                 var shown = FirstDialog("ops");
 
-                Assert.That(PairingApprovalForm.Row(shown, "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
-                Assert.That(PairingApprovalForm.Regaining(shown),
-                    Is.EqualTo("One client still holds ops from before and will regain it: agent-holding. " + AddsBack));
+                Assert.That(
+                    PairingApprovalForm.Cells(shown, "ops"), Is.EqualTo(Row("ops", PairingApprovalForm.RemovedState, "agent-holding")));
+                Assert.That(Explained(shown), Is.EqualTo(AddsBack));
             }
         }
 
@@ -2160,10 +2162,14 @@ namespace KeePassGate.Tests
             var shown = FirstDialog("reader", "deploy", "ops");
 
             Assert.That(
-                shown.Profiles.Select(profile => PairingApprovalForm.Row(shown, profile)),
-                Is.EqualTo(new[] { "reader", "deploy" + PairingApprovalForm.NewSuffix, "ops" + PairingApprovalForm.RemovedSuffix }));
-            Assert.That(PairingApprovalForm.Asking(shown), Is.EqualTo(PairingApprovalForm.NewProfilesAsked));
-            Assert.That(PairingApprovalForm.Regaining(shown), Is.EqualTo(AddsBack));
+                shown.Profiles.Select(profile => PairingApprovalForm.Cells(shown, profile)),
+                Is.EqualTo(new[]
+                {
+                    Row("reader", string.Empty), Row("deploy", PairingApprovalForm.NewState), Row("ops", PairingApprovalForm.RemovedState)
+                }));
+            Assert.That(PairingApprovalForm.Asking(shown), Is.EqualTo(PairingApprovalForm.ProfilesAsked));
+            Assert.That(Explained(shown),
+                Is.EqualTo(new[] { PairingApprovalForm.NewTip, PairingApprovalForm.RemovedTip }));
         }
 
         [Test]
@@ -2180,9 +2186,9 @@ namespace KeePassGate.Tests
 
             var shown = FirstDialog("ops");
 
-            Assert.That(PairingApprovalForm.Row(shown, "ops"), Is.EqualTo("ops"));
+            Assert.That(PairingApprovalForm.Cells(shown, "ops"), Is.EqualTo(Row("ops", string.Empty)));
             Assert.That(PairingApprovalForm.Asking(shown), Is.EqualTo(PairingApprovalForm.ProfilesAsked));
-            Assert.That(PairingApprovalForm.Regaining(shown), Is.Null);
+            Assert.That(Explained(shown), Is.Empty);
         }
 
         [Test]
@@ -2199,21 +2205,34 @@ namespace KeePassGate.Tests
 
             var shown = FirstDialog("ops");
 
-            Assert.That(PairingApprovalForm.Row(shown, "ops"), Is.EqualTo("ops" + PairingApprovalForm.NewSuffix));
-            Assert.That(PairingApprovalForm.Asking(shown), Is.EqualTo(PairingApprovalForm.NewProfilesAsked));
-            Assert.That(PairingApprovalForm.Regaining(shown), Is.Null);
+            Assert.That(PairingApprovalForm.Cells(shown, "ops"), Is.EqualTo(Row("ops", PairingApprovalForm.NewState)));
+            Assert.That(PairingApprovalForm.Asking(shown), Is.EqualTo(PairingApprovalForm.ProfilesAsked));
+            Assert.That(Explained(shown), Is.EqualTo(new[] { PairingApprovalForm.NewTip }));
         }
 
         private const string ByARemoval = "a removal";
         private const string ByAMove = "a move on the list";
         private const string ByBoth = "both";
 
+        /// <summary>What the tooltips of the states explain for a table whose only state is removed.</summary>
+        private static readonly string[] AddsBack = { PairingApprovalForm.RemovedTip };
+
         /// <summary>
-        /// The line under the list for a profile marked removed that no client holds.
+        /// What the tooltips of a dialog's states explain, each once: what Approve does for a new
+        /// name where the table holds a new name, then for a removed name where it holds a removed
+        /// name.
         /// </summary>
-        private static readonly string AddsBack =
-            "Approving a profile marked" + PairingApprovalForm.RemovedSuffix
-            + " adds it back to this database, and every rule still naming it applies again.";
+        private static string[] Explained(PairingRequest request)
+        {
+            var tips = request.Profiles.Select(profile => PairingApprovalForm.StateTip(request, profile)).ToList();
+            return new[] { PairingApprovalForm.NewTip, PairingApprovalForm.RemovedTip }.Where(tips.Contains).ToArray();
+        }
+
+        /// <summary>A row's cells as the table shows them: the name, the state, the clients holding it.</summary>
+        private static string[] Row(string profile, string state, string heldBy = "")
+        {
+            return new[] { profile, state, heldBy };
+        }
 
         /// <summary>
         /// The request the first dialog is built from for a pairing asking for these.
@@ -2465,7 +2484,7 @@ namespace KeePassGate.Tests
             Assert.That(_atEachDialog.Last(), Is.EqualTo(NothingWritten), "nothing written or spent before the second Approve");
             Assert.That(PairingApprovalForm.Again(approval.Requests[0]), Is.Null, "a first dialog carries no notice");
             Assert.That(PairingApprovalForm.Again(approval.Requests[1]), Is.EqualTo(StateChanged));
-            Assert.That(PairingApprovalForm.Row(approval.Requests[1], "ops"), Is.EqualTo("ops" + PairingApprovalForm.RemovedSuffix));
+            Assert.That(PairingApprovalForm.Cells(approval.Requests[1], "ops"), Is.EqualTo(Row("ops", PairingApprovalForm.RemovedState)));
             Assert.That(
                 _log.Warnings.Count(entry => entry.Message.Contains(StaleLine)), Is.EqualTo(1),
                 "not stale again over the removals it was shown");
@@ -2488,11 +2507,13 @@ namespace KeePassGate.Tests
         {
             using (var dialog = new PairingApprovalForm(request, TimeSpan.FromMinutes(2)))
             {
-                var list = KeePassGate.Ui.ControlTree.FindByName<System.Windows.Forms.CheckedListBox>(
-                    dialog, KeePassGate.Ui.GateTab.ApprovalProfilesListName);
+                var table = KeePassGate.Testing.ProfileRows.Table(dialog, KeePassGate.Ui.GateTab.ApprovalProfilesListName);
                 var lifetime = KeePassGate.Ui.ControlTree.FindByName<System.Windows.Forms.ComboBox>(
                     dialog, KeePassGate.Ui.GateTab.ApprovalLifetimeName);
-                var checkedRows = list.CheckedItems.Cast<object>().Select(row => PairingApprovalForm.Asked(row.ToString())).ToList();
+                var checkedRows = KeePassGate.Testing.ProfileRows.Of(table)
+                    .Where(row => KeePassGate.Testing.ProfileRows.Box(row).Checked)
+                    .Select(row => KeePassGate.Testing.ProfileRows.Cell(row, KeePassGate.Ui.GateTab.ApprovalProfileColumnName).Text)
+                    .ToList();
                 return (checkedRows, KeePassGate.Ui.LifetimeChoice.Offered(request.Lifetime)[lifetime.SelectedIndex]);
             }
         }

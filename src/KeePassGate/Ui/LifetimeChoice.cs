@@ -41,6 +41,9 @@ namespace KeePassGate.Ui
         /// <summary>What the row says in front of the choice.</summary>
         public const string Caption = "The certificate lasts";
 
+        /// <summary>What UI automation reads as the row.</summary>
+        internal const string Read = "Lifetime";
+
         private readonly IReadOnlyList<TimeSpan> _offered;
         private readonly ComboBox _box;
 
@@ -57,6 +60,9 @@ namespace KeePassGate.Ui
             _offered = Offered(asked);
 
             Name = "KpgApprovalLifetimeRow";
+
+            // A name of its own, since a part with none is read by the name of the part before it.
+            AccessibleName = Read;
             Font = font;
 
             // Two columns, each anchored left and so centered on the row's height, which levels the

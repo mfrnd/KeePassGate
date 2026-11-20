@@ -793,7 +793,7 @@ namespace KeePassGate.Pairing
             // names is kept with it, because the write compares that under the writer's lock, and
             // it is the list the dialog was built from, which is what the operator answered: a
             // fresh read here took in a name put on the list while the dialog stood, which the
-            // dialog had shown as "(new)", and the write then found nothing to compare. So are the
+            // dialog had shown as new, and the write then found nothing to compare. So are the
             // removals of each name the dialog showed off the list, for the same reason: a removal
             // read here could have arrived while the dialog stood, which the operator never saw.
             //

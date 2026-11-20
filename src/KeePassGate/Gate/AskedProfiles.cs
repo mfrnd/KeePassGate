@@ -250,16 +250,19 @@ namespace KeePassGate.Gate
         }
     }
 
-    /// <summary>How a pairing's approval dialog marks a profile asked for.</summary>
+    /// <summary>
+    /// The state a pairing's approval dialog shows of a profile asked for, in its column of the
+    /// table of profiles.
+    /// </summary>
     public enum ProfileMark
     {
-        /// <summary>On the list, with no mark.</summary>
+        /// <summary>On the list, with no state shown.</summary>
         Listed,
 
-        /// <summary>Off the list and marked "(new)": approving it adds it.</summary>
+        /// <summary>Off the list, and approving it adds it: `PairingApprovalForm.NewState`.</summary>
         New,
 
-        /// <summary>Off the list and marked "(removed)": approving it puts it back.</summary>
+        /// <summary>Off the list, and approving it puts it back: `PairingApprovalForm.RemovedState`.</summary>
         Removed,
     }
 }

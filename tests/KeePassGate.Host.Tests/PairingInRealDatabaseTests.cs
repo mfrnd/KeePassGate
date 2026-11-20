@@ -1370,9 +1370,9 @@ namespace KeePassGate.Host.Tests
                     book, target, book.Invite(target.DatabaseId), "agent-fictitious", new[] { "ops" },
                     new LookingAndAgreeing(request => shown = Shown(request)));
 
-                Assert.That(shown, Does.Contain("ops" + PairingApprovalForm.RemovedSuffix));
-                Assert.That(shown, Does.Not.Contain("ops" + PairingApprovalForm.NewSuffix));
-                Assert.That(shown, Does.Contain("every rule still naming it applies again"));
+                Assert.That(shown, Does.Contain(Row("ops", PairingApprovalForm.RemovedState)));
+                Assert.That(shown, Does.Not.Contain(Row("ops", PairingApprovalForm.NewState)));
+                Assert.That(shown, Does.Contain(PairingApprovalForm.RemovedTip));
                 Assert.That(shown, Does.Not.Contain(ShownAgain));
                 Assert.That(context.Status, Is.EqualTo(200), context.Json);
                 Assert.That(Names(), Is.EqualTo(new[] { "ops" }));
@@ -1417,7 +1417,7 @@ namespace KeePassGate.Host.Tests
                 Assert.That(_log.Warnings, Has.Some.Contains("the store holds a removal of the profile ops"));
                 Assert.That(shown[0], Does.Not.Contain(ShownAgain));
                 Assert.That(shown[1], Does.Contain(StateChanged));
-                Assert.That(shown[1], Does.Contain("ops" + PairingApprovalForm.RemovedSuffix));
+                Assert.That(shown[1], Does.Contain(Row("ops", PairingApprovalForm.RemovedState)));
                 Assert.That(context.Status, Is.EqualTo(200), context.Json);
                 Assert.That(Names(), Is.EqualTo(new[] { "ops" }));
             }
@@ -1460,7 +1460,7 @@ namespace KeePassGate.Host.Tests
                 Assert.That(atSecond, Is.EqualTo(NothingWritten));
                 Assert.That(shown[0], Does.Not.Contain(ShownAgain));
                 Assert.That(shown[1], Does.Contain(StateChanged));
-                Assert.That(shown[1], Does.Contain("ops" + PairingApprovalForm.RemovedSuffix));
+                Assert.That(shown[1], Does.Contain(Row("ops", PairingApprovalForm.RemovedState)));
                 Assert.That(context.Status, Is.EqualTo(200), context.Json);
                 Assert.That(Names(), Is.EqualTo(new[] { "ops" }));
             }
@@ -1500,9 +1500,9 @@ namespace KeePassGate.Host.Tests
                 Assert.That(answers, Is.EqualTo(2));
                 Assert.That(opened, Is.EqualTo(new[]
                 {
-                    "reader checked",
-                    "admin" + PairingApprovalForm.NewSuffix + " unchecked",
-                    "ops unchecked",
+                    Row("reader", string.Empty) + " checked",
+                    Row("admin", PairingApprovalForm.NewState) + " unchecked",
+                    Row("ops", string.Empty) + " unchecked",
                     LifetimeChoice.Listed(TimeSpan.FromDays(7), null),
                 }));
                 Assert.That(context.Status, Is.EqualTo(200), context.Json);
@@ -1566,7 +1566,7 @@ namespace KeePassGate.Host.Tests
                 Assert.That(shown, Has.Count.EqualTo(2), "the retry puts the dialog up once its write finds the approval stale");
                 Assert.That(atSecond, Is.EqualTo(NothingWritten));
                 Assert.That(shown[1], Does.Contain(StateChanged));
-                Assert.That(shown[1], Does.Contain("ops" + PairingApprovalForm.RemovedSuffix));
+                Assert.That(shown[1], Does.Contain(Row("ops", PairingApprovalForm.RemovedState)));
                 Assert.That(held.Count, Is.Zero, "the approval is used up");
                 Assert.That(context.Status, Is.EqualTo(200), context.Json);
                 Assert.That(Names(), Is.EqualTo(new[] { "ops" }));
@@ -1610,11 +1610,11 @@ namespace KeePassGate.Host.Tests
                 var context = Pair(book, target, book.Invite(target.DatabaseId), "agent-fictitious", new[] { "ops" }, operatorAt);
 
                 Assert.That(shown, Has.Count.EqualTo(2));
-                Assert.That(shown[0], Does.Contain("ops" + PairingApprovalForm.NewSuffix));
+                Assert.That(shown[0], Does.Contain(Row("ops", PairingApprovalForm.NewState)));
                 Assert.That(shown[0], Does.Not.Contain(ShownAgain));
                 Assert.That(atSecond, Is.EqualTo(NothingWritten));
                 Assert.That(shown[1], Does.Contain(StateChanged));
-                Assert.That(shown[1], Does.Contain("ops" + PairingApprovalForm.RemovedSuffix));
+                Assert.That(shown[1], Does.Contain(Row("ops", PairingApprovalForm.RemovedState)));
                 Assert.That(context.Status, Is.EqualTo(200), context.Json);
                 Assert.That(Names(), Is.EqualTo(new[] { "ops", "reader" }));
                 Assert.That(
@@ -1660,14 +1660,13 @@ namespace KeePassGate.Host.Tests
 
                 var context = Pair(book, target, book.Invite(target.DatabaseId), "agent-fictitious", new[] { "ops" }, operatorAt);
 
-                Assert.That(shown[0], Does.Not.Contain("ops" + PairingApprovalForm.NewSuffix), "on the list");
-                Assert.That(shown[0], Does.Not.Contain("ops" + PairingApprovalForm.RemovedSuffix), "on the list");
+                Assert.That(shown[0], Does.Contain(Row("ops", string.Empty)), "on the list");
                 Assert.That(shown[0], Does.Not.Contain(ShownAgain), "a first dialog carries no notice");
                 Assert.That(atSecond, Is.EqualTo(NothingWritten));
                 Assert.That(shown[1], Does.Contain(StateChanged));
-                Assert.That(shown[1], Does.Contain("ops" + PairingApprovalForm.RemovedSuffix));
-                Assert.That(shown[1], Does.Not.Contain("ops" + PairingApprovalForm.NewSuffix));
-                Assert.That(shown[1], Does.Contain("every rule still naming it applies again"));
+                Assert.That(shown[1], Does.Contain(Row("ops", PairingApprovalForm.RemovedState)));
+                Assert.That(shown[1], Does.Not.Contain(Row("ops", PairingApprovalForm.NewState)));
+                Assert.That(shown[1], Does.Contain(PairingApprovalForm.RemovedTip));
                 Assert.That(context.Status, Is.EqualTo(200), context.Json);
                 Assert.That(Names(), Is.EqualTo(new[] { "ops", "reader" }));
             }
@@ -1707,9 +1706,9 @@ namespace KeePassGate.Host.Tests
 
                 Assert.That(shown, Has.Count.EqualTo(4));
                 Assert.That(shown[2], Does.Not.Contain(ShownAgain), "the first dialog of a request carries no notice");
-                Assert.That(shown[2], Does.Contain("ops" + PairingApprovalForm.NewSuffix));
+                Assert.That(shown[2], Does.Contain(Row("ops", PairingApprovalForm.NewState)));
                 Assert.That(shown[3], Does.Contain(StateChanged));
-                Assert.That(shown[3], Does.Contain("ops" + PairingApprovalForm.RemovedSuffix));
+                Assert.That(shown[3], Does.Contain(Row("ops", PairingApprovalForm.RemovedState)));
                 Assert.That(context.Status, Is.EqualTo(200), context.Json);
                 Assert.That(Names(), Is.EqualTo(new[] { "ops", "reader" }));
             }
@@ -1737,13 +1736,57 @@ namespace KeePassGate.Host.Tests
         {
             using (var dialog = new PairingApprovalForm(request, TimeSpan.FromMinutes(2)))
             {
-                var list = ControlTree.FindByName<System.Windows.Forms.CheckedListBox>(dialog, GateTab.ApprovalProfilesListName);
+                var table = ProfileRows.Table(dialog, GateTab.ApprovalProfilesListName);
                 var lifetime = ControlTree.FindByName<System.Windows.Forms.ComboBox>(dialog, GateTab.ApprovalLifetimeName);
-                opened.AddRange(list.Items.Cast<object>().Select((row, at) => row + (list.GetItemChecked(at) ? " checked" : " unchecked")));
+                var rows = ProfileRows.Of(table);
+                opened.AddRange(rows.Select(row => Cells(row) + (ProfileRows.Box(row).Checked ? " checked" : " unchecked")));
                 opened.Add(lifetime.SelectedItem.ToString());
                 return PairingApproval.Approved(
-                    list.CheckedItems.Cast<object>().Select(row => PairingApprovalForm.Asked(row.ToString())).ToList(),
+                    rows.Where(row => ProfileRows.Box(row).Checked)
+                        .Select(row => ProfileRows.Cell(row, GateTab.ApprovalProfileColumnName).Text)
+                        .ToList(),
                     LifetimeChoice.Offered(request.Lifetime)[lifetime.SelectedIndex]);
+            }
+        }
+
+        [Test]
+        public void A_first_dialog_shows_each_profile_with_its_state_and_the_clients_still_holding_it()
+        {
+            // Through the real target's reading and the real form: `reader` on the list, `deploy`
+            // never named, `ops` named and removed here with nobody holding it, and `gone` named,
+            // held by "deploy runner" and removed. Each is a row of its name, its state and the
+            // clients still holding it, and the line under the table states what approving a
+            // removed profile brings back.
+            var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+            StoreSeeds.Name(store, "reader");
+            StoreSeeds.Name(store, "ops");
+            StoreSeeds.Unname(store, "ops");
+            StoreSeeds.Name(store, "gone");
+            using (var holder = Issue("deploy runner", "gone"))
+            {
+                var record = AdmissionRecord.For(holder, DateTimeOffset.UtcNow, new[] { "gone" }, StoreSeeds.Served(store));
+                var written = _writer.WriteAdmission(_database.Database, record);
+                Assert.That(written.Ok, Is.True, written.Reason);
+            }
+
+            StoreSeeds.Unname(store, "gone");
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            using (var target = targets.Current().Single())
+            {
+                string shown = null;
+                var operatorAt = new LookingOperator(request => shown = Shown(request));
+
+                Pair(book, target, book.Invite(target.DatabaseId), "agent-fictitious", new[] { "reader", "deploy", "ops", "gone" }, operatorAt);
+
+                Assert.That(shown, Does.Contain(
+                    Row("reader", string.Empty) + Environment.NewLine
+                    + Row("deploy", PairingApprovalForm.NewState) + Environment.NewLine
+                    + Row("ops", PairingApprovalForm.RemovedState) + Environment.NewLine
+                    + Row("gone", PairingApprovalForm.RemovedState, "deploy runner") + Environment.NewLine));
+                Assert.That(shown, Does.Not.Contain(ShownAgain));
+                Assert.That(shown, Does.Contain(PairingApprovalForm.NewTip));
+                Assert.That(shown, Does.Contain(PairingApprovalForm.RemovedTip));
             }
         }
 
@@ -1797,13 +1840,23 @@ namespace KeePassGate.Host.Tests
 
         private const string Retired = "retired";
 
-        /// <summary>What the real form shows for this request: every label and every row.</summary>
+        /// <summary>
+        /// What the real form shows for this request: every label, every row, and the text each
+        /// row's box is read out by, which carries the tip of the row's state.
+        /// </summary>
         private static string Shown(PairingRequest request)
         {
             using (var dialog = new PairingApprovalForm(request, TimeSpan.FromMinutes(2)))
             {
-                return Texts(dialog) + Rows(dialog);
+                return Texts(dialog) + Rows(dialog) + Spoken(dialog);
             }
+        }
+
+        /// <summary>The text every box of the dialog's table is read out by, each on a line of its own.</summary>
+        private static string Spoken(System.Windows.Forms.Control form)
+        {
+            return string.Concat(ProfileRows.Spoken(ProfileRows.Table(form, GateTab.ApprovalProfilesListName))
+                .Select(spoken => spoken + Environment.NewLine));
         }
 
         private const string ShownAgain = "Shown again";
@@ -1901,9 +1954,9 @@ namespace KeePassGate.Host.Tests
         public void The_dialog_is_built_from_the_request_the_handler_made_out_of_the_database()
         {
             // Every other dialog test builds its request by hand, so what the real target answers
-            // for the Regaining line, `MaterialTarget.Asked`, is pinned here: an answer naming
-            // nobody, everybody or the revoked would change or silence the warning with every
-            // other test green.
+            // for the clients still holding a removed name, `MaterialTarget.Asked`, is pinned here:
+            // an answer naming nobody, everybody or the revoked would change or silence the
+            // warning with every other test green.
             using (var kept = Issue("agent-kept", "ops"))
             using (var revoked = Issue("agent-revoked", "ops"))
             using (var elsewhere = Issue("agent-elsewhere", "audit"))
@@ -1941,7 +1994,7 @@ namespace KeePassGate.Host.Tests
                         asked = request;
                         using (var dialog = new PairingApprovalForm(request, TimeSpan.FromMinutes(2)))
                         {
-                            shown = Texts(dialog);
+                            shown = Texts(dialog) + Rows(dialog) + Spoken(dialog);
                         }
                     });
 
@@ -1957,11 +2010,13 @@ namespace KeePassGate.Host.Tests
                     Assert.That(asked.IsNew("ops"), Is.False, "held, so removed rather than new");
                     Assert.That(asked.IsNew("audit"), Is.False);
 
-                    Assert.That(shown, Does.Contain(PairingApprovalForm.Regaining(asked)));
-                    Assert.That(shown, Does.Contain("agent-kept"));
+                    Assert.That(shown, Does.Contain(PairingApprovalForm.RemovedTip));
+                    Assert.That(shown, Does.Contain(Row("ops", PairingApprovalForm.RemovedState, "agent-kept")));
+                    Assert.That(shown, Does.Contain(Row("audit", string.Empty)));
+                    Assert.That(shown, Does.Contain(Row("fresh", PairingApprovalForm.NewState)));
                     Assert.That(shown, Does.Not.Contain("agent-revoked"));
                     Assert.That(shown, Does.Not.Contain("agent-expired"));
-                    Assert.That(shown, Does.Contain(PairingApprovalForm.NewProfilesAsked));
+                    Assert.That(shown, Does.Contain(PairingApprovalForm.NewTip));
                 }
             }
         }
@@ -2310,19 +2365,43 @@ namespace KeePassGate.Host.Tests
             }
         }
 
-        /// <summary>Every row of every list a dialog shows, each on a line of its own.</summary>
+        /// <summary>
+        /// Every row of every table a dialog shows, each on a line of its own as <see cref="Row"/>
+        /// writes it.
+        /// </summary>
         private static string Rows(System.Windows.Forms.Control form)
         {
             var text = new System.Text.StringBuilder();
-            foreach (var list in ControlTree.Descendants(form).OfType<System.Windows.Forms.ListBox>())
+            foreach (var row in ProfileRows.Of(ProfileRows.Table(form, GateTab.ApprovalProfilesListName)))
             {
-                foreach (var item in list.Items)
-                {
-                    text.AppendLine(item.ToString());
-                }
+                text.AppendLine(Cells(row));
             }
 
             return text.ToString();
+        }
+
+        /// <summary>
+        /// A row of a table as <see cref="Row"/> writes it: the cells of text after the box, in the
+        /// order of the columns.
+        /// </summary>
+        private static string Cells(System.Windows.Forms.Control row)
+        {
+            return Joined(row.Controls.OfType<System.Windows.Forms.Label>().Select(cell => cell.Text).ToArray());
+        }
+
+        /// <summary>
+        /// A row of the profiles a pairing asks for, as <see cref="Rows"/> writes it: the profile,
+        /// its state and the clients still holding it, between brackets so that a row is found
+        /// whole or not at all.
+        /// </summary>
+        private static string Row(string profile, string state, string heldBy = "")
+        {
+            return Joined(new[] { profile, state, heldBy });
+        }
+
+        private static string Joined(string[] cells)
+        {
+            return "[" + string.Join(" | ", cells) + "]";
         }
 
         /// <summary>Every label a dialog shows, one to a line.</summary>

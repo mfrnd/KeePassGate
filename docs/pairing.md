@@ -93,36 +93,62 @@ already known:
 | **Invitation id** | which invitation this is against. The clients page shows the same identifier beside the code, so check the two against each other. If it is not the one handed out, refuse. |
 | **Connected from** | always a loopback address, because the gate listens on nothing else, and a program that reaches it through a tunnel arrives from loopback as well. So this row cannot tell a program on this machine from one elsewhere: the invitation id above is what ties the request to the code handed out. |
 
-Underneath, the profiles the program asked for, each with a check box. **Uncheck anything it should
-not have.** What is left checked is what goes into the record, and what goes into the record is
-the whole of what the program may ever use. Asking for a profile does not grant it: approving does.
+Underneath, a table of the profiles the program asked for, a row for each with a check box.
+**Uncheck anything it should not have.** What is left checked is what goes into the record, and
+what goes into the record is the whole of what the program may ever use. Asking for a profile does
+not grant it: approving does. A check changes only by a click on its box, or by Space on the box
+focused and in sight: Space on a box out of sight only brings it into view. A letter typed on a box
+changes nothing, and a double click counts as one click.
 
-A program can ask for up to 32 profiles, and the list shows ten at a time. Past ten it scrolls, and
-a line under it states how many it holds, because **Approve grants every one still checked, seen or
-not**. Scroll to the end before approving: a program that wanted something past the tenth row would
-put it there.
+| | |
+| --- | --- |
+| **Grant** | the check box, alone in its column. |
+| **Profile** | the name the program asked for. |
+| **Approve also** | empty for a name on this database's list, **adds the profile** for a name approving adds, and **restores the profile** for a name approving puts back. |
+| **Regained by** | for a profile approving restores, the clients that still hold it and regain it, each on a line of its own. |
 
-**A profile marked "(new)" is a name this database does not name now, knows no removal of and no
-client holds**, and approving it adds it, so that approval does two things rather than one. It is
-marked because a name never seen before and a name used every day would otherwise look identical,
-and the difference is usually a spelling. A name never used before grants nothing until a rule
-states so, and any rule already naming it applies to the new program at once. The dialog states so,
-and the Profiles page and the rules are where to look first. A removed name is marked "(new)" as
-well where the entry of its removal was deleted and nothing else in this database names it, as a
-synchronize with another copy of the database can leave it: the dialog cannot tell which name a
-deleted entry was for. Approve then writes nothing, and the dialog comes back with the name marked
-"(removed)", below.
+Every other cell of a row stays at the row's top, beside the first client. A line too long for its
+column ends in "...", and the pointer resting on the cell shows the whole cell. The pointer
+resting on a cell under **Approve also** shows what Approve does: "Approve adds the profile to this
+database. Rules already naming the profile apply at once." for **adds the profile**, and "Approve
+restores the profile for every rule and client still naming the profile." for **restores the
+profile**. A screen reader reads a row's box as the name, then the same sentence, then the clients
+regaining the name. No sentence names a profile or a client: the table shows which rows a sentence
+is about.
 
-**A profile marked "(removed)" is a name off the list that this database knows a removal of**, made
-here or in another copy and brought in by a synchronize, **or that a client still holds**. Approving
-it puts the name back on the list, and every rule still naming it applies again. Where other clients
-still hold it, that brings more back than this one program: each of them regains it. The dialog
-states so and names those clients, before anything is pressed: past three removed profiles or three
-clients it states how many and names the first three, and the Profiles page names them all. Each
-client is named once, however many of its certificates hold the name, and two that chose the same
-name are named apart by the start of their client keys, "agent (3f2a9c1e)", as [adding a profile
-back](access-control.md) names them. A client whose certificate has expired is not among them: it
-regains nothing.
+A program can ask for up to 32 profiles, and the table shows ten lines at a time. Past ten it
+scrolls, and at the top of the rows the line at its bottom is cut in half to show so, because
+**Approve grants every profile checked, seen or not**. The wheel scrolls it; so do the
+arrows, Page Up, Page Down, Home and End while a box has the focus, and Tab moves from box to box.
+A box keeps the focus when the keys scroll it out of sight, and the table stays where the keys put
+it.
+A thin line parts each row from the next, and a long row scrolls as the rest do: once its name has
+left the table, the line under it is what tells where the next profile begins. Scroll to the end
+before approving: a program that wanted something past the tenth line would put it there.
+
+**Approve adds a profile that this database does not name now and knows no removal of**, so that
+approval does two things: it admits the program, and it adds the name. It is shown because a
+name never seen before and a name used every day would otherwise look identical, and the
+difference is usually a spelling. A name
+never used before grants nothing until a rule states so, and any rule already naming it applies to
+the new program at once. The tooltip of **adds the profile** states so, and the Profiles page and
+the rules are where to look first. A removed name reads **adds the profile** as well where the
+entry of its removal was deleted and nothing else in this database names it, as a synchronize with
+another copy of the database can leave it: the dialog cannot tell which name a deleted entry was
+for. Approve then writes nothing, and the dialog comes back with the name reading **restores the
+profile**, below.
+
+**Approve restores a profile that is off the list and that this database knows a removal of**, made
+here or in another copy and brought in by a synchronize, or that other clients still hold. Approving
+it puts the name back on the list, and every rule still naming it applies again. Where other
+clients still hold it, that brings more back than this one program: each of them regains it. The
+tooltip of **restores the profile** states so, and **Regained by** names those clients before
+anything is pressed, the Profiles page naming them all. Each client is named once, however many of its
+certificates hold the name, and two that chose the same name are named apart by the start of their
+client keys, "agent (3f2a9c1e)", as [adding a profile back](access-control.md) names them. A client
+whose certificate has expired is not among them: it regains nothing. A profile also reads
+**restores the profile** when the dialog comes back after Approve because it was removed meanwhile,
+below, whether or not any client holds it.
 
 A profile means nothing until a rule on a group or an entry names it, which is
 [`access-control.md`](access-control.md). Approving a program for `reader` when nothing grants
@@ -151,8 +177,8 @@ state nothing.
 
 1. The certificate is issued by this database's authority.
 2. The invitation is spent, so nothing else can use it.
-3. Any profile marked "(new)" or "(removed)" is added to the profiles this database names, in the
-   same write as the next step.
+3. Any profile shown as new or removed is added to the profiles this database names, in the same
+   write as the next step.
 4. The admission record is written into the database **and the database is saved**.
 5. Only then is the certificate handed to the program.
 
@@ -187,17 +213,23 @@ brought in while the dialog was open or while an approval was kept, or a removal
 knows of only as a deleted entry, which the dialog cannot tie to a profile before Approve, even
 where that entry was deleted before the dialog came up. **The program is not answered then, and
 the dialog comes straight back** for the same request, with no other program's dialog in
-between, over the profiles as they stand then. It states above the list "Shown again: the state
+between, over the profiles as they stand then. It states above the table "Shown again: the state
 of the profiles changed.", the same whatever Approve found: the rows show the state. It opens with
 the lifetime picked on the dialog before, and with a profile checked only where it was left
-checked there and is marked as it was there: **a profile whose mark changed comes back
-unchecked**, one that was on the list and is now marked "(removed)" for instance, so that
-approving it again is a decision about the profile as it stands. **Approve on it takes no press for
-a second** after it comes up, since it comes up where the dialog before stood and a second click
-meant for that dialog would otherwise answer this one unread; Refuse can be pressed at once. It
-marks "(removed)" each profile Approve found removed that is still off the list, with the line
-stating that approving it adds it back and that every rule still naming it applies again, even
-where no client holds it, and approving it writes the profile back. Refusing it is a refusal, and
+checked there and its state is what it was there: **a profile whose state changed comes back
+unchecked**, a profile that was on the list and now reads **restores the profile** for instance, so that approving it
+again is a decision about the profile as it stands. **Such a row is highlighted in light yellow**,
+checked or not, and the pointer resting on it shows what **Approve also** reads now, as in "The
+row changed after the profile was first shown: Approve now also restores the profile.", which a
+screen reader reads with the profile's name; under a high contrast setting the
+row keeps the theme's background and its text takes the theme's link color. A profile left
+unchecked on the dialog before whose state did not change comes back unchecked with no highlight.
+**Approve on it takes no press for a second**
+after it comes up, since it comes up where the dialog before stood and a second click meant for
+that dialog would otherwise answer the dialog that came back, unread; Refuse can be pressed at
+once. Each profile Approve found removed that is still off the list reads
+**restores the profile**, even where no client holds it, and approving it writes the profile
+back. Refusing it is a refusal, and
 leaving it alone until it closes itself leaves the invitation unspent, as on any dialog. The program
 is answered once an approval is written, the dialog is refused or left alone, or the six minutes it
 was given for the whole pairing run out: the dialog that comes back has what is left of them, and

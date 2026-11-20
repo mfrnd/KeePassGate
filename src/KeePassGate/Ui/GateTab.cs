@@ -331,16 +331,35 @@ namespace KeePassGate.Ui
 
         public const string ApprovalDetailLabelName = "KpgApprovalDetailLabel";
 
-        /// <summary>The line saying the list holds more profiles than it shows at once.</summary>
-        public const string ApprovalScrollingName = "KpgApprovalScrolling";
-
-        /// <summary>The line naming the clients that regain a removed profile if it is approved.</summary>
-        public const string ApprovalRegainingName = "KpgApprovalRegaining";
-
         /// <summary>The line stating that the dialog is shown again after Approve.</summary>
         public const string ApprovalAgainName = "KpgApprovalAgain";
 
+        /// <summary>The table of the profiles asked for, a row for each with a check box.</summary>
         public const string ApprovalProfilesListName = "KpgApprovalProfilesList";
+
+        /// <summary>The table's column of check boxes.</summary>
+        public const string ApprovalGrantColumnName = "KpgApprovalGrantColumn";
+
+        /// <summary>The table's column of names.</summary>
+        public const string ApprovalProfileColumnName = "KpgApprovalProfileColumn";
+
+        /// <summary>The table's column stating the state of a name off the list.</summary>
+        public const string ApprovalStateColumnName = "KpgApprovalStateColumn";
+
+        /// <summary>The table's column of the clients still holding a removed name.</summary>
+        public const string ApprovalHeldByColumnName = "KpgApprovalHeldByColumn";
+
+        /// <summary>
+        /// A row of a table of profiles on an approval dialog, holding the row's check box and a
+        /// cell for each column of text, each cell named as its column's heading is.
+        /// </summary>
+        public const string ProfileRowName = "KpgProfileRow";
+
+        /// <summary>
+        /// The check box of a row of a table of profiles, which UI automation reads as a check box
+        /// named by the row's text read out.
+        /// </summary>
+        public const string ProfileBoxName = "KpgProfileBox";
 
         /// <summary>The choice of how long the certificate lasts.</summary>
         public const string ApprovalLifetimeName = "KpgApprovalLifetime";

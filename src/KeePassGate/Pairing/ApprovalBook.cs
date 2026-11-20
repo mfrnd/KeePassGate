@@ -125,7 +125,7 @@ namespace KeePassGate.Pairing
         /// **The profiles**, name by name: each name the decision rested on has to be on the list
         /// exactly when the dialog showed it there. A name the operator took off the list since
         /// would be put back by the write, with every rule naming it and every client holding it,
-        /// and a name put on it since is not the "(new)" name the dialog showed. A name the
+        /// and a name put on it since is not the new name the dialog showed. A name the
         /// decision did not rest on changes nothing it decided, so a pairing landing in between and
         /// naming something else voids nothing.
         ///

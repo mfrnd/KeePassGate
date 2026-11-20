@@ -63,7 +63,8 @@ namespace KeePassGate.Ui
     }
 
     /// <summary>
-    /// The profile list on an approval dialog, whose checks change only by a click or by Space.
+    /// The profile list on the renewal dialog, whose checks change only by a click or by Space.
+    /// The pairing dialog's table is <see cref="ProfileTable"/>.
     /// </summary>
     /// <remarks>
     /// A list of check boxes that checks on click selects the first item starting with a letter

@@ -267,12 +267,8 @@ namespace KeePassGate.Ui
                 _profiles.Items.Add(profile, true);
             }
 
-            _profiles.Height = PairingApprovalForm.ListHeight(_profiles, request.Profiles.Count);
-
-            // Wide enough for every name whole, as the pairing dialog's list is: what is kept or
-            // dropped here is a name, and a name cut at the edge reads as any other name that
-            // starts alike.
-            _profiles.Width = PairingApprovalForm.ListWidth(_profiles, _wrap);
+            _profiles.Height = ListHeight(_profiles, request.Profiles.Count);
+            _profiles.Width = ListWidth(_profiles, _wrap);
             layout.Controls.Add(_profiles);
 
             var scrolling = Scrolling(request);
@@ -760,6 +756,51 @@ namespace KeePassGate.Ui
                 MaximumSize = new Size(_wrap * 2 / 3, 0),
                 Margin = value ? new Padding(0) : new Padding(0, 0, LogicalToDeviceUnits(Spacing.Gap), 0)
             };
+        }
+
+        /// <summary>
+        /// How tall the profile list should be for this many profiles.
+        /// </summary>
+        /// <remarks>
+        /// Between two rows and `PairingApprovalForm.MostRows`, as the pairing dialog's table is.
+        /// Never fewer than two, because a list showing one row of two profiles reads as a list of
+        /// one and the operator is then approving what they cannot see; never more than that,
+        /// because past it the dialog is taller than the answer is worth and the list scrolls,
+        /// which it can, and the line under it states so. The border is added because a list box's
+        /// height includes it and its rows do not.
+        /// </remarks>
+        private static int ListHeight(CheckedListBox list, int profiles)
+        {
+            var rows = Math.Max(2, Math.Min(PairingApprovalForm.MostRows, profiles));
+            return (list.ItemHeight * rows) + (SystemInformation.BorderSize.Height * 4);
+        }
+
+        /// <summary>
+        /// How wide the profile list should be for the names it holds: a line of the dialog's text,
+        /// or its widest name where that is wider.
+        /// </summary>
+        /// <remarks>
+        /// **Every name whole.** What is kept or dropped here is a name, the client's to choose up
+        /// to sixty-four letters, digits, hyphens and underscores, and a name cut at the edge reads
+        /// as any other name that starts alike. A list box cuts a row with no ellipsis and has no
+        /// tooltip for a row, so the list is made wide enough instead, and the dialog, which is
+        /// sized by what is in it, grows with it for such a name and is as it is for every other.
+        ///
+        /// Beside the text is a check box, which is square and no taller than a row; round the
+        /// whole is the border, as <see cref="ListHeight"/> counts it; and a list holding more rows
+        /// than it shows gives a scroll bar's width to it as well.
+        /// </remarks>
+        private static int ListWidth(CheckedListBox list, int wrap)
+        {
+            var widest = 0;
+            foreach (var row in list.Items)
+            {
+                widest = Math.Max(
+                    widest, TextRenderer.MeasureText(Convert.ToString(row, CultureInfo.InvariantCulture), list.Font).Width);
+            }
+
+            var scrollBar = list.Items.Count > PairingApprovalForm.MostRows ? SystemInformation.VerticalScrollBarWidth : 0;
+            return Math.Max(wrap, list.ItemHeight + widest + scrollBar + (SystemInformation.BorderSize.Width * 4));
         }
 
         private static string Remaining(TimeSpan left)

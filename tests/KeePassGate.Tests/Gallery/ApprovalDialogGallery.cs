@@ -40,7 +40,7 @@ namespace KeePassGate.Tests.Gallery
                 Asking(new[] { "reader", "ops", "analyst" }, new[] { "reader", "ops", "analyst" }));
 
             // One this database has never named. Approving it does two things rather than one, and
-            // the mark is the only thing on screen that says so.
+            // its state is the only thing on screen that shows it.
             Shoot(
                 "approval-03-a-new-profile",
                 Asking(new[] { "reader", "invented" }, new[] { "reader" }));
@@ -48,8 +48,8 @@ namespace KeePassGate.Tests.Gallery
             // Nothing asked for at all, which is a client asking to be admitted to nothing.
             Shoot("approval-04-nothing-asked", Asking(Array.Empty<string>(), new[] { "reader" }));
 
-            // More than the list can show, so it scrolls while the rest of the dialog does not
-            // move: the countdown and the buttons are pinned and the list takes what is left.
+            // More than the table can show, so it scrolls while the rest of the dialog does not
+            // move: the countdown and the buttons are pinned and the table takes what is left.
             Shoot("approval-05-scrolling", Asking(Crowd(14), Crowd(14)));
 
             // Names at the length the issuer still allows, against a dialog 460 wide.
@@ -76,7 +76,7 @@ namespace KeePassGate.Tests.Gallery
                     "127.0.0.1:60001"));
 
             // One this database named and removed, which clients still hold. Approving it gives
-            // it back to all of them, and the line under the list names each one.
+            // it back to all of them, and its row names each client.
             using (var authority = Fakes.TestAuthority.New())
             using (var first = authority.IssueClient("agent-nonexistent"))
             using (var second = authority.IssueClient("ci-fictitious"))
