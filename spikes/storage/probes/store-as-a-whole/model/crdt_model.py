@@ -83,12 +83,43 @@ def row(letters):
     return ('rows', frozenset(letters), False)
 
 
+# ADDED (S34 forms): what a version that lets through records of what stood above it, the design
+# `S34-DESIGN.md` section 8. DEP None: nothing, the store as decided. 'seen' (form B, by what
+# arrived): a version that takes a rule off is ('rows', None, True, D) and a version of the switch
+# that inherits ('sws', {'inherit'}, D), D a frozenset holding a record for each version met: for a
+# row ('s', letters) or ('deny',) for a rule taken off while the node's own switch refused; for a
+# switch ('s', the letters of each profile as 'pf.r'), a profile left out having seen nothing.
+# 'above' (form A, by identity): for a row ('a', identifiers) or ('deny',); for a switch ('a',
+# pairs of a profile and its identifiers). MOVES: a node carries its parent, and the act `nmove`
+# moves N between G and the root, the later move winning a merge.
+DEP = None
+MOVES = False
+
+
+def is_off(x):
+    """ADDED (S34 forms): a version, or versions met, that take the rule off and grant nothing."""
+    return x is not None and x[0] == 'rows' and x[1] is None and x[2]
+
+
+def deps_of(x):
+    """ADDED (S34 forms): the records a value holds."""
+    if x is None:
+        return frozenset()
+    if x[0] == 'rows' and len(x) > 3:
+        return x[3]
+    if x[0] == 'sws' and len(x) > 2:
+        return x[2]
+    return frozenset()
+
+
 def meet(f, g):
     if f[0] == 'rows' and g[0] == 'rows':   # ADDED (rules per profile): the versions of a row
         G = f[1] if g[1] is None else g[1] if f[1] is None else f[1] & g[1]
-        return ('rows', G, f[2] or g[2])
+        D = deps_of(f) | deps_of(g)         # ADDED (S34 forms): the records of every version
+        return ('rows', G, f[2] or g[2], D) if D else ('rows', G, f[2] or g[2])
     if f[0] == 'sws' and g[0] == 'sws':     # ADDED (rules per profile): the versions of a switch
-        return ('sws', f[1] | g[1])
+        D = deps_of(f) | deps_of(g)         # ADDED (S34 forms)
+        return ('sws', f[1] | g[1], D) if D else ('sws', f[1] | g[1])
     if f[0] == 'pp' or g[0] == 'pp':    # ADDED (copies extended): letter by letter
         f, g = gen(f), gen(g)
         c = f[1] & g[1]
@@ -161,15 +192,42 @@ def switch_refuses(s):
     return s is not None and (s[0] == 'const' or 'deny' in s[1])
 
 
-def rows_node(freg, n, depth):
+def dep_cut(L, r, sw, p, walk):
+    """ADDED (S34 forms): the letters of profile p a node lets through, `L`, cut by what its
+    versions that let through record. 'seen': to the letters of each version of the row that takes
+    the rule off (none for `deny`) and of each version of the switch that holds a record. 'above':
+    nothing unless each names exactly what stands now: for a row's version the versions the walk
+    reads above the node and the node's own switch, for a switch's version those above. `walk(p)`
+    answers (the identifiers above, the identifiers of the node's own switch)."""
+    if DEP is None:
+        return L
+    for rec in deps_of(r):
+        if rec[0] == 'deny':
+            return set()
+        if DEP == 'seen':
+            L = L & set(p + '.' + w for w in rec[1])
+        else:
+            above, own = walk(p)
+            if rec[1] != above | own:
+                return set()
+    for rec in deps_of(sw):
+        if DEP == 'seen':
+            L = L & rec[1]
+        elif dict(rec[1]).get(p, frozenset()) != walk(p)[0]:
+            return set()
+    return L
+
+
+def rows_node(freg, n, depth, walk=None):
     """ADDED (rules per profile): a node's rule put together from its rows and its switch, as a
     document of the form with profiles. A row that grants gives its letters whatever arrives from
     above; a row whose versions grant and take the rule off gives what arrives cut to the granted
     letters where the switch inherits, and nothing where it refuses; a profile with no row standing,
     or with every version taking the rule off, is a profile the node does not name: what arrives
     where the switch inherits, nothing where it refuses; a row that refuses (a version lost) gives
-    nothing."""
-    deny = switch_refuses(freg('sw:' + n, depth))
+    nothing. ADDED (S34 forms): what passes is cut by `dep_cut`."""
+    sw = freg('sw:' + n, depth)
+    deny = switch_refuses(sw)
     C, P = set(), set()
     for p in PROFS:
         r = freg('rule:%s/%s' % (n, p), depth)
@@ -178,10 +236,10 @@ def rows_node(freg, n, depth):
             continue
         if r is None or r[1] is None:
             if not deny:
-                P |= L
+                P |= dep_cut(L, r, sw, p, walk)     # ADDED (S34 forms): dep_cut
         elif r[2]:
             if not deny:
-                P |= set(p + '.' + w for w in r[1])
+                P |= dep_cut(set(p + '.' + w for w in r[1]), r, sw, p, walk)     # ADDED (S34 forms)
         else:
             C |= set(p + '.' + w for w in r[1])
     return ('pp', frozenset(C), frozenset(P))
@@ -208,10 +266,25 @@ def row_text(f):
     if f[0] == 'const':
         return 'refuses'
     if f[0] == 'sws':
-        return '/'.join(sorted(f[1]))
+        return '/'.join(sorted(f[1])) + rec_text(f)     # ADDED (S34 forms): rec_text
     if f[1] is None:
-        return 'off' if f[2] else 'void'
-    return (''.join(sorted(f[1])) or 'empty') + ('|off' if f[2] else '')
+        return ('off' if f[2] else 'void') + rec_text(f)    # ADDED (S34 forms): rec_text
+    return (''.join(sorted(f[1])) or 'empty') + ('|off' if f[2] else '') + rec_text(f)
+
+
+def rec_text(f):
+    """ADDED (S34 forms): the records a value holds, as text; nothing where it holds none."""
+    out = []
+    for rec in sorted(deps_of(f), key=repr):
+        if rec[0] == 'deny':
+            out.append('deny')
+        elif f[0] == 'rows':
+            out.append(''.join(sorted(rec[1])) if rec[0] == 's' else '@%d' % len(rec[1]))
+        elif rec[0] == 's':
+            out.append(' '.join(sorted(rec[1])))
+        else:
+            out.append(' '.join('%s@%d' % (p, len(i)) for p, i in sorted(rec[1])))
+    return '[%s]' % '|'.join(out) if out else ''
 
 
 # ADDED (owed forms): the forms STORE.md 644 item 24 left owed. Each switch at its default is the
@@ -371,7 +444,8 @@ STORE = Flags(T=False, witness=False, mark=False, revkey=True, keyretire=True, p
 GATE_ACTS = ('pair', 'revoke', 'recreate', 'padd', 'prem', 'rule', 'renew', 'adopt', 'save', 'reseal',
              'renewcert', 'delauth', 'create',   # ADDED (store-as-a-whole): the last three
              'keep',                             # ADDED (copies extended): no alphabet holds it
-             'row', 'switch', 'drop')            # ADDED (rules per profile): with ROWS only
+             'row', 'switch', 'drop',            # ADDED (rules per profile): with ROWS only
+             'lift')                             # ADDED (S34 forms): with DEP only
 
 
 class World:
@@ -393,6 +467,8 @@ class World:
         base.nodes = {'root': ['root', 1], 'N': [None, 1]}
         if PARENT:      # ADDED (owed forms): the group between the root and N
             base.nodes['G'] = [None, 1]
+            if MOVES:   # ADDED (S34 forms): N carries its parent, G at the start
+                base.nodes['N'] = [None, 1, 'G']
         els = [El('auth:a0', 'auth', 'a0'),
                self.mk('padd', 'pf', height=1),
                El('rec:c0', 'rec', 'c0', data=('a0', frozenset(['pf'])))]
@@ -624,6 +700,42 @@ class World:
                 f = g if f is None else meet(f, g)
             return f
 
+        # ADDED (S34 forms): a node's parent, carried by the node under MOVES
+        def parent_of(n):
+            nd = rep.nodes.get(n)
+            if MOVES and nd is not None and len(nd) > 2:
+                return nd[2]
+            return PARENT.get(n, 'root')
+
+        # ADDED (S34 forms): the standing versions of an object, and the versions the walk reads
+        # above a node for a profile: at each node up the path the profile's row and, where the row
+        # does not answer by itself, the node's switch, until a node answers or the root is passed
+        def standing_ids(obj):
+            V = vers.get(obj) or {}
+            dd = set()
+            for e in V.values():
+                dd |= e.after
+            return frozenset(i for i in V if i not in dd)
+
+        def answers(m, p):
+            r = freg('rule:%s/%s' % (m, p), 0)
+            return r is not None and (r[0] == 'const' or (r[1] is not None and not r[2]))
+
+        def walk_above(n, p):
+            ids, m = set(), n
+            while m != 'root':
+                m = parent_of(m)
+                ids |= standing_ids('rule:%s/%s' % (m, p))
+                if answers(m, p):
+                    break
+                ids |= standing_ids('sw:' + m)
+                if switch_refuses(freg('sw:' + m, 0)):
+                    break
+            return frozenset(ids)
+
+        def walk(n):
+            return lambda p: (walk_above(n, p), standing_ids('sw:' + n))
+
         def fnode(n, depth=0):
             if n in memo:
                 return memo[n]
@@ -631,7 +743,7 @@ class World:
                 return REFUSE
             f = freg('rule:' + n, depth)
             if ROWS is not None:    # ADDED (rules per profile)
-                f = rows_node(freg, n, depth)
+                f = rows_node(freg, n, depth, walk(n) if DEP == 'above' else None)     # ADDED (S34 forms): walk
             m = rep.nodes[n][0] if n in rep.nodes else None
             if not fl.mark:     # ADDED (store-as-a-whole): without the mark a node reads no mark
                 m = None
@@ -649,7 +761,7 @@ class World:
         def raw_of(n):      # ADDED (owed forms): what arrives at n down the walk from the root
             if n == 'root':
                 return frozenset()
-            p = PARENT.get(n, 'root')
+            p = parent_of(n)        # ADDED (S34 forms): parent_of for PARENT.get(n, 'root')
             if p not in words_raw:
                 words_raw[p] = app(fnode(p), raw_of(p))
                 if PP:
@@ -660,7 +772,7 @@ class World:
             f = fnode(n)
             funcs[n] = f
             up = app(fnode('root'), frozenset()) if n != 'root' else frozenset()
-            if PARENT:      # ADDED (owed forms)
+            if PARENT or MOVES:      # ADDED (owed forms); (S34 forms): MOVES
                 up = raw_of(n)
             words_raw[n] = app(f, up)
             if PP:      # ADDED (copies extended): every word as a profile's letter
@@ -674,11 +786,14 @@ class World:
         regval = {}
         for obj in set(vers) | set(lost) | supers:
             regval[obj] = freg(obj, 0)
-        return dict(status=status, served=served, refusals=refusals, prem=prem, names=names,
-                    valid=valid, adm=adm, words=words, words_raw=words_raw, funcs=funcs,
-                    renew=renew, vers=vers, lost=lost,
-                    ents=ents, heads=heads, heads_live=heads_live,
-                    held=held, auths=auths, regval=regval)
+        out = dict(status=status, served=served, refusals=refusals, prem=prem, names=names,
+                   valid=valid, adm=adm, words=words, words_raw=words_raw, funcs=funcs,
+                   renew=renew, vers=vers, lost=lost,
+                   ents=ents, heads=heads, heads_live=heads_live,
+                   held=held, auths=auths, regval=regval)
+        if DEP is not None:     # ADDED (S34 forms): what the acts of a form read
+            out.update(parent_of=parent_of, walk_above=walk_above, standing_ids=standing_ids)
+        return out
 
     def ideal(self, i, ever=False):
         """The same file, had the transport been a perfect grow-only set."""
@@ -791,8 +906,8 @@ class World:
             return False
         # ADDED (store-as-a-whole): a rule waits in memory for the next save (change 4)
         just = False    # ADDED (rules per profile): a rule act that changes no row writes nothing
-        # ADDED (rules per profile): the row acts as well
-        if (kind == 'rule' or (ROWS is not None and kind in ('row', 'switch', 'drop'))) \
+        # ADDED (rules per profile): the row acts as well; ADDED (S34 forms): lift
+        if (kind == 'rule' or (ROWS is not None and kind in ('row', 'switch', 'drop', 'lift'))) \
                 and self.flags.pending and rep.disk is None:
             rep.disk = rep.clone()
             self.Kdisk[i] = set(self.K[i])
@@ -872,8 +987,8 @@ class World:
         # ADDED (rules per profile): a rule act writes a version for each row it changes; `row` sets
         # one profile's row ('off' takes it off); `switch` sets the node's switch; `drop` removes a
         # single version of a row that stands in several (rows.py, the part `same`)
-        elif ROWS is not None and kind in ('rule', 'row', 'switch', 'drop'):
-            new += self.rows_act(v, op)
+        elif ROWS is not None and kind in ('rule', 'row', 'switch', 'drop', 'lift'):     # ADDED (S34 forms): lift
+            new += self.dep_act(i, v, op) if DEP is not None else self.rows_act(v, op)     # ADDED (S34 forms): dep_act
             if not new:
                 if just:
                     self.flush(i)
@@ -923,7 +1038,7 @@ class World:
         self.K[i].add(self.write_head(rep, set(e.id for e in new)))
         self.Kever[i] |= self.K[i]
         # ADDED (store-as-a-whole); ADDED (rules per profile): the row acts as well
-        if not ((kind == 'rule' or (ROWS is not None and kind in ('row', 'switch', 'drop')))
+        if not ((kind == 'rule' or (ROWS is not None and kind in ('row', 'switch', 'drop', 'lift')))     # ADDED (S34 forms): lift
                 and self.flags.pending):
             self.flush(i)
         return True
@@ -1010,6 +1125,263 @@ class World:
                 raise ValueError(op)
         return out
 
+    # ADDED (S34 forms): the acts on rules under a form, `S34-DESIGN.md` 2.2, 2.3 and 8. What a
+    # version that lets through records, the versions of the node's switch or rows it writes anew,
+    # the press that settles (`lift`), and the write above: after an act at a node with nodes below,
+    # each node below, the nearer first, that lets a profile through once the act is written, where
+    # what arrives (or the versions read above) differs before and after the act and every version
+    # it is cut by held everything that arrived before (or named what stood before), has those
+    # versions written anew by itself. A written version names the version it renews and everything
+    # that version names. `v` is the gate's reading of its own file before the act.
+    def dep_act(self, i, v, op):
+        rep = self.reps[i]
+        kind, node = op[0], op[2]
+        out = []
+
+        def cur():
+            tmp = rep.clone()
+            for e in out:
+                tmp.entries[e.id] = [e.id, 0, True]
+            return self.fold(tmp)
+
+        def st(R, obj):
+            V = R['vers'].get(obj, {})
+            dead = set()
+            for e in V.values():
+                dead |= e.after
+            return [e for k, e in sorted(V.items()) if k not in dead]
+
+        def rec(e):
+            return next(iter(deps_of(e.data)))
+
+        def prof(x):
+            return x.split('.')[0]
+
+        def arr(R, n, p):
+            if n == 'root':
+                return frozenset()
+            return frozenset(x.split('.')[1] for x in R['words_raw'].get(R['parent_of'](n), frozenset())
+                             if prof(x) == p)
+
+        def refuses(R, n):
+            return switch_refuses(R['regval'].get('sw:' + n))
+
+        def answers(R, n, p):
+            r = R['regval'].get('rule:%s/%s' % (n, p))
+            return r is not None and (r[0] == 'const' or (r[1] is not None and not r[2]))
+
+        def own(R, n):
+            return R['standing_ids']('sw:' + n)
+
+        def off_rec(R, n, p):
+            if DEP == 'seen':
+                return ('s', arr(R, n, p))
+            return ('a', R['walk_above'](n, p) | own(R, n))
+
+        def sw_want(R, n, p):
+            if DEP == 'seen':
+                return frozenset(p + '.' + w for w in arr(R, n, p))
+            return R['walk_above'](n, p)
+
+        def sw_get(r, p):
+            if DEP == 'seen':
+                return frozenset(x for x in r[1] if prof(x) == p)
+            return dict(r[1]).get(p, frozenset())
+
+        def sw_set(r, p, val):
+            if DEP == 'seen':
+                return ('s', frozenset(x for x in r[1] if prof(x) != p) | val)
+            d = dict(r[1])
+            d[p] = val
+            return ('a', frozenset((q, x) for q, x in d.items() if x))
+
+        def off_val(r):
+            return ('rows', None, True, frozenset([r]))
+
+        def sw_val(r):
+            return ('sws', frozenset(['inherit']), frozenset([r]))
+
+        def renew(e, data):
+            ne = self.mk('ver', e.obj, after=set([e.id]) | e.after, data=data)
+            out.append(ne)
+            return ne
+
+        def is_sw_id(x, n):
+            return x.startswith('ver:sw:%s#' % n)
+
+        def settle_switch(n, ps):
+            """The node's switch versions that inherit and hold, for a profile of `ps`, another
+            record than what arrives (or stands above) now are written anew, a version each, with
+            those profiles changed. Then, under 'above', every version at the node that took a rule
+            off and named the switch as it stood names it as it stands."""
+            R = cur()
+            if refuses(R, n):
+                return
+            before = own(R, n)
+            for s in st(R, 'sw:' + n):
+                if s.data[0] != 'sws' or not deps_of(s.data):
+                    continue
+                r = rec(s)
+                for p in ps:
+                    r = sw_set(r, p, sw_want(R, n, p))
+                if r != rec(s):
+                    renew(s, sw_val(r))
+            follow_own(n, before)
+
+        def follow_own(n, before):
+            if DEP != 'above':
+                return
+            R = cur()
+            now = own(R, n)
+            if now == before:
+                return
+            for p in PROFS:
+                for e in st(R, 'rule:%s/%s' % (n, p)):
+                    if not is_off(e.data) or not deps_of(e.data) or rec(e)[0] == 'deny':
+                        continue
+                    part = frozenset(x for x in rec(e)[1] if is_sw_id(x, n))
+                    if part == before:
+                        renew(e, off_val(('a', (rec(e)[1] - part) | now)))
+
+        if kind in ('rule', 'row'):
+            targets = sorted(table_of(op[3]).items()) if kind == 'rule' else \
+                [(op[3], None if op[4] == 'off' else frozenset(op[4]))]
+            for p, want in targets:
+                obj = 'rule:%s/%s' % (node, p)
+                stl = st(v, obj)
+                after = set(e.id for e in stl)
+                for e in stl:
+                    after |= e.after
+                vals = [e.data for e in stl]
+                real = [x for x in vals if x != ROW_VOID]
+                shown = [x for x in real if not is_off(x)]
+                gone = v['regval'].get(obj) is not None and v['regval'][obj][0] == 'const'
+                if want is None:
+                    if not shown and not gone:
+                        continue        # no row to take off
+                    if not refuses(v, node):
+                        # the rule taken off records what arrives; the switch's versions that hold
+                        # another record for the profile are written anew first
+                        settle_switch(node, [p])
+                        val = off_val(off_rec(cur(), node, p))
+                    elif ROWS == 'off':
+                        val = off_val(('deny',))
+                    else:
+                        val = row('')
+                        if real == [row('')] and not gone:
+                            if ROWS == 'empty':
+                                continue    # the row is an empty rule already: nothing changes
+                            val = off_val(('deny',))    # 'again': removing the empty rule
+                else:
+                    val = row(want)
+                    if vals == [val] and not gone:
+                        continue        # the row is unchanged
+                out.append(self.mk('ver', obj, after=after, data=val))
+        elif kind == 'switch':
+            obj = 'sw:' + node
+            stl = st(v, obj)
+            after = set(e.id for e in stl)
+            for e in stl:
+                after |= e.after
+            gone = v['regval'].get(obj) is not None and v['regval'][obj][0] == 'const'
+            if op[3] == 'deny':
+                val = ('sws', frozenset(['deny']))
+                if not gone and [e.data for e in stl] == [val]:
+                    return []
+                out.append(self.mk('ver', obj, after=after, data=val))
+            else:
+                if not gone and (not stl or (len(stl) == 1 and stl[0].data[1] == frozenset(['inherit']))):
+                    return []
+                if DEP == 'seen':
+                    r = ('s', frozenset(p + '.' + w for p in PROFS for w in arr(v, node, p)))
+                else:
+                    r = ('a', frozenset((p, v['walk_above'](node, p)) for p in PROFS if v['walk_above'](node, p)))
+                out.append(self.mk('ver', obj, after=after, data=sw_val(r)))
+                # every version at the node that takes a rule off is written anew with what arrives
+                # for its profile, `deny` among them
+                R = cur()
+                for p in PROFS:
+                    want = off_rec(R, node, p)
+                    for e in st(R, 'rule:%s/%s' % (node, p)):
+                        if is_off(e.data) and deps_of(e.data) and rec(e) != want:
+                            renew(e, off_val(want))
+        elif kind == 'drop':
+            out += self.rows_act(v, op)
+        elif kind == 'lift':
+            p = op[3]
+            if refuses(v, node):
+                return []
+            settle_switch(node, [p])
+            R = cur()
+            want = off_rec(R, node, p)
+            for e in st(R, 'rule:%s/%s' % (node, p)):
+                if is_off(e.data) and deps_of(e.data) and rec(e) != want:
+                    renew(e, off_val(want))
+        if not out:
+            return out
+        # the write above
+        R = cur()
+        below = []
+        for m in R['words_raw']:
+            if m == node:
+                continue
+            d, a = 0, m
+            while a != 'root' and a != node:
+                a = R['parent_of'](a)
+                d += 1
+            if a == node:
+                below.append((d, m))
+        for d, m in sorted(below):
+            R = cur()
+            if refuses(R, m):
+                continue
+            sws = [s for s in st(R, 'sw:' + m) if s.data[0] == 'sws' and deps_of(s.data)]
+            todo = {}
+            for p in PROFS:
+                if answers(R, m, p):
+                    continue
+                offs = [e for e in st(R, 'rule:%s/%s' % (m, p)) if is_off(e.data) and deps_of(e.data)]
+                if not offs and not sws:
+                    continue
+                if DEP == 'seen':
+                    old, now = arr(v, m, p), arr(R, m, p)
+                    oldl = frozenset(p + '.' + w for w in old)
+                    whole = all(rec(e)[0] == 's' and rec(e)[1] >= old for e in offs) and \
+                        all(sw_get(rec(s), p) >= oldl for s in sws)
+                else:
+                    old, now = v['walk_above'](m, p), R['walk_above'](m, p)
+                    whole = all(rec(e)[0] == 'a' and rec(e)[1] == old | own(v, m) for e in offs) and \
+                        all(sw_get(rec(s), p) == old for s in sws)
+                if old != now and whole:
+                    todo[p] = now
+            if not todo:
+                continue
+            before = own(R, m)
+            for s in sws:
+                r = rec(s)
+                for p, now in sorted(todo.items()):
+                    r = sw_set(r, p, frozenset(p + '.' + w for w in now) if DEP == 'seen' else now)
+                if r != rec(s):
+                    renew(s, sw_val(r))
+            R2 = cur()
+            after_own = own(R2, m)
+            for p in PROFS:
+                for e in st(R2, 'rule:%s/%s' % (m, p)):
+                    if not is_off(e.data) or not deps_of(e.data) or rec(e)[0] == 'deny':
+                        continue
+                    if p in todo:
+                        want = ('s', todo[p]) if DEP == 'seen' else ('a', todo[p] | after_own)
+                    elif DEP == 'above' and after_own != before:
+                        part = frozenset(x for x in rec(e)[1] if is_sw_id(x, m))
+                        if part != before:
+                            continue
+                        want = ('a', (rec(e)[1] - part) | after_own)
+                    else:
+                        continue
+                    if rec(e) != want:
+                        renew(e, off_val(want))
+        return out
+
     # ------------------------------------------------- other programs, people
     def pick(self, rep, sel):
         """A store entry by description, so that a history stays replayable when shortened."""
@@ -1052,6 +1424,12 @@ class World:
         if reps[tgt].disk is not None and k not in ('quit', 'import', 'plant') and not (
                 k == 'merge' and op[1] in ('kp_sync', 'kp_other')):
             return False
+        if k == 'nmove':    # ADDED (S34 forms): ('nmove', i, node, parent), KeePass moves a node
+            nd = reps[op[1]].nodes.get(op[2])
+            if not MOVES or nd is None or len(nd) < 3 or nd[2] == op[3]:
+                return False
+            reps[op[1]].nodes[op[2]] = [nd[0], self.now(), op[3]]
+            return True
         if k == 'quit':     # ADDED (store-as-a-whole): KeePass ends before the next save
             i = op[1]
             if reps[i].disk is None:
