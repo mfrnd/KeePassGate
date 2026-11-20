@@ -86,13 +86,15 @@ none, since it releases both.
   change once they are synchronized in KeePass.** A name added in a copy is on the list in
   every copy it is synchronized with, and a name removed in a copy is off the list in each,
   including where another copy had added it again without knowing of that removal, until it is
-  added again; 0.2 kept the list of the copy changed last and dropped every other copy's. A
-  pairing approved for a name the list does not hold adds the name in the same write as the
-  admission, saved with it and taken back out with it where the save fails, as before. A name
-  added and removed again on a single visit to the settings dialog writes nothing. Where
-  nothing can be written into the plugin's group in the session, and where the database is
-  answered `503 split` or `503 outdated`, below, the Profiles page shows neither the row that
-  adds a name nor the X. `STORE.md` §616, §627 and §636.
+  added again, on the Profiles page or by approving a pairing that asks for it, which puts it
+  back also where a copy deleted the removal's entries for good and nothing of the removal is
+  left but its deletion record; 0.2 kept the list of the copy changed last and dropped every
+  other copy's. A pairing approved for a name the list does not hold adds the name in the same
+  write as the admission, saved with it and taken back out with it where the save fails, as
+  before. A name added and removed again on a single visit to the settings dialog writes
+  nothing. Where nothing can be written into the plugin's group in the session, and where the
+  database is answered `503 split` or `503 outdated`, below, the Profiles page shows neither the
+  row that adds a name nor the X. `STORE.md` §616, §627 and §636.
 - **A name added on the Profiles page is not written over a removal that arrived before OK.** A
   removal wins over an addition made without knowing of it, on the settings dialog as between
   copies: where a removal of the name, made in another copy of the database, is synchronized in

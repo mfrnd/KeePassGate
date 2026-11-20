@@ -1,7 +1,10 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using KeePassGate.Store;
 using KeePassGate.Testing;
+using KeePassGate.Tests.Fakes;
 
 namespace KeePassGate.Tests
 {
@@ -63,6 +66,25 @@ namespace KeePassGate.Tests
         internal static string Hex(char digit)
         {
             return new string(digit, 64);
+        }
+
+        /// <summary>
+        /// A removal of this name that the store knows by its deletion record alone, answering
+        /// its identifier: composed under the store key that stands and never put, and named by a
+        /// deletion record, as a Synchronize leaves it from a copy where the removal was deleted
+        /// for good and every summary entry restating it was lost.
+        /// </summary>
+        internal static string RemovedApart(MemoryStore store, string name)
+        {
+            using (var reading = store.Read())
+            {
+                var removal = StoreRecord.Compose(
+                    reading.InForce.Key.Bytes,
+                    StoreKinds.Removed,
+                    new Dictionary<string, string>(StringComparer.Ordinal) { { StoreKinds.NameMember, name } });
+                store.Delete(removal.Identifier);
+                return removal.Hex;
+            }
         }
 
         /// <summary>

@@ -157,6 +157,51 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void An_addition_names_a_removal_of_its_name_that_only_a_deletion_record_tells_of()
+        {
+            // The removal's record and every item restating it are gone, and its deletion record
+            // stays: the reading tells of it only for a name the file knows, which the addition
+            // makes it, `STORE.md` §616 and §623 step 2. Named, the addition is in force at the
+            // first Add and stays so at the next write.
+            var store = new MemoryStore();
+            StoreSeeds.Authority(store);
+            var removal = RemovedApart(store, "reader");
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.InForce.RemovalsOf("reader"), Is.Empty, "a name the file does not know");
+                Assert.That(ProfileActs.Add(reading, "reader").Records.Single().Member("after"), Is.EqualTo(removal));
+            }
+
+            StoreSeeds.Name(store, "reader");
+            Assert.That(Named(store), Is.EqualTo(new[] { "reader" }), "on the list at the first Add");
+
+            StoreSeeds.Name(store, "writer");
+            Assert.That(Named(store), Is.EqualTo(new[] { "reader", "writer" }), "and after the next write");
+        }
+
+        [Test]
+        public void An_addition_composed_again_writes_nothing_once_a_removal_only_a_deletion_record_tells_of_stands()
+        {
+            // A removal made apart after the press is a removal the press did not see, whatever
+            // is left of it in the file.
+            var store = new MemoryStore();
+            StoreSeeds.Authority(store);
+            StoreAct pressed;
+            using (var reading = store.Read())
+            {
+                pressed = ProfileActs.Add(reading, "reader");
+            }
+
+            RemovedApart(store, "reader");
+            using (var further = store.Read())
+            {
+                Assert.That(pressed.Again(further), Is.Null, "nothing is written for the press");
+                Assert.That(ProfileActs.Overtaken(further, pressed), Is.True, "and it is told why");
+            }
+        }
+
+        [Test]
         public void An_addition_composed_again_writes_nothing_where_the_name_is_on_the_list()
         {
             var store = new MemoryStore();

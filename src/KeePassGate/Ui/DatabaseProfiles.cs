@@ -250,8 +250,9 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// **The addition names the removals of the name that the page's reading held at the
-        /// press**, `STORE.md` §627, and that is what OK writes: a removal that reaches the
-        /// database after the press is not overruled by it. The list keeps no ceiling.
+        /// press**, a removal that only a deletion record tells of among them, `STORE.md` §616
+        /// and §627, and that is what OK writes: a removal that reaches the database after the
+        /// press is not overruled by it. The list keeps no ceiling.
         /// </remarks>
         public string Add(string name)
         {

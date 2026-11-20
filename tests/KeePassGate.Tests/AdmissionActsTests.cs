@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Store;
 using KeePassGate.Testing;
@@ -91,6 +92,28 @@ namespace KeePassGate.Tests
                 "each name the list does not hold, in ordinal order, and none it holds");
             Assert.That(act.Records[1].Member("after"), Is.EqualTo(removal.Hex), "the removal of a name that was removed");
             Assert.That(act.Records[2].Member("after"), Is.Empty);
+        }
+
+        [Test]
+        public void An_admission_names_a_removal_of_a_name_it_adds_that_only_a_deletion_record_tells_of()
+        {
+            // A name approved after its removal is back on the list, whatever is left of the
+            // removal but its deletion record, which the reading tells of once the name is known
+            // to the file, `STORE.md` §616.
+            var store = new ComposedStore(One);
+            var removal = Removal("ops");
+            store.Deleted.Add(removal.Identifier);
+            var reading = store.Read();
+            Assert.That(reading.InForce.RemovalsOf("ops"), Is.Empty, "a name the file does not know");
+
+            var act = AdmissionActs.Admit(reading, AdmissionRecord.For(_first, Then, new[] { "ops" }, Hex('a')));
+
+            Assert.That(act.Records[1].Member("after"), Is.EqualTo(removal.Hex));
+            var applied = StoreWrite.Plan(reading, new[] { act }, GateVersion.Current).Applied(reading.Candidates, reading.Deletions);
+            using (var written = StoreReading.Afresh(applied.Key, applied.Value))
+            {
+                Assert.That(ProfileNames.Of(written).Names, Is.EqualTo(new[] { "ops" }), "on the list once written");
+            }
         }
 
         [Test]

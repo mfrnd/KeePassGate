@@ -207,19 +207,19 @@ renewal dialog, §312, is built the same way.
 
 **The dialog shows what approving a profile brings back.** Pairing adds each approved name the
 database does not hold in the same write as the admission, as a record of the plugin's store that
-names every removal of the name the write read, `STORE.md` §616, and the names the database holds
-decide which names are in force (`DESIGN.md` §139). A name the database does not name now and no
-client holds is marked "(new)", because approving adds it, and the dialog states that any rule
-already naming it applies at once: a name removed once, whose every holder has since been revoked
-or has expired, looks the same from a connection, which does not walk the tree to count rules. A
-name the operator removed that other clients still hold is marked "(removed)", and the dialog
-names those clients: approving puts the name back, every one of them regains it through
-whichever certificate still holds it, and every rule still naming it applies again. A client
-that renewed while the name was off the list regains it only through its older certificate,
-until it gives that up, since the certificate it renewed to was recorded without the name. Each
-client is named once, by its client key, `CA.md` §223, however many of its certificates hold the
-name, and two clients that paired under one name are named apart, each with the start of its
-client key as the clients page shows it.
+names every removal of the name the write read, a removal that only a deletion record tells of
+among them, `STORE.md` §616, and the names the database holds decide which names are in force
+(`DESIGN.md` §139). A name the database does not name now and no client holds is marked "(new)",
+because approving adds it, and the dialog states that any rule already naming it applies at once:
+a name removed once, whose every holder has since been revoked or has expired, looks the same from
+a connection, which does not walk the tree to count rules. A name the operator removed that other
+clients still hold is marked "(removed)", and the dialog names those clients: approving puts the
+name back, each of those clients regains it through whichever certificate still holds it, and
+every rule still naming it applies again. A client that renewed while the name was off the list
+regains it only through its older certificate, until it gives that up, since the certificate it
+renewed to was recorded without the name. Each client is named once, by its client key, `CA.md`
+§223, however many of its certificates hold the name, and two clients that paired under one name
+are named apart, each with the start of its client key as the clients page shows it.
 
 **Every answer is written to the audit**, `DESIGN.md` §120, naming the invitation the request
 arrived on: approved, with the admission key of the certificate it admitted, which is the new
