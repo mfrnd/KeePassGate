@@ -1,8 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
-using KeePassGate.Authority;
 using KeePassGate.Pairing;
+using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
 using NUnit.Framework;
 
@@ -40,7 +39,7 @@ namespace KeePassGate.Tests.Gallery
                 Asking(new[] { "reader", "ops", "analyst" }, new[] { "reader", "ops", "analyst" }));
 
             // One this database has never named. Approving it does two things rather than one, and
-            // the mark is the only thing on screen that says so.
+            // its state is the only thing on screen that shows it.
             Shoot(
                 "approval-03-a-new-profile",
                 Asking(new[] { "reader", "invented" }, new[] { "reader" }));
@@ -48,72 +47,44 @@ namespace KeePassGate.Tests.Gallery
             // Nothing asked for at all, which is a client asking to be admitted to nothing.
             Shoot("approval-04-nothing-asked", Asking(Array.Empty<string>(), new[] { "reader" }));
 
-            // More than the list can show, so it scrolls while the rest of the dialog does not
-            // move: the countdown and the buttons are pinned and the list takes what is left.
+            // More than the table can show, so it scrolls while the rest of the dialog does not
+            // move: the countdown and the buttons are pinned and the table takes what is left.
             Shoot("approval-05-scrolling", Asking(Crowd(14), Crowd(14)));
 
             // Names at the length the issuer still allows, against a dialog 460 wide.
             Shoot(
                 "approval-06-long-names",
-                new PairingRequest(
-                    "aaaabbbbccccdddd",
-                    "A Database With A Name Somebody Really Did Type Into The Box",
-                    "abcdef0123456789",
-                    "an-agent-with-a-name-that-somebody-really-did-type",
+                PairingRequests.Shown(
+                    PairingRequests.Listing("a-profile-named-at-length"),
                     new[] { "a-profile-named-at-length", "another-one-just-as-long" },
-                    new[] { "a-profile-named-at-length" },
-                    "127.0.0.1:60001"));
+                    "an-agent-with-a-name-that-somebody-really-did-type",
+                    databaseName: "A Database With A Name Somebody Really Did Type Into The Box",
+                    invitationId: "abcdef0123456789"));
 
             // No name for the database, so it is named by its fingerprint alone, which is the state
             // a database that has never been given one is in.
             Shoot(
                 "approval-07-unnamed-database",
-                new PairingRequest(
-                    "aaaabbbbccccdddd",
-                    "abcdef01",
-                    "agent-invented",
-                    new[] { "reader" },
-                    "127.0.0.1:60001"));
+                PairingRequests.Shown(PairingRequests.Listing("reader"), new[] { "reader" }, "agent-invented", databaseName: null));
 
             // One this database named and removed, which clients still hold. Approving it gives
-            // it back to all of them, and the line under the list names each one.
-            using (var authority = Fakes.TestAuthority.New())
+            // it back to all of them, and its row names each client.
+            using (var authority = TestAuthority.New())
             using (var first = authority.IssueClient("agent-nonexistent"))
             using (var second = authority.IssueClient("ci-fictitious"))
             {
-                var holding = new List<AdmissionRecord>
-                {
-                    AdmissionRecord.For(first, DateTimeOffset.UtcNow, new[] { "retired" }, authority.DatabaseId),
-                    AdmissionRecord.For(second, DateTimeOffset.UtcNow, new[] { "retired" }, authority.DatabaseId)
-                };
-
-                Shoot(
-                    "approval-08-a-removed-profile",
-                    new PairingRequest(
-                        "aaaabbbbccccdddd",
-                        "Invented Vault",
-                        "abcdef01",
-                        "agent-invented",
-                        new[] { "reader", "retired" },
-                        new[] { "reader" },
-                        "127.0.0.1:60001",
-                        new Dictionary<string, IReadOnlyList<AdmissionRecord>> { { "retired", holding } }));
+                var store = PairingRequests.Listing("reader");
+                PairingRequests.Holding(store, first, "retired");
+                PairingRequests.Holding(store, second, "retired");
+                PairingRequests.Taken(store, "retired");
+                Shoot("approval-08-a-removed-profile", PairingRequests.Shown(store, new[] { "reader", "retired" }, "agent-invented"));
             }
 
             // A lifetime asked for that is none of the presets, offered as a choice of its own and
             // marked as the one asked for: three digits and the mark, as long as a choice gets.
             Shoot(
                 "approval-09-a-lifetime-of-its-own",
-                new PairingRequest(
-                    "aaaabbbbccccdddd",
-                    "Invented Vault",
-                    "abcdef01",
-                    "agent-invented",
-                    new[] { "reader" },
-                    new[] { "reader" },
-                    "127.0.0.1:60001",
-                    null,
-                    TimeSpan.FromDays(120)));
+                PairingRequests.Shown(PairingRequests.Listing("reader"), new[] { "reader" }, "agent-invented", TimeSpan.FromDays(120)));
         }
 
         private static void Shoot(string name, PairingRequest request)
@@ -126,14 +97,7 @@ namespace KeePassGate.Tests.Gallery
 
         private static PairingRequest Asking(string[] wanted, string[] known)
         {
-            return new PairingRequest(
-                "aaaabbbbccccdddd",
-                "Invented Vault",
-                "abcdef01",
-                "agent-invented",
-                wanted,
-                known,
-                "127.0.0.1:60001");
+            return PairingRequests.Shown(PairingRequests.Listing(known), wanted, "agent-invented");
         }
 
         private static string[] Crowd(int count)

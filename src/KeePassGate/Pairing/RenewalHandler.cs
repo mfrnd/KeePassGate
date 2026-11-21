@@ -754,17 +754,18 @@ namespace KeePassGate.Pairing
                     }
 
                     taken = true;
-                    var stale = held.Stale(ground, key);
+                    string why;
+                    var stale = held.Stale(ground, key, out why);
                     if (stale == HeldStaleness.Unpaired)
                     {
                         refused = "unpaired";
-                        return "the record it renews went, or changed, after the operator answered";
+                        return why;
                     }
 
                     if (stale != HeldStaleness.None)
                     {
                         refused = "stale";
-                        return "a profile the answer rested on is not on the list as the dialog showed it";
+                        return why;
                     }
 
                     return null;

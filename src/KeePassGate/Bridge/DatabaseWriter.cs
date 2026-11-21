@@ -1880,6 +1880,27 @@ namespace KeePassGate.Bridge
 
                 return _named.Holds(profile);
             }
+
+            /// <summary>
+            /// The removals of a name that an addition written in this turn names: this turn's
+            /// reading was made afresh, so its key is the key the addition is composed under.
+            /// </summary>
+            public IReadOnlyCollection<string> Removals(string profile)
+            {
+                return _reading.InForce == null
+                    ? (IReadOnlyCollection<string>)Array.Empty<string>()
+                    : _reading.InForce.RemovalsOnceKnown(profile);
+            }
+
+            /// <summary>
+            /// The clients that regain each of these names put back in this turn, from a single
+            /// listing of the admissions this turn's reading holds, as the dialog's reading lists
+            /// them.
+            /// </summary>
+            public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Regaining(IReadOnlyCollection<string> profiles)
+            {
+                return AskedProfiles.Regaining(_reading, profiles, DateTimeOffset.UtcNow);
+            }
         }
 
         /// <summary>What one write wrote of the answers owed, and what it wrote over.</summary>
@@ -2012,7 +2033,7 @@ namespace KeePassGate.Bridge
                     // retry under it can be written, whatever stands beside it.
                     var why = staged.Refused ?? "the write adds no admission";
                     _log.Warn("an admission was not written into the plugin's store: " + why);
-                    return string.Equals(StoreAuthorities.Served(reading), record.Issuer, StringComparison.Ordinal)
+                    return StoreReadings.Serves(reading, record.Issuer)
                         ? AdmissionWrite.Failed(why)
                         : AdmissionWrite.Unserved(why);
                 }

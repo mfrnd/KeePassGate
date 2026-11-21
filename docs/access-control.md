@@ -31,9 +31,11 @@ a name the plugin keeps for itself. It grants nothing until a rule names it.
 A database holds as many names as are added, and past the rows the page has room for the list
 scrolls down.
 
-The other way one arrives is pairing: a program asks for profiles by name, and any this database does
-not name now and no client holds is marked "(new)" on the approval dialog. Approving adds it, and
-a rule still naming it from before it was removed applies at once.
+The other way a name arrives is pairing: a program asks for profiles by name, and the approval
+dialog shows, under **Approve also**, what approving does for each name this database does not
+name now: **restores the profile** where this database knows a removal of it or other clients still
+hold it, and **adds the profile** otherwise. Approving either puts the name on the list, and every
+rule already naming it applies at once. [Answer the request](pairing.md#answer-the-request) has what each state means.
 
 A pairing writes that name straight to the database, where every other change on this tab waits for
 **OK**, because the name is written by the same operation as the record it belongs to. A name

@@ -180,15 +180,36 @@ namespace KeePassGate.Tests.Fakes
             }
         }
 
-        /// <summary>The admitted clients whose admissions hold a profile.</summary>
-        public IReadOnlyList<AdmissionRecord> Holding(string profile)
+        /// <summary>
+        /// Set to stand for a database that closed after a pairing's connection was judged: the
+        /// dialog's reading throws, as the real target's does.
+        /// </summary>
+        public bool Shut { get; set; }
+
+        /// <summary>Set to make the dialog's reading fail, as a reading of a store that cannot be made does.</summary>
+        public Exception AskedThrows { get; set; }
+
+        /// <summary>
+        /// What this fake's store holds of the profiles a pairing asks for, read from a single
+        /// reading with the store key as the real target reads it, where the store serves this
+        /// authority, and the word the write answers otherwise, judged as the real target judges
+        /// it. Throws as the real target does where the database has gone, <see cref="Shut"/>.
+        /// </summary>
+        public AskedProfiles Asked(IReadOnlyCollection<string> profiles)
         {
+            if (Shut)
+            {
+                throw new KeePassGate.Diagnostics.DatabaseShut("the database closed before the dialog was read");
+            }
+
+            if (AskedThrows != null)
+            {
+                throw AskedThrows;
+            }
+
             using (var reading = _store.Read())
             {
-                var listing = StoreAdmissions.Listing(reading);
-                return listing.Records
-                    .Where(record => listing.StandingOf(record) == AdmissionStanding.Admitted && record.Profiles.Contains(profile))
-                    .ToList();
+                return StoreReadings.Asked(reading, DatabaseId, profiles, DateTimeOffset.UtcNow);
             }
         }
 
@@ -292,6 +313,16 @@ namespace KeePassGate.Tests.Fakes
             {
                 return ProfileNames.Of(_reading).Holds(profile);
             }
+
+            public IReadOnlyCollection<string> Removals(string profile)
+            {
+                return _reading.InForce == null ? (IReadOnlyCollection<string>)Array.Empty<string>() : _reading.InForce.RemovalsOnceKnown(profile);
+            }
+
+            public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Regaining(IReadOnlyCollection<string> profiles)
+            {
+                return AskedProfiles.Regaining(_reading, profiles, DateTimeOffset.UtcNow);
+            }
         }
 
         /// <summary>
@@ -300,6 +331,33 @@ namespace KeePassGate.Tests.Fakes
         /// anything else hears of it.
         /// </summary>
         public AdmissionWrite Admit(AdmissionRecord record, Func<IWriteGround, string> condition, Action audit)
+        {
+            try
+            {
+                return Admitting(record, condition, audit);
+            }
+            finally
+            {
+                if (AfterWrite != null)
+                {
+                    AfterWrite();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Run once a write has answered, whatever it answered: a test stands there what lands
+        /// between a write and what the handler does next.
+        /// </summary>
+        public Action AfterWrite { get; set; }
+
+        /// <summary>
+        /// Set where the database closed under the write: the write finds nothing to write to and
+        /// answers so before its condition is asked, as the writer does.
+        /// </summary>
+        public bool ClosedUnderTheWrite { get; set; }
+
+        private AdmissionWrite Admitting(AdmissionRecord record, Func<IWriteGround, string> condition, Action audit)
         {
             if (AdmitThrows != null)
             {
@@ -318,6 +376,11 @@ namespace KeePassGate.Tests.Fakes
             if (BeforeWrite != null)
             {
                 BeforeWrite();
+            }
+
+            if (ClosedUnderTheWrite)
+            {
+                return AdmissionWrite.Failed("the database is not open");
             }
 
             using (var reading = _store.Read())

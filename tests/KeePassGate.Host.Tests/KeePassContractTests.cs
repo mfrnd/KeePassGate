@@ -29,6 +29,29 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void KeePass_still_draws_Synchronize_with_a_picture_of_its_own_resources_made_afresh_at_each_reading()
+        {
+            // The green pair of arrows Refresh on the pairing dialog shows, read by the names the
+            // plugin reads it by: a picture sixteen pixels square with green in it, and a new
+            // picture at each reading, since the plugin lets go of what it read.
+            var resources = KeePassAssembly.GetType(KeePassContract.ResourcesTypeName, false);
+            Assert.That(resources, Is.Not.Null, KeePassContract.ResourcesTypeName + " is gone, so Refresh shows no picture");
+            var property = resources.GetProperty(KeePassContract.RefreshPictureProperty, BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(property, Is.Not.Null, KeePassContract.RefreshPictureProperty + " is gone, so Refresh shows no picture");
+            Assert.That(property.PropertyType, Is.EqualTo(typeof(System.Drawing.Bitmap)));
+
+            using (var first = (System.Drawing.Bitmap)property.GetValue(null, null))
+            using (var second = (System.Drawing.Bitmap)property.GetValue(null, null))
+            {
+                Assert.That(first.Size, Is.EqualTo(new System.Drawing.Size(16, 16)));
+                Assert.That(second, Is.Not.SameAs(first), "a reading answers a picture KeePass keeps, which the plugin would take from KeePass");
+                var green = Enumerable.Range(0, 256).Select(at => first.GetPixel(at % 16, at / 16))
+                    .Count(pixel => pixel.A > 128 && pixel.G > pixel.R + 40 && pixel.G > pixel.B + 40);
+                Assert.That(green, Is.GreaterThan(0), "no green in the picture of Synchronize");
+            }
+        }
+
+        [Test]
         public void The_database_settings_dialog_still_has_the_name_we_look_for()
         {
             var type = KeePassAssembly.GetType(KeePassContract.DatabaseSettingsFormTypeName, false);

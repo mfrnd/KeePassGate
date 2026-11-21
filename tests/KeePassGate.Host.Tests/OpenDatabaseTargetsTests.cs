@@ -12,6 +12,7 @@ using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
+using KeePassGate.Store;
 using KeePassGate.Transport;
 using NUnit.Framework;
 
@@ -210,11 +211,128 @@ namespace KeePassGate.Host.Tests
             // stands, so a name added after the gate started serving is read with no reload.
             CreateAuthorityIn(_first);
             var target = _targets.Current()[0];
-            Assume.That(target.KnownProfiles, Is.Empty);
+            Assert.That(target.Asked(new[] { "ops" }).Listed, Is.Empty);
 
             StoreSeeds.Name(new KdbxStore(_first.Database, GateVersion.Current, null), "ops");
 
-            Assert.That(target.KnownProfiles, Is.EqualTo(new[] { "ops" }));
+            Assert.That(target.Asked(new[] { "ops" }).Listed, Is.EqualTo(new[] { "ops" }));
+        }
+
+        [Test]
+        public void A_pairing_s_dialog_is_read_in_a_single_hold_with_the_clients_and_the_removals_of_each_name_off_the_list()
+        {
+            // `PAIRING.md` §303 and §311: the names on the list, the clients that regain a name off
+            // it and the removals of such a name, from a single reading made afresh with the store
+            // key, as the write counts them: a removal of a name the file does not know, which
+            // only a deletion record tells of, is held as well.
+            CreateAuthorityIn(_first);
+            var store = new KdbxStore(_first.Database, GateVersion.Current, null);
+            StoreSeeds.Name(store, "ops");
+            StoreSeeds.Name(store, "gone");
+            var hold = new CountedHolds();
+            using (var targets = new OpenDatabaseTargets(delegate { return _open; }, null, hold, _log))
+            using (var target = targets.Current().Single())
+            using (var client = new AuthorityIssuer().IssueClient(target.AuthorityKey, "agent-fictitious", new[] { "gone" }).Read())
+            {
+                var admissions = new StoredAdmissions(_first.Database);
+                admissions.Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "gone" }, target.DatabaseId));
+                StoreSeeds.Unname(store, "gone");
+                var unknown = RemovedApart(store, "unknown");
+                string gone;
+                using (var reading = store.Read())
+                {
+                    gone = reading.InForce.RemovalsOf("gone").Single();
+                    Assert.That(reading.InForce.RemovalsOf("unknown"), Is.Empty, "a name the file does not know");
+                }
+
+                var before = hold.Taken;
+                var asked = target.Asked(new[] { "ops", "gone", "unknown", "fresh" });
+
+                Assert.That(hold.Taken - before, Is.EqualTo(1), "a single hold");
+                Assert.That(asked.Served, Is.True);
+                Assert.That(asked.Listed, Is.EqualTo(new[] { "ops" }));
+                Assert.That(asked.Removed, Is.EqualTo(new[] { "gone", "unknown" }), "a name only a deletion record tells of among them");
+                Assert.That(asked.Returning.Keys, Is.EqualTo(new[] { "gone" }));
+                Assert.That(asked.Returning["gone"].Single().AdmissionKey, Is.EqualTo(CertificateDigest.Of(client)));
+                Assert.That(asked.Held("gone", gone), Is.True, "a removal by its record");
+                Assert.That(asked.Held("unknown", unknown), Is.True, "a removal only a deletion record tells of");
+                Assert.That(asked.Held("fresh", unknown), Is.False, "a deletion record of another name's removal");
+                Assert.That(asked.Held("ops", gone), Is.False, "a name on the list was not asked about");
+            }
+        }
+
+        [Test]
+        public void A_target_whose_store_stopped_serving_its_authority_holds_nothing_for_a_dialog()
+        {
+            // Served when the target was built, and a second authority standing since: the reading
+            // the dialog would be built from serves nothing, and holds the word the write answers
+            // with. Seeded so that each emptiness can fail: served, the same reading lists `ops`,
+            // finds the client holding `gone` and holds the removal of `gone`.
+            CreateAuthorityIn(_first);
+            var store = new KdbxStore(_first.Database, GateVersion.Current, null);
+            StoreSeeds.Name(store, "ops");
+            StoreSeeds.Name(store, "gone");
+            using (var target = _targets.Current().Single())
+            using (var client = new AuthorityIssuer().IssueClient(target.AuthorityKey, "agent-fictitious", new[] { "gone" }).Read())
+            {
+                new StoredAdmissions(_first.Database).Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "gone" }, target.DatabaseId));
+                StoreSeeds.Unname(store, "gone");
+                string gone;
+                using (var reading = store.Read())
+                {
+                    gone = reading.InForce.RemovalsOf("gone").Single();
+                }
+
+                var served = target.Asked(new[] { "ops", "gone" });
+                Assert.That(served.Served, Is.True, "not served to begin with, so nothing below is measured");
+                Assert.That(served.Listed, Is.EqualTo(new[] { "ops" }));
+                Assert.That(served.Returning.Keys, Is.EqualTo(new[] { "gone" }));
+                Assert.That(served.Held("gone", gone), Is.True);
+
+                StoreSeeds.Beside(store);
+                var asked = target.Asked(new[] { "ops", "gone" });
+
+                Assert.That(asked.Served, Is.False);
+                Assert.That(asked.Word, Is.EqualTo(HeldBackTarget.Undecided));
+                Assert.That(asked.Listed, Is.Empty);
+                Assert.That(asked.Removed, Is.Empty);
+                Assert.That(asked.Returning, Is.Empty);
+                Assert.That(asked.Held("gone", gone), Is.False);
+            }
+        }
+
+        [Test]
+        public void A_target_whose_database_closed_reads_nothing_for_a_dialog_and_throws_that_the_database_is_shut()
+        {
+            // As `Unavailable` and a client's admission are read: a database gone is never a
+            // reading of a store, which the pairing handler answers `locked`.
+            CreateAuthorityIn(_first);
+            using (var target = _targets.Current().Single())
+            {
+                Assert.That(target.Asked(new[] { "ops" }).Served, Is.True, "not served to begin with, so nothing below is measured");
+
+                _first.Database.Close();
+
+                Assert.Throws<KeePassGate.Diagnostics.DatabaseShut>(() => target.Asked(new[] { "ops" }));
+            }
+        }
+
+        /// <summary>
+        /// A removal of this name composed under the store key and named by a deletion record
+        /// alone, answering its identifier: its entry deleted for good and every summary entry
+        /// restating it lost, as a Synchronize with a copy that lost them leaves it.
+        /// </summary>
+        private string RemovedApart(KdbxStore store, string name)
+        {
+            using (var reading = store.Read())
+            {
+                var removal = StoreRecord.Compose(
+                    reading.InForce.Key.Bytes,
+                    StoreKinds.Removed,
+                    new Dictionary<string, string>(StringComparer.Ordinal) { { StoreKinds.NameMember, name } });
+                _first.Database.DeletedObjects.Add(new PwDeletedObject(new PwUuid(removal.Identifier), DateTime.UtcNow));
+                return removal.Hex;
+            }
         }
 
         [Test]

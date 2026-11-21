@@ -126,15 +126,13 @@ namespace KeePassGate.Gate
             get { return string.Empty; }
         }
 
-        public IReadOnlyList<string> KnownProfiles
+        /// <summary>
+        /// Nothing but the word: pairing is refused here, so no dialog is built, and the request is
+        /// answered as every connection to this target is, <see cref="Unavailable"/>.
+        /// </summary>
+        public AskedProfiles Asked(IReadOnlyCollection<string> profiles)
         {
-            get { return Array.Empty<string>(); }
-        }
-
-        /// <summary>Nobody: pairing is refused here, so no dialog asks.</summary>
-        public IReadOnlyList<AdmissionRecord> Holding(string profile)
-        {
-            return Array.Empty<AdmissionRecord>();
+            return AskedProfiles.Unserved(Unavailable);
         }
 
         /// <summary>The candidate's own digest, which is what its clients and invitations name.</summary>

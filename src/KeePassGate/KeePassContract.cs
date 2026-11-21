@@ -231,5 +231,24 @@ namespace KeePassGate
         /// what the host tests pin.
         /// </remarks>
         public const string DatabaseMergeMethod = nameof(KeePassLib.PwDatabase.MergeIn);
+
+        /// <summary>
+        /// KeePass's own resources, a class it keeps to itself, where the pictures of its menus and
+        /// toolbars are.
+        /// </summary>
+        public const string ResourcesTypeName = "KeePass.Properties.Resources";
+
+        /// <summary>
+        /// The picture KeePass draws for Synchronize, a green pair of arrows sixteen pixels square,
+        /// which Refresh on the pairing dialog shows: a static property of
+        /// <see cref="ResourcesTypeName"/>, kept to KeePass as the class is.
+        /// </summary>
+        /// <remarks>
+        /// **Each reading is a new picture**, since a resource manager makes a picture afresh each
+        /// time a picture is asked for, so the plugin lets go of what it read once it has made the
+        /// copy it keeps; the host tests pin that as well as the picture, since letting go of a
+        /// picture KeePass kept would take the picture from KeePass's own window.
+        /// </remarks>
+        public const string RefreshPictureProperty = "B16x16_Reload_Page";
     }
 }

@@ -325,6 +325,54 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_dialog_shown_again_is_bounded_by_the_pairing_budget_as_the_first_dialog_is()
+        {
+            // The deadline is dropped where the first approval is handed to the writer. That write
+            // finds the approval stale, and the dialog the request puts to the operator again takes
+            // the deadline up again, to the end of the pairing budget counted from the request, so
+            // that the listener bounds it as it bounds the first dialog. Here the operator
+            // outlasts that budget on the dialog shown again, and the connection is closed at its
+            // end rather than after the dialog.
+            var dialogs = 0;
+            var slow = new FakePairingApproval(request =>
+            {
+                if (Interlocked.Increment(ref dialogs) == 2)
+                {
+                    Thread.Sleep(TimeSpan.FromSeconds(8));
+                }
+
+                return PairingApproval.Approved(request.Profiles);
+            });
+            _target.BeforeWrite = () =>
+            {
+                _target.BeforeWrite = null;
+                StoreRecords.RemovedApart(_target.Store, "ops");
+            };
+            var options = new GateOptions
+            {
+                Port = 0,
+                Budget = TimeSpan.FromSeconds(5),
+                PairingBudget = TimeSpan.FromSeconds(4),
+            };
+
+            using (var listener = Listening(slow, options))
+            {
+                var client = new PairingClient(listener.Port, _invitation.Text);
+                Assume.That(client.Hello().ServerProved, Is.True);
+
+                var spent = Stopwatch.StartNew();
+                var reply = client.Request("agent-fictitious", "ops");
+                spent.Stop();
+
+                Assert.That(Volatile.Read(ref dialogs), Is.EqualTo(2), "the dialog was shown again");
+                Assert.That(reply.Status, Is.Not.EqualTo(200), reply.Body);
+                Assert.That(client.Identity, Is.Null);
+                Assert.That(spent.Elapsed, Is.LessThan(TimeSpan.FromSeconds(7)),
+                    "closed at the end of the pairing budget, not once the dialog was answered");
+            }
+        }
+
+        [Test]
         public void An_invitation_named_and_no_request_made_is_worth_the_ordinary_budget_and_no_more()
         {
             // The longer budget is for a connection that is about to wait on a person, and a

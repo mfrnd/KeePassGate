@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
@@ -30,6 +31,20 @@ namespace KeePassGate.Ui
     /// </remarks>
     public abstract class ApprovalDialog : Form
     {
+        /// <summary>What UI automation reads as the table of facts about the request.</summary>
+        /// <remarks>
+        /// **Every part of an approval dialog that UI automation reads has a name of its own**, or
+        /// is hidden: a part with none is read by the name of the part before it, so the table of
+        /// facts was read as the line above it and the footer as the line above the table.
+        /// </remarks>
+        internal const string DetailsRead = "Details";
+
+        /// <summary>What UI automation reads as the row of the countdown and the buttons.</summary>
+        internal const string AnswerRead = "Answer";
+
+        /// <summary>What UI automation reads as the buttons.</summary>
+        internal const string ButtonsRead = "Buttons";
+
         private const int TopmostStyle = 0x00000008;
 
         /// <summary>The window whose taskbar entry is flashing, or nothing.</summary>
@@ -39,6 +54,38 @@ namespace KeePassGate.Ui
         /// The window this dialog last asked the taskbar to flash, so a test can see which.
         /// </summary>
         internal IntPtr Flashed { get; private set; }
+
+        /// <summary>
+        /// The size of the countdown at its widest while the dialog stands, its words in this format
+        /// with as many digits as the seconds it starts from, each the widest digit of its font,
+        /// at most this wide; the countdown is held at that size.
+        /// </summary>
+        /// <remarks>
+        /// **Held, and never sized by its words**: a label sized by its words lays the whole dialog
+        /// out at every change of them, every second, and a layout of the dialog has WinForms bring
+        /// the control holding the focus into view, which drew the view of the table's rows again
+        /// round a box holding the focus, every second, with nothing changed.
+        /// </remarks>
+        internal static System.Drawing.Size CountdownSize(Label countdown, string format, TimeSpan timeout, int widest)
+        {
+            if (countdown == null)
+            {
+                throw new ArgumentNullException(nameof(countdown));
+            }
+
+            var words = countdown.Text;
+            var digits = ((int)Math.Max(0, Math.Ceiling(timeout.TotalSeconds))).ToString(CultureInfo.InvariantCulture).Length;
+            var size = System.Drawing.Size.Empty;
+            foreach (var digit in "0123456789")
+            {
+                countdown.Text = string.Format(CultureInfo.InvariantCulture, format, new string(digit, digits));
+                var measured = countdown.GetPreferredSize(new System.Drawing.Size(widest, 0));
+                size = new System.Drawing.Size(Math.Max(size.Width, measured.Width), Math.Max(size.Height, measured.Height));
+            }
+
+            countdown.Text = words;
+            return size;
+        }
 
         /// <summary>Shown without taking the activation from whatever has it.</summary>
         protected override bool ShowWithoutActivation

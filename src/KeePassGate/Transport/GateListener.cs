@@ -967,7 +967,7 @@ namespace KeePassGate.Transport
                                     {
                                         if (resolution.IsPairing || Renewing(head))
                                         {
-                                            deadline.Extend(_options.PairingBudget);
+                                            deadline.Await(_options.PairingBudget);
                                             Awaiting(client);
                                         }
                                         else
@@ -976,7 +976,8 @@ namespace KeePassGate.Transport
                                         }
                                     },
                                     () => deadline.Writing(_options.Budget),
-                                    () => deadline.Disarm());
+                                    () => deadline.Disarm(),
+                                    () => deadline.AwaitAgain());
                             }
 
                             // And closed the way an answered connection is, so that whatever the
@@ -1069,11 +1070,20 @@ namespace KeePassGate.Transport
         {
             private readonly Timer _timer;
 
+            /// <summary>Elapsed time since the deadline was made, on a monotonic clock.</summary>
+            private readonly System.Diagnostics.Stopwatch _running = System.Diagnostics.Stopwatch.StartNew();
+
             /// <summary>
             /// Whether <see cref="Disarm"/> has run, which only the connection's own thread asks or
             /// sets.
             /// </summary>
             private bool _disarmed;
+
+            /// <summary>
+            /// Where the budget <see cref="Await"/> gave ends, on <see cref="_running"/>; touched
+            /// only on the connection's own thread.
+            /// </summary>
+            private TimeSpan _awaitEnds;
 
             public Deadline(TcpClient client, TimeSpan budget)
             {
@@ -1120,6 +1130,34 @@ namespace KeePassGate.Transport
             }
 
             /// <summary>
+            /// The longer budget of a pairing or a renewal, counted from now, which is when its
+            /// request is off the wire, and kept so that <see cref="AwaitAgain"/> can count to the
+            /// same end.
+            /// </summary>
+            public void Await(TimeSpan budget)
+            {
+                _awaitEnds = _running.Elapsed + budget;
+                Extend(budget);
+            }
+
+            /// <summary>
+            /// Takes the deadline up again, after a write disarmed it, for what is left of the
+            /// budget <see cref="Await"/> gave: a pairing whose write found its approval stale and
+            /// that puts the dialog to the operator again.
+            /// </summary>
+            /// <remarks>
+            /// **Bounded by the listener as the first dialog is**, to the same end, so that a dialog
+            /// shown again cannot hold the connection past the pairing budget whatever its own
+            /// countdown does. Where nothing is left, the connection is closed at once, which is
+            /// where the first dialog's deadline would have closed it.
+            /// </remarks>
+            public void AwaitAgain()
+            {
+                var left = _awaitEnds - _running.Elapsed;
+                _timer.Change(left > TimeSpan.Zero ? left : TimeSpan.Zero, Timeout.InfiniteTimeSpan);
+            }
+
+            /// <summary>
             /// Stops the connection being closed at all, once what is left is this plugin's own
             /// work: at the end of the request, or for a pairing or a renewal at its write.
             /// </summary>
@@ -1148,7 +1186,9 @@ namespace KeePassGate.Transport
             /// <see cref="GateOptions.PairingBudget"/> outlasts those together, so there the
             /// deadline still means something. The write that follows is the same unbounded save as
             /// any other, with the invitation spent inside it, and the handler marks where it begins
-            /// through `ConnectionDeadline`.
+            /// through `ConnectionDeadline`. A pairing whose write finds its approval stale puts the
+            /// dialog up again, which waits on a person as the first did, and takes the deadline up
+            /// again for it, <see cref="AwaitAgain"/>, until its next write disarms it once more.
             /// </remarks>
             public void Disarm()
             {
@@ -1173,9 +1213,10 @@ namespace KeePassGate.Transport
             /// written as it is sent, the window also holds the plugin's reading of the values,
             /// which reads no database and holds no lock, so the deadline can cut short an
             /// answer the peer was reading: the answer to a read and never a change,
-            /// `DESIGN.md` §143. A pairing or a renewal answered after its write is armed here as
-            /// every other connection is, and a pairing or a renewal answered before its write, a
-            /// refusal or a `503`, keeps the deadline it was given with its request.
+            /// `DESIGN.md` §143. A pairing or a renewal answered after a write is armed here as every
+            /// other connection is, a pairing answered on or before a dialog it put up again after a
+            /// write among them, and a pairing or a renewal answered before any write, a refusal or a
+            /// `503`, keeps the deadline it was given with its request.
             /// </remarks>
             public void Writing(TimeSpan budget)
             {
@@ -1412,7 +1453,8 @@ namespace KeePassGate.Transport
             string peer,
             Action<HttpRequestHead> arrived,
             Action answering,
-            Action writing)
+            Action writing,
+            Action resuming)
         {
             var target = resolution.Target;
             var replayed = new PrependingStream(peek.Bytes, raw);
@@ -1490,7 +1532,7 @@ namespace KeePassGate.Transport
                 GateConversation.Serve(
                     protocol.Stream, client, _handler, _options, _log,
                     Pairing(resolution, peek, target, peer), _incidents, target, peer, arrived,
-                    answering, writing);
+                    answering, writing, resuming);
             }
             finally
             {

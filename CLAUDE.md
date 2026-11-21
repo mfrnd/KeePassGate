@@ -205,10 +205,17 @@ designing around them.
   beside it, the operator's ruling of 2026-10-14 over an HMAC token on the wire: keyed by a digest of
   exactly the approved request, held for the rest of the pairing budget, used once, let go by a
   lock, a close of its database and an exit, and compared under the writer's lock at the write
-  with the authority, the profile list and the renewed record it was approved against. The client
-  is told `heldUntil` in its `503 busy`. And the settings dialog a token was made on withdraws it
-  unless that dialog is accepted, so Cancel means Cancel for the one thing on the tab that takes
-  effect before OK.
+  with the authority, the profile list, the removals of each approved name off the list that its
+  dialog held and the clients it showed regaining that name, and the renewed record it was
+  approved against. The client is told `heldUntil` in its `503 busy`. **A pairing whose write
+  finds its approval stale is not answered there**: the same request puts the dialog to the
+  operator again, keeping
+  the screen and what the operator approved as state of its own
+  that goes with it, until an approval is written, the operator refuses, or the pairing budget is
+  used up, `PAIRING.md` §311. A held approval is the only approval a later request can find stale,
+  and that request puts the dialog up again the same way. And the settings dialog a
+  token was made on withdraws it unless that dialog is accepted, so Cancel means Cancel for the
+  one thing on the tab that takes effect before OK.
 - **The approval dialogs are not registered with `GlobalWindowManager`**, and that is the reverse of
   every dialog KeePass shows. A registered dialog holds KeePass's inactivity lock off and drops a
   Windows lock, a session switch or a suspend asked for while it stands, and a dialog a client can
@@ -222,7 +229,16 @@ designing around them.
   periodic trigger off**, so a synchronize or a save it runs happens inside their modal loop and
   ends by enabling KeePass's main window behind them. `WindowEnabling.ShowDialog` disables it again
   for as long as any dialog of the plugin's stands, the authority chooser and the window under
-  Tools among them, and that, not registering a dialog, is the answer to it.
+  Tools among them, and that, not registering a dialog, is the answer to it. **The pairing dialog
+  reads the store on KeePass's thread with the store key**, afresh, as it comes up and on each tick
+  of its countdown, skipping a tick while KeePass is part way through work of its own, and lets the
+  reading go within the turn, `PAIRING.md` §303. **It does not change by itself**: a change it
+  finds disables Approve and enables Refresh, which shows the change and highlights the rows it
+  changed, so that no row moves under the pointer. A change no tick has read yet, inside work of
+  KeePass's own or after the last tick before the press, is caught by the write, which holds the
+  approval to the list, the removals and the clients the dialog last showed; the request then
+  shows the dialog again where a row differs, and writes the approval over the new reading where
+  none does.
 - **The proofs need nothing from the transport.** `tls-server-end-point` is a hash of the
   certificate in use, so each side computes it from bytes it already holds. Do not re-propose
   `TransportContext.GetChannelBinding`: it was necessary while `SslStream` terminated the TLS and
@@ -1878,7 +1894,9 @@ and save. Pairing keeps its deadline until its write, and that asymmetry is the 
 than an exception to it, since what a pairing waits for ahead of its write is a list of waits
 somebody wrote down: the screen, because one pairing at a time is put to the operator and a second
 waits as long again just to get in front of them, then the dialog and the grace on it, then the
-settling of a busy KeePass. `PairingBudget` is what those are added up against. **A dialog that
+settling of a busy KeePass. `PairingBudget` is what those are added up against, and a pairing
+whose write finds its approval stale takes the deadline up again, to the same end, for the dialog
+it puts up again. **A dialog that
 comes up late is given only what is left of it**, once what follows the dialog up to the save is
 set aside, the writer's lock and turn included so that a client waiting the same six minutes is
 still waiting when the save begins, and is not shown at all with under thirty seconds left: that

@@ -386,12 +386,14 @@ def _refuse(reply: transport.Response) -> None:
     if reply.status == 503:
         # The invitation survives, and that is a property of the gate rather than a hope.
         # `PairingHandler` answers `503` only before the invitation is burned: the blocked check
-        # before the dialog and again after it, a dialog that could not be shown, one that never
-        # reached the screen, and the write finding KeePass busy before it spent anything, which
-        # it does under the writer's lock. After the burn it answers `500` instead, in as many
-        # words, because a client told to come back would be turned away at the name. So a `503`
-        # from this route means no certificate was issued and no record was written, and
-        # `locked` and `undecided` are answered before the request is read at all. A `busy`
+        # before the dialog and again after it, the reading the dialog is built from finding a
+        # store that no longer serves the authority, which is answered as the write would answer
+        # it, its word, `undecided` or `locked`, a dialog that could not be shown, a dialog that
+        # never reached the screen, and the write finding KeePass busy before it spent anything,
+        # which it does under the writer's lock. After the burn it answers `500` instead, in as
+        # many words, because a client told to come back would be turned away at the name. So a
+        # `503` from this route means no certificate was issued and no record was written, and
+        # `locked` and `undecided` are answered before the request is read as well. A `busy`
         # after the operator approved carries `heldUntil`: the approval is held until then for
         # exactly this request, which `api.pair` asks for again by itself.
         #

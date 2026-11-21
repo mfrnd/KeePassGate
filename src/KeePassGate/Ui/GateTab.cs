@@ -213,9 +213,6 @@ namespace KeePassGate.Ui
         /// <summary>What a screen reader calls the port box.</summary>
         public const string StatusPortBoxLabel = "Port to listen on";
 
-        /// <summary>What a screen reader calls the profiles being approved.</summary>
-        public const string ApprovalProfilesListLabel = "Profiles this client may use";
-
         /// <summary>
         /// What UI automation and a screen reader read off the copy button, since an icon has no
         /// caption for them to read. Every other button on this tab is found by its own text.
@@ -331,13 +328,45 @@ namespace KeePassGate.Ui
 
         public const string ApprovalDetailLabelName = "KpgApprovalDetailLabel";
 
-        /// <summary>The line saying the list holds more profiles than it shows at once.</summary>
-        public const string ApprovalScrollingName = "KpgApprovalScrolling";
+        /// <summary>
+        /// The words beside Refresh, on the line above the table, stating that the database
+        /// changed under the dialog, that the database cannot be read, for now or for the rest of
+        /// the dialog, or that the dialog is shown again after Approve.
+        /// </summary>
+        public const string ApprovalChangeName = "KpgApprovalChange";
 
-        /// <summary>The line naming the clients that regain a removed profile if it is approved.</summary>
-        public const string ApprovalRegainingName = "KpgApprovalRegaining";
+        /// <summary>
+        /// The button with a picture and no text, at the end of the line above the table, that
+        /// shows a change of the database under the dialog.
+        /// </summary>
+        public const string ApprovalRefreshName = "KpgApprovalRefresh";
 
+        /// <summary>The table of the profiles asked for, a row for each with a check box.</summary>
         public const string ApprovalProfilesListName = "KpgApprovalProfilesList";
+
+        /// <summary>The table's column of check boxes.</summary>
+        public const string ApprovalGrantColumnName = "KpgApprovalGrantColumn";
+
+        /// <summary>The table's column of names.</summary>
+        public const string ApprovalProfileColumnName = "KpgApprovalProfileColumn";
+
+        /// <summary>The table's column stating the state of a name off the list.</summary>
+        public const string ApprovalStateColumnName = "KpgApprovalStateColumn";
+
+        /// <summary>The table's column of the clients still holding a removed name.</summary>
+        public const string ApprovalHeldByColumnName = "KpgApprovalHeldByColumn";
+
+        /// <summary>
+        /// A row of a table of profiles on an approval dialog, holding the row's check box and a
+        /// cell for each column of text, each cell named as its column's heading is.
+        /// </summary>
+        public const string ProfileRowName = "KpgProfileRow";
+
+        /// <summary>
+        /// The check box of a row of a table of profiles, which UI automation reads as a check box
+        /// named by the row's text read out.
+        /// </summary>
+        public const string ProfileBoxName = "KpgProfileBox";
 
         /// <summary>The choice of how long the certificate lasts.</summary>
         public const string ApprovalLifetimeName = "KpgApprovalLifetime";
@@ -368,11 +397,11 @@ namespace KeePassGate.Ui
 
         public const string RenewalProfilesListName = "KpgRenewalProfilesList";
 
-        /// <summary>The line naming the profiles a renewal does not carry over.</summary>
-        public const string RenewalDroppedName = "KpgRenewalDropped";
+        /// <summary>The renewal table's column of check boxes, and of the X in place of a box.</summary>
+        public const string RenewalGrantColumnName = "KpgRenewalGrantColumn";
 
-        /// <summary>The line saying the list holds more profiles than it shows at once.</summary>
-        public const string RenewalScrollingName = "KpgRenewalScrolling";
+        /// <summary>The renewal table's column of names.</summary>
+        public const string RenewalProfileColumnName = "KpgRenewalProfileColumn";
 
         public const string RenewalCountdownName = "KpgRenewalCountdown";
 
@@ -389,7 +418,7 @@ namespace KeePassGate.Ui
         public const string RenewalAdmittedFactName = "Admitted (UTC)";
 
         /// <summary>What it calls the end of the certificate the client holds now.</summary>
-        public const string RenewalExpiresFactName = "Its certificate expires (UTC)";
+        public const string RenewalExpiresFactName = "Certificate expires (UTC)";
 
         /// <summary>
         /// The menu the renewal dialog's Refuse button opens, listing what refusing can mean.

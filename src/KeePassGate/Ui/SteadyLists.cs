@@ -61,31 +61,4 @@ namespace KeePassGate.Ui
             }
         }
     }
-
-    /// <summary>
-    /// The profile list on an approval dialog, whose checks change only by a click or by Space.
-    /// </summary>
-    /// <remarks>
-    /// A list of check boxes that checks on click selects the first item starting with a letter
-    /// typed on it and toggles that item as it does, so typing that landed on it unchecked what
-    /// Approve grants, and the list has the focus when the dialog is first activated. Letters and
-    /// digits are not taken; Space toggles the selected profile and the arrows move between them,
-    /// which is somebody going through the list.
-    /// </remarks>
-    internal sealed class SteadyChecks : CheckedListBox
-    {
-        protected override void OnKeyPress(KeyPressEventArgs e)
-        {
-            WindowHandlers.Run("a letter on a list of choices could not be handled", () =>
-            {
-                if (e != null && e.KeyChar != ' ')
-                {
-                    e.Handled = true;
-                    return;
-                }
-
-                base.OnKeyPress(e);
-            });
-        }
-    }
 }

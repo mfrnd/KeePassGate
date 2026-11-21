@@ -146,12 +146,15 @@ namespace KeePassGate.Transport
         /// still has the whole of the dialog ahead of it.
         ///
         /// **And these are the connections that keep a deadline after their request is read**,
-        /// where <see cref="Budget"/> drops it, **until their write begins**, where it is dropped
-        /// for them too. The difference is that what a pairing waits for ahead of its write is a
+        /// where <see cref="Budget"/> drops it, **until a write of theirs begins**, where it is
+        /// dropped for them too. The difference is that what a pairing waits for ahead of its write is a
         /// sum somebody can write down, so a number for it means something; a write is a save of
         /// unknown length, a pairing's as much as any other, so a number for it can only cut a
         /// landing write off from its answer, and a pairing's write spends the invitation as well.
-        /// The handler marks where the write begins, through `ConnectionDeadline`.
+        /// The handler marks where the write begins, through `ConnectionDeadline`. **A pairing whose
+        /// write finds its approval stale takes the deadline up again** for the dialog it puts to
+        /// the operator again, to the end of this budget counted from the request, and its next
+        /// write drops it once more.
         ///
         /// **A dialog that comes up late is given what is left of this, not the whole of
         /// `ApprovalTimeout`**, which reverses a decision. The dialog's countdown starts when it is

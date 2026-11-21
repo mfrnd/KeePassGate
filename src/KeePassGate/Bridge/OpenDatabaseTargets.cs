@@ -1580,15 +1580,23 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>
-            /// The profiles this database names now, `STORE.md` §616, read from the store in a hold
-            /// of their own. None where the store does not serve this target's authority.
+            /// What the store holds now of the profiles a pairing asks for, `STORE.md` §616, read
+            /// afresh with the store key, and where the store does not serve this target's
+            /// authority, nothing but the word the write answers the same store with,
+            /// `AskedProfiles.Unserved`. Throws `DatabaseShut` where the database has gone, as
+            /// `Unavailable` does.
             /// </summary>
-            public IReadOnlyList<string> KnownProfiles
+            /// <remarks>
+            /// **Asked on KeePass's thread**, by the turn that puts the dialog up and by the dialog
+            /// itself, where a hold is simply run; a hold asked from any other thread holds
+            /// KeePass's thread still for it, so that the tree never moves under the reading.
+            /// </remarks>
+            public AskedProfiles Asked(IReadOnlyCollection<string> profiles)
             {
-                get { return _hold.Hold(ProfilesNow); }
+                return _hold.Hold(() => AskedNow(profiles));
             }
 
-            private IReadOnlyList<string> ProfilesNow()
+            private AskedProfiles AskedNow(IReadOnlyCollection<string> profiles)
             {
                 // Read into a local first, for the reason `DatabaseName` below gives: this is asked
                 // from a connection thread, and the field goes away underneath it when the last
@@ -1598,43 +1606,19 @@ namespace KeePassGate.Bridge
                 var database = _database;
                 if (database == null || database.RootGroup == null)
                 {
-                    return Array.Empty<string>();
+                    throw new DatabaseShut("the database closed before a pairing's dialog was read");
                 }
 
-                var reading = _store.Now(database, database.RootGroup);
-                return Served(reading) ? ProfileNames.Of(reading).Names : Array.Empty<string>();
-            }
-
-            /// <summary>
-            /// The admitted clients whose admissions hold a profile, read now. Nobody where the
-            /// database has gone or its store cannot be judged, since such a store admits nobody,
-            /// which leaves the approval dialog with no warning to give rather than a wrong
-            /// warning.
-            /// </summary>
-            public IReadOnlyList<AdmissionRecord> Holding(string profile)
-            {
-                return _hold.Hold(() => HoldingNow(profile));
-            }
-
-            private IReadOnlyList<AdmissionRecord> HoldingNow(string profile)
-            {
-                // Into a local first, for the reason `KnownProfiles` gives.
-                var database = _database;
-                if (database == null || database.RootGroup == null || string.IsNullOrEmpty(profile))
+                // **Afresh, as the writer's turn reads, and let go before anything leaves**: the
+                // removals of each name are counted with the store key, as the write counts them,
+                // and only names and identifiers are handed out; letting the reading go overwrites
+                // the bytes of every key its forms found, `CA.md` §208. Judged by the two members
+                // the write judges the same store by, so that the two answer it alike,
+                // `PAIRING.md` §303.
+                using (var reading = new KdbxStore(database, null, _log).Read())
                 {
-                    return Array.Empty<AdmissionRecord>();
+                    return StoreReadings.Asked(reading, _databaseId, profiles, DateTimeOffset.UtcNow);
                 }
-
-                // The admissions of the store as this hold read it that admit their certificate,
-                // and not an admission whose certificate has expired: it regains nothing, being
-                // refused on its dates before its admission is read.
-                var now = DateTimeOffset.UtcNow;
-                var listing = StoreAdmissions.Listing(_store.Now(database, database.RootGroup));
-                return listing.Records
-                    .Where(record => listing.StandingOf(record) == AdmissionStanding.Admitted
-                                     && record.Profiles.Contains(profile, StringComparer.Ordinal)
-                                     && !record.HasExpired(now))
-                    .ToList();
             }
 
             public byte[] GateKey
@@ -1785,7 +1769,7 @@ namespace KeePassGate.Bridge
             {
                 return _hold.Hold(() =>
                 {
-                    // Into a local first, for the reason `KnownProfiles` gives.
+                    // Into a local first, for the reason `Asked` gives.
                     var database = _database;
                     if (database == null || database.RootGroup == null)
                     {
@@ -1902,7 +1886,7 @@ namespace KeePassGate.Bridge
 
             private Admitted AdmissionNow(string admissionKey)
             {
-                // Into a local first, for the reason `KnownProfiles` gives.
+                // Into a local first, for the reason `Asked` gives.
                 var database = _database;
                 if (database == null || database.RootGroup == null)
                 {

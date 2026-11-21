@@ -275,8 +275,12 @@ program is asking, when it was admitted and when the certificate it holds now en
 the dialog marks them, where the request came from, and the profiles it holds, all checked. Uncheck
 anything the new certificate should not carry; nothing can be added. The certificate it holds now
 keeps every profile until the program gives it up, which the reference client does as soon as it
-has stored the new certificate. A profile this database no longer names is not offered, and a
-line under the list states it is not carried over. Pick how long the new certificate lasts, as
+has stored the new certificate. A profile this database no longer names has a red X in place of a
+box and its name in gray: the new certificate goes without it, as the pointer on either says;
+where no profile the program holds is still named, a notice above the table reads "The new
+certificate reaches no profile.". With more profiles than the table shows, the row at its bottom
+is cut in half while the table is at the top of its rows, as on the pairing dialog. Pick how
+long the new certificate lasts, as
 on the pairing dialog. A program that asks again while its dialog is still up is told to wait,
 so the dialog never comes up twice for one certificate.
 

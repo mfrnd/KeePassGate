@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using KeePassGate.Authority;
+using KeePassGate.Gate;
 
 namespace KeePassGate.Pairing
 {
@@ -14,57 +17,105 @@ namespace KeePassGate.Pairing
         private readonly string _invitationId;
         private readonly string _name;
         private readonly IReadOnlyList<string> _profiles;
-        private readonly IReadOnlyList<string> _known;
-        private readonly IReadOnlyDictionary<string, IReadOnlyList<AdmissionRecord>> _returning;
         private readonly string _peer;
         private readonly TimeSpan? _lifetime;
+        private readonly PairingApproval _earlier;
+        private readonly AskedProfiles _before;
+        private readonly ScreenPlace _place;
+        private readonly Func<AskedProfiles> _read;
+        private readonly AskedProfiles _shown;
 
-        public PairingRequest(
-            string databaseId,
-            string invitationId,
-            string name,
-            IReadOnlyList<string> profiles,
-            string peer)
-            : this(databaseId, null, invitationId, name, profiles, null, peer)
-        {
-        }
+        /// <summary>
+        /// The names whose row a Refresh of the dialog changed, each with what the Refreshes
+        /// changed in it, <see cref="Refreshed"/>.
+        /// </summary>
+        private readonly Dictionary<string, RowChange> _refreshed;
 
-        /// <summary>The same, with everything the dialog shows beside what was asked.</summary>
+        /// <summary>
+        /// The names whose row the Refresh that made this request changed, and of those the names
+        /// for which Approve does more since, <see cref="Refreshes"/> and <see cref="Unchecks"/>;
+        /// empty for a request no Refresh made.
+        /// </summary>
+        private readonly HashSet<string> _altered = new HashSet<string>(StringComparer.Ordinal);
+
+        private readonly HashSet<string> _widened = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// What the handler puts to the screen: everything the dialog shows beside what was asked
+        /// is read by <paramref name="read"/>, `PairingApprovalPrompt`, and none of it is given
+        /// here.
+        /// </summary>
         /// <param name="databaseName">
         /// What KeePass calls this database. A dialog naming it only by its fingerprint asks the
         /// operator to recognize sixteen hexadecimal characters.
         /// </param>
-        /// <param name="known">
-        /// The profiles this database already names. What is asked for and is not among them is
-        /// new, and approving it is what creates it, unless a client already holds it.
-        /// </param>
-        /// <param name="returning">
-        /// For each profile asked for that the database does not name, the admitted clients whose
-        /// records still hold it. Approving such a profile puts the name back on the list, which
-        /// gives it back to every one of them. Null or absent when nobody does.
-        /// </param>
         /// <param name="lifetime">
         /// How long the client asked its certificate to last, already read off the wire and known
-        /// to be one `Lifetime` allows, or null when it asked for nothing.
+        /// to be a lifetime `Lifetime` allows, or null when it asked for nothing.
         /// </param>
+        /// <param name="earlier">
+        /// What the operator approved on the dialog before, for the dialog the request puts to the
+        /// operator again once a write found that approval stale, which opens with it; null for a
+        /// first dialog. An approval, and never from anything the client sent.
+        /// </param>
+        /// <param name="before">
+        /// What the dialog before was built from, which gives how it showed each row; null for a
+        /// first dialog.
+        /// </param>
+        /// <param name="place">
+        /// The place on the screen the request keeps between its dialogs.
+        /// </param>
+        /// <param name="read">
+        /// What the dialog is built from, read afresh on KeePass's thread whenever it is called:
+        /// as the dialog comes up, <see cref="Showing"/>, and while it stands,
+        /// <see cref="Refreshed"/>.
+        /// </param>
+        /// <exception cref="ArgumentNullException">No reading was given.</exception>
         public PairingRequest(
             string databaseId,
             string databaseName,
             string invitationId,
             string name,
             IReadOnlyList<string> profiles,
-            IReadOnlyList<string> known,
             string peer,
-            IReadOnlyDictionary<string, IReadOnlyList<AdmissionRecord>> returning = null,
-            TimeSpan? lifetime = null)
+            TimeSpan? lifetime,
+            PairingApproval earlier,
+            AskedProfiles before,
+            ScreenPlace place,
+            Func<AskedProfiles> read)
+            : this(databaseId, databaseName, invitationId, name, profiles, peer, lifetime, earlier, before, place,
+                   read ?? throw new ArgumentNullException(nameof(read)), null, null)
         {
+        }
+
+        private PairingRequest(
+            string databaseId,
+            string databaseName,
+            string invitationId,
+            string name,
+            IReadOnlyList<string> profiles,
+            string peer,
+            TimeSpan? lifetime,
+            PairingApproval earlier,
+            AskedProfiles before,
+            ScreenPlace place,
+            Func<AskedProfiles> read,
+            AskedProfiles shown,
+            IDictionary<string, RowChange> refreshed)
+        {
+            _earlier = earlier;
+            _before = before;
+            _place = place;
+            _read = read;
+            _shown = shown;
+            _refreshed = refreshed == null
+                ? new Dictionary<string, RowChange>(StringComparer.Ordinal)
+                : new Dictionary<string, RowChange>(refreshed, StringComparer.Ordinal);
             _databaseId = databaseId ?? string.Empty;
             _databaseName = databaseName ?? string.Empty;
             _invitationId = invitationId ?? string.Empty;
             _name = name ?? string.Empty;
             _profiles = profiles ?? Nothing;
-            _known = known ?? Nothing;
-            _returning = returning ?? new Dictionary<string, IReadOnlyList<AdmissionRecord>>();
             _peer = peer ?? string.Empty;
             _lifetime = lifetime;
         }
@@ -105,7 +156,7 @@ namespace KeePassGate.Pairing
 
         /// <summary>
         /// How long the client asked its certificate to last, or null when it asked for nothing.
-        /// The operator picks the lifetime, and this is what the dialog offers first.
+        /// The operator picks the lifetime, and this is what a first dialog offers first.
         /// </summary>
         public TimeSpan? Lifetime
         {
@@ -113,33 +164,342 @@ namespace KeePassGate.Pairing
         }
 
         /// <summary>
-        /// Whether a profile being asked for is one this database does not name now and no client
-        /// holds.
+        /// What the dialog is built from, read afresh on KeePass's thread with the store key.
         /// </summary>
         /// <remarks>
-        /// Shown to the operator, because approving one of these does two things rather than one:
-        /// it admits the client, and it puts a name on the list that every rule can then grant to.
-        /// A dialog that showed a new name exactly like an existing one would be asking somebody to
-        /// notice a spelling. **It is not "never named"**: a name removed once, whose holders have
-        /// all been revoked or have expired since, reads the same here, and any rule still naming
-        /// it applies at once, which the dialog says.
+        /// **Called on KeePass's thread alone**, in the turn that puts the dialog up and in the
+        /// dialog's own ticks and presses, so that a removal that only a deletion record tells of
+        /// is tied to its name as the write ties it, `StoreInForce.RemovalsOnceKnown`. A reading
+        /// that does not serve the authority the pairing arrived under answers
+        /// `AskedProfiles.Unserved`, and a reading that fails `AskedProfiles.Unreadable`.
         /// </remarks>
-        public bool IsNew(string profile)
+        public Func<AskedProfiles> Read
         {
-            if (string.IsNullOrEmpty(profile) || Returning(profile).Count > 0)
+            get { return _read; }
+        }
+
+        /// <summary>
+        /// What the request's content was read from, <see cref="Showing"/> or
+        /// <see cref="Refreshed"/>, or null for a request not yet shown: what an approval of the
+        /// dialog showing it holds, `ApprovalBook.Hold`.
+        /// </summary>
+        public AskedProfiles Shown
+        {
+            get { return _shown; }
+        }
+
+        /// <summary>
+        /// The same request with its content read from this reading: the names on the list, the
+        /// clients regaining a name off it and the names shown as removed. What the dialog shows as
+        /// it comes up.
+        /// </summary>
+        /// <param name="content">A reading that serves, `AskedProfiles.Served`.</param>
+        public PairingRequest Showing(AskedProfiles content)
+        {
+            return With(content, _refreshed);
+        }
+
+        /// <summary>
+        /// The same request with its content read from this reading, as a Refresh of the dialog
+        /// shows it: each name whose row the reading changes is noted as changed, beside every
+        /// name a Refresh changed before, <see cref="Changed"/>.
+        /// </summary>
+        /// <param name="content">A reading that serves, `AskedProfiles.Served`.</param>
+        /// <remarks>
+        /// **A row changes where its state does or its clients do**, in either direction: a
+        /// Refresh highlights it, <see cref="Changed"/>. **Of those, a row for which Approve now
+        /// does more**, a state that adds or restores the profile where the row stated otherwise,
+        /// or a client regaining the profile that the row did not name, is a row the Refresh
+        /// unchecks, <see cref="Unchecks"/>, so that no single Approve grants what the operator
+        /// checked in another state; a row for which Approve does less keeps its check.
+        /// </remarks>
+        public PairingRequest Refreshed(AskedProfiles content)
+        {
+            var next = With(content, _refreshed);
+            foreach (var profile in _profiles)
+            {
+                var widened = next.Widens(this, profile);
+                var narrowed = next.Narrows(this, profile);
+                if (widened || narrowed)
+                {
+                    // What the Refresh changed, beside what the Refreshes before it changed; a row
+                    // the Refresh changed is never noted as unchanged, and is told as a change of
+                    // its state where nothing else tells what changed.
+                    RowChange before;
+                    next._refreshed.TryGetValue(profile, out before);
+                    var change = next.Against(_shown, profile);
+                    next._refreshed[profile] = before | (change == RowChange.None ? RowChange.State : change);
+                    next._altered.Add(profile);
+                }
+
+                if (widened)
+                {
+                    next._widened.Add(profile);
+                }
+            }
+
+            return next;
+        }
+
+        /// <summary>
+        /// Whether the Refresh that made this request changed any row of the table, and false for
+        /// a request no Refresh made: a reading that changes no row is taken without a word, and
+        /// an approval then rests on it.
+        /// </summary>
+        public bool Refreshes
+        {
+            get { return _altered.Count > 0; }
+        }
+
+        /// <summary>
+        /// Whether the Refresh that made this request unchecks a profile's row: Approve does more
+        /// for the profile than the row showed before the Refresh, <see cref="Refreshed"/>.
+        /// </summary>
+        public bool Unchecks(string profile)
+        {
+            return profile != null && _widened.Contains(profile);
+        }
+
+        /// <summary>
+        /// Whether Approve does more for a profile as this request shows it than as the request
+        /// before showed it: a state that adds or restores the profile where the state was another,
+        /// or a client regaining the profile that the request before did not show regaining it.
+        /// </summary>
+        private bool Widens(PairingRequest before, string profile)
+        {
+            var mark = MarkOf(profile);
+            var marked = mark != ProfileMark.Listed && mark != before.MarkOf(profile);
+            return marked || Gained(before.Returning(profile), profile);
+        }
+
+        /// <summary>
+        /// Whether Approve does less for a profile as this request shows it than as the request
+        /// before showed it: on the list where it was off it, or a client fewer.
+        /// </summary>
+        private bool Narrows(PairingRequest before, string profile)
+        {
+            var listed = MarkOf(profile) == ProfileMark.Listed && before.MarkOf(profile) != ProfileMark.Listed;
+            return listed || before.Gained(Returning(profile), profile);
+        }
+
+        /// <summary>
+        /// Whether this request shows a client regaining a profile that is not among these
+        /// admissions, by client key: a client is its client key, `CA.md` §223.
+        /// </summary>
+        private bool Gained(IReadOnlyList<AdmissionRecord> shownBefore, string profile)
+        {
+            var known = new HashSet<string>(shownBefore.Select(record => record.ClientKey), StringComparer.Ordinal);
+            return Returning(profile).Any(record => !known.Contains(record.ClientKey));
+        }
+
+        /// <summary>
+        /// An approval of these profiles for this long, held to what the dialog showing this
+        /// request was built from, <see cref="Shown"/>: what the dialog's Approve answers.
+        /// </summary>
+        public PairingApproval Approve(IReadOnlyList<string> profiles, TimeSpan? lifetime)
+        {
+            return PairingApproval.Approved(profiles, lifetime, _shown);
+        }
+
+        /// <summary>
+        /// Whether any row of a dialog shown again differs from the dialog before,
+        /// <see cref="Changed"/>: a dialog shown again comes up only where a row does, and its
+        /// notice is then true.
+        /// </summary>
+        internal bool Differs
+        {
+            get { return _profiles.Any(Changed); }
+        }
+
+        /// <summary>
+        /// For a dialog shown again in which no row differs from the dialog before, the approval
+        /// the operator gave there, held to this request's reading: a change that went back, or a
+        /// further removal of a profile the dialog already showed as restored, is written as
+        /// approved, as a tick taking the same reading would have it, and asked of nobody.
+        /// </summary>
+        internal PairingApproval AsBefore()
+        {
+            return PairingApproval.Restated(_earlier.Profiles, _earlier.Lifetime, _shown);
+        }
+
+        private PairingRequest With(AskedProfiles content, IDictionary<string, RowChange> refreshed)
+        {
+            if (content == null || !content.Served)
+            {
+                throw new ArgumentException("A dialog is built only from a reading that serves.", nameof(content));
+            }
+
+            return new PairingRequest(
+                _databaseId, _databaseName, _invitationId, _name, _profiles, _peer, _lifetime, _earlier, _before, _place,
+                _read, content, refreshed);
+        }
+
+        /// <summary>
+        /// Whether the dialog is shown again, because a write found the approval of the dialog
+        /// before stale; false for a first dialog. Never from anything the client sent.
+        /// </summary>
+        public bool Again
+        {
+            get { return _earlier != null; }
+        }
+
+        /// <summary>
+        /// The lifetime the dialog opens on: the lifetime the operator picked on the dialog before,
+        /// for a dialog shown again, and otherwise what the client asked for.
+        /// </summary>
+        public TimeSpan? Picked
+        {
+            get { return _earlier == null ? _lifetime : _earlier.Lifetime; }
+        }
+
+        /// <summary>
+        /// Whether a profile's row opens checked: every row of a first dialog, and on a dialog
+        /// shown again a row the operator left checked before whose change since, where the row
+        /// changed, makes Approve do no more, <see cref="Changed"/>.
+        /// </summary>
+        /// <remarks>
+        /// **A row whose mark changed opens unchecked**, whatever the operator had there: on the
+        /// list before and removed now, new before and removed now, and so on. **So does a row
+        /// that a client regains which the dialog before did not show regaining it.** What the
+        /// operator approved was the name as it was shown, so a single Approve on the dialog shown
+        /// again grants no name in a state the operator did not approve it in, as putting a name
+        /// back for every rule and client still holding it where the operator approved a name on
+        /// the list, or for a client the operator was not shown. Unchecked as well where nothing
+        /// tells how the dialog before showed it. **A row with a client fewer keeps its check**,
+        /// since Approve does less for it, and is highlighted all the same.
+        /// </remarks>
+        public bool Checks(string profile)
+        {
+            return _earlier == null
+                   || (_earlier.Profiles.Contains(profile, StringComparer.Ordinal)
+                       && !Widened(_before, profile)
+                       && !(profile != null && _refreshed.ContainsKey(profile)));
+        }
+
+        /// <summary>
+        /// Whether a profile's row changed since the dialog was shown before: on a dialog shown
+        /// again, a profile marked otherwise than the dialog before marked it, regained by a client
+        /// that dialog did not show regaining it or no longer by a client it showed, or where
+        /// nothing tells how that dialog showed it; and on any dialog, a profile whose row a
+        /// Refresh changed, <see cref="Refreshed"/>.
+        /// </summary>
+        /// <remarks>
+        /// **A row of a dialog shown again whose change makes Approve do more opens unchecked**,
+        /// <see cref="Checks"/>, as a row the operator unchecked does, so the dialog shows the
+        /// change apart from the check: the row is highlighted, and its tooltip and the text read
+        /// out as the row state the change, `PAIRING.md` §311. **A Refresh unchecks a row only
+        /// where Approve does more**, <see cref="Unchecks"/>, and highlights every row it changed
+        /// the same way.
+        /// </remarks>
+        public bool Changed(string profile)
+        {
+            return ChangeOf(profile) != RowChange.None;
+        }
+
+        /// <summary>
+        /// What changed in a profile's row since the dialog was shown before, on a dialog shown
+        /// again, and by every Refresh, <see cref="Changed"/>: none for a row that did not change.
+        /// </summary>
+        public RowChange ChangeOf(string profile)
+        {
+            RowChange refreshed;
+            var byARefresh = profile != null && _refreshed.TryGetValue(profile, out refreshed) ? refreshed : RowChange.None;
+            return (_earlier != null ? Against(_before, profile) : RowChange.None) | byARefresh;
+        }
+
+        /// <summary>
+        /// What differs in a profile's row from the row a dialog built from this reading showed:
+        /// its state, or else the clients regaining the profile, added or removed; a state where
+        /// nothing tells how that dialog showed the row.
+        /// </summary>
+        /// <remarks>
+        /// **The state alone where the state differs**: the clients follow from the state, since a
+        /// profile on the list or new is regained by nobody.
+        /// </remarks>
+        private RowChange Against(AskedProfiles before, string profile)
+        {
+            if (before == null || before.MarkOf(profile) != MarkOf(profile))
+            {
+                return RowChange.State;
+            }
+
+            var change = RowChange.None;
+            if (Returning(profile).Any(record => !before.Regains(profile, record.ClientKey)))
+            {
+                change |= RowChange.ClientsAdded;
+            }
+
+            if (Narrowed(before, profile))
+            {
+                change |= RowChange.ClientsRemoved;
+            }
+
+            return change;
+        }
+
+        /// <summary>
+        /// Whether a profile's row makes Approve do more than the row a dialog built from this
+        /// reading showed: marked otherwise, or regained by a client that reading did not hold
+        /// regaining it; and where nothing tells how that dialog showed it.
+        /// </summary>
+        private bool Widened(AskedProfiles before, string profile)
+        {
+            if (before == null)
+            {
+                return true;
+            }
+
+            var marked = before.MarkOf(profile) != MarkOf(profile);
+            return marked || Returning(profile).Any(record => !before.Regains(profile, record.ClientKey));
+        }
+
+        /// <summary>
+        /// Whether a client that a dialog built from this reading showed regaining a profile no
+        /// longer regains it, by client key: a row Approve does less for.
+        /// </summary>
+        private bool Narrowed(AskedProfiles before, string profile)
+        {
+            IReadOnlyList<AdmissionRecord> shown;
+            if (before == null || profile == null || !before.Returning.TryGetValue(profile, out shown) || shown == null)
             {
                 return false;
             }
 
-            foreach (var known in _known)
-            {
-                if (string.Equals(known, profile, StringComparison.Ordinal))
-                {
-                    return false;
-                }
-            }
+            var now = new HashSet<string>(Returning(profile).Select(record => record.ClientKey), StringComparer.Ordinal);
+            return shown.Any(record => !now.Contains(record.ClientKey));
+        }
 
-            return true;
+        /// <summary>How the dialog marks a profile being asked for.</summary>
+        public ProfileMark MarkOf(string profile)
+        {
+            return IsRemoved(profile) ? ProfileMark.Removed : IsNew(profile) ? ProfileMark.New : ProfileMark.Listed;
+        }
+
+        /// <summary>
+        /// The place on the screen the request keeps between its dialogs, or null for a request
+        /// that keeps none: what the screen keeps for it from its first dialog on.
+        /// </summary>
+        public ScreenPlace Place
+        {
+            get { return _place; }
+        }
+
+        /// <summary>
+        /// Whether a profile being asked for is a name this database does not name now and that is
+        /// not shown as removed, <see cref="IsRemoved"/>.
+        /// </summary>
+        /// <remarks>
+        /// Shown to the operator, because approving such a name does two things rather than a
+        /// single thing: it admits the client, and it puts a name on the list that every rule can
+        /// then grant to. A dialog that showed a new name exactly like a name on the list would be
+        /// asking somebody to notice a spelling. Any rule already naming a new name applies at
+        /// once, as the dialog states of every new name.
+        /// </remarks>
+        public bool IsNew(string profile)
+        {
+            return !string.IsNullOrEmpty(profile)
+                   && !IsRemoved(profile)
+                   && !(_shown != null && _shown.Listed.Contains(profile, StringComparer.Ordinal));
         }
 
         /// <summary>
@@ -155,10 +515,90 @@ namespace KeePassGate.Pairing
         public IReadOnlyList<AdmissionRecord> Returning(string profile)
         {
             IReadOnlyList<AdmissionRecord> holding;
-            return profile != null && _returning.TryGetValue(profile, out holding) && holding != null
+            return profile != null && _shown != null && _shown.Returning.TryGetValue(profile, out holding) && holding != null
                 ? holding
                 : Array.Empty<AdmissionRecord>();
         }
+
+        /// <summary>
+        /// Whether a profile being asked for is shown as removed: a name off the list that clients
+        /// still hold from before, or a name whose removal the dialog's reading holds, made in this
+        /// copy or brought in by a synchronize, a removal that only a deletion record tells of
+        /// among them.
+        /// </summary>
+        public bool IsRemoved(string profile)
+        {
+            return Returning(profile).Count > 0
+                   || (profile != null && _shown != null && _shown.Removed.Contains(profile, StringComparer.Ordinal));
+        }
+    }
+
+    /// <summary>
+    /// The place a pairing request keeps on the operator's screen from its first dialog until the
+    /// request is answered, so that no other request's dialog comes up between its dialogs.
+    /// </summary>
+    /// <remarks>
+    /// **A single request at a time is put to the operator**, and a request whose write finds its
+    /// approval stale puts the dialog to the operator again. Between the two the request writes,
+    /// and a request waiting for the screen would take it there: its dialog would come up between
+    /// the operator's Approve and the dialog shown again, and use up time the request has left. So
+    /// the screen, on giving the request its first dialog, keeps its lock for the place as well,
+    /// <see cref="Keep"/>, and the request lets it go once it is answered, <see cref="Dispose"/>,
+    /// on the thread that took it. A request waiting behind waits within its own wait for the
+    /// screen, as behind any dialog.
+    ///
+    /// **No deadlock can come of it**: the screen's lock is taken on connection threads alone,
+    /// always before the writer's lock, and never on KeePass's thread, which is all the write
+    /// waits for.
+    /// </remarks>
+    public sealed class ScreenPlace : IDisposable
+    {
+        /// <summary>The screen's lock, while this place keeps it, and otherwise null.</summary>
+        private object _screen;
+
+        /// <summary>
+        /// Keeps this screen's lock for the place, unless the place keeps it already. Called by the
+        /// screen with that lock held, on the thread the request runs on.
+        /// </summary>
+        internal void Keep(object screen)
+        {
+            if (_screen == null)
+            {
+                Monitor.Enter(screen);
+                _screen = screen;
+            }
+        }
+
+        /// <summary>Lets the screen go, where this place keeps it.</summary>
+        public void Dispose()
+        {
+            var screen = _screen;
+            _screen = null;
+            if (screen != null)
+            {
+                Monitor.Exit(screen);
+            }
+        }
+    }
+
+    /// <summary>
+    /// What changed in a row of the pairing dialog after the profile was first shown,
+    /// `PairingRequest.ChangeOf`.
+    /// </summary>
+    [Flags]
+    public enum RowChange
+    {
+        /// <summary>Nothing: the row reads as when the profile was first shown.</summary>
+        None = 0,
+
+        /// <summary>The profile's state: on the list, new, or removed.</summary>
+        State = 1,
+
+        /// <summary>A client regains the profile that the row did not name.</summary>
+        ClientsAdded = 2,
+
+        /// <summary>A client the row named no longer regains the profile.</summary>
+        ClientsRemoved = 4
     }
 
     public enum PairingDecision
@@ -180,7 +620,16 @@ namespace KeePassGate.Pairing
         /// unanswered. Nothing is spent, and the client is told the database is locked. A dialog
         /// closed this way was written down as unanswered by the screen that closed it, as it did.
         /// </summary>
-        Locked
+        Locked,
+
+        /// <summary>
+        /// The reading taken as the dialog was to come up did not serve the authority the pairing
+        /// arrived under, so no dialog came up, or a reading taken while the dialog stood found the
+        /// store no longer serving, which closed the dialog unanswered: nothing is spent, and the
+        /// client is answered the word the write answers the same store with,
+        /// `PairingApproval.Word`.
+        /// </summary>
+        Unserved
     }
 
     /// <summary>What came back from the screen.</summary>
@@ -209,6 +658,20 @@ namespace KeePassGate.Pairing
             _reason = reason ?? string.Empty;
             _shown = shown;
         }
+
+        /// <summary>
+        /// For an approval, what the dialog showed when Approve was pressed, which the approval is
+        /// held to at its write, `ApprovalBook.Hold`, `PairingRequest.Approve`. An approval without
+        /// it is held by nothing: the book refuses it.
+        /// </summary>
+        public AskedProfiles Against { get; private set; }
+
+        /// <summary>
+        /// For <see cref="PairingDecision.Unserved"/>, the word under `503` the write answers the
+        /// same store with, or null where the authority the pairing arrived under is no longer the
+        /// authority served, which is answered `409 no invitation`.
+        /// </summary>
+        public string Word { get; private set; }
 
         public PairingDecision Decision
         {
@@ -250,10 +713,69 @@ namespace KeePassGate.Pairing
 
         /// <summary>The operator's yes, and the profiles the record is to carry.</summary>
         /// <param name="lifetime">How long the certificate lasts, or null for a year.</param>
-        public static PairingApproval Approved(IReadOnlyList<string> profiles, TimeSpan? lifetime = null)
+        /// <param name="against">
+        /// What the dialog showed when Approve was pressed, <see cref="Against"/>, or null for an
+        /// answer only its profiles and lifetime are read from, as the dialog before's is.
+        /// </param>
+        public static PairingApproval Approved(IReadOnlyList<string> profiles, TimeSpan? lifetime = null, AskedProfiles against = null)
         {
-            return new PairingApproval(PairingDecision.Approved, profiles, lifetime, "approved");
+            return new PairingApproval(PairingDecision.Approved, profiles, lifetime, "approved") { Against = against };
         }
+
+        /// <summary>
+        /// No dialog, since the reading taken as it was to come up did not serve, with the word the
+        /// request is answered with, <see cref="Word"/>.
+        /// </summary>
+        public static PairingApproval Unserved(string word)
+        {
+            return new PairingApproval(PairingDecision.Unserved, null, null, "never shown, since the store did not serve", false)
+            {
+                Word = word
+            };
+        }
+
+        /// <summary>
+        /// A dialog closed unanswered, since a reading taken while it stood found the store
+        /// reading and no longer serving the authority the pairing arrived under: answered with the
+        /// word the write answers the same store with, as before a dialog, and written down by
+        /// nobody, since nobody answered and the store's word is what ended it.
+        /// </summary>
+        /// <param name="reading">
+        /// The reading that found the store no longer serving: neither served nor failed,
+        /// `AskedProfiles.Ends`.
+        /// </param>
+        /// <exception cref="ArgumentException">The reading served, or failed.</exception>
+        public static PairingApproval NoLongerServed(AskedProfiles reading)
+        {
+            if (reading == null || !reading.Ends)
+            {
+                throw new ArgumentException("A dialog ends only over a store that reads and no longer serves.", nameof(reading));
+            }
+
+            return new PairingApproval(PairingDecision.Unserved, null, null, NoLongerServedReason, true) { Word = reading.Word };
+        }
+
+        /// <summary>
+        /// The approval of a dialog before, given again with no dialog over a reading whose every
+        /// row reads as that dialog showed it, `PairingRequest.AsBefore`: asked of nobody this
+        /// time.
+        /// </summary>
+        internal static PairingApproval Restated(IReadOnlyList<string> profiles, TimeSpan lifetime, AskedProfiles against)
+        {
+            return new PairingApproval(PairingDecision.Approved, profiles, lifetime, RestatedReason, false) { Against = against };
+        }
+
+        /// <summary>What the log reads of a dialog a reading of a store no longer served closed.</summary>
+        /// <remarks>
+        /// **Never "unanswered"**, which is the word of the audit line a timeout or a lock writes:
+        /// the store's word ended this dialog, and the audit records nothing of it.
+        /// </remarks>
+        internal const string NoLongerServedReason =
+            "taken off the screen when its database no longer served the authority it was made under";
+
+        /// <summary>What the log reads of an approval given again with no dialog.</summary>
+        internal const string RestatedReason =
+            "approved on the dialog before, and every row reads again as that dialog showed it";
 
         public static PairingApproval Refused()
         {

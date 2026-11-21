@@ -87,29 +87,34 @@ namespace KeePassGate.Gate
         string AdmissionBlocked { get; }
 
         /// <summary>
-        /// The profiles this database names now, read on every call rather than cached.
+        /// What the store holds now of the profiles a pairing asks for, from a single reading made
+        /// afresh with the store key: the names on the list, and of each of these profiles off it,
+        /// the admitted clients whose admissions hold it and the removals of it.
         /// </summary>
         /// <remarks>
-        /// For the pairing dialog, which shows which of the profiles being asked for are new. A
-        /// client's profiles and a renewal's are read with the admission, <see cref="Admission"/>.
+        /// For the pairing dialog, read on KeePass's thread as it comes up and on each tick while it
+        /// stands, and for the approval it gives, `PairingRequest.Read`. The
+        /// names are what the store's records give, `STORE.md` §616, and a damaged record of a name
+        /// stops the store, which is answered its word before anything is read of it: so there is no
+        /// list that fails to read on its own. <see cref="AskedProfiles.Unserved"/>, with the word
+        /// the write answers the same store with, where the store does not serve this target's
+        /// authority, and no dialog is built from it, `AskedProfiles.Served`. A client's profiles
+        /// and a renewal's are read with the admission, <see cref="Admission"/>.
         ///
-        /// The names are what the store's records give, `STORE.md` §616, and a damaged record of a
-        /// name stops the store, which is answered its word before anything is read of it: so
-        /// there is no list that fails to read on its own. Empty where the store serves nothing.
+        /// **The clients holding a name off the list**: an admission keeps every name it was
+        /// approved for, so a profile the operator removed is still held, granting nothing, by every
+        /// client approved for it before; approving a pairing for that name puts it back on the list
+        /// and gives it back to all of them. The dialog names them, so that is not a side effect
+        /// nobody saw. Only clients that get in: an admission whose certificate has expired regains
+        /// nothing. Not asked of a name on the list, which is held by whoever holds it already, and
+        /// approving it changes nothing for them.
+        ///
+        /// **The removals of a name off the list**: an approval of such a name is compared at its
+        /// write with what this held, and a removal of it beyond those makes the approval stale,
+        /// `PAIRING.md` §311, as an Add on the Profiles page that a removal overtook writes nothing,
+        /// `STORE.md` §627.
         /// </remarks>
-        IReadOnlyList<string> KnownProfiles { get; }
-
-        /// <summary>
-        /// The admitted clients whose admissions hold a profile, read now. Empty where none do, and
-        /// where the store cannot be judged or holds no key, since such a store admits nobody.
-        /// </summary>
-        /// <remarks>
-        /// For the approval dialog. An admission keeps every name it was approved for, so a profile
-        /// the operator removed is still held, granting nothing, by every client approved for it
-        /// before; approving a pairing for that name puts it back on the list and gives it back
-        /// to all of them. The dialog names them, so that is not a side effect nobody saw.
-        /// </remarks>
-        IReadOnlyList<AdmissionRecord> Holding(string profile);
+        AskedProfiles Asked(IReadOnlyCollection<string> profiles);
 
         /// <summary>
         /// Writes an admission into the plugin's store and makes it durable, on whichever thread

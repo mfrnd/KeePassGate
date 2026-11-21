@@ -136,6 +136,12 @@ namespace KeePassGate.Testing
             return User32.GetWindowLong(window, index);
         }
 
+        internal static bool GetWindowRect(IntPtr window, out Rect rect)
+        {
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
+            return User32.GetWindowRect(window, out rect);
+        }
+
         internal static int GetWindowText(IntPtr window, StringBuilder text, int count)
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
@@ -394,6 +400,11 @@ namespace KeePassGate.Testing
             [DllImport("user32.dll")]
             // codeql[cs/unmanaged-code] WinForms offers a window's style only as it is made, not as it is
             internal static extern int GetWindowLong(IntPtr window, int index);
+
+            [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            // codeql[cs/unmanaged-code] nothing managed reads where a window that is not a control stands
+            internal static extern bool GetWindowRect(IntPtr window, out Rect rect);
 
             [DllImport("user32.dll", CharSet = CharSet.Unicode)]
             // codeql[cs/unmanaged-code] nothing managed reads the title of another process's window

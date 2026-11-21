@@ -22,9 +22,10 @@ namespace KeePassGate.Ui
     /// - **Nothing is approved by default.** It comes up without taking the focus, Enter and
     ///   Escape refuse, and Approve has no mnemonic and is never the default button, as on the
     ///   pairing dialog: <see cref="ApprovalDialog"/> says why. Approving takes a press of its own.
-    /// - **The profiles can be narrowed and never widened.** They are the ones the client's record
-    ///   holds that the database still names, all checked; a name the database no longer holds is
-    ///   not offered, and a line under the list says it is not carried over.
+    /// - **The profiles can be narrowed and never widened.** They are a row each for the profiles
+    ///   the client's record holds, in the pairing dialog's table: a profile the database still
+    ///   names checked, and a profile it no longer names with a red X in place of a box and its
+    ///   name in gray, the tooltip of both stating that the new certificate omits the profile.
     /// - **Refuse is a split button**, because a refusal can answer every later renewal of the same
     ///   certificate as well, which is the operator's ruling. Pressing it refuses once, which keeps
     ///   nothing. Its arrow, or Alt and Down while it has the focus, opens a menu of what else
@@ -37,59 +38,61 @@ namespace KeePassGate.Ui
     /// </remarks>
     public sealed class RenewalApprovalForm : ApprovalDialog
     {
-        /// <summary>What approving costs and what it leaves, said once.</summary>
+        /// <summary>The window's title.</summary>
+        public const string WindowTitle = GateName.Product + ": a client is asking to renew a certificate";
+
+        /// <summary>The line at the top of the dialog.</summary>
+        public const string Title = "A client is asking to renew a certificate.";
+
+        /// <summary>What approving costs and what it leaves, stated once.</summary>
         /// <remarks>
         /// The save and what happens to the certificate the client holds now, which is what the
-        /// operator acts on. How the save is ordered against the answer is `PAIRING.md`'s, since
-        /// the operator's ruling of 2026-11-09 cutting the dialog's words.
+        /// operator acts on: unchecking a profile narrows the new certificate and nothing else.
+        /// How the save is ordered against the answer is `PAIRING.md`'s.
         /// </remarks>
         public const string Consequence =
-            "Approving issues a new certificate and saves this database. The certificate it holds " +
-            "now stays valid until the client gives it up.";
-
-        /// <summary>What the list underneath is.</summary>
-        /// <remarks>
-        /// Unchecking narrows the new certificate and nothing else: the record the client holds
-        /// now keeps every profile until that certificate is given up, revoked or expired, so the
-        /// line says so rather than letting an unchecked box read as access taken away.
-        /// </remarks>
-        public const string ProfilesHeld =
-            "Profiles for the new certificate; uncheck any it should lose. The certificate it " +
-            "holds now keeps every one until it is given up:";
-
-        /// <summary>The same when the record holds none the database still names.</summary>
-        public const string NoProfilesHeld =
-            "The client holds no profile this database still names, so the new certificate would reach nothing.";
+            "Approve issues a new certificate and saves this database. The current certificate keeps " +
+            "every profile until the client gives that certificate up.";
 
         /// <summary>
-        /// The line under the list naming what is not carried over, or null when everything is.
+        /// What the table underneath is: every profile the client's record holds, a profile the new
+        /// certificate omits with an X in place of a box, <see cref="OmitsTip"/>.
+        /// </summary>
+        public const string ProfilesHeld = ProfilesHeldName + ":";
+
+        /// <summary>
+        /// The table's name, which UI automation reads as the table's: the line above the table,
+        /// <see cref="ProfilesHeld"/>, without its colon.
+        /// </summary>
+        public const string ProfilesHeldName = "Profiles the client holds";
+
+        /// <summary>
+        /// The notice above <see cref="ProfilesHeld"/> where the record holds no profile the
+        /// database still names.
+        /// </summary>
+        public const string NoProfilesHeld = "The new certificate reaches no profile.";
+
+        /// <summary>The name of the notice <see cref="NoProfilesHeld"/>.</summary>
+        internal const string NoticeName = "KpgRenewalNotice";
+
+        /// <summary>What UI automation reads as the whole of the dialog's content.</summary>
+        internal const string LayoutRead = "Renewal request";
+
+        /// <summary>
+        /// The tooltip of the X in place of a box on the row of a profile the database no longer
+        /// names, and of the profile's name: the new certificate goes without the profile.
         /// </summary>
         /// <remarks>
         /// A name the database took off its list grants nothing while it stays off, and a renewed
         /// record is written from the names that are on it, so the name does not travel to the new
-        /// certificate. Said rather than shown in the list, because a row the operator cannot check
-        /// is a row that looks like a choice.
+        /// certificate. **A row of its own with an X in place of a box**, the name in gray, so that
+        /// every profile the record holds is a row, and what is not carried over stands beside the
+        /// names that are, reading as not to be granted, rather than in a line under them or in a
+        /// column of its own that every renewal of profiles on the list leaves empty.
         /// </remarks>
-        public static string Dropped(RenewalRequest request)
-        {
-            if (request == null || request.Dropped.Count == 0)
-            {
-                return null;
-            }
-
-            return (request.Dropped.Count == 1
-                       ? "Not carried over, because this database no longer names it: "
-                       : "Not carried over, because this database no longer names them: ")
-                   + string.Join(", ", request.Dropped) + ".";
-        }
-
-        /// <summary>
-        /// The line under the list when it holds more than it shows at once, or null.
-        /// </summary>
-        public static string Scrolling(RenewalRequest request)
-        {
-            return request == null ? null : PairingApprovalForm.Scrolling(request.Profiles.Count);
-        }
+        public const string OmitsTip =
+            "This database no longer names the profile, so the new certificate omits the profile. " +
+            "Approve restores no profile.";
 
         /// <summary>The lines of the request, so the wording can be tested without a screen.</summary>
         public static IReadOnlyList<Fact> Facts(RenewalRequest request)
@@ -123,7 +126,7 @@ namespace KeePassGate.Ui
             return facts;
         }
 
-        private readonly CheckedListBox _profiles;
+        private readonly ProfileTable _profiles;
         private readonly LifetimeChoice _lifetime;
         private readonly SplitButton _refuse;
         private readonly ToolStripMenuItem _until;
@@ -193,7 +196,7 @@ namespace KeePassGate.Ui
             _allowed = timeout;
 
             Name = GateTab.RenewalFormName;
-            Text = GateName.Product + ": a client is asking to renew its certificate";
+            Text = WindowTitle;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             StartPosition = FormStartPosition.CenterScreen;
             MinimizeBox = false;
@@ -217,17 +220,19 @@ namespace KeePassGate.Ui
             var layout = new FlowLayoutPanel
             {
                 Name = "KpgRenewalLayout",
+                AccessibleName = LayoutRead,
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents = false,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink
             };
 
-            layout.Controls.Add(Line("KpgRenewalTitle", "A client is asking to renew its certificate.", _titleFont, false));
+            layout.Controls.Add(Line("KpgRenewalTitle", Title, _titleFont));
 
             var details = new TableLayoutPanel
             {
                 Name = "KpgRenewalDetail",
+                AccessibleName = DetailsRead,
                 ColumnCount = 2,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
@@ -248,44 +253,60 @@ namespace KeePassGate.Ui
             }
 
             layout.Controls.Add(details);
-            layout.Controls.Add(Line("KpgRenewalConsequence", Consequence, Font, false));
-            layout.Controls.Add(Line(
-                "KpgRenewalProfilesLine", request.Profiles.Count == 0 ? NoProfilesHeld : ProfilesHeld, Font, false));
+            layout.Controls.Add(Line("KpgRenewalConsequence", Consequence, Font));
 
-            _profiles = new SteadyChecks
+            // Where the record holds no profile this database still names, a notice above the
+            // line naming the table, in bold, as the pairing dialog shows its notice: the line
+            // stays, since the table is still the profiles the client holds, and Approve issues a
+            // certificate with no profile, which is what the notice states.
+            if (request.Profiles.Count == 0)
+            {
+                layout.Controls.Add(Line(NoticeName, NoProfilesHeld, _valueFont));
+            }
+
+            layout.Controls.Add(Line("KpgRenewalProfilesLine", ProfilesHeld, Font));
+
+            // The pairing dialog's table, a row for every profile the client's record holds: a
+            // profile this database names with its box, checked, and a profile it no longer names
+            // with an X in place of a box and its name in gray, since the new certificate goes
+            // without it whatever is checked. As wide as a line of the dialog's text, a name too
+            // long for its column cut with an ellipsis and shown whole in its tooltip.
+            _profiles = new ProfileTable(
+                new ProfileColumn(GateTab.RenewalGrantColumnName, PairingApprovalForm.GrantHeading),
+                new[] { new ProfileColumn(GateTab.RenewalProfileColumnName, PairingApprovalForm.ProfileHeading) },
+                PairingApprovalForm.MostRows)
             {
                 Name = GateTab.RenewalProfilesListName,
-                AccessibleName = GateTab.ApprovalProfilesListLabel,
-                CheckOnClick = true,
+
+                // The line above the table names the table, without its colon.
+                AccessibleName = ProfilesHeldName,
                 Font = Font,
-                IntegralHeight = false,
+                Width = _wrap,
                 Margin = new Padding(0)
             };
 
             foreach (var profile in request.Profiles)
             {
-                _profiles.Items.Add(profile, true);
+                _profiles.Add(profile, true, true);
+                _profiles.Show(profile, new[] { profile }, Array.Empty<string>(), profile);
             }
 
-            _profiles.Height = PairingApprovalForm.ListHeight(_profiles, request.Profiles.Count);
+            // A row with an X in place of a box is read out as the row itself: the name, then the
+            // sentence the X stands for, which is the tooltip of the X and of the name, so that the
+            // tooltip is not the only place the sentence stands. The X is drawn on the row and is
+            // nothing of its own to UI automation, so the sentence is read once.
+            foreach (var profile in request.Dropped)
+            {
+                _profiles.Add(profile, false, false);
+                _profiles.Show(profile, new[] { profile }, Array.Empty<string>(), profile + ". " + OmitsTip);
+                _profiles.Omit(profile, OmitsTip);
+            }
 
-            // Wide enough for every name whole, as the pairing dialog's list is: what is kept or
-            // dropped here is a name, and a name cut at the edge reads as any other name that
-            // starts alike.
-            _profiles.Width = PairingApprovalForm.ListWidth(_profiles, _wrap);
+            // Sized from the rows, as the pairing dialog's table is as it comes up, a row cut in
+            // half at its bottom where the rows are taller than it shows: nothing on this dialog
+            // changes the rows while it stands.
+            _profiles.Lay(true);
             layout.Controls.Add(_profiles);
-
-            var scrolling = Scrolling(request);
-            if (scrolling != null)
-            {
-                layout.Controls.Add(Line(GateTab.RenewalScrollingName, scrolling, Font, true));
-            }
-
-            var dropped = Dropped(request);
-            if (dropped != null)
-            {
-                layout.Controls.Add(Line(GateTab.RenewalDroppedName, dropped, Font, true));
-            }
 
             _lifetime = new LifetimeChoice(request.Lifetime, Font);
             layout.Controls.Add(_lifetime);
@@ -306,6 +327,7 @@ namespace KeePassGate.Ui
             var footer = new TableLayoutPanel
             {
                 Name = "KpgRenewalFooter",
+                AccessibleName = AnswerRead,
                 ColumnCount = 2,
                 RowCount = 1,
                 AutoSize = true,
@@ -325,17 +347,21 @@ namespace KeePassGate.Ui
             {
                 Name = GateTab.RenewalCountdownName,
                 Text = Remaining(timeout),
-                AutoSize = true,
-                MaximumSize = new Size(_wrap, 0),
+                Font = Font,
                 Margin = new Padding(0),
                 Anchor = AnchorStyles.Left
             };
+
+            // Measured once, at its widest, and held at that size, so that its words changing
+            // every second lay nothing out, `CountdownSize`.
+            _countdown.Size = CountdownSize(_countdown, GateTab.RenewalCountdownFormat, timeout, _wrap);
 
             footer.Controls.Add(_countdown, 0, 0);
 
             var buttons = new FlowLayoutPanel
             {
                 Name = "KpgRenewalButtonRow",
+                AccessibleName = ButtonsRead,
                 FlowDirection = FlowDirection.LeftToRight,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
@@ -475,6 +501,20 @@ namespace KeePassGate.Ui
         /// choosing a day, or going back, the way the prompt's own dialog seam does.
         /// </remarks>
         internal Func<RefuseUntilForm, DialogResult> AskForADay { get; set; }
+
+        /// <summary>
+        /// Lays the table again once it has a window, before the dialog is centered and shown, as
+        /// the pairing dialog does and for its reason: the boxes are measured there in the style the
+        /// window draws them in.
+        /// </summary>
+        protected override void OnLoad(EventArgs e)
+        {
+            WindowHandlers.Run("the renewal dialog could not be fitted to its table", () =>
+            {
+                _profiles.Lay(true);
+                base.OnLoad(e);
+            });
+        }
 
         /// <summary>Approves it, exactly as the button does.</summary>
         public void Approve()
@@ -725,18 +765,16 @@ namespace KeePassGate.Ui
             }
         }
 
+        /// <summary>
+        /// The profiles checked, by name: only rows of a profile on the list have a box, so a
+        /// profile the database no longer names is never among them.
+        /// </summary>
         private string[] Checked()
         {
-            var approved = new List<string>();
-            foreach (var item in _profiles.CheckedItems)
-            {
-                approved.Add(Convert.ToString(item, CultureInfo.InvariantCulture));
-            }
-
-            return approved.ToArray();
+            return _profiles.Checked.ToArray();
         }
 
-        private Label Line(string name, string text, Font font, bool above)
+        private Label Line(string name, string text, Font font)
         {
             return new TextLabel
             {
@@ -745,7 +783,7 @@ namespace KeePassGate.Ui
                 Font = font,
                 AutoSize = true,
                 MaximumSize = new Size(_wrap, 0),
-                Margin = above ? new Padding(0, LogicalToDeviceUnits(Spacing.Gap), 0, 0) : new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
+                Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(Spacing.Gap))
             };
         }
 

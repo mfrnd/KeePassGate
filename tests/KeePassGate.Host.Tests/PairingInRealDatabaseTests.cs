@@ -16,6 +16,7 @@ using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
+using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassGate.Transport;
 using KeePassGate.Ui;
@@ -1348,13 +1349,798 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        [TestCase(AsRecordAndItem)]
+        [TestCase(AsDeletionRecordAlone)]
+        [TestCase(OnlyInTheOtherCopy)]
+        public void A_removal_synchronized_in_before_the_dialog_is_built_is_a_removal_the_approval_puts_the_name_back_over(string how)
+        {
+            // `ops` removed in another copy, and here as well or not, whose removal KeePass's
+            // Synchronize brings in before the dialog is built, and no client holds `ops`: the
+            // real form marks `ops` removed with the line about every rule still naming it, and
+            // approving puts it back over removals the operator was shown, `PAIRING.md` §311.
+            using (var copy = RemovedInAnotherCopy(how))
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            {
+                Synchronized(copy, how == OnlyInTheOtherCopy ? 1 : 2);
+                var target = targets.Current().Single();
+                string shown = null;
+
+                var context = Pair(
+                    book, target, book.Invite(target.DatabaseId), "agent-fictitious", new[] { "ops" },
+                    new LookingAndAgreeing(request => shown = Shown(request)));
+
+                Assert.That(shown, Does.Contain(Row("ops", PairingApprovalForm.RemovedState)));
+                Assert.That(shown, Does.Not.Contain(Row("ops", PairingApprovalForm.NewState)));
+                Assert.That(shown, Does.Contain(PairingApprovalForm.RemovedTip));
+                Assert.That(shown, Does.Not.Contain(ShownAgain));
+                Assert.That(context.Status, Is.EqualTo(200), context.Json);
+                Assert.That(Names(), Is.EqualTo(new[] { "ops" }));
+            }
+        }
+
+        [TestCase(AsRecordAndItem)]
+        [TestCase(AsDeletionRecordAlone)]
+        public void A_further_removal_synchronized_in_while_the_dialog_stands_is_written_without_the_dialog_again(string how)
+        {
+            // The same removal, brought in while the operator reads a dialog that shows `ops`
+            // restored already, after the dialog's last reading: the write finds a removal the
+            // dialog did not hold, and nothing is written or spent, `PAIRING.md` §311. The screen
+            // reads again and finds every row as the dialog showed it, so no dialog shown again
+            // comes up over a notice that would be untrue: the approval is given again over that
+            // reading, which holds both removals, and writes the name back.
+            using (var copy = RemovedInAnotherCopy(how))
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            {
+                var target = targets.Current().Single();
+                var invitation = book.Invite(target.DatabaseId);
+                var shown = new List<PairingRequest>();
+                var operatorAt = new LookingAndAgreeing(request =>
+                {
+                    shown.Add(request);
+                    Synchronized(copy, 2);
+                });
+
+                var context = Pair(book, target, invitation, "agent-fictitious", new[] { "ops" }, operatorAt);
+
+                Assert.That(shown, Has.Count.EqualTo(1), "no dialog shown again");
+                Assert.That(shown[0].MarkOf("ops"), Is.EqualTo(ProfileMark.Removed), "restored already");
+                Assert.That(_log.Warnings, Has.Some.Contains(RemovalCause));
+                Assert.That(_log.Infos, Has.Some.Contains(WrittenAsBefore));
+                Assert.That(context.Status, Is.EqualTo(200), context.Json);
+                Assert.That(Names(), Is.EqualTo(new[] { "ops" }));
+            }
+        }
+
+        [Test]
+        public void A_name_taken_off_the_list_while_the_dialog_stands_brings_the_dialog_back_with_the_name_removed()
+        {
+            // The other cause: `ops` on the list as the dialog showed it, and taken off it before
+            // the write, as the Profiles page's OK or a synchronize does. The same request puts
+            // the real form to the operator again with the same notice as for a removal, marking
+            // `ops` removed, as its reading holds it, and the log names the cause.
+            var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+            StoreSeeds.Name(store, "ops");
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            {
+                var target = targets.Current().Single();
+                var invitation = book.Invite(target.DatabaseId);
+                string taken = null;
+                string atSecond = null;
+                var shown = new List<string>();
+                var operatorAt = new LookingAndAgreeing(request =>
+                {
+                    shown.Add(Shown(request));
+                    if (shown.Count == 1)
+                    {
+                        StoreSeeds.Unname(store, "ops");
+                        taken = Snapshot();
+                    }
+                    else
+                    {
+                        atSecond = Standing(book, taken);
+                    }
+                });
+
+                var context = Pair(book, target, invitation, "agent-fictitious", new[] { "ops" }, operatorAt);
+
+                Assert.That(_log.Warnings, Has.Some.Contains(OffTheListCause));
+                Assert.That(atSecond, Is.EqualTo(NothingWritten));
+                Assert.That(shown[0], Does.Not.Contain(ShownAgain));
+                Assert.That(shown[1], Does.Contain(StateChanged));
+                Assert.That(shown[1], Does.Contain(Row("ops", PairingApprovalForm.RemovedState)));
+                Assert.That(context.Status, Is.EqualTo(200), context.Json);
+                Assert.That(Names(), Is.EqualTo(new[] { "ops" }));
+            }
+        }
+
+        [Test]
+        public void The_real_form_shown_again_opens_with_what_the_operator_approved_before()
+        {
+            // The client asks for `reader`, `admin` and `ops`; the operator unchecks `admin`, picks
+            // seven days and approves while `ops` is put on the list. The real form the same
+            // request puts to the operator again opens with `reader` checked, `admin` unchecked as
+            // the operator left it, `ops` unchecked as a row whose mark changed, and seven days
+            // chosen, and a single Approve on it writes `reader` alone.
+            var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+            StoreSeeds.Name(store, "reader");
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            {
+                var target = targets.Current().Single();
+                var invitation = book.Invite(target.DatabaseId);
+                var opened = new List<string>();
+                var answers = 0;
+                var operatorAt = new Answering(request =>
+                {
+                    answers++;
+                    if (answers == 1)
+                    {
+                        StoreSeeds.Name(store, "ops");
+                        return PairingApproval.Approved(new[] { "reader", "ops" }, TimeSpan.FromDays(7));
+                    }
+
+                    return OpenedAndApproved(request, opened);
+                });
+
+                var context = Pair(book, target, invitation, "agent-fictitious", new[] { "reader", "admin", "ops" }, operatorAt);
+
+                Assert.That(answers, Is.EqualTo(2));
+                Assert.That(opened, Is.EqualTo(new[]
+                {
+                    Row("reader", string.Empty) + " checked",
+                    Row("admin", PairingApprovalForm.NewState) + " unchecked",
+                    Row("ops", string.Empty) + " unchecked",
+                    LifetimeChoice.Listed(TimeSpan.FromDays(7), null),
+                }));
+                Assert.That(context.Status, Is.EqualTo(200), context.Json);
+                Assert.That(Names(), Is.EqualTo(new[] { "ops", "reader" }));
+            }
+        }
+
+        [TestCase(AsRecordAndItem)]
+        [TestCase(AsDeletionRecordAlone)]
+        public void A_removal_synchronized_in_while_an_approval_is_held_makes_it_stale_at_the_retry(string how)
+        {
+            // The operator approves `ops`, shown restored, while Database Maintenance is open on
+            // the database, so the write is answered busy and the approval held. The dialog is
+            // closed, a further removal is brought in, and the client's retry, written without the
+            // dialog, finds a removal the dialog did not hold: nothing is written or spent. Every
+            // row reads as the dialog showed it, so the retry puts no dialog up again: the approval
+            // held is given again over the screen's reading, which holds both removals, and the
+            // retry is answered once that approval is written.
+            using (var copy = RemovedInAnotherCopy(how))
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            using (var form = MaintenanceDialog())
+            {
+                var target = targets.Current().Single();
+                var invitation = book.Invite(target.DatabaseId);
+                var held = new ApprovalBook();
+                var shown = new List<string>();
+                var operatorAt = new LookingAndAgreeing(request =>
+                {
+                    shown.Add(Shown(request));
+                    GlobalWindowManager.AddWindow(form);
+                });
+                var handler = new PairingHandler(
+                    book, operatorAt, new PairingOptions { ApprovalSettle = TimeSpan.Zero }, new AuthorityIssuer(), null, null, _log, held);
+
+                try
+                {
+                    var busy = Pair(handler, target, invitation, "agent-fictitious", new[] { "ops" });
+
+                    Assert.That(busy.Status, Is.EqualTo(503), busy.Json);
+                    Assert.That(JsonBody.Read(busy.Json).Text("heldUntil"), Is.Not.Null, busy.Json);
+                    Assert.That(held.Count, Is.EqualTo(1));
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+
+                Synchronized(copy, 2);
+                var context = Pair(handler, target, invitation, "agent-fictitious", new[] { "ops" });
+
+                Assert.That(shown, Has.Count.EqualTo(1), "no dialog shown again");
+                Assert.That(shown[0], Does.Contain(Row("ops", PairingApprovalForm.RemovedState)));
+                Assert.That(_log.Warnings, Has.Some.Contains(RemovalCause));
+                Assert.That(_log.Infos, Has.Some.Contains(WrittenAsBefore));
+                Assert.That(held.Count, Is.Zero, "the approval is used up");
+                Assert.That(context.Status, Is.EqualTo(200), context.Json);
+                Assert.That(Names(), Is.EqualTo(new[] { "ops" }));
+            }
+        }
+
+        [Test]
+        public void A_client_KeePass_synchronizes_in_holding_a_restored_name_under_the_write_brings_the_dialog_back_with_the_row_unchecked()
+        {
+            // `ops` named and held by `agent-first`; a copy of the file made then, in which
+            // `agent-second` is admitted holding `ops`; and `ops` taken off the list here, so the
+            // dialog shows it restored and regained by `agent-first`. KeePass's Synchronize brings
+            // the copy in while the operator reads the dialog: the write would give `ops` back to
+            // `agent-second` as well, which no table named, so nothing is written, saved or spent,
+            // and the same request shows the dialog again, the row regained by both clients,
+            // unchecked and highlighted. The operator checks it again, and that approval lands.
+            using (var first = Issue("agent-first", "ops"))
+            using (var second = Issue("agent-second", "ops"))
+            {
+                var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+                StoreSeeds.Name(store, "ops");
+                StoreSeeds.Admit(store, first, DateTimeOffset.UtcNow, "ops");
+                _database.Save();
+                using (var copy = TemporaryDatabase.New())
+                using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+                using (var targets = Targets())
+                {
+                    System.IO.File.Copy(_database.Path, copy.Path, true);
+                    copy.Reopen();
+                    StoreSeeds.Admit(new KdbxStore(copy.Database, GateVersion.Current, null), second, DateTimeOffset.UtcNow, "ops");
+                    StoreSeeds.Unname(store, "ops");
+
+                    var target = targets.Current().Single();
+                    var invitation = book.Invite(target.DatabaseId);
+                    string merged = null;
+                    string atSecond = null;
+                    var shown = new List<PairingRequest>();
+                    var operatorAt = new Answering(request =>
+                    {
+                        shown.Add(request);
+                        if (shown.Count == 1)
+                        {
+                            _database.Database.MergeIn(copy.Database, PwMergeMethod.Synchronize, null);
+                            Assert.That(Names(), Is.Empty, "still off the list once the copy is in");
+                            merged = Snapshot();
+                        }
+                        else
+                        {
+                            atSecond = Standing(book, merged);
+                        }
+
+                        return PairingApproval.Approved(request.Profiles);
+                    });
+
+                    var context = Pair(book, target, invitation, "agent-new", new[] { "ops" }, operatorAt);
+
+                    Assert.That(shown, Has.Count.EqualTo(2));
+                    Assert.That(shown[0].Returning("ops").Select(record => record.Subject), Is.EqualTo(new[] { "CN=agent-first" }));
+                    Assert.That(atSecond, Is.EqualTo(NothingWritten), "nothing written, saved or spent before the second Approve");
+                    Assert.That(_log.Warnings, Has.Some.Contains(RegainedCause));
+                    Assert.That(shown[1].Again, Is.True);
+                    Assert.That(
+                        shown[1].Returning("ops").Select(record => record.Subject).OrderBy(subject => subject, StringComparer.Ordinal),
+                        Is.EqualTo(new[] { "CN=agent-first", "CN=agent-second" }));
+                    Assert.That(shown[1].MarkOf("ops"), Is.EqualTo(ProfileMark.Removed));
+                    Assert.That(shown[1].Changed("ops"), Is.True, "highlighted");
+                    Assert.That(shown[1].Checks("ops"), Is.False, "unchecked");
+                    Assert.That(context.Status, Is.EqualTo(200), context.Json);
+                    Assert.That(Names(), Is.EqualTo(new[] { "ops" }));
+                }
+            }
+        }
+
+        [Test]
+        public void A_name_the_file_does_not_know_whose_removal_a_deletion_record_alone_tells_of_is_removed_on_the_first_dialog()
+        {
+            // Another copy named `ops` and removed it, deleted the removal for good and lost the
+            // summary entry restating it with no deletion record; this copy wrote a summary entry of
+            // its own, and a Synchronize brings the deletion records in. Nothing in this file names
+            // `ops` but the deletion record of its removal. The dialog's reading, taken on
+            // KeePass's thread with the store key as the write counts, ties that deletion record
+            // to `ops`: the real form shows `ops` as removed from the first dialog, and its
+            // approval puts `ops` back over that removal at the first Approve, `STORE.md` §616.
+            using (var copy = RemovedApartInAnotherCopy())
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            {
+                Synchronized(copy, 1);
+                using (var reading = new KdbxStore(_database.Database, GateVersion.Current, null).Read())
+                {
+                    Assert.That(reading.InForce.RemovalsOf("ops"), Is.Empty, "a name the file does not know");
+                    Assert.That(reading.InForce.RemovalsOnceKnown("ops"), Is.Not.Empty, "a removal its deletion record tells of");
+                }
+
+                var target = targets.Current().Single();
+                var shown = new List<string>();
+                var operatorAt = new LookingAndAgreeing(request => shown.Add(Shown(request)));
+
+                var context = Pair(book, target, book.Invite(target.DatabaseId), "agent-fictitious", new[] { "ops" }, operatorAt);
+
+                Assert.That(shown, Has.Count.EqualTo(1), "a single dialog");
+                Assert.That(shown[0], Does.Contain(Row("ops", PairingApprovalForm.RemovedState)));
+                Assert.That(shown[0], Does.Contain(PairingApprovalForm.RemovedTip));
+                Assert.That(context.Status, Is.EqualTo(200), context.Json);
+                Assert.That(Names(), Is.EqualTo(new[] { "ops", "reader" }));
+                Assert.That(_log.Warnings.Count(line => line.Contains("no longer holds what the dialog showed")), Is.Zero);
+            }
+        }
+
+        [Test]
+        public void A_removal_KeePass_synchronizes_in_under_the_open_dialog_waits_for_Refresh_and_Refresh_shows_it()
+        {
+            // `ops` on the list as the real form comes up over the real target. KeePass's own
+            // Synchronize brings in another copy that removed `ops` and deleted the removal for
+            // good: the dialog's next reading, with the store key, finds `ops` off the list and
+            // removed. Refresh is enabled and Approve disabled, with no row touched; Refresh shows
+            // `ops` removed and highlighted, keeps the checks and enables Approve, whose approval
+            // holds what the dialog then showed.
+            using (var copy = RemovedApartInAnotherCopy())
+            using (var targets = Targets())
+            {
+                var target = targets.Current().Single();
+                var profiles = new[] { "ops", "reader" };
+                var request = new PairingRequest(
+                    target.DatabaseId, "Invented Vault", "abcdef01", "agent-fictitious", profiles, "127.0.0.1:60001",
+                    null, null, null, null, () => target.Asked(profiles));
+                var first = request.Read();
+                Assert.That(first.Served, Is.True, "the store serves to begin with");
+
+                using (var dialog = new PairingApprovalForm(request.Showing(first), TimeSpan.FromMinutes(2)))
+                {
+                    var table = ProfileRows.Table(dialog, GateTab.ApprovalProfilesListName);
+                    var approve = ControlTree.FindByName<System.Windows.Forms.Button>(dialog, GateTab.ApproveButtonName);
+                    var refresh = ControlTree.FindByName<System.Windows.Forms.Button>(dialog, GateTab.ApprovalRefreshName);
+                    var change = ControlTree.FindByName<System.Windows.Forms.Label>(dialog, GateTab.ApprovalChangeName);
+                    var before = Rows(dialog);
+                    Assert.That(before, Does.Contain(Row("ops", string.Empty)), "on the list");
+                    Assert.That(refresh.Enabled, Is.False);
+                    Assert.That(approve.Enabled, Is.True);
+
+                    Synchronized(copy, 1);
+                    dialog.Watch();
+
+                    Assert.That(refresh.Enabled, Is.True, "a change waits to be shown");
+                    Assert.That(approve.Enabled, Is.False, "and Approve waits for it");
+                    Assert.That(change.Text, Is.EqualTo(PairingApprovalForm.DatabaseChanged));
+                    Assert.That(Rows(dialog), Is.EqualTo(before), "no row touched");
+
+                    dialog.ShowAsItStands();
+
+                    Assert.That(Rows(dialog), Does.Contain(Row("ops", PairingApprovalForm.RemovedState)));
+                    Assert.That(ProfileRows.Of(table)[0].BackColor, Is.EqualTo(PairingApprovalForm.ChangedBackground));
+                    Assert.That(ProfileRows.Checks(table), Is.EqualTo(new[] { false, true }),
+                        "the restored row unchecked, since Approve does more for it");
+                    Assert.That(refresh.Enabled, Is.False);
+                    Assert.That(approve.Enabled, Is.False, "Approve takes no press for a moment after a Refresh");
+                    Assert.That(change.Text, Is.Empty);
+
+                    dialog.Approve();
+                    Assert.That(dialog.Answer().Against.MarkOf("ops"), Is.EqualTo(ProfileMark.Removed), "held to what it showed");
+                }
+            }
+        }
+
+        [Test]
+        public void A_name_a_synchronize_takes_off_the_list_while_the_dialog_stands_is_marked_removed_at_the_next_dialog()
+        {
+            // `ops` on the list as the first dialog showed it. While it stands, KeePass's
+            // Synchronize brings in another copy that removed `ops`, deleted the removal for good
+            // and lost its summary entry: `ops` is off the list, and nothing in this file names it
+            // but the deletion record of its removal. The write finds the move and, counting with
+            // the store key, that removal, which the real target's next reading ties to `ops` with
+            // the key as well; the next dialog of the same request, the real form, marks `ops` as
+            // removed, and approving it puts `ops` back. A name this file never
+            // knew cannot arrive removed this way: the copy then writes twice and loses its last
+            // summary entry, which leaves the deletion of its first summary entry replaced by
+            // nothing in force and stops the store, so that case is composed in the unit tier.
+            using (var copy = RemovedApartInAnotherCopy())
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            {
+                var target = targets.Current().Single();
+                string synchronized = null;
+                string atSecond = null;
+                var shown = new List<string>();
+                var operatorAt = new LookingAndAgreeing(request =>
+                {
+                    shown.Add(Shown(request));
+                    if (shown.Count == 1)
+                    {
+                        Synchronized(copy, 1);
+                        synchronized = Snapshot();
+                    }
+                    else
+                    {
+                        atSecond = Standing(book, synchronized);
+                    }
+                });
+
+                var context = Pair(book, target, book.Invite(target.DatabaseId), "agent-fictitious", new[] { "ops" }, operatorAt);
+
+                Assert.That(shown[0], Does.Contain(Row("ops", string.Empty)), "on the list");
+                Assert.That(shown[0], Does.Not.Contain(ShownAgain), "a first dialog carries no notice");
+                Assert.That(atSecond, Is.EqualTo(NothingWritten));
+                Assert.That(shown[1], Does.Contain(StateChanged));
+                Assert.That(shown[1], Does.Contain(Row("ops", PairingApprovalForm.RemovedState)));
+                Assert.That(shown[1], Does.Not.Contain(Row("ops", PairingApprovalForm.NewState)));
+                Assert.That(shown[1], Does.Contain(PairingApprovalForm.RemovedTip));
+                Assert.That(context.Status, Is.EqualTo(200), context.Json);
+                Assert.That(Names(), Is.EqualTo(new[] { "ops", "reader" }));
+            }
+        }
+
+        [Test]
+        public void A_refusal_of_the_dialog_shown_again_spends_the_invitation_and_the_next_request_starts_from_its_own_reading()
+        {
+            // `ops` on the list as the first dialog shows it, and KeePass's Synchronize brings in
+            // its removal between Approve and the write: the write finds the approval stale, and
+            // the operator refuses on the dialog shown again: answered `403 refused` and the
+            // invitation spent, as a refusal of a first dialog is, with nothing written. Nothing of
+            // that request reaches the request on the code handed out next: its first dialog
+            // carries no notice and shows `ops` as its own reading shows it, restored, and its
+            // approval is written at once.
+            using (var copy = RemovedApartInAnotherCopy())
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            {
+                var target = targets.Current().Single();
+                var shown = new List<string>();
+                var operatorAt = new Answering(request =>
+                {
+                    shown.Add(Shown(request));
+                    if (shown.Count == 1)
+                    {
+                        Synchronized(copy, 1);
+                    }
+
+                    return shown.Count == 2 ? PairingApproval.Refused() : PairingApproval.Approved(request.Profiles);
+                });
+
+                var refused = Pair(book, target, book.Invite(target.DatabaseId), "agent-fictitious", new[] { "ops" }, operatorAt);
+
+                Assert.That(shown[0], Does.Contain(Row("ops", string.Empty)), "on the list");
+                Assert.That(shown[1], Does.Contain(StateChanged));
+                Assert.That(refused.Status, Is.EqualTo(403), refused.Json);
+                Assert.That(refused.Json, Is.EqualTo(HttpResponse.ErrorBody("refused")));
+                Assert.That(book.Outstanding(), Is.Empty, "a refusal spends the invitation");
+                Assert.That(Names(), Is.EqualTo(new[] { "reader" }), "nothing written");
+
+                var context = Pair(book, target, book.Invite(target.DatabaseId), "agent-other", new[] { "ops" }, operatorAt);
+
+                Assert.That(shown, Has.Count.EqualTo(3));
+                Assert.That(shown[2], Does.Not.Contain(ShownAgain), "the first dialog of a request carries no notice");
+                Assert.That(shown[2], Does.Contain(Row("ops", PairingApprovalForm.RemovedState)));
+                Assert.That(context.Status, Is.EqualTo(200), context.Json);
+                Assert.That(Names(), Is.EqualTo(new[] { "ops", "reader" }));
+            }
+        }
+
+        /// <summary>
+        /// Whether anything was saved, how many invitations are outstanding, and whether the store
+        /// is as this snapshot of it, as a line.
+        /// </summary>
+        private string Standing(InvitationBook book, string snapshot)
+        {
+            return _saves.ToString(System.Globalization.CultureInfo.InvariantCulture) + " saved, "
+                   + book.Outstanding().Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " outstanding, "
+                   + (Snapshot() == snapshot ? "unchanged" : "changed");
+        }
+
+        /// <summary>What stands as a dialog comes up with nothing written, saved or spent.</summary>
+        private const string NothingWritten = "0 saved, 1 outstanding, unchanged";
+
+        /// <summary>
+        /// What the real form opens with for this request, every row with whether it is checked and
+        /// then the lifetime chosen, noted here, and the approval of exactly that.
+        /// </summary>
+        private static PairingApproval OpenedAndApproved(PairingRequest request, List<string> opened)
+        {
+            using (var dialog = new PairingApprovalForm(request, TimeSpan.FromMinutes(2)))
+            {
+                var table = ProfileRows.Table(dialog, GateTab.ApprovalProfilesListName);
+                var lifetime = ControlTree.FindByName<System.Windows.Forms.ComboBox>(dialog, GateTab.ApprovalLifetimeName);
+                var rows = ProfileRows.Of(table);
+                opened.AddRange(rows.Select(row => Cells(row) + (ProfileRows.Box(row).Checked ? " checked" : " unchecked")));
+                opened.Add(lifetime.SelectedItem.ToString());
+                return PairingApproval.Approved(
+                    rows.Where(row => ProfileRows.Box(row).Checked)
+                        .Select(row => ProfileRows.Cell(row, GateTab.ApprovalProfileColumnName).Text)
+                        .ToList(),
+                    LifetimeChoice.Offered(request.Lifetime)[lifetime.SelectedIndex]);
+            }
+        }
+
+        [Test]
+        public void A_first_dialog_shows_each_profile_with_its_state_and_the_clients_still_holding_it()
+        {
+            // Through the real target's reading and the real form: `reader` on the list, `deploy`
+            // never named, `ops` named and removed here with nobody holding it, and `gone` named,
+            // held by "deploy runner" and removed. Each is a row of its name, its state and the
+            // clients still holding it, and the line under the table states what approving a
+            // removed profile brings back.
+            var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+            StoreSeeds.Name(store, "reader");
+            StoreSeeds.Name(store, "ops");
+            StoreSeeds.Unname(store, "ops");
+            StoreSeeds.Name(store, "gone");
+            using (var holder = Issue("deploy runner", "gone"))
+            {
+                var record = AdmissionRecord.For(holder, DateTimeOffset.UtcNow, new[] { "gone" }, StoreSeeds.Served(store));
+                var written = _writer.WriteAdmission(_database.Database, record);
+                Assert.That(written.Ok, Is.True, written.Reason);
+            }
+
+            StoreSeeds.Unname(store, "gone");
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            using (var target = targets.Current().Single())
+            {
+                string shown = null;
+                var operatorAt = new LookingOperator(request => shown = Shown(request));
+
+                Pair(book, target, book.Invite(target.DatabaseId), "agent-fictitious", new[] { "reader", "deploy", "ops", "gone" }, operatorAt);
+
+                Assert.That(shown, Does.Contain(
+                    Row("reader", string.Empty) + Environment.NewLine
+                    + Row("deploy", PairingApprovalForm.NewState) + Environment.NewLine
+                    + Row("ops", PairingApprovalForm.RemovedState) + Environment.NewLine
+                    + Row("gone", PairingApprovalForm.RemovedState, "deploy runner") + Environment.NewLine));
+                Assert.That(shown, Does.Not.Contain(ShownAgain));
+                Assert.That(shown, Does.Contain(PairingApprovalForm.NewTip));
+                Assert.That(shown, Does.Contain(PairingApprovalForm.RemovedTip));
+            }
+        }
+
+        [TestCase(StoreWords.Split, 503, StoreWords.Split, "holds the gate back")]
+        [TestCase(StoreWords.Outdated, 503, StoreWords.Outdated, "holds the gate back")]
+        [TestCase(StoreWords.Stopped, 503, StoreWords.Stopped, "holds the gate back")]
+        [TestCase(HeldBackTarget.Undecided, 503, HeldBackTarget.Undecided, "several authorities stand")]
+        [TestCase(Retired, 409, "no invitation", "no longer the authority served")]
+        public void A_store_that_stopped_serving_before_the_dialog_is_answered_as_its_write_would_be(
+            string how, int status, string word, string why)
+        {
+            // The real target, served as the pairing arrived, and by the time the dialog's reading
+            // is taken a store that holds the gate back, several authorities standing, or the
+            // authority retired: no dialog is raised over that reading, the client is told what
+            // the write would tell it, and nothing is spent or written. A database closed by then
+            // is turned away by the check before the reading, and where it closes between the
+            // two, the reading throws, `OpenDatabaseTargetsTests`, which the handler answers
+            // `locked`, `PairingHandlerTests`.
+            var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+            StoreSeeds.Name(store, "ops");
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            using (var target = targets.Current().Single())
+            {
+                var invitation = book.Invite(target.DatabaseId);
+                if (how == Retired)
+                {
+                    StoreSeeds.Retire(store, target.DatabaseId);
+                }
+                else
+                {
+                    new StoredAdmissions(_database.Database).HoldBack(how);
+                }
+
+                var before = Snapshot();
+                var shown = 0;
+                var operatorAt = new LookingOperator(request => shown++);
+
+                var answered = Pair(book, target, invitation, "agent-fictitious", new[] { "ops" }, operatorAt);
+
+                Assert.That(shown, Is.Zero, "no dialog");
+                Assert.That(answered.Status, Is.EqualTo(status), answered.Json);
+                Assert.That(answered.Json, Is.EqualTo(HttpResponse.ErrorBody(word)));
+                Assert.That(book.Outstanding(), Has.Count.EqualTo(1), "the invitation is not spent");
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+                Assert.That(Snapshot(), Is.EqualTo(before), "nothing was written");
+                Assert.That(_log.Warnings, Has.Some.Contains("pairing on invitation " + invitation.Id)
+                    .And.Contains(CertificateDigest.Shorten(target.DatabaseId)).And.Contains(why));
+            }
+        }
+
+        private const string Retired = "retired";
+
+        private const string Closed = "closed";
+
+        [TestCase(HeldBackTarget.Undecided, 503, HeldBackTarget.Undecided, "several authorities stand")]
+        [TestCase(Retired, 409, "no invitation", "no longer the authority served")]
+        [TestCase(Closed, 503, LockedTarget.Error, "locked or closed")]
+        public void A_store_that_stops_serving_under_the_open_dialog_ends_the_dialog_with_the_store_s_word_and_no_unanswered_line(
+            string how, int status, string word, string why)
+        {
+            // The real form over the real target's reading, standing while a reading serves: a
+            // second authority brought in, the authority retired beside others, or the database
+            // closed, and the form's next reading ends the dialog. The request is answered with the
+            // store's word, as a reading before a dialog is, nothing is spent, and the audit writes
+            // no line: the store's word ended the dialog, not the time, which an unanswered line
+            // records. Nor does the log call the dialog unanswered.
+            var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+            StoreSeeds.Name(store, "ops");
+            var audit = new Lines();
+            using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+            using (var targets = Targets())
+            using (var target = targets.Current().Single())
+            {
+                var invitation = book.Invite(target.DatabaseId);
+                var standing = PairingDecision.Approved;
+                var operatorAt = new Answering(shown =>
+                {
+                    using (var dialog = new PairingApprovalForm(shown, TimeSpan.FromMinutes(2)))
+                    {
+                        dialog.Watch();
+                        standing = dialog.Answer().Decision;
+                        if (how == Retired)
+                        {
+                            StoreSeeds.Retire(store, target.DatabaseId);
+                        }
+                        else if (how == Closed)
+                        {
+                            _database.Database.Close();
+                        }
+                        else
+                        {
+                            new StoredAdmissions(_database.Database).HoldBack(how);
+                        }
+
+                        dialog.Watch();
+                        return dialog.Answer();
+                    }
+                });
+
+                var answered = Pair(new PairingHandler(book, operatorAt, new AdmissionAudit(audit), _log), target, invitation, "agent-fictitious", new[] { "ops" });
+
+                Assert.That(standing, Is.EqualTo(PairingDecision.TimedOut), "a reading that serves ended the dialog");
+                Assert.That(answered.Status, Is.EqualTo(status), answered.Json);
+                Assert.That(answered.Json, Is.EqualTo(HttpResponse.ErrorBody(word)));
+                Assert.That(book.Outstanding(), Has.Count.EqualTo(1), "the invitation is not spent");
+                Assert.That(_saves, Is.Zero, "nothing was written, so nothing was saved");
+                Assert.That(audit.Decisions, Is.Empty, "an audit line for a dialog the store's word ended");
+                Assert.That(_log.Warnings, Has.Some.Contains("pairing on invitation " + invitation.Id)
+                    .And.Contains("was taken off the screen").And.Contains(why));
+                Assert.That(_log.Warnings.Concat(_log.Infos), Has.None.Contains("unanswered"), "the log calls the ending unanswered");
+            }
+        }
+
+        /// <summary>The decision of every audit line written, in order.</summary>
+        private sealed class Lines : KeePassGate.Audit.IGateAudit
+        {
+            public List<string> Decisions { get; } = new List<string>();
+
+            public bool Keeps
+            {
+                get { return true; }
+            }
+
+            public void Record(KeePassGate.Audit.AuditEntry entry)
+            {
+                Decisions.Add(entry.Decision);
+            }
+        }
+
+        /// <summary>
+        /// What the real form shows for this request: every label, every row, and the text each
+        /// row's box is read out by, which carries the tip of the row's state.
+        /// </summary>
+        private static string Shown(PairingRequest request)
+        {
+            using (var dialog = new PairingApprovalForm(request, TimeSpan.FromMinutes(2)))
+            {
+                return Texts(dialog) + Rows(dialog) + Spoken(dialog);
+            }
+        }
+
+        /// <summary>The text every box of the dialog's table is read out by, each on a line of its own.</summary>
+        private static string Spoken(System.Windows.Forms.Control form)
+        {
+            return string.Concat(ProfileRows.Spoken(ProfileRows.Table(form, GateTab.ApprovalProfilesListName))
+                .Select(spoken => spoken + Environment.NewLine));
+        }
+
+        private const string ShownAgain = "Shown again";
+        private const string StateChanged = "Shown again: the table changed.";
+
+        /// <summary>The cause a write names for a removal the dialog did not show.</summary>
+        private const string RemovalCause = "the store holds a removal of an approved profile that the dialog did not show";
+
+        /// <summary>The cause a write names for a profile the dialog showed on the list and off it now.</summary>
+        private const string OffTheListCause =
+            "a profile the approval rests on is off the list, and the dialog showed that profile on the list";
+
+        /// <summary>The cause a write names for a client the dialog did not show regaining a profile.</summary>
+        private const string RegainedCause =
+            "a client regains an approved profile, and the dialog did not show that client regaining that profile";
+
+        /// <summary>What the log reads of an approval given again over a reading whose rows read as before.</summary>
+        private const string WrittenAsBefore = "so it is written without the dialog again";
+
+        private const string AsRecordAndItem = "as a record and its item";
+        private const string AsDeletionRecordAlone = "as a deletion record alone";
+        private const string OnlyInTheOtherCopy = "only in the other copy";
+
+        /// <summary>
+        /// `ops` named and saved, then removed in a copy of the file, and here as well unless only
+        /// the other copy removes it; the copy keeps its removal as a record with the summary entry
+        /// restating it, or as its deletion record alone. The copy, for the caller to synchronize
+        /// in and let go.
+        /// </summary>
+        private TemporaryDatabase RemovedInAnotherCopy(string how)
+        {
+            var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+            StoreSeeds.Name(store, "ops");
+            _database.Save();
+            var copy = TemporaryDatabase.New();
+            System.IO.File.Copy(_database.Path, copy.Path, true);
+            copy.Reopen();
+            if (how != OnlyInTheOtherCopy)
+            {
+                StoreSeeds.Unname(store, "ops");
+            }
+
+            StoreSeeds.Unname(new KdbxStore(copy.Database, GateVersion.Current, null), "ops");
+            if (how == AsDeletionRecordAlone)
+            {
+                LostButItsDeletionRecord(copy);
+            }
+
+            return copy;
+        }
+
+        /// <summary>
+        /// `ops` named here, then removed in a copy of the file whose removal was deleted for good
+        /// and whose summary entry was lost with no deletion record, and `reader` named here after
+        /// the copy was made, so that this file keeps a summary entry of its own. The copy, for the
+        /// caller to synchronize in and let go: after that, nothing in this file names `ops` but
+        /// the deletion record of its removal.
+        /// </summary>
+        private TemporaryDatabase RemovedApartInAnotherCopy()
+        {
+            var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+            StoreSeeds.Name(store, "ops");
+            foreach (var addition in new StoredAdmissions(_database.Database).Entries(StoreKinds.Profile))
+            {
+                // Dated a minute back before the copy, as an addition written before a removal is:
+                // a Synchronize keeps an entry last changed in the second of its deletion.
+                addition.LastModificationTime = DateTime.UtcNow.AddMinutes(-1);
+            }
+
+            _database.Save();
+            var copy = TemporaryDatabase.New();
+            System.IO.File.Copy(_database.Path, copy.Path, true);
+            copy.Reopen();
+            StoreSeeds.Unname(new KdbxStore(copy.Database, GateVersion.Current, null), "ops");
+            LostButItsDeletionRecord(copy);
+            StoreSeeds.Name(store, "reader");
+            return copy;
+        }
+
+        /// <summary>
+        /// The copy's removal deleted for good, as KeePass's delete leaves it, and its summary entry
+        /// deleted by a program that keeps no deletion record.
+        /// </summary>
+        private static void LostButItsDeletionRecord(TemporaryDatabase copy)
+        {
+            var copied = new StoredAdmissions(copy.Database);
+            var removal = copied.Entries(StoreKinds.Removed).Single();
+            removal.ParentGroup.Entries.Remove(removal);
+            copy.Database.DeletedObjects.Add(new PwDeletedObject(removal.Uuid, DateTime.UtcNow.AddSeconds(1)));
+            var head = copied.Entries(StoreKinds.Head).Single();
+            head.ParentGroup.Entries.Remove(head);
+        }
+
+        /// <summary>
+        /// The copy brought in by KeePass's Synchronize, leaving the store whole and holding this
+        /// many removals of `ops` once the name is known.
+        /// </summary>
+        private void Synchronized(TemporaryDatabase copy, int removals)
+        {
+            _database.Database.MergeIn(copy.Database, PwMergeMethod.Synchronize, null);
+            using (var reading = new KdbxStore(_database.Database, GateVersion.Current, null).Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(reading.InForce.RemovalsOnceKnown("ops"), Has.Count.EqualTo(removals));
+            }
+        }
+
         [Test]
         public void The_dialog_is_built_from_the_request_the_handler_made_out_of_the_database()
         {
             // Every other dialog test builds its request by hand, so what the real target answers
-            // for the Regaining line, `MaterialTarget.Holding`, was pinned by nothing: a Holding
-            // returning nobody, everybody or the revoked would have changed or silenced the
-            // warning with every tier green.
+            // for the clients still holding a removed name, `MaterialTarget.Asked`, is pinned here:
+            // an answer naming nobody, everybody or the revoked would change or silence the
+            // warning with every other test green.
             using (var kept = Issue("agent-kept", "ops"))
             using (var revoked = Issue("agent-revoked", "ops"))
             using (var elsewhere = Issue("agent-elsewhere", "audit"))
@@ -1392,7 +2178,7 @@ namespace KeePassGate.Host.Tests
                         asked = request;
                         using (var dialog = new PairingApprovalForm(request, TimeSpan.FromMinutes(2)))
                         {
-                            shown = Texts(dialog);
+                            shown = Texts(dialog) + Rows(dialog) + Spoken(dialog);
                         }
                     });
 
@@ -1408,11 +2194,13 @@ namespace KeePassGate.Host.Tests
                     Assert.That(asked.IsNew("ops"), Is.False, "held, so removed rather than new");
                     Assert.That(asked.IsNew("audit"), Is.False);
 
-                    Assert.That(shown, Does.Contain(PairingApprovalForm.Regaining(asked)));
-                    Assert.That(shown, Does.Contain("agent-kept"));
+                    Assert.That(shown, Does.Contain(PairingApprovalForm.RemovedTip));
+                    Assert.That(shown, Does.Contain(Row("ops", PairingApprovalForm.RemovedState, "agent-kept")));
+                    Assert.That(shown, Does.Contain(Row("audit", string.Empty)));
+                    Assert.That(shown, Does.Contain(Row("fresh", PairingApprovalForm.NewState)));
                     Assert.That(shown, Does.Not.Contain("agent-revoked"));
                     Assert.That(shown, Does.Not.Contain("agent-expired"));
-                    Assert.That(shown, Does.Contain(PairingApprovalForm.NewProfilesAsked));
+                    Assert.That(shown, Does.Contain(PairingApprovalForm.NewTip));
                 }
             }
         }
@@ -1466,6 +2254,14 @@ namespace KeePassGate.Host.Tests
             string[] profiles,
             IPairingApproval operatorAt)
         {
+            return Pair(new PairingHandler(book, operatorAt, null, _log), target, invitation, name, profiles);
+        }
+
+        /// <summary>
+        /// The same, through this handler, whose book of approvals a retry of the same request finds.
+        /// </summary>
+        private GateContext Pair(PairingHandler handler, IGateTarget target, Invitation invitation, string name, string[] profiles)
+        {
             var token = invitation.Token;
             var binding = PairingProof.Binding(target.Host.CertificateDer);
             var nonce = new byte[SniName.NonceLength];
@@ -1475,7 +2271,6 @@ namespace KeePassGate.Host.Tests
             }
 
             var connection = new PairingConnection(invitation, target, binding, nonce, "127.0.0.1:60001");
-            var handler = new PairingHandler(book, operatorAt, null, _log);
 
             var hello = Post(
                 GateOperations.PathOf(GateOperations.PairHello),
@@ -1679,7 +2474,7 @@ namespace KeePassGate.Host.Tests
         {
             public PairingApproval Ask(PairingRequest request, TimeSpan timeout, TimeSpan left)
             {
-                return PairingApproval.Approved(request.Profiles);
+                return OnScreen.Ask(request, shown => PairingApproval.Approved(shown.Profiles));
             }
         }
 
@@ -1697,8 +2492,11 @@ namespace KeePassGate.Host.Tests
 
             public PairingApproval Ask(PairingRequest request, TimeSpan timeout, TimeSpan left)
             {
-                _meanwhile();
-                return PairingApproval.Approved(request.Profiles);
+                return OnScreen.Ask(request, shown =>
+                {
+                    _meanwhile();
+                    return PairingApproval.Approved(shown.Profiles);
+                });
             }
         }
 
@@ -1714,9 +2512,89 @@ namespace KeePassGate.Host.Tests
 
             public PairingApproval Ask(PairingRequest request, TimeSpan timeout, TimeSpan left)
             {
-                _look(request);
-                return PairingApproval.Refused();
+                return OnScreen.Ask(request, shown =>
+                {
+                    _look(shown);
+                    return PairingApproval.Refused();
+                });
             }
+        }
+
+        /// <summary>An operator whose every answer the test decides.</summary>
+        private sealed class Answering : IPairingApproval
+        {
+            private readonly Func<PairingRequest, PairingApproval> _answer;
+
+            public Answering(Func<PairingRequest, PairingApproval> answer)
+            {
+                _answer = answer;
+            }
+
+            public PairingApproval Ask(PairingRequest request, TimeSpan timeout, TimeSpan left)
+            {
+                return OnScreen.Ask(request, _answer);
+            }
+        }
+
+        /// <summary>
+        /// An operator who looks at what is asked and agrees to exactly that.
+        /// </summary>
+        private sealed class LookingAndAgreeing : IPairingApproval
+        {
+            private readonly Action<PairingRequest> _look;
+
+            public LookingAndAgreeing(Action<PairingRequest> look)
+            {
+                _look = look;
+            }
+
+            public PairingApproval Ask(PairingRequest request, TimeSpan timeout, TimeSpan left)
+            {
+                return OnScreen.Ask(request, shown =>
+                {
+                    _look(shown);
+                    return PairingApproval.Approved(shown.Profiles);
+                });
+            }
+        }
+
+        /// <summary>
+        /// Every row of every table a dialog shows, each on a line of its own as <see cref="Row"/>
+        /// writes it.
+        /// </summary>
+        private static string Rows(System.Windows.Forms.Control form)
+        {
+            var text = new System.Text.StringBuilder();
+            foreach (var row in ProfileRows.Of(ProfileRows.Table(form, GateTab.ApprovalProfilesListName)))
+            {
+                text.AppendLine(Cells(row));
+            }
+
+            return text.ToString();
+        }
+
+        /// <summary>
+        /// A row of a table as <see cref="Row"/> writes it: the cells of text after the box, in the
+        /// order of the columns.
+        /// </summary>
+        private static string Cells(System.Windows.Forms.Control row)
+        {
+            return Joined(row.Controls.OfType<System.Windows.Forms.Label>().Select(cell => cell.Text).ToArray());
+        }
+
+        /// <summary>
+        /// A row of the profiles a pairing asks for, as <see cref="Rows"/> writes it: the profile,
+        /// its state and the clients still holding it, between brackets so that a row is found
+        /// whole or not at all.
+        /// </summary>
+        private static string Row(string profile, string state, string heldBy = "")
+        {
+            return Joined(new[] { profile, state, heldBy });
+        }
+
+        private static string Joined(string[] cells)
+        {
+            return "[" + string.Join(" | ", cells) + "]";
         }
 
         /// <summary>Every label a dialog shows, one to a line.</summary>
@@ -1784,6 +2662,7 @@ namespace KeePassGate.Host.Tests
         {
             private readonly List<string> _errors = new List<string>();
             private readonly List<string> _warnings = new List<string>();
+            private readonly List<string> _infos = new List<string>();
 
             public IReadOnlyList<string> Errors
             {
@@ -1795,8 +2674,14 @@ namespace KeePassGate.Host.Tests
                 get { return _warnings; }
             }
 
+            public IReadOnlyList<string> Infos
+            {
+                get { return _infos; }
+            }
+
             public void Info(string message)
             {
+                _infos.Add(message);
                 TestContext.Out.WriteLine("INFO  " + message);
             }
 
