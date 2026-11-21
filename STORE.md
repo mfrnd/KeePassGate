@@ -6025,6 +6025,16 @@ tag were worked out for each node and not once for the act. Opening the tab of t
 which reads the versions below, took 45, 143 and 663 ms. A hold of the gate reading an entry
 took 4, 31 and 170 ms beside those versions before any OK, and 10, 104 and 426 ms after the ten
 OKs, beside the deletion records they left, a deletion record for each version each OK renewed.
+**At a group below the root** (the same test, the group under the root holding the hundred
+groups, a rule at the root and at the group, so that the act walks the group's parent for every
+mask it records and the tab for what arrives, which an OK at the root never does; in a single run
+beside the root's), above 200, 2,000 and 9,000 versions the whole write held the thread for 67, 363
+and 1,745 ms, the worst of each 87, 418 and 1,902 ms, where the root in the same run took 70, 368
+and 1,742 ms. At 2,000 that is the reading 79 ms, the composition 129 ms, the plan 79 ms and the
+application 77 ms; at 9,000 417, 550, 556 and 173 ms. Opening that group's tab took 13, 93 and 521
+ms, against 15, 123 and 513 ms at the root in that run, and a hold reading an entry after the ten
+OKs took 5, 36 and 222 ms. The walk above the group adds no more than two runs at the root differ
+by, since the rules are worked out once for the act (§617).
 The model's own figure, 113 seconds for 2,000 nodes, is of a model that reads its whole file
 again for each node, and is no figure for the product.
 
@@ -6395,10 +6405,10 @@ that finds a measurement against a decision reports it and does not design aroun
     `version` that nothing answers for (§620); the sizes of §643 in the product's texts; and the
     grant editor, a second KeePass with the plugin, and a device (items 23, 7 and 5). What a write
     above 200, 2,000 and 9,000 versions holds KeePass's thread for, and the opening of a tab above
-    them, is measured (§643): within the five seconds a hold is let run for a store's first writes
-    above them, and not for good, since every renewal adds to every later hold and OK; §643 has
-    the line each follows and the writes after which each passes five seconds, and item 33 what
-    would take that growth away. *Could overturn*: the
+    them, is measured, at the root and at a group below it (§643): within the five seconds a hold
+    is let run for a store's first writes above them, and not for good, since every renewal adds
+    to every later hold and OK; §643 has the line each follows and the writes after which each
+    passes five seconds, and item 33 what would take that growth away. *Could overturn*: the
     conditions of the write above as §617 has them for a dialog. **What the build of the rules ran
     of it, and what it leaves** (§617, §620, §629). Run: the reading held to the meanings of the
     measured code, each store read by letters and by capabilities; the acts of an OK held to the

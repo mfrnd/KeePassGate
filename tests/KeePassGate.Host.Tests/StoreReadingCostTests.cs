@@ -346,10 +346,13 @@ namespace KeePassGate.Host.Tests
             Print("a write deleting " + ReplacedVersions + " replaced versions, history " + history, times);
         }
 
-        [TestCase(200)]
-        [TestCase(2000)]
-        [TestCase(9000)]
-        public void What_an_OK_above_versions_that_follow_holds_the_thread_for(int following)
+        [TestCase(200, false)]
+        [TestCase(2000, false)]
+        [TestCase(9000, false)]
+        [TestCase(200, true)]
+        [TestCase(2000, true)]
+        [TestCase(9000, true)]
+        public void What_an_OK_above_versions_that_follow_holds_the_thread_for(int following, bool belowTheRoot)
         {
             // An OK at the root group's dialog that widens or narrows a rule for the fixture's
             // profile above as many entries whose rule was taken off and follows it, `STORE.md`
@@ -358,23 +361,35 @@ namespace KeePassGate.Host.Tests
             // apart on the thread that makes it, beside 10,000 entries in a hundred groups. Each
             // OK renews every version below, so each leaves a deletion record for each; a hold of
             // the gate is timed after those writes. The tab's opening, which reads the versions
-            // below, is timed beside them.
+            // below, is timed beside them. Below the root, the same at a group under the root
+            // that holds the hundred groups, with a rule at the root as well: there the act walks
+            // the group's parent for every mask it records and the tab for what arrives, which an
+            // OK at the root, with no parent, never does.
             using (var database = TemporaryDatabase.New())
             {
-                var entries = Fill(database.Database, 0);
+                var top = database.RootGroup;
+                if (belowTheRoot)
+                {
+                    top = new PwGroup(true, true, "Invented above", PwIcon.Folder);
+                    database.RootGroup.AddGroup(top, true);
+                }
+
+                var entries = Fill(database.Database, 0, top);
                 Counted(database.Database);
                 var plain = new KdbxStore(database.Database, GateVersion.Current, null, entry => null);
                 StoreSeeds.Authority(plain);
                 var root = Hex.Of(database.RootGroup.Uuid.UuidBytes);
+                var node = Hex.Of(top.Uuid.UuidBytes);
                 byte[] key;
                 using (var reading = plain.Read())
                 {
                     key = (byte[])reading.InForce.Key.Bytes.Clone();
                 }
 
+                var rows = belowTheRoot ? new[] { root, node } : new[] { root };
                 var versions = entries.Take(following)
                     .Select(entry => RuleVersionOf(key, StoreComposer.RowObject(Hex.Of(entry.Uuid.UuidBytes), Profile), "off:R"))
-                    .Concat(new[] { RuleVersionOf(key, StoreComposer.RowObject(root, Profile), "row:R") })
+                    .Concat(rows.Select(ruled => RuleVersionOf(key, StoreComposer.RowObject(ruled, Profile), "row:R")))
                     .ToList();
                 Assert.That(plain.Write(new[] { new StoreAct("versions", key, StoreFormat.KeyName(key), versions, null) }).Taken, Is.True);
                 var read = "/entries/" + entries[0].Uuid.ToHexString();
@@ -388,17 +403,19 @@ namespace KeePassGate.Host.Tests
                 var totals = new List<double>();
                 for (var run = 0; run <= OkRuns; run++)
                 {
-                    // The tab, as it opens on the root group's dialog: the store read, the rules
-                    // worked out and the versions below kept.
+                    // The tab, as it opens on the group's dialog: the store read, the rules worked
+                    // out, what arrives from the group's parent, and the versions below kept.
                     var clock = Stopwatch.StartNew();
                     RuleChanges changes;
                     using (var reading = plain.Read())
                     {
                         var rules = StoredRules.Of(reading);
-                        var below = rules.Below(root, new DatabaseNodes(database.Database).Tree(reading, rules, database.RootGroup));
+                        var arriving = AclResolver.Above(belowTheRoot ? KdbxNodes.Of(database.RootGroup, rules) : null);
+                        var below = rules.Below(node, new DatabaseNodes(database.Database).Tree(reading, rules, top));
                         changes = new RuleChanges(
-                            new[] { new RowChange(RowChangeKind.Set, Profile, Rules.Letters(run % 2 == 0 ? "RU" : "R"), null, rules.At(root), below) },
+                            new[] { new RowChange(RowChangeKind.Set, Profile, Rules.Letters(run % 2 == 0 ? "RU" : "R"), null, rules.At(node), below) },
                             null);
+                        Assert.That(arriving.Profiles.Contains(Profile), Is.EqualTo(belowTheRoot), "what arrives from the root's rule");
                     }
 
                     opening.Add(clock.Elapsed.TotalMilliseconds);
@@ -410,7 +427,12 @@ namespace KeePassGate.Host.Tests
 
                         var part = Stopwatch.StartNew();
                         var act = RuleActs.Of(
-                            reading, root, null, rules => new DatabaseNodes(database.Database).Tree(reading, rules, database.RootGroup), changes, out var left);
+                            reading,
+                            node,
+                            belowTheRoot ? (Func<StoredRules, IAclNode>)(rules => KdbxNodes.Of(database.RootGroup, rules)) : null,
+                            rules => new DatabaseNodes(database.Database).Tree(reading, rules, top),
+                            changes,
+                            out var left);
                         compositions.Add(part.Elapsed.TotalMilliseconds);
                         Assert.That(left, Is.Empty);
 
@@ -443,7 +465,8 @@ namespace KeePassGate.Host.Tests
                     totals.Add(clock.Elapsed.TotalMilliseconds);
                 }
 
-                var what = "an OK above " + following.ToString(CultureInfo.InvariantCulture) + " versions that follow";
+                var what = (belowTheRoot ? "an OK at a group below the root above " : "an OK above ")
+                           + following.ToString(CultureInfo.InvariantCulture) + " versions that follow";
                 Print(what + ", the tab's opening", opening);
                 Print(what + ", the reading", readings);
                 Print(what + ", the composition", compositions);
@@ -785,12 +808,12 @@ namespace KeePassGate.Host.Tests
             }
         }
 
-        private static List<PwEntry> Fill(PwDatabase database, int history)
+        private static List<PwEntry> Fill(PwDatabase database, int history, PwGroup parent = null)
         {
             var groups = Enumerable.Range(0, Groups).Select(index =>
             {
                 var group = new PwGroup(true, true, "Invented " + index, PwIcon.Folder);
-                database.RootGroup.AddGroup(group, true);
+                (parent ?? database.RootGroup).AddGroup(group, true);
                 return group;
             }).ToList();
 
