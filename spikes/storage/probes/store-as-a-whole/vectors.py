@@ -164,6 +164,19 @@ S.doc, S.undoc = product_doc, model_undoc
 R.ROWS = R.PP = True    # as bridge.rows sets them: a node's rule read from its rows and its switch
 M.ROWS, M.PP = 'off', True      # ADDED (form by what arrived): a removed row taken off for real
 M.DEP = S.DEP = 'seen'          # ADDED (form by what arrived): bridge.dep('seen', 'off')
+# ADDED (lost settled): `--judge J` plays and reads every vector with crdt_model.JUDGE and
+# read.JUDGE set to J (union, object or lost), which prints every vector of the files above as it
+# is where no lost version is settled; `--lost` is `--judge lost` with the records, the stores and
+# the sequences of the refinement added (`measured-lost-settled`).
+ARGS = sys.argv[1:]
+REFINED = '--lost' in ARGS
+if REFINED:
+    ARGS.remove('--lost')
+    ARGS[:0] = ['--judge', 'lost']
+if '--judge' in ARGS:
+    at = ARGS.index('--judge')
+    M.JUDGE = R.JUDGE = ARGS[at + 1]
+    del ARGS[at:at + 2]
 
 # read.py's status, and the state the product names for it.
 STATES = {'ok': 'Whole', 'incomplete': 'Stopped', 'nostore': 'None'}
@@ -465,12 +478,15 @@ OFF_DENY = S.doc(('rows', None, True, frozenset([('deny',)])))
 OFF_RU, OFF_R, OFF_NOTHING = off('ru'), off('r'), off('')
 
 
-def rule_record(obj, text, after=(), nonce=NONCE):
+def rule_record(obj, text, after=(), nonce=NONCE, lost=()):     # ADDED (lost settled): `lost`
     """A version of a row or of a switch as `record` composes it. For a row, its subject and its
     number are those its identifier holds in the form `split`: the subject hash over the object
-    before the slash, and the profile's tag read as a number."""
-    made = record('version', {'after': ' '.join(sorted(after)), 'doc': text, 'nonce': nonce,
-                              'object': obj})
+    before the slash, and the profile's tag read as a number. ADDED (lost settled): `lost`, the
+    member of that name, absent where empty."""
+    d = {'after': ' '.join(sorted(after)), 'doc': text, 'nonce': nonce, 'object': obj}
+    if lost:    # ADDED (lost settled)
+        d['lost'] = ' '.join(sorted(lost))
+    made = record('version', d)     # ADDED (lost settled): d
     node, _, profile = obj.partition('/')
     if profile:
         made['subject'], made['number'] = node, int(S.profile_tag(ONE, profile), 16)
@@ -479,10 +495,14 @@ def rule_record(obj, text, after=(), nonce=NONCE):
 
 
 def restating_version(v):
-    """The item that restates a version: its identifier as `id`, its object, after and text."""
+    """The item that restates a version: its identifier as `id`, its object, after and text.
+    ADDED (lost settled): and its `lost`, where the version holds that member."""
     m = v['members']
-    return {'after': m['after'], 'doc': m['doc'], 'id': v['id'], 'kind': 'version',
+    item = {'after': m['after'], 'doc': m['doc'], 'id': v['id'], 'kind': 'version',
             'object': m['object']}
+    if 'lost' in m:     # ADDED (lost settled)
+        item['lost'] = m['lost']
+    return item
 
 
 # ADDED (form by what arrived): the versions of the form. A switch's version names five profiles,
@@ -602,6 +622,45 @@ out['records'] = {'about': RECORDS_ABOUT, 'key': ONE.hex(), 'records': {
 }, 'profileTags': {p: S.profile_tag(ONE, p) for p in ('pf', 'pg', 'px')},  # ADDED (rules per profile)
     'texts': {t: model_text(t) for t in TEXTS}}     # ADDED (form by what arrived)
 out['records']['records'].update(RULE_RECORDS)      # ADDED (rules per profile)
+
+# ADDED (lost settled): versions that tell apart the versions they replace, in `after`, from the
+# lost versions at their place they settle for their own object, in `lost`; and the versions whose
+# identifiers those name and whose content no store of these vectors holds.
+LOST_NONCES = [invented('nonce/lost/%d' % k, 16).hex() for k in range(4)]
+if REFINED:
+    nowhere = rule_record(PF, ROW_U, nonce=LOST_NONCES[0])
+    nowhere2 = rule_record(PF, off('r'), nonce=LOST_NONCES[1])
+    nowhere_sw = rule_record(SW, inherit({'pf': 'r'}), nonce=LOST_NONCES[2])
+    settles = rule_record(PF, ROW_R, after=[granting['id']], lost=[nowhere['id']])
+    settles_two = rule_record(PF, ROW_RU, lost=[nowhere['id'], nowhere2['id']])
+    carries = rule_record(PF, ROW_RU, after=[granting['id'], settles['id']], lost=[nowhere['id']])
+    settles_sw = rule_record(SW, SW_DENY, after=[refusing['id']], lost=[nowhere_sw['id']])
+    LOST_RECORDS = {
+        'version, a row whose content no store holds, lost': nowhere,
+        'version, a rule taken off whose content no store holds, lost': nowhere2,
+        'version, the switch inheriting whose content no store holds, lost': nowhere_sw,
+        'version, a row replacing a version and settling a lost version': settles,
+        'version, a row settling two lost versions and replacing none': settles_two,
+        'version, a row replacing a version that settled a lost version, carrying it on': carries,
+        'version, the switch replacing a version and settling a lost version': settles_sw,
+    }
+    out['records']['records'].update(LOST_RECORDS)
+    out['records']['records']['head of height 1, restating versions that settle lost versions'] = record(
+        'head', {'after': '', 'height': '1', 'nonce': NONCE},
+        [FORMAT] + [restating_version(x) for x in (settles_two, carries, settles_sw)], 1)
+    out['records']['about'] += (
+        ' The records whose names hold settle, lost or carrying it on are in the form of the '
+        'refinement of measured-lost-settled: a version of a row or of a switch holds, beside '
+        'after, a member lost, the identifiers of the lost versions at its place that the write '
+        'settles for its own object and every identifier the versions it replaces hold in lost, '
+        'sorted and separated by a single space as after is, and absent where there is none, so '
+        'every other record of this file is as it was. after names only the versions of its own '
+        'object it replaces and what those name in after. The three versions named lost are '
+        'composed here so that their identifiers are of the place of the row of pf at N, of the '
+        'same row, and of N\'s switch; no store of the meanings or the writes holds their '
+        'content, which is what makes them lost. The summary entry that restates versions that '
+        'settle lost versions holds an item for each, the item holding lost as the version does, '
+        'and no lost where the version holds none.')
 
 
 # 6. ADDED (vectors for the writes): what read.py answers about authorities, admissions and
@@ -967,6 +1026,133 @@ out['meanings']['about'] += (
     'name, sw: and the node, which store.py writes as switch: and the node\'s identifier, and its '
     'acts compose a version at the write, with no buffer between a press and the write; these '
     'stores are composed here and by no act.')
+
+
+# ADDED (lost settled): stores of two names whose tags meet under the key `one`, a name whose tag
+# is 0 beside the object of N's rule with no slash, and the switch, read with read.JUDGE 'lost'.
+def lost_stores():
+    (p, q, t), z, tried = O.meeting_names(ONE)
+    configure(('pf', 'pg', p, q, z), 'crusdlap', 2)
+    PP, QQ, ZZ = ('rule:%s/%s' % (N, x) for x in (p, q, z))
+    PLAIN = 'rule:' + N
+    nonce = [invented('nonce/lost/store/%d' % k, 16).hex() for k in range(12)]
+
+    def ghost(obj, k, text=ROW_U):
+        """The identifier of a version of obj whose content no store holds."""
+        return ruled(obj, text, nonce=nonce[k])[0]
+
+    def lruled(obj, text, after=(), lost=(), n=NONCE):
+        d = {'after': ' '.join(sorted(after)), 'doc': text, 'nonce': n, 'object': obj}
+        if lost:
+            d['lost'] = ' '.join(sorted(lost))
+        return entry('version', d)
+
+    def lrestates(v):
+        item = restates(v)
+        d = json.loads(v[1]['KPG.Data'])
+        if 'lost' in d:
+            item['lost'] = d['lost']
+        return item
+
+    def store(versions, dels=(), restated=None, heads=None):
+        present = [ROOT_PF, ROOT_PG] + list(versions)
+        if restated is None:
+            named = set(dels)
+            for v in present:
+                named |= set(json.loads(v[1]['KPG.Data'])['after'].split())
+            restated = [v for v in present if v[0] not in named]
+        hs = heads or [summary(*(lrestates(v) for v in restated))]
+        d = dump([AUTH1] + present + hs, dels)
+        d['groups'] = {g: {'parent': par} for g, par in TREE.items()}
+        return d
+
+    def head_of(n, restated):
+        return rec(ONE, 'head', {'after': '', 'height': '1', 'nonce': n},
+                   numbered((FORMAT,) + tuple(lrestates(v) for v in restated)), 1) + ([],)
+
+    vp, vq = lruled(PP, ROW_R), lruled(QQ, ROW_R, n=NONCE2)
+    vq1 = lruled(QQ, ROW_R, n=nonce[0])
+    vq2 = lruled(QQ, ROW_RU, after=[vq1[0]])
+    g = ghost(PP, 1)
+    vp_s = lruled(PP, ROW_RU, lost=[g])
+    vq_s = lruled(QQ, ROW_RU, lost=[g], n=NONCE2)
+    vq2_s = lruled(QQ, ROW_RU, after=[vq1[0]], lost=[g])
+    vp1 = lruled(PP, ROW_R, n=nonce[2])
+    vp2_t = lruled(PP, ROW_RU, after=[vp1[0]], lost=[g])
+    vq1_t = lruled(QQ, ROW_R, n=nonce[3])
+    vq2_t = lruled(QQ, ROW_RU, after=[vq1_t[0]], lost=[g])
+    old = head_of(nonce[4], [ROOT_PF, ROOT_PG, vp1, vq1_t])
+    new = head_of(nonce[5], [ROOT_PF, ROOT_PG, vp2_t, vq2_t])
+    # the next write's summary entry: it names both, which the write deletes with deletion records
+    after_both = ' '.join(sorted([old[0], new[0]]))
+    following = rec(ONE, 'head', {'after': after_both, 'height': '2', 'nonce': nonce[11]},
+                    numbered((FORMAT,) + tuple(lrestates(v) for v in (ROOT_PF, ROOT_PG, vp2_t, vq2_t))),
+                    2) + ([],)
+    beside = lruled(PP, ROW_U, n=nonce[6])
+    vz, vz1 = lruled(ZZ, ROW_R), lruled(ZZ, ROW_R, n=nonce[7])
+    vz2 = lruled(ZZ, ROW_RU, after=[vz1[0]])
+    plain1 = lruled(PLAIN, ROW_R, n=nonce[8])
+    plain2 = lruled(PLAIN, ROW_RU, after=[plain1[0]])
+    gz = ghost(ZZ, 9)
+    gsw = ghost(SW, 10, SW_DENY)
+    stores = {
+        'rules, tags that meet: a version of q replacing a version, beside its deletion record':
+            store([vp, vq2], [vq1[0]]),
+        'rules, tags that meet: a deletion record at their place whose content is nowhere':
+            store([vp, vq], [g]),
+        'rules, tags that meet: that deletion record settled by p alone': store([vp_s, vq], [g]),
+        'rules, tags that meet: that deletion record settled by p and by q': store([vp_s, vq_s], [g]),
+        'rules, tags that meet: that deletion record settled by p, and a version of q replacing a version':
+            store([vp_s, vq2], [g, vq1[0]]),
+        'rules, tags that meet: settled by each, an earlier summary entry still restating what each replaced':
+            store([vp2_t, vq2_t], [g, vp1[0], vq1_t[0]], heads=[old, new]),
+        'rules, tags that meet: settled by each, after the next write deleted both summary entries':
+            store([vp2_t, vq2_t], [g, vp1[0], vq1_t[0], old[0], new[0]], heads=[following]),
+        'rules, tags that meet: a version beside its deletion record, named in lost by its own row':
+            store([beside, lruled(PP, ROW_RU, lost=[beside[0]], n=NONCE2), vq], [beside[0]]),
+        'rules, tags that meet: a version beside its deletion record, named in lost by the other row':
+            store([beside, lruled(QQ, ROW_RU, lost=[beside[0]], n=NONCE2)], [beside[0]]),
+        'rules, tags that meet: a deletion record at their place named in after by a version at another node':
+            store([vp, vq, lruled('rule:%s/%s' % (BELOW, p), ROW_R, after=[g])], [g]),
+        'rules, a tag of 0: a version of the object with no slash replacing a version':
+            store([vz, plain2], [plain1[0]]),
+        'rules, a tag of 0: a version of z replacing a version, beside the object with no slash':
+            store([vz2, plain1], [vz1[0]]),
+        'rules, a tag of 0: a deletion record at that place settled by z':
+            store([lruled(ZZ, ROW_RU, lost=[gz]), plain1], [gz]),
+        'rules, the switch: a lost version settled by a version of the switch':
+            store([vp, lruled(SW, SW_DENY, lost=[gsw])], [gsw]),
+    }
+    for name, d in sorted(stores.items()):
+        r = R.read(d, history=True)
+        out['meanings']['meanings'][name] = dict(
+            files(d), **answer(r), rules=rules(r, [ROOT, N, BELOW]),
+            tree={'groups': {gg: par for gg, par in sorted(TREE.items())}, 'root': ROOT})
+    out['meanings']['about'] += (
+        ' The stores whose names begin with rules and a comma are read with the reading of the '
+        'refinement of measured-lost-settled (read.JUDGE lost), as every store of this file is '
+        'where it is printed so. Their profiles are pf, pg, p, q and z: p is %s and q %s, the first '
+        'two names q00000, q00001, ... whose tags meet under the key one, at %s; z is %s, the first '
+        'such name whose tag is 0000. A version there may hold lost: the lost versions at its place '
+        'it settles for its own object. A deletion record whose version no store holds, and that no '
+        'version names, is lost to every object at its place; named in after by a version in force '
+        'of an object at its place, it is answered for each of them; named only in lost, for '
+        'the namer\'s object alone. A version present beside its deletion record is told of by its '
+        'own object, and answered where a version in force of that object names it in after or in '
+        'lost. A deletion record under a tag of 0 at N\'s rows tells of the row of z and of the '
+        'object rule: and N with no slash where a version of it is present, which is no node\'s '
+        'rule. Two of the stores hold two summary entries made apart: an earlier summary entry '
+        'restating the versions each row replaced, and a later summary entry restating the '
+        'versions that replace them, as '
+        'a copy that took a Synchronize holds them before its next write; and the same store after '
+        'that write, whose summary entry of height 2 names both and restates what stands, both '
+        'deleted with deletion records: each row reads the same in both.'
+        % (p, q, t, z))
+    configure(('pf', 'pg'), 'crusdlap', 2)
+
+
+if REFINED:
+    lost_stores()
 
 
 # 7. ADDED (vectors for the writes): the file after each act of a fixed sequence the model plays,
@@ -1383,6 +1569,51 @@ out['writes']['about'] += (
 
 
 
+# ADDED (lost settled): the sequences of measured-lost-settled, played by the model with the tags of
+# names under the model's key K, so that its acts see what read.py reads: two names whose tags meet
+# and a name whose tag is 0, from model/lost_runs.py.
+def lost_command(op):
+    if op[0] == 'merge':
+        return 'Synchronize'
+    if op[0] == 'row':
+        return 'Remove row' if op[4] == 'off' else 'Set row'
+    return {'switch': 'Set switch', 'rule': 'Set rows', 'settle': 'Settle row', 'padd': 'Add name',
+            'lose': 'Lose version', 'del': 'Delete by hand', 'plain': 'Set object with no slash'}[op[0]]
+
+
+if REFINED:
+    import lost_runs as LR      # noqa: E402
+    M.TAG_OF = LR.tag
+    for label, what, profs, levels, root_rows, ops in LR.hand_sequences():
+        M.ROOT_ROWS = root_rows
+        out['writes']['sequences']['lost, %s: %s' % (label, what)] = play(
+            2, [(lost_command(op), op) for op in ops], (profs, 'rw', levels))
+    M.ROOT_ROWS, M.TAG_OF = None, None
+    configure(('pf', 'pg'), 'rw', 2)
+    out['writes']['about'] += (
+        ' Every sequence here is played and read with the refinement of measured-lost-settled '
+        '(crdt_model.JUDGE and read.JUDGE lost), which plays and reads every other sequence as it '
+        'was. The sequences whose names begin with lost and a comma are its sequences, played with '
+        'the tag of every name under the key of the model\'s label K as the model\'s acts see it '
+        '(crdt_model.TAG_OF), so that what an act names is what read.py reads: p is %s and q %s, '
+        'whose tags meet at %s, z is %s, whose tag is 0000, and r is pf. F1 is the sequence the '
+        'measured reading is fail-open in, E1 to E3 ordinary edits of a name whose tag meets '
+        'another\'s, L1 to L4 a loss at their place and each order of settling it, T1 to T3 the '
+        'sequence of the product\'s test of two names whose tags meet, its order of settling '
+        'turned and its copies exchanged, Z1 and Z2 a name whose tag is 0 beside a version of the '
+        'object rule: and N with no slash, which is no node\'s rule, and W1 a lost version of the '
+        'switch. In T1 to T3 the profiles pf and pg alone hold rows at the root, and p and q hold '
+        'none. The further commands: Add name is the model\'s padd, a write that touches no rule; '
+        'Settle row its settle act, a row that refuses for a lost version set to the letters its '
+        'standing versions all grant; Lose version its lose act, a deletion record of a version of '
+        'the object whose content no file holds; Delete by hand its del act, an entry of the store '
+        'deleted for good with a deletion record or with none; and Set object with no slash its '
+        'plain act. A version names in after the versions of its own object it replaces and what '
+        'those name in after, and in lost the lost versions its row or switch shows at the write '
+        'and what the versions it replaces name in lost. No Synchronize of these gives anything '
+        'beyond both copies.' % (LR.P, LR.Q, LR.tag(LR.P), LR.Z))
+
+
 def product(readings):
     """The file the product keeps: each store's entries and deletion records, and the answer."""
     made = {}
@@ -1401,11 +1632,11 @@ def product(readings):
 
 
 sys.stdout.reconfigure(newline='\n')
-if sys.argv[1:] == ['--readings']:
+if ARGS == ['--readings']:      # ADDED (lost settled): ARGS for sys.argv[1:], here and below
     json.dump(product(out['readings']), sys.stdout, indent=2)
     sys.stdout.write('\n')
-elif sys.argv[1:] in (['--records'], ['--meanings'], ['--writes']):    # ADDED (for the writes)
-    json.dump(out[sys.argv[1][2:]], sys.stdout, indent=2, sort_keys=True)
+elif ARGS in (['--records'], ['--meanings'], ['--writes']):    # ADDED (for the writes)
+    json.dump(out[ARGS[0][2:]], sys.stdout, indent=2, sort_keys=True)
     sys.stdout.write('\n')
 else:
     json.dump(out, sys.stdout, indent=1, sort_keys=True)
