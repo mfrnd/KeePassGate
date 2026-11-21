@@ -249,6 +249,8 @@ class Encoder:
         elif e.kind == 'ver':
             kind, d = 'version', {'v': '2', 'object': self.obj(e.obj), 'after': ' '.join(sorted(self.u(x) for x in e.after)),
                                   'doc': doc(e.data, self.u), 'nonce': nonce}     # ADDED (S34 forms): self.u
+            if getattr(e, 'lost', None):    # ADDED (lost settled): `lost`, absent where empty
+                d['lost'] = ' '.join(sorted(self.u(x) for x in e.lost))
         elif e.kind == 'head':
             height = e.height
             kind, d = 'head', {'v': '2', 'height': str(e.height), 'after': ' '.join(sorted(self.u(x) for x in e.after)),
@@ -262,6 +264,8 @@ class Encoder:
                 v = W.EL[vid]
                 items.append({'kind': 'version', 'id': self.u(vid), 'object': self.obj(v.obj),
                               'after': ' '.join(sorted(self.u(x) for x in v.after)), 'doc': doc(v.data, self.u)})     # ADDED (S34 forms): self.u
+                if getattr(v, 'lost', None):    # ADDED (lost settled): the item restates `lost` as well
+                    items[-1]['lost'] = ' '.join(sorted(self.u(x) for x in v.lost))
             # ADDED (copies extended): the copies a Seal again acknowledged, by the identifier
             # each copy's content gives
             for cid in sorted(e.data.get('ack', ())):

@@ -309,6 +309,38 @@ TAG_READ = 'last'
 SWITCH_LETTERS = frozenset('ap')     # attachments, protected values: "and those too"
 REMOVE_VERBS = frozenset('sd')       # strip, delete: neither switch is asked about for a removal
 
+# ADDED (lost settled): how a deletion record of a version whose content is nowhere is answered,
+# and how an act names the lost versions the gate's reading shows for the row it sets. None: as
+# every configuration before, a row act naming no lost version and the reading of the branch.
+#   'union'   the measured reading (read.py's `deadall`): a deletion record is answered for every
+#             object it tells of once a version in force of any object names it in `after`; an act
+#             names the lost versions its row shows in `after`, as the product's acts do
+#   'object'  the product's reading as built: answered for an object only where a version in force
+#             of that object names it in `after`; a version present beside its deletion record is
+#             told of by its own object alone; the acts as for 'union'
+#   'lost'    the refinement: a version names in `after` the versions of its own object it replaces
+#             and what they named in `after`, and in `lost` the lost versions its row shows and what
+#             the versions it replaces named in `lost`; a deletion record is answered for every
+#             object it tells of where a version in force of an object it tells of names it in
+#             `after`, and for an object alone where a version in force of that object names it in
+#             `lost`; a version present beside its deletion record is told of by its own object,
+#             answered where a version in force of that object names it in `after` or in `lost`
+# With JUDGE set and TAG_OF set, a deletion record under a tag of 0 at a node's rows tells of the
+# row of every name the file knows whose tag is 0, and of the object `rule:` and the node with no
+# slash where the file holds a version of it (STORE.md 609); with TAG_OF None every deletion record
+# is told of by the object of the element it names, which is the exact reading.
+JUDGE = None
+
+
+def place_of(obj):
+    """ADDED (lost settled): the ten keyed bytes of a version's identifier, as (subject, number): a
+    row's subject is its node's rule and its number its name's tag; every other object is its own
+    subject with 0."""
+    if obj.startswith('rule:') and '/' in obj and TAG_OF is not None:
+        node, p = obj[5:].split('/', 1)
+        return ('rule:' + node, TAG_OF(p))
+    return (obj, '0000')
+
 
 def configure(profs=None, letters=None, levels=None):
     """ADDED (owed forms): more profiles, the letters of a rule, and three levels."""
@@ -351,12 +383,14 @@ def caps_text(c):
 # -------------------------------------------------------------------- elements
 class El:
     # ADDED (store-as-a-whole): `carry`, the store key a retirement carries (change 6)
-    __slots__ = ('id', 'kind', 'obj', 'after', 'data', 'height', 'key', 'carry')
+    # ADDED (lost settled): `lost`, the lost versions at its place a version settles for its object
+    __slots__ = ('id', 'kind', 'obj', 'after', 'data', 'height', 'key', 'carry', 'lost')
 
-    def __init__(self, id, kind, obj, after=(), data=None, height=0, key='K', carry=None):
+    def __init__(self, id, kind, obj, after=(), data=None, height=0, key='K', carry=None, lost=()):
         self.id, self.kind, self.obj = id, kind, obj
         self.after, self.data, self.height, self.key = frozenset(after), data, height, key
         self.carry = carry
+        self.lost = frozenset(lost)     # ADDED (lost settled)
 
 
 # ADDED (store-as-a-whole): a client is a key; its certificates are `c0`, `c0.1`, `c0.2`.
@@ -445,7 +479,8 @@ GATE_ACTS = ('pair', 'revoke', 'recreate', 'padd', 'prem', 'rule', 'renew', 'ado
              'renewcert', 'delauth', 'create',   # ADDED (store-as-a-whole): the last three
              'keep',                             # ADDED (copies extended): no alphabet holds it
              'row', 'switch', 'drop',            # ADDED (rules per profile): with ROWS only
-             'lift')                             # ADDED (S34 forms): with DEP only
+             'lift',                             # ADDED (S34 forms): with DEP only
+             'settle', 'plain')                  # ADDED (lost settled)
 
 
 class World:
@@ -498,6 +533,7 @@ class World:
         w.Kdisk = [set(k) if k is not None else None for k in self.Kdisk]
         w.stats, w.ncert = dict(self.stats), self.ncert
         w.wkey = getattr(self, 'wkey', 'K')
+        w.loses = getattr(self, 'loses', frozenset())      # ADDED (lost settled)
         return w
 
     # ADDED (store-as-a-whole): the file as another program reads it, and what it holds (change 4)
@@ -518,7 +554,7 @@ class World:
 
     # ADDED (store-as-a-whole): the key an element is written under is the store key the gate holds
     # (`wkey`, set by every fold of a write); under the design's alphabet that is always 'K'
-    def mk(self, kind, obj, after=(), data=None, height=0, key=None):
+    def mk(self, kind, obj, after=(), data=None, height=0, key=None, lost=()):     # ADDED (lost settled): `lost`
         if key is None:
             key = getattr(self, 'wkey', 'K')
         self.n += 1
@@ -526,12 +562,12 @@ class World:
             id = 'H%03d.%d' % (height, self.n)      # keyed tag and height, readable off the uuid
         else:
             id = '%s:%s#%d' % (kind, obj, self.n)   # digest over content and a nonce
-        e = El(id, kind, obj, after, data, height, key)
+        e = El(id, kind, obj, after, data, height, key, lost=lost)     # ADDED (lost settled): `lost`
         self.EL[id] = e
         return e
 
     # ----------------------------------------------------------- the read rule
-    def fold(self, rep, flags=None):
+    def fold(self, rep, flags=None, exact=False):     # ADDED (lost settled): `exact`, judge_dels
         fl = flags or self.flags
         EL = self.EL
         raw = [EL[eid] for u, (eid, mt, ok) in rep.entries.items() if ok and u == eid]
@@ -604,6 +640,8 @@ class World:
                 elif e.kind == 'prem':
                     if known is None or e.obj in known:     # ADDED (owed forms): a name the file knows
                         prem.add((e.obj, e.id))             # a deleted removal still removes
+                elif e.kind in ('ver', 'pin') and (JUDGE is not None or exact):     # ADDED (lost settled)
+                    continue    # told below, by judge_dels
                 elif e.kind in ('ver', 'pin') and known is not None and e.obj.startswith('rule:') and '/' in e.obj:
                     # ADDED (owed forms): a row's version, told by a name the file knows; in the
                     # form `split` by every name the file knows whose tag is the name's tag
@@ -621,6 +659,8 @@ class World:
                             lost.setdefault(o, set()).add(u)
                 elif e.kind in ('ver', 'pin') and u not in deadall and u not in vers.get(e.obj, {}):
                     lost.setdefault(e.obj, set()).add(u)   # a version nothing replaced or carries
+            if JUDGE is not None or exact:      # ADDED (lost settled)
+                lost.update(self.judge_dels(rep, ents, vers, supers, held, known, rown, exact))
         store = bool(ents) or any(u[0] in 'HT' for u in rep.dels)
         status = 'ok'
         if not heads_live:
@@ -795,6 +835,69 @@ class World:
             out.update(parent_of=parent_of, walk_above=walk_above, standing_ids=standing_ids)
         return out
 
+    def judge_dels(self, rep, ents, vers, supers, held, known, rown, exact):
+        """ADDED (lost settled): the objects each deletion record of a version is lost to, under
+        JUDGE, as {object: identifiers}. A deletion record of a version a summary entry in force
+        restates is lost to nothing: its text is held. With `exact`, the reading that knows whose
+        each version was: a deletion record is told of by the object of the element it names alone,
+        and answered where a version in force of that object names it in `after` or in `lost`."""
+        EL = self.EL
+        out = {}
+        after_of, lost_of, deadall, present = {}, {}, set(), set()
+        for o, V in vers.items():
+            present |= set(V)
+            for e in V.values():
+                after_of.setdefault(o, set()).update(e.after)
+                lost_of.setdefault(o, set()).update(e.lost)
+                deadall |= e.after
+        objs = set(vers) | supers
+
+        def at_place(obj):
+            """Every object the file knows at the place of a version of `obj`."""
+            if not obj.startswith('rule:'):
+                return [obj]
+            if TAG_OF is None:
+                if '/' in obj and known is not None and obj.split('/', 1)[1] not in rown:
+                    return []
+                return [obj]
+            subj, num = place_of(obj)
+            told = ['%s/%s' % (subj, q) for q in sorted(rown) if TAG_OF(q) == num]
+            if num == '0000' and subj in objs:
+                told.append(subj)
+            return told
+
+        for u in sorted(rep.dels):
+            e = EL.get(u)
+            if e is None or e.key not in held or e.kind not in ('ver', 'pin'):
+                continue
+            if u in present:
+                continue
+            beside = u in ents
+            if exact:
+                told = [e.obj]
+            elif beside and JUDGE in ('object', 'lost'):
+                told = [e.obj]      # told of by its own object, with nothing hashed
+            else:
+                told = at_place(e.obj)
+            if exact:
+                named = set(after_of.get(e.obj, ())) | lost_of.get(e.obj, set())
+            elif JUDGE == 'lost':
+                named = set()
+                for o in told:
+                    named |= after_of.get(o, set())
+            for o in told:
+                if exact:
+                    ok = u in named
+                elif JUDGE == 'union':
+                    ok = u in deadall
+                elif JUDGE == 'object':
+                    ok = u in after_of.get(o, ())
+                else:
+                    ok = u in named or u in lost_of.get(o, ())
+                if not ok:
+                    out.setdefault(o, set()).add(u)
+        return out
+
     def ideal(self, i, ever=False):
         """The same file, had the transport been a perfect grow-only set."""
         r = Rep()
@@ -865,6 +968,20 @@ class World:
         v = self.fold(rep)
         self.wkey = sorted(v['held'])[0] if v['held'] else 'K'     # ADDED (store-as-a-whole)
         kind = op[0]
+        if kind == 'settle':    # ADDED (lost settled): ('settle', gate, node, profile), a row that
+            # refuses for a lost version set again to the letters its standing versions all grant,
+            # an empty rule where none grants: the operator choosing the row on the tab again
+            obj = 'rule:%s/%s' % (op[2], op[3])
+            cur = v['regval'].get(obj)
+            if ROWS is None or cur is None or cur[0] != 'const':
+                return False
+            V = v['vers'].get(obj, {})
+            dd = set()
+            for e in V.values():
+                dd |= e.after
+            grants = [e.data[1] for e in V.values() if e.id not in dd and e.data[0] == 'rows' and e.data[1] is not None]
+            op = ('row', op[1], op[2], op[3], ''.join(sorted(frozenset.intersection(*grants) if grants else ())))
+            kind = 'row'
         if kind == 'reseal':
             if v['status'] != 'incomplete' or not v['ents']:
                 return False
@@ -875,7 +992,11 @@ class World:
                 after = set(ids) | set(v['vers'].get(obj, {}))
                 for e in v['vers'].get(obj, {}).values():
                     after |= e.after
-                e = self.mk('ver', obj, after=after, data=refusal_of(obj))     # ADDED (rules per profile): refusal_of
+                lst = frozenset()   # ADDED (lost settled): under 'lost' what was lost is named in `lost`
+                if JUDGE == 'lost':
+                    after = (after - set(ids)) | set(v['vers'].get(obj, {}))
+                    lst = frozenset(set(ids).union(*(e.lost for e in v['vers'].get(obj, {}).values())))
+                e = self.mk('ver', obj, after=after, data=refusal_of(obj), lost=lst)     # ADDED (rules per profile): refusal_of; (lost settled): lost
                 rep.entries[e.id] = [e.id, t, True]
                 self.K[i].add(e.id)
             for n, (m, mt) in sorted(rep.nodes.items()):
@@ -987,6 +1108,16 @@ class World:
         # ADDED (rules per profile): a rule act writes a version for each row it changes; `row` sets
         # one profile's row ('off' takes it off); `switch` sets the node's switch; `drop` removes a
         # single version of a row that stands in several (rows.py, the part `same`)
+        elif kind == 'plain':   # ADDED (lost settled): ('plain', gate, node, letters), a version of the
+            # object `rule:` and the node with no slash, which is no node's rule (STORE.md 609, 658)
+            # and whose identifier lies at the place of the rows of a name whose tag is 0
+            obj = 'rule:' + op[2]
+            V = v['vers'].get(obj, {})
+            after = set(V)
+            for e in V.values():
+                after |= e.after
+            after, lst = self.names_lost(v, obj, list(V.values()), after)
+            new.append(self.mk('ver', obj, after=after, data=row(op[3]), lost=lst))
         elif ROWS is not None and kind in ('rule', 'row', 'switch', 'drop', 'lift'):     # ADDED (S34 forms): lift
             new += self.dep_act(i, v, op) if DEP is not None else self.rows_act(v, op)     # ADDED (S34 forms): dep_act
             if not new:
@@ -1043,6 +1174,22 @@ class World:
             self.flush(i)
         return True
 
+    def names_lost(self, v, obj, replaced, after):
+        """ADDED (lost settled): what a version of `obj` names beside the versions it replaces,
+        whose identifiers and names in `after` are `after`: under 'union' and 'object' the lost
+        versions the gate's reading `v` shows for the object as well, in `after`, as the product's
+        acts name them; under 'lost' those in `lost`, with what the versions it replaces
+        (`replaced`) name in `lost`. (after, lost)."""
+        shown = set(v['lost'].get(obj, ()))
+        if JUDGE in ('union', 'object'):
+            return set(after) | shown, frozenset()
+        if JUDGE == 'lost':
+            lst = set(shown)
+            for e in replaced:
+                lst |= e.lost
+            return set(after), frozenset(lst)
+        return set(after), frozenset()
+
     # ADDED (rules per profile): the versions a rule act, a row act, a switch act or the removal of a
     # single version writes, from the gate's read `v` of its own file
     def rows_act(self, v, op):
@@ -1085,7 +1232,8 @@ class World:
                 val = row(want)
                 if vals == [val] and not gone:
                     return          # the row is unchanged
-            out.append(self.mk('ver', obj, after=after, data=val))
+            after, lst = self.names_lost(v, obj, v['vers'].get(obj, {}).values(), after)     # ADDED (lost settled)
+            out.append(self.mk('ver', obj, after=after, data=val, lost=lst))     # ADDED (lost settled): lost
 
         if kind == 'rule':
             for p, want in sorted(table_of(op[3]).items()):
@@ -1098,7 +1246,8 @@ class World:
             val = ('sws', frozenset([op[3]]))
             if not refused(obj) and ([e.data for e in st] == [val] or (not st and op[3] == 'inherit')):
                 return []
-            out.append(self.mk('ver', obj, after=after, data=val))
+            after, lst = self.names_lost(v, obj, v['vers'].get(obj, {}).values(), after)     # ADDED (lost settled)
+            out.append(self.mk('ver', obj, after=after, data=val, lost=lst))     # ADDED (lost settled): lost
         elif kind == 'drop':
             # op: ('drop', gate, node, profile, which, form). The standing versions are ordered by
             # their value as the editor orders its rows, then by identifier; `which` is removed.
@@ -1113,14 +1262,17 @@ class World:
             form = op[5]
             if form == 'again':     # each version left written again, naming the removed version
                 for e in keep:
-                    out.append(self.mk('ver', obj, after=base | set([e.id]) | e.after, data=e.data))
+                    after, lst = self.names_lost(v, obj, [gone, e], base | set([e.id]) | e.after)     # ADDED (lost settled)
+                    out.append(self.mk('ver', obj, after=after, data=e.data, lost=lst))     # ADDED (lost settled): names_lost
             elif form == 'void':    # a version that names the removed version and holds nothing
-                out.append(self.mk('ver', obj, after=base, data=ROW_VOID))
+                after, lst = self.names_lost(v, obj, [gone], base)     # ADDED (lost settled)
+                out.append(self.mk('ver', obj, after=after, data=ROW_VOID, lost=lst))     # ADDED (lost settled)
             elif form == 'limit':   # a version that names the removed version and holds what the
                 m = keep[0].data    # versions left allow together
                 for e in keep[1:]:
                     m = meet(m, e.data)
-                out.append(self.mk('ver', obj, after=base, data=m))
+                after, lst = self.names_lost(v, obj, [gone], base)     # ADDED (lost settled)
+                out.append(self.mk('ver', obj, after=after, data=m, lost=lst))     # ADDED (lost settled)
             else:
                 raise ValueError(op)
         return out
@@ -1202,7 +1354,7 @@ class World:
             return ('sws', frozenset(['inherit']), frozenset([r]))
 
         def renew(e, data):
-            ne = self.mk('ver', e.obj, after=set([e.id]) | e.after, data=data)
+            ne = self.mk('ver', e.obj, after=set([e.id]) | e.after, data=data, lost=e.lost)     # ADDED (lost settled): lost
             out.append(ne)
             return ne
 
@@ -1276,7 +1428,8 @@ class World:
                     val = row(want)
                     if vals == [val] and not gone:
                         continue        # the row is unchanged
-                out.append(self.mk('ver', obj, after=after, data=val))
+                after, lst = self.names_lost(v, obj, stl, after)     # ADDED (lost settled)
+                out.append(self.mk('ver', obj, after=after, data=val, lost=lst))     # ADDED (lost settled): lost
         elif kind == 'switch':
             obj = 'sw:' + node
             stl = st(v, obj)
@@ -1284,11 +1437,12 @@ class World:
             for e in stl:
                 after |= e.after
             gone = v['regval'].get(obj) is not None and v['regval'][obj][0] == 'const'
+            after, lst = self.names_lost(v, obj, stl, after)     # ADDED (lost settled)
             if op[3] == 'deny':
                 val = ('sws', frozenset(['deny']))
                 if not gone and [e.data for e in stl] == [val]:
                     return []
-                out.append(self.mk('ver', obj, after=after, data=val))
+                out.append(self.mk('ver', obj, after=after, data=val, lost=lst))     # ADDED (lost settled): lost
             else:
                 if not gone and (not stl or (len(stl) == 1 and stl[0].data[1] == frozenset(['inherit']))):
                     return []
@@ -1296,7 +1450,7 @@ class World:
                     r = ('s', frozenset(p + '.' + w for p in PROFS for w in arr(v, node, p)))
                 else:
                     r = ('a', frozenset((p, v['walk_above'](node, p)) for p in PROFS if v['walk_above'](node, p)))
-                out.append(self.mk('ver', obj, after=after, data=sw_val(r)))
+                out.append(self.mk('ver', obj, after=after, data=sw_val(r), lost=lst))     # ADDED (lost settled): lost
                 # every version at the node that takes a rule off is written anew with what arrives
                 # for its profile, `deny` among them
                 R = cur()
@@ -1424,6 +1578,19 @@ class World:
         if reps[tgt].disk is not None and k not in ('quit', 'import', 'plant') and not (
                 k == 'merge' and op[1] in ('kp_sync', 'kp_other')):
             return False
+        if k == 'lose':     # ADDED (lost settled): ('lose', i, object), a deletion record of a version of
+            # the object whose content is nowhere: what a version made in a copy, deleted there with
+            # its summary entry by a script that leaves no record of the summary entry, leaves in a
+            # copy it never reached once a Synchronize carries its deletion record
+            rep = reps[op[1]]
+            held = self.fold(rep)['held']
+            if not held:
+                return False
+            data = ('sws', frozenset(['inherit'])) if op[2].startswith('sw:') else row('r')
+            e = self.mk('ver', op[2], data=data, key=sorted(held)[0])
+            self.loses = getattr(self, 'loses', frozenset()) | {e.id}     # the identifiers `lose` made
+            rep.dels[e.id] = self.now()
+            return True
         if k == 'nmove':    # ADDED (S34 forms): ('nmove', i, node, parent), KeePass moves a node
             nd = reps[op[1]].nodes.get(op[2])
             if not MOVES or nd is None or len(nd) < 3 or nd[2] == op[3]:
@@ -1448,6 +1615,8 @@ class World:
             del rep.entries[u]
             if op[3]:
                 rep.dels[u] = self.now() if op[3] == 1 else 0
+            if op[2][0] == 'ver':   # ADDED (lost settled): a version deleted by hand is a loss
+                self.loses = getattr(self, 'loses', frozenset()) | {u}
             return True
         if k == 'clear':    # Database Maintenance: remove deleted objects information
             if not reps[op[1]].dels:

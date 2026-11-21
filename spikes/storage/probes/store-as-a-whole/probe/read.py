@@ -83,6 +83,18 @@ SHOW = False    # the answer also lists the standing versions of every rule obje
 # version present or restated carries its identifier
 LETTERS = 'rw'
 TAG_READ = 'last'
+# ADDED (lost settled): how a deletion record of a version whose content is nowhere is answered, as
+# crdt_model.JUDGE: None, the reading above; 'union', answered for every object it tells of once a
+# version in force of any object names it in `after`; 'object', answered for an object only where a
+# version in force of that object names it in `after`, a version present beside its deletion record
+# told of by its own object alone; 'lost', answered for every object it tells of where a version in
+# force of an object it tells of names it in `after`, and for an object alone where a version in
+# force of that object names it in `lost`, a version present beside its deletion record told of by
+# its own object and answered where a version in force of it names it in `after` or in `lost`. With
+# JUDGE set, a deletion record under a tag tells of every name of the tag the file knows, whatever
+# TAG_READ holds, and under a tag of 0 of the object `rule:` and the node with no slash as well,
+# where the file holds a version of it.
+JUDGE = None
 
 
 def switch_refuses(s):
@@ -414,15 +426,19 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
                 prem.add((it['name'], it['id']))
     # versions: entries not named by a record; and what the heads in force restate
     vers, supers = {}, set()
+    lostsets, beside_obj = {}, {}   # ADDED (lost settled): what each version names in `lost`; a version beside its record
     for c in by.get('version', []):
         if c.u in named:
             supers.add(c.d['object'])
+            beside_obj[c.u] = c.d['object']     # ADDED (lost settled)
         else:
             vers.setdefault(c.d['object'], {})[c.u] = (frozenset(c.d['after'].split()), und(c.d['doc']))
+            lostsets[c.u] = frozenset(c.d.get('lost', '').split())     # ADDED (lost settled)
     for h in heads_live:
         for it in heads_items(h):
             if it['kind'] == 'version':
                 vers.setdefault(it['object'], {})[it['id']] = (frozenset(it['after'].split()), und(it['doc']))
+                lostsets[it['id']] = frozenset(it.get('lost', '').split())     # ADDED (lost settled)
     # what a deletion record still tells, by its keyed tag and hash (design 5.2 points 3 and 4)
     clients = set(c.d['client'] for c in by.get('client', [])) | set(s for (k, s) in refusals if k == 'revoked')
     clients |= set(s for (k, s, i) in copy_refusals if k == 'revoked')      # ADDED (copies extended)
@@ -473,8 +489,51 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
     present = set()     # ADDED (owed forms): the identifier of every version present or restated
     for V in vers.values():
         present |= set(V)
+    after_of, lost_of = {}, {}      # ADDED (lost settled): what the versions in force of each object name
+    for o, V in vers.items():
+        for i, (after, f) in V.items():
+            after_of.setdefault(o, set()).update(after)
+            lost_of.setdefault(o, set()).update(lostsets.get(i, ()))
+
+    def judged(u, k):
+        """ADDED (lost settled): the objects a deletion record under the tag of `version` is lost
+        to, under JUDGE."""
+        if u in present:
+            return []       # a version a summary entry in force restates: its text is held
+        if u in beside_obj and JUDGE in ('object', 'lost'):
+            told = [beside_obj[u]]      # told of by its own object, with nothing hashed
+        else:
+            what = subj.get((k, u[6:16]))
+            if what is None or what[0] != 'object':
+                return []
+            o = what[1]
+            if ROWS and S.ID_FORM == 'split' and o.startswith('rule:') and '/' not in o:
+                told = ['%s/%s' % (o, p) for p in profile_tags.get((k, u[16:20]), [])]
+                if u[16:20] == '0000' and o in set(vers) | supers:
+                    told.append(o)
+            else:
+                told = [o]
+        named = set()
+        for x in told:
+            named |= after_of.get(x, set())
+        out = []
+        for o in told:
+            if JUDGE == 'union':
+                ok = u in deadall
+            elif JUDGE == 'object':
+                ok = u in after_of.get(o, ())
+            else:
+                ok = u in named or u in lost_of.get(o, ())
+            if not ok:
+                out.append(o)
+        return out
+
     for u in dels:
         for kind, k in tags.get(u[:6], ()):
+            if JUDGE is not None and kind == 'version':     # ADDED (lost settled)
+                for o in judged(u, k):
+                    lost.setdefault(o, set()).add(u)
+                continue
             what = subj.get((k, u[6:16]))
             if what is None:
                 continue
