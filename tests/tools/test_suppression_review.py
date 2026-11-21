@@ -1018,15 +1018,15 @@ def test_a_picture_the_pull_request_changes_is_not_read(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # Every changed file was read as UTF-8 before its language was asked, so the first pull
     # request to change a documentation picture failed on the picture's first byte. Asked of what
-    # is read rather than of the failure, since on Windows the decoding fails on a thread of its
-    # own and the file reads as empty.
+    # is read rather than of the failure, since on Windows the decoding failed on a thread of its
+    # own and the file read as empty.
     picture = b"\x89PNG\r\n\x1a\n"
     _pull(tmp_path / "r", {"A.cs": SUPPRESSED, "shown.png": picture + b"\x00\x01"},
           {"A.cs": None, "B.cs": SUPPRESSED, "shown.png": picture + b"\x02\x03"})
     read: list[str] = []
     show = review._show
 
-    def recorded(root: Path, commit: str, name: str) -> str | None:
+    def recorded(root: Path, commit: str, name: str) -> bytes | None:
         read.append(name)
         return show(root, commit, name)
 
@@ -1034,6 +1034,79 @@ def test_a_picture_the_pull_request_changes_is_not_read(
     found, placed = _gathered(tmp_path / "r", _finding("cs/a", 4, path="B.cs"))
     assert "shown.png" not in read
     assert (found.added, found.removed, placed) == ([], [], [])
+
+
+# The first bytes of a picture: its signature, then the length of its first chunk, which holds the
+# NUL git takes a file for binary by, and the chunk's name. An archive's first bytes hold a NUL as
+# well, and decode as UTF-8 besides. The format's own name for that chunk: cspell:ignore IHDR
+PICTURE = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
+ARCHIVE = b"PK\x03\x04\x14\x00\x00\x00"
+UNSUPPRESSED = "class A\n{\n    void M() { }\n}\n"
+# On Windows, text read from git is decoded on a thread of subprocess's own, where a failure leaves
+# the file read as empty rather than raising: this makes it fail the test there, as it fails the
+# review on Linux.
+THREAD_FAILURES_FAIL = pytest.mark.filterwarnings(
+    "error::pytest.PytestUnhandledThreadExceptionWarning")
+
+
+def _without_lines(root: Path, *names: str) -> None:
+    # Each of `names` is in the view as a file neither side has: no hunk and no line on either.
+    view = review.view_of(root, review.local_files(root, "HEAD^1", "HEAD"), "HEAD^1", "HEAD")
+    for name in names:
+        assert view.patches[name] == review.Patch()
+        assert (view.lines(name, "LEFT"), view.lines(name, "RIGHT")) == ([], [])
+
+
+@THREAD_FAILURES_FAIL
+def test_a_picture_added_changed_or_deleted_has_no_lines_and_the_review_goes_on(
+        tmp_path: Path) -> None:
+    # A picture the pull request added or deleted was read as UTF-8 to count its lines, and the
+    # review failed on its first byte; an archive that decodes was counted in lines of its own.
+    root = tmp_path / "r"
+    _pull(root, {"A.cs": UNSUPPRESSED, "changed.png": PICTURE + b"\x01",
+                 "deleted.png": PICTURE + b"\x02"},
+          {"A.cs": SUPPRESSED, "added.png": PICTURE + b"\x03", "changed.png": PICTURE + b"\x04",
+           "deleted.png": None, "added.zip": ARCHIVE})
+    _, placed = _gathered(root, _finding("cs/a", 4))
+    assert [(n.kind, n.path, n.line, n.span) for n in placed] == [("added", "A.cs", 3, (1, 5))]
+    _without_lines(root, "added.png", "changed.png", "deleted.png", "added.zip")
+
+
+@THREAD_FAILURES_FAIL
+def test_a_renamed_picture_has_no_lines_and_the_review_goes_on(tmp_path: Path) -> None:
+    root = tmp_path / "r"
+    _pull(root, {"A.cs": UNSUPPRESSED, "shown.png": PICTURE},
+          {"A.cs": SUPPRESSED, "shown.png": None, "moved.png": PICTURE})
+    assert review.Changed("moved.png", "shown.png", "renamed") in review.local_files(
+        root, "HEAD^1", "HEAD")
+    _, placed = _gathered(root, _finding("cs/a", 4))
+    assert [(n.kind, n.path, n.line, n.span) for n in placed] == [("added", "A.cs", 3, (1, 5))]
+    _without_lines(root, "moved.png")
+
+
+@THREAD_FAILURES_FAIL
+def test_a_text_file_with_a_byte_that_is_not_utf_8_keeps_its_lines(tmp_path: Path) -> None:
+    # git takes such a file for text, as GitHub's diff shows it, so it keeps its hunks and its
+    # lines, the byte replaced, which are what a note on it is placed by.
+    root = tmp_path / "r"
+    _pull(root, {"changed.txt": b"a \xff byte\nfirst\n"},
+          {"added.txt": b"a \xff byte\nsecond\n", "changed.txt": b"a \xff byte\nsecond\n"})
+    view = review.view_of(root, review.local_files(root, "HEAD^1", "HEAD"), "HEAD^1", "HEAD")
+    assert view.patches["added.txt"].hunks == {"LEFT": [], "RIGHT": [(1, 2)]}
+    assert view.patches["changed.txt"].changed == {"LEFT": {2}, "RIGHT": {2}}
+    assert view.lines("added.txt", "RIGHT") == ["a \N{REPLACEMENT CHARACTER} byte", "second"]
+    assert view.lines("changed.txt", "LEFT") == ["a \N{REPLACEMENT CHARACTER} byte", "first"]
+
+
+@THREAD_FAILURES_FAIL
+def test_a_suppression_s_file_that_is_not_utf_8_stops_the_review_rather_than_going_unseen(
+        tmp_path: Path) -> None:
+    # Read as the checkout's own files are: the removal of a suppression nobody can read is no
+    # removal to pass over.
+    _pull(tmp_path / "r", {"A.cs": SUPPRESSED.encode().replace(b"why", b"why \xff"),
+                           "keep.cs": "class K { }\n"}, {"A.cs": None})
+    with pytest.raises(UnicodeDecodeError):
+        _gathered(tmp_path / "r")
 
 
 def test_a_twin_added_beside_one_already_there_is_the_one_added(tmp_path: Path) -> None:
