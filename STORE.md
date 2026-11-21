@@ -2433,16 +2433,15 @@ below (§629). **The runs of rules changed apart over synchronized copies** are
 node dialog's OK writes it, the tab's own sheet pressed, and the copies brought together by
 `PwDatabase.MergeIn` under each method in each direction, each merge held to both copies by
 capabilities; §639 has what each group of its sequences holds, and §644 item 24 what stays owed.
-**Left to a later commit**: the drive in a real KeePass beyond a rule set on the entry dialog's
-tab, and every cost but what an OK above many nodes, and a hold and an OK after many renewals,
-hold KeePass's thread for (§643, §644). **A version's `after` and its `lost` are built as this
-section has them**, as the model has them (`measured-lost-settled` 6): `RuleActs` names the
-versions a write replaces in `after` and the lost versions the tab showed in `lost`, every act
-carrying both on; `StoreChecked` reads `lost` once with the version's checked form, as `after`;
-`StoreInForce` answers a deletion record by its place, a version in force of an object there
-naming it in `after` answering for every object at the place and in `lost` for that object
-alone; and `StoreReplaced` reads nothing of `lost`. **Where the build reads otherwise than this
-section** (each stated for a decision, and none changed here).
+**Left to a later commit**: every cost but what an OK above many nodes, and a hold and an OK
+after many renewals, hold KeePass's thread for (§643, §644). **A version's `after` and its
+`lost` are built as this section has them**, as the model has them (`measured-lost-settled` 6):
+`RuleActs` names the versions a write replaces in `after` and the lost versions the tab showed
+in `lost`, every act carrying both on; `StoreChecked` reads `lost` once with the version's
+checked form, as `after`; `StoreInForce` answers a deletion record by its place, a version in
+force of an object there naming it in `after` answering for every object at the place and in
+`lost` for that object alone; and `StoreReplaced` reads nothing of `lost`. **Where the build
+reads otherwise than this section** (each stated for a decision, and none changed here).
 The file knows a name and a node from the items of every summary entry present, where this
 section has the items of a summary entry in force; knowing more only lets a deletion record
 refuse. And the log names a change of rules by the node and that the rules were written or not,
@@ -2458,7 +2457,9 @@ holding none among them, `RuleWritesInRealDatabaseTests`, `StoreSourceNodesTests
 `StoreOnEveryRouteTests` with a rule the product wrote and with what a merge of rules changed
 apart brings,
 `MergeInRealDatabaseTests.Rules_changed_apart_end_at_what_the_lower_version_recorded_under_every_method_both_ways`,
-and `StoreRuleMergeTests`.
+and `StoreRuleMergeTests`; and in a real KeePass by `LiveRuleSeededStatesTests`, a version
+removed, a limit settled and a node below carried by an OK above, each read by a client of the
+gate and from the file.
 
 ### Renewal answers §618
 
@@ -3242,8 +3243,8 @@ admission itself, each asked about once the plan exists, as above. *Held by* `St
 `AuthorityChooserInRealDatabaseTests` and
 `PairingInRealDatabaseTests.A_pairing_while_an_entry_dialog_holds_the_summary_entry_is_busy_and_spends_nothing`.
 
-**The write made as a node's dialog closes is asked the same** (§629; reasoning, with the run in
-KeePass's window owed, §644 item 6). The paragraph above is silent on it. That write is made in the
+**The write made as a node's dialog closes is asked the same** (§629; reasoning, and run in
+KeePass's window, §644 item 6). The paragraph above is silent on it. That write is made in the
 handler of the dialog's close, after KeePass's own handler, so the dialog that closes has put back
 by then what it puts back. A group dialog holds no copy of an entry. An entry dialog whose close
 writes rules is on an entry of the operator's and never on a record of the store, where the tab
@@ -3253,7 +3254,8 @@ the operator's (§627). Built: the write is asked what the store write of the se
 asked, so it is refused whole under Database Maintenance and written by an OK made once that window
 has gone. *Held by*
 `StoreWritesUnderDialogsTests.The_OK_of_a_node_dialog_s_tab_is_refused_whole_under_Database_Maintenance_and_written_once_it_has_gone`
-and `GrantEditorInRealDialogsTests`.
+and `GrantEditorInRealDialogsTests`, and in a real KeePass by `LiveGrantEditorTests` and
+`LiveRuleOkInsideASaveTests`, where no write at a dialog's close was refused.
 
 ### A write of the plugin's own §627
 
@@ -3966,10 +3968,9 @@ the operator touched keeps its press and the versions it named. It rules out a v
 OK against whatever stands then. *Held by* `GrantSheetTests`, `RuleActsTests` and
 `GrantEditorInRealDialogsTests`.
 
-**What the write leaves of the node** (reasoning; the mark was run in KeePass's window for the
-entry dialog since, `LiveGrantEditorTests`, and what KeePass asks before it ends with a rule
-unsaved is owed a run there, §644 item 6). A rule is no part of its node. A change of rules
-alone gives the
+**What the write leaves of the node** (reasoning, and as run in KeePass's window, the mark and
+what KeePass asks before it ends with a rule unsaved among it, §644 item 6). A rule is no part
+of its node. A change of rules alone gives the
 node no new modification time and an entry no history item, and KeePass's own question whether
 to keep an entry's changes is not asked for it: an entry's dialog closed by Escape after a
 change of rules alone asks nothing, and the change is discarded. The plugin's write marks the
@@ -3984,8 +3985,9 @@ tried it. The event is also raised inside the save that ends a synchronize, with
 database in memory (`measured-desktop-windows` 6.2), so a version made there is made after a
 merge, beside versions of another gate that the operator never saw.
 
-**What was measured.** A rule waiting in memory was run in the model only
-(`measured-store-as-a-whole` 1). On files and in KeePass's window it was not run (§644).
+**What was measured.** A rule waiting in memory was run in the model
+(`measured-store-as-a-whole` 1), and in KeePass's window to the file, with the product's own
+write at the dialog's close (§644 item 6).
 
 **The editor no longer writes into the dialog's copy of custom data.** The grant editor keeps its
 change in a buffer of its own and applies it when the node's dialog closes with OK (the design
@@ -4031,19 +4033,26 @@ identifier, a node below for a version the write above left, with the profile of
 defect in the handler is counted as an incident, `DESIGN.md` §141. The versions below the node
 that a write above writes anew are written in the same write, with the identifiers of them that
 the sheet keeps at each press (§617), and what an OK above many nodes holds KeePass's thread for
-is in §643. **Run in a real KeePass**, by `LiveGrantEditorTests`: a rule made on the KPG tab of
-the entry dialog, with nothing of the entry changed, is written as the dialog closes with OK,
-the database shows as changed, and the rule is in the file after the operator's save, read
-once KeePass has gone. **Left to a later commit**: the rest of the drive in a real KeePass, the
-group dialog, Cancel and Escape, a save answered with Synchronize and KeePass asking before it
-ends with a rule unsaved among them (§644 item 6). *Held by* `GrantSheetTests`,
-`RuleActsTests`, `WindowHandlersTests`; and with the real `GroupForm` and `PwEntryForm` by
-`GrantEditorInRealDialogsTests`, OK writing the rule with the entry unchanged and the database
-marked, Cancel writing nothing, and a refused OK adding nothing and told once the dialog has
-closed; `NodeDialogOkBesideSaveTests`, an OK pressed inside a pairing's save written once that
-save has returned; and `StoreWritesUnderDialogsTests`, the OK refused whole under Database
-Maintenance. `SnapshotHazardTests` keeps the group dialog's copy of a group's custom data
-measured, as the reason nothing of the plugin's is kept on a node.
+is in §643. **In a real KeePass** (§644 item 6) the OK of the group dialog, of the entry dialog
+and of the Add Entry dialog is in force for a client before any save and marks the database,
+the entry dialog's with nothing of the entry changed, and the operator's save writes it, while
+Cancel and Escape write nothing. KeePass asks before it closes, locks and exits with a rule
+unsaved, saves the rule with an entry under its automatic saving after an entry's dialog, and a
+save over a file another copy replaced does to the rule what it does to every change of the
+window: Synchronize keeps both copies' rules, Overwrite keeps the window's and loses the other
+copy's, and Cancel writes nothing and leaves the database marked. An OK pressed inside a save
+of the plugin's own is written once that save has returned. The X on a version, the X on a
+limit and an OK above a node that follows reach the file and the client as §617 has them, and
+the message after an OK that left a press out comes once the dialog has closed. *Held by*
+`GrantSheetTests`, `RuleActsTests`, `WindowHandlersTests`; and with the real `GroupForm` and
+`PwEntryForm` by `GrantEditorInRealDialogsTests`, OK writing the rule with the entry unchanged
+and the database marked, Cancel writing nothing, and a refused OK adding nothing and told once
+the dialog has closed; `NodeDialogOkBesideSaveTests`, an OK pressed inside a pairing's save
+written once that save has returned; `StoreWritesUnderDialogsTests`, the OK refused whole under
+Database Maintenance; and in a real KeePass by `LiveGrantEditorTests`,
+`LiveRuleWaitsForTheSaveTests`, `LiveRuleOkInsideASaveTests` and `LiveRuleSeededStatesTests`.
+`SnapshotHazardTests` keeps the group dialog's copy of a group's custom data measured, as the
+reason nothing of the plugin's is kept on a node.
 
 ### What the plugin never does §630
 
@@ -5202,16 +5211,20 @@ change, with its reason, each of the cases above and a KeePass that does not tel
 database, the group or the entry of a dialog among them. The tab reads its node's rules, what
 arrives and the names from a single reading as it opens and again where a record lands, a row
 the operator pressed keeping its press. `GrantMarks` draws the bracket, the colors and the
-letters in bold, below. **Left to a later commit**: the drive of every row and state in a real
-KeePass, with the pictures (§644 item 23). *Held by* `GrantSheetTests`, `GrantPanelTests`,
+letters in bold, below. **Left to a later commit**: the pictures in a real KeePass, and the drive
+there of the rows and states no fixture of the tree drives, named at the end of this paragraph
+(§644 item 23). *Held by* `GrantSheetTests`, `GrantPanelTests`,
 `GrantPickerTests` and `GrantTableFitsTests`; and with the real `GroupForm` and `PwEntryForm`
 by `GrantEditorInRealDialogsTests`, each case in which the tab takes no change, the tab over a
 node's rules and what arrives, and the dialog that adds an entry among them, by
 `GrantTabFitsTests` at each scaling, and by `RightToLeftTranslationTests`. In a real KeePass
-the editor was run on the store for a rule set on the entry dialog's tab and written at OK,
-`LiveGrantEditorTests`, and for a picker left open under a dialog that closes,
-`LiveGrantPickerCloseTests`; no row of a rule in several versions, no limit and no lost rule
-was driven there by a fixture of the tree.
+the editor was run on the store for rules set on the tabs of the group, entry and Add Entry
+dialogs and written at OK, `LiveGrantEditorTests`; for the rows of a rule in several versions,
+out of view and scrolled into view, and of a limit, each line read through UI automation, with
+what an X and OK write, `LiveRuleSeededStatesTests`; and for a picker left open under a dialog
+that closes, `LiveGrantPickerCloseTests`. No lost rule, no rule of a name the database no longer
+names, no rule the box refuses, no box in the mixed mark and no tab that takes no change was
+driven there by a fixture of the tree.
 
 **What is built of the drawing.** The rows of a group, the versions of a rule and a limit under
 its inherited rule, stand in a bracket in a padding before the name in the profile's cell, the
@@ -5514,7 +5527,9 @@ holds the narrower. *What covers it:* the plugin's group written last, and a nod
 does not close with OK while KeePass saves (evaluation 6). A rule is in the database from the
 dialog's OK, like any edit made there (§629), so a save that begins after the OK writes it.
 *Measured:* on another option's records, in a console process. With a rule that waits in the
-database for the next save it was not measured (§644).
+database for the next save, in a real KeePass for a rule set at a dialog's OK pressed inside a
+save of the plugin's own: that save's file lacks the rule, the database stays marked, and the
+next save writes it (§644 item 6). A narrowing was not run (§644 item 11).
 
 **Two files that hold the same entries of the store answer differently** (row 16). *Who:* every
 fault but an overwrite, in a second model of the design. *What happens:* 3 pairs in 1,500
@@ -6216,12 +6231,23 @@ that finds a measurement against a decision reports it and does not design aroun
    pairing's save is written once that save has returned
    (`NodeDialogOkBesideSaveTests`), and an OK writes the rule with the entry unchanged and the
    database marked, while Cancel writes nothing (`GrantEditorInRealDialogsTests`). *Run* in a
-   real KeePass (`LiveGrantEditorTests`): the OK of the entry dialog with nothing of the entry
-   changed, its mark in KeePass's title, and the operator's save writing the rule, read from
-   the file once KeePass has gone. *Still owed*, in a real KeePass: the same on the group
-   dialog, Cancel and Escape, an OK pressed while a save runs, a save answered with
-   Synchronize, KeePass asking before it ends with a rule unsaved, and a database closed
-   without saving. *Could overturn*: decision 11 as worded.
+   real KeePass 2.62, with the product's own write at the dialog's close and a client of the
+   gate: the OK of the group, entry and Add Entry dialogs in force for the client before any
+   save, the database marked, the entry dialog's with nothing of the entry changed, the
+   operator's save writing the rule, and Cancel and Escape writing nothing
+   (`LiveGrantEditorTests`); a save over a file another copy replaced, answered Synchronize,
+   which writes both copies' rules, Overwrite, which writes the window's and loses the other
+   copy's, and Cancel, which writes nothing and leaves the database marked until a later save;
+   KeePass asking before it closes, locks and exits with a rule unsaved, Save writing it; the
+   rule saved with its entry under automatic saving after an entry's dialog; and a database
+   closed with its changes discarded once KeePass asked, which leaves the rule out of the file
+   (`LiveRuleWaitsForTheSaveTests`); and an OK pressed inside a save of the plugin's own under a
+   key derivation of seconds, the dialog closing once that save has returned, the save's file
+   holding its own change and not the rule, the database marked and the rule in force until the
+   operator's save writes it (`LiveRuleOkInsideASaveTests`). Nothing ran otherwise than this
+   item and §629 have it. *Still owed*: KeePass ending without its close handling, where a rule
+   is lost as every unsaved edit is, and an OK handled while a save serializes the tree rather
+   than while it derives the key. *Could overturn*: decision 11 as worded.
 7. **Two KeePass instances with the plugin** on a single synchronized file: a revocation at the
    first, a renewal at the second, a rule changed at both. Several gates were run as files that
    each write.
@@ -6331,8 +6357,11 @@ that finds a measurement against a decision reports it and does not design aroun
     `GrantPanelGallery`: two and three versions bound with their letters in bold, a version
     that takes the rule off among them, a row changed by each press, a version removed with the
     rows left bound and changed at once, the longest texts, a group cut by scrolling, and every
-    drawn state with no color. *Still owed*: a real high contrast setting, and the rows in a
-    real KeePass, with their pictures.
+    drawn state with no color. *Run* in a real KeePass, read through UI automation: the rows
+    of a rule in several versions, out of view and scrolled into view, and of a limit, each
+    State cell's word and help text, the help text of a line a press changed, and what the X on
+    a version, the X on a limit and the dialog's OK write (`LiveRuleSeededStatesTests`). *Still
+    owed*: a real high contrast setting, and the pictures of the rows in a real KeePass.
 24. **Rules as a record for each node and profile** (§617). This item held the run owed before the
     rules are built: the run of the store as a whole, made again with a rule record for each node
     and profile and the switch as a record of its own. It was made (`measured-rules-per-profile`;
@@ -6453,8 +6482,8 @@ that finds a measurement against a decision reports it and does not design aroun
     and that removal in a search; a move under an open dialog, and a move by a merge other than
     Synchronize; the loss of every row of a node at once; more than four profiles; and a tree of
     more than three levels. Left to a later commit: a merge under an open dialog in a running
-    KeePass; every cost but that of the write above; and the drive in a real KeePass beyond a rule
-    set on the entry dialog's tab (item 6).
+    KeePass, and every cost but that of the write above. The drive in a real KeePass was run, as
+    items 6 and 23 have it.
 25. **What the Profiles page counts** (§636). Its count of the groups and entries holding a rule
     for a profile, `DatabaseNodes`, leaves the recycle bin out and not the plugin's store, which
     the API leaves out beside it (§633). This item left it to the pull request that brings the
@@ -6741,7 +6770,8 @@ for the rules**, which was left to the pull request that keeps the rules in the 
   asks of KeePass's windows, §626; and a version composed only where its item fits, §627. Where
   that write is refused, the log names it and a message is shown once the dialog has closed,
   §629. The condition this item set on a rule narrowed while a save runs rests on row 15 of
-  §639, and its run is owed, §644 item 6.
+  §639; it was run for a rule set inside a save of the plugin's own, §644 item 6, and a narrowing
+  stays owed, §644 item 11.
 - **S16. Which word a client gets while the gate holds back, and to which requests.** A word for
   each reason, and the five words of §656. Fixed for the core: the operations that `frozen` is
   answered to, and the order of the words where several states hold, §656.

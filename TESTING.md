@@ -421,13 +421,20 @@ client meets `DatabaseLocked`. The protected value is read on its own route with
 password changed with `update --password` from standard input, so both meet the plugin through the
 command line as well.
 
-**The grant editor**, in `LiveGrantEditorTests`: a rule made on the KPG tab of the entry dialog
-of a real KeePass, written into the plugin's store as the dialog closes with **OK**, and read
-out of the `.kdbx` after the operator's save and after the process has gone. Pressing OK
-rather than Escape is what it is for: the tab holds every press until the dialog closes with
-OK, and any other close discards them. It is the entry dialog, with nothing of the entry
-changed, because KeePass marks nothing at that OK, so the mark the save needs is the mark the
-store's own write sets, which the fixture reads off KeePass's title.
+**The grant editor**, in `LiveGrantEditorTests`: a rule made on the KPG tab of the entry dialog,
+the group dialog and the Add Entry dialog of a real KeePass, written into the plugin's store as
+the dialog closes with **OK**, and read out of the `.kdbx` after the operator's save and after the
+process has gone. Pressing OK rather than Escape is what it is for: the tab holds every press
+until the dialog closes with OK, and any other close discards them. On the entry dialog nothing of
+the entry is changed, because KeePass marks nothing at that OK, so the mark the save needs is the
+mark the store's own write sets, which the fixture reads off KeePass's title; the same session
+reads the title unmarked after the entry dialog's Cancel and Escape, so that a title marked
+whatever happened fails the fixture. A client holding a certificate the database's own authority
+issued asks the gate what it may do at each node, and is answered by the rule from that OK on,
+before anything is saved, while a copy of the file read then holds no rule there. Cancel and
+Escape on either dialog write nothing, leave the title unmarked, the file as it was and the
+client's answers as they were. The Add Entry dialog's tab shows the rule arriving from the group
+the entry is added to, and a rule chosen there is in force for the entry from the dialog's OK.
 `LiveAuthorityTests` presses OK too, for the reason the paragraph on accepting dialogs below gives,
 so this is not the only fixture that does. It clicks with the pointer, because neither column on
 that table can be typed into and a list is not something the accessibility tree can be asked to
@@ -436,6 +443,37 @@ as well: its moving picture presses nearly every control inside the dialogs with
 stills it parks the pointer clear of each window before the picture is taken, so that no tooltip
 covers what the picture shows, and chooses from the menu one picture leaves open once it has been
 taken.
+
+**A rule waiting for the next save**, in `LiveRuleWaitsForTheSaveTests`: a rule set in an entry
+dialog with nothing of the entry changed, and the file then replaced underneath KeePass by another
+copy that sets a rule of its own, as a file synchronizer replaces it. KeePass asks at the
+operator's save: Synchronize keeps both rules, in the file and for the client; Overwrite keeps the
+window's rule and loses the other copy's; Cancel writes nothing and leaves the database marked, the
+window's rule in force from memory, until a later save answered Synchronize writes both. With a
+rule unsaved, KeePass asks before it closes the database and before it locks the workspace, Cancel
+keeping both open and marked, and before it exits, where Save writes the rule. Started again under
+"Automatically save after modifying an entry using the entry editing dialog", an entry edited with
+its rule is saved, rule and all, right after the dialog; a rule changed alone marks the database,
+and closing it with its changes discarded leaves the rule out of the file.
+
+**An OK inside a save of the plugin's own**, in `LiveRuleOkInsideASaveTests`: under a key
+derivation made to take seconds, a client gives its own certificate up while a group dialog, and
+then an entry dialog, stands with a rule set on its tab, and the dialog's OK is pressed with the
+pointer once that save's transaction file is seen. The dialog stays open until the save has
+returned; the file the save left holds the certificate given up and not the rule, the database
+stays marked, the client is answered by the rule, and the operator's next save writes it.
+`NodeDialogOkBesideSaveTests` holds the same order over the real writer in the host tier.
+
+**The rows of a seeded store**, in `LiveRuleSeededStatesTests`: copies of the file each change a
+rule and are merged before KeePass starts, so that a group's rule for a profile stands in several
+versions below rules of other profiles. UI automation reads every line of the table, each State
+cell's word and help text held to the tab's own sentences, with the versions out of view until the
+table is scrolled by the wheel and the same once it is; the X on a version and OK write each version
+left again, and the client is granted what those share. A limit shows its two lines, and its X and
+OK let the client through. A rule widened at a group carries the entry below that follows it, as the
+client's answer at the entry shows. And an OK whose new version of a rule does not fit the room
+writes the rest, and the plugin's message telling so comes up once the dialog has closed, is read
+through UI automation and is closed with its OK.
 
 **A grant picker its dialog goes out from under**, in `LiveGrantPickerCloseTests`: the profile
 picker opened with the pointer on the group dialog's KPG tab, and the dialog then closed by a close
@@ -544,11 +582,12 @@ how a test sees from outside what the plugin did inside a process it does not ot
 something the test needs.** A test that closes a dialog with Cancel can never be the reason
 something was lost, which is why Escape is the default. The KPG tab holds everything until the
 dialog is accepted, so `LiveAuthorityTests` has to press OK or it would measure nothing;
-`LiveGrantEditorTests` presses OK because the write a node dialog's OK makes is exactly what it
-is asserting about; `LivePairingTests` and `LiveReferenceClientTests` accept the settings dialog
-because any other close withdraws the invitation made on it, which the rest of the fixture needs;
-and `LiveRenewalTests` accepts it to apply Allow renewal. What the snapshot hazard still requires is
-measured directly in the host tier, against the group dialog that does carry one.
+`LiveGrantEditorTests` and the fixtures of rules beside it press OK because the write a node
+dialog's OK makes is exactly what they are asserting about; `LivePairingTests` and
+`LiveReferenceClientTests` accept the settings dialog because any other close withdraws the
+invitation made on it, which the rest of the fixture needs; and `LiveRenewalTests` accepts it to
+apply Allow renewal. What the snapshot hazard still requires is measured directly in the host tier,
+against the group dialog that does carry one.
 
 **It types on the real desktop**, so leave the machine alone while it runs. It is excluded from the
 default run for that reason, not because it is optional. [`FINDINGS.md`](FINDINGS.md), under
