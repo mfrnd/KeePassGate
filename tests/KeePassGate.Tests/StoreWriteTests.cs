@@ -672,6 +672,521 @@ namespace KeePassGate.Tests
             Assert.That(write.Delete, Does.Not.Contain(addition.Hex));
         }
 
+        [Test]
+        public void A_version_a_version_in_force_names_is_deleted_with_a_deletion_record_by_a_record_an_item_and_the_write_s_own()
+        {
+            // `STORE.md` §627 step 3: every record of kind `version` that a version in force names
+            // in `after`, by its record, by an item of a summary entry in force, or by a version
+            // the write adds. A version of another node that nothing names stays.
+            var cases = new Dictionary<string, Func<ComposedStore, StoreComposer.Composed, StoreComposer.Composed, StoreAct>>
+            {
+                {
+                    "a record", (store, replaced, left) =>
+                    {
+                        var replacing = store.Add(VersionOf(SwitchOf('1'), replaced));
+                        store.RestateAll(new[] { ItemOf(left), ItemOf(replacing) });
+                        return Neutral();
+                    }
+                },
+                {
+                    "an item of a summary entry in force", (store, replaced, left) =>
+                    {
+                        store.RestateAll(new[] { ItemOf(left), ItemOf(VersionOf(SwitchOf('1'), replaced)) });
+                        return Neutral();
+                    }
+                },
+                {
+                    "the write's own record", (store, replaced, left) =>
+                    {
+                        store.RestateAll(new[] { ItemOf(left), ItemOf(replaced) });
+                        return Act(One, Recorded("version", ("after", replaced.Hex), ("doc", "a rule"), ("object", SwitchOf('1'))));
+                    }
+                },
+            };
+
+            foreach (var pair in cases)
+            {
+                var store = new ComposedStore(One);
+                var replaced = store.Add(VersionOf(SwitchOf('1')));
+                var left = store.Add(VersionOf(SwitchOf('2')));
+                var act = pair.Value(store, replaced, left);
+                var reading = store.Read();
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), pair.Key + ": " + reading.Reason);
+
+                var write = StoreWrite.Plan(reading, new[] { act }, Plugin);
+
+                Assert.That(write.Refused, Is.Null, pair.Key);
+                Assert.That(write.Delete, Does.Contain(replaced.Hex), pair.Key + ": the version replaced");
+                Assert.That(write.Delete, Does.Not.Contain(left.Hex), pair.Key + ": the version nothing names");
+
+                var applied = write.Applied(reading.Candidates, reading.Deletions);
+                Assert.That(applied.Key.Select(candidate => candidate.Hex), Does.Not.Contain(replaced.Hex), pair.Key);
+                Assert.That(applied.Value.Count(identifier => KeePassGate.Hex.Of(identifier) == replaced.Hex), Is.EqualTo(1),
+                    pair.Key + ": a single deletion record");
+                using (var after = StoreReading.Afresh(applied.Key, applied.Value))
+                {
+                    Assert.That(after.State, Is.EqualTo(StoreState.Whole), pair.Key + ": " + after.Reason);
+                }
+            }
+        }
+
+        [Test]
+        public void A_version_named_by_a_version_in_force_goes_in_force_or_not_and_a_version_named_only_by_a_version_out_of_force_is_left()
+        {
+            // `STORE.md` §623 step 3: a version out of force is no version of its object, so what
+            // it names stands, and deleting that would take a standing version away. A version a
+            // version in force names goes, beside a deletion record of its own or not.
+            var store = new ComposedStore(One);
+            var gone = store.Add(VersionOf(SwitchOf('1')));
+            store.Delete(gone);
+            var replacing = store.Add(VersionOf(SwitchOf('1'), gone));
+            var byRecord = store.Add(VersionOf(SwitchOf('2')));
+            store.Delete(store.Add(VersionOf(SwitchOf('2'), byRecord)));
+            var byItem = store.Add(VersionOf(SwitchOf('3')));
+            var first = store.Head;
+            store.RestateAll(new[] { ItemOf(replacing), ItemOf(byRecord), ItemOf(byItem), ItemOf(VersionOf(SwitchOf('3'), byItem)) });
+            var outOfForce = store.Head;
+            store.RestateAll(new[] { ItemOf(replacing), ItemOf(byRecord), ItemOf(byItem) }, first.Hex);
+            store.Add(outOfForce);
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+
+            var write = StoreWrite.Plan(reading, new[] { Neutral() }, Plugin);
+
+            Assert.That(write.Refused, Is.Null);
+            Assert.That(write.Delete, Does.Contain(gone.Hex), "a version beside a deletion record, named by a version in force");
+            Assert.That(write.Delete, Does.Not.Contain(byRecord.Hex), "named only by a record out of force");
+            Assert.That(write.Delete, Does.Not.Contain(byItem.Hex), "named only by an item of a summary entry out of force");
+            var items = Items(SummaryOf(write));
+            Assert.That(items, Does.Contain(ItemOf(byRecord)).And.Contain(ItemOf(byItem)), "both stand, and are restated");
+        }
+
+        [Test]
+        public void A_standing_version_is_never_deleted_however_many_stand_beside_it()
+        {
+            // Two versions made apart, each naming the version both had read: both stand, and the
+            // version they name goes. A version the write adds that names the first takes the
+            // first away and leaves the second, `STORE.md` §610.
+            var store = new ComposedStore(One);
+            var both = store.Add(VersionOf(SwitchOf('1')));
+            var first = store.Add(VersionOf(SwitchOf('1'), both));
+            var second = store.Add(VersionOf(SwitchOf('1'), both));
+            store.RestateAll(new[] { ItemOf(first), ItemOf(second) });
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+
+            var neutral = StoreWrite.Plan(reading, new[] { Neutral() }, Plugin);
+            Assert.That(neutral.Delete, Does.Contain(both.Hex));
+            Assert.That(neutral.Delete, Does.Not.Contain(first.Hex).And.Not.Contain(second.Hex));
+
+            var own = Recorded("version", ("after", Listed(first.Hex, both.Hex)), ("doc", "a rule"), ("object", SwitchOf('1')));
+            var changed = StoreWrite.Plan(reading, new[] { Act(One, own) }, Plugin);
+            Assert.That(changed.Delete, Does.Contain(first.Hex).And.Contain(both.Hex));
+            Assert.That(changed.Delete, Does.Not.Contain(second.Hex), "the version the write's own did not name stands beside it");
+        }
+
+        [Test]
+        public void An_identifier_a_version_names_that_the_tree_does_not_hold_gets_a_deletion_record_a_single_time()
+        {
+            // `STORE.md` §627 step 3: a deletion record for a replaced version this copy does not
+            // hold, so that it stays out of force when a merge brings it; once, however many
+            // versions of its object name it, and not again while a deletion record names it. A
+            // version of another object that names it replaces nothing, and an entry of the tree
+            // under the identifier, a record or not, gets none.
+            var store = Started(out var key, 'a');
+            var elsewhere = Versioned(key, SwitchOf('1'), string.Empty).Hex;
+            var first = Versioned(key, SwitchOf('1'), elsewhere);
+            var beside = Versioned(key, SwitchOf('1'), elsewhere);
+            var other = Versioned(key, SwitchOf('2'), elsewhere);
+
+            var both = StoreWrite.Plan(store.Read(), new[] { Act(key, first), Act(key, beside), Act(key, other) }, Plugin);
+            Assert.That(both.Refused, Is.Null);
+            Assert.That(both.Deletions.Count(identifier => identifier == elsewhere), Is.EqualTo(1), "named twice, told of once");
+            Assert.That(store.Write(new[] { Act(key, first), Act(key, beside), Act(key, other) }).Taken, Is.True);
+            Assert.That(store.Read().State, Is.EqualTo(StoreState.Whole), store.Read().Reason);
+
+            var again = Versioned(key, SwitchOf('1'), Listed(first.Hex, beside.Hex, elsewhere));
+            var next = StoreWrite.Plan(store.Read(), new[] { Act(key, again) }, Plugin);
+            Assert.That(next.Deletions, Does.Not.Contain(elsewhere), "a deletion record names it already");
+            Assert.That(next.Delete, Does.Contain(first.Hex).And.Contain(beside.Hex));
+            Assert.That(next.Delete, Does.Not.Contain(other.Hex), "a version of another object");
+
+            var ofTheOther = Versioned(key, SwitchOf('2'), string.Empty).Hex;
+            var alone = StoreWrite.Plan(store.Read(), new[] { Act(key, Versioned(key, SwitchOf('1'), ofTheOther)) }, Plugin);
+            Assert.That(alone.Deletions, Does.Not.Contain(ofTheOther), "a version of another object names nothing of this object");
+
+            var stripped = Versioned(key, SwitchOf('3'), string.Empty).Hex;
+            var tree = store.Candidates.Select(candidate => candidate.Identifier).Concat(new[] { StoreComposer.BytesOf(stripped) });
+            using (var reading = StoreReading.Afresh(store.Candidates, store.Deletions, tree))
+            {
+                var write = StoreWrite.Plan(reading, new[] { Act(key, Versioned(key, SwitchOf('3'), stripped)) }, Plugin);
+                Assert.That(write.Deletions, Does.Not.Contain(stripped), "an entry the tree holds");
+                Assert.That(write.Delete, Does.Not.Contain(stripped), "and it is no record, so it stays");
+            }
+        }
+
+        [Test]
+        public void The_summary_entry_restates_each_standing_version_and_no_version_replaced()
+        {
+            var store = new ComposedStore(One);
+            var replaced = store.Add(VersionOf(SwitchOf('1')));
+            var standing = store.Add(VersionOf(SwitchOf('1'), replaced));
+            var changed = store.Add(VersionOf(SwitchOf('2')));
+            store.RestateAll(new[] { ItemOf(standing), ItemOf(changed) });
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            var own = Recorded("version", ("after", changed.Hex), ("doc", "a rule"), ("object", SwitchOf('2')));
+
+            var write = StoreWrite.Plan(reading, new[] { Act(One, own) }, Plugin);
+
+            var items = Items(SummaryOf(write)).Where(item => item.Contains("\"version\"")).ToList();
+            Assert.That(items, Is.EquivalentTo(new[]
+            {
+                ItemOf(standing),
+                VersionItemOf(own),
+            }));
+
+            var applied = write.Applied(reading.Candidates, reading.Deletions);
+            using (var after = StoreReading.Afresh(applied.Key, applied.Value))
+            {
+                Assert.That(after.State, Is.EqualTo(StoreState.Whole), after.Reason);
+            }
+        }
+
+        [Test]
+        public void A_version_replaces_only_versions_of_its_own_object_and_a_write_deletes_no_other()
+        {
+            // `STORE.md` §617: a version replaces the versions of its own object it names. A
+            // version of another node that a version names stands, is restated, and is never
+            // deleted, by a write that adds nothing of either object or by a version of the write.
+            var store = new ComposedStore(One);
+            var other = store.Add(VersionOf(SwitchOf('2')));
+            var naming = store.Add(VersionOf(SwitchOf('1'), other));
+            store.RestateAll(new[] { ItemOf(naming), ItemOf(other) });
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(
+                reading.InForce.Restated().Where(item => item.Kind == "version").Select(item => item.Member("id")),
+                Does.Contain(other.Hex),
+                "the reading holds it standing");
+
+            var own = Recorded("version", ("after", Listed(naming.Hex, other.Hex)), ("doc", "a rule"), ("object", SwitchOf('1')));
+            foreach (var act in new[] { Neutral(), Act(One, own) })
+            {
+                var write = StoreWrite.Plan(reading, new[] { act }, Plugin);
+
+                Assert.That(write.Refused, Is.Null, act.Name);
+                Assert.That(write.Delete, Does.Not.Contain(other.Hex), act.Name);
+                Assert.That(write.Deletions, Does.Not.Contain(other.Hex), act.Name);
+                Assert.That(Items(SummaryOf(write)), Does.Contain(ItemOf(other)), act.Name + ": restated");
+            }
+        }
+
+        [Test]
+        public void An_identifier_no_entry_carries_is_told_of_only_where_a_version_of_the_naming_object_could_have_it()
+        {
+            // `STORE.md` §609 and §627 step 3: a name that no entry carries gets a deletion record
+            // only where its tag, its subject and its number are those a version of the naming
+            // object has, a row's profile tag among them; any other name, a group's identifier or
+            // an identifier under the tag of another kind among them, is passed over.
+            var row = "rule:" + new string('1', 32) + "/pf";
+            var fits = Recorded("version", ("after", string.Empty), ("doc", "a rule"), ("object", row)).Hex;
+            var fitsSwitch = Recorded("version", ("after", string.Empty), ("doc", "a rule"), ("object", SwitchOf('1'))).Hex;
+            var passedOver = new Dictionary<string, string>
+            {
+                { "a version of another profile's rule at the node", Recorded("version", ("after", string.Empty), ("doc", "a rule"), ("object", "rule:" + new string('1', 32) + "/pg")).Hex },
+                { "a version of another node", Recorded("version", ("after", string.Empty), ("doc", "a rule"), ("object", SwitchOf('2'))).Hex },
+                { "a revocation", Recorded("revoked", ("client", Hex('c'))).Hex },
+                { "a summary entry", KeePassGate.Hex.Of(StoreComposer.IdentifierOf(One, "head", "store", 7, new string('0', 64))) },
+                { "a version record", KeePassGate.Hex.Of(StoreComposer.IdentifierOf(One, "format", "format:1", 1, new string('0', 64))) },
+                { "the plugin's group", KeePassGate.Hex.Of(StoreFormat.NewGroupIdentifier()) },
+                { "an identifier of nothing", new string('7', 32) },
+            };
+
+            var named = Listed(passedOver.Values.Concat(new[] { fits }).ToArray());
+            var own = Recorded("version", ("after", named), ("doc", "a rule"), ("object", row));
+            var byOwn = StoreWrite.Plan(new ComposedStore(One).Read(), new[] { Act(One, own) }, Plugin);
+            Assert.That(byOwn.Refused, Is.Null);
+            Assert.That(byOwn.Deletions, Is.EqualTo(new[] { fits }), "by a version of the write");
+
+            var store = new ComposedStore(One);
+            var inForce = store.Add(Version(One, row, named));
+            var switched = store.Add(Version(One, SwitchOf('1'), Listed(passedOver.Values.Concat(new[] { fitsSwitch }).ToArray())));
+            store.RestateAll(new[] { ItemOf(inForce), ItemOf(switched) });
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            var byRecord = StoreWrite.Plan(reading, new[] { Neutral() }, Plugin);
+            Assert.That(byRecord.Deletions, Is.EquivalentTo(new[] { fits, fitsSwitch }), "by versions in force");
+        }
+
+        [Test]
+        public void A_version_is_deleted_only_where_every_version_it_names_stays_named()
+        {
+            // A deletion changes no answer, `STORE.md` §627: a version the write's own replaces,
+            // and that names a version nothing staying names, stays and goes on naming it, so the
+            // version it names is deleted with a deletion record that a version in force names.
+            var store = new ComposedStore(One);
+            var first = store.Add(VersionOf(SwitchOf('1')));
+            var second = store.Add(VersionOf(SwitchOf('1'), first));
+            store.RestateAll(new[] { ItemOf(second) });
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+
+            var open = Recorded("version", ("after", second.Hex), ("doc", "a rule"), ("object", SwitchOf('1')));
+            var write = StoreWrite.Plan(reading, new[] { Act(One, open) }, Plugin);
+            Assert.That(write.Delete, Does.Contain(first.Hex), "named by the version that stays");
+            Assert.That(write.Delete, Does.Not.Contain(second.Hex), "it names a version only it names");
+            var applied = write.Applied(reading.Candidates, reading.Deletions);
+            using (var after = StoreReading.Afresh(applied.Key, applied.Value))
+            {
+                Assert.That(after.State, Is.EqualTo(StoreState.Whole), after.Reason);
+                Assert.That(
+                    after.InForce.Records.Single(record => record.Hex == second.Hex).InForce, Is.True,
+                    "the version naming the version deleted stays in force, and names it");
+                Assert.That(
+                    after.InForce.Restated().Where(item => item.Kind == "version").Select(item => item.Member("id")),
+                    Is.EqualTo(new[] { open.Hex }),
+                    "the write's own version alone stands");
+            }
+
+            var closed = Recorded("version", ("after", Listed(first.Hex, second.Hex)), ("doc", "a rule"), ("object", SwitchOf('1')));
+            Assert.That(
+                StoreWrite.Plan(reading, new[] { Act(One, closed) }, Plugin).Delete,
+                Does.Contain(first.Hex).And.Contain(second.Hex),
+                "a version that names all it replaces takes both");
+        }
+
+        [Test]
+        public void A_write_whose_version_names_a_version_of_the_same_write_is_refused()
+        {
+            // `STORE.md` §610: a version names what its writer had read, and a version the same
+            // write adds was read by nobody. Written, it would stand beside its own deletion
+            // record. A version of another object naming it replaces nothing, and is written.
+            var store = new ComposedStore(One);
+            var first = store.Add(VersionOf(SwitchOf('1')));
+            store.RestateAll(new[] { ItemOf(first) });
+            var reading = store.Read();
+            var added = Recorded("version", ("after", first.Hex), ("doc", "a rule"), ("object", SwitchOf('1')));
+            var naming = Recorded("version", ("after", added.Hex), ("doc", "a rule"), ("object", SwitchOf('1')));
+            var elsewhere = Recorded("version", ("after", added.Hex), ("doc", "a rule"), ("object", SwitchOf('2')));
+
+            var refused = StoreWrite.Plan(reading, new[] { Act(One, added), Act(One, naming) }, Plugin);
+            Assert.That(refused.Refused, Is.EqualTo("a version of the write names a version the same write adds"));
+            Assert.That(refused.Add, Is.Empty);
+
+            var written = StoreWrite.Plan(reading, new[] { Act(One, added), Act(One, elsewhere) }, Plugin);
+            Assert.That(written.Refused, Is.Null);
+            Assert.That(written.Deletions, Does.Not.Contain(added.Hex));
+        }
+
+        [Test]
+        public void A_write_that_starts_a_store_tells_of_what_its_versions_name()
+        {
+            // `STORE.md` §627 step 3, where no key stood: the names a version of the write gives
+            // are held to its object under the key the write brings.
+            var key = StoreFormat.NewKey();
+            var fits = Versioned(key, SwitchOf('1'), string.Empty).Hex;
+            var version = Versioned(key, SwitchOf('1'), Listed(fits, new string('7', 32)));
+
+            var write = StoreWrite.Plan(new MemoryStore().Read(), new[] { Create(key, 'a'), Act(key, version) }, Plugin);
+
+            Assert.That(write.Refused, Is.Null);
+            Assert.That(write.Starts, Is.True);
+            Assert.That(write.Deletions, Is.EqualTo(new[] { fits }));
+        }
+
+        [Test]
+        public void A_version_carried_only_by_an_item_is_restated_while_it_alone_names_a_version()
+        {
+            // The summary entry in force carries W and V, and V, with no record, is replaced by W
+            // and alone names X, a record in force. Left out of the summary entry, V would name
+            // nothing, and X would stand restated by nothing, which stops the store.
+            var store = new ComposedStore(One);
+            var x = store.Add(VersionOf(SwitchOf('1')));
+            var v = VersionOf(SwitchOf('1'), x);
+            var w = store.Add(VersionOf(SwitchOf('1'), v));
+            store.RestateAll(new[] { ItemOf(w), ItemOf(v) });
+
+            AssertRestatedAndWhole(store, v, x);
+        }
+
+        [Test]
+        public void A_version_carried_only_by_an_item_is_restated_while_it_alone_names_a_deletion_record()
+        {
+            var store = new ComposedStore(One);
+            var x = VersionOf(SwitchOf('1'));
+            store.Delete(x);
+            var v = VersionOf(SwitchOf('1'), x);
+            var w = store.Add(VersionOf(SwitchOf('1'), v));
+            store.RestateAll(new[] { ItemOf(w), ItemOf(v) });
+
+            var write = AssertRestatedAndWhole(store, v, x);
+            Assert.That(write.Deletions, Does.Not.Contain(x.Hex), "its deletion record is the file's already");
+        }
+
+        [Test]
+        public void A_version_whose_record_is_out_of_force_and_whose_item_is_in_force_is_kept_while_it_alone_names_a_version()
+        {
+            // In force by its item, a version names what its item names, whatever became of its
+            // record, `STORE.md` §623 step 3.
+            var store = new ComposedStore(One);
+            var x = store.Add(VersionOf(SwitchOf('1')));
+            var v = store.Add(VersionOf(SwitchOf('1'), x));
+            store.Delete(v);
+            var w = store.Add(VersionOf(SwitchOf('1'), v));
+            store.RestateAll(new[] { ItemOf(w), ItemOf(v) });
+
+            AssertRestatedAndWhole(store, v, x);
+        }
+
+        [Test]
+        public void With_every_list_closed_a_write_restates_the_standing_versions_alone()
+        {
+            var store = new ComposedStore(One);
+            var first = store.Add(VersionOf(SwitchOf('1')));
+            var second = store.Add(VersionOf(SwitchOf('1'), first));
+            var third = store.Add(VersionOf(SwitchOf('1'), first, second));
+            store.RestateAll(new[] { ItemOf(third), ItemOf(second) });
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+
+            var neutral = StoreWrite.Plan(reading, new[] { Neutral() }, Plugin);
+            Assert.That(VersionItems(neutral), Is.EqualTo(new[] { ItemOf(third) }));
+            Assert.That(neutral.Delete, Does.Contain(first.Hex).And.Contain(second.Hex));
+
+            var own = Recorded("version", ("after", Listed(first.Hex, second.Hex, third.Hex)), ("doc", "a rule"), ("object", SwitchOf('1')));
+            var changed = StoreWrite.Plan(reading, new[] { Act(One, own) }, Plugin);
+            Assert.That(VersionItems(changed), Is.EqualTo(new[] { VersionItemOf(own) }));
+            Assert.That(changed.Delete, Does.Contain(first.Hex).And.Contain(second.Hex).And.Contain(third.Hex));
+        }
+
+        [Test]
+        public void What_a_write_keeps_of_versions_replaced_is_the_same_in_whatever_order_their_entries_are_walked()
+        {
+            // W names M and N, which each name Y; W does not name Y. Each copy keeps both M and N
+            // and deletes Y, whatever order its tree holds them in, so copies that meet keep alike.
+            foreach (var mFirst in new[] { true, false })
+            {
+                var store = new ComposedStore(One);
+                var y = store.Add(VersionOf(SwitchOf('1')));
+                var m = VersionOf(SwitchOf('1'), y);
+                var n = VersionOf(SwitchOf('1'), y);
+                store.Add(mFirst ? m : n);
+                store.Add(mFirst ? n : m);
+                var w = store.Add(VersionOf(SwitchOf('1'), m, n));
+                store.RestateAll(new[] { ItemOf(w) });
+                var reading = store.Read();
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+
+                var write = StoreWrite.Plan(reading, new[] { Neutral() }, Plugin);
+
+                var named = mFirst ? "M walked first" : "N walked first";
+                Assert.That(write.Delete, Does.Contain(y.Hex), named);
+                Assert.That(write.Delete, Does.Not.Contain(m.Hex).And.Not.Contain(n.Hex), named + ": both stay, and name Y");
+            }
+        }
+
+        [Test]
+        public void An_identifier_alone_tells_neither_two_names_whose_tags_meet_nor_a_bare_rule_from_a_row_whose_tag_is_0()
+        {
+            // `STORE.md` §609: a name no entry carries is told by its first ten bytes, the tag, the
+            // subject hash and the number. Two names whose tags meet under a key, found by a search
+            // run once, give their rows at a node the same ten bytes, and so do a rule's object with
+            // no slash and a row whose name's tag is 0: a name of either is told of for the other.
+            var node = new string('1', 32);
+            Assert.That(StoreFormat.ProfileTag(One, "agent-455"), Is.EqualTo(StoreFormat.ProfileTag(One, "agent-604")));
+            Assert.That(StoreFormat.ProfileTag(One, "agent-144433"), Is.EqualTo(0));
+            var meeting = Recorded("version", ("after", string.Empty), ("doc", "a rule"), ("object", "rule:" + node + "/agent-604")).Hex;
+            var bare = Recorded("version", ("after", string.Empty), ("doc", "a rule"), ("object", "rule:" + node)).Hex;
+
+            var byMeeting = Recorded("version", ("after", meeting), ("doc", "a rule"), ("object", "rule:" + node + "/agent-455"));
+            Assert.That(StoreWrite.Plan(new ComposedStore(One).Read(), new[] { Act(One, byMeeting) }, Plugin).Deletions, Is.EqualTo(new[] { meeting }));
+
+            var byZero = Recorded("version", ("after", bare), ("doc", "a rule"), ("object", "rule:" + node + "/agent-144433"));
+            Assert.That(StoreWrite.Plan(new ComposedStore(One).Read(), new[] { Act(One, byZero) }, Plugin).Deletions, Is.EqualTo(new[] { bare }));
+        }
+
+        /// <summary>
+        /// Plans a write that adds nothing of the versions over this store, and holds the version
+        /// replaced restated, the version it names not, and the store the write leaves whole and
+        /// whole again after a further write.
+        /// </summary>
+        private static StoreWrite AssertRestatedAndWhole(ComposedStore store, StoreComposer.Composed replaced, StoreComposer.Composed named)
+        {
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+
+            var write = StoreWrite.Plan(reading, new[] { Neutral() }, Plugin);
+
+            Assert.That(write.Refused, Is.Null);
+            Assert.That(VersionItems(write), Does.Contain(ItemOf(replaced)), "restated, so that it goes on naming");
+            Assert.That(VersionItems(write), Does.Not.Contain(ItemOf(named)));
+            var applied = write.Applied(reading.Candidates, reading.Deletions);
+            using (var after = StoreReading.Afresh(applied.Key, applied.Value))
+            {
+                Assert.That(after.State, Is.EqualTo(StoreState.Whole), after.Reason);
+                var again = StoreWrite.Plan(after, new[] { Retire(One, 'y') }, Plugin);
+                Assert.That(VersionItems(again), Does.Contain(ItemOf(replaced)), "and restated again");
+                var twice = again.Applied(applied.Key, applied.Value);
+                using (var later = StoreReading.Afresh(twice.Key, twice.Value))
+                {
+                    Assert.That(later.State, Is.EqualTo(StoreState.Whole), later.Reason);
+                }
+            }
+
+            return write;
+        }
+
+        /// <summary>The items `version` of a write's summary entry.</summary>
+        private static IReadOnlyList<string> VersionItems(StoreWrite write)
+        {
+            return Items(SummaryOf(write)).Where(item => item.Contains("\"kind\":\"version\"")).ToList();
+        }
+
+        /// <summary>The object of a node's switch, the node's identifier this digit 32 times.</summary>
+        private static string SwitchOf(char node)
+        {
+            return "switch:" + new string(node, 32);
+        }
+
+        /// <summary>A record of kind `version` under `One` of this object, naming these versions as replaced.</summary>
+        private static StoreComposer.Composed VersionOf(string objectName, params StoreComposer.Composed[] replaced)
+        {
+            return Version(One, objectName, Listed(replaced.Select(version => version.Hex).ToArray()));
+        }
+
+        /// <summary>The item `version` that restates this record of kind `version`.</summary>
+        private static string ItemOf(StoreComposer.Composed version)
+        {
+            var content = Newtonsoft.Json.Linq.JObject.Parse(version.Strings[StoreComposer.Data]);
+            return VersionItem(version, (string)content["object"], (string)content["after"]);
+        }
+
+        /// <summary>The item `version` that restates a version the product composed.</summary>
+        private static string VersionItemOf(StoreRecord version)
+        {
+            return StoreComposer.Item(
+                ("after", version.Member("after")), ("doc", version.Member("doc")), ("id", version.Hex), ("kind", "version"),
+                ("object", version.Member("object")));
+        }
+
+        /// <summary>A version of this object composed by the product under this key, naming these identifiers.</summary>
+        private static StoreRecord Versioned(byte[] key, string objectName, string after)
+        {
+            return StoreRecord.Compose(key, "version", new Dictionary<string, string>
+            {
+                { "after", after },
+                { "doc", "a rule" },
+                { "object", objectName },
+            });
+        }
+
+        /// <summary>Identifiers as a list of `STORE.md` §607: in ordinal order, separated by single spaces.</summary>
+        private static string Listed(params string[] identifiers)
+        {
+            return string.Join(" ", identifiers.OrderBy(identifier => identifier, StringComparer.Ordinal));
+        }
+
         /// <summary>A record of kind `profile` under `One`: an addition of this name naming these removals.</summary>
         private static StoreComposer.Composed Addition(string name, string after)
         {

@@ -15,6 +15,13 @@ namespace KeePassGate.Store
 
         /// <summary>The format number a version record states.</summary>
         Format,
+
+        /// <summary>
+        /// For a version whose object is of the type `rule` and holds `/`, the tag of the name
+        /// after its first `/`, the subject ending before it; zero for every other version,
+        /// `STORE.md` §609. `StoreFormat.SubjectOf` makes the subject and the text tagged.
+        /// </summary>
+        ProfileTag,
     }
 
     /// <summary>The form a member the core reads has to take, `STORE.md` §658.</summary>
@@ -175,6 +182,12 @@ namespace KeePassGate.Store
         /// <summary>The member of a summary entry's content and of a version that names what it replaces.</summary>
         public const string After = "after";
 
+        /// <summary>
+        /// The member of a version, and of its item, that names the lost versions at its place it
+        /// settles for its own object, absent where it names none, `STORE.md` §617.
+        /// </summary>
+        public const string Lost = "lost";
+
         /// <summary>The member of a summary entry's content that holds its height.</summary>
         public const string Height = "height";
 
@@ -189,6 +202,9 @@ namespace KeePassGate.Store
 
         /// <summary>The member of a version, and of its item, naming what it is a version of.</summary>
         public const string ObjectMember = "object";
+
+        /// <summary>The member of a version, and of its item, holding the text of the version, `STORE.md` §617.</summary>
+        public const string Doc = "doc";
 
         /// <summary>The member of a keep record, and of its item, naming the key not kept.</summary>
         public const string Key = "key";
@@ -248,11 +264,17 @@ namespace KeePassGate.Store
         /// <summary>What separates the type of a version's object from the rest, `STORE.md` §658.</summary>
         public const char ObjectTypeEnd = ':';
 
+        /// <summary>The type of the object of a profile's rule at a node, `STORE.md` §617.</summary>
+        public const string RuleType = "rule";
+
+        /// <summary>The type of the object of a node's switch, `STORE.md` §617.</summary>
+        public const string SwitchType = "switch";
+
         /// <summary>
         /// The types of object a version is of: a profile's rule at a node, a node's switch, and
         /// an answer to a renewal. A version of another type is of a kind the plugin does not know.
         /// </summary>
-        public static readonly IReadOnlyList<string> ObjectTypes = Array.AsReadOnly(new[] { "rule", "switch", "renew" });
+        public static readonly IReadOnlyList<string> ObjectTypes = Array.AsReadOnly(new[] { RuleType, SwitchType, "renew" });
 
         /// <summary>The rows of `STORE.md` §658, in its order.</summary>
         public static readonly IReadOnlyList<StoreKind> All = Array.AsReadOnly(new[]
@@ -307,17 +329,19 @@ namespace KeePassGate.Store
                 true, StoreRestated.BySameMember, "name",
                 Members(new StoreMember("name", StoreForm.Text), new StoreMember(Id, StoreForm.Text))),
             new StoreKind(
-                Version, string.Empty, ObjectMember, StoreNumber.None,
+                Version, string.Empty, ObjectMember, StoreNumber.ProfileTag,
                 Members(
                     new StoreMember(ObjectMember, StoreForm.Text),
                     new StoreMember(After, StoreForm.Identifiers),
-                    new StoreMember("doc", StoreForm.Text)),
+                    new StoreMember(Doc, StoreForm.Text),
+                    new StoreMember(Lost, StoreForm.Identifiers, true)),
                 false, StoreRestated.ById, null,
                 Members(
                     new StoreMember(Id, StoreForm.Text),
                     new StoreMember(ObjectMember, StoreForm.Text),
                     new StoreMember(After, StoreForm.Identifiers),
-                    new StoreMember("doc", StoreForm.Text))),
+                    new StoreMember(Doc, StoreForm.Text),
+                    new StoreMember(Lost, StoreForm.Identifiers, true))),
             new StoreKind(
                 Kept, "key:", Key, StoreNumber.None,
                 Members(new StoreMember(Key, StoreForm.KeyName), new StoreMember(After, StoreForm.Identifiers)),

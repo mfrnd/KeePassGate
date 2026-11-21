@@ -233,7 +233,9 @@ steps, and skipping either one loses the work:
    KeePass without saving throws it away.
 
 Both steps apply to everything here: creating an authority, naming a profile, taking a client's
-admission away.
+admission away. They apply to the rules set on the **KPG** tab of a group or an entry as well,
+with that dialog's own OK: [`access-control.md`](access-control.md#press-ok) has what is
+different there.
 
 **The authority cannot be created and a client paired in the same visit to this dialog.** A program
 pairing talks to the gate, and the gate answers out of the database KeePass is holding, which has
@@ -262,8 +264,9 @@ a copy of the file from before, synchronized in later, cannot put it back into s
 ## The plugin's group
 
 The authority is an entry of the database, in a group of the plugin's own named `KeePassGate`,
-beside an entry for each certificate admitted, for each client revoked and for each profile name
-added or removed, and the entries that keep the group's own account of what is in it. They are
+beside an entry for each certificate admitted, for each client revoked, for each profile name
+added or removed and for each version of a rule set for a group or an entry, and the entries
+that keep the group's own account of what is in it. They are
 there to be seen and left alone. **An edit to what the plugin wrote in an entry of that group is
 undone at the plugin's next write into the group**, with the edit kept in the entry's history; in
 a database that keeps no history, such an edit ends the serving of the database. A title or notes
@@ -370,13 +373,10 @@ remove it once the plugin is gone:
 
 | | |
 | --- | --- |
-| **The plugin's group** | `KeePassGate`, holding a retirement for each authority the database has held, which Delete authority writes on purpose, a revocation for each client that was revoked and a record for each certificate a program gave up, an entry for each profile name added and for each removed, and the entries that keep the group's own account of what is in it. The retirements are what keeps a copy of the file from before, synchronized in later, from putting the old authority back into service, so delete the group only once the plugin is not coming back. The profile names go with the group. |
-| **The rules** | `KPG`, in the custom data of each group and entry that has a rule. |
+| **The plugin's group** | `KeePassGate`, holding a retirement for each authority the database has held, which Delete authority writes on purpose, a revocation for each client that was revoked and a record for each certificate a program gave up, an entry for each profile name added and for each removed, the versions of the rules written on the **KPG** tabs of groups and entries, and the entries that keep the group's own account of what is in it. The retirements are what keeps a copy of the file from before, synchronized in later, from putting the old authority back into service, so delete the group only once the plugin is not coming back. The profile names and the rules go with the group. |
 
 The group is deleted as any group is, into the recycle bin where the database keeps a recycle bin
-enabled, to be emptied from there. A group's rules are on the **Plugin Data** tab of
-**Edit Group**, and an entry's under **Plugin data** on the **Properties** tab of **Edit Entry**;
-the versions an entry keeps in its history keep the rules they had. Then save the database.
+enabled, to be emptied from there. Then save the database.
 
 **Outside the databases** are the plugin's files, its port and what the programs it let in were
 handed:

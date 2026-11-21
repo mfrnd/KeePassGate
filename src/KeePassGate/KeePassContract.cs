@@ -97,11 +97,10 @@ namespace KeePassGate
         /// The merged-selection context, present only while several entries are edited at once.
         /// </summary>
         /// <remarks>
-        /// Present means the entry behind the dialog is a synthetic one KeePass built by merging
+        /// Present means the entry behind the dialog is a synthetic entry KeePass built by merging
         /// the selection, and every value the selection disagrees about has been replaced by a
-        /// cue string. Its `CustomData` is therefore not a document, and what is written back is
-        /// applied to every selected entry. For a key the merged copy no longer carries, that
-        /// means deleting it from all of them.
+        /// cue string. That entry is no entry the plugin's store holds rules for, and what is
+        /// written back is applied to every selected entry.
         /// </remarks>
         public const string EntryFormMultipleField = "m_mvec";
 
@@ -167,26 +166,9 @@ namespace KeePassGate
         public const string NodeFormTabControlName = "m_tabMain";
 
         /// <summary>
-        /// **The dialog's own copy of a node's custom data**, on the group dialog and the entry
-        /// dialog alike, and the only correct place for the grant editor to write.
-        /// </summary>
-        /// <remarks>
-        /// Both dialogs take a copy when they open and write that copy back over the node when
-        /// they are accepted. A grant written straight to the live group or entry therefore
-        /// survives Cancel and is destroyed by OK, silently and completely, which is the worst way
-        /// for an access control editor to fail: the rule is on screen as the dialog closes and
-        /// gone from the database afterwards.
-        ///
-        /// A KeePass that renames this leaves the editor with nowhere safe to write, so it shows
-        /// the grants and refuses to edit them rather than writing somewhere that will be thrown
-        /// away.
-        /// </remarks>
-        public const string NodeFormCustomDataField = "m_sdCustomData";
-
-        /// <summary>
-        /// The database behind a group or entry dialog, which is what says which profiles are worth
-        /// offering. Absent, the editor has no profile to offer, and a rule is started by choosing
-        /// one, so it shows the rules, changes none of them, and says why.
+        /// The database behind a group or entry dialog, whose store the grant editor reads and an
+        /// OK on its tab writes. Absent, the editor has no store to read or write, so the tab
+        /// takes no press and tells why.
         /// </summary>
         public const string NodeFormDatabaseField = "m_pwDatabase";
 

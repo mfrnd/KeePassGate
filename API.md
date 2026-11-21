@@ -20,7 +20,11 @@ strip is `strip`, delete is `delete`, list is `list`. No route decides for itsel
 checks the routing document by reading each `operationId` beside its `x-kpg-verb`, and a route
 added later has one obvious answer rather than an argument. The two routes asking what a client
 may do at a node do none of the six, so they are named `get` and declare `any`, which asks about
-all of them at once.
+all of them at once. Their answer is made by the walk every other question takes, `DESIGN.md`
+§137, so a mask is what the gate grants the profile at the node as the rules stand: what
+arrives from above cut to a limit the node holds, the letters that all versions hold of a rule
+changed apart in copies of the database, and no letter where a version of the rule was lost or
+cannot be read. A client is told the result and never which of those made it.
 
 **The node is the nearest addressable thing.** A field and an attachment are not nodes, so a rule
 about them is a rule on the entry that holds them. A create's node is the container it goes into,

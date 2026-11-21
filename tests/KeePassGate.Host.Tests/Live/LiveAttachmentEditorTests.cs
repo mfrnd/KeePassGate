@@ -55,7 +55,7 @@ namespace KeePassGate.Host.Tests.Live
 
             // `attachments` because the route is about one, and `strip` because removing one takes
             // a part out of the entry rather than the entry out of its group.
-            keePass.Grant(Rules.Granting(("agent", "CRUSDLA")));
+            keePass.Grant(("agent", "CRUSDLA"));
 
             using (var admitted = keePass.IssueClientCertificate("agent-fictitious"))
             {

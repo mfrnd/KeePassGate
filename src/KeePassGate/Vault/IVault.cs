@@ -80,7 +80,9 @@ namespace KeePassGate.Vault
         /// decision and the handler both, so the client's record, the rules and everything read
         /// are of one database. Each read inside it is part of the one hold rather than a hold of
         /// its own, so a listing is judged against the tree it was taken from, and a thousand
-        /// entries wait for one turn rather than a thousand. Throws `VaultUnsettled` as they do.
+        /// entries wait for one turn rather than a thousand. **So is a change's asking before
+        /// its turn**: the node's lookup and every walk up the rules, a removal's from both of
+        /// its sides, are of one tree. Throws `VaultUnsettled` as they do.
         /// **Nothing that waits belongs inside it**, the audit and the writer least of all, since
         /// the operator's window waits with it.
         /// </remarks>

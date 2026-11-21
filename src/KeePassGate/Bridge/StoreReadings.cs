@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
+using KeePassGate.Acl;
 using KeePassGate.Diagnostics;
 using KeePassGate.Gate;
 using KeePassGate.Store;
@@ -19,7 +20,9 @@ namespace KeePassGate.Bridge
     /// among them, and no other hold. On KeePass's own thread every question reads afresh, since
     /// a turn there may change the tree between two of them, <see cref="IReadHold.Stamp"/>, with
     /// a single exception: a change of the API's, between the moment its node is looked up and
-    /// the moment its change is handed back to the writer, <see cref="InTurn{T}"/>.
+    /// the moment its change is handed back to the writer, <see cref="InTurn{T}"/>. **The rules
+    /// are of the same reading**, <see cref="Rules"/>: worked out for the first question of a hold
+    /// about a rule, and let go with the reading.
     ///
     /// **Between two holds only the checked form of a version is kept**, by the entry's
     /// identifier and the very objects of the version, so a version nothing changed is not read
@@ -29,7 +32,8 @@ namespace KeePassGate.Bridge
     /// twice. What is kept goes, with its keys overwritten, when the cache lets go of the target
     /// at a lock, a close or a change of what is served, <see cref="Forget"/>, even where a
     /// connection still holds the target, as a pairing can for its whole budget: that connection
-    /// reads afresh from then on and keeps nothing.
+    /// reads afresh from then on and keeps nothing but the rules a hold worked out, for that hold
+    /// alone.
     ///
     /// **Who reads and who writes, and no thread of KeePass's waits on a reading.** Two locks.
     /// `_gate` guards the fields that say what was read for which hold, and is never held while
@@ -58,6 +62,14 @@ namespace KeePassGate.Bridge
         private int _turnThread;
         private int _turnDepth;
         private StoreReading _turnReading;
+
+        // The rules of a reading kept above, worked out for the first question about a rule and
+        // kept while that reading is, and the stamp of the hold they were worked out in, for
+        // which they are kept as well where the reading is not: `Rules`. Never answered for any
+        // other reading or hold.
+        private StoreReading _rulesOf;
+        private long _rulesStamp;
+        private StoredRules _rules;
 
         // The state the log last named, and whether it last named the store past half its room,
         // so that a state lasting over many requests is named once. Neither answers anything:
@@ -223,19 +235,31 @@ namespace KeePassGate.Bridge
         /// </summary>
         public StoreReading Now(PwDatabase database, PwGroup root)
         {
-            var thread = Environment.CurrentManagedThreadId;
             bool inTurn;
+            long stamp;
+            return Made(out inTurn, out stamp) ?? Made(database, root, inTurn, stamp);
+        }
+
+        /// <summary>
+        /// The reading made already for the question the calling thread asks, the turn's or the
+        /// hold's, or null where none is: with whether the thread is in a change's turn, and the
+        /// stamp of the hold it is inside, 0 in a turn.
+        /// </summary>
+        private StoreReading Made(out bool inTurn, out long stamp)
+        {
+            var thread = Environment.CurrentManagedThreadId;
             lock (_gate)
             {
                 inTurn = _turnDepth > 0 && _turnThread == thread;
                 if (inTurn && _turnReading != null)
                 {
+                    stamp = 0;
                     return _turnReading;
                 }
             }
 
             // A change's turn is on KeePass's thread, whose stamp is 0 in any case.
-            var stamp = _hold.Stamp;
+            stamp = _hold.Stamp;
             lock (_gate)
             {
                 if (!inTurn && stamp != 0 && stamp == _stamp && _reading != null)
@@ -244,6 +268,15 @@ namespace KeePassGate.Bridge
                 }
             }
 
+            return null;
+        }
+
+        /// <summary>
+        /// A reading made now for the question the calling thread asks, kept for the turn or the
+        /// hold it is asked in where anything is kept.
+        /// </summary>
+        private StoreReading Made(PwDatabase database, PwGroup root, bool inTurn, long stamp)
+        {
             var reading = Read(database, root);
 
             lock (_gate)
@@ -257,9 +290,66 @@ namespace KeePassGate.Bridge
                     _stamp = stamp;
                     _reading = reading;
                 }
+
+                LetRulesGo(stamp);
             }
 
             return reading;
+        }
+
+        /// <summary>
+        /// The rules of the reading <see cref="Now(PwDatabase, PwGroup)"/> answers under this
+        /// root, `STORE.md` §617 and §620: what a walk up the rules reads at each node.
+        /// </summary>
+        /// <remarks>
+        /// **Of the hold's own reading, and worked out once for it.** Inside a hold every question
+        /// is answered from the reading made for that hold, so the rules a walk reads are of the
+        /// moment the client was read again and the node was found. They are worked out at the
+        /// first question about a rule and kept while that reading is kept, so a listing that
+        /// walks from every entry indexes them once; a hold that asks no rule, as the hold a
+        /// connection is judged in, works out none. Nothing of them outlives the reading: a later
+        /// hold reads the store afresh and works its rules out again, and a reading that is kept
+        /// for no hold, on KeePass's own thread outside a change, works its own out each time.
+        ///
+        /// **Worked out once inside a hold whatever the cache was told.** Once <see cref="Forget"/>
+        /// has let go of what is kept, no reading is kept from a question to the next, and a walk
+        /// that asked for its rules at each level, for each profile and each verb, read the whole
+        /// store each time with KeePass's thread held. So the rules are kept by the stamp of the
+        /// hold that worked them out as well, without the reading and its keys, and answered for
+        /// that hold alone: the first question of another hold lets them go.
+        /// </remarks>
+        public StoredRules Rules(PwDatabase database, PwGroup root)
+        {
+            bool inTurn;
+            long stamp;
+            var reading = Made(out inTurn, out stamp);
+            lock (_gate)
+            {
+                if (reading != null && ReferenceEquals(reading, _rulesOf))
+                {
+                    return _rules;
+                }
+
+                if (reading == null && stamp != 0 && stamp == _rulesStamp)
+                {
+                    return _rules;
+                }
+            }
+
+            reading = reading ?? Made(database, root, inTurn, stamp);
+            var rules = StoredRules.Of(reading);
+            lock (_gate)
+            {
+                var kept = ReferenceEquals(reading, _reading) || ReferenceEquals(reading, _turnReading);
+                if (kept || stamp != 0)
+                {
+                    _rulesOf = kept ? reading : null;
+                    _rulesStamp = stamp;
+                    _rules = rules;
+                }
+            }
+
+            return rules;
         }
 
         /// <summary>
@@ -318,6 +408,7 @@ namespace KeePassGate.Bridge
                     if (_turnDepth == 0)
                     {
                         _turnReading = null;
+                        LetRulesGo(0);
                     }
                 }
             }
@@ -339,6 +430,7 @@ namespace KeePassGate.Bridge
                 _keepNothing = true;
                 _reading = null;
                 _stamp = 0;
+                LetRulesGo(0);
             }
 
             ClearIfLetGo();
@@ -358,9 +450,27 @@ namespace KeePassGate.Bridge
                 _keepNothing = true;
                 _reading = null;
                 _stamp = 0;
+                LetRulesGo(0);
             }
 
             ClearIfLetGo();
+        }
+
+        /// <summary>
+        /// Drops the rules kept where neither reading kept is the reading they were worked out
+        /// from and they are not of the hold of this stamp, 0 for none. Under <c>_gate</c>.
+        /// </summary>
+        private void LetRulesGo(long stamp)
+        {
+            var ofAReadingKept = _rulesOf != null
+                                 && (ReferenceEquals(_rulesOf, _reading) || ReferenceEquals(_rulesOf, _turnReading));
+            var ofThisHold = _rulesStamp != 0 && _rulesStamp == stamp;
+            if (!ofAReadingKept && !ofThisHold)
+            {
+                _rulesOf = null;
+                _rulesStamp = 0;
+                _rules = null;
+            }
         }
 
         /// <summary>
@@ -379,7 +489,7 @@ namespace KeePassGate.Bridge
                 var scratch = new StoreKept();
                 try
                 {
-                    return StoreReading.Of(walk.Candidates, walk.Deletions, null, scratch);
+                    return StoreReading.Of(walk.Candidates, walk.Deletions, null, scratch, walk.Nodes);
                 }
                 finally
                 {
@@ -391,7 +501,7 @@ namespace KeePassGate.Bridge
             var published = false;
             try
             {
-                var reading = StoreReading.Of(walk.Candidates, walk.Deletions, _kept, next);
+                var reading = StoreReading.Of(walk.Candidates, walk.Deletions, _kept, next, walk.Nodes);
                 _kept.Leave(next);
                 _kept = next;
                 published = true;

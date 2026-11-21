@@ -22,13 +22,14 @@ namespace KeePassGate.Ui
         /// Tells the operator something there is no answer to, and waits for them to acknowledge it.
         /// </summary>
         /// <remarks>
-        /// Four callers: a gate that could not take its port, a port the operator has just changed
-        /// on the window under Tools, an authority they chose that could not be kept, and standing
-        /// answers to renewals no database took before KeePass exits. None is a question, because
-        /// nothing the operator can say here would change it, and none is a log line either,
-        /// because the consequence lasts and the person it affects is the person in front of the
-        /// screen. The last is the log line alone at a Windows logoff or shutdown, when there is
-        /// nobody in front of it, which `OwedAnswersAtExit` gives the reason for.
+        /// Asked for a gate that could not take its port, a port the operator has just changed on
+        /// the window under Tools, an authority the operator chose that could not be kept, rules
+        /// an OK on a group or entry dialog did not keep, and standing answers to renewals no
+        /// database took before KeePass exits. None is a question, because nothing the operator
+        /// can say here would change the outcome, and none is a log line either, because the
+        /// consequence lasts and the person it affects is the person in front of the screen. The
+        /// standing answers are the log line alone at a Windows logoff or shutdown, when there is
+        /// nobody in front of the screen, which `OwedAnswersAtExit` gives the reason for.
         /// </remarks>
         void Tell(string title, string news);
     }

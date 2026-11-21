@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
@@ -13,13 +15,15 @@ using NUnit.Framework;
 namespace KeePassGate.Host.Tests
 {
     /// <summary>
-    /// What KeePass's own synchronize does to admissions and revocations, and to the standing
-    /// answers to a renewal, against copies of one real database.
+    /// What KeePass's own synchronize does to admissions and revocations, to rules, and to the
+    /// standing answers to a renewal, against copies of one real database.
     /// </summary>
     /// <remarks>
     /// An admission and a revocation are each an entry of the plugin's store, written once, so
     /// two copies that admit different clients keep both, and a revocation is an entry the other
-    /// copy does not hold, which a merge brings and never takes away, `STORE.md` §615. The
+    /// copy does not hold, which a merge brings and never takes away, `STORE.md` §615. A rule is
+    /// versions of the store, each an entry of its own naming the versions its writer read, so
+    /// rules changed apart meet at no more than either copy gave, §617. The
     /// standing answers stay in `PwDatabase.CustomData`, the one dictionary KeePass merges key
     /// by key: a group's custom data carries no per-item modification times, so
     /// `PwGroup.AssignProperties` replaces the whole dictionary from whichever replica's group
@@ -174,6 +178,382 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_replaced_version_a_merge_brings_back_stays_out_of_force_under_each_method_in_each_direction()
+        {
+            // `STORE.md` §623 and §627 step 3: the copy that wrote a version over another deleted
+            // the version it replaced, with a deletion record, and the other copy still holds that
+            // version. Whatever a merge brings, through the file each time and whatever became of
+            // the entries' times, the reading directly after the merge has the version that
+            // replaced stand and the version replaced not, and the next write of the plugin's own
+            // leaves no entry under the replaced version's identifier. KeePass applies a deletion
+            // record only to an entry last changed before it, and drops the record otherwise, and
+            // only Synchronize carries a deletion record, so a version that comes back may come
+            // back beside none: what keeps it from standing there is the version naming it. Create
+            // new IDs into the copy that holds the version brings no record, so that copy stands as
+            // it stood, `STORE.md` §640. The copy that replaced is dated as the revocations' tests
+            // date the copy that revoked.
+            var node = "switch:" + new string('1', 32);
+            var wrong = new List<string>();
+            var measured = new System.Text.StringBuilder();
+            foreach (var method in Methods)
+            {
+                foreach (var times in new[] { Times.AsWritten, Times.HolderNewer, Times.RevokerOlder, Times.Both })
+                {
+                    foreach (var intoReplacer in new[] { true, false })
+                    {
+                        using (var replacer = TemporaryDatabase.New())
+                        using (var holder = TemporaryDatabase.New())
+                        {
+                            Assert.That(Authority(replacer).Create().Succeeded, Is.True);
+                            var replaced = Versioned(replacer, node, string.Empty, "sw:deny");
+                            Copy(replacer, holder);
+                            var replacing = Versioned(replacer, node, replaced.Hex, "sw:inherit");
+                            Assert.That(replacer.RootGroup.FindEntry(new PwUuid(replaced.Identifier), true), Is.Null,
+                                "the write that replaced the version deleted it");
+
+                            if (times == Times.HolderNewer || times == Times.Both)
+                            {
+                                Date(holder, DateTime.UtcNow.AddDays(1));
+                            }
+
+                            if (times == Times.RevokerOlder || times == Times.Both)
+                            {
+                                Date(replacer, DateTime.UtcNow.AddYears(-1));
+                            }
+
+                            replacer.SaveCloseAndReopen();
+                            holder.SaveCloseAndReopen();
+
+                            var target = intoReplacer ? replacer : holder;
+                            var source = intoReplacer ? holder : replacer;
+                            target.Database.MergeIn(source.Database, method, null);
+                            target.SaveCloseAndReopen();
+
+                            var named = method + ", " + times + (intoReplacer ? ", into the copy that replaced" : ", into the copy that held");
+                            var stale = method == PwMergeMethod.CreateNewUuids && !intoReplacer;
+                            var back = target.RootGroup.FindEntry(new PwUuid(replaced.Identifier), true) != null;
+                            var told = target.Database.DeletedObjects.Any(deleted => deleted.Uuid.Equals(new PwUuid(replaced.Identifier)));
+                            measured.AppendLine(named + ": the version replaced " + (back ? "is an entry" : "is no entry")
+                                                + (told ? ", with its deletion record" : ", with no deletion record"));
+                            var standing = Standing(target);
+                            if (standing == null)
+                            {
+                                wrong.Add(named + ": the store is not whole");
+                                continue;
+                            }
+
+                            var wanted = stale ? replaced.Hex : replacing.Hex;
+                            if (!standing.SequenceEqual(new[] { wanted }))
+                            {
+                                wrong.Add(named + ": the versions standing are " + string.Join(", ", standing));
+                            }
+
+                            StoreSeeds.Name(new KdbxStore(target.Database, GateVersion.Current, NullGateLog.Instance), "reader");
+                            if (!stale && target.RootGroup.FindEntry(new PwUuid(replaced.Identifier), true) != null)
+                            {
+                                wrong.Add(named + ": the version replaced is an entry after the next write");
+                            }
+
+                            if (!(Standing(target) ?? Array.Empty<string>()).SequenceEqual(new[] { wanted }))
+                            {
+                                wrong.Add(named + ": the next write changed the versions standing");
+                            }
+                        }
+                    }
+                }
+            }
+
+            TestContext.Out.WriteLine(measured.ToString());
+            Assert.That(wrong, Is.Empty, string.Join(Environment.NewLine, wrong));
+        }
+
+        [Test]
+        public void Rules_changed_apart_end_at_what_the_lower_version_recorded_under_every_method_both_ways()
+        {
+            // `STORE.md` §617: a rule is versions of the store, and a version that lets through
+            // records the letters that arrived, so rules changed apart in two copies end, once a
+            // single merge of either into the other has met them, at no more than either copy
+            // gave. Each history starts from a shared copy and changes each copy apart, as the
+            // product writes each at a dialog's OK; the copy merged into is read through the file.
+            // Create new IDs brings no record, and is held apart below.
+            var wrong = new List<string>();
+            foreach (var method in Methods.Where(method => method != PwMergeMethod.CreateNewUuids))
+            {
+                foreach (var history in Histories)
+                {
+                    foreach (var into in new[] { 0, 1 })
+                    {
+                        var named = history.Key + ", " + method + ", into copy " + into;
+                        var found = Merged(history.Value, method, into);
+                        if (found != null)
+                        {
+                            wrong.Add(named + ": " + found);
+                        }
+                    }
+                }
+            }
+
+            Assert.That(wrong, Is.Empty, string.Join(Environment.NewLine, wrong));
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        public void Under_new_identifiers_each_copy_grants_what_it_granted(int into)
+        {
+            // Create new IDs brings the other copy's nodes and records under identifiers of their
+            // own, so no record of it counts and no rule of it reaches a node of the copy merged
+            // into: the copy narrowed apart and the copy widened apart each grant what they did.
+            var found = Merged(
+                new History(
+                    "pf",
+                    (store, root, node) => StoreSeeds.Rule(store, node, ("pf", "RU")),
+                    (store, root, node) => StoreSeeds.Rule(store, node, ("pf", "R")),
+                    (store, root, node) => StoreSeeds.Rule(store, node, ("pf", "RUL")),
+                    into == 0 ? "R" : "RUL"),
+                PwMergeMethod.CreateNewUuids,
+                into);
+
+            Assert.That(found, Is.Null, found);
+        }
+
+        /// <summary>
+        /// The histories of rules changed apart, each with the letters a node directly under the
+        /// node changed receives once the copies have met.
+        /// </summary>
+        private static readonly IReadOnlyDictionary<string, History> Histories = new Dictionary<string, History>(StringComparer.Ordinal)
+        {
+            {
+                // Narrowed at copy 0, widened at copy 1: versions made apart, cut to what both hold.
+                "a rule narrowed in a copy and widened in the other",
+                new History(
+                    "pf",
+                    (store, root, node) => StoreSeeds.Rule(store, node, ("pf", "RU")),
+                    (store, root, node) => StoreSeeds.Rule(store, node, ("pf", "R")),
+                    (store, root, node) => StoreSeeds.Rule(store, node, ("pf", "RUL")),
+                    "R")
+            },
+            {
+                // H1: the root grants `R` and the node holds an empty rule; copy 0 takes the rule
+                // off, copy 1 widens the root. The version taken off recorded `R`.
+                "a rule taken off below a root widened apart",
+                new History(
+                    "pf",
+                    (store, root, node) =>
+                    {
+                        StoreSeeds.Rule(store, root, ("pf", "R"));
+                        StoreSeeds.Rule(store, node, ("pf", string.Empty));
+                    },
+                    (store, root, node) => StoreSeeds.TakeOff(store, node, "pf", "R"),
+                    (store, root, node) => StoreSeeds.Rule(store, root, ("pf", "RU")),
+                    "R")
+            },
+            {
+                // H2: the node's switch refuses; copy 1 widens the root, copy 0 clears the box.
+                // The switch's version recorded `R` for the profile.
+                "a switch cleared below a root widened apart",
+                new History(
+                    "pf",
+                    (store, root, node) =>
+                    {
+                        StoreSeeds.Rule(store, root, ("pf", "R"));
+                        StoreSeeds.Seal(store, node);
+                    },
+                    (store, root, node) => StoreSeeds.Unseal(store, node, ("pf", "R")),
+                    (store, root, node) => StoreSeeds.Rule(store, root, ("pf", "RU")),
+                    "R")
+            },
+            {
+                // H3: the same, for a profile the node never named, widened for that profile alone.
+                "a switch cleared below a root widened apart for a profile the node never named",
+                new History(
+                    "pg",
+                    (store, root, node) =>
+                    {
+                        StoreSeeds.Rule(store, root, ("pf", "R"), ("pg", "R"));
+                        StoreSeeds.Seal(store, node);
+                    },
+                    (store, root, node) => StoreSeeds.Unseal(store, node, ("pf", "R"), ("pg", "R")),
+                    (store, root, node) => StoreSeeds.Rule(store, root, ("pg", "RU")),
+                    "R")
+            },
+            {
+                // W3: the row taken off under the refusing switch at copy 0, the switch cleared at
+                // copy 1 while the row still stood there. Nothing passed the switch at copy 0.
+                "a row taken off under the switch and the switch cleared apart",
+                new History(
+                    "pf",
+                    (store, root, node) =>
+                    {
+                        StoreSeeds.Rule(store, root, ("pf", "R"));
+                        StoreSeeds.Seal(store, node, ("pf", "RL"));
+                    },
+                    (store, root, node) => StoreSeeds.TakeOff(store, node, "pf", "R"),
+                    (store, root, node) => StoreSeeds.Unseal(store, node, ("pf", "R")),
+                    string.Empty)
+            },
+        };
+
+        /// <summary>
+        /// A history played over two copies of a database and merged by this method into the copy
+        /// named: what the merged copy gives below the node otherwise than the history expects, or
+        /// null where it gives that.
+        /// </summary>
+        private static string Merged(History history, PwMergeMethod method, int into)
+        {
+            using (var first = TemporaryDatabase.New())
+            using (var second = TemporaryDatabase.New())
+            {
+                var copies = new[] { first, second };
+                second.Database.RootGroup.Uuid = first.Database.RootGroup.Uuid;
+                Assert.That(Authority(first).Create().Succeeded, Is.True);
+                var group = new PwGroup(true, true, "Fictitious", PwIcon.Folder);
+                first.RootGroup.AddGroup(group, true);
+                var root = DatabaseRules.Id(first.RootGroup.Uuid);
+                var node = DatabaseRules.Id(group.Uuid);
+
+                history.Shared(DatabaseAuthority.Store(first.Database), root, node);
+                Copy(first, second);
+                history.First(DatabaseAuthority.Store(first.Database), root, node);
+                history.Second(DatabaseAuthority.Store(second.Database), root, node);
+                first.SaveCloseAndReopen();
+                second.SaveCloseAndReopen();
+
+                var target = copies[into];
+                target.Database.MergeIn(copies[1 - into].Database, method, null);
+                target.SaveCloseAndReopen();
+
+                var database = target.Database;
+                using (var readings = new StoreReadings(database, CurrentThread.Instance, null))
+                {
+                    var state = readings.Now().State;
+                    var at = KdbxNodes.Of(database.RootGroup.FindGroup(group.Uuid, true), CurrentThread.Instance, () => readings.Rules(database, database.RootGroup));
+                    var gives = AclResolver.Arrives(at, history.Profile);
+                    return gives.SameAs(Rules.Letters(history.Expected))
+                        ? null
+                        : "gives " + VerbMask.Of(gives) + " where " + history.Expected + " was expected, the store " + state;
+                }
+            }
+        }
+
+        /// <summary>
+        /// A history of rules: what both copies hold, what each copy then changes apart, and what
+        /// a node directly under the node changed receives for the profile once they have met.
+        /// </summary>
+        private sealed class History
+        {
+            public History(
+                string profile,
+                Action<IGateStore, string, string> shared,
+                Action<IGateStore, string, string> first,
+                Action<IGateStore, string, string> second,
+                string expected)
+            {
+                Profile = profile;
+                Shared = shared;
+                First = first;
+                Second = second;
+                Expected = expected;
+            }
+
+            public string Profile { get; private set; }
+
+            /// <summary>Done before the copies part, given the store, the root and the node.</summary>
+            public Action<IGateStore, string, string> Shared { get; private set; }
+
+            /// <summary>Done at copy 0 once they have parted.</summary>
+            public Action<IGateStore, string, string> First { get; private set; }
+
+            /// <summary>Done at copy 1 once they have parted.</summary>
+            public Action<IGateStore, string, string> Second { get; private set; }
+
+            /// <summary>The letters a node under the node receives once the copies have met, as a mask.</summary>
+            public string Expected { get; private set; }
+        }
+
+        [Test]
+        public void Two_copies_whose_trees_hold_the_versions_in_another_order_keep_alike_what_their_writes_replace()
+        {
+            // Y, and M and N each naming Y, in force in a copy whose tree a second copy holds in
+            // another order; each copy writes a version naming M and N and not Y. Each keeps both,
+            // which go on naming Y, so once the copies are synchronized Y's deletion record is
+            // named by a version in force.
+            var node = "switch:" + new string('1', 32);
+            using (var first = TemporaryDatabase.New())
+            using (var second = TemporaryDatabase.New())
+            using (var third = TemporaryDatabase.New())
+            using (var reordered = TemporaryDatabase.New())
+            {
+                Assert.That(Authority(first).Create().Succeeded, Is.True);
+                var y = Versioned(first, node, string.Empty, "sw:deny");
+                Copy(first, second);
+                Copy(first, third);
+                var m = Versioned(second, node, y.Hex, "sw:inherit");
+                var n = Versioned(third, node, y.Hex, "sw:inherit");
+                first.Database.MergeIn(second.Database, PwMergeMethod.KeepExisting, null);
+                first.Database.MergeIn(third.Database, PwMergeMethod.KeepExisting, null);
+                Assert.That(new[] { y, m, n }.All(version => first.RootGroup.FindEntry(new PwUuid(version.Identifier), true) != null), Is.True);
+                Assert.That(Standing(first), Is.Not.Null, "the copy is whole");
+
+                reordered.Database.RootGroup.Uuid = first.Database.RootGroup.Uuid;
+                Copy(first, reordered);
+                var group = reordered.RootGroup.FindEntry(new PwUuid(m.Identifier), true).ParentGroup;
+                var held = new[] { m, n }
+                    .Select(version => group.Entries.Single(entry => entry.Uuid.Equals(new PwUuid(version.Identifier))))
+                    .OrderByDescending(group.Entries.IndexOf)
+                    .ToList();
+                foreach (var entry in held)
+                {
+                    group.Entries.Remove(entry);
+                }
+
+                foreach (var entry in held)
+                {
+                    group.AddEntry(entry, true);
+                }
+
+                var names = string.Join(" ", new[] { m.Hex, n.Hex }.OrderBy(hex => hex, StringComparer.Ordinal));
+                Versioned(first, node, names, "sw:deny");
+                Versioned(reordered, node, names, "sw:inherit");
+                first.Database.MergeIn(reordered.Database, PwMergeMethod.Synchronize, null);
+
+                Assert.That(first.RootGroup.FindEntry(new PwUuid(y.Identifier), true), Is.Null, "Y deleted");
+                Assert.That(first.RootGroup.FindEntry(new PwUuid(m.Identifier), true), Is.Not.Null, "M kept, naming Y");
+                Assert.That(first.RootGroup.FindEntry(new PwUuid(n.Identifier), true), Is.Not.Null, "N kept, naming Y");
+                Assert.That(Standing(first), Is.Not.Null, "the copies met whole");
+            }
+        }
+
+        [Test]
+        public void The_deletion_record_of_a_replaced_version_takes_an_older_copy_of_it_out_by_Synchronize()
+        {
+            // What the deletion record a write leaves is for, `STORE.md` §627 step 3: the other
+            // copy's entry of the version replaced, last changed before the deletion, is deleted
+            // by Synchronize in that copy, and is not brought back into the copy that replaced.
+            var node = "switch:" + new string('1', 32);
+            foreach (var intoReplacer in new[] { true, false })
+            {
+                using (var replacer = TemporaryDatabase.New())
+                using (var holder = TemporaryDatabase.New())
+                {
+                    Assert.That(Authority(replacer).Create().Succeeded, Is.True);
+                    var replaced = Versioned(replacer, node, string.Empty, "sw:deny");
+                    Copy(replacer, holder);
+                    Date(holder, DateTime.UtcNow.AddDays(-1));
+                    Versioned(replacer, node, replaced.Hex, "sw:inherit");
+                    replacer.SaveCloseAndReopen();
+                    holder.SaveCloseAndReopen();
+
+                    var target = intoReplacer ? replacer : holder;
+                    target.Database.MergeIn((intoReplacer ? holder : replacer).Database, PwMergeMethod.Synchronize, null);
+
+                    Assert.That(
+                        target.RootGroup.FindEntry(new PwUuid(replaced.Identifier), true), Is.Null,
+                        intoReplacer ? "brought back into the copy that replaced" : "kept in the copy that held");
+                }
+            }
+        }
+
+        [Test]
         public void Of_two_standing_answers_made_apart_the_later_is_the_one_kept()
         {
             // `CA.md` §204: a standing answer is changed rather than only added, so a merge decides
@@ -307,6 +687,58 @@ namespace KeePassGate.Host.Tests
             HolderNewer,
             RevokerOlder,
             Both,
+        }
+
+        /// <summary>Every method of KeePass's merge.</summary>
+        private static readonly PwMergeMethod[] Methods =
+        {
+            PwMergeMethod.Synchronize,
+            PwMergeMethod.OverwriteIfNewer,
+            PwMergeMethod.OverwriteExisting,
+            PwMergeMethod.KeepExisting,
+            PwMergeMethod.CreateNewUuids,
+        };
+
+        /// <summary>
+        /// A version of this object written by itself, under the store key that stands, naming
+        /// these identifiers as replaced: the record it wrote.
+        /// </summary>
+        private static StoreRecord Versioned(TemporaryDatabase database, string objectName, string after, string doc)
+        {
+            var store = new KdbxStore(database.Database, GateVersion.Current, NullGateLog.Instance);
+            byte[] key;
+            using (var reading = store.Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+
+            var version = StoreRecord.Compose(key, "version", new Dictionary<string, string>
+            {
+                { "after", after },
+                { "doc", doc },
+                { "object", objectName },
+            });
+            var written = store.Write(new[] { new StoreAct("a version", key, StoreFormat.KeyName(key), new[] { version }, null) });
+            Assert.That(written.Taken, Is.True, written.Reason);
+            return version;
+        }
+
+        /// <summary>
+        /// The identifiers of the versions that stand in a copy, as the summary entry a write
+        /// makes now restates them, in ordinal order; null where the store is not whole.
+        /// </summary>
+        private static string[] Standing(TemporaryDatabase database)
+        {
+            using (var reading = new KdbxStore(database.Database, GateVersion.Current, NullGateLog.Instance).Read())
+            {
+                return reading.State != StoreState.Whole
+                    ? null
+                    : reading.InForce.Restated()
+                        .Where(item => item.Kind == StoreKinds.Version)
+                        .Select(item => item.Member(StoreKinds.Id))
+                        .OrderBy(id => id, StringComparer.Ordinal)
+                        .ToArray();
+            }
         }
 
         /// <summary>

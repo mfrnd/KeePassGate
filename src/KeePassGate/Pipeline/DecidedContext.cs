@@ -12,23 +12,27 @@ namespace KeePassGate.Pipeline
     /// <remarks>
     /// <see cref="ClientCredentials.Again"/> has the reason an identity is read again. A change
     /// is handed this by its <see cref="DecidedInside"/>, inside its turn, and a read is decided
-    /// against this inside its hold and answered on it. Everything but the caller is the
+    /// against this inside its hold and answered on it. A change is asked about against this
+    /// before its turn as well, inside a hold of its own and about the client as its connection
+    /// found it, since the turn reads the client again. Everything but the caller is the
     /// request's own: the method, the path and the body are the ones of the context this wraps,
     /// so there is still one request and one answer.
     ///
     /// **The items are a copy.** What the router leaves for a handler about the caller, the
-    /// <see cref="ProtectedReach"/> above all, is left here about the client read again, and the
-    /// request's own items go on holding what was decided before, for whoever still asks there.
+    /// <see cref="ProtectedReach"/> above all, is left here about the client this carries, and
+    /// the request's own items go on holding what was decided before, for whoever still asks
+    /// there.
     ///
-    /// **A read's answer is kept here until its hold has ended**, and handed on by
-    /// <see cref="Deliver"/>. A hold can lapse while a read is still running, which is found out
-    /// only once the read is over, and what a read made of a database that was let go under it
-    /// is not an answer: kept here, it is dropped with this context and the request is answered
-    /// `503 busy`. Answered on the request at once, it would have stood, since the first answer
-    /// does. A change's answer goes straight to the request, because a turn is KeePass's thread
-    /// running the change itself and cannot be let go under it: there is nothing to wait for,
-    /// whether the handler answers on the connection's thread once the turn is over or a client
-    /// is turned away inside the turn.
+    /// **An answer given inside a hold is kept here until the hold has ended**, a read's and
+    /// that of a change's asking before its turn alike, and handed on by <see cref="Deliver"/>.
+    /// A hold can lapse while a read is still running, which is found out only once the read
+    /// is over, and what a read made of a database that was let go under it is not an answer:
+    /// kept here, it is dropped with this context and the request is answered `503 busy`.
+    /// Answered on the request at once, it would have stood, since the first answer does. A
+    /// change's answer inside its turn goes straight to the request, because a turn is
+    /// KeePass's thread running the change itself and cannot be let go under it: there is
+    /// nothing to wait for, whether the handler answers on the connection's thread once the
+    /// turn is over or a client is turned away inside the turn.
     ///
     /// **What a read leaves for after its hold runs here too**, <see cref="After"/>: the tag,
     /// the condition asked of it and the handing over of what writes the answer, which is run
@@ -60,7 +64,8 @@ namespace KeePassGate.Pipeline
         /// <summary>The same, naming where the answer goes.</summary>
         /// <param name="keeps">
         /// Whether the answer is kept until <see cref="Deliver"/> hands it to the request, which
-        /// is what a read decided inside a hold needs.
+        /// is what a request decided inside a hold needs: a read, and a change asked about before
+        /// its turn.
         /// </param>
         public DecidedContext(IGateContext request, ClientIdentity client, bool keeps)
         {
@@ -183,9 +188,10 @@ namespace KeePassGate.Pipeline
         /// </summary>
         /// <remarks>
         /// <see cref="ServedAfter"/> has what may be left. Only a read decided inside a hold
-        /// is handed this, on a context that keeps its answer: a change's context answers on
-        /// the request at once and has no <see cref="Deliver"/> to run anything later, so work
-        /// left on it would never run, and is refused as the defect it would be.
+        /// is handed this, on a context that keeps its answer. A context that answers on the
+        /// request at once, as a change's does inside its turn, has no <see cref="Deliver"/> to
+        /// run anything later, so work left on it would never run, and is refused as the defect
+        /// it would be.
         /// </remarks>
         public void After(Action serve)
         {

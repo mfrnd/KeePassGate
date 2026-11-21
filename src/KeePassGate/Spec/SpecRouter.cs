@@ -571,12 +571,12 @@ namespace KeePassGate.Spec
             // wrong one.
             //
             // **The decisions are kept and written last.** A read is decided inside its
-            // hold, and a change is decided twice, here and again inside its own turn
-            // on KeePass's thread. A line written in either would put the audit's pacing on the
-            // thread the operator is typing into. So every line the request's decisions come to
-            // gathers in one place, the later decision in place of the earlier, and is written
-            // once nothing of the request is left to decide: after the handler, before the answer
-            // goes out, on the caller's own connection.
+            // hold, and a change is decided twice, in a hold before its turn and again inside
+            // that turn on KeePass's thread. A line written in any of those would put the
+            // audit's pacing on the thread the operator is typing into. So every line the
+            // request's decisions come to gathers in one place, the later decision in place of
+            // the earlier, and is written once nothing of the request is left to decide: after
+            // the handler, before the answer goes out, on the caller's own connection.
             var lines = AclVerbs.IsGoverned(operation.Verb) ? new DecisionLines() : null;
 
             try
@@ -587,7 +587,16 @@ namespace KeePassGate.Spec
                     return;
                 }
 
-                if (lines != null && !AclVerbs.Changes(operation.Verb))
+                if (lines == null)
+                {
+                    // An operation that touches no data. The status route reads nothing and
+                    // pairing is authorized by a person reading a dialog, so there is no question
+                    // to ask and nothing to write down.
+                    Served(context, operation);
+                    return;
+                }
+
+                if (!AclVerbs.Changes(operation.Verb))
                 {
                     // A read, a listing, or a question about what the caller may do at a node:
                     // nothing about it is decided out here. `Held` has the reason.
@@ -595,12 +604,10 @@ namespace KeePassGate.Spec
                     return;
                 }
 
-                if (!Authorized(context, operation, lines))
+                if (Queued(context, operation, lines))
                 {
-                    return;
+                    Served(context, operation);
                 }
-
-                Served(context, operation);
             }
             catch (VaultUnsettled)
             {
@@ -679,6 +686,11 @@ namespace KeePassGate.Spec
                 TurnAway(read, operation, lines);
                 return read;
             }
+
+            // Left for the handler of a read, whose view decides what it serves: what writes down
+            // a value the view withheld, as the walk that withheld it and about this client and
+            // operation.
+            read.Items[WithheldItem] = Withheld(client, operation, lines);
 
             if (Authorized(read, operation, lines))
             {
@@ -864,6 +876,50 @@ namespace KeePassGate.Spec
         }
 
         /// <summary>
+        /// Whether a change may wait for its turn: its node found and the rules asked while
+        /// KeePass's thread is held still once.
+        /// </summary>
+        /// <remarks>
+        /// **This can refuse a change and cannot permit it.** What it permits is a place in the
+        /// queue for KeePass's thread, and the change asks again from inside its turn, through
+        /// the <see cref="DecidedInside"/> left for it here, which is the answer acted on. Asked
+        /// here all the same, so that a request the rules refuse is turned away before its body
+        /// is read and before it costs KeePass's thread a turn.
+        ///
+        /// **A single hold, as a read is decided in.** The node's lookup and each walk up the
+        /// rules take a hold of their own wherever nothing holds KeePass's thread already, and a
+        /// removal walks from both of its sides, so a change asked a step at a time would hold
+        /// the thread once for each step, with the tree free to move between them. Inside this
+        /// hold every step is part of it, and all of them read one tree.
+        ///
+        /// **The answer is kept until the hold has ended**, as a read's is, for the reason
+        /// <see cref="DecidedContext"/> gives: a refusal decided in a hold that did not last is no
+        /// answer either, and the request is answered `503 busy`, with the line its decision
+        /// came to written all the same. The client asked about is the connection's, which the
+        /// change's turn reads again.
+        /// </remarks>
+        /// <param name="lines">Where the request's decisions are kept until they are written.</param>
+        private bool Queued(IGateContext context, SpecOperation operation, DecisionLines lines)
+        {
+            // With no vault on the request there is no thread to hold, and nothing of a database
+            // for the asking to read: it runs where it is.
+            var vault = ServedDatabase.Of(context);
+            var asked = new DecidedContext(context, context.Client, true);
+            var permitted = vault == null
+                ? Authorized(asked, operation, lines)
+                : vault.Held(() => Authorized(asked, operation, lines));
+
+            asked.Deliver();
+            if (!permitted)
+            {
+                return false;
+            }
+
+            context.Items[InsideItem] = (DecidedInside)(found => Inside(context, operation, found, lines));
+            return true;
+        }
+
+        /// <summary>
         /// The rules, before the body.
         /// </summary>
         /// <remarks>
@@ -871,26 +927,14 @@ namespace KeePassGate.Spec
         /// caller that may not reach a node learn whether its body would have been accepted, which
         /// is a difference the refusal exists to deny.
         ///
-        /// **For a change this can refuse and cannot permit.** What it permits is a place in the
-        /// queue for KeePass's thread, and the change asks again from inside its turn, through
-        /// the <see cref="DecidedInside"/> left for it here. Asked here all the same, so that a
-        /// request the rules refuse is turned away before its body is read and before it costs
-        /// KeePass's thread anything.
-        ///
-        /// **For anything else this is the only asking**, and <see cref="Held"/> runs it inside
-        /// the hold the answer is read in.
+        /// **Asked inside a hold wherever a vault is served, on a context that keeps its answer
+        /// until the hold has ended.** For a read this is the only asking, and <see cref="Held"/>
+        /// runs it inside the hold the answer is read in. For a change it is the asking before the
+        /// turn, which <see cref="Queued"/> runs inside a hold of its own.
         /// </remarks>
         /// <param name="lines">Where the request's decisions are kept until they are written.</param>
         private bool Authorized(IGateContext context, SpecOperation operation, DecisionLines lines)
         {
-            if (!AclVerbs.IsGoverned(operation.Verb))
-            {
-                // An operation that touches no data. The status route reads nothing and pairing is
-                // authorized by a person reading a dialog, so there is no question to ask and
-                // nothing to write down about one.
-                return true;
-            }
-
             var node = _nodes[operation.OperationId](context);
 
             if (node == null && ServedDatabase.TryAnswerLocked(context))
@@ -901,16 +945,6 @@ namespace KeePassGate.Spec
                 // turned away, which the audit does not record before routing either.
                 return false;
             }
-
-            // Left for the handler, which asks the one question the router cannot: whether this
-            // caller may have the protected values inside an answer it is otherwise allowed. It
-            // goes through the same check, which decides it and writes a refusal down in one walk,
-            // so that the answer the handler acts on is the answer recorded.
-            context.Items[ReachItem] = Reach(context.Client, operation, lines);
-
-            // And for a read, whose view decides what it serves: what writes down a value the
-            // view withheld, as the walk that withheld it and about this client and operation.
-            context.Items[WithheldItem] = Withheld(context.Client, operation, lines);
 
             // The identifier asked for goes on the line when it found nothing, so the operator can
             // see which reference a request was following; the check keeps only a well-formed one.
@@ -925,12 +959,6 @@ namespace KeePassGate.Spec
                     // An operation declaring `any` answers with what was found deciding it, so the
                     // answer and the line written down are one walk and cannot disagree.
                     context.Items[GrantsItem] = decision.Grants;
-                }
-
-                if (AclVerbs.Changes(operation.Verb))
-                {
-                    context.Items[InsideItem] =
-                        (DecidedInside)(found => Inside(context, operation, found, lines));
                 }
 
                 return true;
@@ -1027,6 +1055,10 @@ namespace KeePassGate.Spec
                 return null;
             }
 
+            // Left for the handler, which asks the one question the router cannot: whether this
+            // caller may set the protected values inside a change it is otherwise allowed. It
+            // goes through the same check, which decides it and writes a refusal down in one walk,
+            // so that the answer the handler acts on is the answer recorded.
             var inside = new DecidedContext(context, client);
             inside.Items[ReachItem] = Reach(client, operation, lines);
             return inside;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using KeePassGate.Acl;
 using KeePassGate.Diagnostics;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
@@ -23,6 +24,10 @@ namespace KeePassGate.Tests
     /// Through the real router, against a database in a dictionary and an authority that admits
     /// the client, so that what the operator does between the connection and the request is a
     /// line in a test. `DecidedAtTheReadTests` asks the same of the real vault.
+    ///
+    /// A change is held here to the same count of what is asked of the database with nothing
+    /// held: none, everything it asks being inside the hold it is asked about in or inside its
+    /// own turn.
     ///
     /// Everything is invented: the groups, the entries, the profiles.
     /// </remarks>
@@ -45,6 +50,48 @@ namespace KeePassGate.Tests
             "/entries/{entry}/attachments/notes.txt",
             "/entries/{entry}/access",
         };
+
+        /// <summary>
+        /// A body for each operation that changes the database and takes a body, by operation.
+        /// </summary>
+        private static readonly IReadOnlyDictionary<string, string> ChangeBodies =
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                { "createGroup", Bodies.Of(("Name", "an invented group")) },
+                { "updateGroup", Bodies.Of(("Name", "an invented name")) },
+                { "createEntry", Bodies.Of(("Title", "an invented title")) },
+                { "updateEntry", Bodies.Of(("Title", "an invented title")) },
+                { "createField", Bodies.Of(("name", "Added"), ("value", "an invented value")) },
+                { "updateField", Bodies.Of(("value", "an invented value")) },
+                { "createAttachment", Bodies.Of(("name", "more.txt"), ("content", Convert.ToBase64String(new byte[] { 4, 5 }))) },
+                { "updateAttachment", Bodies.Of(("content", Convert.ToBase64String(new byte[] { 4, 5 }))) },
+            };
+
+        /// <summary>
+        /// A body setting a protected value, for each operation that sets a string and takes a
+        /// body, by operation.
+        /// </summary>
+        private static readonly IReadOnlyDictionary<string, string> ProtectedBodies =
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                { "createEntry", Bodies.Of(("Password", "not-a-real-password")) },
+                { "updateEntry", Bodies.Of(("Password", "not-a-real-password")) },
+                { "createField", Bodies.Of(("name", "PIN"), ("value", "not-a-real-pin"), ("protected", "true")) },
+                { "updateField", Bodies.Of(("value", "not-a-real-password")) },
+            };
+
+        /// <summary>
+        /// The ways a change is asked, each a case of every change it applies to.
+        /// </summary>
+        private const string Plainly = "plainly";
+
+        private const string Conditioned = "with If-Match";
+
+        private const string Protected = "with a protected value";
+
+        private const string ProtectedWithoutTheSwitch = "with a protected value and no switch for it";
+
+        private const string Refused = "refused by the rules";
 
         private FakeVault _vault;
         private TestAuthority _authority;
@@ -92,6 +139,109 @@ namespace KeePassGate.Tests
                 Assert.That(vault.HeldReads - held, Is.EqualTo(1), method + " " + path);
                 Assert.That(vault.LooseLookups, Is.Zero, method + " " + path);
             }
+        }
+
+        /// <summary>
+        /// Every operation the routing document declares whose verb changes the database, as it
+        /// is asked in each way it can be: plainly, with `If-Match` where it takes one, setting
+        /// or removing a protected value where it can, the same without the switch that allows
+        /// that, and refused by the rules before its turn.
+        /// </summary>
+        private static IEnumerable<TestCaseData> Changes()
+        {
+            foreach (var operation in GateOperations.Document.Operations.Where(o => AclVerbs.Changes(o.Verb)))
+            {
+                var ways = new List<string> { Plainly };
+                if (operation.TakesIfMatch)
+                {
+                    ways.Add(Conditioned);
+                }
+
+                if (SetsAString(operation))
+                {
+                    ways.Add(Protected);
+                    ways.Add(ProtectedWithoutTheSwitch);
+                }
+
+                ways.Add(Refused);
+
+                foreach (var way in ways)
+                {
+                    yield return new TestCaseData(operation.OperationId, way)
+                        .SetArgDisplayNames(operation.OperationId, way);
+                }
+            }
+        }
+
+        [TestCaseSource(nameof(Changes))]
+        public void A_change_asks_the_database_nothing_outside_a_hold_or_its_turn(string operationId, string way)
+        {
+            // The router asks about a change inside a hold of its own, and the change finds its
+            // node again inside its own turn, so nothing of the request asks the database with
+            // neither standing, the handler's own questions included. Every change the document
+            // declares is driven through its own handler, so a route added later is held to the
+            // same, once it is given a body.
+            var operation = GateOperations.Document.Operations.Single(o => o.OperationId == operationId);
+            var granted = way == Refused ? "R" : way == ProtectedWithoutTheSwitch ? "CRUSDLA" : "CRUSDLAP";
+            _vault.Granting(_vault.RootAlias, Rules.Granting(("agent", granted)));
+            Assert.That(_vault.CreateField(_entry, "Invented", "an invented value", false, VaultAskings.Free).Ok, Is.True);
+            Assert.That(_vault.CreateField(_entry, "Secret", "not-a-real-secret", true, VaultAskings.Free).Ok, Is.True);
+            var empty = _vault.Add(_vault.RootAlias, "Empty");
+
+            var protecting = way == Protected || way == ProtectedWithoutTheSwitch;
+            var bodies = protecting ? ProtectedBodies : ChangeBodies;
+            string body = null;
+            if (operation.Body != null && !bodies.TryGetValue(operationId, out body))
+            {
+                Assert.Fail(operationId + " takes a body and has none " + way + ": add a body");
+            }
+
+            var before = _vault.LooseLookups;
+            var context = Asked(
+                operation.Method,
+                Target(operation, empty, protecting ? "Secret" : "Invented"),
+                body,
+                Connected(),
+                way == Conditioned ? "*" : null);
+
+            if (way == Refused || way == ProtectedWithoutTheSwitch)
+            {
+                Assert.That(context.Status, Is.EqualTo(404), operationId + " " + context.Document());
+            }
+            else
+            {
+                Assert.That(context.Status, Is.InRange(200, 299), operationId + " " + context.Document());
+            }
+
+            Assert.That(_vault.LooseLookups - before, Is.Zero, operationId + " " + way);
+        }
+
+        /// <summary>
+        /// Whether an operation sets or removes a string by name, which a protected value can be.
+        /// </summary>
+        private static bool SetsAString(SpecOperation operation)
+        {
+            return operation.Path.Text.Contains("/fields")
+                   || (operation.Body != null && operation.Body.Properties.ContainsKey("Password"));
+        }
+
+        /// <summary>
+        /// The operation's path naming the group or the entry of this fixture, an empty group for
+        /// a group's removal, the string named for a string by name, and the attachment for an
+        /// attachment by name.
+        /// </summary>
+        private string Target(SpecOperation operation, string empty, string field)
+        {
+            var path = operation.Path.Text;
+            var others = operation.Path.Parameters.Where(parameter => parameter != "uuid" && parameter != "name");
+            Assert.That(others, Is.Empty, operation.OperationId + " names something this test does not know how to fill");
+
+            var node = path.StartsWith("/groups/", StringComparison.Ordinal)
+                ? (operation.Verb == AclVerb.Delete ? empty : _group)
+                : _entry;
+            var name = path.Contains("/attachments/") ? "notes.txt" : field;
+
+            return path.Replace("{uuid}", node).Replace("{name}", name);
         }
 
         [TestCase("/entries/{entry}")]
@@ -255,18 +405,47 @@ namespace KeePassGate.Tests
             Assert.That(_vault.ValueWorkHeld, Is.Zero);
         }
 
-        [Test]
-        public void A_change_is_what_the_count_of_loose_lookups_does_see()
+        [TestCase("a lookup")]
+        [TestCase("a walk up the rules")]
+        [TestCase("whether it is open")]
+        [TestCase("which names it protects")]
+        [TestCase("whether it can be written")]
+        public void Asking_with_nothing_held_is_what_the_count_of_loose_lookups_does_see(string asked)
         {
-            // The router asks about a change before its turn, to refuse early, so that asking is
-            // a lookup with nothing held. Here so that a count of none above is a count that
-            // counts.
-            _vault.Granting(_vault.RootAlias, Rules.Granting(("agent", "RUL")));
+            // The reads above and every change the document declares are held to none, so the
+            // count is made to see each way of asking here, of the vault with neither a hold nor
+            // a turn standing, and to see none of them inside a hold. Here so that a count of
+            // none above is a count that counts.
+            var node = _vault.Held(() => _vault.Entry(_entry).Node);
+            Action ask;
+            switch (asked)
+            {
+                case "a lookup":
+                    ask = () => _vault.Entry(_entry);
+                    break;
+                case "a walk up the rules":
+                    ask = () => AclResolver.Permits(node, new[] { "agent" }, AclVerb.Read);
+                    break;
+                case "whether it is open":
+                    ask = () => _vault.IsOpen.GetHashCode();
+                    break;
+                case "which names it protects":
+                    ask = () => _vault.Protects("Password");
+                    break;
+                default:
+                    ask = () => _vault.WriteBlocked?.GetHashCode();
+                    break;
+            }
 
-            var context = Asked("PUT", "/entries/{entry}", Bodies.Of(("Title", "an invented name")));
+            _vault.Held(() =>
+            {
+                ask();
+                return true;
+            });
+            Assert.That(_vault.LooseLookups, Is.Zero, asked + " inside a hold");
 
-            Assert.That(context.Status, Is.EqualTo(200), context.Document());
-            Assert.That(_vault.LooseLookups, Is.GreaterThan(0));
+            ask();
+            Assert.That(_vault.LooseLookups, Is.EqualTo(1), asked);
         }
 
         [TestCaseSource(nameof(Paths))]

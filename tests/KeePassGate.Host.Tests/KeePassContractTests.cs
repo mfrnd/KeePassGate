@@ -987,24 +987,6 @@ namespace KeePassGate.Host.Tests
 
         [TestCase(KeePassContract.GroupFormTypeName)]
         [TestCase(KeePassContract.EntryFormTypeName)]
-        public void Both_node_dialogs_still_keep_their_own_copy_of_custom_data(string typeName)
-        {
-            // The field the grant editor writes into, and the reason it can. Both dialogs copy a
-            // node's custom data when they open and write the copy back on OK, so a grant written
-            // to the live node survives Cancel and is destroyed by OK. A KeePass that renames this
-            // leaves the editor showing grants it will not let anybody change, which is the safe
-            // direction and a visible one.
-            var type = KeePassAssembly.GetType(typeName, false);
-            var field = type.GetField(
-                KeePassContract.NodeFormCustomDataField, BindingFlags.NonPublic | BindingFlags.Instance);
-
-            Assert.That(field, Is.Not.Null,
-                typeName + " no longer keeps a working copy, so the editor has nowhere safe to write.");
-            Assert.That(field.FieldType, Is.EqualTo(typeof(KeePassLib.Collections.StringDictionaryEx)));
-        }
-
-        [TestCase(KeePassContract.GroupFormTypeName)]
-        [TestCase(KeePassContract.EntryFormTypeName)]
         public void Both_node_dialogs_still_call_their_tab_strip_what_the_settings_dialog_does(string typeName)
         {
             var type = KeePassAssembly.GetType(typeName, false);
@@ -1020,9 +1002,9 @@ namespace KeePassGate.Host.Tests
         [TestCase(KeePassContract.EntryFormTypeName)]
         public void Both_node_dialogs_still_carry_the_database_they_belong_to(string typeName)
         {
-            // What `NodeDialog` reads a node's database out of, which is how the grant editor knows
-            // which profile list to offer. A KeePass that renames it leaves the editor with no
-            // database and nothing to offer, so it is pinned like the rest of them.
+            // What `NodeDialog` reads a node's database out of, which is whose store the grant
+            // editor reads and an OK on its tab writes. A KeePass that renames the field leaves the
+            // editor with no store, read only, so the field is pinned like the rest of them.
             var type = KeePassAssembly.GetType(typeName, false);
             var field = type.GetField(
                 KeePassContract.NodeFormDatabaseField, BindingFlags.NonPublic | BindingFlags.Instance);

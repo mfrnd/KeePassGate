@@ -18,7 +18,7 @@ namespace KeePassGate.Tests.Fakes
     /// what is decided here.
     ///
     /// The nodes it hands out are `TestNode`s wired into the same shape as the tree, so a rule
-    /// written on a group really does reach the entries under it.
+    /// put at a group really does reach the entries under it.
     /// </remarks>
     internal sealed class FakeVault : IVault
     {
@@ -36,24 +36,46 @@ namespace KeePassGate.Tests.Fakes
         private Action _waiting;
         private int _held;
         private int _changing;
+        private bool _open = true;
 
         public FakeVault()
         {
-            _root = new Node(Identifier(), "Invented", string.Empty, null, TestNode.Root("root"));
+            // Every node of the tree is a child of this root, and tells the count of what is asked
+            // with nothing held of each walk up the rules made from it.
+            _root = new Node(Identifier(), "Invented", string.Empty, null, TestNode.Root("root", Asked));
             _groups[_root.Uuid] = _root;
         }
 
         /// <summary>Set to refuse every change, the way a locked or busy database does.</summary>
         /// <remarks>A database <see cref="Lock"/> has locked refuses every change whatever this says,
-        /// with the reason the real vault gives.</remarks>
+        /// with the reason the real vault gives. Asked of the vault, it is counted as every way of
+        /// asking the vault is, <see cref="LooseLookups"/>.</remarks>
         public string WriteBlocked
         {
-            get { return IsOpen ? _writeBlocked : "the database is not open"; }
-            set { _writeBlocked = value; }
+            get
+            {
+                Asked();
+                return Blocked;
+            }
+
+            set
+            {
+                _writeBlocked = value;
+            }
         }
 
-        /// <summary>Whether the database is open, which it is until <see cref="Lock"/>.</summary>
-        public bool IsOpen { get; private set; } = true;
+        /// <summary>
+        /// Whether the database is open, which it is until <see cref="Lock"/>, counted as every way
+        /// of asking the vault is.
+        /// </summary>
+        public bool IsOpen
+        {
+            get
+            {
+                Asked();
+                return _open;
+            }
+        }
 
         /// <summary>
         /// Locks the database, as KeePass's lock or File, Close does a real one: every lookup finds
@@ -61,7 +83,15 @@ namespace KeePassGate.Tests.Fakes
         /// </summary>
         public void Lock()
         {
-            IsOpen = false;
+            _open = false;
+        }
+
+        /// <summary>
+        /// Why a change is refused before it is attempted, as the fake itself asks it.
+        /// </summary>
+        private string Blocked
+        {
+            get { return _open ? _writeBlocked : "the database is not open"; }
         }
 
         /// <summary>
@@ -102,12 +132,17 @@ namespace KeePassGate.Tests.Fakes
         public int HeldReads { get; private set; }
 
         /// <summary>
-        /// How many lookups were answered with nothing held: outside every <see cref="Held"/>
-        /// and outside every change.
+        /// How many times the vault was asked with nothing held: outside every
+        /// <see cref="Held"/> and outside every change.
         /// </summary>
         /// <remarks>
-        /// What a request that changes nothing may never do. Two lookups each held alone are two
-        /// moments of the database, with room between them for whatever the operator does next.
+        /// What no request may do. Two lookups each held alone are two moments of the database,
+        /// with room between them for whatever the operator does next. **Every way a request can
+        /// ask the vault is counted**: a lookup, a listing, a view, a tag, a change, whether the
+        /// database is open, which names it protects, whether it can be written, and a walk up
+        /// the rules from any of its nodes. <see cref="RootAlias"/> is a constant, which asks
+        /// the database nothing, and <see cref="Attachment"/> and <see cref="NodeOf"/> are a
+        /// test's own look at the fake, which no request reaches.
         /// </remarks>
         public int LooseLookups { get; private set; }
 
@@ -188,6 +223,13 @@ namespace KeePassGate.Tests.Fakes
         /// </remarks>
         public bool Protects(string field)
         {
+            Asked();
+            return Protecting(field);
+        }
+
+        /// <summary>The same answer, as the fake itself asks it, counted nowhere.</summary>
+        private static bool Protecting(string field)
+        {
             return Comparer<string>.Default.Compare(field, "Password") == 0;
         }
 
@@ -200,7 +242,7 @@ namespace KeePassGate.Tests.Fakes
         /// </remarks>
         private bool Guards(Kept entry, string name)
         {
-            return Protects(name) || entry.Protected.Contains(name);
+            return Protecting(name) || entry.Protected.Contains(name);
         }
 
         /// <summary>Whether the entry carries a name byte for byte, which is what a route resolves.</summary>
@@ -260,12 +302,12 @@ namespace KeePassGate.Tests.Fakes
             return false;
         }
 
-        /// <summary>Writes a rule on a group or an entry, which is what a grant editor does.</summary>
-        public FakeVault Granting(string uuid, string document)
+        /// <summary>Puts these rules on a group or an entry, as the store holds them after an OK on its dialog.</summary>
+        public FakeVault Granting(string uuid, NodeRule rule)
         {
             var node = NodeOf(uuid)
                 ?? throw new InvalidOperationException("there is nothing called " + uuid);
-            node.Holding(document);
+            node.Holding(rule);
             return this;
         }
 
@@ -643,7 +685,7 @@ namespace KeePassGate.Tests.Fakes
         {
             Looking();
 
-            return IsOpen ? _groups.Values.Select(g => g.Describe()).ToList() : null;
+            return _open ? _groups.Values.Select(g => g.Describe()).ToList() : null;
         }
 
         public VaultEntry Entry(string uuid)
@@ -727,7 +769,7 @@ namespace KeePassGate.Tests.Fakes
         {
             Looking();
 
-            return IsOpen ? _entries.Values.Select(Listable).ToList() : null;
+            return _open ? _entries.Values.Select(Listable).ToList() : null;
         }
 
         /// <summary>
@@ -1056,7 +1098,7 @@ namespace KeePassGate.Tests.Fakes
                 }
 
                 // The real vault's rule: what the rules are asked about is what is stored.
-                var guarded = isProtected || (name != null && Protects(name));
+                var guarded = isProtected || (name != null && Protecting(name));
                 VaultTagging tagging;
                 var refusal = Refusal(asking, new VaultFound(entry.Describe(), guarded), out tagging);
                 if (refusal != null)
@@ -1365,16 +1407,28 @@ namespace KeePassGate.Tests.Fakes
             return tagging != null && tagging.Answers ? Seen(entry, described, tagging.Sight).Tag : null;
         }
 
-        private static string Left(VaultAsking asking, Node group)
+        private string Left(VaultAsking asking, Node group)
         {
             var tagging = Tagging(asking, new VaultFound(group.Describe()));
             return tagging != null && tagging.Answers ? group.Tag() : null;
         }
 
-        private static VaultTagging Tagging(VaultAsking asking, VaultFound left)
+        /// <summary>
+        /// What the change does about the tag of the node it left, or null where the read that
+        /// confirms it cannot be made.
+        /// </summary>
+        /// <remarks>
+        /// The real vault reads the node again once the change is made, to ask whether the caller
+        /// may still be handed its tag, and that read is a lookup here: counted, and a moment
+        /// <see cref="After"/> can land at, so that a test can have KeePass's thread fail to be
+        /// held after the change has landed. What cannot be answered leaves the tag out and the
+        /// change in, as the real vault answers it.
+        /// </remarks>
+        private VaultTagging Tagging(VaultAsking asking, VaultFound left)
         {
             try
             {
+                Looking();
                 return asking.Tagging(left);
             }
             catch (VaultUnsettled)
@@ -1394,7 +1448,7 @@ namespace KeePassGate.Tests.Fakes
 
                 // Not `Busy`, which each change answers itself once it has found the node, so that
                 // a node gone or a name taken is answered first, as the real vault answers them.
-                return WriteBlocked != null ? VaultWrite.Failed(WriteBlocked) : change();
+                return Blocked != null ? VaultWrite.Failed(Blocked) : change();
             }
             finally
             {
@@ -1410,10 +1464,7 @@ namespace KeePassGate.Tests.Fakes
         /// </remarks>
         private void Looking()
         {
-            if (_held == 0 && _changing == 0)
-            {
-                LooseLookups++;
-            }
+            Asked();
 
             if (_then == null)
             {
@@ -1438,9 +1489,18 @@ namespace KeePassGate.Tests.Fakes
             then();
         }
 
+        /// <summary>Counts the vault asked with nothing held, <see cref="LooseLookups"/>.</summary>
+        private void Asked()
+        {
+            if (_held == 0 && _changing == 0)
+            {
+                LooseLookups++;
+            }
+        }
+
         private Node Find(string uuid)
         {
-            if (uuid == null || !IsOpen)
+            if (uuid == null || !_open)
             {
                 return null;
             }
@@ -1457,7 +1517,7 @@ namespace KeePassGate.Tests.Fakes
         private Kept FindEntry(string uuid)
         {
             Kept entry;
-            return uuid != null && IsOpen && _entries.TryGetValue(uuid, out entry) ? entry : null;
+            return uuid != null && _open && _entries.TryGetValue(uuid, out entry) ? entry : null;
         }
 
         private string Identifier()

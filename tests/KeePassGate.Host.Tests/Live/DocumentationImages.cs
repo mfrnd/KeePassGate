@@ -42,6 +42,21 @@ namespace KeePassGate.Host.Tests.Live
         public const string EntryAccess = "entry-access";
 
         /// <summary>
+        /// The tab on a group whose rule copies of the database changed apart: the rule's versions
+        /// bound by a bracket, a version taking the rule off among them.
+        /// </summary>
+        public const string RuleVersions = "rule-versions";
+
+        /// <summary>The tab on a group with a limit under the inherited rule the limit cuts.</summary>
+        public const string RuleLimit = "rule-limit";
+
+        /// <summary>The tab on a group whose box copies of the database set differently.</summary>
+        public const string RuleBoxMixed = "rule-box-mixed";
+
+        /// <summary>The message after an OK on a group dialog that left a change of the tab out.</summary>
+        public const string RuleNotKept = "rule-not-kept";
+
+        /// <summary>
         /// The clients page with two clients whose renewals stand refused, and the row menu of one
         /// of them open on the answer and Allow renewal.
         /// </summary>
@@ -95,6 +110,10 @@ namespace KeePassGate.Host.Tests.Live
             Profiles,
             GroupAccess,
             EntryAccess,
+            RuleVersions,
+            RuleLimit,
+            RuleBoxMixed,
+            RuleNotKept,
             ClientsStandingAnswers,
             RenewalApproval,
             AuthorityChooser,

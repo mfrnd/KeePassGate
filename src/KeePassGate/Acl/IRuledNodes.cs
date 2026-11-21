@@ -1,34 +1,40 @@
 using System.Collections.Generic;
+using KeePassGate.Store;
 
 namespace KeePassGate.Acl
 {
     /// <summary>
-    /// Where every rule in a database can be read, one node at a time.
+    /// Every group and entry in a database a rule can be in force at, one node at a time.
     /// </summary>
     /// <remarks>
-    /// A seam because reaching every group and entry means KeePass, and counting what they grant is
-    /// worth testing without one. What is behind it walks the tree; what is above it only knows
-    /// there are nodes with documents on them.
+    /// A seam because reaching every group and entry means KeePass, and counting the rules in
+    /// force at them is worth testing without KeePass. What is behind it walks the tree; what is
+    /// above it knows each node by its identifier and reads the rules from the plugin's store,
+    /// `StoredRules`.
     ///
     /// **Read, and never written.** Removing a profile takes it off the database's list and
-    /// touches no node: a rule for a name the list does not hold grants nothing, because a
+    /// touches no rule: a rule for a name the list does not hold grants nothing, because a
     /// client's profiles are its record's less every name missing from the list. So the one
     /// thing this plugin does across the whole tree is count.
     /// </remarks>
     public interface IRuledNodes
     {
         /// <summary>
-        /// Every group and entry, whether or not it carries rules. Not the revisions an entry
-        /// keeps, and not the recycle bin or anything in it: their rules are in force for nobody
-        /// until somebody restores the revision or moves the node back out.
+        /// Every group and entry. Not the revisions an entry keeps, which are no node of their
+        /// own; not the recycle bin or anything in it, whose rules are in force for nobody until
+        /// somebody moves the node back out; and not a node of the plugin's store, which takes no
+        /// rule, its entries told as <paramref name="reading"/> tells them.
         /// </summary>
-        IEnumerable<IRuledNode> All();
+        IEnumerable<IRuledNode> All(StoreReading reading);
     }
 
-    /// <summary>One node's rules, as a count sees them.</summary>
+    /// <summary>One group or entry, as a count sees it.</summary>
     public interface IRuledNode
     {
-        /// <summary>The document stored here, or null when there is none.</summary>
-        string Read();
+        /// <summary>
+        /// The node's identifier as a rule names it: the 32 lowercase hexadecimal characters of
+        /// its bytes.
+        /// </summary>
+        string Id { get; }
     }
 }

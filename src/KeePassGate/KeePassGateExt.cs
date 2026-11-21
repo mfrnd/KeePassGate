@@ -567,13 +567,27 @@ namespace KeePassGate
                 // because a group dialog and the database settings carry different tabs and one
                 // decorator holding both would have to be told which each time. Told when a record
                 // lands as the KPG tab is, since a pairing can name a profile its pick list offers.
+                // What an OK on its tab holds is written through the plugin's writer as the dialog
+                // closes, and a change not kept is told over the main window once the dialog has
+                // gone and KeePass is not part way through work of its own, asked as the writer
+                // asks it before a write.
+                var dialogs = _groupDialogs;
                 _grants = new GateHost(
                     _windows,
                     new AnyFormMatcher(
                         new TypeNameFormMatcher(KeePassContract.GroupFormTypeName),
                         new TypeNameFormMatcher(KeePassContract.EntryFormTypeName)),
                     new TabPageInjector(
-                        new GrantPanelFactory(new NodeDialogs(_log), _log, _admissions),
+                        new GrantPanelFactory(
+                            new NodeDialogs(_log, _writer),
+                            _log,
+                            _admissions,
+                            new MessageBoxPrompt(),
+                            main,
+                            _incidents)
+                        {
+                            Busy = main == null ? (Func<string>)null : () => Interrupting(main) ?? dialogs.Working(),
+                        },
                         _log,
                         KeePassContract.NodeFormTabControlName,
                         GrantTab.Text,

@@ -46,18 +46,7 @@ namespace KeePassGate.Tests
             // certificate and would be judged damaged, `STORE.md` §614; and the admissions and
             // the names, which this reading gives no meaning.
             var store = (JObject)Vectors()["meanings"][name];
-            var versions = new StoreVersions();
-
-            var candidates = new List<StoreCandidate>();
-            foreach (var entry in (JObject)store["entries"])
-            {
-                var current = Strings((JObject)entry.Value["strings"]);
-                var history = ((JArray)entry.Value["history"]).Select(item => Strings((JObject)item)).Reverse();
-                candidates.Add(versions.Candidate(StoreComposer.BytesOf(entry.Key), new[] { current }.Concat(history).ToArray()));
-            }
-
-            var deletions = ((JArray)store["deletions"]).Select(identifier => StoreComposer.BytesOf((string)identifier)).ToList();
-            var reading = StoreReading.Of(candidates, deletions, null, new StoreKept());
+            var reading = Read(store);
 
             Assert.That(reading.State, Is.EqualTo(States[(string)store["status"]]), reading.Reason);
             Assert.That(
@@ -740,6 +729,969 @@ namespace KeePassGate.Tests
             Assert.That(subjects, Does.Contain("authority:" + Hex('e')), "the retirement told by a deletion record was looked for");
         }
 
+        private static IEnumerable<TestCaseData> MeasuredRules()
+        {
+            // `rules:` the stores of rules, and `rules, ` those of the lost versions a version
+            // settles, which the measured reading reads as the product does.
+            foreach (var meaning in ((JObject)Vectors()["meanings"]).Properties()
+                         .Where(meaning => meaning.Name.StartsWith("rules:", System.StringComparison.Ordinal)
+                                           || meaning.Name.StartsWith("rules, ", System.StringComparison.Ordinal)))
+            {
+                yield return new TestCaseData(meaning.Name).SetArgDisplayNames(meaning.Name);
+            }
+        }
+
+        [TestCaseSource(nameof(MeasuredRules))]
+        public void What_stands_and_what_is_lost_is_what_the_measured_reading_found(string name)
+        {
+            // `tests/Shared/StoreMeaningVectors.json` holds, for each store of rules, the texts of
+            // the versions that stand for each object and the objects that are lost, as
+            // `probe/read.py` found them, read beside the tree the store holds.
+            var store = (JObject)Vectors()["meanings"][name];
+            var rules = (JObject)store["rules"];
+
+            using (var reading = Read(store))
+            {
+                Assert.That(reading.State, Is.EqualTo(States[(string)store["status"]]), reading.Reason);
+                var inForce = reading.InForce;
+                Assert.That(
+                    inForce.Objects
+                        .SelectMany(objectText => inForce.VersionsOf(objectText).Select(version => objectText + " " + version.Members["doc"]))
+                        .OrderBy(line => line, System.StringComparer.Ordinal),
+                    Is.EqualTo(((JObject)rules["standing"]).Properties()
+                        .SelectMany(standing => standing.Value.Select(doc => standing.Name + " " + (string)doc))
+                        .OrderBy(line => line, System.StringComparer.Ordinal)),
+                    "the texts of the versions that stand, by object");
+                Assert.That(
+                    inForce.Objects.Where(objectText => inForce.LostOf(objectText).Count > 0).OrderBy(objectText => objectText, System.StringComparer.Ordinal),
+                    Is.EqualTo(((JArray)rules["lost"]).Select(lost => (string)lost).OrderBy(lost => lost, System.StringComparer.Ordinal)),
+                    "the objects lost");
+            }
+        }
+
+        [Test]
+        public void A_version_stands_by_its_record_in_force_or_by_an_item_of_a_summary_entry_in_force_where_no_version_of_its_object_names_it()
+        {
+            // `STORE.md` §617 and §623 step 3. A version carried by an item of a summary entry in
+            // force alone stands as its record would; a version carried by an item of a summary
+            // entry out of force alone is in force by nothing; and a version that a version of
+            // another object names is not replaced by it.
+            var store = new ComposedStore(One);
+            var byRecord = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:R"));
+            var replaced = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "pg"), "row:R"));
+            var replacing = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "pg"), "row:RU", replaced.Hex));
+            var crossed = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "ph"), "row:C"));
+            var crossing = store.Add(StoreComposer.RuleVersion(One, RowAt(Other, "ph"), "row:D", crossed.Hex));
+            var apart = new[]
+            {
+                store.Add(StoreComposer.RuleVersion(One, RowAt(Other, "pg"), "row:R")),
+                store.Add(StoreComposer.RuleVersion(One, RowAt(Other, "pg"), "row:U")),
+            };
+            var itemOnly = StoreComposer.RuleVersion(One, SwitchAt(Node), "sw:deny");
+            var outOfForce = StoreComposer.RuleVersion(One, RowAt(Other, "pf"), "row:L");
+            var inForce = new[] { byRecord, replacing, crossed, crossing, apart[0], apart[1], itemOnly }.Select(ItemOf).ToList();
+            var first = store.Head;
+            store.RestateAll(inForce.Concat(new[] { ItemOf(outOfForce) }));
+            var older = store.Head;
+            store.RestateAll(inForce, first.Hex);
+            store.Add(older);
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(
+                    reading.InForce.HeadsInForce.Select(head => head.Hex), Does.Not.Contain(older.Hex),
+                    "the summary entry carrying the version alone is out of force");
+                var found = reading.InForce;
+                Assert.That(Ids(found.VersionsOf(RowAt(Node, "pf"))), Is.EqualTo(new[] { byRecord.Hex }), "by its record");
+                Assert.That(
+                    Ids(found.VersionsOf(RowAt(Node, "pg"))), Is.EqualTo(new[] { replacing.Hex }), "the version its object's version names does not stand");
+                Assert.That(Ids(found.VersionsOf(RowAt(Node, "ph"))), Is.EqualTo(new[] { crossed.Hex }), "named by a version of another object");
+                Assert.That(
+                    Ids(found.VersionsOf(RowAt(Other, "pg"))),
+                    Is.EqualTo(apart.Select(version => version.Hex).OrderBy(id => id, System.StringComparer.Ordinal)),
+                    "made apart, ascending by identifier");
+                var carried = found.VersionsOf(SwitchAt(Node)).Single();
+                Assert.That(carried.Id, Is.EqualTo(itemOnly.Hex), "by an item of a summary entry in force");
+                Assert.That(carried.Members["doc"], Is.EqualTo("sw:deny"));
+                Assert.That(carried.After, Is.Empty);
+                Assert.That(
+                    found.VersionsOf(RowAt(Node, "pg")).Single().Members["after"], Is.EqualTo(replaced.Hex), "what it names, as its record holds it");
+                Assert.That(found.VersionsOf(RowAt(Other, "pf")), Is.Empty, "by an item of a summary entry out of force alone");
+                Assert.That(
+                    found.Objects,
+                    Is.EquivalentTo(new[] { RowAt(Node, "pf"), RowAt(Node, "pg"), RowAt(Node, "ph"), RowAt(Other, "ph"), RowAt(Other, "pg"), SwitchAt(Node) }));
+                Assert.That(Lost(found), Is.Empty, "nothing lost");
+                Assert.That(found.VersionsOf(RowAt(Below, "pf")), Is.Empty, "an object nothing stands for");
+                Assert.That(found.LostOf(RowAt(Below, "pf")), Is.Empty);
+            }
+        }
+
+        [Test]
+        public void A_version_present_beside_its_own_deletion_record_that_nothing_in_force_names_or_restates_is_lost_whatever_else_stands()
+        {
+            // `STORE.md` §617: told of by its own object, with nothing hashed. Restated by an item
+            // of a summary entry in force it is in force, and named by a version in force of its
+            // own object it is replaced; a version of another object naming it does neither.
+            var store = new ComposedStore(One);
+            var lost = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:R"));
+            store.Delete(lost);
+            var standing = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:RU"));
+            var restated = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "pg"), "row:R"));
+            store.Delete(restated);
+            var named = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "ph"), "row:R"));
+            store.Delete(named);
+            var naming = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "ph"), "row:RU", named.Hex));
+            var elsewhere = store.Add(StoreComposer.RuleVersion(One, SwitchAt(Node), "sw:deny"));
+            store.Delete(elsewhere);
+            var namingElsewhere = store.Add(StoreComposer.RuleVersion(One, RowAt(Other, "pf"), "row:R", elsewhere.Hex));
+            var outOfForce = StoreComposer.RuleVersion(One, RowAt(Other, "pg"), "row:L");
+            store.Delete(outOfForce);
+            var inForce = new[] { standing, restated, naming, namingElsewhere }.Select(ItemOf).ToList();
+            var first = store.Head;
+            store.RestateAll(inForce.Concat(new[] { ItemOf(outOfForce) }));
+            var older = store.Head;
+            store.RestateAll(inForce, first.Hex);
+            store.Add(older);
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                var found = reading.InForce;
+                Assert.That(found.LostOf(RowAt(Node, "pf")), Is.EqualTo(new[] { lost.Hex }), "named and restated by nothing");
+                Assert.That(Ids(found.VersionsOf(RowAt(Node, "pf"))), Is.EqualTo(new[] { standing.Hex }), "and another version stands");
+                Assert.That(found.LostOf(RowAt(Node, "pg")), Is.Empty, "restated by an item of a summary entry in force");
+                Assert.That(Ids(found.VersionsOf(RowAt(Node, "pg"))), Is.EqualTo(new[] { restated.Hex }));
+                Assert.That(found.LostOf(RowAt(Node, "ph")), Is.Empty, "named by a version in force of its own object");
+                Assert.That(Ids(found.VersionsOf(RowAt(Node, "ph"))), Is.EqualTo(new[] { naming.Hex }));
+                Assert.That(found.LostOf(SwitchAt(Node)), Is.EqualTo(new[] { elsewhere.Hex }), "named only by a version of another object");
+                Assert.That(found.VersionsOf(SwitchAt(Node)), Is.Empty);
+                Assert.That(
+                    found.LostOf(RowAt(Other, "pg")), Is.EqualTo(new[] { outOfForce.Hex }), "carried by an item of a summary entry out of force alone");
+                Assert.That(found.Objects, Does.Contain(SwitchAt(Node)).And.Contain(RowAt(Other, "pg")));
+                Assert.That(RuleHashes(reading), Is.Empty, "nothing hashed");
+                Assert.That(store.Walks, Is.EqualTo(0), "the tree is not asked for");
+            }
+        }
+
+        [Test]
+        public void A_deletion_record_that_nothing_in_force_names_tells_of_a_lost_row_and_a_lost_switch_whatever_else_stands()
+        {
+            // `STORE.md` §617: by the tag of `version`, the subject hash of `rule:` and a node, and
+            // the tag of a name the file knows; and for a switch the subject hash of `switch:` and
+            // a node, with 0.
+            var store = new ComposedStore(One);
+            var row = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:R"));
+            var turned = store.Add(StoreComposer.RuleVersion(One, SwitchAt(Node), "sw:inherit"));
+            store.RestateAll(new[] { ItemOf(row), ItemOf(turned) });
+            var rowTold = ToldOf(RowAt(Node, "pf"));
+            var switchTold = ToldOf(SwitchAt(Node));
+            store.Deleted.Add(rowTold);
+            store.Deleted.Add(switchTold);
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                var found = reading.InForce;
+                Assert.That(found.LostOf(RowAt(Node, "pf")), Is.EqualTo(new[] { KeePassGate.Hex.Of(rowTold) }));
+                Assert.That(Ids(found.VersionsOf(RowAt(Node, "pf"))), Is.EqualTo(new[] { row.Hex }), "the version beside it still stands");
+                Assert.That(found.LostOf(SwitchAt(Node)), Is.EqualTo(new[] { KeePassGate.Hex.Of(switchTold) }), "a lost switch");
+                Assert.That(Ids(found.VersionsOf(SwitchAt(Node))), Is.EqualTo(new[] { turned.Hex }));
+                Assert.That(found.LostOf(RowAt(Node, "pg")), Is.Empty, "a name the file does not know");
+                Assert.That(store.Walks, Is.EqualTo(0), "each told at the node an object names");
+            }
+        }
+
+        [Test]
+        public void A_deletion_record_that_a_version_in_force_of_its_own_object_names_or_carries_tells_nothing_and_hashes_no_subject()
+        {
+            // `STORE.md` §617 and §620: a deletion record a version in force of the object names,
+            // by its record or by an item of a summary entry in force, or that an item in force
+            // carries, is answered for that object. A version present at its place places it with
+            // no subject hashed, and the tags hashed are those of the names no row record shows.
+            var store = new ComposedStore(One);
+            var byRecord = ToldOf(RowAt(Node, "pf"));
+            var byItem = ToldOf(RowAt(Node, "pg"));
+            var namingByRecord = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:RU", KeePassGate.Hex.Of(byRecord)));
+            var namingByItem = StoreComposer.RuleVersion(One, RowAt(Node, "pg"), "row:RU", KeePassGate.Hex.Of(byItem));
+            var carried = StoreComposer.RuleVersion(One, RowAt(Node, "ph"), "row:R");
+            store.RestateAll(new[] { namingByRecord, namingByItem, carried }.Select(ItemOf));
+            store.Deleted.Add(byRecord);
+            store.Deleted.Add(byItem);
+            store.Delete(carried);
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                var found = reading.InForce;
+                Assert.That(Lost(found), Is.Empty, "nothing lost");
+                Assert.That(Ids(found.VersionsOf(RowAt(Node, "ph"))), Is.EqualTo(new[] { carried.Hex }), "carried by an item in force, it stands");
+                Assert.That(
+                    RuleHashes(reading), Is.EquivalentTo(new[] { "pg", "ph" }),
+                    "no subject, and the tag of each name the file knows that no row record shows");
+                Assert.That(store.Walks, Is.EqualTo(0), "the tree is not asked for");
+            }
+        }
+
+        [Test]
+        public void A_deletion_record_named_only_by_a_version_of_another_object_tells_of_the_object_whose_place_it_holds()
+        {
+            // `STORE.md` §617: a deletion record is answered by the versions of the objects at its
+            // place, so an identifier a version at another place names answers nothing there.
+            var store = new ComposedStore(One);
+            var switchTold = ToldOf(SwitchAt(Node));
+            var rowTold = ToldOf(RowAt(Node, "pg"));
+            var row = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:R"));
+            var elsewhere = store.Add(StoreComposer.RuleVersion(
+                One, RowAt(Other, "pg"), "row:R", KeePassGate.Hex.Of(switchTold), KeePassGate.Hex.Of(rowTold)));
+            store.RestateAll(new[] { row, elsewhere }.Select(ItemOf));
+            store.Deleted.Add(switchTold);
+            store.Deleted.Add(rowTold);
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                var found = reading.InForce;
+                Assert.That(found.LostOf(SwitchAt(Node)), Is.EqualTo(new[] { KeePassGate.Hex.Of(switchTold) }), "the switch");
+                Assert.That(found.LostOf(RowAt(Node, "pg")), Is.EqualTo(new[] { KeePassGate.Hex.Of(rowTold) }), "the row");
+                Assert.That(found.LostOf(RowAt(Other, "pg")), Is.Empty, "the object of the version naming them");
+                Assert.That(Ids(found.VersionsOf(RowAt(Other, "pg"))), Is.EqualTo(new[] { elsewhere.Hex }));
+            }
+        }
+
+        [Test]
+        public void A_row_of_a_name_whose_tag_meets_a_lost_row_s_settles_the_loss_in_lost_for_its_own_row_alone()
+        {
+            // `STORE.md` §609 and §617. Two names whose tags meet under the key; the root grants
+            // the first every letter; its empty rule at the node is deleted for good with the
+            // summary entry restating it, so the deletion record tells of both rows. A version of
+            // the second row naming that deletion record in `lost`, as a press on that row alone
+            // writes it, settles the second row and not the first, until a version of the first
+            // names it too: the file cannot tell whose the lost version was. In either order.
+            var lost = KeePassGate.Hex.Of(ToldOf(RowAt(Node, MeetingFirst)));
+            var above = MeetingAbove();
+            var secondSet = StoreComposer.RuleVersion(One, RowAt(Node, MeetingSecond), "row:R", NoNames, new[] { lost });
+            var firstSet = StoreComposer.RuleVersion(One, RowAt(Node, MeetingFirst), "row:", NoNames, new[] { lost });
+
+            using (var reading = WithLost(lost, above))
+            {
+                Assert.That(reading.InForce.LostOf(RowAt(Node, MeetingFirst)), Is.EqualTo(new[] { lost }), "the row whose version was deleted");
+                Assert.That(reading.InForce.LostOf(RowAt(Node, MeetingSecond)), Is.EqualTo(new[] { lost }), "the other row of its tag");
+            }
+
+            foreach (var (settled, refusing, version) in new[] { (MeetingSecond, MeetingFirst, secondSet), (MeetingFirst, MeetingSecond, firstSet) })
+            {
+                using (var reading = WithLost(lost, above.Concat(new[] { version }).ToArray()))
+                {
+                    Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                    Assert.That(reading.InForce.LostOf(RowAt(Node, settled)), Is.Empty, settled + ": settled by a version of its own row");
+                    Assert.That(Ids(reading.InForce.VersionsOf(RowAt(Node, settled))), Is.EqualTo(new[] { version.Hex }));
+                    Assert.That(reading.InForce.LostOf(RowAt(Node, refusing)), Is.EqualTo(new[] { lost }), refusing + ": the other row still refuses");
+                    Assert.That(reading.InForce.VersionsOf(RowAt(Node, refusing)), Is.Empty);
+                    Assert.That(RuleHashes(reading), Is.Empty, "placed by the version at its place, and each name's tag shown by a row record");
+                }
+            }
+
+            using (var reading = WithLost(lost, above.Concat(new[] { secondSet, firstSet }).ToArray()))
+            {
+                Assert.That(Lost(reading.InForce), Is.Empty, "each row settled by a version of its own");
+            }
+        }
+
+        [Test]
+        public void A_deletion_record_a_version_at_its_place_names_in_after_is_answered_for_every_row_of_its_tag()
+        {
+            // `STORE.md` §617: a version names in `after` only versions of its own object that stood
+            // with their content, so a deletion record a version of either row names there was that
+            // row's, and neither row refuses for it. The second row's ordinary edit, as a press on
+            // that row writes it: the version it replaced deleted with a deletion record, which
+            // tells of both rows.
+            var above = MeetingAbove();
+            var firstRow = StoreComposer.RuleVersion(One, RowAt(Node, MeetingFirst), "row:RU");
+            var replaced = StoreComposer.RuleVersion(One, RowAt(Node, MeetingSecond), "row:R");
+            var replacing = StoreComposer.RuleVersion(One, RowAt(Node, MeetingSecond), "row:RU", replaced.Hex);
+
+            using (var reading = WithLost(replaced.Hex, above.Concat(new[] { firstRow, replacing }).ToArray()))
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(Lost(reading.InForce), Is.Empty, "neither row refuses for the version the second replaced");
+                Assert.That(Ids(reading.InForce.VersionsOf(RowAt(Node, MeetingFirst))), Is.EqualTo(new[] { firstRow.Hex }));
+                Assert.That(Ids(reading.InForce.VersionsOf(RowAt(Node, MeetingSecond))), Is.EqualTo(new[] { replacing.Hex }));
+            }
+
+            // Named in `lost` instead, the same deletion record is settled for the namer alone.
+            var settling = StoreComposer.RuleVersion(One, RowAt(Node, MeetingSecond), "row:RU", NoNames, new[] { replaced.Hex });
+            using (var reading = WithLost(replaced.Hex, above.Concat(new[] { firstRow, settling }).ToArray()))
+            {
+                Assert.That(reading.InForce.LostOf(RowAt(Node, MeetingFirst)), Is.EqualTo(new[] { replaced.Hex }), "the first row refuses");
+                Assert.That(reading.InForce.LostOf(RowAt(Node, MeetingSecond)), Is.Empty, "settled for the second");
+            }
+        }
+
+        [Test]
+        public void A_version_beside_its_own_deletion_record_is_answered_by_its_own_object_in_after_or_in_lost_and_by_no_other()
+        {
+            // `STORE.md` §617: a version present beside its deletion record is told of by its own
+            // object alone, with nothing hashed, and a version in force of that object naming it
+            // in `after` or in `lost` answers for it; a version of another row of its tag naming
+            // it answers nothing.
+            var above = MeetingAbove();
+            var beside = StoreComposer.RuleVersion(One, RowAt(Node, MeetingFirst), "row:R");
+            var ways = new Dictionary<string, (StoreComposer.Composed Version, bool Lost)>
+            {
+                { "its own row in after", (StoreComposer.RuleVersion(One, RowAt(Node, MeetingFirst), "row:RU", beside.Hex), false) },
+                { "its own row in lost", (StoreComposer.RuleVersion(One, RowAt(Node, MeetingFirst), "row:RU", NoNames, new[] { beside.Hex }), false) },
+                { "the other row in lost", (StoreComposer.RuleVersion(One, RowAt(Node, MeetingSecond), "row:RU", NoNames, new[] { beside.Hex }), true) },
+            };
+
+            foreach (var way in ways)
+            {
+                var store = new ComposedStore(One);
+                foreach (var version in above.Concat(new[] { beside, way.Value.Version }))
+                {
+                    store.Add(version);
+                }
+
+                store.RestateAll(above.Concat(new[] { way.Value.Version }).Select(ItemOf));
+                store.Delete(beside);
+                using (var reading = store.Read())
+                {
+                    Assert.That(reading.State, Is.EqualTo(StoreState.Whole), way.Key + ": " + reading.Reason);
+                    Assert.That(
+                        reading.InForce.LostOf(RowAt(Node, MeetingFirst)),
+                        Is.EqualTo(way.Value.Lost ? new[] { beside.Hex } : System.Array.Empty<string>()),
+                        way.Key);
+                    Assert.That(reading.InForce.LostOf(RowAt(Node, MeetingSecond)), Is.Empty, way.Key + ": the other row is not told of");
+                }
+            }
+        }
+
+        [Test]
+        public void A_loss_at_the_place_a_tag_of_0_shares_with_the_object_with_no_slash_is_settled_in_lost_for_the_row_alone()
+        {
+            // `STORE.md` §609 and §617: the deletion record tells of the row whose name's tag is 0
+            // and of the rule's object with no `/` at its node; named in `lost` by the row it is
+            // settled for the row, and the object with no slash, which is no node's rule, still
+            // refuses; named in `after` by a version of the object with no slash it is answered
+            // for both.
+            const string zero = "agent-144433";
+            Assert.That(StoreComposer.ProfileTag(One, zero), Is.EqualTo(0), "the name the search found");
+            var told = KeePassGate.Hex.Of(ToldOf(RowAt(Node, zero)));
+            var bare = StoreComposer.RuleVersion(One, "rule:" + Node, "row:R");
+            var zeroSet = StoreComposer.RuleVersion(One, RowAt(Node, zero), "row:R", NoNames, new[] { told });
+
+            using (var reading = WithLost(told, bare, zeroSet))
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(reading.InForce.LostOf(RowAt(Node, zero)), Is.Empty, "settled for the row");
+                Assert.That(reading.InForce.LostOf("rule:" + Node), Is.EqualTo(new[] { told }), "the object with no slash");
+            }
+
+            var bareNaming = StoreComposer.RuleVersion(One, "rule:" + Node, "row:R", told);
+            using (var reading = WithLost(told, bareNaming, StoreComposer.RuleVersion(One, RowAt(Node, zero), "row:R")))
+            {
+                Assert.That(Lost(reading.InForce), Is.Empty, "named in after at its place, answered for both");
+            }
+        }
+
+        [Test]
+        public void A_lost_version_of_the_switch_is_settled_by_a_version_of_the_switch_naming_it_in_lost()
+        {
+            // `STORE.md` §617: a deletion record under the subject of a switch tells of that switch
+            // alone, and a version of the switch naming it in `lost` settles it.
+            var told = KeePassGate.Hex.Of(ToldOf(SwitchAt(Node)));
+            var row = StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:R");
+
+            using (var reading = WithLost(told, row))
+            {
+                Assert.That(reading.InForce.LostOf(SwitchAt(Node)), Is.EqualTo(new[] { told }));
+            }
+
+            var settling = StoreComposer.RuleVersion(One, SwitchAt(Node), "sw:deny", NoNames, new[] { told });
+            using (var reading = WithLost(told, row, settling))
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(Lost(reading.InForce), Is.Empty, "settled by the switch");
+                Assert.That(Ids(reading.InForce.VersionsOf(SwitchAt(Node))), Is.EqualTo(new[] { settling.Hex }));
+            }
+        }
+
+        [Test]
+        public void A_version_s_lost_is_restated_by_its_item_and_an_item_restating_it_otherwise_leaves_no_single_text()
+        {
+            // `STORE.md` §611 and §617: the item `version` restates `lost` as the version holds it,
+            // and none where the version holds none; an item that restates it otherwise, by
+            // holding another `lost` or none, restates the version otherwise.
+            var told = KeePassGate.Hex.Of(ToldOf(RowAt(Node, "pf")));
+            var settling = StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:R", NoNames, new[] { told });
+
+            var alike = new ComposedStore(One);
+            alike.Add(settling);
+            alike.Restate(ItemOf(settling));
+            alike.Deleted.Add(StoreComposer.BytesOf(told));
+            using (var reading = alike.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(Lost(reading.InForce), Is.Empty);
+                Assert.That(
+                    reading.InForce.Restated().Where(item => item.Kind == "version").Select(item => item.Member("lost")),
+                    Is.EqualTo(new[] { told }),
+                    "what a write restates holds the version's lost");
+            }
+
+            var otherwise = new ComposedStore(One);
+            otherwise.Add(settling);
+            otherwise.Restate(StoreComposer.RuleVersionItem(settling, RowAt(Node, "pf"), "row:R"));
+            using (var reading = otherwise.Read())
+            {
+                Assert.That(reading.InForce.LostOf(RowAt(Node, "pf")), Is.EqualTo(new[] { settling.Hex }), "an item with no lost restates it otherwise");
+            }
+        }
+
+        [Test]
+        public void A_version_whose_record_and_an_item_in_force_disagree_is_lost_whatever_order_their_entries_are_walked_in()
+        {
+            // A version's text is read from its record where a record carries it; an item of a
+            // summary entry in force that restates it otherwise leaves no single text to read, so
+            // its object refuses, and so does every object such an item names.
+            var record = StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:R");
+            var differing = new Dictionary<string, (string Object, string Doc, string After)>
+            {
+                { "its text", (RowAt(Node, "pf"), "row:RU", string.Empty) },
+                { "what it names", (RowAt(Node, "pf"), "row:R", new string('7', 32)) },
+                { "its object", (RowAt(Node, "pg"), "row:R", string.Empty) },
+            };
+
+            foreach (var pair in differing)
+            {
+                foreach (var recordFirst in new[] { true, false })
+                {
+                    var store = new ComposedStore(One);
+                    var item = StoreComposer.Item(
+                        ("after", pair.Value.After), ("doc", pair.Value.Doc), ("id", record.Hex), ("kind", "version"), ("object", pair.Value.Object));
+                    if (recordFirst)
+                    {
+                        store.Add(record);
+                        store.Restate(item);
+                    }
+                    else
+                    {
+                        store.Restate(item);
+                        store.Add(record);
+                    }
+
+                    var why = pair.Key + (recordFirst ? ", the record walked first" : ", the summary entry walked first");
+                    using (var reading = store.Read())
+                    {
+                        Assert.That(reading.State, Is.EqualTo(StoreState.Whole), why + ": " + reading.Reason);
+                        Assert.That(reading.InForce.LostOf(RowAt(Node, "pf")), Is.EqualTo(new[] { record.Hex }), why);
+                        Assert.That(reading.InForce.VersionsOf(RowAt(Node, "pf")), Is.Empty, why);
+                        Assert.That(reading.InForce.LostOf(pair.Value.Object), Is.EqualTo(new[] { record.Hex }), why + ": the object the item names");
+                    }
+                }
+            }
+        }
+
+        [Test]
+        public void A_version_carried_by_items_in_force_that_disagree_is_lost_and_by_items_that_agree_stands_as_its_record_holds_it()
+        {
+            // Two summary entries in force, made apart, each restating a version: where they
+            // restate it alike it stands, with the text of its record where a record carries it,
+            // and where they restate it otherwise, with no record or beside one, it is lost.
+            var version = StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:R");
+            foreach (var withRecord in new[] { true, false })
+            {
+                var alike = new ComposedStore(One);
+                var start = alike.Head.Hex;
+                if (withRecord)
+                {
+                    alike.Add(version);
+                }
+
+                alike.Restate(ItemOf(version));
+                alike.Add(Head(One, 2, start, ItemOf(version)));
+                using (var reading = alike.Read())
+                {
+                    Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                    Assert.That(reading.InForce.HeadsInForce, Has.Count.EqualTo(2), "two summary entries in force");
+                    var standing = reading.InForce.VersionsOf(RowAt(Node, "pf")).Single();
+                    Assert.That(standing.Id, Is.EqualTo(version.Hex), "restated alike, with a record: " + withRecord);
+                    Assert.That(standing.Members["doc"], Is.EqualTo("row:R"));
+                    Assert.That(reading.InForce.LostOf(RowAt(Node, "pf")), Is.Empty);
+                }
+
+                var apart = new ComposedStore(One);
+                start = apart.Head.Hex;
+                if (withRecord)
+                {
+                    apart.Add(version);
+                }
+
+                apart.Restate(ItemOf(version));
+                apart.Add(Head(One, 2, start, StoreComposer.RuleVersionItem(version, RowAt(Node, "pf"), "row:RU")));
+                using (var reading = apart.Read())
+                {
+                    Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                    Assert.That(reading.InForce.LostOf(RowAt(Node, "pf")), Is.EqualTo(new[] { version.Hex }), "restated otherwise, with a record: " + withRecord);
+                    Assert.That(reading.InForce.VersionsOf(RowAt(Node, "pf")), Is.Empty);
+                }
+            }
+        }
+
+        [Test]
+        public void A_deletion_record_of_a_row_of_a_name_the_file_does_not_know_tells_nothing_until_the_name_is_known()
+        {
+            // `STORE.md` §617: the file knows a name from a record of kind `profile` or `removed`
+            // present, in force or not, from an item `removed` of a summary entry present, and
+            // from the object of a row's version present.
+            var ways = new Dictionary<string, System.Action<ComposedStore>>
+            {
+                { "nothing", store => { } },
+                { "an addition", store => store.Add(Profile("ops")) },
+                { "an addition out of force", store => store.Delete(store.Add(Profile("ops"))) },
+                { "a removal", store => store.Add(Removal("ops")) },
+                { "a row at another node", store => store.Add(StoreComposer.RuleVersion(One, RowAt(Other, "ops"), "row:R")) },
+            };
+
+            foreach (var way in ways)
+            {
+                var store = new ComposedStore(One);
+                var row = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:R"));
+                var told = ToldOf(RowAt(Node, "ops"));
+                store.Deleted.Add(told);
+                way.Value(store);
+
+                using (var reading = store.Read())
+                {
+                    Assert.That(
+                        reading.InForce.LostOf(RowAt(Node, "ops")),
+                        Is.EqualTo(way.Key == "nothing" ? System.Array.Empty<string>() : new[] { KeePassGate.Hex.Of(told) }),
+                        way.Key);
+                    Assert.That(Ids(reading.InForce.VersionsOf(RowAt(Node, "pf"))), Is.EqualTo(new[] { row.Hex }), way.Key);
+                }
+            }
+
+            var byItem = new ComposedStore(One);
+            byItem.Add(StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:R"));
+            byItem.Restate(StoreComposer.Item(("id", new string('7', 32)), ("kind", "removed"), ("name", "ops")));
+            var toldByItem = ToldOf(RowAt(Node, "ops"));
+            byItem.Deleted.Add(toldByItem);
+            using (var reading = byItem.Read())
+            {
+                Assert.That(reading.InForce.LostOf(RowAt(Node, "ops")), Is.EqualTo(new[] { KeePassGate.Hex.Of(toldByItem) }), "an item of a removal");
+            }
+        }
+
+        [Test]
+        public void A_deletion_record_under_a_tag_two_names_share_tells_of_the_rows_of_both()
+        {
+            // `STORE.md` §609 and §617: a tag can mean several names, so a deletion record tells
+            // of every name of its tag the file knows, and each of those rows is lost. The names
+            // were found by a search run once over `agent-` and a counter under the key `one`.
+            Assert.That(StoreComposer.ProfileTag(One, "agent-455"), Is.EqualTo(StoreComposer.ProfileTag(One, "agent-604")), "the names the search found");
+            var store = new ComposedStore(One);
+            var first = store.Add(StoreComposer.RuleVersion(One, RowAt(Other, "agent-455"), "row:R"));
+            var second = store.Add(StoreComposer.RuleVersion(One, RowAt(Other, "agent-604"), "row:R"));
+            var turned = store.Add(StoreComposer.RuleVersion(One, SwitchAt(Node), "sw:inherit"));
+            store.RestateAll(new[] { first, second, turned }.Select(ItemOf));
+            var told = ToldOf(RowAt(Node, "agent-455"));
+            store.Deleted.Add(told);
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                var found = reading.InForce;
+                Assert.That(found.LostOf(RowAt(Node, "agent-455")), Is.EqualTo(new[] { KeePassGate.Hex.Of(told) }));
+                Assert.That(found.LostOf(RowAt(Node, "agent-604")), Is.EqualTo(new[] { KeePassGate.Hex.Of(told) }), "the other name of the tag");
+                Assert.That(found.LostOf(SwitchAt(Node)), Is.Empty);
+                Assert.That(
+                    Ids(found.VersionsOf(RowAt(Other, "agent-455"))), Is.EqualTo(new[] { first.Hex }), "a version carries its object, and is read by no tag");
+                Assert.That(Ids(found.VersionsOf(RowAt(Other, "agent-604"))), Is.EqualTo(new[] { second.Hex }));
+            }
+        }
+
+        [Test]
+        public void A_tag_of_0_is_a_tag_and_tells_of_a_rule_s_object_with_no_slash_at_its_node_as_well()
+        {
+            // `STORE.md` §609: the ten keyed bytes do not tell a rule's object with no `/` from a
+            // row at its node whose name's tag is 0, so a deletion record tells of each that the
+            // file knows. The name was found by a search run once under the key `one`.
+            Assert.That(StoreComposer.ProfileTag(One, "agent-144433"), Is.EqualTo(0), "the name the search found");
+            var store = new ComposedStore(One);
+            var bare = store.Add(StoreComposer.RuleVersion(One, "rule:" + Node, "row:R"));
+            var known = store.Add(StoreComposer.RuleVersion(One, RowAt(Other, "agent-144433"), "row:R"));
+            store.RestateAll(new[] { bare, known }.Select(ItemOf));
+            var told = ToldOf(RowAt(Node, "agent-144433"));
+            store.Deleted.Add(told);
+
+            using (var reading = store.Read())
+            {
+                var found = reading.InForce;
+                Assert.That(found.LostOf(RowAt(Node, "agent-144433")), Is.EqualTo(new[] { KeePassGate.Hex.Of(told) }), "a row whose name's tag is 0");
+                Assert.That(found.LostOf("rule:" + Node), Is.EqualTo(new[] { KeePassGate.Hex.Of(told) }), "the object with no slash");
+                Assert.That(Ids(found.VersionsOf("rule:" + Node)), Is.EqualTo(new[] { bare.Hex }));
+                Assert.That(found.LostOf(SwitchAt(Node)), Is.Empty, "a switch has a subject of its own");
+            }
+        }
+
+        [Test]
+        public void The_tree_is_asked_for_only_where_a_deletion_record_is_left_that_no_object_the_file_names_explains()
+        {
+            // `STORE.md` §620: a deletion record at the place of a version present is placed with
+            // nothing hashed; for the rest the nodes of the objects the file names are tried first,
+            // and the tree is walked for its nodes' subjects only where a deletion record is still
+            // not told of. A name's tag is read off a row record where one shows it and hashed
+            // otherwise; each hash is kept with the key.
+            Assert.That(StoreComposer.ProfileTag(One, "pf"), Is.Not.EqualTo(0), "a name whose tag is not 0, so that no switch is asked about");
+            Assert.That(StoreComposer.ProfileTag(One, "pg"), Is.Not.EqualTo(StoreComposer.ProfileTag(One, "pf")));
+
+            var none = Ruled(out _);
+            using (var reading = none.Read())
+            {
+                Assert.That(RuleHashes(reading), Is.Empty, "no deletion record of a version: nothing hashed");
+                Assert.That(none.Walks, Is.EqualTo(0));
+            }
+
+            var placed = Ruled(out _);
+            placed.Deleted.Add(ToldOf(RowAt(Node, "pf")));
+            using (var reading = placed.Read())
+            {
+                Assert.That(reading.InForce.LostOf(RowAt(Node, "pf")), Has.Count.EqualTo(1));
+                Assert.That(placed.Walks, Is.EqualTo(0), "placed by the version at its place");
+                Assert.That(RuleHashes(reading), Is.Empty, "nothing hashed, the name's tag shown by its row record");
+            }
+
+            var named = Ruled(out _);
+            named.Add(Profile("pg"));
+            named.Deleted.Add(ToldOf(RowAt(Node, "pg")));
+            named.Deleted.Add(ToldOf(SwitchAt(Node)));
+            using (var reading = named.Read())
+            {
+                Assert.That(reading.InForce.LostOf(RowAt(Node, "pg")), Has.Count.EqualTo(1), "a row at a node an object names");
+                Assert.That(reading.InForce.LostOf(SwitchAt(Node)), Has.Count.EqualTo(1), "a switch at a node an object names");
+                Assert.That(named.Walks, Is.EqualTo(0), "told at the node an object names");
+                Assert.That(
+                    RuleHashes(reading), Is.EquivalentTo(new[] { "rule:" + Node, "switch:" + Node, "pg" }),
+                    "the subjects of each node the objects name, and the tag of the name no row record shows");
+            }
+
+            var below = Ruled(out _);
+            var told = ToldOf(RowAt(Below, "pf"));
+            below.Deleted.Add(told);
+            var switchTold = ToldOf(SwitchAt(Below));
+            below.Deleted.Add(switchTold);
+            using (var reading = below.Read())
+            {
+                Assert.That(reading.InForce.LostOf(RowAt(Below, "pf")), Is.EqualTo(new[] { KeePassGate.Hex.Of(told) }), "a row at a node the tree holds");
+                Assert.That(
+                    reading.InForce.LostOf(SwitchAt(Below)), Is.EqualTo(new[] { KeePassGate.Hex.Of(switchTold) }), "a switch at a node the tree holds");
+                Assert.That(below.Walks, Is.EqualTo(1), "walked once");
+                Assert.That(
+                    RuleHashes(reading),
+                    Is.EquivalentTo(new[] { "rule:" + Node, "switch:" + Node, "rule:" + Root, "switch:" + Root, "rule:" + Below, "switch:" + Below }),
+                    "each node the objects name, then each node of the tree not tried yet");
+            }
+
+            var nowhere = Ruled(out _);
+            nowhere.Deleted.Add(ToldOf(RowAt(Other, "pf")));
+            using (var reading = nowhere.Read())
+            {
+                Assert.That(Lost(reading.InForce), Is.Empty, "a node neither the objects nor the tree name: nothing lost");
+                Assert.That(nowhere.Walks, Is.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void The_same_versions_stand_and_are_lost_before_and_after_a_write_deleted_what_was_replaced()
+        {
+            // `STORE.md` §617 and §627 step 3: a replaced version is no carrier, so the write that
+            // deletes it, with a deletion record a version that stays names, changes no answer.
+            var first = StoreComposer.RuleVersion(One, RowAt(Node, "pg"), "row:R");
+            var second = StoreComposer.RuleVersion(One, RowAt(Node, "pg"), "row:RU", first.Hex);
+            var store = Ruled(out _, second, StoreComposer.RuleVersion(One, RowAt(Other, "pf"), "row:L"));
+            store.Add(first);
+            store.Deleted.Add(ToldOf(RowAt(Below, "pf")));
+
+            using (var before = store.Read())
+            {
+                Assert.That(before.State, Is.EqualTo(StoreState.Whole), before.Reason);
+                Assert.That(before.InForce.LostOf(RowAt(Below, "pf")), Has.Count.EqualTo(1), "a row lost before the write");
+
+                var write = StoreWrite.Plan(before, new[] { Retire('z') }, "0.3.0");
+                Assert.That(write.Refused, Is.Null);
+                Assert.That(write.Delete, Does.Contain(first.Hex), "the version replaced is deleted");
+                var applied = write.Applied(before.Candidates, before.Deletions);
+                using (var after = StoreReading.AfreshInTree(applied.Key, applied.Value, null, () => store.Tree))
+                {
+                    Assert.That(after.State, Is.EqualTo(StoreState.Whole), after.Reason);
+                    Assert.That(Index(after.InForce), Is.EqualTo(Index(before.InForce)));
+                }
+            }
+        }
+
+        [Test]
+        public void A_store_whose_deletion_records_are_the_plugin_s_own_asks_for_no_tree_and_hashes_nothing_at_any_hold()
+        {
+            // `STORE.md` §620: a write of the plugin's own deletes a version it replaces with a
+            // deletion record that a version staying in force names, so a store it leaves hashes
+            // no node, now or at a later hold.
+            var first = StoreComposer.RuleVersion(One, RowAt(Node, "pg"), "row:R");
+            var store = Ruled(out _, first);
+            var replacing = StoreRecord.Compose(One, "version", new Dictionary<string, string>
+            {
+                { "after", first.Hex },
+                { "doc", "row:RU" },
+                { "object", RowAt(Node, "pg") },
+            });
+            var walks = 0;
+            System.Func<IEnumerable<byte[]>> tree = () =>
+            {
+                walks++;
+                return store.Tree;
+            };
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                var write = StoreWrite.Plan(
+                    reading, new[] { new StoreAct("a write of the test's", One, StoreFormat.KeyName(One), new[] { replacing }, null) }, "0.3.0");
+                Assert.That(write.Refused, Is.Null);
+                Assert.That(write.Delete, Does.Contain(first.Hex), "the write deletes the version it replaces");
+                var applied = write.Applied(reading.Candidates, reading.Deletions);
+
+                var kept = new StoreKept();
+                using (StoreReading.Of(applied.Key, applied.Value, null, kept, tree))
+                using (var later = StoreReading.Of(applied.Key, applied.Value, kept, new StoreKept(), tree))
+                {
+                    Assert.That(later.State, Is.EqualTo(StoreState.Whole), later.Reason);
+                    Assert.That(Ids(later.InForce.VersionsOf(RowAt(Node, "pg"))), Is.EqualTo(new[] { replacing.Hex }));
+                    Assert.That(Lost(later.InForce), Is.Empty);
+                    Assert.That(walks, Is.EqualTo(0), "the tree is not asked for");
+                    Assert.That(RuleHashes(later), Is.Empty, "nothing hashed");
+                }
+            }
+        }
+
+        [Test]
+        public void A_deletion_record_the_file_holds_twice_tells_of_what_it_tells_of_once()
+        {
+            // A file can hold a deletion record twice, as two copies merged can leave it. The
+            // reading passes over the deletion records as they are listed, and what they tell of
+            // is each told once: a summary entry, a lost row and a removal.
+            var store = new ComposedStore(One);
+            var first = store.Head;
+            var standing = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:R"));
+            store.RestateAll(new[] { ItemOf(standing) });
+            store.Deleted.Add(first.Identifier);
+            var rowTold = ToldOf(RowAt(Node, "pf"));
+            store.Deleted.Add(rowTold);
+            store.Deleted.Add(rowTold);
+            var removal = Removal("ops");
+            store.Delete(removal);
+            store.Delete(removal);
+            store.Add(Profile("ops"));
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(store.Deleted.Count(identifier => identifier.SequenceEqual(first.Identifier)), Is.EqualTo(2), "the summary entry deleted twice");
+                Assert.That(reading.InForce.Told, Is.EqualTo(new[] { first.Hex }), "the summary entry told of once");
+                Assert.That(reading.InForce.LostOf(RowAt(Node, "pf")), Is.EqualTo(new[] { KeePassGate.Hex.Of(rowTold) }), "the row lost once");
+                Assert.That(reading.InForce.RemovalsOnceKnown("ops"), Is.EqualTo(new[] { removal.Hex }), "the removal known once");
+            }
+        }
+
+        [Test]
+        public void A_version_whose_id_is_no_identifier_places_no_deletion_record_and_stands()
+        {
+            // An item's `id` is a text, `STORE.md` §658, so a version carried by an item alone may
+            // be under a text no identifier is, as short as a word. It stands where it is in force
+            // and nothing names it, and it is no place a deletion record lies at, so a deletion
+            // record of a version beside it is told of by the versions whose identifiers are
+            // identifiers, as it is without it.
+            var store = new ComposedStore(One);
+            var standing = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:R"));
+            var odd = StoreComposer.Item(("after", string.Empty), ("doc", "row:R"), ("id", "odd"), ("kind", "version"), ("object", RowAt(Other, "pf")));
+            store.RestateAll(new[] { ItemOf(standing), odd });
+            var told = ToldOf(RowAt(Node, "pf"));
+            store.Deleted.Add(told);
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                var found = reading.InForce;
+                Assert.That(Ids(found.VersionsOf(RowAt(Other, "pf"))), Is.EqualTo(new[] { "odd" }), "carried by an item in force alone, it stands");
+                Assert.That(found.LostOf(RowAt(Node, "pf")), Is.EqualTo(new[] { KeePassGate.Hex.Of(told) }), "the deletion record at the row's place");
+                Assert.That(Ids(found.VersionsOf(RowAt(Node, "pf"))), Is.EqualTo(new[] { standing.Hex }));
+                Assert.That(store.Walks, Is.EqualTo(0), "placed by the version at its place");
+            }
+        }
+
+        /// <summary>The node most rules here are at, its identifier as 32 hexadecimal characters.</summary>
+        private static readonly string Node = new string('1', 32);
+
+        /// <summary>A node no tree here holds.</summary>
+        private static readonly string Other = new string('2', 32);
+
+        /// <summary>A node of the tree that no object of <see cref="Ruled"/> names.</summary>
+        private static readonly string Below = new string('3', 32);
+
+        /// <summary>The tree's root.</summary>
+        private static readonly string Root = new string('0', 32);
+
+        private static string RowAt(string node, string profile)
+        {
+            return StoreComposer.RowObject(node, profile);
+        }
+
+        private static string SwitchAt(string node)
+        {
+            return StoreComposer.SwitchObject(node);
+        }
+
+        /// <summary>
+        /// A store under `One` with a row standing at <see cref="Node"/>, beside a tree of the
+        /// root, that node and <see cref="Below"/>.
+        /// </summary>
+        /// <param name="more">Versions put beside it, each restated with it by a single summary entry.</param>
+        private static ComposedStore Ruled(out StoreComposer.Composed standing, params StoreComposer.Composed[] more)
+        {
+            var store = new ComposedStore(One);
+            standing = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:R"));
+            foreach (var version in more)
+            {
+                store.Add(version);
+            }
+
+            store.RestateAll(new[] { standing }.Concat(more).Select(ItemOf));
+            store.Tree.AddRange(new[] { Root, Node, Below }.Select(StoreComposer.BytesOf));
+            return store;
+        }
+
+        /// <summary>
+        /// A store under `One` of these versions, each restated by a single summary entry, beside a
+        /// deletion record of this identifier and a tree of the root and <see cref="Node"/>.
+        /// </summary>
+        private static StoreReading WithLost(string lost, params StoreComposer.Composed[] versions)
+        {
+            var store = new ComposedStore(One);
+            foreach (var version in versions)
+            {
+                store.Add(version);
+            }
+
+            store.RestateAll(versions.Select(ItemOf));
+            store.Deleted.Add(StoreComposer.BytesOf(lost));
+            store.Tree.AddRange(new[] { Root, Node }.Select(StoreComposer.BytesOf));
+            return store.Read();
+        }
+
+        /// <summary>
+        /// The identifier of a deletion record of a version of this object whose content is
+        /// nowhere: its place under `One`, as the composer places a version, and the start of a
+        /// check no record here has.
+        /// </summary>
+        private static byte[] ToldOf(string objectName)
+        {
+            var slash = objectName.StartsWith("rule:", System.StringComparison.Ordinal) ? objectName.IndexOf('/') : -1;
+            return slash < 0
+                ? StoreComposer.IdentifierOf(One, "version", objectName, 0, new string('5', 64))
+                : StoreComposer.IdentifierOf(
+                    One, "version", objectName.Substring(0, slash), StoreComposer.ProfileTag(One, objectName.Substring(slash + 1)), new string('5', 64));
+        }
+
+        /// <summary>The item `version` that restates this version, as its record holds it, `lost` among it where the record holds it.</summary>
+        private static string ItemOf(StoreComposer.Composed version)
+        {
+            var content = JObject.Parse(version.Strings[StoreComposer.Data]);
+            return StoreComposer.RuleVersionItem(
+                version, (string)content["object"], (string)content["doc"], Listed((string)content["after"]), Listed((string)content["lost"]));
+        }
+
+        /// <summary>The identifiers a list holds, none for a list that is empty or absent.</summary>
+        private static string[] Listed(string list)
+        {
+            return string.IsNullOrEmpty(list) ? System.Array.Empty<string>() : list.Split(' ');
+        }
+
+        /// <summary>
+        /// The first of two names whose tags meet under `One`, found by a search run once over
+        /// `agent-` and a counter under that key.
+        /// </summary>
+        private const string MeetingFirst = "agent-455";
+
+        /// <summary>The second of the two names whose tags meet under `One`.</summary>
+        private const string MeetingSecond = "agent-604";
+
+        private static readonly string[] NoNames = System.Array.Empty<string>();
+
+        /// <summary>
+        /// The root's rows of the two names whose tags meet: the first granted every letter and the
+        /// second read, the tags asserted to meet.
+        /// </summary>
+        private static StoreComposer.Composed[] MeetingAbove()
+        {
+            Assert.That(StoreComposer.ProfileTag(One, MeetingFirst), Is.EqualTo(StoreComposer.ProfileTag(One, MeetingSecond)), "the names a search under the key found");
+            return new[]
+            {
+                StoreComposer.RuleVersion(One, RowAt(Root, MeetingFirst), "row:CRUSDLAP"),
+                StoreComposer.RuleVersion(One, RowAt(Root, MeetingSecond), "row:R"),
+            };
+        }
+
+        private static StoreComposer.Composed Profile(string name)
+        {
+            return StoreComposer.Record(One, "profile", "profile:" + name, StoreComposer.Content(("after", string.Empty), ("name", name)));
+        }
+
+        private static StoreComposer.Composed Removal(string name)
+        {
+            return StoreComposer.Record(One, "removed", "profile:" + name, StoreComposer.Content(("name", name)));
+        }
+
+        /// <summary>An act retiring an authority, which touches no version.</summary>
+        private static StoreAct Retire(char authority)
+        {
+            var record = StoreRecord.Compose(One, "retired", new Dictionary<string, string> { { "authority", Hex(authority) } });
+            return new StoreAct("a write of the test's", One, StoreFormat.KeyName(One), new[] { record }, null);
+        }
+
+        private static IEnumerable<string> Ids(IEnumerable<StoreNaming> versions)
+        {
+            return versions.Select(version => version.Id);
+        }
+
+        /// <summary>What stands and what is lost, object by object, as lines.</summary>
+        private static IEnumerable<string> Index(StoreInForce found)
+        {
+            return found.Objects
+                .OrderBy(objectText => objectText, System.StringComparer.Ordinal)
+                .Select(objectText => objectText
+                                      + " stands " + string.Join(" ", Ids(found.VersionsOf(objectText)))
+                                      + " lost " + string.Join(" ", found.LostOf(objectText)))
+                .ToList();
+        }
+
+        /// <summary>The identifiers lost, of every object.</summary>
+        private static IEnumerable<string> Lost(StoreInForce found)
+        {
+            return found.Objects.SelectMany(objectText => found.LostOf(objectText)).ToList();
+        }
+
+        /// <summary>
+        /// What was hashed under the reading's key for the rules and kept with it: the subjects of
+        /// a node's rows and of its switch, and the names whose tags were made.
+        /// </summary>
+        private static IEnumerable<string> RuleHashes(StoreReading reading)
+        {
+            var key = reading.InForce.Key;
+            var names = typeof(FoundKey).GetField("_names", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            return Subjects(key)
+                .Where(subject => subject.StartsWith("rule:", System.StringComparison.Ordinal) || subject.StartsWith("switch:", System.StringComparison.Ordinal))
+                .Concat(((Dictionary<string, int>)names.GetValue(key)).Keys)
+                .ToList();
+        }
+
         /// <summary>The subjects hashed under a key and kept with it.</summary>
         private static IEnumerable<string> Subjects(FoundKey key)
         {
@@ -767,6 +1719,33 @@ namespace KeePassGate.Tests
             }
 
             throw new FileNotFoundException("tests/Shared/StoreMeaningVectors.json is not above the test's directory");
+        }
+
+        /// <summary>
+        /// A store of the vectors read as the measured reading read it: its entries, each with its
+        /// history, its deletion records, and the tree it holds, the root and every group.
+        /// </summary>
+        private static StoreReading Read(JObject store)
+        {
+            var versions = new StoreVersions();
+            var candidates = new List<StoreCandidate>();
+            foreach (var entry in (JObject)store["entries"])
+            {
+                var current = Strings((JObject)entry.Value["strings"]);
+                var history = ((JArray)entry.Value["history"]).Select(item => Strings((JObject)item)).Reverse();
+                candidates.Add(versions.Candidate(StoreComposer.BytesOf(entry.Key), new[] { current }.Concat(history).ToArray()));
+            }
+
+            var deletions = ((JArray)store["deletions"]).Select(identifier => StoreComposer.BytesOf((string)identifier)).ToList();
+            var tree = new List<byte[]>();
+            var groups = (JObject)store["tree"];
+            if (groups != null)
+            {
+                tree.Add(StoreComposer.BytesOf((string)groups["root"]));
+                tree.AddRange(((JObject)groups["groups"]).Properties().Select(group => StoreComposer.BytesOf(group.Name)));
+            }
+
+            return StoreReading.Of(candidates, deletions, null, new StoreKept(), () => tree);
         }
 
         private static IReadOnlyDictionary<string, string> Strings(JObject strings)

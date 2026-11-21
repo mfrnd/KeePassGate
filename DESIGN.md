@@ -631,9 +631,11 @@ this is what the rest of the design depends on.
 - **Every database is its own certificate authority**, stored inside itself as a record of the
   plugin's store, an entry in a group of the plugin's own, `STORE.md` §614. That is what makes a
   malicious kdbx harmless: it vouches only for itself, and a certificate it issued opens exactly
-  one door, its own. What else the plugin keeps is still under `KPG` keys in the database's own
-  `CustomData`, and CA.md §204 has why that dictionary and not a group's; release 0.3.0 moves it
-  into the same store, which is decided and built for the authority alone: `STORE.md` §601.
+  one door, its own. The admissions, the revocations, the profile names and the rules are records
+  of the same store, `STORE.md` §601. What the plugin still keeps under `KPG` keys in the
+  database's own `CustomData` is the standing answers to a renewal, and CA.md §204 has why that
+  dictionary and not a group's; release 0.3.0 moves those into the store as well, which is decided
+  and not built.
 - **The issuer generates the key pair and builds every extension.** It never accepts a signing
   request, because a request can carry extensions and an issuer that copies them lets the client
   choose its own claims.
@@ -730,9 +732,12 @@ arrangement that survives a lost record. Of the record's profiles, only those th
 still names are handed on, so a name the operator removed grants nothing whatever rule still carries
 it; §139 says why that replaced purging the rules.
 
-The ACL is `AclDocument`, `AclResolver`, `AclGrant`, `AclVerb` and `AclDefault`, with `KdbxNodes`
-adapting a `PwGroup` or a `PwEntry` to the one seam the rules need. It stays authoritative, so access
-can always be taken away by editing the database rather than by reissuing a certificate.
+The ACL is `NodeRule`, `StoredRules`, `RuleText`, `AclResolver`, `AclGrant` and `AclVerb`, with
+`KdbxNodes` adapting a `PwGroup` or a `PwEntry` to the one seam the rules need: a node's rules,
+looked up by the node's identifier in the rules of a reading of the plugin's store, and the node
+above it. It stays authoritative, so access can always be taken away by editing the database
+rather than by reissuing a certificate. **This reverses `AclDocument` and `AclDefault`**, a
+document of rules read off each node, §136.
 
 **No KeePass policy binds the gate, the clipboard included.** The ACL is the gate's own policy.
 KeePass's, under Tools, Options, Policy, whether set there or enforced by an administrator, governs
@@ -743,30 +748,82 @@ only to keep KeePass's warning box off the screen: a save it disallows shows tha
 nothing, so a write that would meet it is refused `503 busy` before the save, §119.
 
 An earlier draft of this list also named `AclProfiles`, `AclVerbView` and `KdbxFormat`. Two of those
-turned out not to be types. The format is `AclDocument.Read` and `AclDocument.Write`, which is what
-`KdbxFormat` would have held and nothing else, and a set of profiles is an `IEnumerable<string>`
-argument rather than a class. `AclVerbView` was real work that had not happened when this was written. The editor does that
-job now, with `VerbMask` and `VerbKeys`, because how a person is shown a verb is a different
-question from how one is decided. `VerbMask` is also how the API states what a client may do at a
-node, so it sits with the verbs rather than with the editor.
+turned out not to be types. The format was `AclDocument.Read` and `AclDocument.Write`, which is what
+`KdbxFormat` would have held and nothing else, and is `RuleText` now, which composes and reads the
+text of a version; and a set of profiles is an `IEnumerable<string>` argument rather than a class.
+`AclVerbView` was real work that had not happened when this was written. The editor does that job
+now, with `VerbMask` and `VerbKeys`, because how a person is shown a verb is a different question
+from how one is decided. `VerbMask` is also how the API states what a client may do at a node, so it
+sits with the verbs rather than with the editor.
 
-Grants live in group and entry `CustomData` under **`KPG`**, a single key holding a JSON document,
-which is this plugin's own namespace. Sharing a key with another plugin would couple two schemas
-through a file format permanently. Release 0.3.0 moves a rule off its node into a record that
-names the node, which is decided and not yet built, `STORE.md` §617; the rule model stays as §136
-and §137 have it.
+**A grant is a record of the plugin's store that names its node**, `STORE.md` §617: a version of
+a profile's rule at the node, and a version of the node's switch, each an entry in the group of
+the plugin's own, under the check every record of the store carries. Nothing of a rule is on a
+group or an entry, so a rule stays with its node wherever the node is moved, and a copy of a
+node, an entry made from a template and an earlier version of an entry hold none.
 
-One key holding one document, rather than a key per concern, because `CustomData` is a flat string
-dictionary and a document keeps a group's rules readable and atomic to write.
+**This reverses grants kept in group and entry `CustomData` under `KPG`**, a single key holding a
+JSON document, chosen as this plugin's own namespace, since sharing a key with another plugin
+would couple two schemas through a file format permanently, and as a single document since
+`CustomData` is a flat string dictionary and a document kept a group's rules readable and atomic
+to write. What reversed it is what other programs and KeePass's own dialogs do to that
+dictionary: a KeePassXC merge never merges a group's custom data, so a rule narrowed in a copy
+did not arrive; KeePass's merge takes a node's whole dictionary from whichever copy touched the
+node last; and the group and entry dialogs put their own copy of it back at OK, `CA.md` §204
+and `STORE.md` §604. With the store a rule is merged record by record, a rule changed apart in
+two copies stands in both versions and grants what both allow, and nothing a dialog of KeePass's
+puts back holds a rule.
 
-### The document §136
+### The rule, a record for each node and profile §136
 
-One flat object of strings and arrays of strings, which is exactly what `JsonBody` already reads, so
-the ACL brings no parser with it:
+**A node's rules are versions in the plugin's store**, `STORE.md` §617. A profile's rule at a
+node is the standing versions of an object named by the node's identifier and the profile's
+name, and the node's switch, "Refuse any profile not named here", the standing versions of an
+object named by the node's identifier alone. The text of a version is short and read strictly,
+by `RuleText`:
+
+```text
+row:RL            the rule grants read and list
+row:              an empty rule: the profile may do nothing here
+off:RL            the rule was taken off while read and list arrived from above
+off:deny          the rule was taken off while the node refused every profile not named
+sw:deny           the node refuses every profile it does not name
+sw:inherit a=RL   the node lets the walk go on, and read and list arrived for the profile a
+```
+
+**A version that lets a profile through records what arrived**, which is what the letters after
+`off:` and the letters for each profile after `sw:inherit` are, and the walk of §137 cuts what
+arrives now to them. A rule taken off, or a box cleared, in a copy of a database could
+otherwise come to give more than its writer ever saw at the node, once another copy widened a
+rule above it: each change is a record of its own, both arrive at a synchronize, and the node
+would give what neither copy's table gave. With the record the node gives at most what reached
+it when the rule was taken off, and the KPG tab shows the limit, At most in its State column,
+with an X that removes it, `STORE.md` §639 and §657. **A rule changed apart in two copies stands
+in both versions and grants what both allow**, Unmerged on the tab, until the operator has
+removed versions there. **A version that was deleted with its content nowhere, Missing, or whose
+text cannot be read, Unreadable, refuses**: that profile at that node for a row, and every
+profile the node does not name for the switch.
+
+**This reverses the rule document on a node**, which this section was about and was named for:
+one flat object of strings and arrays of strings in the node's `CustomData`, which is exactly
+what `JsonBody` already reads, so that the ACL brought no parser with it:
 
 ```json
 {"default":"deny","reader":["read"],"editor":["read","update"]}
 ```
+
+Four things went with the document, each for its own reason. **Its storage**, §114: custom
+data is what other programs and KeePass's own dialogs replace whole. **Its merge**: a node's
+document came whole from a single copy, so a rule another copy had narrowed for another profile
+at the same node was lost, where two copies that change different profiles at a node do not
+meet now. **A document that would not read refusing at its node alone**: a record of a rule
+that fails its check is damage to the store, which stops the store for the whole database
+until it is sealed again, `STORE.md` §621 and §624, and what refuses at a node alone is a lost
+version or a text out of form. That is a wider refusal than before, and deliberately the
+store's own rule: every record takes access away or grants it under the same check. **And its
+ceiling**: a document held the default and 31 profiles, and a 32nd made it unreadable; a node
+holds a rule for any number of profiles now, since a ceiling could not hold across a
+synchronize, where two copies each add rows apart.
 
 A rule holds **six verbs and two switches**, which is `CRUSDLAP` and is the order the editor shows
 them in. The verbs are create, read, update, strip, delete and list. `list` is below `read` because
@@ -918,20 +975,20 @@ A grant is a **set**, not a rung on a ladder. A ladder where naming a verb carri
 would make for a smaller editor, and it would leave no way to say `create` without `read`, which is
 exactly the shape an append-only agent wants.
 
-`default` is the one reserved member, and it cannot collide with a profile because `default` was
-already refused as a profile name by the authority that puts profiles into certificates, before this
-format existed. It is `inherit` unless it says `deny`, and it is written out either way so a document
-says what it does with what it does not name.
+**The switch is a record of its own**, where it was the document's reserved member `default`,
+which could not collide with a profile because `default` was already refused as a profile name
+by the authority that puts profiles into certificates. The name stays refused, by the issuer,
+the wire and the client alike. A node with no version of the switch lets the walk go on, and
+so does a standing `sw:inherit`; a standing `sw:deny` refuses every profile the node does not
+name, and so do versions of the switch that differ, a lost version and a text out of form.
 
-**An empty array is a rule, not an absence.** `{"reader":[]}` says this profile may do nothing from
-here down, which is how a grant made at the root is taken away in one group without a deny syntax to
-get wrong. A profile the document does not mention is a different thing: that is silence, and silence
-is what `default` answers.
-
-The reader's ceilings are the format's ceilings, and reaching one denies rather than truncates: a
-node carries the default and 31 profiles, and a 32nd makes the whole document unreadable, so every
-profile no nearer rule answers is refused there and under it. That is the right way round, but it
-is worth knowing about rather than discovering.
+**An empty rule is a rule, not an absence.** `row:` with no letter means that this profile may
+do nothing from here down, which is how a grant made at the root is taken away in one group
+without a deny syntax to get wrong, as `{"reader":[]}` was in the document. A profile the node
+holds no rule for is a different thing: that is silence, and silence is what the switch
+answers. **And a rule taken off is a third thing**, a version of its own: the node names the
+profile no more and lets through what arrives, as far as it had arrived when the rule was
+taken off. The three stay apart through every merge, `STORE.md` §617.
 
 ### The set of profiles is written down §139
 
@@ -950,15 +1007,15 @@ removal each copy wrote, a removal wins over every addition that did not see it,
 again after it, naming it, stands. A write of the plugin's deletes the additions a removal has
 defeated, and never deletes a removal.
 
-**It holds names and nothing else.** What a name reaches is on the nodes, who holds one is in the
-admission records, and the set of them is here. Three places, three questions, none of them
-duplicated, and no fourth place where they could disagree.
+**It holds names and nothing else.** What a name reaches is in the rules, records that name their
+nodes (§136), who holds one is in the admission records, and the set of them is here. Three places,
+three questions, none of them duplicated, and no fourth place where they could disagree.
 
 **A name this list does not hold grants nothing.** A client is given the profiles its admission
 record holds that the list still names, read uncached with the record in its hold on every
 request, and the resolver is handed only those. So taking a name off the list is the whole of
-taking it away: a rule for it that stays on a node, or comes back with a restored revision or a
-merge, answers for nobody.
+taking it away: a rule for it that stays in the store, or comes back with a merge, answers for
+nobody.
 **This reverses what this section first said**, that nothing is authorized by the list and the
 resolver has never heard of it, which made losing the list cost an operator their pick list rather
 than anybody their access. The intersection makes it load bearing, and fails closed the way
@@ -1029,9 +1086,14 @@ copy merged in, which brings the old rule back with the node's own time.
 
 **The intersection closes all of them at once**, because a rule for a name off the list grants
 nothing wherever it comes from: kept by a dialog's OK, restored from a revision, or merged in from
-an older copy. The grant editor strikes such a rule through rather than hiding it, removal needs no
-walk and is refused under no node dialog, and the page counts the live tree's rules only, since a
-revision's rule is in force for nobody. **Adding the name back is a full undo** for every rule and
+an older copy. The grant editor strikes such a rule through rather than hiding it, with "No
+profile" as its state, removal needs no walk and is refused under no node dialog, and the page
+counted the live tree's rules only, since a revision's rule was in force for nobody. **With
+the rules in the store two of those ways are gone**, §136: a node dialog holds no copy of a
+rule, and an entry's revision holds none, so restoring a revision changes no rule. The page
+counts, for each name, the groups and entries of the tree at which a standing version of its
+rule grants, read from the store, outside the recycle bin and the plugin's own group,
+`STORE.md` §636. **Adding the name back is a full undo** for every rule and
 every record still naming it, so the page asks first, saying how many rules come back into force and
 naming every client that regains the name, each once by its client key, `CA.md` §223, so that a
 client holding two certificates is one client and two that chose one name are two, named apart. A
@@ -1043,8 +1105,24 @@ onto the list.
 ### Resolution §137
 
 **Nearest wins, per profile.** The walk runs from the entry up through its groups to the root and
-stops at the first document with a rule about that profile. What that rule says is the answer, even
-when something further up said more.
+stops at the first node whose rule for that profile answers. What that rule grants is the answer,
+even when something further up granted more.
+
+**The walk carries a limit, and a node that lets a profile through cuts it**, `STORE.md` §617.
+The limit starts as every letter. At each node, a row that refuses, for a lost version or a
+text that cannot be read, gives nothing and ends the walk. A row whose standing versions all
+grant answers with the letters all of them hold, cut to the limit, and ends the walk.
+Otherwise the node's switch decides: where it refuses, the profile gets nothing; where it lets
+the walk go on, the limit is cut to the letters of each standing version that lets the profile
+through, a rule taken off and a box cleared each holding what had arrived when it was written,
+and the walk goes on. Above the root nothing arrives. The limit and the granted letters are
+whole masks and the walk only ever intersects them, so an answer is never wider than any
+standing version on its way allows, and a verb never stands beside a switch that no single
+mask held beside it. `AclResolver` makes that single walk for every question: a verb, the
+view of an entry, what a client may do at a node, and what the editor shows as arriving.
+**This reverses a walk that read a document at each node and stopped at the first that named
+the profile**, with nothing recorded and nothing cut: under it a rule taken off in a copy and
+a rule widened above it in another gave, once the copies met, what neither copy had given.
 
 **Each profile is resolved on its own, and then they are combined with or.** A client holding two
 profiles is permitted when either of them is. Resolving them together would let the nearest rule
@@ -1061,10 +1139,16 @@ profile the client holds carries `protected` beside `list` or beside `read` on t
 the rule a read of the entry serves the title and the URL by, so a listing and a read show a client
 the same of them.
 
-**Every failure denies**: an unreadable document, an unknown default, an unknown verb, a node with no
-chain to a root, a client holding no profiles, a database that is not open. A document that will not
-read is refused where it is found rather than skipped, because carrying on up the tree would answer
-with a permission the broken rule may have been taking away.
+**Every failure denies**: a version that was lost, a text that cannot be read, an unknown verb, a
+node with no chain to a root or deeper than the walk reaches, a client holding no profiles, a
+database that is not open, a store that is split or stopped. A version lost or out of form
+refuses where it is found rather than being skipped, because carrying on up the tree would answer
+with a permission the broken rule may have been taking away, and the refusal names what it was:
+a rule here was lost, a rule here could not be read, rules here made apart do not all grant it,
+or a limit here does not let it through, each with the node, §120. **A record of a rule that
+fails the store's check is not such a failure at a node**: it stops the store, and every client
+of the database is answered `stopped`, `STORE.md` §624, where a document that would not read
+refused at its node alone.
 
 **How far in is asked at the same time as what.** An operation reaching an attachment needs the verb
 and the switch from the same rule, so a rule granting `read` without the switch refuses where it is
@@ -1184,8 +1268,9 @@ handed either: a route added later reaches neither without code of its own, whic
 **It asks where the database stands still**, §119, which reverses asking once before any handler
 ran: a rule taken away between that answer and the handler's read was served regardless. A
 request that changes nothing is asked about inside the hold its handler reads in. A change is
-asked about before its body is checked and before anything is queued, where the answer can only
-refuse, and again inside the change's own turn, where the answer is acted on.
+asked about inside a hold of its own before its body is checked and before anything is queued,
+where the answer can only refuse, and again inside the change's own turn, where the answer is
+acted on.
 
 **HEAD is decided, and the decision is that every GET declares one.** The two are declared
 separately and bound to one handler, which is what makes RFC 9110 section 9.3.2's "identical to
@@ -1365,6 +1450,38 @@ So the rules here:
   of a client's makes a write. `StoreReadingCostTests` measures it, and `FINDINGS.md` has the
   figures.
 
+  **The rules a group's or an entry's dialog changed are such a write, made as that dialog
+  closes**, `STORE.md` §629. The KPG tab of the dialog holds every press, and the handler of the
+  dialog's close, where the dialog's result is OK, hands them to the writer: the store is read
+  once with every entry in the writer's turn, the versions are composed over that reading, each
+  mask a version records cut to what arrives at the node in it, and the write is planned and
+  applied against the same reading, the database marked and nothing saved. It is made at the
+  close and not at the press because KeePass's own handler has applied the dialog's fields by
+  then, and because an OK pressed while a save of the plugin's own pumps under the dialog is
+  handled inside that save: the close comes once the save has returned, where a write at the
+  press would be made inside the save and lose its mark to it. Any other close writes nothing.
+  A write that is refused, and every pressed change that was left out of a write, each with
+  its reason, a version that no longer fits among them, is
+  named in the log and told in a message box of the plugin's own, posted to KeePass's main
+  window so that KeePass has handled the dialog's result first; a box of KeePass's own would
+  count among the windows KeePass is waiting on, and every write of the API's would be refused
+  while it stood. **This reverses a rule written into the dialog's own copy of the node's
+  custom data at every press**, which KeePass put back onto the node at OK, §124. What an OK
+  above many nodes holds KeePass's thread for is measured, beside ten thousand entries, in
+  Release: an OK at the root group above 200, 2,000 and 9,000 versions that follow it, each
+  written anew, took 126, 489 and 1,928 milliseconds at the median, `STORE.md` §643.
+
+  **The rules are read in the hold that asks**, from the store's reading of that hold, worked
+  out at the first question about a rule and kept with that reading alone, `STORE.md` §620. So a
+  read of an entry, a listing and a question about access take a single hold and a single
+  reading of the store, a change a single hold before its turn and a reading in each, and the
+  hold a connection is judged in works out no rule. `RulesInTheHoldTests` holds the counts.
+  **Every renewal a write above ever made costs every later hold and every later OK above it,
+  for good**, since KeePass keeps the deletion record a renewal leaves and the list of the
+  version written anew only grows: a hold passes a second after about 1,890 writes above 2,000
+  versions, and an OK above them after about 110. `STORE.md` §643 has the line each follows,
+  and §644 what would take the growth away.
+
   **Nothing that waits runs inside a hold**, since the operator's window waits with it: not the
   writer, which waits on that thread itself and is refused as a defect, not the audit's pacing or
   its file, not a dialog and not the network. So the answer is kept inside the hold and written
@@ -1373,9 +1490,10 @@ So the rules here:
   queued for the log's own writer, as a line logged on KeePass's own thread is.
 
   **Liveness now depends on KeePass's thread, which is the cost the earlier rule existed to
-  avoid**, and it is bounded rather than denied: a read whose turn has not come in ten seconds,
-  and one that outlasts five, is answered `503 busy` rather than trusted. A turn is normally under
-  a millisecond away, and half a second with every connection the gate allows reading at once.
+  avoid**, and it is bounded rather than denied: a hold whose turn has not come in ten seconds,
+  and a hold that outlasts five, is answered `503 busy` rather than trusted, a read's and a
+  change's asking before its turn alike. A turn is normally under a millisecond away, and half a
+  second with every connection the gate allows reading at once.
 
   **An in-memory mutation travels with its save**, which is a correction to an earlier draft of
   this list rather than a refinement of it: the objects belong to no thread, as the reads show,
@@ -1391,9 +1509,14 @@ So the rules here:
   had left. So the caller's record, the profile list and the rules are asked again in the turn,
   against the node as the change finds it, and that answer is the answer acted on. The router
   still asks before the change is queued, and that answer can only refuse: a request nothing
-  permits is turned away before its body is checked and before it waits for the writer. A
-  caller no longer admitted by the turn is answered there as a read's is, and rules that cannot
-  be read there are `503 busy`.
+  permits is turned away before its body is checked and before it waits for the writer. **That
+  asking is a single hold**, as a read's decision is: the node is found and the rules are asked,
+  both sides of a removal among them, of one tree, where a lookup and each walk up the rules
+  would otherwise be a hold of its own with the tree free to move between them. Its answer is
+  kept until the hold has ended. A hold that cannot be taken is answered `503 busy` with nothing
+  decided, and a hold that does not last is answered `503 busy` with the line of what was
+  decided in it kept, §120. A caller no longer admitted by the turn is answered there as a
+  read's is, and rules that cannot be read there are `503 busy`.
 
   **So a read sees a change before its save does.** Reads take no lock against the writer, and
   the writer's save pumps, so a read can be served in the middle of a write's turn: a change is
@@ -1953,13 +2076,18 @@ a place of a kind sees it, or must add no exception of its own:
 **The plugin's store adds no kind and no such place.** A write the application cannot finish is
 taken back in a `finally`, `StoreEntries.Apply`, so what was thrown goes on untouched to the
 writer's own filters, and every write is made inside a place of a kind already listed: the settings
-dialog's OK in the handler of that dialog's close, and keeping an authority in the chooser's
-handlers. **That close handler never runs inside a save of the plugin's own.** A modal dialog's
+dialog's OK in the handler of that dialog's close, the rules a group's or an entry's dialog
+changed in the handler of that dialog's close, and keeping an authority in the chooser's
+handlers. The message of rules an OK did not keep is posted from that handler through
+`Unattended.Post`, and where KeePass is part way through work of its own it is shown from a
+handler of `Application.Idle` run through `WindowHandlers`, so it adds no place either.
+**That close handler never runs inside a save of the plugin's own.** A modal dialog's
 close is raised by the dialog's own loop and never by a pump running under it, so an OK pressed
 while a pairing's save pumps under the settings dialog is handled inside the pump, and the close
 comes once the save has returned: the writer's guard against a write inside a save does not
 meet the tab's OK there, `STORE.md` §627, and no place has to catch a refusal of it. Held by
-`ModalDialogCloseTests` and `TabOkBesideOwnSaveTests`.
+`ModalDialogCloseTests` and `TabOkBesideOwnSaveTests`, and for the close of a group's dialog by
+`NodeDialogOkBesideSaveTests`.
 
 CodeQL reports each of these places but the places that throw again from inside the catch and
 `WindowHandlers`, which catches through a filter: its query accepts both. Each place it reports
@@ -1976,9 +2104,14 @@ A write failure is reported, not fatal, so a full disk cannot silently revoke ev
 access, and its end is reported too, with how many decisions went unrecorded while it lasted.
 A line records the authorization and not what the request then did, so a permitted line also
 stands for a request answered afterwards with a malformed body, a conflict, `503 busy` or a
-failure, none of which gets a line of its own. **A line is composed where the decision is made and
-written once KeePass's thread is free again**, which reverses writing it before the handler ran:
-a request is decided inside the hold of its read or the turn its change is made in,
+failure, none of which gets a line of its own. **A refused line can stand beside `503 busy` as
+well.** A request decided in a hold that does not last is answered `busy` whatever was decided
+there, and keeps the line of what was decided: a request the rules refuse, a read or a change
+asked about before its turn alike, leaves a `refused` line while its client is told `busy`, and
+asked again it leaves a second `refused` line beside the `404` it is answered with. **A line is
+composed where the decision is made and written once KeePass's thread is free again**, which
+reverses writing it before the handler ran: a request is decided inside the hold of its read, or
+inside the hold a change is asked about in before its turn and again in the turn it is made in,
 §119, and the audit's file and the pace a client's lines are held to are waits that belong on the
 caller's connection. So a line carries the moment of its decision and reaches the file after the
 handler, before the answer goes out. **A request is still one decision.** A change is asked about
@@ -2235,23 +2368,27 @@ Written against the design above, deliberately. Where an objection stands, it sa
 
 **Answered, by owning one namespace and naming the tab for this plugin.**
 
-The storage question was never the hard half: this plugin writes its own `CustomData` key, `KPG`,
-holding a JSON document, and touches nothing another plugin owns. The objection was about the screen.
-Two "Access control" pages on the same dialogs, governing different clients, guaranteed to disagree,
-with nothing to tell them apart.
+The storage question was never the hard half: this plugin wrote its own `CustomData` key, `KPG`,
+holding a JSON document, and touched nothing another plugin owns. The objection was about the
+screen. Two "Access control" pages on the same dialogs, governing different clients, guaranteed to
+disagree, with nothing to tell them apart.
 
-**The resolution is that this plugin owns one namespace and claims nothing else.** Grants live
+**The resolution is that this plugin owns one namespace and claims nothing else.** Grants lived
 under `KPG` and the tab is labeled for this plugin, so a user running something else that also
 edits access control sees two clearly separate things rather than two pages competing to mean the
-same thing. What cannot be defended against is another plugin choosing to write into the same key,
-and nothing in `CustomData` could prevent that.
+same thing. What could not be defended against was another plugin choosing to write into the same
+key, and nothing in `CustomData` could prevent that. **The storage half has moved since**: a
+grant is a record of the plugin's store, an entry in a group of the plugin's own under a check
+keyed by a secret of the database, §114, so no other plugin's key can meet it and nothing of
+the plugin's is in a node's custom data. The half about the screen stands as it was.
 
 The label is settled: the tab is captioned **"KPG"** with the plugin's icon beside it, and not
 "Access control". The caption names the plugin rather than the subject, so two pages that both edit
 access control are told apart by the one thing that distinguishes them, and whoever is looking for
 these rules can see what installed them. It is short because the strip is shared: every plugin that
 adds a page takes room from the next, and a caption spelling the product out would crowd them all to
-repeat what the icon beside it already says. `KPG` is also the key these rules are stored under, so
+repeat what the icon beside it already tells. `KPG` is also what the name of every string of the
+plugin's store begins with, as it was the key these rules were stored under, so
 the caption and the namespace are one word rather than two things to learn. The name in full belongs
 where there is room for it, which a tab strip is not.
 
@@ -2325,6 +2462,17 @@ lacks any of them starts no watch, and every write and every pairing is refused.
   attachments and custom data back on OK, so a write to that entry is refused, and under Edit
   Entries a write to any entry of that database. Add Entry fills its group on OK, so that group is
   not removed.
+
+  **Neither dialog holds anything of the plugin's any more.** A rule was a key of the node's
+  custom data, so both dialogs' copies held it, and the grant editor wrote into the dialog's own
+  copy, `m_sdCustomData`, for the dialog's OK to keep the rule and its Cancel to discard it. A
+  rule is a record of the store now (§136), the editor is a buffer that the dialog's close
+  applies (§119), and the plugin reaches for no field of either dialog's copy. The copy stays a
+  fact about KeePass, which `SnapshotHazardTests` keeps measured, and what the two dialogs are
+  watched for is what the bullets above name: the fields of KeePass's own that a change of the
+  API's would lose. The write of rules that a node dialog's close makes is not refused for the
+  dialog it comes from, which holds its own node and no entry of the store, and it is refused
+  under Database Maintenance as the store write of the settings dialog's OK is.
 - **The TAN wizard** fills its group on OK, so that group is not removed, and adds those entries
   from inside its OK, which can be handled part way through a save of the plugin's own (§119), so
   nothing is saved to its database while it is open.
@@ -2553,9 +2701,13 @@ empties or deletes every other group that was a bin, as `docs/access-control.md`
 
 Written down so that it is possible to be wrong about this on purpose rather than by drift.
 
-- **If the ACL model does not survive contact with real grants.** The plan assumes a document per
+- **If the ACL model does not survive contact with real grants.** The plan assumed a document per
   node resolves cleanly against a real database. If it needs reshaping once it meets one, the cost
-  estimate is wrong and the design should be revisited before more is built on it.
+  estimate is wrong and the design should be revisited before more is built on it. **It was
+  reshaped, and for copies of a database rather than for a single database**: the model of verbs,
+  switches and nearest wins stands, and a rule is a record for each node and profile that
+  records what arrived where it lets a profile through, §136 and §137, because a document per
+  node did not survive two copies changing rules apart.
 - **If the synchronous marshal on the pairing path proves unusable**, the issuance ordering needs
   replacing rather than adjusting. The wait is there because handing over a certificate before its
   record is saved would create a credential nobody can revoke. It is not the only place a request
@@ -2570,13 +2722,15 @@ Written down so that it is possible to be wrong about this on purpose rather tha
   merely survivable. The design absorbs it by making a lost admission record fail closed, and
   `SnapshotHazardTests` and the end to end tier exercise it deliberately. If records turn out to be
   lost often enough to be a support burden, to Database Maintenance, a merge or a declined save,
-  `CustomData` is the wrong store and that decision has to reopen. The group dialog's own copy is a
-  hazard to grants, which live on the node, and the editor answers it by writing into that copy.
+  `CustomData` is the wrong store and that decision has to reopen. The group dialog's own copy was
+  a hazard to grants, which lived on the node, and the editor answered it by writing into that
+  copy.
 
   **That decision has reopened, on a measurement of other programs rather than on lost records.**
   A KeePassXC merge replaces the custom data of the database it merges into whole and never merges
   a group's, `CA.md` §204, and a record that fails closed absorbs none of that for a rule that
   narrows. So `CustomData` is decided to be the wrong store, and release 0.3.0 keeps the plugin's
   data in entries of a group of its own: `STORE.md` §601 holds what is decided and §604 what it
-  reverses. None of it is built, and everything in this document describes the store that 0.2.0
-  ships.
+  reverses. It is built for the authority, the admissions, the revocations, the profile names and
+  the rules, and this document describes each of those as built; what is still in custom data is
+  the standing answers to a renewal, for which it describes the store that 0.2.0 ships.

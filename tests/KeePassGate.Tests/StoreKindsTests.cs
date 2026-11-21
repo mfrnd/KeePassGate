@@ -29,6 +29,7 @@ namespace KeePassGate.Tests
         {
             "check: HMAC-SHA256 under the store key, as lowercase hexadecimal, over KPG.Kind, a line feed and KPG.Data, then for each KPG.S. string in ordinal order of the names a line feed, the name, a line feed and the value",
             "identifier: tag 3 bytes, subject 5 bytes, number 2 bytes big-endian, check 6 bytes",
+            "tag of a profile's name: the first 2 bytes of HMAC-SHA256 under the store key over name, a line feed and the name, big-endian",
             "ceiling: a string of the store, 1048576 characters",
             "ceiling: a content or an item, 32 members",
             "ceiling: an item's name, KPG.S. and 4 digits",
@@ -41,7 +42,7 @@ namespace KeePassGate.Tests
             "kind withdrawn: subject certificate: and certificate; number none; members certificate hex, renewed text where present, from text where present; beside a deletion record counts; restated by an item whose id is its identifier, with the same certificate, renewed and from; item id text, certificate hex, renewed text where present, from text where present",
             "kind profile: subject profile: and name; number none; members name text, after identifiers; beside a deletion record out of force; restated not",
             "kind removed: subject profile: and name; number none; members name text; beside a deletion record counts; restated by an item with the same name; item name text, id text",
-            "kind version: subject the object; number none; members object text, after identifiers, doc text; beside a deletion record out of force; restated by an item whose id is its identifier; item id text, object text, after identifiers, doc text; objects of the types rule, switch, renew",
+            "kind version: subject the object, before its first / where it is of the type rule and holds /; number the tag of the name after that /, none for an object not so split; members object text, after identifiers, doc text, lost identifiers where present; beside a deletion record out of force; restated by an item whose id is its identifier; item id text, object text, after identifiers, doc text, lost identifiers where present; objects of the types rule, switch, renew",
             "kind kept: subject key: and key; number none; members key key name, after identifiers; beside a deletion record counts; restated by an item whose id is its identifier; item id text, key key name, after identifiers",
             "kind format: subject format: and format; number format; members format number, plugin version; beside a deletion record counts; restated by the item format of a summary entry stating a number at least its own; item format number, plugin version",
             "kind head: subject store; number height; members height number, after identifiers, and every item; beside a deletion record out of force; restated not",
@@ -73,6 +74,8 @@ namespace KeePassGate.Tests
             yield return "identifier: tag " + StoreFormat.TagLength + " bytes, subject " + StoreFormat.SubjectLength
                          + " bytes, number " + StoreFormat.HeightLength + " bytes big-endian, check "
                          + StoreFormat.CheckLength + " bytes";
+            yield return "tag of a profile's name: the first " + StoreFormat.HeightLength + " bytes of HMAC-SHA256 under the store key over "
+                         + StoreFormat.ProfileTagText.Replace("\n", ", a line feed") + " and the name, big-endian";
             yield return "ceiling: a string of the store, " + StoreFormat.MaxStringLength + " characters";
             yield return "ceiling: a content or an item, " + KeePassGate.Transport.JsonBody.MaxMembers + " members";
             yield return "ceiling: an item's name, " + StoreFormat.ItemPrefix + " and " + StoreFormat.ItemDigits + " digits";
@@ -91,16 +94,33 @@ namespace KeePassGate.Tests
             var subject = kind.SubjectMember == null
                 ? kind.SubjectPrefix
                 : kind.SubjectPrefix.Length == 0 ? "the " + kind.SubjectMember : kind.SubjectPrefix + " and " + kind.SubjectMember;
+            if (kind.Number == StoreNumber.ProfileTag)
+            {
+                subject += ", before its first " + StoreFormat.ProfileStart + " where it is of the type " + StoreKinds.RuleType
+                           + " and holds " + StoreFormat.ProfileStart;
+            }
 
             return string.Concat(
                 "kind ", kind.Name, ": subject ", subject,
-                "; number ", kind.Number.ToString().ToLowerInvariant(),
+                "; number ", Held(kind.Number),
                 "; members ", Members(kind.Members),
                 kind.Name == StoreKinds.Head ? ", and every item" : string.Empty,
                 "; beside a deletion record ", kind.CountsBesideDeletion ? "counts" : "out of force",
                 "; restated ", Restated(kind),
                 kind.Item != null ? "; item " + Members(kind.Item) : string.Empty,
                 kind.Name == StoreKinds.Version ? "; objects of the types " + string.Join(", ", StoreKinds.ObjectTypes) : string.Empty);
+        }
+
+        /// <summary>What bytes 9 and 10 of a kind's identifier hold, as the description words it.</summary>
+        private static string Held(StoreNumber number)
+        {
+            switch (number)
+            {
+                case StoreNumber.ProfileTag:
+                    return "the tag of the name after that " + StoreFormat.ProfileStart + ", none for an object not so split";
+                default:
+                    return number.ToString().ToLowerInvariant();
+            }
         }
 
         private static string Members(IEnumerable<StoreMember> members)

@@ -43,8 +43,8 @@ namespace KeePassGate.Tests
 
         internal static StoreComposer.Composed Version(byte[] key, string objectName, string after)
         {
-            return StoreComposer.Record(
-                key, "version", objectName, StoreComposer.Content(("after", after), ("doc", "a rule"), ("object", objectName)));
+            return StoreComposer.Version(
+                key, objectName, StoreComposer.Content(("after", after), ("doc", "a rule"), ("object", objectName)));
         }
 
         internal static string FormatItem(int number)

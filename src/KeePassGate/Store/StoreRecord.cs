@@ -167,10 +167,13 @@ namespace KeePassGate.Store
             var check = KeePassGate.Hex.Of(Mac(key, strings));
             strings[StoreFormat.CheckField] = check;
 
-            var subject = row.SubjectPrefix + (row.SubjectMember == null ? string.Empty : Value(sorted, row.SubjectMember));
-            var number = row.Number == StoreNumber.Height
-                ? StoreChecked.NumberOf(Value(sorted, StoreKinds.Height))
-                : row.Number == StoreNumber.Format ? StoreChecked.NumberOf(Value(sorted, StoreKinds.FormatMember)) : 0;
+            string tagged;
+            var subject = StoreFormat.SubjectOf(row, row.SubjectMember == null ? null : Value(sorted, row.SubjectMember), out tagged);
+            var number = tagged != null
+                ? StoreFormat.ProfileTag(key, tagged)
+                : row.Number == StoreNumber.Height
+                    ? StoreChecked.NumberOf(Value(sorted, StoreKinds.Height))
+                    : row.Number == StoreNumber.Format ? StoreChecked.NumberOf(Value(sorted, StoreKinds.FormatMember)) : 0;
             var identifier = StoreFormat.Identifier(key, kind, subject, number, check);
 
             var record = new StoreRecord

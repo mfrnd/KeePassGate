@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using KeePassGate.Acl;
 using KeePassGate.Audit;
 using KeePassGate.Bridge;
 using KeePassGate.Pipeline;
@@ -324,7 +323,7 @@ namespace KeePassGate.Host.Tests
         {
             // `update` and `protected` with no `read`: a tag would be a tag of nothing this
             // caller reads, so there is none, and a condition it sends fails and is not ignored.
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "ULAP")));
+            DatabaseRules.Rule(_database.Database, _group, ("agent", "ULAP"));
             var profiles = new[] { "agent" };
             var password = Entry() + "/fields/" + PwDefs.PasswordField;
 
@@ -356,7 +355,7 @@ namespace KeePassGate.Host.Tests
             // `read` without `protected` beside `update` with `protected`: the pair the guessing
             // attack needs. The caller is handed a tag, and the tag is the tag of a caller that
             // only reads, so the password changing under it moves nothing it could compare.
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "R"), ("writer", "UP")));
+            DatabaseRules.Rule(_database.Database, _group, ("reader", "R"), ("writer", "UP"));
             var profiles = new[] { "reader", "writer" };
 
             var tag = Handed(Send("GET", Entry(), null, null, profiles));
@@ -377,7 +376,7 @@ namespace KeePassGate.Host.Tests
             // neither the time a listing serves nor the tag tells them apart: the tag in each
             // answer is the tag the caller's next read hands out, moved by `modified` alike and
             // by nothing of the value.
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "R"), ("writer", "UP")));
+            DatabaseRules.Rule(_database.Database, _group, ("reader", "R"), ("writer", "UP"));
             var password = Entry() + "/fields/" + PwDefs.PasswordField;
             var shapes = new List<string>();
 
@@ -410,7 +409,7 @@ namespace KeePassGate.Host.Tests
             // string it may not read back. The tag in the answer is of the view after the
             // change, in which the new string is a name and a mark, so it is the tag the caller's
             // next read hands out, and it holds nothing of the value written.
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "R"), ("maker", "CP")));
+            DatabaseRules.Rule(_database.Database, _group, ("reader", "R"), ("maker", "CP"));
             var profiles = new[] { "reader", "maker" };
             var before = Handed(Send("GET", Entry(), null, null, profiles));
 
@@ -434,7 +433,7 @@ namespace KeePassGate.Host.Tests
             Assert.That(Handed(Send("GET", Entry(), null, null, profiles)), Is.EqualTo(left));
 
             // While a caller that reads protected values holds another tag, which moves with it.
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "RP")));
+            DatabaseRules.Rule(_database.Database, _group, ("reader", "RP"));
             var whole = Handed(Send("GET", Entry(), null, null, new[] { "reader" }));
             Assert.That(whole, Is.Not.EqualTo(left));
             _entry.Strings.Set("PIN", new ProtectedString(true, "not-a-real-pin"));
@@ -470,7 +469,7 @@ namespace KeePassGate.Host.Tests
             // stays out.
             Title("an invented service", byDatabase);
             var profiles = new[] { "reader", "lister" };
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "RU"), ("lister", "LP")));
+            DatabaseRules.Rule(_database.Database, _group, ("reader", "RU"), ("lister", "LP"));
 
             Assert.That(Listed(profiles), Is.EqualTo("an invented service"));
 
@@ -516,7 +515,7 @@ namespace KeePassGate.Host.Tests
             // `read`, and `list` without `protected`: neither route shows the title, and the
             // tag does not move with it.
             var profiles = new[] { "reader", "lister" };
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "RU"), ("lister", "L")));
+            DatabaseRules.Rule(_database.Database, _group, ("reader", "RU"), ("lister", "L"));
 
             Assert.That(Listed(profiles), Is.Null, "withheld in the listing");
             var read = Send("GET", Entry(), null, null, profiles);
@@ -530,7 +529,7 @@ namespace KeePassGate.Host.Tests
             // `list` with `protected` and no `read`: the listing shows the title, and there is
             // no value in its view of the entry, no read and no tag.
             profiles = new[] { "lister" };
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("lister", "LP")));
+            DatabaseRules.Rule(_database.Database, _group, ("lister", "LP"));
 
             Assert.That(Listed(profiles), Is.EqualTo("renamed by the operator"));
             Assert.That(Send("GET", Entry(), null, null, profiles).Status, Is.EqualTo(404));
@@ -544,7 +543,7 @@ namespace KeePassGate.Host.Tests
             // `read` with `protected` in one rule, as it always was: the read serves the title
             // and the password, and the tag moves with either.
             profiles = new[] { "reader" };
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "RUP")));
+            DatabaseRules.Rule(_database.Database, _group, ("reader", "RUP"));
 
             read = Send("GET", Entry(), null, null, profiles);
             Assert.That(Value(read, PwDefs.TitleField), Is.EqualTo("renamed by the operator"));
@@ -569,7 +568,7 @@ namespace KeePassGate.Host.Tests
             Title("an invented service", byDatabase);
             var profiles = new[] { "reader", "lister" };
             var root = _database.RootGroup;
-            root.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "RUP"), ("lister", "L")));
+            DatabaseRules.Rule(_database.Database, root, ("reader", "RUP"), ("lister", "L"));
 
             Assert.That(Listed(profiles), Is.EqualTo("an invented service"));
             Assert.That(Listed("/entries", profiles), Is.EqualTo("an invented service"));
@@ -583,20 +582,20 @@ namespace KeePassGate.Host.Tests
             Assert.That(Listed("/entries", profiles), Is.EqualTo("renamed by the operator"));
 
             // `read` beside `list`, neither with `protected`: neither route shows it.
-            root.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "RU"), ("lister", "L")));
+            DatabaseRules.Rule(_database.Database, root, ("reader", "RU"), ("lister", "L"));
             Assert.That(Listed(profiles), Is.Null);
             Assert.That(Listed("/entries", profiles), Is.Null);
             Assert.That(Value(Send("GET", Entry(), null, null, profiles), PwDefs.TitleField), Is.Null);
 
             // `list` with `protected` alone: the listings show it, and there is no read.
             profiles = new[] { "lister" };
-            root.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("lister", "LP")));
+            DatabaseRules.Rule(_database.Database, root, ("lister", "LP"));
             Assert.That(Listed(profiles), Is.EqualTo("renamed by the operator"));
             Assert.That(Listed("/entries", profiles), Is.EqualTo("renamed by the operator"));
             Assert.That(Send("GET", Entry(), null, null, profiles).Status, Is.EqualTo(404));
 
             // And a profile the client does not hold shows it nothing.
-            root.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "RUP"), ("lister", "L")));
+            DatabaseRules.Rule(_database.Database, root, ("reader", "RUP"), ("lister", "L"));
             Assert.That(Listed("/entries", profiles), Is.Null);
         }
 
@@ -613,8 +612,7 @@ namespace KeePassGate.Host.Tests
             var profiles = new[] { "reader", "lister", "writer" };
             var listing = "/groups/" + _group.Uuid.ToHexString() + "/entries";
             var field = Entry() + "/fields/" + PwDefs.UrlField;
-            _group.CustomData.Set(
-                AclDocument.CustomDataKey, Rules.Granting(("reader", "R"), ("lister", "LP"), ("writer", "UP")));
+            DatabaseRules.Rule(_database.Database, _group, ("reader", "R"), ("lister", "LP"), ("writer", "UP"));
 
             Assert.That(Listed(listing, profiles, "url"), Is.EqualTo(address));
 
@@ -638,8 +636,7 @@ namespace KeePassGate.Host.Tests
 
             // Without the switch beside `list`, neither route shows it, the tag does not move
             // with it, and the same update is written, since its caller may not read it.
-            _group.CustomData.Set(
-                AclDocument.CustomDataKey, Rules.Granting(("reader", "R"), ("lister", "L"), ("writer", "UP")));
+            DatabaseRules.Rule(_database.Database, _group, ("reader", "R"), ("lister", "L"), ("writer", "UP"));
 
             Assert.That(Listed(listing, profiles, "url"), Is.Null);
             read = Send("GET", Entry(), null, null, profiles);
@@ -670,7 +667,7 @@ namespace KeePassGate.Host.Tests
                 "the store finds the string under the name a listing asks for");
 
             var profiles = new[] { "reader", "lister" };
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "RU"), ("lister", "LP")));
+            DatabaseRules.Rule(_database.Database, _group, ("reader", "RU"), ("lister", "LP"));
 
             Assert.That(Listed(profiles), Is.EqualTo("a look-alike title"));
 
@@ -685,7 +682,7 @@ namespace KeePassGate.Host.Tests
             Assert.That(Send("PUT", user, Bodies.Of(("value", "lost")), tag, profiles).Status, Is.EqualTo(412));
 
             // And without the switch neither route shows it.
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "RU"), ("lister", "L")));
+            DatabaseRules.Rule(_database.Database, _group, ("reader", "RU"), ("lister", "L"));
             Assert.That(Listed(profiles), Is.Null);
             Assert.That(Value(Send("GET", Entry(), null, null, profiles), TitleAlias), Is.Null);
         }
@@ -760,7 +757,7 @@ namespace KeePassGate.Host.Tests
 
         private void Granting(string rules)
         {
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(Cases[rules]));
+            DatabaseRules.Rule(_database.Database, _group, Cases[rules]);
         }
 
         /// <summary>The tag a read of the entry hands the caller these rules describe.</summary>

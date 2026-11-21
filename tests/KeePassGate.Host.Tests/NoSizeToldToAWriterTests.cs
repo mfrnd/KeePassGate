@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using KeePassGate.Acl;
 using KeePassGate.Audit;
 using KeePassGate.Bridge;
 using KeePassGate.Pipeline;
@@ -86,7 +85,7 @@ namespace KeePassGate.Host.Tests
         public void A_write_past_the_number_is_answered_alike_whatever_a_withheld_value_holds(
             string what, string mask)
         {
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", mask)));
+            DatabaseRules.Rule(_database.Database, _group, ("agent", mask));
             var shorter = Padded(Shorter);
             var longer = Padded(Longer);
 
@@ -110,7 +109,7 @@ namespace KeePassGate.Host.Tests
             // The same two entries, read by a caller whose rule reaches no protected value. Each
             // view holds the same names and the same open values, so each read is answered the
             // same, and the password's length is in neither answer.
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "RU")));
+            DatabaseRules.Rule(_database.Database, _group, ("agent", "RU"));
             var shorter = Padded(Shorter);
             var longer = Padded(Longer);
             Assume.That(Send("field", shorter).Status, Is.EqualTo(200));
@@ -153,7 +152,7 @@ namespace KeePassGate.Host.Tests
             // length is the `null` every withheld value is. A caller whose rule reaches
             // protected values is handed the same string whole, since no read is refused for
             // how long a value is.
-            _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "R"), ("keeper", "RP")));
+            DatabaseRules.Rule(_database.Database, _group, ("agent", "R"), ("keeper", "RP"));
             var password = new string('p', Ceiling + 1);
             var entry = Padded(password);
 

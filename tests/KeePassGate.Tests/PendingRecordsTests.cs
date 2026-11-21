@@ -691,7 +691,9 @@ namespace KeePassGate.Tests
             // record tells of once the name is known, so the page shows the name added and OK
             // writes it in force, `STORE.md` §616.
             var live = Keyed();
-            live.Nodes = new TestRuledNodes(new TestRuledNode("a group", "{\"ops\":[\"read\"]}"));
+            var group = new string('a', 32);
+            live.Nodes = new TestRuledNodes(new TestRuledNode(group));
+            TestRuledNodes.Rule(live.Records, group, "ops", "row:R");
             StoreRecords.RemovedApart(live.Records, "ops");
             var pending = new PendingDatabase(live, NullGateLog.Instance);
             var page = new DatabaseProfiles(pending, null);

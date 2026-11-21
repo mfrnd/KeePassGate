@@ -101,6 +101,51 @@ namespace KeePassGate.Tests
             Assert.That(_audit.Entries[1].Reason, Does.Contain("nothing to decide"));
         }
 
+        [TestCase("lost", "a rule here was lost", "a group")]
+        [TestCase("out of form", "a rule here could not be read", "a group")]
+        [TestCase("made apart", "rules here made apart do not all grant it", "a group")]
+        [TestCase("limited", "a limit here does not let it through", "a group")]
+        [TestCase("lost switch", "a rule here was lost", "a group")]
+        public void A_refusal_the_store_s_rules_make_is_written_down_where_it_was_made_and_answered_as_an_absent_node(
+            string how, string reason, string decidedAt)
+        {
+            // The operator is told the reason and the node the walk ended at, and the caller is
+            // told what a node that is not there is answered with, whichever way the rules refused.
+            var group = TestNode.Root("root").Granting("reader", AclVerb.Read, AclVerb.Update).Child("a group");
+            switch (how)
+            {
+                case "lost":
+                    group.Holding(Rules.Stored(("reader", null)));
+                    break;
+                case "out of form":
+                    group.Holding(Rules.Stored(("reader", "row:UR")));
+                    break;
+                case "made apart":
+                    group.Holding(Rules.Stored(("reader", "row:U"), ("reader", "row:R")));
+                    break;
+                case "limited":
+                    group.Holding(Rules.Stored(("reader", "off:U")));
+                    break;
+                default:
+                    group.Holding(Rules.Stored((null, null)));
+                    break;
+            }
+
+            _node = group.Child("an entry");
+            var refused = Ask(Paired("reader"));
+            _node = null;
+            var absent = Ask(Paired("reader"));
+
+            Assert.That(_reached, Is.Empty);
+            Assert.That(refused.Status, Is.EqualTo(404));
+            Assert.That(refused.Json, Is.EqualTo(absent.Json));
+            var line = _audit.Entries[0];
+            Assert.That(line.Permitted, Is.False);
+            Assert.That(line.Node, Is.EqualTo("an entry"));
+            Assert.That(line.Reason, Is.EqualTo(reason));
+            Assert.That(line.DecidedAt, Is.EqualTo(decidedAt));
+        }
+
         [Test]
         public void A_certificate_this_authority_issued_and_refused_is_written_down_by_its_key()
         {
@@ -459,6 +504,188 @@ namespace KeePassGate.Tests
                     { "headEntry", node },
                 },
                 new AccessCheck(_audit));
+        }
+
+        /// <summary>A route that changes an entry and a route that removes it.</summary>
+        private const string Changing =
+            "{\"openapi\":\"3.0.3\",\"info\":{\"title\":\"t\",\"version\":\"1\"},\"paths\":{" +
+            "\"/entries/{uuid}\":{\"put\":{\"operationId\":\"updateEntry\",\"x-kpg-verb\":\"update\",\"parameters\":[{\"name\":\"uuid\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}]," +
+            "\"requestBody\":{\"required\":true,\"content\":{\"application/json\":{\"schema\":" +
+            "{\"type\":\"object\",\"required\":[\"title\"],\"additionalProperties\":false," +
+            "\"properties\":{\"title\":{\"type\":\"string\"}}}}}}," +
+            "\"responses\":{\"200\":{\"description\":\"o\"},\"415\":{\"description\":\"m\"},\"500\":{\"description\":\"u\"}}}," +
+            "\"delete\":{\"operationId\":\"deleteEntry\",\"x-kpg-verb\":\"delete\",\"parameters\":[{\"name\":\"uuid\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"string\"}}]," +
+            "\"responses\":{\"200\":{\"description\":\"o\"},\"500\":{\"description\":\"u\"}}}}}}";
+
+        [TestCase("editor", 200)]
+        [TestCase("nobody", 404)]
+        public void A_change_s_first_asking_takes_a_single_hold(string profile, int status)
+        {
+            // A lookup and a walk up the rules are each a hold of their own where nothing holds
+            // KeePass's thread already, so a change asked about a step at a time would hold it
+            // once for each step, with room between them for whatever the operator does next.
+            var vault = new FakeVault();
+            var walks = new List<string>();
+            var entry = Walked(vault, walks, Tree().Child("a group").Child("an entry"));
+
+            var context = Change(vault, entry, "PUT", Paired(profile));
+
+            Assert.That(context.Status, Is.EqualTo(status), context.Json);
+            Assert.That(walks, Is.EqualTo(new[] { "an entry" }));
+            Assert.That(vault.HeldReads, Is.EqualTo(1), "the lookup and the walk are of a single hold");
+            Assert.That(_audit.Entries.Single().Permitted, Is.EqualTo(status == 200));
+        }
+
+        [TestCase(false, 200, "root")]
+        [TestCase(true, 404, "an entry")]
+        public void A_removal_s_two_sides_are_asked_in_that_hold(bool narrowed, int status, string decidedAt)
+        {
+            // A removal asks the group the node leaves and the node itself, a walk from each, and
+            // both walks are of the hold the node was found in. Narrowed, the node's own rule
+            // refuses what the rule above it allows, so the second walk is the walk that answers.
+            var vault = new FakeVault();
+            var walks = new List<string>();
+            var node = Tree().Child("a group").Child("an entry");
+            if (narrowed)
+            {
+                node.Granting("editor", AclVerb.Read);
+            }
+
+            var context = Change(vault, Walked(vault, walks, node), "DELETE", Paired("editor"));
+
+            Assert.That(context.Status, Is.EqualTo(status), context.Json);
+            Assert.That(walks, Is.EqualTo(new[] { "a group", "an entry" }));
+            Assert.That(vault.HeldReads, Is.EqualTo(1), "the lookup and both sides are of a single hold");
+
+            var line = _audit.Entries.Single();
+            Assert.That(line.Permitted, Is.EqualTo(status == 200));
+            Assert.That(line.DecidedAt, Is.EqualTo(decidedAt));
+        }
+
+        [TestCase("editor")]
+        [TestCase("nobody")]
+        public void A_first_asking_whose_hold_did_not_last_answers_busy_with_its_line_kept(string profile)
+        {
+            // What was decided in a hold KeePass's thread was let go under is no answer, a refusal
+            // no more than a permission: the request is told to come again. It is still what was
+            // decided, so its line is written, as a read's is.
+            var vault = new FakeVault { Lapses = true };
+            var entry = Walked(vault, new List<string>(), Tree().Child("a group").Child("an entry"));
+
+            var context = Change(vault, entry, "PUT", Paired(profile));
+
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
+            Assert.That(_reached, Is.Empty);
+
+            var line = _audit.Entries.Single();
+            Assert.That(line.OperationId, Is.EqualTo("updateEntry"));
+            Assert.That(line.Permitted, Is.EqualTo(profile == "editor"));
+        }
+
+        [Test]
+        public void A_first_asking_whose_hold_cannot_be_taken_answers_busy_with_nothing_decided()
+        {
+            // The node is found and walked with no hold of its own, so the only hold refused is
+            // the hold the router takes around the asking.
+            var vault = new FakeVault { RefusesHolds = true };
+            var entry = Tree().Child("a group").Child("an entry");
+
+            var context = Change(vault, request => entry, "PUT", Paired("editor"));
+
+            Assert.That(context.Status, Is.EqualTo(503), context.Json);
+            Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
+            Assert.That(_reached, Is.Empty);
+            Assert.That(_audit.Entries, Is.Empty);
+        }
+
+        /// <summary>A root granting `editor` the change and the removal both.</summary>
+        private static TestNode Tree()
+        {
+            return TestNode.Root("root").Granting("editor", AclVerb.Update, AclVerb.Delete);
+        }
+
+        /// <summary>
+        /// Asks for a change of the node given, through a router that finds it as the vault finds
+        /// a node: in a hold of its own, unless it is asked inside a hold already.
+        /// </summary>
+        private GateContext Change(FakeVault vault, IAclNode node, string method, ClientIdentity client)
+        {
+            return Change(vault, request => vault.Held(() => node), method, client);
+        }
+
+        /// <summary>Asks for a change, through a router that finds its node as told.</summary>
+        private GateContext Change(FakeVault vault, NodeSelector found, string method, ClientIdentity client)
+        {
+            OperationHandler handler = request =>
+            {
+                _reached.Add(request.Method);
+                request.Respond(200, "{}");
+            };
+
+            var router = new SpecRouter(
+                SpecDocument.Parse(Changing),
+                new Dictionary<string, OperationHandler> { { "updateEntry", handler }, { "deleteEntry", handler } },
+                null,
+                new Dictionary<string, NodeSelector> { { "updateEntry", found }, { "deleteEntry", found } },
+                new AccessCheck(_audit));
+
+            var body = method == "PUT" ? "{\"title\":\"an invented title\"}" : null;
+            var context = Context(method, "/entries/7b1c", client, body);
+            new ServedDatabase(vault).PutOn(context);
+
+            router.Handle(context);
+            return context;
+        }
+
+        /// <summary>The node given, and every node above it, walked as the vault's nodes are.</summary>
+        private static IAclNode Walked(FakeVault vault, List<string> walks, TestNode node)
+        {
+            return new VaultNode(node, vault, walks);
+        }
+
+        /// <summary>
+        /// A node of a tree that is not a database, whose walks are held as the vault holds a
+        /// read, each noted by the name of the node it starts from.
+        /// </summary>
+        private sealed class VaultNode : IAclNode
+        {
+            private readonly TestNode _node;
+            private readonly FakeVault _vault;
+            private readonly List<string> _walks;
+
+            public VaultNode(TestNode node, FakeVault vault, List<string> walks)
+            {
+                _node = node;
+                _vault = vault;
+                _walks = walks;
+            }
+
+            /// <summary>The rules of the node it walks for.</summary>
+            public NodeRule Rule
+            {
+                get { return _node.Rule; }
+            }
+
+            public IAclNode Parent
+            {
+                get
+                {
+                    var parent = _node.Parent as TestNode;
+                    return parent == null ? null : new VaultNode(parent, _vault, _walks);
+                }
+            }
+
+            public string Name
+            {
+                get { return _node.Name; }
+            }
+
+            public T Held<T>(Func<T> walk)
+            {
+                _walks.Add(_node.Name);
+                return _vault.Held(walk);
+            }
         }
 
         /// <summary>A route asking what a client may do at an entry, which declares `any`.</summary>

@@ -1,15 +1,19 @@
+using System;
 using System.Collections.Generic;
 using KeePassGate.Acl;
+using KeePassGate.Store;
+using KeePassGate.Testing;
 
 namespace KeePassGate.Tests.Fakes
 {
     /// <summary>
-    /// A tree of nodes with documents on them, and no database anywhere.
+    /// A tree of nodes known by their identifiers, and no database anywhere.
     /// </summary>
     /// <remarks>
-    /// What the profiles page counts over. A rule is a document on a node, and counting them needs
-    /// no password manager to exist, so the interesting cases are three lines instead of a
-    /// temporary `.kdbx`. `DatabaseNodesTests` is where the same walk meets the real thing.
+    /// What the profiles page counts over. A rule is a version in the plugin's store, named by its
+    /// node's identifier, and counting them needs no password manager to exist, so the interesting
+    /// cases are three lines, with no temporary `.kdbx`. `DatabaseNodesTests` is where the same
+    /// walk meets the real thing.
     /// </remarks>
     public sealed class TestRuledNodes : IRuledNodes
     {
@@ -23,7 +27,7 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>How many times the tree has been walked.</summary>
         public int Walks { get; private set; }
 
-        public IEnumerable<IRuledNode> All()
+        public IEnumerable<IRuledNode> All(StoreReading reading)
         {
             Walks++;
 
@@ -32,25 +36,65 @@ namespace KeePassGate.Tests.Fakes
                 yield return node;
             }
         }
+
+        /// <summary>
+        /// A version of a profile's row at a node holding this text, written into the store under
+        /// the key that stands by a write of its own, as whoever holds the key can write it, so
+        /// that two versions written apart both stand; answers its identifier.
+        /// </summary>
+        internal static string Rule(MemoryStore store, string node, string profile, string text)
+        {
+            var key = KeyOf(store);
+            var version = Version(key, node, profile, text);
+            var written = store.Write(new[] { new StoreAct("a rule", key, StoreFormat.KeyName(key), new[] { version }, null) });
+            if (!written.Taken)
+            {
+                throw new InvalidOperationException("a rule could not be seeded: " + written.Reason);
+            }
+
+            return version.Hex;
+        }
+
+        /// <summary>
+        /// A version of a profile's row at a node that the store knows by its deletion record
+        /// alone, as a Synchronize leaves it from a copy that deleted it for good; answers its
+        /// identifier.
+        /// </summary>
+        internal static string Lost(MemoryStore store, string node, string profile)
+        {
+            var version = Version(KeyOf(store), node, profile, "row:R");
+            store.Delete(version.Identifier);
+            return version.Hex;
+        }
+
+        private static byte[] KeyOf(MemoryStore store)
+        {
+            using (var reading = store.Read())
+            {
+                return (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+        }
+
+        private static StoreRecord Version(byte[] key, string node, string profile, string text)
+        {
+            return StoreRecord.Compose(key, StoreKinds.Version, new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                { StoreKinds.After, string.Empty },
+                { StoreKinds.Doc, text },
+                { StoreKinds.ObjectMember, StoreComposer.RowObject(node, profile) },
+            });
+        }
     }
 
-    /// <summary>One node's rules, in a field.</summary>
+    /// <summary>One group or entry, known by its identifier.</summary>
     public sealed class TestRuledNode : IRuledNode
     {
-        public TestRuledNode(string name, string document)
+        /// <summary>A node known by these 32 lowercase hexadecimal characters, as a rule names it.</summary>
+        public TestRuledNode(string id)
         {
-            Name = name;
-            Current = document;
+            Id = id;
         }
 
-        public string Name { get; private set; }
-
-        /// <summary>What the node holds. Settable, as an edit on another dialog would set it.</summary>
-        public string Current { get; set; }
-
-        public string Read()
-        {
-            return Current;
-        }
+        public string Id { get; private set; }
     }
 }

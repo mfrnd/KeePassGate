@@ -106,7 +106,11 @@ namespace KeePassGate.Tests.Gallery
         }
 
         /// <summary>Renders a control at a size and writes it out under this name.</summary>
-        public static void Shot(Control control, Size size, string name)
+        /// <param name="shown">
+        /// What to do to the control once it is shown and laid out, before it is drawn, such as
+        /// scrolling a table, or null for nothing.
+        /// </param>
+        public static void Shot(Control control, Size size, string name, Action shown = null)
         {
             if (control == null)
             {
@@ -139,6 +143,13 @@ namespace KeePassGate.Tests.Gallery
                     Settle();
                     host.PerformLayout();
                     Settle();
+
+                    if (shown != null)
+                    {
+                        shown();
+                        Settle();
+                    }
+
                     host.Refresh();
                     Settle();
 

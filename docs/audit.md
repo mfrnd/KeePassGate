@@ -89,6 +89,13 @@ change was refused is in the plugin's log, a warning per refusal, a change's `41
 is where to look when a program's writes keep coming back `busy`: some of the reasons, a dialog
 left open or a database file changed on disk, clear only when somebody at the desk acts.
 
+**`refused` can stand beside `busy` as well.** A read is decided while KeePass is held still for
+it, and a change is asked about the same way as it arrives, before it waits for its turn. When
+KeePass could not be held still for long enough, the program is answered `503 busy` whatever the
+rules answered, and the line is written all the same: a request the rules refused leaves its
+`refused` line while the program is told `busy`, and asked again it leaves a second `refused` line
+beside the `404` it is answered with.
+
 **A request is decided at the moment it is served, and its line carries that moment.** A read is
 decided as KeePass is held still for it, and a change as it is made, so a rule taken away, a
 profile removed or a client revoked while a request waited for KeePass is what the line shows. A
@@ -120,6 +127,26 @@ request that withheld nothing gets no second line.
 **A program asking what it may do at a group or an entry is a decision as well**, and written down
 like any other: `permitted` when some profile it holds may do something there, `refused` when none
 may.
+
+**Four reasons point at the State column of a KPG tab.** Most refusals by the rules read `a rule
+here does not grant it`, `a rule here refuses anything it does not name` or `no rule anywhere
+grants it`. Four others arise where copies of the database were synchronized or an entry of the
+plugin's group was deleted, and for each, `decidedAt` names the group or entry whose **KPG** tab
+shows why:
+
+| `reason` | On the tab of the group or entry `decidedAt` names |
+| --- | --- |
+| `a limit here does not let it through` | an **At most** row: a group above grants it, and this group or entry holds the grant back to what reached it earlier |
+| `rules here made apart do not all grant it` | rows with **Unmerged** as their state: the rule of a copy grants it and the rule of another copy does not |
+| `a rule here was lost` | a row with **Missing** as its state: the rule's record was deleted |
+| `a rule here could not be read` | a row with **Unreadable** as its state: the rule's record cannot be read |
+
+[Reading the State column](access-control.md#reading-the-state-column) covers what to do about
+each.
+
+**A rule changed on a KPG tab gets no line here.** The audit records what the rules answered, and
+[the plugin's log](getting-started.md#the-plugins-log) records that the rules of a group or an
+entry were written, naming it by the first eight characters of its identifier.
 
 **A locked database is not a decision, and gets no line.** A request that meets the database
 locked, whether it was locked when the request arrived or KeePass locked it while the request was

@@ -60,7 +60,7 @@ flowchart LR
         ca["Authority<br/>certificate and key"]
         host["Host certificate"]
         records["Admission records<br/>one per client certificate"]
-        rules["Rules<br/>on groups and entries"]
+        rules["Rules<br/>for groups and entries"]
     end
 
     ca -->|issues| host
@@ -74,9 +74,16 @@ own, named `KeePassGate`, under a check keyed by a secret the database holds, an
 beside it is a further entry. Each admission record is an entry of that group as well, and so is
 each revocation of a client and each certificate that a program gave up or the operator took
 away. A profile name is added by an entry of that group and taken off the list by a further
-entry. The standing answers to a renewal live in the database's own custom data. The rules live
-on the group or entry they are about. All of it is inside the database, covered by the database's
-own encryption, and none of it is anywhere else on the machine.
+entry. Each version of a rule is an entry of that group too, under the identifier of the group or
+entry it is about. The standing answers to a renewal live in the database's own custom data. All
+of it is inside the database, covered by the database's own encryption, and none of it is
+anywhere else on the machine.
+
+**Nothing of a rule is written on the group or entry it is about**, so a rule stays with its
+group or entry wherever that is moved, and a copy of either carries none. A rule changed in two
+copies of the database stands in both versions once the copies are synchronized, and the gate
+grants what both allow until the operator has chosen between them, as
+[`access-control.md`](access-control.md#copies-of-a-database) describes.
 
 ## How one request is decided
 
@@ -108,7 +115,9 @@ sequenceDiagram
 **Both halves have to allow it.** The record states which profiles a certificate may use, and only
 the ones the database still names count; the rules state what those profiles reach. Neither is
 enough on its own, and the record is read from the open database every time, which is what makes
-revoking one immediate.
+revoking one immediate. The rules are read the same way, from the plugin's group in the open
+database at every request, so a rule is in force from the **OK** of the dialog it was set on,
+before the database is saved.
 
 **KeePass's own policies do not narrow what a program gets.** The options under **Tools**,
 **Options**, **Policy**, whether set there or enforced by an administrator, govern the person at
@@ -146,7 +155,11 @@ a period of inactivity. A read that KeePass cannot make room for within ten seco
 busy with something it does not pause in, answers "busy". **And no read starts inside a merge**:
 while KeePass imports, synchronizes or runs XML Replace, what it holds is part of one database and
 part of another, so a read asked for then waits for the merge to end and is answered from what it
-leaves, or "busy" when the merge takes more than ten seconds.
+leaves, or "busy" when the merge takes more than ten seconds. A change is asked about the same way
+as it arrives, before it waits for its turn: KeePass is held still while the group or entry it
+names is found and the rules are asked, and that waits, and answers "busy", as a read does. KeePass
+is free again while the change waits, so the change is asked about once more as it is made, and
+that answer is the answer acted on.
 
 **A program can ask not to write over what changed since it read.** Reading a group or an entry
 hands back a tag of what it holds, and a program that hands the tag back with its write is

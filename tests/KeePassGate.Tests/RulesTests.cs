@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Testing;
 using NUnit.Framework;
@@ -22,21 +22,42 @@ namespace KeePassGate.Tests
         [TestCase("", "........")]
         public void Only_the_letters_say_what_all_eight_places_do(string letters, string places)
         {
-            Assert.That(Rules.Granting(("agent", letters)), Is.EqualTo(Rules.Granting(("agent", places))));
+            Assert.That(Rules.Letters(letters).SameAs(Rules.Letters(places)), Is.True);
+            Assert.That(VerbMask.Of(Rules.Letters(letters)), Is.EqualTo(places));
         }
 
         [Test]
-        public void A_rule_is_written_as_the_editor_writes_it()
+        public void A_node_s_rules_are_a_version_granting_each_profile_and_a_switch_where_it_refuses()
         {
-            var grants = new Dictionary<string, IEnumerable<AclVerb>>
-            {
-                { "agent", new[] { AclVerb.Read, AclVerb.List } },
-                { "editor", new[] { AclVerb.Read, AclVerb.Update } },
-            };
+            var rule = Rules.Node(false, ("agent", "RL"), ("editor", "RU"));
 
-            Assert.That(Rules.Granting(("agent", "RL"), ("editor", "RU")),
-                Is.EqualTo(AclDocument.Of(AclDefault.Inherit, grants).Write()));
-            Assert.That(Rules.Sealing(), Is.EqualTo(AclDocument.Of(AclDefault.Deny, null).Write()));
+            Assert.That(rule.Profiles, Is.EqualTo(new[] { "agent", "editor" }));
+            Assert.That(rule.Row("agent").Versions.Single().Kind, Is.EqualTo(RowVersionKind.Grants));
+            Assert.That(VerbMask.Of(rule.Row("agent").Versions.Single().Letters), Is.EqualTo(".R...L.."));
+            Assert.That(rule.Row("editor").Answers, Is.True);
+            Assert.That(rule.Switch.Versions, Is.Empty, "a switch never set");
+
+            var sealing = Rules.Node(true);
+            Assert.That(sealing.Profiles, Is.Empty);
+            Assert.That(sealing.Switch.Versions.Single().Kind, Is.EqualTo(SwitchVersionKind.Refuses));
+        }
+
+        [Test]
+        public void Stored_versions_are_held_as_written_with_identifiers_stable_for_the_same_arguments()
+        {
+            var rule = Rules.Stored(("agent", "off:R"), ("agent", "row:r"), (null, "sw:inherit agent=R"), ("agent", null));
+            var again = Rules.Stored(("agent", "off:R"), ("agent", "row:r"), (null, "sw:inherit agent=R"), ("agent", null));
+
+            Assert.That(rule.Row("agent").Versions.Select(version => version.Kind),
+                Is.EquivalentTo(new[] { RowVersionKind.TakenOff, RowVersionKind.OutOfForm }));
+            Assert.That(rule.Row("agent").Lost, Has.Count.EqualTo(1));
+            Assert.That(rule.Switch.Versions.Single().Kind, Is.EqualTo(SwitchVersionKind.Inherits));
+            Assert.That(rule.Row("agent").Versions.Select(version => version.Id), Is.EqualTo(again.Row("agent").Versions.Select(version => version.Id)));
+            Assert.That(rule.Row("agent").Lost, Is.EqualTo(again.Row("agent").Lost));
+            Assert.That(rule.Row("agent").Versions.All(version => version.Id.Length == 32 && version.Id.All(c => "0123456789abcdef".IndexOf(c) >= 0)), Is.True);
+
+            var twice = Rules.Stored(("agent", "row:R"), ("agent", "row:R"));
+            Assert.That(twice.Row("agent").Versions, Has.Count.EqualTo(2), "two versions given alike are two versions");
         }
 
         [TestCase("LR", TestName = "letters out of order")]
@@ -50,15 +71,16 @@ namespace KeePassGate.Tests
         [TestCase(null, TestName = "no mask at all")]
         public void Anything_else_is_refused_as_the_test_sets_up(string mask)
         {
-            Assert.That(() => Rules.Granting(("agent", mask)), Throws.ArgumentException);
+            Assert.That(() => Rules.Letters(mask), Throws.ArgumentException);
+            Assert.That(() => Rules.Node(false, ("agent", mask)), Throws.ArgumentException);
         }
 
         [Test]
         public void A_rule_naming_no_profile_or_one_named_already_is_refused()
         {
-            Assert.That(() => Rules.Granting((null, "R")), Throws.ArgumentException);
-            Assert.That(() => Rules.Sealing(("agent", "R"), (null, "L")), Throws.ArgumentException);
-            Assert.That(() => Rules.Granting(("agent", "R"), ("agent", "L")), Throws.ArgumentException);
+            Assert.That(() => Rules.Node(false, (null, "R")), Throws.ArgumentException);
+            Assert.That(() => Rules.Node(true, ("agent", "R"), (null, "L")), Throws.ArgumentException);
+            Assert.That(() => Rules.Node(false, ("agent", "R"), ("agent", "L")), Throws.ArgumentException);
         }
 
         [TestCase("", TestName = "an empty profile name")]
@@ -69,27 +91,16 @@ namespace KeePassGate.Tests
         [TestCase("Default", TestName = "the reserved word in another case")]
         public void A_profile_name_the_editor_refuses_is_refused_as_the_test_sets_up(string profile)
         {
-            // Some of these make a document the reader refuses, which refuses wherever it is found,
-            // and the rest a document it reads and no operator could have written.
-            Assert.That(() => Rules.Granting((profile, "R")), Throws.ArgumentException);
+            Assert.That(() => Rules.Node(false, (profile, "R")), Throws.ArgumentException);
         }
 
         [Test]
-        public void A_document_the_reader_would_refuse_is_refused_as_the_test_sets_up()
+        public void No_rules_is_no_rule_unless_the_switch_refuses()
         {
-            Assert.That(AclDocument.Read(Rules.Numbered(AclDocument.MostProfiles, "R")), Is.Not.Null,
-                "as many profiles as the reader takes");
-            Assert.That(() => Rules.Numbered(AclDocument.MostProfiles + 1, "R"), Throws.ArgumentException);
-        }
-
-        [Test]
-        public void No_rules_is_no_document_unless_the_node_is_sealed()
-        {
-            // The editor takes the key away when the last rule goes, so a document asking the group
-            // above for everything is a document no node holds.
-            Assert.That(() => Rules.Granting(), Throws.ArgumentException);
-            Assert.That(() => Rules.Numbered(0, "R"), Throws.ArgumentException);
-            Assert.That(AclDocument.Read(Rules.Sealing()), Is.Not.Null, "a seal is a rule on its own");
+            // A node with no row and a switch never set holds nothing in the store, so a test
+            // meaning such a node puts nothing on it.
+            Assert.That(() => Rules.Node(false), Throws.ArgumentException);
+            Assert.That(Rules.Node(true).Switch.Refuses, Is.True, "a switch that refuses is a rule on its own");
         }
     }
 }

@@ -2321,7 +2321,30 @@ namespace KeePassGate.Bridge
                 group.ParentGroup == null ? null : group.ParentGroup.Uuid.ToHexString(),
                 When(group.CreationTime),
                 When(group.LastModificationTime),
-                KdbxNodes.Of(group, _hold));
+                KdbxNodes.Of(group, _hold, Rules));
+        }
+
+        /// <summary>
+        /// The rules a walk from one of this vault's nodes reads at each level: those of the
+        /// reading of the hold it is walked in, or of the change's turn, `StoreReadings.Rules`.
+        /// </summary>
+        /// <remarks>
+        /// **Of the tree the vault looks through**, the root read where the rules are asked, as a
+        /// lookup reads the store of the tree it looks through. Inside a hold the tree cannot go,
+        /// so a database that closed under the walk is a hold KeePass's thread let go of before
+        /// the walk ended, a lock having come in between: it has no rules to read, and the walk is
+        /// unsettled, as every read whose hold did not last is, which the router answers
+        /// `503 busy` and the hold itself would have raised had the walk ended.
+        /// </remarks>
+        private Acl.StoredRules Rules()
+        {
+            var root = _database.RootGroup;
+            if (root == null)
+            {
+                throw new VaultUnsettled("the database closed under a walk up the rules");
+            }
+
+            return _store.Rules(_database, root);
         }
 
         private VaultEntry Describe(PwEntry entry)
@@ -2346,7 +2369,7 @@ namespace KeePassGate.Bridge
                 () => StoredStrings.Read(url),
                 When(entry.CreationTime),
                 When(entry.LastModificationTime),
-                KdbxNodes.Of(entry, _hold),
+                KdbxNodes.Of(entry, _hold, Rules),
                 Guards(entry, PwDefs.TitleField),
                 Guards(entry, PwDefs.UrlField),
                 entry.Expires ? When(entry.ExpiryTime) : (DateTimeOffset?)null);
@@ -2372,7 +2395,7 @@ namespace KeePassGate.Bridge
                 null,
                 When(entry.CreationTime),
                 When(entry.LastModificationTime),
-                KdbxNodes.Of(entry, _hold),
+                KdbxNodes.Of(entry, _hold, Rules),
                 false,
                 false,
                 entry.Expires ? When(entry.ExpiryTime) : (DateTimeOffset?)null);

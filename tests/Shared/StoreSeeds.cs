@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
+using KeePassGate.Acl;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Store;
@@ -9,8 +10,9 @@ using KeePassGate.Store;
 namespace KeePassGate.Testing
 {
     /// <summary>
-    /// An authority put into a database's store for a test, through the product's own commands:
-    /// in memory in the unit tier, and in a real database in the host tier.
+    /// An authority, and what else a database's store holds, put into the store for a test through
+    /// the product's own commands: in memory in the unit tier, and in a real database in the host
+    /// tier.
     /// </summary>
     /// <remarks>
     /// **Through the commands and not around them**, so that a test seeds exactly what an operator
@@ -123,6 +125,132 @@ namespace KeePassGate.Testing
         public static void Unname(IGateStore store, string name)
         {
             Act(store, "a profile removed", reading => KeePassGate.Acl.ProfileActs.Remove(reading, name));
+        }
+
+        /// <summary>
+        /// These rules chosen at the node, given as the 32 lowercase hexadecimal characters of its
+        /// identifier, in a single OK on its dialog as the product writes it: each profile granted
+        /// its mask, written in either form `Rules` takes, over the versions that stand.
+        /// </summary>
+        public static void Rule(IGateStore store, string node, params (string Profile, string Mask)[] rules)
+        {
+            Changed(store, "rules chosen", node, shown => new RuleChanges(Chosen(rules, shown), null));
+        }
+
+        /// <summary>The box ticked at the node and these rules chosen there, in a single OK on its dialog as the product writes it.</summary>
+        public static void Seal(IGateStore store, string node, params (string Profile, string Mask)[] rules)
+        {
+            Changed(store, "the box ticked", node, shown => new RuleChanges(Chosen(rules, shown), new SwitchChange(true, shown, null, null)));
+        }
+
+        /// <summary>
+        /// The X on a profile's row at the node, in a single OK on its dialog as the product writes
+        /// it, with the mask <paramref name="arriving"/> shown arriving for the profile at the
+        /// press.
+        /// </summary>
+        public static void TakeOff(IGateStore store, string node, string profile, string arriving)
+        {
+            Changed(store, "a rule taken off", node, shown => new RuleChanges(
+                new[] { new RowChange(RowChangeKind.TakeOff, profile, Rules.Letters(arriving), null, shown, null) }, null));
+        }
+
+        /// <summary>
+        /// The box cleared at the node, in a single OK on its dialog as the product writes it, with
+        /// each mask shown arriving for its profile at the press.
+        /// </summary>
+        public static void Unseal(IGateStore store, string node, params (string Profile, string Mask)[] arriving)
+        {
+            Changed(store, "the box cleared", node, shown => new RuleChanges(null, new SwitchChange(
+                false, shown, arriving.Select(pair => new KeyValuePair<string, AclGrant>(pair.Profile, Rules.Letters(pair.Mask))), null)));
+        }
+
+        /// <summary>A rule chosen for each profile, over the rules the tab shows.</summary>
+        private static IEnumerable<RowChange> Chosen((string Profile, string Mask)[] rules, NodeRule shown)
+        {
+            return (rules ?? Array.Empty<(string Profile, string Mask)>())
+                .Select(rule => new RowChange(RowChangeKind.Set, rule.Profile, Rules.Letters(rule.Mask), null, shown, null))
+                .ToList();
+        }
+
+        /// <summary>
+        /// The act of an OK on the node's dialog, its changes made over the node's rules as the
+        /// store holds them, composed by the product and written by the store's own write; the
+        /// node's parent lets through every letter, so each mask a seed gives as arriving is the
+        /// mask recorded, and no node below is handed over, so a seed writes at its node alone.
+        /// </summary>
+        private static void Changed(IGateStore store, string name, string node, Func<NodeRule, RuleChanges> changes)
+        {
+            StoreAct act;
+            IReadOnlyList<RuleLeft> left;
+            using (var reading = store.Read())
+            {
+                if (reading.InForce == null)
+                {
+                    throw new InvalidOperationException(name + " is seeded only in a store that has a key.");
+                }
+
+                var made = changes(StoredRules.Of(reading).At(node));
+                act = RuleActs.Of(reading, node, _ => Open.Over(made), null, made, out left);
+            }
+
+            if (left.Count > 0 || act == null)
+            {
+                throw new InvalidOperationException(name + " at " + node + " writes nothing: " +
+                    (left.Count > 0 ? "a version does not fit" : "the store holds the rules so already"));
+            }
+
+            try
+            {
+                var written = store.Write(new[] { act });
+                if (!written.Taken)
+                {
+                    throw new InvalidOperationException(name + " could not be seeded: " + written.Reason);
+                }
+            }
+            finally
+            {
+                act.Forget();
+            }
+        }
+
+        /// <summary>
+        /// A parent that gives every letter to each profile some changes name: what a seed's
+        /// changes are composed under, so that what arrives is what the seed gives as arriving.
+        /// </summary>
+        private sealed class Open : IAclNode
+        {
+            private Open(NodeRule rule)
+            {
+                Rule = rule;
+            }
+
+            public NodeRule Rule { get; private set; }
+
+            public IAclNode Parent
+            {
+                get { return null; }
+            }
+
+            public string Name
+            {
+                get { return "a parent letting every letter through"; }
+            }
+
+            /// <summary>The parent for these changes, or null where they name no profile.</summary>
+            public static IAclNode Over(RuleChanges changes)
+            {
+                var profiles = changes.Rows.Select(row => row.Profile)
+                    .Concat(changes.Switch == null ? Enumerable.Empty<string>() : changes.Switch.Arriving.Keys)
+                    .Distinct(StringComparer.Ordinal)
+                    .Select(profile => (profile, VerbMask.Letters))
+                    .ToArray();
+                return profiles.Length == 0 ? null : new Open(Rules.Node(false, profiles));
+            }
+
+            public T Held<T>(Func<T> walk)
+            {
+                return walk();
+            }
         }
 
         /// <summary>This certificate taken away, as a client giving it up writes it.</summary>

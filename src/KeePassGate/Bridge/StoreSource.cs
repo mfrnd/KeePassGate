@@ -10,7 +10,8 @@ namespace KeePassGate.Bridge
 {
     /// <summary>
     /// What the store's reading is handed of a database: every entry that carries a string of the
-    /// store, with its versions, and the identifiers its deletion records name, `STORE.md` §621.
+    /// store, with its versions, and the identifiers its deletion records name, `STORE.md` §621;
+    /// and the identifier of every group and entry, where the reading asks for them, §620.
     /// </summary>
     /// <remarks>
     /// **Every entry of the whole tree, once**, the recycle bin and every group inside it
@@ -63,7 +64,23 @@ namespace KeePassGate.Bridge
                 candidates.Add(new StoreCandidate(entry.Uuid.UuidBytes, versions));
             }
 
-            return new Walk(candidates, present, database.DeletedObjects.Select(deleted => deleted.Uuid.UuidBytes).ToList());
+            return new Walk(
+                candidates, present, database.DeletedObjects.Select(deleted => deleted.Uuid.UuidBytes).ToList(), () => Nodes(root));
+        }
+
+        /// <summary>The identifier of the root and of every group and entry under it, walked as it is enumerated.</summary>
+        private static IEnumerable<byte[]> Nodes(PwGroup root)
+        {
+            yield return root.Uuid.UuidBytes;
+            foreach (var group in root.GetGroups(true))
+            {
+                yield return group.Uuid.UuidBytes;
+            }
+
+            foreach (var entry in root.GetEntries(true))
+            {
+                yield return entry.Uuid.UuidBytes;
+            }
         }
 
         private static bool Carries(PwObjectList<PwEntry> history)
@@ -86,16 +103,21 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// The candidates of a walk, the identifier of every entry it passed, and the identifiers
-        /// the deletion records name.
+        /// The candidates of a walk, the identifier of every entry it passed, the identifiers the
+        /// deletion records name, and the tree's nodes, walked when asked for.
         /// </summary>
         internal sealed class Walk
         {
-            public Walk(IReadOnlyList<StoreCandidate> candidates, IReadOnlyList<byte[]> present, IReadOnlyList<byte[]> deletions)
+            public Walk(
+                IReadOnlyList<StoreCandidate> candidates,
+                IReadOnlyList<byte[]> present,
+                IReadOnlyList<byte[]> deletions,
+                Func<IEnumerable<byte[]>> nodes)
             {
                 Candidates = candidates;
                 Present = present;
                 Deletions = deletions;
+                Nodes = nodes;
             }
 
             public IReadOnlyList<StoreCandidate> Candidates { get; private set; }
@@ -104,6 +126,19 @@ namespace KeePassGate.Bridge
             public IReadOnlyList<byte[]> Present { get; private set; }
 
             public IReadOnlyList<byte[]> Deletions { get; private set; }
+
+            /// <summary>
+            /// The identifier of every group and entry under the walk's root, the root among them,
+            /// walked only when called: what a reading asks for where a deletion record is left
+            /// that no object the file names explains.
+            /// </summary>
+            /// <remarks>
+            /// **Called only while the tree cannot move**, as the walk of the candidates is: by the
+            /// reading made in the same hold or the same turn of KeePass's thread, and never after.
+            /// The recycle bin and the plugin's own group are among them, since a rule's object
+            /// names a node wherever it sits, `STORE.md` §617.
+            /// </remarks>
+            public Func<IEnumerable<byte[]>> Nodes { get; private set; }
         }
 
         /// <summary>A value as KeePass keeps it, its length asked first.</summary>

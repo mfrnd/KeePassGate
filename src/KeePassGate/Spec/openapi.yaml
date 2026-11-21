@@ -2422,12 +2422,15 @@ components:
         it, and a client meeting it from a later gate waits for the operator as for `split`,
         `outdated` and `stopped`.
 
-        `busy` is five things, and a read meets the first as readily as a write meets the others.
-        KeePass's own thread could not be held still for the read: every read waits its turn on that
-        thread and holds it from the rules being asked until what it is answered with has been
-        taken, so neither the tree nor the rules can move under it, and a turn that does not
-        come round within ten seconds, or a hold that outlasts five, is answered `busy` rather
-        than trusted. That is
+        `busy` is five things: a read meets the first, and a write meets the first as readily as
+        the others. KeePass's own thread could not be held still for a read, or for the asking a
+        change makes before it waits for its turn: every read waits its turn on that thread and
+        holds it from the rules being asked until what it is answered with has been taken, so
+        neither the tree nor the rules can move under it. A change holds it while its group or
+        entry is found and the rules are asked, and both can move once that hold is let go, so the
+        change is asked about again inside its own turn, and that answer is the answer acted on. A
+        turn that does not come round within ten seconds, or a hold that outlasts five, is answered
+        `busy` rather than trusted. That is
         KeePass busy with something it does not pause in, such as deriving a key, rather than a
         fault here, or KeePass part way through a merge, which no read is started inside: a
         synchronize, an import and XML Replace leave the tree between two databases until they

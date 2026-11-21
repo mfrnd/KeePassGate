@@ -129,7 +129,7 @@ namespace KeePassGate.Host.Tests.Live
             var keePass = _session.KeePass;
             _identity = Paths.Join(Path.GetDirectoryName(keePass.DatabasePath), "client");
 
-            keePass.Grant(Rules.Granting((Profile, "CRULAP")));
+            keePass.Grant((Profile, "CRULAP"));
 
             var driver = KeePassDriver.Start(keePass);
             LivePairingTests.WaitUntilServing(keePass, driver);

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Testing;
@@ -8,495 +9,1015 @@ using NUnit.Framework;
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// What the grant editor decides, with no window anywhere near it.
+    /// What the grant editor decides, with no window anywhere near it: what each row of a node's
+    /// rules stands for, which press each row takes, and what OK is handed.
     /// </summary>
     /// <remarks>
-    /// The table is the easy half. What is worth testing is what it refuses, what it shows about
-    /// rules it does not own, and exactly when it writes, because the last of those is what decides
-    /// whether opening a dialog marks somebody's database as modified.
+    /// The table is the easy half. What is worth testing is what a row shows for each way the
+    /// store can hold a rule, and that a press changes the sheet and nothing else, because the
+    /// sheet is what the dialog's OK writes and Cancel throws away.
     /// </remarks>
     [TestFixture]
     public sealed class GrantSheetTests
     {
+        private static readonly string[] Reader = { "reader" };
+
         [Test]
-        public void A_node_with_no_rules_shows_none_and_writes_nothing()
+        public void A_node_with_no_rules_and_nothing_above_shows_no_row()
         {
-            var sheet = new GrantSheet(null, null, null, null);
+            var sheet = Sheets.Of(NodeRule.None, null);
 
             Assert.That(sheet.Rows, Is.Empty);
-            Assert.That(sheet.Document, Is.Null, "no rules is the absent key, never an empty document");
-            Assert.That(sheet.Changed, Is.False);
+            Assert.That(sheet.Box, Is.EqualTo(GrantBox.Cleared));
             Assert.That(sheet.CanEdit, Is.True);
             Assert.That(sheet.Warning, Is.Null);
         }
 
         [Test]
-        public void A_node_deeper_than_the_walk_is_told_so_rather_than_sent_to_a_broken_rule()
+        public void A_rule_set_here_in_a_single_version_is_a_row_of_its_own_with_no_state()
         {
-            // Past the depth the resolver walks, every document on the chain may read, and the
-            // editor sent the operator to fix a rule above that could not be read.
+            var sheet = Sheets.Of(Rules.Node(false, ("reader", "RL")), null);
+
+            var row = Sheets.Single(sheet, "reader");
+            Assert.That(row.Kind, Is.EqualTo(GrantRowKind.Own));
+            Assert.That(row.Mask, Is.EqualTo(".R...L.."));
+            Assert.That(row.States, Is.Empty);
+            Assert.That(row.Version, Is.Not.Null.And.Length.EqualTo(32), "the version the row shows");
+            Assert.That(row.Changed, Is.False);
+            Assert.That(row.TakesRule && row.Removable && !row.Bound, Is.True);
+        }
+
+        [Test]
+        public void An_empty_rule_is_a_rule_of_its_own_showing_no_letter()
+        {
+            var sheet = Sheets.Of(Rules.Node(false, ("reader", "")), Sheets.Arriving(("reader", "RL")));
+
+            var row = Sheets.Single(sheet, "reader");
+            Assert.That(row.Kind, Is.EqualTo(GrantRowKind.Own));
+            Assert.That(row.Mask, Is.EqualTo("........"));
+            Assert.That(row.InheritedMask, Is.EqualTo(".R...L.."), "what the rule here replaces");
+        }
+
+        [Test]
+        public void An_inherited_rule_shows_the_mask_that_arrives_and_takes_no_X()
+        {
+            var sheet = Sheets.Of(NodeRule.None, Sheets.Arriving(("reader", "RL")));
+
+            var row = Sheets.Single(sheet, "reader");
+            Assert.That(row.Kind, Is.EqualTo(GrantRowKind.Inherited));
+            Assert.That(row.Mask, Is.EqualTo(".R...L.."));
+            Assert.That(row.States, Is.EqualTo(new[] { GrantState.Inherited }));
+            Assert.That(row.Version, Is.Null);
+            Assert.That(row.Removable, Is.False);
+            Assert.That(row.TakesRule, Is.True, "a rule chosen on it replaces it here");
+        }
+
+        [Test]
+        public void A_rule_from_above_the_box_refuses_is_refused_here()
+        {
+            var sheet = Sheets.Of(Rules.Node(true), Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(sheet.Box, Is.EqualTo(GrantBox.Ticked));
+            var row = Sheets.Single(sheet, "reader");
+            Assert.That(row.Kind, Is.EqualTo(GrantRowKind.Inherited));
+            Assert.That(row.States, Is.EqualTo(new[] { GrantState.Refused }));
+            Assert.That(row.Granted, Is.EqualTo("........"));
+        }
+
+        [Test]
+        public void A_profile_the_row_cuts_shows_its_inherited_row_and_a_limit_bound_under_it()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "off:R")), Sheets.Arriving(("reader", "RL")));
+
+            var rows = sheet.Rows;
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
+            {
+                "reader .R...L.. Inherited:Inherited",
+                "reader .R...... Limit:AtMost",
+            }));
+            Assert.That(rows.All(row => row.Bound && row.Group == 2), Is.True);
+            Assert.That(rows[1].Version, Is.Null, "a limit is no version of its own");
+            Assert.That(rows[1].TakesRule, Is.False, "a limit offers its X and no list");
+            Assert.That(rows[1].Removable, Is.True);
+            Assert.That(rows[0].TakesRule, Is.True, "a rule can be chosen on the inherited row");
+            Assert.That(rows[1].Granted, Is.EqualTo(".R......"), "what both rows share");
+        }
+
+        [Test]
+        public void A_profile_the_switch_cuts_shows_a_single_limit_row_as_well()
+        {
+            var sheet = Sheets.Of(Rules.Stored((null, "sw:inherit reader=R")), Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(sheet.Box, Is.EqualTo(GrantBox.Cleared));
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
+            {
+                "reader .R...L.. Inherited:Inherited",
+                "reader .R...... Limit:AtMost",
+            }));
+        }
+
+        [Test]
+        public void A_profile_the_row_and_the_switch_both_cut_shows_a_single_limit_of_what_both_hold()
+        {
+            var sheet = Sheets.Of(
+                Rules.Stored(("reader", "off:RL"), (null, "sw:inherit reader=CR")),
+                Sheets.Arriving(("reader", "CRL")));
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
+            {
+                "reader CR...L.. Inherited:Inherited",
+                "reader .R...... Limit:AtMost",
+            }));
+        }
+
+        [Test]
+        public void A_rule_taken_off_under_a_box_that_refused_limits_to_no_letter()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "off:deny")), Sheets.Arriving(("reader", "RL")));
+
+            var limit = sheet.Rows.Single(row => row.Kind == GrantRowKind.Limit);
+            Assert.That(limit.Mask, Is.EqualTo("........"));
+            Assert.That(limit.Refusing, Is.True, "the limit of a rule taken off while the node refused");
+        }
+
+        [Test]
+        public void Nothing_shows_where_nothing_is_cut_also_for_a_version_that_cut_before()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "off:RL")), Sheets.Arriving(("reader", "R")));
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader .R...... Inherited:Inherited" }));
+        }
+
+        [Test]
+        public void A_rule_taken_off_when_nothing_arrived_limits_to_no_letter_and_is_no_rule_taken_off_under_the_box()
+        {
+            // `off:` with no letter lets nothing through, as `off:deny` does, and is told apart from
+            // it: the limit of a rule taken off when nothing arrived, with the limit's own sentence.
+            var sheet = Sheets.Of(Rules.Stored(("reader", "off:")), Sheets.Arriving(("reader", "RL")));
+
+            var limit = sheet.Rows.Single(row => row.Kind == GrantRowKind.Limit);
+            Assert.That(limit.Mask, Is.EqualTo("........"));
+            Assert.That(limit.Refusing, Is.False);
+            Assert.That(limit.Granted, Is.EqualTo("........"));
+            Assert.That(GrantTab.WordOf(limit), Is.EqualTo("At most"));
+            Assert.That(GrantTab.StateTip(limit, true), Is.EqualTo(
+                "The rule here was removed, or the box below cleared, when less arrived from above than arrives now, so this "
+                + "node lets through at most the permissions shown. The gate grants the permissions that this row and the "
+                + "inherited row share. The X lets the whole rule from above through."));
+        }
+
+        [Test]
+        public void A_version_that_lets_through_with_nothing_arriving_shows_no_row()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "off:R")), null);
+
+            Assert.That(sheet.Rows, Is.Empty);
+            Assert.That(sheet.Available, Does.Contain("reader"));
+        }
+
+        [Test]
+        public void No_limit_shows_while_the_box_refuses()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "off:R"), (null, "sw:deny")), Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader .R...L.. Inherited:Refused" }));
+        }
+
+        [Test]
+        public void The_press_that_clears_the_box_brings_every_inherited_row_in_with_no_limit()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "off:R"), (null, "sw:deny")), Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(sheet.PressBox(), Is.True);
+
+            Assert.That(sheet.Box, Is.EqualTo(GrantBox.Cleared));
+            Assert.That(sheet.BoxChanged, Is.True);
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader .R...L.. Inherited:Inherited changed" }),
+                "the rule taken off is written anew with what arrives");
+        }
+
+        [Test]
+        public void Clearing_the_box_shows_each_version_that_takes_the_rule_off_as_OK_writes_the_version()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:R"), ("reader", "off:deny"), (null, "sw:deny")), Sheets.Arriving(("reader", "RL")));
+
+            sheet.PressBox();
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
+            {
+                "reader .R...... Version:Unmerged changed",
+                "reader .R...L.. Version:Removed changed",
+            }));
+            Assert.That(sheet.Rows.All(row => row.Granted == ".R......"), Is.True, "what the gate grants once OK is written");
+        }
+
+        [Test]
+        public void A_rule_chosen_and_taken_off_again_leaves_the_limit_as_the_store_gives_the_limit()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "off:CRL"), (null, "sw:inherit reader=R")), Sheets.Arriving(("reader", "CRL")));
+            var before = Sheets.Lines(sheet);
+            Assume.That(before, Is.EqualTo(new[] { "reader CR...L.. Inherited:Inherited", "reader .R...... Limit:AtMost" }));
+
+            Assert.That(sheet.Set("reader", "CRUSDLAP"), Is.Null);
+            Assert.That(sheet.Forget(sheet.Rows.Single()), Is.True);
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(before), "the limit row and its X are back");
+            Assert.That(sheet.Changes.IsEmpty, Is.True);
+        }
+
+        [Test]
+        public void Versions_removed_down_to_a_rule_taken_off_with_nothing_arriving_keep_a_row_until_OK()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:RL"), ("reader", "off:R")), null);
+
+            Assert.That(sheet.RemoveVersion("reader", sheet.Rows.Single(row => row.States.Contains(GrantState.Unmerged)).Version), Is.True);
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader ........ Inherited:Inherited changed" }));
+            Assert.That(sheet.Available, Does.Not.Contain("reader"), "the profile of a change is not offered again");
+            Assert.That(sheet.Changes.Rows.Single().Kind, Is.EqualTo(RowChangeKind.RemoveVersions));
+        }
+
+        [Test]
+        public void An_X_where_nothing_arrives_leaves_a_row_refused_here_under_a_ticked_box_and_inherited_under_a_cleared_box()
+        {
+            // Under a ticked box the row an X leaves is refused as every row the node does not
+            // name is refused, whether or not a rule from above arrives for the profile.
+            var ticked = Sheets.Of(Rules.Node(true, ("ops", "RL")), Sheets.Arriving(("reader", "RL")));
+            var cleared = Sheets.Of(Rules.Node(false, ("ops", "RL")), Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(ticked.Remove("ops"), Is.True);
+            Assert.That(cleared.Remove("ops"), Is.True);
+
+            Assert.That(Sheets.Lines(ticked), Is.EqualTo(new[] { "ops ........ Inherited:Refused changed", "reader .R...L.. Inherited:Refused" }));
+            Assert.That(Sheets.Single(ticked, "ops").Granted, Is.EqualTo("........"));
+            Assert.That(Sheets.Lines(cleared), Is.EqualTo(new[] { "ops ........ Inherited:Inherited changed", "reader .R...L.. Inherited:Inherited" }));
+        }
+
+        [Test]
+        public void A_rule_chosen_as_the_store_holds_the_rule_takes_back_the_X_before_the_choice()
+        {
+            var sheet = Sheets.Of(Rules.Node(false, ("reader", "RL")), Sheets.Arriving(("reader", "RL")));
+            sheet.Remove("reader");
+            Assume.That(sheet.Changes.IsEmpty, Is.False);
+
+            Assert.That(sheet.Set("reader", ".R...L.."), Is.Null);
+
+            Assert.That(sheet.Changes.IsEmpty, Is.True);
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader .R...L.. Own" }));
+        }
+
+        [Test]
+        public void The_last_version_that_reads_beside_a_lost_version_offers_no_X()
+        {
+            // Nothing would be left to write again: the lost version is removed first.
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:R"), ("reader", null), ("reader", "row:x")), null);
+
+            Assert.That(sheet.Rows.Single(row => row.Kind == GrantRowKind.Version).Removable, Is.False);
+            Assert.That(sheet.Rows.Where(row => row.Kind == GrantRowKind.Lost).All(row => row.Removable && !row.TakesRule), Is.True);
+            Assert.That(sheet.RemoveVersion("reader", sheet.Rows.Single(row => row.Kind == GrantRowKind.Version).Version), Is.False);
+        }
+
+        [Test]
+        public void A_group_no_version_of_which_reads_takes_a_rule_on_each_row_and_each_X_takes_the_rule_off()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", null), ("reader", "row:x")), Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(sheet.Rows.All(row => row.Bound && row.TakesRule && row.Removable), Is.True);
+            Assert.That(GrantTab.StateTip(sheet.Rows[0], true), Does.EndWith(GrantTab.EveryVersionChoice + " " + GrantTab.EveryVersionRemoval));
+
+            Assert.That(sheet.Forget(sheet.Rows[0]), Is.True);
+
+            Assert.That(sheet.Changes.Rows.Single().Kind, Is.EqualTo(RowChangeKind.TakeOff));
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader .R...L.. Inherited:Inherited changed" }));
+        }
+
+        [Test]
+        public void A_reading_made_since_with_a_reason_makes_the_tab_read_only_and_no_later_reading_lifts_the_reason()
+        {
+            var sheet = Sheets.Of(Rules.Node(false, ("reader", "R")), null);
+            sheet.Set("reader", "CR......");
+
+            sheet.Rebase(Rules.Node(false, ("reader", "R")), null, Sheets.Names, GrantTab.StoreUnusable);
+
+            Assert.That(sheet.CanEdit, Is.False);
+            Assert.That(sheet.Warning, Is.EqualTo(GrantTab.StoreUnusable));
+            Assert.That(sheet.Changes.IsEmpty, Is.True, "nothing is handed to OK");
+            Assert.That(sheet.Pending, Is.True, "and the press is still pending, which OK tells");
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader CR...... Own changed" }));
+            Assert.That(GrantTab.MaskTip(sheet.Rows.Single(), sheet.CanEdit), Does.EndWith(GrantTab.ChangedNotWritten));
+
+            sheet.Rebase(Rules.Node(false, ("reader", "R")), null, Sheets.Names, null);
+            Assert.That(sheet.CanEdit, Is.False, "a later reading does not lift the reason");
+
+            var never = GrantSheet.Of(NodeRule.None, null, Sheets.Names, GrantTab.NotWatched);
+            never.Rebase(NodeRule.None, null, Sheets.Names, null);
+            Assert.That(never.ReadOnlyReason, Is.EqualTo(GrantTab.NotWatched));
+        }
+
+        [Test]
+        public void Two_inheriting_versions_show_the_box_cleared_and_the_limit_they_set()
+        {
+            var sheet = Sheets.Of(
+                Rules.Stored((null, "sw:inherit reader=RL"), (null, "sw:inherit reader=R")),
+                Sheets.Arriving(("reader", "CRL")));
+
+            Assert.That(sheet.Box, Is.EqualTo(GrantBox.Cleared), "no mixed mark for versions that both inherit");
+            Assert.That(sheet.Rows.Single(row => row.Kind == GrantRowKind.Limit).Mask, Is.EqualTo(".R......"));
+
+            sheet.PressBox();
+            sheet.PressBox();
+
+            Assert.That(sheet.Box, Is.EqualTo(GrantBox.Cleared));
+            Assert.That(sheet.BoxChanged, Is.True, "a box ticked and cleared over two versions is written");
+            Assert.That(sheet.Rows.Any(row => row.Kind == GrantRowKind.Limit), Is.False, "and settles every profile");
+        }
+
+        [Test]
+        public void A_box_never_set_ticked_and_cleared_holds_no_change()
+        {
+            var sheet = Sheets.Of(NodeRule.None, Sheets.Arriving(("reader", "RL")));
+
+            sheet.PressBox();
+            Assert.That(sheet.Box, Is.EqualTo(GrantBox.Ticked));
+            Assert.That(sheet.BoxChanged, Is.True);
+            Assert.That(Sheets.Single(sheet, "reader").States, Is.EqualTo(new[] { GrantState.Refused }));
+
+            sheet.PressBox();
+            Assert.That(sheet.Box, Is.EqualTo(GrantBox.Cleared));
+            Assert.That(sheet.BoxChanged, Is.False);
+        }
+
+        [Test]
+        public void A_ticked_box_cleared_and_ticked_again_holds_no_change()
+        {
+            var sheet = Sheets.Of(Rules.Node(true), null);
+
+            sheet.PressBox();
+            Assert.That(sheet.Box, Is.EqualTo(GrantBox.Cleared));
+            Assert.That(sheet.BoxChanged, Is.True);
+
+            sheet.PressBox();
+            Assert.That(sheet.Box, Is.EqualTo(GrantBox.Ticked));
+            Assert.That(sheet.BoxChanged, Is.False);
+        }
+
+        [Test]
+        public void A_box_set_differently_in_copies_shows_the_mixed_mark_and_no_press_brings_it_back()
+        {
+            var sheet = Sheets.Of(Rules.Stored((null, "sw:deny"), (null, "sw:inherit")), Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(sheet.Box, Is.EqualTo(GrantBox.Mixed));
+            Assert.That(Sheets.Single(sheet, "reader").States, Is.EqualTo(new[] { GrantState.Refused }),
+                "the mixed mark counts as ticked");
+
+            var seen = new List<GrantBox>();
+            for (var press = 0; press < 4; press++)
+            {
+                Assert.That(sheet.PressBox(), Is.True);
+                seen.Add(sheet.Box);
+            }
+
+            Assert.That(seen, Is.EqualTo(new[] { GrantBox.Ticked, GrantBox.Cleared, GrantBox.Ticked, GrantBox.Cleared }));
+        }
+
+        [Test]
+        public void Ticking_the_box_marks_each_row_whose_state_the_press_changes_and_no_other()
+        {
+            // The inherited rules turn Refused and the At most row under a rule taken off goes; a
+            // rule of the node's own shows as before. A row that goes needs no mark.
+            var sheet = Sheets.Of(Rules.Stored(("ops", "row:RL"), ("reader", "off:R")), Sheets.Arriving(("reader", "CRUL"), ("deploy", "RL")));
+            var before = Sheets.Lines(sheet);
+            Assert.That(before, Is.EqualTo(new[]
+            {
+                "deploy .R...L.. Inherited:Inherited", "ops .R...L.. Own", "reader CRU..L.. Inherited:Inherited", "reader .R...... Limit:AtMost",
+            }));
+
+            sheet.PressBox();
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
+            {
+                "deploy .R...L.. Inherited:Refused changed", "ops .R...L.. Own", "reader CRU..L.. Inherited:Refused changed",
+            }));
+            Assert.That(GrantTab.StateTip(Sheets.Single(sheet, "deploy"), true), Does.EndWith(GrantTab.ChangedHere));
+
+            sheet.PressBox();
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(before), "the box pressed back to what the store holds changes nothing");
+        }
+
+        [Test]
+        public void Clearing_the_box_marks_each_rule_from_above_that_arrives_again()
+        {
+            var sheet = Sheets.Of(Rules.Node(true, ("ops", "RL")), Sheets.Arriving(("reader", "RL")));
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "ops .R...L.. Own", "reader .R...L.. Inherited:Refused" }));
+
+            sheet.PressBox();
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "ops .R...L.. Own", "reader .R...L.. Inherited:Inherited changed" }));
+        }
+
+        [Test]
+        [TestCase(null)]
+        [TestCase("sw:refuse")]
+        public void A_box_whose_version_is_lost_or_out_of_form_shows_lost_and_a_press_clears_it(string text)
+        {
+            var sheet = Sheets.Of(Rules.Stored((null, text)), Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(sheet.Box, Is.EqualTo(GrantBox.Lost));
+            Assert.That(Sheets.Single(sheet, "reader").States, Is.EqualTo(new[] { GrantState.Refused }));
+
+            sheet.PressBox();
+
+            Assert.That(sheet.Box, Is.EqualTo(GrantBox.Cleared));
+            Assert.That(sheet.BoxChanged, Is.True);
+        }
+
+        [Test]
+        public void A_rule_in_several_versions_shows_a_row_for_each_bound_in_the_order_of_their_masks()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:CR"), ("reader", "row:RL")), Sheets.Arriving(("reader", "CRUL")));
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
+            {
+                "reader .R...L.. Version:Unmerged",
+                "reader CR...... Version:Unmerged",
+            }));
+
+            var rows = sheet.Rows;
+            Assert.That(rows.Select(row => row.Version).Distinct().Count(), Is.EqualTo(2), "each row a version of its own");
+            Assert.That(rows.All(row => row.Bound && !row.TakesRule && row.Removable), Is.True, "an X and no list");
+            Assert.That(rows.All(row => row.Granted == ".R......"), Is.True, "what all versions hold");
+        }
+
+        [Test]
+        public void A_version_that_takes_the_rule_off_in_a_group_shows_the_letters_it_recorded()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:RL"), ("reader", "off:R")), Sheets.Arriving(("reader", "RUL")));
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
+            {
+                "reader .R...... Version:Removed",
+                "reader .R...L.. Version:Unmerged",
+            }));
+            Assert.That(sheet.Rows.Any(row => row.Kind == GrantRowKind.Limit), Is.False, "a group is no cut");
+            Assert.That(sheet.Rows[0].Granted, Is.EqualTo(".R......"));
+        }
+
+        [Test]
+        public void More_than_two_versions_show_as_more_than_two_rows()
+        {
+            var sheet = Sheets.Of(
+                Rules.Stored(("reader", "row:R"), ("reader", "row:RL"), ("reader", "row:CRL")),
+                null);
+
+            Assert.That(sheet.Rows.Count, Is.EqualTo(3));
+            Assert.That(sheet.Rows.All(row => row.Group == 3), Is.True);
+        }
+
+        [Test]
+        public void A_rule_whose_content_is_nowhere_standing_alone_is_missing_shows_no_letter_and_takes_a_rule_and_an_X()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", null)), Sheets.Arriving(("reader", "RL")));
+
+            var row = Sheets.Single(sheet, "reader");
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader ........ Lost:Missing" }));
+            Assert.That(row.States, Is.EqualTo(new[] { GrantState.Missing }), "a state of its own, which the panel draws");
+            Assert.That(GrantTab.WordOf(row), Is.EqualTo("Missing"));
+            Assert.That(row.TakesRule && row.Removable && !row.Bound, Is.True);
+        }
+
+        [Test]
+        public void A_rule_whose_text_is_out_of_form_is_unreadable_and_not_missing()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:lr")), null);
+
+            var row = Sheets.Single(sheet, "reader");
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader ........ Lost:Unreadable" }));
+            Assert.That(row.States, Is.EqualTo(new[] { GrantState.Unreadable }), "a state of its own, which the panel draws");
+            Assert.That(GrantTab.WordOf(row), Is.EqualTo("Unreadable"));
+            Assert.That(row.TakesRule && row.Removable && !row.Bound, Is.True);
+        }
+
+        [Test]
+        public void A_missing_and_an_unreadable_version_in_a_group_each_keep_a_state_of_their_own()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:R"), ("reader", null), ("reader", "row:x")), Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(Sheets.Lines(sheet), Is.EquivalentTo(new[]
+            {
+                "reader ........ Lost:Missing",
+                "reader ........ Lost:Unreadable",
+                "reader .R...... Version:Unmerged",
+            }));
+            Assert.That(sheet.Rows.Select(GrantTab.WordOf), Is.EquivalentTo(new[] { "Missing", "Unreadable", "Unmerged" }));
+        }
+
+        [Test]
+        public void A_lost_version_beside_a_standing_version_is_a_row_of_the_group_and_the_group_grants_nothing()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:R"), ("reader", null)), Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
+            {
+                "reader ........ Lost:Missing",
+                "reader .R...... Version:Unmerged",
+            }));
+            Assert.That(sheet.Rows.All(row => row.Bound && row.Granted == "........"), Is.True,
+                "a lost version refuses the profile at the node, whatever stands beside it");
+        }
+
+        [Test]
+        public void A_rule_whose_profile_the_database_no_longer_names_shows_no_profile_first()
+        {
+            var sheet = GrantSheet.Of(Rules.Node(false, ("reader", "R")), null, new[] { "ops" }, null);
+
+            Assert.That(Sheets.Single(sheet, "reader").States, Is.EqualTo(new[] { GrantState.NoProfile }));
+        }
+
+        [Test]
+        public void An_inherited_rule_refused_here_for_a_name_the_database_no_longer_names_holds_both()
+        {
+            var sheet = GrantSheet.Of(Rules.Node(true), Sheets.Arriving(("reader", "R")), new[] { "ops" }, null);
+
+            Assert.That(Sheets.Single(sheet, "reader").States, Is.EqualTo(new[] { GrantState.NoProfile, GrantState.Refused }));
+        }
+
+        [Test]
+        public void A_sheet_given_no_list_marks_no_row()
+        {
+            var sheet = GrantSheet.Of(Rules.Node(false, ("reader", "R")), null, null, null);
+
+            Assert.That(Sheets.Single(sheet, "reader").States, Is.Empty);
+            Assert.That(sheet.Available, Is.Empty);
+        }
+
+        [Test]
+        public void A_rule_chosen_on_an_inherited_row_is_a_rule_of_the_node_changed_on_the_tab()
+        {
+            var sheet = Sheets.Of(NodeRule.None, Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(sheet.Set("reader", ".R......"), Is.Null);
+
+            var row = Sheets.Single(sheet, "reader");
+            Assert.That(row.Kind, Is.EqualTo(GrantRowKind.Own));
+            Assert.That(row.Mask, Is.EqualTo(".R......"));
+            Assert.That(row.Changed, Is.True);
+            Assert.That(row.Version, Is.Null, "no version until OK writes one");
+        }
+
+        [Test]
+        public void A_rule_chosen_back_to_what_the_store_holds_holds_no_change()
+        {
+            var sheet = Sheets.Of(Rules.Node(false, ("reader", "RL")), null);
+
+            Assert.That(sheet.Set("reader", ".R......"), Is.Null);
+            Assert.That(Sheets.Single(sheet, "reader").Changed, Is.True);
+
+            Assert.That(sheet.Set("reader", ".R...L.."), Is.Null);
+            Assert.That(Sheets.Single(sheet, "reader").Changed, Is.False);
+        }
+
+        [Test]
+        public void The_X_takes_the_rule_off_and_the_inherited_rule_shows_in_its_place_until_OK()
+        {
+            var sheet = Sheets.Of(Rules.Node(false, ("reader", "R")), Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(sheet.Remove("reader"), Is.True);
+
+            var row = Sheets.Single(sheet, "reader");
+            Assert.That(row.Kind, Is.EqualTo(GrantRowKind.Inherited));
+            Assert.That(row.Mask, Is.EqualTo(".R...L.."));
+            Assert.That(row.States, Is.EqualTo(new[] { GrantState.Inherited }));
+            Assert.That(row.Changed, Is.True);
+            Assert.That(sheet.Available, Does.Not.Contain("reader"), "the row is on the table until OK");
+        }
+
+        [Test]
+        public void The_X_with_nothing_arriving_leaves_a_row_with_no_letter_until_OK()
+        {
+            var sheet = Sheets.Of(Rules.Node(false, ("reader", "R")), null);
+
+            Assert.That(sheet.Remove("reader"), Is.True);
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader ........ Inherited:Inherited changed" }));
+        }
+
+        [Test]
+        public void The_X_takes_the_rule_off_under_a_box_that_refuses_as_well()
+        {
+            var sheet = Sheets.Of(Rules.Node(true, ("reader", "R")), Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(sheet.Remove("reader"), Is.True);
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader .R...L.. Inherited:Refused changed" }));
+        }
+
+        [Test]
+        public void The_X_on_a_rule_chosen_on_the_tab_for_a_profile_the_store_holds_nothing_for_brings_the_row_back()
+        {
+            var sheet = Sheets.Of(NodeRule.None, Sheets.Arriving(("reader", "RL")));
+
+            sheet.Set("reader", ".R......");
+            Assert.That(sheet.Remove("reader"), Is.True);
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader .R...L.. Inherited:Inherited" }));
+        }
+
+        [Test]
+        public void The_X_on_a_lost_row_standing_alone_takes_the_rule_off()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", null)), Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(sheet.Remove("reader"), Is.True);
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader .R...L.. Inherited:Inherited changed" }));
+        }
+
+        [Test]
+        public void An_inherited_row_has_nothing_to_take_off()
+        {
+            var sheet = Sheets.Of(NodeRule.None, Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(sheet.Remove("reader"), Is.False);
+            Assert.That(sheet.Rows.Single().Changed, Is.False);
+        }
+
+        [Test]
+        public void A_row_of_a_group_takes_no_rule_and_no_X_of_a_row_standing_alone()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:R"), ("reader", "row:RL")), null);
+
+            Assert.That(sheet.Rows.Any(row => row.TakesRule), Is.False, "no list on a row of a group");
+            Assert.That(sheet.Remove("reader"), Is.False);
+            Assert.That(sheet.Rows.All(row => !row.Changed), Is.True);
+        }
+
+        [Test]
+        public void The_X_on_a_version_removes_that_version_and_a_single_row_left_is_a_row_like_any_other()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:R"), ("reader", "row:RL")), Sheets.Arriving(("reader", "CRL")));
+            var wider = sheet.Rows.Single(row => row.Mask == ".R...L..");
+
+            Assert.That(sheet.RemoveVersion("reader", wider.Version), Is.True);
+
+            var left = Sheets.Single(sheet, "reader");
+            Assert.That(left.Kind, Is.EqualTo(GrantRowKind.Own));
+            Assert.That(left.Mask, Is.EqualTo(".R......"));
+            Assert.That(left.Changed, Is.True);
+            Assert.That(left.TakesRule, Is.True);
+
+            Assert.That(sheet.Set("reader", "CR......"), Is.Null, "a rule chosen once a single row is left");
+            Assert.That(Sheets.Single(sheet, "reader").Mask, Is.EqualTo("CR......"));
+        }
+
+        [Test]
+        public void Versions_are_removed_one_at_a_time_and_never_the_last()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:R"), ("reader", "row:RL"), ("reader", "row:CRL")), null);
+            var versions = sheet.Rows.Select(row => row.Version).ToList();
+
+            Assert.That(sheet.RemoveVersion("reader", versions[0]), Is.True);
+            Assert.That(sheet.Rows.Count, Is.EqualTo(2));
+            Assert.That(sheet.Rows.All(row => row.Bound && row.Changed), Is.True);
+
+            Assert.That(sheet.RemoveVersion("reader", versions[1]), Is.True);
+            Assert.That(sheet.RemoveVersion("reader", versions[2]), Is.False, "the row left stands alone");
+            Assert.That(sheet.RemoveVersion("reader", "00000000000000000000000000000000"), Is.False);
+        }
+
+        [Test]
+        public void Removing_down_to_a_version_that_takes_the_rule_off_leaves_the_cut_it_holds()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:RL"), ("reader", "off:R")), Sheets.Arriving(("reader", "RL")));
+            var granting = sheet.Rows.Single(row => row.States.Contains(GrantState.Unmerged));
+
+            sheet.RemoveVersion("reader", granting.Version);
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
+            {
+                "reader .R...L.. Inherited:Inherited changed",
+                "reader .R...... Limit:AtMost changed",
+            }));
+        }
+
+        [Test]
+        public void The_X_on_a_limit_settles_and_the_inherited_row_stands_alone_until_OK()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "off:R")), Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(sheet.Settle("reader"), Is.True);
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader .R...L.. Inherited:Inherited changed" }));
+        }
+
+        [Test]
+        public void A_profile_with_no_limit_has_nothing_to_settle()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "off:RL")), Sheets.Arriving(("reader", "R")));
+
+            Assert.That(sheet.Settle("reader"), Is.False);
+            Assert.That(sheet.Settle("ops"), Is.False);
+        }
+
+        [Test]
+        public void A_rule_can_be_chosen_on_the_inherited_row_of_a_profile_that_is_cut()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "off:R")), Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(sheet.Set("reader", "CRUSDLAP"), Is.Null);
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader CRUSDLAP Own changed" }));
+        }
+
+        [Test]
+        public void No_ceiling_of_rows_is_kept()
+        {
+            var names = Enumerable.Range(0, 40).Select(i => "p" + i.ToString("00", System.Globalization.CultureInfo.InvariantCulture)).ToList();
+            var sheet = GrantSheet.Of(NodeRule.None, null, names, null);
+
+            foreach (var name in names)
+            {
+                Assert.That(sheet.Set(name, ".R...L.."), Is.Null);
+            }
+
+            Assert.That(sheet.Rows.Count, Is.EqualTo(names.Count));
+        }
+
+        [Test]
+        public void A_name_or_a_mask_that_is_not_one_is_refused_and_nothing_is_taken()
+        {
+            var sheet = Sheets.Of(NodeRule.None, null);
+
+            Assert.That(sheet.Set(" ", ".R......"), Is.EqualTo(GrantTab.NameTheProfile));
+            Assert.That(sheet.Set("default", ".R......"), Is.EqualTo(GrantTab.ProfileNameRule));
+            Assert.That(sheet.Set(" reader", ".R......"), Is.EqualTo(GrantTab.ProfileNameRule));
+            Assert.That(sheet.Set("reader", "RL"), Is.EqualTo(GrantTab.MaskRule));
+            Assert.That(sheet.Rows, Is.Empty);
+        }
+
+        [Test]
+        public void The_pick_list_leaves_out_every_profile_the_table_shows()
+        {
+            var sheet = GrantSheet.Of(
+                Rules.Node(false, ("reader", "R")),
+                Sheets.Arriving(("ops", "RL")),
+                new[] { "reader", "ops", "deploy", "default" },
+                null);
+
+            Assert.That(sheet.Offered, Is.EqualTo(new[] { "deploy", "ops", "reader" }), "a name no certificate can carry is not offered");
+            Assert.That(sheet.Available, Is.EqualTo(new[] { "deploy" }));
+            Assert.That(sheet.Shows("ops"), Is.True);
+        }
+
+        [Test]
+        [TestCase("This is an earlier version of the entry.")]
+        public void A_tab_that_takes_no_press_shows_the_rules_and_takes_no_press(string reason)
+        {
+            var sheet = GrantSheet.Of(
+                Rules.Stored(("reader", "row:R"), ("reader", "row:RL"), ("ops", "off:R")),
+                Sheets.Arriving(("ops", "RL"), ("deploy", "R")),
+                Sheets.Names,
+                reason);
+            var before = Sheets.Lines(sheet);
+
+            Assert.That(sheet.CanEdit, Is.False);
+            Assert.That(sheet.Warning, Is.EqualTo(reason));
+            Assert.That(sheet.Set("deploy", "CRUSDLAP"), Is.EqualTo(GrantTab.NothingToChange));
+            Assert.That(sheet.Remove("deploy"), Is.False);
+            Assert.That(sheet.RemoveVersion("reader", sheet.Rows.First(row => row.Profile == "reader").Version), Is.False);
+            Assert.That(sheet.Settle("ops"), Is.False);
+            Assert.That(sheet.PressBox(), Is.False);
+
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(before));
+            Assert.That(before.Count, Is.EqualTo(5), "the group, the cut and the inherited row are all shown");
+        }
+
+        [Test]
+        public void A_node_deeper_than_the_walk_is_told_so()
+        {
             var node = TestNode.Root("root").Granting("reader", AclVerb.Read);
             for (var level = 1; level < AclResolver.MaxDepth + 1; level++)
             {
                 node = node.Child("level " + level);
             }
 
-            var sheet = new GrantSheet(null, node.Parent, new[] { "reader" }, null);
+            var sheet = GrantSheet.Of(NodeRule.None, AclResolver.Above(node.Parent), Reader, null);
 
-            Assert.That(sheet.Warning, Does.Contain("deeper in the tree"));
-            Assert.That(sheet.Warning, Does.Not.Contain("cannot be read"));
+            Assert.That(sheet.Warning, Is.EqualTo(GrantTab.TooDeep));
         }
 
         [Test]
-        public void A_rule_made_here_is_written_here()
+        public void A_reading_made_since_moves_the_rows_nobody_pressed_and_keeps_the_rows_pressed()
         {
-            var sheet = new GrantSheet(null, null, null, null);
+            var sheet = Sheets.Of(Rules.Node(false, ("reader", "R"), ("ops", "R")), null);
+            sheet.Set("ops", "CR......");
 
-            Assert.That(sheet.Set("reader", ".R...L.."), Is.Null);
+            sheet.Rebase(Rules.Node(false, ("reader", "RL"), ("ops", "RL")), Sheets.Arriving(("deploy", "R")), Sheets.Names, null);
 
-            Assert.That(sheet.Changed, Is.True);
-            Assert.That(sheet.Document, Is.EqualTo("{\"default\":\"inherit\",\"reader\":[\"read\",\"list\"]}"));
-        }
-
-        [Test]
-        public void The_scope_goes_in_the_same_rule_as_the_verbs()
-        {
-            var sheet = new GrantSheet(null, null, null, null);
-
-            Assert.That(sheet.Set("reader", ".R...LA."), Is.Null);
-
-            Assert.That(sheet.Document, Does.Contain("\"attachments\""));
-            Assert.That(AclDocument.Read(sheet.Document).Grant("reader").CoversAttachments, Is.True);
-        }
-
-        [Test]
-        public void An_existing_rule_reads_back_as_the_mask_it_is()
-        {
-            var sheet = new GrantSheet(
-                Rules.Sealing(("editor", "RUA")), null, null, null);
-
-            var row = sheet.Rows.Single();
-
-            Assert.That(row.Profile, Is.EqualTo("editor"));
-            Assert.That(row.Mask, Is.EqualTo(".RU...A."), "read and update, over attachments as well");
-            Assert.That(row.Local, Is.True);
-            Assert.That(sheet.Default, Is.EqualTo(AclDefault.Deny));
-        }
-
-        [Test]
-        public void Reading_a_node_and_writing_it_back_unchanged_is_not_a_change()
-        {
-            // The whole reason this is asked at all: the entry dialog compares the entry it hands
-            // back with the entry it was given, so rules written back in other words are a changed
-            // entry, with a revision in its history and the database marked modified, for "look at
-            // the tab and press OK". `Changed` is what decides whether anything is written.
-            var stored = Rules.Granting(("reader", "R"));
-
-            Assert.That(new GrantSheet(stored, null, null, null).Changed, Is.False);
-        }
-
-        [Test]
-        public void A_document_that_differs_only_in_spelling_is_not_rewritten_for_being_read()
-        {
-            var byHand = "{ \"reader\" : [ \"list\", \"read\" ] , \"default\":\"inherit\" }";
-
-            Assert.That(new GrantSheet(byHand, null, null, null).Changed, Is.False);
-        }
-
-        [Test]
-        public void A_copy_changed_underneath_is_taken_over_what_the_sheet_held()
-        {
-            // KeePass's Plugin Data tab on the same dialog deletes `KPG` out of the copy this sheet
-            // writes into. Held against what it read when the dialog opened, the sheet went on
-            // showing the rule, judged the same rule chosen again as no change, and wrote the old
-            // document back over the delete on any other edit.
-            var sheet = new GrantSheet(Rules.Granting(("reader", "R")), null, null, null);
-
-            Assert.That(sheet.Reload(Rules.Granting(("reader", "R"))), Is.False, "nothing moved, so nothing is redrawn");
-            Assert.That(sheet.Reload(null), Is.True);
-            Assert.That(sheet.Rows, Is.Empty);
-            Assert.That(sheet.Changed, Is.False, "what the copy holds is what the sheet holds now");
-
-            Assert.That(sheet.Set("reader", ".R......"), Is.Null);
-            Assert.That(sheet.Changed, Is.True, "so choosing the same rule again is a change, and is written");
-        }
-
-        [Test]
-        public void Removing_the_last_rule_takes_the_key_away_rather_than_leaving_an_empty_one()
-        {
-            var sheet = new GrantSheet(Rules.Granting(("reader", "R")), null, null, null);
-
-            Assert.That(sheet.Remove("reader"), Is.True);
-
-            Assert.That(sheet.Document, Is.Null);
-            Assert.That(sheet.Changed, Is.True);
-        }
-
-        [Test]
-        public void A_node_that_refuses_what_it_does_not_name_is_still_saying_something()
-        {
-            // So it keeps a document even with no rules in it, which is the one exception to the
-            // absent key.
-            var sheet = new GrantSheet(null, null, null, null);
-            sheet.Default = AclDefault.Deny;
-
-            Assert.That(sheet.Document, Is.EqualTo("{\"default\":\"deny\"}"));
-        }
-
-        [Test]
-        public void Granting_nothing_is_not_the_same_as_removing_a_rule()
-        {
-            // The distinction the whole model turns on. An empty rule takes a grant away from here
-            // down; removing puts back whatever is inherited.
-            var above = TestNode.Root("root").Granting("reader", AclVerb.Read);
-            var sheet = new GrantSheet(null, above, null, null);
-
-            Assert.That(sheet.Set("reader", "........"), Is.Null);
-            Assert.That(sheet.Document, Is.EqualTo("{\"default\":\"inherit\",\"reader\":[]}"));
-
-            Assert.That(sheet.Remove("reader"), Is.True);
-            Assert.That(sheet.Document, Is.Null);
-        }
-
-        [Test]
-        public void What_a_group_above_grants_is_shown_beside_what_this_one_does()
-        {
-            // A table listing only local rules reports an empty list for an entry that a group
-            // grant already opens wide, and an operator reading that is being invited to grant more.
-            var above = TestNode.Root("root")
-                .Granting("reader", AclVerb.Read)
-                .Child("group").Granting("editor", AclVerb.Read, AclVerb.Update);
-
-            var sheet = new GrantSheet(Rules.Granting(("auditor", "L")), above, null, null);
-
-            var rows = sheet.Rows;
-
-            Assert.That(rows.Select(r => r.Profile), Is.EqualTo(new[] { "auditor", "editor", "reader" }),
-                "sorted together, because a reader compares profiles with each other");
-            Assert.That(rows.Single(r => r.Profile == "auditor").Local, Is.True);
-            Assert.That(rows.Single(r => r.Profile == "reader").Local, Is.False);
-            Assert.That(rows.Single(r => r.Profile == "reader").Mask, Is.EqualTo(".R......"));
-        }
-
-        [Test]
-        public void A_local_rule_says_what_it_is_narrowing()
-        {
-            var above = TestNode.Root("root").Granting("reader", AclVerb.Read, AclVerb.Update);
-            var sheet = new GrantSheet(Rules.Granting(("reader", "R")), above, null, null);
-
-            var row = sheet.Rows.Single();
-
-            Assert.That(row.Local, Is.True);
-            Assert.That(row.Mask, Is.EqualTo(".R......"));
-            Assert.That(row.InheritedMask, Is.EqualTo(".RU....."), "so narrowing is visibly narrowing");
-        }
-
-        [Test]
-        public void A_profile_nobody_has_admitted_can_still_be_written_about()
-        {
-            // A rule naming a profile no client holds grants nobody anything, which is a rule
-            // waiting rather than a rule that is wrong.
-            var sheet = new GrantSheet(null, null, new[] { "reader" }, null);
-
-            Assert.That(sheet.Offered, Is.EqualTo(new[] { "reader" }));
-            Assert.That(sheet.Set("not-admitted-yet", ".R......"), Is.Null);
-        }
-
-        [Test]
-        public void The_pick_list_is_sorted_and_holds_no_name_a_certificate_could_not_carry()
-        {
-            var sheet = new GrantSheet(null, null, new[] { "zulu", "alpha", "not a profile", "", "alpha" }, null);
-
-            Assert.That(sheet.Offered, Is.EqualTo(new[] { "alpha", "zulu" }));
-        }
-
-        [TestCase("", ".R......", "Name the profile")]
-        [TestCase("   ", ".R......", "Name the profile")]
-        [TestCase("default", ".R......", "does not name")]
-        [TestCase("Default", ".R......", "does not name")]
-        [TestCase("has a space", ".R......", "letters, digits")]
-        [TestCase("reader", "read", "CRUSDLAP")]
-        [TestCase("reader", "R......R", "CRUSDLAP")]
-        [TestCase("reader", "", "CRUSDLAP")]
-        public void A_rule_that_is_not_one_is_refused_and_says_why(string profile, string mask, string because)
-        {
-            var sheet = new GrantSheet(null, null, null, null);
-
-            var complaint = sheet.Set(profile, mask);
-
-            Assert.That(complaint, Is.Not.Null);
-            Assert.That(complaint, Does.Contain(because));
-            Assert.That(sheet.Document, Is.Null, "and nothing was written");
-        }
-
-        [Test]
-        public void Choosing_a_rule_on_a_name_with_spaces_round_it_does_not_write_a_second_one()
-        {
-            // A document written by hand can hold a name no certificate can carry, and the row
-            // hands that name back exactly. Trimmed, it would become a live rule beside the inert one.
-            var stored = "{\" reader \":[\"read\"]}";
-            var sheet = new GrantSheet(stored, null, new[] { "reader" }, null);
-
-            Assert.That(sheet.Set(" reader ", ".R...L.."), Does.Contain("letters, digits"));
-            Assert.That(sheet.Owns("reader"), Is.False);
-            Assert.That(sheet.Changed, Is.False);
-        }
-
-        [Test]
-        public void A_document_here_that_will_not_read_stops_editing_rather_than_being_overwritten()
-        {
-            var broken = "{\"reader\":[\"purge\"]}";
-            var sheet = new GrantSheet(broken, null, null, null);
-
-            Assert.That(sheet.Unreadable, Is.True);
-            Assert.That(sheet.CanEdit, Is.False);
-            Assert.That(sheet.Warning, Does.Contain("cannot be read"));
-            Assert.That(sheet.Set("reader", ".R......"), Is.Not.Null);
-
-            Assert.That(sheet.Document, Is.EqualTo(broken), "untouched, because nothing here understood it");
-            Assert.That(sheet.Changed, Is.False);
-        }
-
-        [Test]
-        public void An_inherited_rule_is_drawn_refused_under_a_document_here_that_will_not_read()
-        {
-            // The resolver refuses every profile at a node whose own document will not read, so
-            // what a group above grants stops here exactly as it does under a seal.
-            var above = TestNode.Root("root").Granting("reader", AclVerb.Read);
-            var broken = "{\"reader\":[\"purge\"]}";
-            var sheet = new GrantSheet(broken, above, null, null);
-
-            Assert.That(AclResolver.Permits(
-                above.Child("here").Holding(broken), new[] { "reader" }, AclVerb.Read), Is.False);
-            Assert.That(sheet.Rows, Has.Count.EqualTo(1));
-            Assert.That(sheet.Rows[0].Reaches, Is.False);
-
-            sheet.DiscardUnreadable();
-
-            Assert.That(sheet.Rows[0].Reaches, Is.True, "and arrives again once it is discarded");
-        }
-
-        [Test]
-        public void Discarding_an_unreadable_document_is_a_decision_of_its_own()
-        {
-            var sheet = new GrantSheet("{\"reader\":[\"purge\"]}", null, null, null);
-
-            sheet.DiscardUnreadable();
-
-            Assert.That(sheet.Unreadable, Is.False);
-            Assert.That(sheet.CanEdit, Is.True);
-            Assert.That(sheet.Document, Is.Null);
-            Assert.That(sheet.Changed, Is.True);
-        }
-
-        [Test]
-        public void A_chain_above_that_will_not_read_is_said_out_loud()
-        {
-            var above = TestNode.Root("root").Holding("{\"reader\":[\"purge\"]}");
-            var sheet = new GrantSheet(null, above, null, null);
-
-            Assert.That(sheet.Warning, Does.Contain("above"));
-            Assert.That(sheet.CanEdit, Is.True, "this node's own rules are still worth writing");
-        }
-
-        [Test]
-        public void A_rule_between_this_and_a_chain_that_will_not_read_is_still_shown_in_force()
-        {
-            // The resolver stops at the nearer rule and never reads the broken one, so the table
-            // has to carry it as inherited rather than offering the profile as though it were free.
-            var root = TestNode.Root("root").Holding("{\"reader\":[\"purge\"]}");
-            var above = root.Child("middle").Granting("reader", AclVerb.Read);
-            var sheet = new GrantSheet(null, above, new[] { "reader", "editor" }, null);
-
-            Assert.That(sheet.Rows, Has.Count.EqualTo(1));
-            Assert.That(sheet.Rows[0].Profile, Is.EqualTo("reader"));
-            Assert.That(sheet.Rows[0].Local, Is.False);
-            Assert.That(sheet.Available, Is.EqualTo(new[] { "editor" }));
-            Assert.That(sheet.Warning, Does.Contain("above"));
-            Assert.That(sheet.Warning, Does.Not.Contain("whatever this tab says"));
-        }
-
-        [Test]
-        public void An_edit_that_could_not_be_kept_is_refused_before_it_is_made()
-        {
-            // What the editor does when it cannot reach the dialog's own copy of the custom data.
-            // The rules stay readable, which is the point of opening the tab.
-            var sheet = new GrantSheet(
-                Rules.Granting(("reader", "R")), null, null, "This KeePass keeps group settings somewhere this cannot reach.");
-
-            Assert.That(sheet.CanEdit, Is.False);
-            Assert.That(sheet.Warning, Does.Contain("cannot reach"));
-            Assert.That(sheet.Rows, Is.Not.Empty);
-            Assert.That(sheet.Set("editor", ".R......"), Is.Not.Null);
-            Assert.That(sheet.Remove("reader"), Is.False);
-        }
-
-        [Test]
-        public void The_warning_worth_reading_is_the_one_that_costs_most_to_miss()
-        {
-            var sheet = new GrantSheet("{\"reader\":[\"purge\"]}", null, null, "Nothing typed here can be kept.");
-
-            Assert.That(sheet.Warning, Is.EqualTo("Nothing typed here can be kept."));
-        }
-
-        [Test]
-        public void Sealing_a_node_stops_the_table_showing_what_it_now_refuses()
-        {
-            // The table is what an operator reads to know who can reach this node. Sealing it
-            // makes the resolver refuse every profile the node does not name, inherited ones
-            // included. A row still shown in force is therefore a permission nobody has, printed
-            // beside the seal's own text saying it has stopped reaching.
-            var above = TestNode.Root("root").Granting("reader", AclVerb.Read);
-            var sheet = new GrantSheet(null, above, null, null);
-
-            Assert.That(sheet.Rows[0].Reaches, Is.True, "it arrives while the node is open");
-
-            sheet.Default = AclDefault.Deny;
-
-            Assert.That(sheet.Rows[0].Profile, Is.EqualTo("reader"),
-                "still listed, because an operator has to see what the seal is refusing");
-            Assert.That(sheet.Rows[0].Reaches, Is.False);
-        }
-
-        [Test]
-        public void A_local_rule_still_reaches_under_a_seal_because_the_node_names_it()
-        {
-            // The other half: `deny` refuses what this node does not name, not what it does.
-            var sheet = new GrantSheet(null, null, null, null);
-            sheet.Default = AclDefault.Deny;
-            sheet.Set("reader", VerbMask.Of(new[] { AclVerb.Read }));
-
-            Assert.That(sheet.Rows[0].Reaches, Is.True);
-        }
-
-        [Test]
-        public void One_rule_past_what_the_reader_takes_is_refused_rather_than_written()
-        {
-            // The document carries `default` beside the rules, so the reader's ceiling is one
-            // fewer rules than it looks. Written past it, the whole document stops reading on
-            // the next open. That is not a lost rule but every rule on this node refused,
-            // and every node under it with it.
-            var sheet = new GrantSheet(null, null, null, null);
-
-            for (var i = 0; i < GrantSheet.Most; i++)
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
             {
-                Assert.That(sheet.Set("profile" + i, "CRUSDLAP"), Is.Null, "rule " + i);
-            }
-
-            Assert.That(sheet.Set("one-too-many", "CRUSDLAP"), Does.Contain("one more"));
-            Assert.That(sheet.Rows.Count, Is.EqualTo(GrantSheet.Most));
-
-            // What it wrote is still readable, which is the whole point of refusing.
-            Assert.That(AclDocument.Read(sheet.Document), Is.Not.Null);
-        }
-
-        [Test]
-        public void Narrowing_a_rule_that_is_already_here_is_not_one_more_of_them()
-        {
-            var sheet = new GrantSheet(null, null, null, null);
-            for (var i = 0; i < GrantSheet.Most; i++)
-            {
-                sheet.Set("profile" + i, "CRUSDLAP");
-            }
-
-            Assert.That(sheet.Set("profile0", ".R......"), Is.Null,
-                "the ceiling counts rules, and this replaces one");
-        }
-
-        [Test]
-        public void A_node_written_by_hand_past_the_ceiling_is_not_offered_for_editing()
-        {
-            // 32 profiles and no default fit the reader's members, and the editor always writes
-            // the default. Opened as editable, any change to one rule would store a document the
-            // reader refuses, so it opens the way every document the reader refuses does.
-            var names = Enumerable.Range(0, GrantSheet.Most + 1).Select(i => "\"profile" + i + "\":[\"read\"]");
-            var sheet = new GrantSheet("{" + string.Join(",", names) + "}", null, null, null);
-
-            Assert.That(sheet.Unreadable, Is.True);
-            Assert.That(sheet.CanEdit, Is.False);
-            Assert.That(sheet.Set("profile0", ".R......"), Is.Not.Null);
-        }
-
-        [Test]
-        public void A_profile_with_a_rule_here_is_not_offered_a_second_one()
-        {
-            // One row per profile is the whole shape of the table. A pick list offering a name that
-            // is already on it is offering to write a rule over one the operator can see.
-            var sheet = new GrantSheet(
-                Rules.Granting(("reader", "R")), null, new[] { "reader", "editor" }, null);
-
-            Assert.That(sheet.Available, Is.EqualTo(new[] { "editor" }));
-        }
-
-        [Test]
-        public void A_profile_a_group_above_grants_is_not_offered_either()
-        {
-            // It is already a row, in gray, and the way to change it is to choose a rule on that
-            // row: the row stops being inherited and becomes this node's own. A second row for the
-            // same profile is a thing this format cannot store and a table cannot show.
-            var above = TestNode.Root("root").Granting("editor", AclVerb.Read);
-            var sheet = new GrantSheet(null, above, new[] { "reader", "editor" }, null);
-
-            Assert.That(sheet.Available, Is.EqualTo(new[] { "reader" }));
-        }
-
-        [Test]
-        public void A_profile_comes_back_when_its_rule_is_taken_off()
-        {
-            var sheet = new GrantSheet(Rules.Granting(("reader", "R")), null, new[] { "reader" }, null);
-
-            Assert.That(sheet.Available, Is.Empty);
-
-            sheet.Remove("reader");
-
-            Assert.That(sheet.Available, Is.EqualTo(new[] { "reader" }));
-        }
-
-        [Test]
-        public void A_rule_for_a_name_the_database_does_not_name_is_marked_as_granting_nothing()
-        {
-            // Local and inherited alike: a client holds only the names the list still names, so
-            // a rule for any other reaches nobody, wherever it was written.
-            var above = TestNode.Root("root").Granting("retired", AclVerb.Read);
-            var sheet = new GrantSheet(Rules.Granting(("ops", "R"), ("reader", "L")), above, new[] { "reader" }, null);
-
-            Assert.That(sheet.Rows.Select(row => row.ToString()), Is.EqualTo(new[]
-            {
-                "ops .R...... (not named)",
-                "reader .....L..",
-                "retired .R...... (inherited) (not named)"
+                "deploy .R...... Inherited:Inherited",
+                "ops CR...... Own changed",
+                "reader .R...L.. Own",
             }));
         }
 
         [Test]
-        public void A_list_that_could_not_be_read_marks_every_rule()
+        public void A_reading_made_since_takes_the_list_of_names_as_well()
         {
-            // The editor is handed an empty list when the database's cannot be read, and the gate
-            // grants nothing then either, so every row says so.
-            var sheet = new GrantSheet(Rules.Granting(("reader", "L")), null, System.Array.Empty<string>(), null);
+            var sheet = GrantSheet.Of(Rules.Node(false, ("reader", "R")), null, new[] { "ops" }, null);
+            Assert.That(Sheets.Single(sheet, "reader").States, Is.EqualTo(new[] { GrantState.NoProfile }));
 
-            Assert.That(sheet.Rows.Single().Named, Is.False);
+            sheet.Rebase(Rules.Node(false, ("reader", "R")), null, new[] { "ops", "reader" }, null);
+
+            Assert.That(Sheets.Single(sheet, "reader").States, Is.Empty);
+            Assert.That(sheet.Offered, Is.EqualTo(new[] { "ops", "reader" }));
         }
 
         [Test]
-        public void A_list_read_again_is_what_the_sheet_offers_and_marks_by()
+        public void No_press_reaches_anything_but_the_sheet()
         {
-            // S194: the list was read once, as the dialog opened, and a pairing approved over the
-            // dialog can name a profile meanwhile: the new name stayed off the pick list, and a
-            // rule for a name put back was still marked as granting nothing.
-            var sheet = new GrantSheet(Rules.Granting(("ops", "R")), null, new[] { "reader" }, null);
-            Assume.That(sheet.Rows.Single().Named, Is.False);
+            // The rules the sheet was given are what the store holds, and a press changes the
+            // sheet and nothing else: the rule handed in reads as it did before every press.
+            var rule = Rules.Stored(("reader", "row:R"), ("reader", "row:RL"), ("ops", "off:R"), ("deploy", "row:C"), (null, "sw:inherit ops=R"));
+            var sheet = Sheets.Of(rule, Sheets.Arriving(("ops", "RL")));
 
-            Assert.That(sheet.ReloadNames(new[] { "reader", "ops", "editor" }), Is.True);
-            Assert.That(sheet.Rows.Single().Named, Is.True, "a rule for a name put back is in force");
-            Assert.That(sheet.Available, Is.EqualTo(new[] { "editor", "reader" }), "a name added is offered");
+            sheet.RemoveVersion("reader", sheet.Rows.First(row => row.Profile == "reader").Version);
+            sheet.Settle("ops");
+            sheet.Remove("deploy");
+            sheet.PressBox();
 
-            Assert.That(sheet.ReloadNames(new[] { "editor", "ops", "reader" }), Is.False,
-                "the same names in another order are no change");
+            Assert.That(rule.Row("reader").Versions.Count, Is.EqualTo(2));
+            Assert.That(rule.Row("deploy").Versions.Count, Is.EqualTo(1));
+            Assert.That(rule.Switch.Versions.Count, Is.EqualTo(1));
+        }
 
-            Assert.That(sheet.ReloadNames(new[] { "reader" }), Is.True);
-            Assert.That(sheet.Rows.Single().Named, Is.False, "and a name taken off is marked again");
-            Assert.That(sheet.Available, Is.EqualTo(new[] { "reader" }));
+        [Test]
+        public void OK_is_handed_nothing_where_nothing_was_pressed()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:R"), ("reader", "row:RL"), (null, "sw:deny")), Sheets.Arriving(("ops", "RL")));
+
+            Assert.That(sheet.Changes.IsEmpty, Is.True);
+        }
+
+        [Test]
+        public void OK_is_handed_nothing_for_presses_that_brought_every_row_and_the_box_back()
+        {
+            var sheet = Sheets.Of(Rules.Node(true, ("reader", "RL")), Sheets.Arriving(("ops", "R")));
+
+            sheet.Set("reader", ".R......");
+            sheet.Set("reader", ".R...L..");
+            sheet.Set("ops", "CR......");
+            sheet.Remove("ops");
+            sheet.PressBox();
+            sheet.PressBox();
+
+            Assert.That(sheet.Changes.IsEmpty, Is.True);
+        }
+
+        [Test]
+        public void OK_is_handed_a_rule_chosen_with_the_letters_wanted_and_the_rules_the_tab_showed()
+        {
+            var rule = Rules.Stored(("reader", "row:R"), ("reader", null));
+            var sheet = Sheets.Of(rule, null);
+            sheet.RemoveVersion("reader", sheet.Rows.Single(row => row.Mask == ".R......").Version);
+
+            Assert.That(sheet.Set("reader", "CR......"), Is.Null);
+
+            var change = sheet.Changes.Rows.Single();
+            Assert.That(change.Kind, Is.EqualTo(RowChangeKind.Set));
+            Assert.That(change.Profile, Is.EqualTo("reader"));
+            Assert.That(VerbMask.Of(change.Letters), Is.EqualTo("CR......"));
+            Assert.That(change.Removed, Is.Empty);
+            Assert.That(change.Shown, Is.SameAs(rule), "the versions a chosen rule names: every version the tab showed");
+            Assert.That(sheet.Changes.Switch, Is.Null);
+        }
+
+        [Test]
+        public void OK_is_handed_a_rule_taken_off_with_the_letters_arriving_at_the_press()
+        {
+            var rule = Rules.Node(false, ("reader", "R"));
+            var sheet = Sheets.Of(rule, Sheets.Arriving(("reader", "RL")));
+
+            sheet.Remove("reader");
+            sheet.Rebase(rule, Sheets.Arriving(("reader", "CRL")), Sheets.Names, null);
+
+            var change = sheet.Changes.Rows.Single();
+            Assert.That(change.Kind, Is.EqualTo(RowChangeKind.TakeOff));
+            Assert.That(VerbMask.Of(change.Letters), Is.EqualTo(".R...L.."), "the letters the tab showed at the press");
+            Assert.That(change.Shown, Is.SameAs(rule));
+        }
+
+        [Test]
+        public void OK_is_handed_each_version_removed_from_a_group()
+        {
+            var rule = Rules.Stored(("reader", "row:R"), ("reader", "row:RL"), ("reader", "row:CRL"));
+            var sheet = Sheets.Of(rule, null);
+            var removed = sheet.Rows.Take(2).Select(row => row.Version).ToList();
+
+            sheet.RemoveVersion("reader", removed[0]);
+            sheet.RemoveVersion("reader", removed[1]);
+
+            var change = sheet.Changes.Rows.Single();
+            Assert.That(change.Kind, Is.EqualTo(RowChangeKind.RemoveVersions));
+            Assert.That(change.Letters, Is.Null);
+            Assert.That(change.Removed, Is.EqualTo(removed.OrderBy(id => id, System.StringComparer.Ordinal)));
+            Assert.That(change.Shown, Is.SameAs(rule));
+        }
+
+        [Test]
+        public void OK_is_handed_a_limit_settled_with_the_letters_arriving_at_the_press()
+        {
+            var rule = Rules.Stored(("reader", "off:R"));
+            var sheet = Sheets.Of(rule, Sheets.Arriving(("reader", "RL")));
+
+            sheet.Settle("reader");
+
+            var change = sheet.Changes.Rows.Single();
+            Assert.That(change.Kind, Is.EqualTo(RowChangeKind.Settle));
+            Assert.That(VerbMask.Of(change.Letters), Is.EqualTo(".R...L.."));
+            Assert.That(change.Shown, Is.SameAs(rule));
+        }
+
+        [Test]
+        public void OK_is_handed_a_rule_taken_off_where_a_limit_is_settled_after_versions_were_removed()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:RL"), ("reader", "off:R")), Sheets.Arriving(("reader", "RL")));
+            sheet.RemoveVersion("reader", sheet.Rows.Single(row => row.States.Contains(GrantState.Unmerged)).Version);
+
+            Assert.That(sheet.Settle("reader"), Is.True);
+
+            var change = sheet.Changes.Rows.Single();
+            Assert.That(change.Kind, Is.EqualTo(RowChangeKind.TakeOff), "a single version naming every version shown");
+            Assert.That(VerbMask.Of(change.Letters), Is.EqualTo(".R...L.."));
+        }
+
+        [Test]
+        public void OK_is_handed_the_box_ticked_with_no_letter_arriving()
+        {
+            var rule = NodeRule.None;
+            var sheet = Sheets.Of(rule, Sheets.Arriving(("reader", "RL")));
+
+            sheet.PressBox();
+
+            var box = sheet.Changes.Switch;
+            Assert.That(box.Refuses, Is.True);
+            Assert.That(box.Arriving, Is.Empty);
+            Assert.That(box.Shown, Is.SameAs(rule));
+            Assert.That(sheet.Changes.Rows, Is.Empty);
+        }
+
+        [Test]
+        public void OK_is_handed_the_box_cleared_with_the_letters_arriving_for_each_profile_any_arrive_for()
+        {
+            var rule = Rules.Node(true, ("ops", "R"));
+            var above = TestNode.Root("a group above").Holding(Rules.Node(false, ("reader", "RL"), ("ops", "CR"), ("deploy", "")));
+            var sheet = GrantSheet.Of(rule, AclResolver.Above(above), Sheets.Names, null);
+
+            sheet.PressBox();
+
+            var box = sheet.Changes.Switch;
+            Assert.That(box.Refuses, Is.False);
+            Assert.That(box.Arriving.Keys, Is.EquivalentTo(new[] { "ops", "reader" }), "a profile nothing arrives for is left out");
+            Assert.That(VerbMask.Of(box.Arriving["ops"]), Is.EqualTo("CR......"), "with a rule at the node or not");
+            Assert.That(VerbMask.Of(box.Arriving["reader"]), Is.EqualTo(".R...L.."));
+        }
+
+        [Test]
+        public void OK_is_handed_a_change_for_each_profile_pressed_in_order_and_a_press_kept_across_a_reading()
+        {
+            var sheet = Sheets.Of(Rules.Node(false, ("reader", "R"), ("ops", "R")), null);
+            sheet.Set("reader", "CR......");
+            sheet.Set("ops", "CR...L..");
+            var shown = sheet.Changes.Rows.Select(change => change.Shown).ToList();
+
+            sheet.Rebase(Rules.Node(false, ("reader", "RL"), ("ops", "RL")), null, Sheets.Names, null);
+
+            var changes = sheet.Changes.Rows;
+            Assert.That(changes.Select(change => change.Profile), Is.EqualTo(new[] { "ops", "reader" }));
+            Assert.That(changes.Select(change => change.Shown), Is.EqualTo(shown), "the rules the tab showed at each press");
+        }
+
+        [Test]
+        public void Each_press_keeps_the_versions_below_as_the_tab_s_reading_held_them_at_the_press()
+        {
+            // `STORE.md` §617: an OK renews below only versions the tab's reading held at the
+            // press, so a reading made since, as a record that lands makes it, reaches the presses
+            // made after it and no press made before.
+            var sheet = Sheets.Of(Rules.Node(false, ("reader", "R"), ("ops", "R")), Sheets.Arriving(("reader", "RL")));
+            sheet.Set("reader", "CR......");
+            Assert.That(sheet.Changes.Rows.Single().Below, Is.Empty, "nothing kept where the tab read nothing below");
+
+            var first = new[] { new string('1', 32), new string('2', 32) };
+            sheet.TakeBelow(first);
+            sheet.Set("ops", "CR...L..");
+            sheet.PressBox();
+
+            var second = new[] { new string('3', 32) };
+            sheet.TakeBelow(second);
+            sheet.Remove("reader");
+
+            var changes = sheet.Changes;
+            Assert.That(changes.Rows.Single(change => change.Profile == "ops").Below, Is.EquivalentTo(first));
+            Assert.That(changes.Switch.Below, Is.EquivalentTo(first));
+            Assert.That(changes.Rows.Single(change => change.Profile == "reader").Below, Is.EquivalentTo(second), "the press that replaced the first press on the row");
         }
     }
 }

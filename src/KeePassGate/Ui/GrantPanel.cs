@@ -13,20 +13,23 @@ namespace KeePassGate.Ui
     /// The KPG tab on a group or entry dialog: who may reach this, and how far.
     /// </summary>
     /// <remarks>
-    /// This exists because `CustomData` is not editable in the stock KeePass dialogs, so without it
-    /// no grant can be made at all and the whole access control model is inert.
+    /// The stock KeePass dialogs offer no way to set a rule, so without this tab no grant can be
+    /// made at all and the whole access control model is inert.
     ///
-    /// **The table is the tab.** One row per profile, its rule as a `CRUSDLAP` mask in a monospaced
-    /// column, the rules inherited from above shown among the local ones in gray, and any of those
-    /// this node's own seal refuses struck through. Everything the panel decides is in
-    /// `GrantSheet`, which is tested without a message pump; what is left here is drawing it and
-    /// turning clicks into calls.
+    /// **The table is the tab.** Rows by profile, each rule as a `CRUSDLAP` mask in a monospaced
+    /// column, the rules inherited from above shown among the node's own in gray, any of those
+    /// the node's box refuses struck through, and a State column naming what keeps a row from
+    /// being in force as shown, with what the state means in the tooltip of its cell. The rows of
+    /// a profile bound together, the versions of a rule or a limit under its inherited rule, stand
+    /// in a bracket on a light red, with the letters they differ in drawn in bold, `GrantMarks`.
+    /// Everything the panel decides is in `GrantSheet`, which is tested without a message pump;
+    /// what is left here is drawing the sheet and turning clicks into calls.
     ///
-    /// **It writes on every edit, and only when the rules mean something else.** An edit is a
-    /// choice in a picker, an X, the seal or Discard: neither column can be typed into, so nothing
-    /// else reaches the store. A dialog's OK is what makes
-    /// the write durable, because what this edits is the dialog's own copy of the node's custom
-    /// data. Cancel therefore discards it, which is what an operator pressing Cancel means.
+    /// **A press writes nothing**, `STORE.md` §629. A press is a choice in a picker, an X or the
+    /// box, and each changes the sheet alone; the dialog's OK hands the sheet's changes to the
+    /// writer as the dialog closes, and any other close throws the changes away. So OK and Cancel
+    /// on the dialog do what the two words promise, and a row changed on the tab tells so in its
+    /// tooltip, its accessible text and a light yellow until the dialog closes.
     ///
     /// Nothing in here throws. It runs on the UI thread of a password manager.
     /// </remarks>
@@ -34,19 +37,24 @@ namespace KeePassGate.Ui
     {
         private const int ProfileColumn = GrantTab.ProfileColumn;
         private const int MaskColumn = GrantTab.MaskColumn;
+        private const int StateColumn = GrantTab.StateColumn;
         private const int ForgetColumn = GrantTab.ForgetColumn;
 
-        /// <summary>What the button in the last column says. One character, and it means remove.</summary>
+        /// <summary>What the button in the last column reads. A single character, and it means remove.</summary>
         private const string ForgetMark = "X";
 
+        /// <summary>Every word the State column can show.</summary>
+        private static readonly string[] StateWords =
+            Enum.GetValues(typeof(GrantState)).Cast<GrantState>().Select(GrantTab.Word).ToArray();
+
         private readonly GrantSheet _sheet;
-        private readonly IGrantStore _store;
         private readonly IGateLog _log;
 
         /// <summary>
-        /// The database's list of profiles as it stands, or null where it is not read again.
+        /// The node's rules, what arrives and the names, read again, or null where nothing is read
+        /// again.
         /// </summary>
-        private readonly Func<IEnumerable<string>> _profiles;
+        private readonly Func<GrantReading> _again;
 
         /// <summary>Told when a record lands, or null where nothing is listened to.</summary>
         private readonly IAdmissionNotice _admissions;
@@ -55,8 +63,22 @@ namespace KeePassGate.Ui
         private readonly Label _warning;
         private readonly DataGridView _grid;
         private readonly CheckBox _sealed;
-        private readonly Button _discard;
         private readonly ToolTip _tips;
+
+        /// <summary>The strip between the table and the box.</summary>
+        private readonly Panel _air;
+
+        /// <summary>
+        /// How tall the strip between the table and the box stands where the strip lends nothing,
+        /// scaled with the panel.
+        /// </summary>
+        private int _band = Spacing.Gap;
+
+        /// <summary>
+        /// How many presses the sheet took, so that a failure after a press can tell whether the
+        /// press is on the sheet.
+        /// </summary>
+        private int _pressed;
 
         /// <summary>The masks' own font, built again whenever the panel's changes.</summary>
         private Font _monospace;
@@ -73,6 +95,9 @@ namespace KeePassGate.Ui
 
         private bool _populating;
 
+        /// <summary>Whether drawing the marks failed since the table was last filled, `OnCellPainting`.</summary>
+        private bool _marksFailed;
+
         /// <summary>
         /// The picker that is showing, or null.
         /// </summary>
@@ -83,34 +108,28 @@ namespace KeePassGate.Ui
         /// </remarks>
         private Picker _open;
 
-        public GrantPanel(GrantSheet sheet, IGrantStore store, string scope, IGateLog log)
-            : this(sheet, store, scope, log, null, null)
-        {
-        }
-
         /// <summary>
-        /// The same, reading the database's profiles again whenever it reads the rules again, and
-        /// doing both when a record lands.
+        /// The tab over a sheet, reading the node's rules and the database's profiles again when a
+        /// record lands.
         /// </summary>
         /// <remarks>
         /// A pairing approved while a group or an entry dialog is open names a profile the list
-        /// did not, `GrantSheet.ReloadNames` gives the cost, and the approval is answered over this
-        /// very dialog. Read only when the tab came forward, the new name stayed off the pick list
-        /// for as long as the operator stayed on the tab they had come back to.
+        /// did not, and a synchronize a trigger starts can bring versions of the node's rules in:
+        /// a row the operator did not touch follows the store, and a row the operator touched keeps
+        /// its press, `GrantSheet.Rebase`.
         /// </remarks>
-        /// <param name="profiles">
-        /// The database's list of profiles as it stands, or null for a tab whose list is not read
-        /// again.
+        /// <param name="again">
+        /// The node's rules, what arrives and the database's list, read again, or null for a tab
+        /// that reads nothing again.
         /// </param>
         /// <param name="admissions">
         /// Told when a record lands, or null for a tab told nothing.
         /// </param>
         public GrantPanel(
             GrantSheet sheet,
-            IGrantStore store,
             string scope,
             IGateLog log,
-            Func<IEnumerable<string>> profiles,
+            Func<GrantReading> again,
             IAdmissionNotice admissions)
         {
             if (sheet == null)
@@ -119,12 +138,15 @@ namespace KeePassGate.Ui
             }
 
             _sheet = sheet;
-            _store = store;
             _log = log ?? NullGateLog.Instance;
-            _profiles = profiles;
+            _again = again;
             _admissions = admissions;
 
             Name = GrantTab.PanelControlName;
+
+            // A name of its own: with none, UI automation names the panel after the label standing
+            // before the page on KeePass's dialog, which is "UUID:".
+            AccessibleName = GrantTab.PanelLabel;
 
             // No scaling mode of its own. The page is scaled once, as it is attached, by as much as
             // the dialog around it was; a font mode here, with nothing to measure against, did
@@ -174,45 +196,37 @@ namespace KeePassGate.Ui
                 AutoSize = true,
                 Dock = DockStyle.Bottom,
 
-                // A few pixels of air, so the box does not read as the table's last row. Padding
-                // rather than a margin, because a docked control is laid out edge to edge and its
-                // margin is not consulted at all.
-                Padding = new Padding(0, Spacing.Gap, 0, 0),
+                // Three marks to show and two to press: the mixed mark is shown where copies of
+                // the database set the switch differently, and a press only ticks or clears, so
+                // the box takes no mark of its own from a click and the sheet decides.
+                ThreeState = true,
+                AutoCheck = false,
             };
 
-            _discard = new Button
-            {
-                Name = GrantTab.DiscardButtonName,
-                Text = GrantTab.DiscardButtonText,
-                AutoSize = true,
-                Dock = DockStyle.Bottom,
-                Visible = false,
-            };
+            // A few pixels of air, so the box does not read as the table's last row: a strip of
+            // its own between the two rather than a padding of the box's, which the box's color
+            // fills, so a box in the mixed mark or changed takes its color on its own line and not
+            // up against the table. A strip rather than a margin, because a docked control is laid
+            // out edge to edge and its margin is not consulted at all. The strip lends the table
+            // what the table's last row lacks, `Lend`.
+            _air = new Panel { Dock = DockStyle.Bottom, Height = _band };
 
             _grid = BuildGrid();
 
             Controls.Add(_grid);
+            Controls.Add(_air);
             Controls.Add(_sealed);
-            Controls.Add(_discard);
             Controls.Add(_warning);
             Controls.Add(_scope);
 
-            Tooltips.Set(_tips, _sealed, GrantTab.SealCheckBoxHelp);
-            Tooltips.Set(_tips, _discard, GrantTab.DiscardButtonHelp);
+            _sealed.Click += (sender, e) => WindowHandlers.Run("the box could not be pressed", PressBox);
 
-            _sealed.CheckedChanged += (sender, e) => WindowHandlers.Run("the seal could not be changed", OnSealChanged);
-            _discard.Click += (sender, e) =>
-                WindowHandlers.Run("rules nobody can read could not be discarded", Discard);
-
-            // Every time the tab is brought forward, which is the only way back to it from the
-            // Plugin Data tab that shares its copy.
-            VisibleChanged += (sender, e) => WindowHandlers.Run("the rules could not be read again", () =>
-            {
-                if (Visible)
-                {
-                    Resync();
-                }
-            });
+            // The help of the box's accessible object is the box's whole tooltip, as its
+            // description is, where the object gives no help unanswered. UI automation, through
+            // its own proxy for a Windows button, reads the help off the tooltip's window instead,
+            // with the tooltip's breaks and marks and cut after 127 characters, measured: nothing
+            // on the box changes that reading.
+            _sealed.QueryAccessibilityHelp += (sender, e) => e.HelpString = _sealed.AccessibleDescription;
 
             Populate();
 
@@ -252,16 +266,9 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// How many times this panel has actually written.
+        /// The rows on screen, in order, as text: the profile, the mask and the word of the State
+        /// column where the row has one. For tests and for automation.
         /// </summary>
-        /// <remarks>
-        /// For the tests, and it is the number that matters: an edit that leaves the rules meaning
-        /// what they meant writes nothing, and a panel that wrote on every one of them would leave
-        /// an entry changed, with a revision in its history, for having been looked at.
-        /// </remarks>
-        public int Writes { get; private set; }
-
-        /// <summary>The rows on screen, in order, as text. For tests and for automation.</summary>
         public IList<string> Lines
         {
             get
@@ -271,7 +278,9 @@ namespace KeePassGate.Ui
                 {
                     if (!row.IsNewRow)
                     {
-                        lines.Add(TextOf(row, ProfileColumn) + " " + TextOf(row, MaskColumn));
+                        var state = TextOf(row, StateColumn);
+                        lines.Add(TextOf(row, ProfileColumn) + " " + TextOf(row, MaskColumn)
+                                  + (state.Length == 0 ? string.Empty : " " + state));
                     }
                 }
 
@@ -344,97 +353,68 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Writes a rule, exactly as choosing one in the rule picker does.
+        /// Chooses a rule, exactly as choosing it in the rule picker does.
         /// </summary>
         /// <remarks>
-        /// Public for the same reason the tab's buttons are: `Button.PerformClick` does nothing on a
-        /// form that was never shown, silently, so a test that pressed one would assert against a
-        /// table nobody touched. What the panel does is reachable without a window.
+        /// Public for the same reason the tab's other gestures are: `Button.PerformClick` does
+        /// nothing on a form that was never shown, silently, so a test that pressed a button would
+        /// assert against a table nobody touched. What the panel does is reachable without a window.
         /// </remarks>
         public string SetGrant(string profile, string mask)
         {
             var complaint = _sheet.Set(profile, mask);
             if (complaint == null)
             {
-                Apply(profile);
+                Pressed(profile);
             }
 
             return complaint;
         }
 
-        /// <summary>Takes a rule off this node, exactly as pressing the X does.</summary>
-        public bool RemoveGrant(string profile)
+        /// <summary>Presses the box, exactly as clicking the box does.</summary>
+        /// <remarks>
+        /// A press only ticks or clears, and the sheet decides which: a cleared box and a box in
+        /// the mixed mark are ticked, a ticked box and a lost box are cleared.
+        /// </remarks>
+        public void PressBox()
         {
-            if (!_sheet.Remove(profile))
+            if (!_populating && _sheet.PressBox())
             {
-                return false;
+                Pressed(null);
             }
-
-            Apply(profile);
-            return true;
-        }
-
-        /// <summary>Throws away a document nobody can read, exactly as the button does.</summary>
-        public void Discard()
-        {
-            if (!_sheet.Unreadable)
-            {
-                return;
-            }
-
-            _sheet.DiscardUnreadable();
-            Apply();
         }
 
         /// <summary>
-        /// Reads the store and the database's profiles again, and redraws the table when something
-        /// other than this tab has changed either.
+        /// Reads the node's rules, what arrives and the database's profiles again, and redraws the
+        /// table: a row nobody pressed follows the reading, a row pressed keeps its press.
         /// </summary>
         /// <remarks>
-        /// Asked whenever the tab is brought forward, because what can change the dialog's copy
-        /// behind this tab's back is on the same dialog: KeePass's Plugin Data tab, whose Delete
-        /// takes the `KPG` key out. `GrantSheet.Reload` gives what a stale table cost. And asked
-        /// when a record lands, since the profiles have a second writer: `GrantSheet.ReloadNames`
-        /// gives that cost. Public for the reason `SetGrant` is.
+        /// Asked when a record lands, which is when a pairing may have named a profile, and a
+        /// write of the plugin's own may have brought versions of the node's rules. Public for the
+        /// reason `SetGrant` is.
         /// </remarks>
         public void Resync()
         {
-            if (Picking)
+            if (Picking || _again == null)
             {
                 return;
             }
 
-            // Both, whichever changed: the profiles on a tab whose rules could not be read again
-            // still mark the rules it shows.
-            var rules = ReloadRules();
-            var names = _profiles != null && _sheet.ReloadNames(_profiles());
-
-            if (rules || names)
+            var reading = _again();
+            if (reading == null)
             {
-                Populate();
+                return;
             }
+
+            _sheet.Rebase(reading.Rule, reading.Above, reading.Names, reading.ReadOnlyReason);
+            Populate();
         }
 
-        /// <summary>Reads the store again, answering whether what it holds had changed.</summary>
-        private bool ReloadRules()
+        /// <summary>A press the sheet took: counted, and the table drawn again on the profile pressed.</summary>
+        private void Pressed(string profile)
         {
-            if (_store == null)
-            {
-                return false;
-            }
-
-            string stored;
-            try
-            {
-                stored = _store.Read();
-            }
-            catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfReflection(error))
-            {
-                _log.Warn("the rules on this dialog could not be read again: " + error.Message);
-                return false;
-            }
-
-            return _sheet.Reload(stored);
+            _pressed++;
+            Populate(profile);
         }
 
         /// <summary>
@@ -453,24 +433,18 @@ namespace KeePassGate.Ui
             }
 
             var row = _grid.Rows[rowIndex];
-            if (row.IsNewRow)
+            var shown = RowOf(row);
+            if (row.IsNewRow || shown == null || !shown.TakesRule)
             {
+                // A version of a rule in several versions and a limit offer their X and no list,
+                // `STORE.md` §657: no single press on such a row grants more than a version held.
                 return;
             }
 
-            var profile = ProfileOf(row);
-            if (profile.Length == 0)
-            {
-                // A rule stored for no profile at all, which only a document written by hand can
-                // hold. The empty line at the bottom never reaches here, since `Press` and the
-                // keyboard send it to the profile list, so asking for a profile first was a
-                // sentence about a different row. Said rather than ignored, because a cell that
-                // does nothing when pressed is a cell somebody presses again.
-                Warn(GrantTab.RuleWithoutProfile);
-                return;
-            }
+            var profile = shown.Profile;
 
-            Warn(null);
+            // A complaint of an earlier press goes, and what the tab always tells stays.
+            Warn(_sheet.Warning);
 
             var held = VerbMask.Read(TextOf(row, MaskColumn)) ?? new List<AclVerb>();
 
@@ -497,21 +471,20 @@ namespace KeePassGate.Ui
             // Escape means "as it was", so the closing handler has to know which way it was closed.
             var discarded = false;
 
-            // And Enter means "this", which on a row the seal refuses is not the same as leaving it.
+            // And Enter means "this", whatever the row shows: the rule chosen goes to the sheet,
+            // which holds no change where the choice gives what the store holds already.
             var confirmed = false;
 
             // What it looked like when it opened. Clicking away is how a dropdown is usually
             // left, and on an inherited row every box is already checked from the rule above, so
             // without this a glance at one writes a local rule nobody asked for. That rule
             // shadows the parent for good, so narrowing the parent later leaves this node wide.
+            //
+            // **Enter is no glance.** On a row this node's box refuses, the same check marks are
+            // the only way to let the rule above through; on a lost row an empty rule is a rule
+            // that replaces the lost version; and on the row an X left, the rule the X took off
+            // chosen again takes the X back. Clicking away still chooses nothing there.
             var before = VerbMask.Of(held);
-
-            // **Except where the rule above stops here.** On a row this node's seal refuses, the
-            // same check marks written here are not a copy of the rule above but the only way to
-            // let it through, which is what the row's own tooltip tells the operator to do. So
-            // Enter writes them. Clicking away still does not: that is how a dropdown is left
-            // after a glance, and a glance must not undo a seal.
-            var refused = Refused(profile);
 
             var drop = new Picker(key =>
             {
@@ -556,17 +529,17 @@ namespace KeePassGate.Ui
                 }
 
                 var mask = VerbMask.Of(chosen);
-                if (string.Equals(mask, before, StringComparison.Ordinal) && !(refused && confirmed))
+                if (string.Equals(mask, before, StringComparison.Ordinal) && !confirmed)
                 {
-                    // Nothing was checked or cleared, so nothing is written. On a local rule
-                    // that saves a change nobody made; on an inherited one it is the whole
-                    // difference between reading the table and rewriting it.
+                    // Nothing was checked or cleared and nothing confirmed, so nothing is chosen.
+                    // On a rule of this node's own that keeps a change nobody made off the sheet;
+                    // on an inherited rule it is the whole difference between reading the table
+                    // and rewriting it.
                     return;
                 }
 
-                // Said, not dropped. The sheet refuses a name no certificate could carry, and a
-                // document written by hand can hold one, so this is reachable. A picker that
-                // closed on a refusal it never mentioned is a control that did nothing.
+                // Shown, not dropped. A picker that closed on a refusal it never mentioned is a
+                // control that did nothing.
                 var complaint = SetGrant(profile, mask);
                 if (complaint != null)
                 {
@@ -598,20 +571,18 @@ namespace KeePassGate.Ui
                 return;
             }
 
+            // A complaint of an earlier press goes, and what the tab always tells stays: a database
+            // naming no profile is told over the table before any press, `GrantSheet.Warning`.
+            Warn(_sheet.Warning);
+
             var free = ProfileChoices;
             if (free.Count == 0)
             {
-                // Nothing at all when every profile is already on the table: what the sentence
-                // said was that the rows the operator is looking at are all of them, which the
-                // rows say themselves, and it cost four lines of a page that has few to spend.
-                //
-                // A database naming no profiles is the other case and keeps its sentence, because
-                // there the table is empty and nothing on the page says where one comes from.
-                Warn(Any(_sheet.Offered) ? null : GrantTab.NoProfilesYet);
+                // Nothing at all when every profile is already on the table: a sentence telling
+                // that the rows the operator is looking at are all of them tells what the rows
+                // tell themselves, at the cost of lines of a page that has few to spend.
                 return;
             }
-
-            Warn(null);
 
             var list = new ListBox
             {
@@ -681,7 +652,7 @@ namespace KeePassGate.Ui
                 // Straight on to what it may do, because choosing a profile is half a decision:
                 // the rule that exists now grants nothing, and nobody opened this to say that.
                 var profile = chosen;
-                Later("opened", () => OpenPicker(RowOf(profile)));
+                Later(Opened, () => OpenPicker(IndexOf(profile)));
             });
 
             Open(drop, list, ProfileColumn, rowIndex, keys);
@@ -734,9 +705,9 @@ namespace KeePassGate.Ui
         /// <returns>Null when the rule is now on the table, or one sentence saying what is wrong.</returns>
         public string AddGrant(string profile)
         {
-            if (_sheet.Owns(profile))
+            if (_sheet.Shows(profile))
             {
-                return "There is already a rule for \"" + profile + "\" here.";
+                return GrantTab.AlreadyShown;
             }
 
             return SetGrant(profile, VerbMask.Of(null));
@@ -762,8 +733,9 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Gives the masks a monospaced font a point larger than the panel's new font, and the
-        /// masks that no longer arrive the same font struck through.
+        /// Gives the masks a monospaced font a point larger than the panel's new font, the masks
+        /// that no longer arrive the same font struck through, and a bound line's bracket the room
+        /// the new font needs.
         /// </summary>
         /// <remarks>
         /// Both are the panel's own, and a font set on a column or a cell is not a font it
@@ -801,6 +773,12 @@ namespace KeePassGate.Ui
                     struck.Style.Font = _refusedMask;
                 }
 
+                // And the room before a bound line's name, which the bracket grows into.
+                foreach (var bound in _grid.Rows.OfType<RuleRow>().Where(row => row.Marks != null && row.Marks.Bound).ToList())
+                {
+                    bound.Cells[ProfileColumn].Style.Padding = Bracketed();
+                }
+
                 monospace.Dispose();
                 refused.Dispose();
             });
@@ -826,7 +804,7 @@ namespace KeePassGate.Ui
             var text = VerbMask.LetterOf(verb) + "   " + AclVerbs.Write(verb);
 
             return AclVerbs.IsScope(verb)
-                ? text + " (apply checked permissions)"
+                ? text + " " + GrantTab.SwitchApplies
                 : text;
         }
 
@@ -869,76 +847,6 @@ namespace KeePassGate.Ui
             return true;
         }
 
-        /// <summary>
-        /// What a rule here does to the one a group above grants the same profile, as the word
-        /// that starts the sentence saying so.
-        /// </summary>
-        /// <remarks>
-        /// Worked out rather than assumed. Nearest wins, so a rule here replaces the one above it
-        /// in full, and one that grants more than that rule is in force in full: said to narrow it,
-        /// the tooltip told an operator widening an entry that the group's rule still bounded it,
-        /// which is the direction a sentence about permissions must never be wrong in.
-        ///
-        /// **Compared as what the gate grants, not as letters.** A switch is not a verb: it widens
-        /// the verbs beside it that read, and the resolver asks neither switch for a strip or a
-        /// delete, so a switch on a rule that holds no other verb grants nothing. Compared as sets,
-        /// `........` under `......A.` was named as narrowing a rule that granted nothing, and
-        /// `....D.A.` under `....D...` as widening it, where both answer the same.
-        /// </remarks>
-        private static string Replacing(string mask, string inherited)
-        {
-            var here = Effective(VerbMask.Read(mask));
-            var above = Effective(VerbMask.Read(inherited));
-            if (here == null || above == null)
-            {
-                return "Replaces";
-            }
-
-            var inside = Within(here, above);
-            var around = Within(above, here);
-
-            if (inside && around)
-            {
-                return "The same as";
-            }
-
-            if (inside)
-            {
-                return "Narrows";
-            }
-
-            return around ? "Widens" : "Replaces";
-        }
-
-        /// <summary>
-        /// A mask as the gate grants it: its verbs, and its switches only beside a verb that reads,
-        /// which is every verb but strip and delete. Null for a mask that will not read.
-        /// </summary>
-        private static IList<AclVerb> Effective(IList<AclVerb> mask)
-        {
-            if (mask == null)
-            {
-                return null;
-            }
-
-            var reading = mask.Any(verb => !AclVerbs.IsScope(verb) && verb != AclVerb.Strip && verb != AclVerb.Delete);
-            return mask.Where(verb => reading || !AclVerbs.IsScope(verb)).ToList();
-        }
-
-        /// <summary>Whether every verb and switch in the first set is in the second.</summary>
-        private static bool Within(IList<AclVerb> some, IList<AclVerb> all)
-        {
-            foreach (var verb in some)
-            {
-                if (!all.Contains(verb))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
         private static string TextOf(DataGridViewRow row, int column)
         {
             var value = row.Cells[column].Value;
@@ -947,34 +855,21 @@ namespace KeePassGate.Ui
                 : Convert.ToString(value, CultureInfo.InvariantCulture).Trim();
         }
 
-        /// <summary>The profile this row is for, exactly as the document spells it.</summary>
+        /// <summary>What the sheet shows on a line of the table, or null on the empty line.</summary>
         /// <remarks>
-        /// Not <see cref="TextOf"/>, which trims. A document written by hand can name a profile
-        /// with spaces round it, because the reader takes any member name, and the sheet keys that
-        /// rule under the padded name. Asking it to remove the trimmed one misses, so the X on
-        /// that row did nothing and said nothing; setting one added a second rule beside it.
-        /// The name is carried on the cell so that what is drawn and what is keyed cannot part.
+        /// Carried on the row, so that what is drawn and what a press is about cannot part: a
+        /// profile can show on several rows, and each row of a group is a version of its own.
         /// </remarks>
-        private static string ProfileOf(DataGridViewRow row)
+        private static GrantRow RowOf(DataGridViewRow row)
         {
-            var exact = row.Cells[ProfileColumn].Tag as string;
-            return exact ?? TextOf(row, ProfileColumn);
+            return row.Tag as GrantRow;
         }
 
-        /// <summary>
-        /// Whether this profile's row is a rule from a group above that stops at this node.
-        /// </summary>
-        private bool Refused(string profile)
+        /// <summary>The profile a line of the table is for, or null on the empty line.</summary>
+        private static string ProfileOf(DataGridViewRow row)
         {
-            foreach (var row in _sheet.Rows)
-            {
-                if (string.Equals(row.Profile, profile, StringComparison.Ordinal))
-                {
-                    return !row.Local && !row.Reaches;
-                }
-            }
-
-            return false;
+            var shown = RowOf(row);
+            return shown == null ? null : shown.Profile;
         }
 
         /// <summary>
@@ -1148,9 +1043,83 @@ namespace KeePassGate.Ui
         /// opened painted in the selection color as though somebody had chosen it. The current
         /// cell is left where the grid puts it, since that is where the keyboard starts; the
         /// selection is taken off again.
+        ///
+        /// **Enter and Escape are the dialog's**, as on every other page of the dialog, wherever
+        /// the keyboard stands on the table and no picker is open. A `DataGridView` on .NET
+        /// Framework 4.8 answers Enter on every row as its own input, a move down a row, and Escape
+        /// on its empty line as its own input as well, the end of an edit no cell here ever starts,
+        /// measured: left to the grid, Enter would never press OK, and Escape would leave the
+        /// dialog open once the empty line is pressed. Escape handed to the dialog reaches its
+        /// Cancel through the grid's own handling of a dialog key; Enter is answered as the dialog
+        /// answers Enter, its accept button pressed. A picker takes both keys before they reach
+        /// the table, `Picker.ProcessCmdKey`.
+        ///
+        /// **The columns keep their widths for the life of the dialog.** The profile's column takes
+        /// the width the others leave with the room of the vertical scroll bar kept whether or not
+        /// the bar shows, so a press that takes rows away, and the bar with them, moves no column;
+        /// and a column held to the longest text the column can show is as wide with that text
+        /// shown as without, `HoldTo`.
         /// </remarks>
         private sealed class Table : DataGridView
         {
+            private readonly List<Floor> _floors = new List<Floor>();
+
+            private bool _fitting;
+
+            /// <summary>The column given the width the other columns leave, or null for none.</summary>
+            public DataGridViewColumn Widest { get; set; }
+
+            /// <summary>
+            /// The width of the table's own border on each side, as the table draws the border.
+            /// </summary>
+            public int Edge
+            {
+                get
+                {
+                    switch (BorderStyle)
+                    {
+                        case BorderStyle.FixedSingle:
+                            return 1;
+                        case BorderStyle.Fixed3D:
+                            return Application.RenderWithVisualStyles ? 1 : SystemInformation.Border3DSize.Width;
+                        default:
+                            return 0;
+                    }
+                }
+            }
+
+            /// <summary>
+            /// The line the table draws before its first column where no row headings stand,
+            /// which the room of the columns leaves out.
+            /// </summary>
+            private int Lead
+            {
+                get
+                {
+                    var single = AdvancedCellBorderStyle.All == DataGridViewAdvancedCellBorderStyle.Single
+                                 || CellBorderStyle == DataGridViewCellBorderStyle.SingleVertical;
+                    return !RowHeadersVisible && single ? 1 : 0;
+                }
+            }
+
+            /// <summary>
+            /// Holds a column at least as wide as the widest of these texts in the font the
+            /// column's cells are drawn in, with this much beside the text, and never under the
+            /// least given, at every font the table takes: a column sized to its cells is then as
+            /// wide whichever of the texts the cells show, and a column of a fixed width stands at
+            /// that width.
+            /// </summary>
+            /// <param name="drawn">
+            /// The font the column's cells are drawn in beside the table's font, made afresh for
+            /// each measure, or null for the table's own font.
+            /// </param>
+            public void HoldTo(DataGridViewColumn column, int least, int beside, IEnumerable<string> texts, Func<Font, Font> drawn)
+            {
+                var floor = new Floor(column, least, beside, texts, drawn);
+                _floors.Add(floor);
+                floor.Apply(Font);
+            }
+
             protected override void OnHandleCreated(EventArgs e)
             {
                 WindowHandlers.Run("the rules could not be shown with nothing chosen", () =>
@@ -1158,6 +1127,189 @@ namespace KeePassGate.Ui
                     base.OnHandleCreated(e);
                     ClearSelection();
                 });
+            }
+
+            protected override void OnFontChanged(EventArgs e)
+            {
+                WindowHandlers.Run("the rules could not take the table's new font", () =>
+                {
+                    base.OnFontChanged(e);
+                    Fit();
+                });
+            }
+
+            protected override void OnLayout(LayoutEventArgs e)
+            {
+                WindowHandlers.Run("the rules could not be laid out", () =>
+                {
+                    base.OnLayout(e);
+
+                    // Laid out again where a width changed: a layout asked for inside a layout is
+                    // dropped, and the scroll bars would stand as the old widths had them.
+                    if (Fit())
+                    {
+                        base.OnLayout(e);
+                    }
+                });
+            }
+
+            protected override void OnColumnWidthChanged(DataGridViewColumnEventArgs e)
+            {
+                WindowHandlers.Run("the rules could not be laid out after a column changed width", () =>
+                {
+                    base.OnColumnWidthChanged(e);
+                    if (e.Column != Widest)
+                    {
+                        Fit();
+                    }
+                });
+            }
+
+            protected override bool IsInputKey(Keys keyData)
+            {
+                return !Dialogs(keyData) && base.IsInputKey(keyData);
+            }
+
+            protected override bool ProcessDialogKey(Keys keyData)
+            {
+                if (!Dialogs(keyData) || (keyData & Keys.KeyCode) != Keys.Enter)
+                {
+                    return base.ProcessDialogKey(keyData);
+                }
+
+                // Outside any catch of this plugin's, as the dialog presses the button itself:
+                // what the button does is the dialog's.
+                var form = FindForm();
+                var accept = form == null ? null : form.AcceptButton;
+                if (accept != null)
+                {
+                    accept.PerformClick();
+                }
+
+                return true;
+            }
+
+            /// <summary>Whether a key is Enter or Escape, held with neither Alt nor Control.</summary>
+            private static bool Dialogs(Keys keyData)
+            {
+                var key = keyData & Keys.KeyCode;
+                return (keyData & (Keys.Alt | Keys.Control)) == Keys.None && (key == Keys.Enter || key == Keys.Escape);
+            }
+
+            /// <summary>
+            /// Holds every column to its texts in the fonts the cells are drawn in now, and gives
+            /// the widest column the width the other columns leave beside the room of the vertical
+            /// scroll bar, whether or not the bar shows; true where a width changed.
+            /// </summary>
+            /// <remarks>
+            /// **The room of the columns is the table's inside less a line**: with no row headings,
+            /// the table draws a line of its own before the first column, measured on .NET
+            /// Framework 4.8, and columns a pixel wider than that room put a scroll bar across.
+            /// </remarks>
+            private bool Fit()
+            {
+                var widest = Widest;
+                if (_fitting || !IsHandleCreated)
+                {
+                    return false;
+                }
+
+                _fitting = true;
+                try
+                {
+                    var changed = false;
+                    foreach (var floor in _floors)
+                    {
+                        changed |= floor.Apply(Font);
+                    }
+
+                    if (widest == null)
+                    {
+                        return changed;
+                    }
+
+                    var others = Columns.Cast<DataGridViewColumn>()
+                        .Where(column => column.Visible && column != widest)
+                        .Sum(column => column.Width);
+                    var room = ClientSize.Width - (2 * Edge) - Lead - VerticalScrollBar.Width;
+                    var width = Math.Max(widest.MinimumWidth, room - others);
+                    if (widest.Width == width)
+                    {
+                        return changed;
+                    }
+
+                    widest.Width = width;
+                    return true;
+                }
+                finally
+                {
+                    _fitting = false;
+                }
+            }
+
+            /// <summary>A column held to the longest of its texts, `HoldTo`.</summary>
+            private sealed class Floor
+            {
+                private readonly DataGridViewColumn _column;
+                private readonly int _least;
+                private readonly int _beside;
+                private readonly string[] _texts;
+                private readonly Func<Font, Font> _drawn;
+
+                public Floor(DataGridViewColumn column, int least, int beside, IEnumerable<string> texts, Func<Font, Font> drawn)
+                {
+                    _column = column;
+                    _least = least;
+                    _beside = beside;
+                    _texts = texts.ToArray();
+                    _drawn = drawn;
+                }
+
+                /// <summary>
+                /// Holds the column to the texts in the font the column's cells are drawn in beside
+                /// this font of the table's; true where a width changed.
+                /// </summary>
+                /// <remarks>
+                /// The font made from the table's rather than the column's own font read, since a
+                /// column given a font of its own takes the font after the table has taken its own.
+                /// </remarks>
+                public bool Apply(Font table)
+                {
+                    int longest;
+                    if (_drawn == null)
+                    {
+                        longest = Longest(table);
+                    }
+                    else
+                    {
+                        using (var font = _drawn(table))
+                        {
+                            longest = Longest(font);
+                        }
+                    }
+
+                    var width = Math.Max(_least, longest + _beside);
+                    var fixedWidth = _column.AutoSizeMode == DataGridViewAutoSizeColumnMode.None;
+                    if (_column.MinimumWidth == width && (!fixedWidth || _column.Width == width))
+                    {
+                        return false;
+                    }
+
+                    var before = _column.Width;
+                    _column.MinimumWidth = width;
+                    if (fixedWidth)
+                    {
+                        _column.Width = width;
+                    }
+
+                    return _column.Width != before;
+                }
+
+                /// <summary>How wide the longest of the texts is in this font.</summary>
+                private int Longest(Font font)
+                {
+                    return _texts.Max(text => TextRenderer.MeasureText(text, font).Width);
+                }
             }
         }
 
@@ -1204,8 +1356,7 @@ namespace KeePassGate.Ui
                     // dropdown at the grid's origin is a dropdown about a row nobody can see.
                     _log.Warn("a grant picker had nowhere to open: row " + rowIndex
                         + " cannot be shown");
-                    Warn("There is no room to show that rule. A taller dialog gives the table "
-                        + "more room.");
+                    Warn(GrantTab.NoRoomForRow);
                     Abandon(drop, keys);
                     return;
                 }
@@ -1333,9 +1484,9 @@ namespace KeePassGate.Ui
                 // dialog closes the picker first. A dialog closed in code, by a close another
                 // program posts to it, goes with the picker still open, and WinForms closes the
                 // picker at the next change of activation, after the dialog and this panel have
-                // gone. The choice is dropped then: there is no table to show it on, and what it
-                // would be written into is the dialog's own copy of the node's custom data, which
-                // nothing reads once the dialog has closed.
+                // gone. The choice is dropped then: there is no table to show it on, and the
+                // dialog's close has handed the sheet to the writer or thrown the sheet away
+                // already.
                 if (!IsHandleCreated)
                 {
                     AbandonLater(drop, keys);
@@ -1347,11 +1498,11 @@ namespace KeePassGate.Ui
                 // dropdown's own `Closed` and both are what that handler must not do: the reason
                 // this is posted at all. With the panel's window there, nothing has been seen to
                 // refuse a post.
-                Later("closed", () =>
+                Later(Closed, () =>
                 {
                     using (drop)
                     {
-                        var writes = Writes;
+                        var pressed = _pressed;
                         try
                         {
                             keys.Dispose();
@@ -1362,24 +1513,10 @@ namespace KeePassGate.Ui
                             // Named rather than swallowed whole, and reported on the tab, because
                             // an ordinary failure of the user interface is no defect for
                             // `WindowHandlers` to record, and the operator at this tab is the one
-                            // to tell. Whatever the choice had put on the sheet and not stored comes
-                            // off it, so that no later write carries it, and the sentence tells
-                            // which happened: a choice stored before the redraw failed is in force.
+                            // to tell. The sentence tells which happened: a choice the sheet took
+                            // before the redraw failed is written at OK.
                             _log.Error("a grant picker could not be closed cleanly", error);
-                            if (Writes > writes)
-                            {
-                                Warn("That choice is stored, but the rules could not be redrawn: "
-                                    + Clipped.Message(error.Message));
-                            }
-                            else
-                            {
-                                if (_sheet.Changed)
-                                {
-                                    _sheet.Revert();
-                                }
-
-                                Warn("That choice could not be applied: " + Clipped.Message(error.Message));
-                            }
+                            Warn(_pressed > pressed ? GrantTab.ChoiceNotDrawn : GrantTab.ChoiceNotTaken);
                         }
                     }
                 });
@@ -1442,10 +1579,15 @@ namespace KeePassGate.Ui
             adding.Style.SelectionBackColor = SystemColors.Control;
             adding.ToolTipText = Tooltips.Wrapped(GrantTab.MaskNeedsAProfile);
 
+            // The State cell beside it as well, for the same reason: no rule, so no state.
+            var state = row.Cells[StateColumn];
+            state.Style.BackColor = SystemColors.Control;
+            state.Style.SelectionBackColor = SystemColors.Control;
+
             // And nothing in the last column, because there is no rule on this line to remove.
             // `OnCellPainting` is what keeps the button from being drawn at all; this is the color
-            // of the space that leaves, which is the gray the permissions cell is wearing two
-            // columns to the left, for the same reason and on the same line.
+            // of the space that leaves, which is the gray the permissions cell is wearing to the
+            // left, for the same reason and on the same line.
             var forget = (DataGridViewButtonCell)row.Cells[ForgetColumn];
             forget.Value = string.Empty;
             forget.Style.BackColor = SystemColors.Control;
@@ -1454,7 +1596,7 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>Which row a profile is on, or -1 when the table has no row for it.</summary>
-        private int RowOf(string profile)
+        private int IndexOf(string profile)
         {
             foreach (DataGridViewRow row in _grid.Rows)
             {
@@ -1467,6 +1609,12 @@ namespace KeePassGate.Ui
 
             return -1;
         }
+
+        /// <summary>What `Later` is told a picker's work does as the picker opens, for the log and the tab.</summary>
+        private const string Opened = "opened";
+
+        /// <summary>The same as the picker closes.</summary>
+        private const string Closed = "closed";
 
         /// <summary>
         /// Runs something once the current message is finished with.
@@ -1503,7 +1651,7 @@ namespace KeePassGate.Ui
                 catch (Exception error) when (Expected.OfUserInterface(error))
                 {
                     _log.Error("a grant picker could not be " + done, error);
-                    Warn("That picker could not be " + done + ": " + Clipped.Message(error.Message));
+                    Warn(done == Opened ? GrantTab.PickerNotOpened : GrantTab.PickerNotClosed);
                 }
             });
 
@@ -1554,11 +1702,12 @@ namespace KeePassGate.Ui
             var profile = new DataGridViewTextBoxColumn
             {
                 Name = GrantTab.ProfileColumnName,
-                HeaderText = "Profile",
+                HeaderText = GrantTab.ProfileColumnHeader,
 
                 // The only column with nothing known about what it holds, so it takes whatever the
-                // other two leave. A profile name is as long as somebody made it.
-                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+                // others leave beside the room of the vertical scroll bar, `Table`. A profile name
+                // is as long as somebody made it.
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
 
                 // Nothing in this table sorts. The rows are already in an order somebody chose:
                 // by profile, with the inherited ones among the local ones rather than under
@@ -1574,12 +1723,7 @@ namespace KeePassGate.Ui
                 // what a rule written before the client paired looks like. Chosen from the list,
                 // the name is one this database names.
                 ReadOnly = true,
-                ToolTipText = Tooltips.Wrapped(
-                    // Both ways a profile becomes one this database knows: named on the
-                    // profiles page, or approved when a client asks for it at pairing.
-                    "The profile this rule is for, chosen from the ones this database "
-                    + "names. Add one on the " + GateName.OnATab + " tab of the database "
-                    + "settings, or approve one when a client asks for it."),
+                ToolTipText = Tooltips.Wrapped(GrantTab.ProfileColumnHelp),
             };
 
             // What the empty line at the bottom says. Set on the column rather than written into
@@ -1623,10 +1767,26 @@ namespace KeePassGate.Ui
             // letters about between rows, and the whole point of a mask is that the eye reads down
             // a column of them: `C` is always first and `P` is always last.
             //
-            // No floor written down for this one. A width that fits the heading fits the masks,
-            // which are eight characters whatever they grant, so the heading is what it measures.
+            // No floor written down for this column: the floor is measured off a mask in the
+            // column's own font, `Table.HoldTo` below, since a mask may be wider than the heading
+            // and a table with no rule yet is to be as wide as a table of rules.
             mask.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
             mask.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleLeft;
+
+            // **A state has a column of its own**, `STORE.md` §657, and is never joined to a name
+            // or a mask: a word that the cell's tooltip explains, and that the cell's accessible
+            // description carries for a screen reader. A word a column wide, so the column is as
+            // wide as its longest word and heading, as the Permissions column is.
+            var state = new DataGridViewTextBoxColumn
+            {
+                Name = GrantTab.StateColumnName,
+                HeaderText = GrantTab.StateColumnHeader,
+                CellTemplate = new StateCell(),
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
+                SortMode = DataGridViewColumnSortMode.NotSortable,
+                ReadOnly = true,
+                ToolTipText = Tooltips.Wrapped(GrantTab.StateColumnHelp),
+            };
 
             var forget = new DataGridViewButtonColumn
             {
@@ -1643,23 +1803,36 @@ namespace KeePassGate.Ui
                 // nothing to remove offers to remove it anyway.
                 UseColumnTextForButtonValue = false,
 
-                // One character or none, so the mark is all there is to fit.
-                AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader,
-                MinimumWidth = GateIcon.Room,
-                ToolTipText = Tooltips.Wrapped(
-                    "Removes the rule this node stores, which puts back whatever is "
-                    + "inherited. A rule that is purely inherited has nothing here to remove."),
+                // One character or none, so the mark is all there is to fit, and the column stands
+                // at the width of the bin or of the X, whichever is wider, whether or not a row
+                // carries an X: `Table.HoldTo` below.
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+                ToolTipText = Tooltips.Wrapped(GrantTab.ForgetColumnHelp),
             };
 
             // One line, so that words nobody sees do not make the heading row taller.
             forget.HeaderCell.Style.WrapMode = DataGridViewTriState.False;
 
+            // Every row a row that tells a screen reader whether the row changed on the tab.
+            grid.RowTemplate = new RuleRow();
+
             grid.Columns.Add(profile);
             grid.Columns.Add(mask);
+            grid.Columns.Add(state);
             grid.Columns.Add(forget);
 
-            // No cell-value handler, because neither column can be typed into: both are
-            // `ReadOnly`, and the only writes to them are this panel's own redraw. A rule is
+            // Widths that no press moves, `Table`: the profile's column takes what the others
+            // leave, the Permissions column is as wide as a mask whether or not a row shows a
+            // mask, the State column as its longest word whichever words the rows show, and the
+            // last column as the bin or the X. The room beside each text is more than a cell of
+            // each kind draws around its text.
+            grid.Widest = profile;
+            grid.HoldTo(mask, mask.MinimumWidth, Spacing.Tight, new[] { VerbMask.Letters }, MaskFont);
+            grid.HoldTo(state, state.MinimumWidth, Spacing.Gap, StateWords, null);
+            grid.HoldTo(forget, GateIcon.Room, 2 * Spacing.Gap, new[] { ForgetMark }, null);
+
+            // No cell-value handler, because no column can be typed into: each is `ReadOnly`, and
+            // the only writes to them are this panel's own redraw. A rule is
             // chosen from the picker rather than typed, which is the decision the table is
             // built around, and `FINDINGS.md` records why automation cannot type into one
             // either. A read-only cell exposes no pattern that operates it, so the end to end
@@ -1682,7 +1855,8 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Draws a cell in the last column as the space it is wherever there is nothing to remove.
+        /// Draws a cell in the last column as the space it is wherever there is nothing to remove,
+        /// and the marks of a line in the other columns, `PaintMarks`.
         /// </summary>
         /// <remarks>
         /// A button column paints a button on every cell it owns whatever that cell has been
@@ -1704,6 +1878,26 @@ namespace KeePassGate.Ui
         {
             if (e.ColumnIndex != ForgetColumn)
             {
+                // A fault drawing the marks is recorded once, by the handler around this, and the
+                // table is drawn by the grid alone until it is filled again: a fault in a paint
+                // is a fault in every cell of every repaint, and the words, the tooltips and the
+                // grid's own drawing tell every state without the marks.
+                if (_marksFailed)
+                {
+                    return;
+                }
+
+                var drawn = false;
+                try
+                {
+                    PaintMarks(e);
+                    drawn = true;
+                }
+                finally
+                {
+                    _marksFailed = !drawn;
+                }
+
                 return;
             }
 
@@ -1737,6 +1931,64 @@ namespace KeePassGate.Ui
 
             e.Paint(e.ClipBounds, DataGridViewPaintParts.Background | DataGridViewPaintParts.Border);
             e.Handled = true;
+        }
+
+        /// <summary>
+        /// Draws a line's bracket over its profile's cell, and its mask a letter at a time, in bold
+        /// where the lines of its group differ.
+        /// </summary>
+        /// <remarks>
+        /// **Every mask is drawn here, bold letters or none**, so that the letters of every line
+        /// stand in the same places and a bold letter reads as the only difference between two
+        /// masks. The cell paints its background, border, selection and focus as ever, and only
+        /// its text is drawn here.
+        ///
+        /// **The bracket in the table's own text color**, the same on every line of a group, so the
+        /// gray of an inherited rule bound to its limit does not break the bracket in two; in a
+        /// selected cell, the selection's text color, the same on every kind of line.
+        /// </remarks>
+        private void PaintMarks(DataGridViewCellPaintingEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.RowIndex >= _grid.Rows.Count)
+            {
+                return;
+            }
+
+            var marks = (_grid.Rows[e.RowIndex] as RuleRow)?.Marks;
+            if (marks == null)
+            {
+                return;
+            }
+
+            var selected = (e.State & DataGridViewElementStates.Selected) != 0;
+            var rightToLeft = _grid.RightToLeft == RightToLeft.Yes;
+
+            if (e.ColumnIndex == ProfileColumn && marks.Bound)
+            {
+                e.Paint(e.ClipBounds, DataGridViewPaintParts.All);
+                marks.DrawBracket(
+                    e.Graphics,
+                    e.CellBounds,
+                    selected ? _grid.DefaultCellStyle.SelectionForeColor : _grid.DefaultCellStyle.ForeColor,
+                    _grid.Font,
+                    rightToLeft);
+                e.Handled = true;
+                return;
+            }
+
+            var mask = e.Value as string;
+            if (e.ColumnIndex == MaskColumn && !string.IsNullOrEmpty(mask))
+            {
+                e.Paint(e.ClipBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.ContentForeground);
+                marks.DrawMask(
+                    e.Graphics,
+                    e.CellBounds,
+                    e.CellStyle,
+                    mask,
+                    selected ? e.CellStyle.SelectionForeColor : e.CellStyle.ForeColor,
+                    rightToLeft);
+                e.Handled = true;
+            }
         }
 
         /// <summary>
@@ -1784,7 +2036,19 @@ namespace KeePassGate.Ui
 
             if (columnIndex == ForgetColumn)
             {
-                RemoveGrant(ProfileOf(_grid.Rows[rowIndex]));
+                Forget(RowOf(_grid.Rows[rowIndex]));
+            }
+        }
+
+        /// <summary>
+        /// The X on a row: the limit settled on a limit row, the version removed on a row bound
+        /// with other versions, and the rule taken off on a row standing alone.
+        /// </summary>
+        private void Forget(GrantRow row)
+        {
+            if (row != null && _sheet.Forget(row))
+            {
+                Pressed(row.Profile);
             }
         }
 
@@ -1826,47 +2090,6 @@ namespace KeePassGate.Ui
             OpenPicker(rowIndex);
         }
 
-        private void OnSealChanged()
-        {
-            if (_populating || !_sheet.CanEdit)
-            {
-                return;
-            }
-
-            _sheet.Default = _sealed.Checked ? AclDefault.Deny : AclDefault.Inherit;
-            Apply();
-        }
-
-        /// <summary>
-        /// Marks a row whose profile the database no longer names, answering with whether it did.
-        /// </summary>
-        /// <remarks>
-        /// Struck through on the mask, which is where the eye already is and what a seal's refusal
-        /// looks like too: in both the rule is there and grants nothing here. The sentence replaces
-        /// whatever the row said before, because narrowing or letting through a rule that reaches
-        /// nobody is not what the operator needs to hear about it. Local and inherited alike, since
-        /// a removed name is inert wherever its rule was written.
-        /// </remarks>
-        private bool Inert(GrantRow row, DataGridViewRow added)
-        {
-            if (row.Named)
-            {
-                return false;
-            }
-
-            added.Cells[MaskColumn].Style.Font = _refusedMask;
-
-            // A rule stored for no profile at all is inert too, and not because a name went: no
-            // name can be added to put it back in force, so it says what it is instead.
-            // On a rule from above that this node refuses as well, adding the name back would not
-            // put it in force here, so both reasons are given.
-            added.Cells[MaskColumn].ToolTipText = Tooltips.Wrapped(
-                string.IsNullOrEmpty(row.Profile)
-                    ? GrantTab.RuleWithoutProfile
-                    : !row.Local && !row.Reaches ? GrantTab.ProfileNotNamedAndRefused : GrantTab.ProfileNotNamed);
-            return true;
-        }
-
         private void Warn(string text)
         {
             _warning.Text = text ?? string.Empty;
@@ -1874,30 +2097,11 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Store, then redraw, unless the store refused, in which case `Save` has redrawn and said
-        /// why, so that what it says is still the last thing written to the tab.
-        /// </summary>
-        /// <remarks>
-        /// **Stored first, so that nothing on the table is missing from the store.** Drawn first, a
-        /// redraw that failed left the edit on the sheet, not stored and still counted as a change,
-        /// the tab said the choice could not be applied, and the next write of anything at all
-        /// carried it: a rule the operator was told was refused landed later with nothing said.
-        /// </remarks>
-        /// <param name="settle">The profile the edit was about, which `Populate` takes the keyboard to.</param>
-        private void Apply(string settle = null)
-        {
-            if (Save())
-            {
-                Populate(settle);
-            }
-        }
-
-        /// <summary>
-        /// Rebuilds the table from the sheet, scrolled where it was, and brings the seal and the
+        /// Rebuilds the table from the sheet, scrolled where it was, and brings the box and the
         /// warning beside it up to date.
         /// </summary>
         /// <param name="settle">
-        /// The profile an edit was about, whose rule the keyboard is on once the table is rebuilt,
+        /// The profile a press was about, whose rule the keyboard is on once the table is rebuilt,
         /// or null to leave it where it was.
         /// </param>
         private void Populate(string settle = null)
@@ -1911,133 +2115,68 @@ namespace KeePassGate.Ui
 
                 _grid.Rows.Clear();
 
-                foreach (var row in _sheet.Rows)
+                var editable = _sheet.CanEdit;
+                var rows = _sheet.Rows;
+                var marks = GrantMarks.Of(rows, editable);
+                _marksFailed = false;
+                for (var at = 0; at < rows.Count; at++)
                 {
-                    // No X on a table that cannot be changed: pressing one would remove nothing,
+                    // No X on a table that cannot be changed: pressing it would remove nothing,
                     // and a button that does nothing is a button somebody presses again.
-                    var mark = row.Local && _sheet.CanEdit ? ForgetMark : string.Empty;
-                    var index = _grid.Rows.Add(row.Profile, row.Mask, mark);
-                    _grid.Rows[index].Cells[ProfileColumn].Tag = row.Profile;
+                    var row = rows[at];
+                    var mark = row.Removable && editable ? ForgetMark : string.Empty;
+                    var index = _grid.Rows.Add(row.Profile, row.Mask, GrantTab.WordOf(row), mark);
                     var added = _grid.Rows[index];
-
-                    // The profile's whole name first, since a long name is cut in its column and a
-                    // cell with a tip of its own never shows its cut value whole: two names sharing
-                    // a long start drew as the same row. Then, on a rule of this node's own, that
-                    // which profile it is for is settled; an inherited row offers no removal, so it
-                    // is not told how to remove and recreate one.
-                    added.Cells[ProfileColumn].ToolTipText = Tooltips.Wrapped(row.Local && _sheet.CanEdit
-                        ? row.Profile + Environment.NewLine + GrantTab.ProfileIsSettled
-                        : row.Profile);
-
-                    if (row.Local)
-                    {
-                        // What this rule replaced, on the rule doing the replacing, and which way:
-                        // narrower, wider, the same or neither. A profile is one row however it
-                        // got there, so a local rule replaces the inherited one on the table and
-                        // there is nowhere else left to say what it replaced. On the mask rather
-                        // than in a column of its own, because nothing on this tab scrolls and the
-                        // group dialog gives it the least room of the three it is put on.
-                        // `GrantTabFitsTests` measures that rather than assuming it.
-                        if (row.InheritedMask != null)
-                        {
-                            added.Cells[MaskColumn].ToolTipText = Tooltips.Wrapped(
-                                Replacing(row.Mask, row.InheritedMask) + " " + row.InheritedMask
-                                + ", inherited from a group above.");
-                        }
-
-                        Inert(row, added);
-                        continue;
-                    }
-
-                    // Inherited, so nothing here owns it: shown so the table is the whole answer,
-                    // and grayed so it is not mistaken for a rule this node made.
-                    added.DefaultCellStyle.ForeColor = SystemColors.GrayText;
-
-                    // Gray while selected too. A grid takes a row the moment it is given the
-                    // focus, and a row painted in the selection color is a row that looks local:
-                    // the operator would be reading a rule this node does not have as one it does.
-                    added.DefaultCellStyle.SelectionForeColor = SystemColors.GrayText;
-                    added.DefaultCellStyle.SelectionBackColor = _grid.DefaultCellStyle.BackColor;
-
-                    if (Inert(row, added))
-                    {
-                        continue;
-                    }
-
-                    if (row.Reaches)
-                    {
-                        // Replace rather than narrow, because a rule chosen here replaces this one in
-                        // full for this node and everything under it, whether it grants less or
-                        // more. Not offered where nothing can be chosen.
-                        added.Cells[MaskColumn].ToolTipText = Tooltips.Wrapped(_sheet.CanEdit
-                            ? "Inherited from a group above. Choose a rule here to replace it."
-                            : "Inherited from a group above.");
-                        continue;
-                    }
-
-                    // Struck through, because this node refuses every profile it does not name and
-                    // that includes this one: the rule is still above and it stops here. Kept on
-                    // the table rather than dropped, since seeing what the seal refuses is what an
-                    // operator turned it on for, and marked on the mask because a mask is where
-                    // the eye already is. Gray alone said only that the rule came from elsewhere,
-                    // which was as true before the seal as after it.
-                    added.Cells[MaskColumn].Style.Font = _refusedMask;
-
-                    // And the sentence is replaced rather than added to. What the other one offers
-                    // is to replace a rule that arrives here, and on this row nothing arrives to be
-                    // replaced: `deny` refuses what this node does not name, so naming the profile
-                    // is what lets it through again. Under rules here that will not read, nothing
-                    // can be chosen until they are discarded, so that is what it offers instead,
-                    // and on a tab where nothing can be changed it offers neither.
-                    var editable = string.IsNullOrEmpty(_sheet.ReadOnlyReason);
-                    added.Cells[MaskColumn].ToolTipText = Tooltips.Wrapped(_sheet.Unreadable
-                        ? "The rules here cannot be read, so what a group above grants this one "
-                          + "no longer arrives." + (editable ? " Discard them to let it through." : string.Empty)
-                        : "This node refuses every profile it does not name, so what a group above "
-                          + "grants this one no longer arrives."
-                          + (editable ? " Choose a rule here to let it through." : string.Empty));
+                    added.Tag = row;
+                    Draw(row, added, editable, marks[at]);
                 }
 
                 ScrollTo(top);
 
-                _sealed.Checked = _sheet.Default == AclDefault.Deny;
-                _sealed.Enabled = _sheet.CanEdit;
+                var box = _sheet.Box;
+                _sealed.CheckState = box == GrantBox.Cleared
+                    ? CheckState.Unchecked
+                    : box == GrantBox.Mixed ? CheckState.Indeterminate : CheckState.Checked;
+                _sealed.Enabled = editable;
+                Tint();
+                var boxTip = GrantTab.BoxTip(box, _sheet.BoxChanged, editable);
+                Tooltips.Set(_tips, _sealed, boxTip);
+                _sealed.AccessibleDescription = boxTip;
 
                 // The table stays enabled when nothing on it can be changed, because a disabled grid
-                // takes neither its scroll bar nor the wheel, and the rules past the ones that fit
-                // were out of reach on the very tabs that promise they stay readable: an entry's
-                // earlier version, several entries at once. What stops an edit is what stops it
-                // everywhere else, the sheet refusing, and neither picker opens on a sheet that
-                // cannot change.
-                _grid.AllowUserToAddRows = _sheet.CanEdit;
-
-                // Only where discarding can do something: on a tab that is read only for another
-                // reason, a history revision among them, the sheet refuses the discard, and a
-                // button that did nothing when pressed stayed up under rows telling the operator
-                // to press it.
-                _discard.Visible = _sheet.Unreadable && string.IsNullOrEmpty(_sheet.ReadOnlyReason);
+                // takes neither its scroll bar nor the wheel, and the rules past the rows that fit
+                // were out of reach on the very tabs that promise the rules stay readable: an
+                // entry's earlier version, several entries at once. What stops a change is what
+                // stops a change everywhere else, the sheet refusing, and neither picker opens on a
+                // sheet that cannot change. Nor is the empty line offered where the database names
+                // no profile, since no profile can be chosen on the line: the tab tells so over
+                // the table.
+                var choosing = editable && Any(_sheet.Offered);
+                _grid.AllowUserToAddRows = choosing;
 
                 // The heading's instruction only where a rule can be chosen.
                 _grid.Columns[MaskColumn].ToolTipText = Tooltips.Wrapped(
-                    _sheet.CanEdit ? GrantTab.MaskColumnHelp : GrantTab.MaskColumnReadOnlyHelp);
+                    editable ? GrantTab.MaskColumnHelp : GrantTab.MaskColumnReadOnlyHelp);
 
-                // After the flag it reads, not before it. Discarding restores editing, and on
-                // that redraw the flag still said otherwise, so the line came back undimmed and
-                // without the text that says what it is for.
                 DimTheEmptyLine();
 
                 // Nothing chosen, and somewhere for the keyboard to be, after the empty line has
                 // come or gone. A grid selects the cell it makes current, and on an entry whose
                 // only rules come from a group above that painted an inherited rule in the
                 // selection color, which is exactly the color it must not be: the gray is the
-                // whole of what says this node does not own it. So the selection goes and the
-                // current cell stays, because F2 and Alt+Down open a picker on the current cell:
-                // taken away as well, as it was on every rebuild, it left the keyboard nothing to
-                // open until an arrow key gave the table a cell again.
+                // whole of what tells the node does not set that rule. So the selection goes and
+                // the current cell stays, because F2 and Alt+Down open a picker on the current
+                // cell.
                 Settle(settle, was);
                 _grid.ClearSelection();
 
+                // The line about where rules come from and what a rule chosen does only over a
+                // table on which a profile can be chosen: on a tab that takes no press the reason
+                // stands alone, and where the database names no profile the notice does: the room
+                // above the table is the room the rows do not get.
+                _scope.Visible = choosing;
                 Warn(_sheet.Warning);
+                Lend();
             }
             catch (Exception error) when (Expected.OfUserInterface(error))
             {
@@ -2047,6 +2186,176 @@ namespace KeePassGate.Ui
             {
                 _populating = false;
             }
+        }
+
+        /// <summary>
+        /// Gives a line of the table the tooltips, the accessible texts and the marks of what the
+        /// sheet shows on the line.
+        /// </summary>
+        /// <remarks>
+        /// **Every state is told by its word, its tooltip and its accessible text**, and a line
+        /// changed on the tab by a line of its tooltip and its accessible text, so that nothing on
+        /// the tab is told by color alone. Gray tells that a rule comes from above, and a line
+        /// through the mask that the rule grants nothing here; both are marks beside the word. The
+        /// light yellow of a change and the light red of a group are marks beside them, and so are
+        /// the bracket and the letters in bold, which `OnCellPainting` draws from the line's marks.
+        /// A change no OK can write takes no yellow, `GrantMarks.Of`, and `Tint` gives the colors.
+        /// </remarks>
+        private void Draw(GrantRow row, DataGridViewRow added, bool editable, GrantMarks marks)
+        {
+            // The profile's whole name and nothing else, since a long name is cut in its column
+            // and a cell with a tip of its own never shows its cut value whole: two names sharing a
+            // long start drew as the same row. What a press on the cell does is the heading's.
+            added.Cells[ProfileColumn].ToolTipText = Tooltips.Wrapped(row.Profile);
+
+            var maskTip = GrantTab.MaskTip(row, editable);
+            added.Cells[MaskColumn].ToolTipText = Tooltips.Wrapped(maskTip);
+
+            var stateTip = GrantTab.StateTip(row, editable);
+            var state = (StateCell)added.Cells[StateColumn];
+            state.ToolTipText = Tooltips.Wrapped(stateTip);
+            state.Description = stateTip;
+
+            ((RuleRow)added).Description = row.Changed ? (editable ? GrantTab.ChangedHere : GrantTab.ChangedNotWritten) : null;
+
+            if (row.Kind == GrantRowKind.Inherited)
+            {
+                // Inherited, so the node does not set the rule: shown so the table is the whole
+                // answer, and grayed so the rule is not mistaken for a rule of this node's own.
+                // A selected cell takes the selection's colors here as on every line, since the
+                // selection is where the keyboard is; the row's other cells keep the gray, and the
+                // State cell its word.
+                added.DefaultCellStyle.ForeColor = SystemColors.GrayText;
+            }
+
+            // Struck through where the rule grants nothing here whatever the mask holds: a name
+            // the database no longer names, and a rule from above the node's box refuses. Kept on
+            // the table rather than dropped, since seeing what the box refuses is what an operator
+            // ticked the box for, and marked on the mask because a mask is where the eye already is.
+            if (row.States.Contains(GrantState.NoProfile) || row.States.Contains(GrantState.Refused))
+            {
+                added.Cells[MaskColumn].Style.Font = _refusedMask;
+            }
+
+            ((RuleRow)added).Marks = marks;
+
+            if (marks.Bound)
+            {
+                added.Cells[ProfileColumn].Style.Padding = Bracketed();
+            }
+        }
+
+        /// <summary>
+        /// Gives every line and the box the color behind what each shows, for the display as it is
+        /// set now: the light yellow of a change OK writes over the light red of a group, of a
+        /// limit and of a box in the mixed mark, and none at all under a high contrast setting.
+        /// </summary>
+        /// <remarks>
+        /// **Behind the line and never over the selection**: a selected cell takes the selection's
+        /// colors on every line, since the selection is where the keyboard is and the lines that
+        /// carry a color are the lines that need attention; the line's other cells keep the color.
+        /// A change no OK can write takes no yellow, since the yellow tells that OK writes it.
+        /// </remarks>
+        private void Tint()
+        {
+            var tints = RowTints.For(SystemInformation.HighContrast);
+            foreach (var line in _grid.Rows.OfType<RuleRow>().Where(line => line.Marks != null))
+            {
+                line.DefaultCellStyle.BackColor = line.Marks.Tint(tints);
+            }
+
+            _sealed.BackColor = _sheet.BoxChanged && _sheet.CanEdit
+                ? tints.Changed
+                : _sheet.Box == GrantBox.Mixed ? tints.Bound : Color.Empty;
+        }
+
+        /// <summary>Gives the lines and the box the colors the display now asks for, at once.</summary>
+        /// <remarks>
+        /// A high contrast setting turned on or off while the dialog stands changes the colors the
+        /// text is drawn in, and a light yellow left behind light text is a line nobody reads, on a
+        /// tab that takes no press as on any other. The control's own notice of the change, so that
+        /// nothing outlives the control.
+        /// </remarks>
+        protected override void OnSystemColorsChanged(EventArgs e)
+        {
+            WindowHandlers.Run("the rules could not take the display's colors", () =>
+            {
+                base.OnSystemColorsChanged(e);
+
+                if (_grid != null)
+                {
+                    Tint();
+                }
+            });
+        }
+
+        protected override void OnLayout(LayoutEventArgs e)
+        {
+            WindowHandlers.Run("the rules could not be laid out", () =>
+            {
+                base.OnLayout(e);
+
+                // Laid out again here: a layout asked for inside a layout is dropped, so the
+                // strip's new height would otherwise move nothing until something else asks.
+                if (Lend())
+                {
+                    base.OnLayout(e);
+                }
+            });
+        }
+
+        /// <summary>Scales the strip's full height as the page is scaled.</summary>
+        protected override void ScaleControl(SizeF factor, BoundsSpecified specified)
+        {
+            WindowHandlers.Run("the rules could not be scaled", () =>
+            {
+                base.ScaleControl(factor, specified);
+                if ((specified & BoundsSpecified.Height) != BoundsSpecified.None)
+                {
+                    _band = (int)Math.Round(_band * factor.Height);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Lends the table the pixels its rows lack from the strip under it, where the strip holds
+        /// that many, and nothing where the rows lack more; true where the strip's height changed.
+        /// </summary>
+        /// <remarks>
+        /// **A row cut by a few pixels is a row in view**, and the table answers a row cut by its
+        /// own bottom line with a scroll bar: in KeePass's group dialog the last row of a table of
+        /// four lacks two pixels, measured off pictures of a real dialog, and the table would put
+        /// its scroll bar beside four rows in view. The strip under the table lends up to its
+        /// height, so such a row is whole and no bar stands; a row cut by more than the strip
+        /// holds is a row out of view, and the table scrolls to it as ever.
+        /// </remarks>
+        private bool Lend()
+        {
+            if (_air == null || _grid == null || !_grid.IsHandleCreated)
+            {
+                return false;
+            }
+
+            var table = (Table)_grid;
+            var room = _grid.Height + _air.Height - _band;
+            var needed = (_grid.ColumnHeadersVisible ? _grid.ColumnHeadersHeight : 0)
+                         + _grid.Rows.GetRowsHeight(DataGridViewElementStates.Visible)
+                         + (2 * table.Edge);
+            var lacking = needed - room;
+            var height = lacking > 0 && lacking <= _band ? _band - lacking : _band;
+            if (_air.Height == height)
+            {
+                return false;
+            }
+
+            _air.Height = height;
+            return true;
+        }
+
+        /// <summary>The padding before a bound line's name that the bracket stands in, at the table's size of text.</summary>
+        private Padding Bracketed()
+        {
+            return new Padding(GrantMarks.Room(_grid.Font), 0, 0, 0);
         }
 
         /// <summary>Where the keyboard is on the table, or null when it is nowhere on it.</summary>
@@ -2081,10 +2390,10 @@ namespace KeePassGate.Ui
 
             try
             {
-                var row = profile == null ? -1 : RowOf(profile);
+                var row = profile == null ? -1 : IndexOf(profile);
                 if (row < 0)
                 {
-                    row = was.NewRow ? _grid.NewRowIndex : RowOf(was.Profile);
+                    row = was.NewRow ? _grid.NewRowIndex : IndexOf(was.Profile);
                 }
 
                 if (row < 0)
@@ -2126,55 +2435,109 @@ namespace KeePassGate.Ui
             public bool NewRow { get; }
         }
 
-        /// <summary>Writes the sheet to the store, answering false when the store refused it.</summary>
-        private bool Save()
+        /// <summary>
+        /// A State cell that tells UI automation what its word means.
+        /// </summary>
+        /// <remarks>
+        /// As the cell's description rather than its name, which UI automation builds from the
+        /// word a screen reader already reads: what the word means is something more about the
+        /// cell, in the words its tooltip uses, without the marks that keep a tooltip read left to
+        /// right.
+        /// </remarks>
+        private sealed class StateCell : DataGridViewTextBoxCell
         {
-            if (_store == null || !_sheet.Changed)
+            public string Description { get; set; }
+
+            public override object Clone()
             {
-                return true;
+                var clone = (StateCell)base.Clone();
+                clone.Description = Description;
+                return clone;
             }
 
-            var stored = false;
-            try
+            protected override AccessibleObject CreateAccessibilityInstance()
             {
-                _store.Write(_sheet.ToStore);
-                _sheet.Stored();
-                stored = true;
-                Writes++;
-                return true;
+                return new Described(this);
             }
-            catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfReflection(error))
-            {
-                _log.Error("a grant could not be stored", error);
 
-                // Back to what is stored, so that the table and the sentence agree. Left as it
-                // was, the refused rule stayed on the sheet with the sheet still counting as
-                // changed, and the next write of anything at all would have carried it. A
-                // grant reported as refused would land later, with nothing said the second time.
-                // The one store this has cannot fail twice in a way that reaches there, which
-                // is a fact about a different file.
-                _sheet.Revert();
-                Populate();
-
-                // After the redraw. That redraw ends by saying whatever the sheet has to say,
-                // which is nothing once the refused rule is off it. Said first, this sentence
-                // would be wiped by the very redraw that makes it true.
-                //
-                // With the reason, from the innermost exception: the store reaches the dialog's copy
-                // through reflection, whose own exception says only that something it called threw.
-                // The reason is said here rather than left to the log, which is a file the person
-                // at this dialog would have to go and find.
-                Warn("That could not be stored, so it is not in force: "
-                    + Clipped.Message(error.GetBaseException().Message));
-                return false;
-            }
-            finally
+            private sealed class Described : DataGridViewCellAccessibleObject
             {
-                // And a failure no filter names, which goes on to the window's handler, takes the
-                // refused rule off the sheet too, so that no later write carries it either.
-                if (!stored && _sheet.Changed)
+                private readonly StateCell _cell;
+
+                public Described(StateCell cell)
+                    : base(cell)
                 {
-                    _sheet.Revert();
+                    _cell = cell;
+                }
+
+                public override string Description
+                {
+                    get { return string.IsNullOrEmpty(_cell.Description) ? base.Description : _cell.Description; }
+                }
+
+                /// <summary>
+                /// The same text as the cell's help, which is what UI automation reads as the help
+                /// text, through its bridge to the accessible object and through the table's own
+                /// provider alike; the description reaches UI automation only in the legacy pattern
+                /// of the accessible object, where nothing reads a help text.
+                /// </summary>
+                public override string Help
+                {
+                    get { return string.IsNullOrEmpty(_cell.Description) ? base.Help : _cell.Description; }
+                }
+            }
+        }
+
+        /// <summary>
+        /// A line of the table that tells UI automation whether the line changed on the tab.
+        /// </summary>
+        /// <remarks>
+        /// The row's description, beside the State cell's, because a changed rule of the node's own
+        /// shows no word in its State cell, and a screen reader reading the row hears that the row
+        /// waits for OK.
+        /// </remarks>
+        private sealed class RuleRow : DataGridViewRow
+        {
+            public string Description { get; set; }
+
+            /// <summary>What the line draws beyond its texts, or null on the empty line.</summary>
+            public GrantMarks Marks { get; set; }
+
+            public override object Clone()
+            {
+                var clone = (RuleRow)base.Clone();
+                clone.Description = Description;
+                clone.Marks = Marks;
+                return clone;
+            }
+
+            protected override AccessibleObject CreateAccessibilityInstance()
+            {
+                return new Described(this);
+            }
+
+            private sealed class Described : DataGridViewRowAccessibleObject
+            {
+                private readonly RuleRow _row;
+
+                public Described(RuleRow row)
+                    : base(row)
+                {
+                    _row = row;
+                }
+
+                public override string Description
+                {
+                    get { return _row.Description ?? base.Description; }
+                }
+
+                /// <summary>
+                /// The same text as the row's help, which UI automation reads, as the State
+                /// cell's is.
+                /// </summary>
+                public override string Help
+                {
+                    get { return _row.Description ?? base.Help; }
                 }
             }
         }

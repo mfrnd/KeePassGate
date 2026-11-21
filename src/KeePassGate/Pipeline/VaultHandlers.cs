@@ -1289,8 +1289,7 @@ namespace KeePassGate.Pipeline
                 return null;
             }
 
-            var read = new AclDocuments();
-            var shown = groups.Where(group => Visible(context, group.Node, read)).ToList();
+            var shown = groups.Where(group => Visible(context, group.Node)).ToList();
 
             return json =>
             {
@@ -1324,10 +1323,6 @@ namespace KeePassGate.Pipeline
             // withheld from it: everything the rules decide, decided here, inside the hold.
             var shown = new List<KeyValuePair<VaultEntry, bool>>();
 
-            // One rules document is read once per listing, however many entries lie under it,
-            // rather than once for every entry and every question asked of it.
-            var read = new AclDocuments();
-
             // Taken once, so that one listing judges every entry against the same moment.
             var now = DateTimeOffset.UtcNow;
 
@@ -1339,7 +1334,7 @@ namespace KeePassGate.Pipeline
                     continue;
                 }
 
-                if (!Visible(context, entry.Node, read))
+                if (!Visible(context, entry.Node))
                 {
                     continue;
                 }
@@ -1352,7 +1347,7 @@ namespace KeePassGate.Pipeline
                 // since nothing else in its line of the listing depends on the answer, and
                 // asking it of every entry was a second walk to the root for each entry.
                 var withheld = (entry.TitleProtected || entry.UrlProtected)
-                               && !ShowsListedProtected(context, entry.Node, read);
+                               && !ShowsListedProtected(context, entry.Node);
 
                 shown.Add(new KeyValuePair<VaultEntry, bool>(entry, withheld));
             }
@@ -1402,9 +1397,9 @@ namespace KeePassGate.Pipeline
         /// another. A listing is a read: an item appears only to a client holding a profile entitled
         /// to it, and what the profiles pool is the way to it. A change is allowed by one profile.
         /// </remarks>
-        private static bool Visible(IGateContext context, IAclNode node, AclDocuments read)
+        private static bool Visible(IGateContext context, IAclNode node)
         {
-            return AclResolver.Permits(node, context.Client.Profiles, AclVerb.List, AclReach.Fields, read);
+            return AclResolver.Permits(node, context.Client.Profiles, AclVerb.List, AclReach.Fields);
         }
 
         /// <summary>Whether an entry has expired, judged the way KeePass judges one.</summary>
@@ -1512,9 +1507,9 @@ namespace KeePassGate.Pipeline
         /// A group has no switches to read by, so whether the caller holds `read` on it is the
         /// whole of its sight, and a group's tag is handed out on that.
         ///
-        /// **Asked of the resolver without a line**, each question once, each rules document
-        /// read once for all of them. A caller with no client behind it sees the least, which
-        /// has no tag.
+        /// **Asked of the resolver without a line**, each question once, all of them of the rules
+        /// of the hold's reading. A caller with no client behind it sees the least, which has no
+        /// tag.
         /// </remarks>
         private static VaultSight Sight(IGateContext context, VaultFound found)
         {
@@ -1533,8 +1528,7 @@ namespace KeePassGate.Pipeline
 
             var profiles = context.Client.Profiles;
             var node = found.Node;
-            var read = new AclDocuments();
-            var reads = AclResolver.Permits(node, profiles, AclVerb.Read, AclReach.Fields, read);
+            var reads = AclResolver.Permits(node, profiles, AclVerb.Read, AclReach.Fields);
 
             if (found.Entry == null)
             {
@@ -1542,21 +1536,21 @@ namespace KeePassGate.Pipeline
             }
 
             var attachments = VaultAttachmentSight.None;
-            if (reads && AclResolver.Permits(node, profiles, AclVerb.Read, AclReach.Attachments, read))
+            if (reads && AclResolver.Permits(node, profiles, AclVerb.Read, AclReach.Attachments))
             {
                 attachments = VaultAttachmentSight.Read;
             }
-            else if (AclResolver.Permits(node, profiles, AclVerb.List, AclReach.Attachments, read))
+            else if (AclResolver.Permits(node, profiles, AclVerb.List, AclReach.Attachments))
             {
                 attachments = VaultAttachmentSight.Listed;
             }
 
-            var protectedValues = AclResolver.Decide(node, profiles, AclVerb.Read, AclReach.Protected, read);
+            var protectedValues = AclResolver.Decide(node, profiles, AclVerb.Read, AclReach.Protected);
             var sight = new VaultSight(
                 reads,
                 reads && protectedValues.Permitted,
                 attachments,
-                reads && ShowsListedProtected(context, node, read, protectedValues.Permitted));
+                reads && ShowsListedProtected(context, node, protectedValues.Permitted));
 
             return new Reading(sight, protectedValues);
         }
@@ -1817,12 +1811,12 @@ namespace KeePassGate.Pipeline
         /// shown through any profile holding `protected` beside `list` or `read` on the entry,
         /// which can be another profile than the profile the listing was taken through.
         /// </remarks>
-        private static bool ShowsListedProtected(IGateContext context, IAclNode node, AclDocuments read)
+        private static bool ShowsListedProtected(IGateContext context, IAclNode node)
         {
             var readsProtected = AclResolver.Permits(
-                node, context.Client.Profiles, AclVerb.Read, AclReach.Protected, read);
+                node, context.Client.Profiles, AclVerb.Read, AclReach.Protected);
 
-            return ShowsListedProtected(context, node, read, readsProtected);
+            return ShowsListedProtected(context, node, readsProtected);
         }
 
         /// <summary>
@@ -1830,10 +1824,10 @@ namespace KeePassGate.Pipeline
         /// been answered already.
         /// </summary>
         private static bool ShowsListedProtected(
-            IGateContext context, IAclNode node, AclDocuments read, bool readsProtected)
+            IGateContext context, IAclNode node, bool readsProtected)
         {
             return readsProtected
-                   || AclResolver.Permits(node, context.Client.Profiles, AclVerb.List, AclReach.Protected, read);
+                   || AclResolver.Permits(node, context.Client.Profiles, AclVerb.List, AclReach.Protected);
         }
 
         /// <summary>What `read` says about a group: what a listing says, and its notes.</summary>

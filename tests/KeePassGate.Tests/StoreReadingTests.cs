@@ -339,6 +339,209 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_version_reads_its_lost_where_present_and_a_lost_out_of_form_fails_it_as_an_after_out_of_form_does()
+        {
+            // `STORE.md` §617: `lost` is a list of identifiers as `after` is, absent where it names
+            // nothing, and read in its form with the rest of the version.
+            var rule = "rule:" + Node + "/pf";
+            var named = new string('7', 32) + " " + new string('8', 32);
+            var settling = StoreComposer.Version(One, rule, StoreComposer.Content(("after", string.Empty), ("doc", "row:R"), ("lost", named), ("object", rule)));
+            var form = StoreVersions.Checked(settling.Strings);
+            Assert.That(form.ReadsAsKind, Is.True);
+            Assert.That(form.Members["lost"], Is.EqualTo(named), "read with the version");
+
+            var plain = StoreVersions.Checked(Row("pf").Strings);
+            Assert.That(plain.ReadsAsKind, Is.True);
+            Assert.That(plain.Members.ContainsKey("lost"), Is.False, "absent where it names nothing");
+
+            foreach (var member in new[] { "after", "lost" })
+            {
+                var content = StoreComposer.Content(
+                    ("after", member == "after" ? "not identifiers" : string.Empty), ("doc", "row:R"), ("lost", member == "lost" ? "not identifiers" : named), ("object", rule));
+                Assert.That(StoreVersions.Checked(StoreComposer.Version(One, rule, content).Strings).ReadsAsKind, Is.False, member + " out of form");
+            }
+        }
+
+        [Test]
+        public void A_row_s_version_is_a_record_only_under_the_identifier_that_holds_its_profile_s_tag()
+        {
+            // `STORE.md` §609: a version of a profile's rule is placed by the subject hash of
+            // `rule:` and the node and the tag of the profile's name. The same strings under the
+            // tag of another name, or under the subject hash of the whole object and 0, sit under
+            // an identifier of the store and are not what was written: damage, and no record.
+            var row = Row("agent-455");
+            var store = new ComposedStore(One);
+            store.Add(row);
+            store.Restate(ItemOf(row));
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(reading.InForce.Records.Single(record => record.Hex == row.Hex).Is("version"), Is.True);
+
+            var check = row.Strings[StoreComposer.Check];
+            var elsewhere = new Dictionary<string, byte[]>
+            {
+                { "under the tag of another name", StoreComposer.IdentifierOf(One, "version", "rule:" + Node, StoreComposer.ProfileTag(One, "writer"), check) },
+                { "under the whole object and 0", StoreComposer.IdentifierOf(One, "version", Rule("agent-455"), 0, check) },
+            };
+            foreach (var pair in elsewhere)
+            {
+                var copied = new ComposedStore(One);
+                copied.Add(new StoreComposer.Composed(pair.Value, row.Strings));
+                var read = copied.Read();
+                Assert.That(read.Damage, Is.EqualTo(1), pair.Key);
+                Assert.That(read.InForce.Records.Any(record => record.Is("version")), Is.False, pair.Key);
+            }
+        }
+
+        [Test]
+        public void A_rule_s_object_with_no_slash_is_placed_by_the_whole_object_and_a_tag_of_0_is_a_tag()
+        {
+            // `STORE.md` §609: an object `rule:` with no `/` has the subject and the number of any
+            // other version, and stops nothing. A name whose tag is 0, found by a search run once
+            // over `agent-` and a counter under the key `one`, is placed under the subject of its
+            // node with 0, and not under the whole object.
+            var bare = StoreComposer.Version(One, "rule:" + Node, RowContent("rule:" + Node));
+            Assert.That(bare.Identifier, Is.EqualTo(StoreComposer.IdentifierOf(One, "version", "rule:" + Node, 0, bare.Strings[StoreComposer.Check])));
+            Assert.That(StoreComposer.ProfileTag(One, "agent-144433"), Is.EqualTo(0), "the name the search found");
+            var zero = Row("agent-144433");
+
+            var store = new ComposedStore(One);
+            store.Add(bare);
+            store.Add(zero);
+            store.RestateAll(new[] { ItemOf(bare), ItemOf(zero) });
+            var reading = store.Read();
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(
+                reading.InForce.Records.Where(record => record.Is("version")).Select(record => record.Hex),
+                Is.EquivalentTo(new[] { bare.Hex, zero.Hex }));
+
+            var whole = new ComposedStore(One);
+            whole.Add(new StoreComposer.Composed(
+                StoreComposer.IdentifierOf(One, "version", Rule("agent-144433"), 0, zero.Strings[StoreComposer.Check]), zero.Strings));
+            Assert.That(whole.Read().Damage, Is.EqualTo(1), "a row whose tag is 0 is not placed by its whole object");
+        }
+
+        private static IEnumerable<TestCaseData> Placements()
+        {
+            yield return new TestCaseData("rule:" + Node + "/a/b", "rule:" + Node, "a/b").SetArgDisplayNames("a name holding a slash");
+            yield return new TestCaseData("rule:" + Node + "/", "rule:" + Node, string.Empty).SetArgDisplayNames("an empty name");
+            yield return new TestCaseData("rule:/p", "rule:", "p").SetArgDisplayNames("no node");
+            yield return new TestCaseData("rule:" + Node, "rule:" + Node, null).SetArgDisplayNames("a rule's object with no slash");
+            yield return new TestCaseData("rule:", "rule:", null).SetArgDisplayNames("the type alone");
+            yield return new TestCaseData("switch:" + Node + "/x", "switch:" + Node + "/x", null).SetArgDisplayNames("a switch's object holding a slash");
+            yield return new TestCaseData("renew:a/b", "renew:a/b", null).SetArgDisplayNames("an answer's object holding a slash");
+        }
+
+        [TestCaseSource(nameof(Placements))]
+        public void A_version_is_placed_by_its_object_split_at_the_first_slash_of_a_rule_and_nowhere_else(
+            string objectName, string subject, string tagged)
+        {
+            // `STORE.md` §609 and §658: an object of the type `rule` is split at its first `/`, the
+            // subject before it and the tag of the text after it in bytes 9 and 10, and holds
+            // neither part to a form; every other object is its own subject, with 0. Each other
+            // way of placing the same strings is no place of the version.
+            var strings = StoreComposer.Record(One, "version", subject, RowContent(objectName)).Strings;
+            var check = strings[StoreComposer.Check];
+            var number = tagged == null ? 0 : StoreComposer.ProfileTag(One, tagged);
+            Assert.That(tagged == null || number != 0, Is.True, "a tag that is not 0, so that 0 places nothing");
+
+            Assert.That(
+                StoreVersions.PassesAt(One, StoreComposer.IdentifierOf(One, "version", subject, number, check), strings), Is.True,
+                "under its subject and its number");
+
+            var elsewhere = new List<(string Subject, int Number, string Why)>
+            {
+                (objectName, 0, "the whole object and 0"),
+                (subject, number == 0 ? StoreComposer.ProfileTag(One, "agent-455") : 0, "its subject and another number"),
+            };
+            var first = objectName.IndexOf('/');
+            var last = objectName.LastIndexOf('/');
+            if (first >= 0)
+            {
+                elsewhere.Add((objectName.Substring(0, first), StoreComposer.ProfileTag(One, objectName.Substring(first + 1)), "split at the first slash"));
+                elsewhere.Add((objectName.Substring(0, last), StoreComposer.ProfileTag(One, objectName.Substring(last + 1)), "split at the last slash"));
+            }
+
+            foreach (var place in elsewhere.Where(place => place.Subject != subject || place.Number != number))
+            {
+                Assert.That(
+                    StoreVersions.PassesAt(One, StoreComposer.IdentifierOf(One, "version", place.Subject, place.Number, check), strings), Is.False,
+                    place.Why);
+            }
+
+            var store = new ComposedStore(One);
+            var placed = store.Add(new StoreComposer.Composed(StoreComposer.IdentifierOf(One, "version", subject, number, check), strings));
+            store.Restate(ItemOf(placed));
+            var reading = store.Read();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), "an object out of the form of a rule stops nothing: " + reading.Reason);
+        }
+
+        [Test]
+        public void The_rows_of_two_names_whose_tags_meet_under_a_key_are_two_records_told_apart_by_their_checks()
+        {
+            // Found by a search run once over `agent-` and a counter: under the key `one` both
+            // names' tags are `d7d6`. Two tags meet by chance, and the check is what tells the two
+            // records apart, `STORE.md` §609.
+            Assert.That(StoreComposer.ProfileTag(One, "agent-455"), Is.EqualTo(StoreComposer.ProfileTag(One, "agent-604")), "the names the search found");
+            var first = Row("agent-455");
+            var second = Row("agent-604");
+            Assert.That(first.Hex.Substring(0, 20), Is.EqualTo(second.Hex.Substring(0, 20)), "the same tag, subject and number");
+            var store = new ComposedStore(One);
+            store.Add(first);
+            store.Add(second);
+            store.RestateAll(new[] { ItemOf(first), ItemOf(second) });
+
+            var reading = store.Read();
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            var versions = reading.InForce.Records.Where(record => record.Is("version")).ToList();
+            Assert.That(versions.Select(record => record.Hex), Is.EquivalentTo(new[] { first.Hex, second.Hex }));
+            Assert.That(
+                versions.Select(record => record.Form.Member("object")),
+                Is.EquivalentTo(new[] { Rule("agent-455"), Rule("agent-604") }));
+        }
+
+        [Test]
+        public void An_object_out_of_the_form_of_a_rule_or_a_switch_stops_nothing_and_is_handed_on_as_its_text()
+        {
+            // `STORE.md` §617 and §658: the core compares an object's text and does not look into
+            // it, so the versions of an object no rule is read from, standing, lost beside their
+            // own deletion record, or told of by a deletion record at a node the file names, read
+            // as any version does, and the store stays whole.
+            var outOfForm = new[]
+            {
+                "rule:" + Node.ToUpperInvariant() + "/pf",
+                "rule:" + Node + "/",
+                "rule:" + Node,
+                "rule:short/pf",
+                "switch:" + Node + "/pf",
+                "switch:",
+            };
+            var store = new ComposedStore(One);
+            var standing = outOfForm.Select(objectName => store.Add(StoreComposer.RuleVersion(One, objectName, "not a rule"))).ToList();
+            var lost = store.Add(StoreComposer.RuleVersion(One, "rule:short/pg", "row:R"));
+            store.Delete(lost);
+            store.RestateAll(standing.Select((version, at) => StoreComposer.RuleVersionItem(version, outOfForm[at], "not a rule")));
+            var told = StoreComposer.IdentifierOf(One, "version", "rule:short", StoreComposer.ProfileTag(One, "pf"), new string('5', 64));
+            store.Deleted.Add(told);
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                var found = reading.InForce;
+                Assert.That(found.Objects, Is.EquivalentTo(outOfForm.Concat(new[] { "rule:short/pg" })));
+                for (var at = 0; at < outOfForm.Length; at++)
+                {
+                    Assert.That(found.VersionsOf(outOfForm[at]).Select(version => version.Id), Is.EqualTo(new[] { standing[at].Hex }), outOfForm[at]);
+                }
+
+                Assert.That(found.LostOf("rule:short/pg"), Is.EqualTo(new[] { lost.Hex }), "lost beside its own deletion record");
+                Assert.That(found.LostOf("rule:short/pf"), Is.EqualTo(new[] { KeePassGate.Hex.Of(told) }), "told of at a node the file names");
+            }
+        }
+
+        [Test]
         public void Keeping_lets_go_of_the_forms_of_versions_no_entry_holds_and_clearing_of_all()
         {
             var authority = Authority(One, 'a');
@@ -362,7 +565,50 @@ namespace KeePassGate.Tests
             Assert.That(kept, Is.All.EqualTo(0), "clearing overwrites every key held");
         }
 
+        [Test]
+        [NonParallelizable]
+        public void A_hold_after_many_renewals_costs_a_small_multiple_of_a_hold_after_none()
+        {
+            // `STORE.md` §620 and §643: a write above renews the versions below, and each renewal
+            // leaves a deletion record, which KeePass keeps for good, and a name in the `after` of
+            // the version written anew. A hold passes over every deletion record, so what it costs
+            // grows with them however little each costs; this holds what each costs to a fraction
+            // of the hold before any renewal. Each a gate's hold, with the forms kept from the hold
+            // before it, the median of a series, both series in the same run and nothing else
+            // running beside them; the store whole, and nothing of it lost. Measured in Release at
+            // about five times, the deletion records in the order writes above leave them, so the
+            // bound is three times what a hold takes and a fraction of what each renewal cost as
+            // text and sets of text, about forty times.
+            var none = Holds(Renewed(0));
+            var many = Holds(Renewed(RenewalsHeld));
+
+            TestContext.Out.WriteLine(string.Format(
+                System.Globalization.CultureInfo.InvariantCulture,
+                "figure: a hold beside {0} versions, after no renewal {1:F2} ms, after {2} renewals {3:F2} ms, {4:F3} microseconds a renewal",
+                RenewedVersions,
+                none,
+                RenewalsHeld,
+                many,
+                (many - none) * 1000 / RenewalsHeld));
+            Assert.That(many, Is.LessThan(none * HoldsApart), "a hold after the renewals against a hold after none");
+        }
+
         private const string Nonce = "00112233445566778899aabbccddeeff";
+
+        /// <summary>The versions that stand in the store of a hold after many renewals.</summary>
+        private const int RenewedVersions = 2000;
+
+        /// <summary>The renewals made before the hold held to a hold after none.</summary>
+        private const int RenewalsHeld = 100000;
+
+        /// <summary>The holds of each series after a first, whose median is taken.</summary>
+        private const int HeldRuns = 11;
+
+        /// <summary>How many times a hold after no renewal a hold after the renewals may take.</summary>
+        private const double HoldsApart = 15;
+
+        /// <summary>The node the rows are about.</summary>
+        private const string Node = "0123456789abcdef0123456789abcdef";
 
         private static readonly IReadOnlyList<byte[]> NoDeletions = Array.Empty<byte[]>();
 
@@ -392,6 +638,33 @@ namespace KeePassGate.Tests
                 items);
         }
 
+        /// <summary>The object of this profile's rule at <see cref="Node"/>.</summary>
+        private static string Rule(string profile)
+        {
+            return "rule:" + Node + "/" + profile;
+        }
+
+        /// <summary>A content of a version of this object granting read, naming nothing as replaced.</summary>
+        private static string RowContent(string objectName)
+        {
+            return StoreComposer.Content(("after", string.Empty), ("doc", "row:R"), ("object", objectName));
+        }
+
+        /// <summary>A version of this profile's rule at <see cref="Node"/>, as the composer places it.</summary>
+        private static StoreComposer.Composed Row(string profile)
+        {
+            return StoreComposer.Version(One, Rule(profile), RowContent(Rule(profile)));
+        }
+
+        /// <summary>The item `version` that restates this version.</summary>
+        private static string ItemOf(StoreComposer.Composed version)
+        {
+            var content = Newtonsoft.Json.Linq.JObject.Parse(version.Strings[StoreComposer.Data]);
+            return StoreComposer.Item(
+                ("after", (string)content["after"]), ("doc", (string)content["doc"]), ("id", version.Hex), ("kind", "version"),
+                ("object", (string)content["object"]));
+        }
+
         private static string Format(string number = "1")
         {
             return StoreComposer.Item(("format", number), ("kind", "format"), ("plugin", "0.3.0"));
@@ -405,6 +678,92 @@ namespace KeePassGate.Tests
         private static byte[] Identifier(byte fill)
         {
             return Enumerable.Repeat(fill, 16).ToArray();
+        }
+
+        /// <summary>
+        /// A store as writes above leave it after this many renewals: an authority, versions of a
+        /// row at as many nodes, each naming its share of the renewals as identifiers at its own
+        /// place, each with a deletion record, and a summary entry restating them all.
+        /// </summary>
+        private static (IReadOnlyList<StoreCandidate> Candidates, IReadOnlyList<byte[]> Deletions) Renewed(int renewals)
+        {
+            var versions = new StoreVersions();
+            var candidates = new List<StoreCandidate> { versions.Candidate(Authority(One, 'a')) };
+            var replaced = new List<byte[][]>(RenewedVersions);
+            var items = new List<string> { Format() };
+            var tag = StoreComposer.ProfileTag(One, "pf");
+            for (var at = 0; at < RenewedVersions; at++)
+            {
+                var node = at.ToString("x32", System.Globalization.CultureInfo.InvariantCulture);
+                var objectName = StoreComposer.RowObject(node, "pf");
+                var place = StoreComposer.IdentifierOf(One, "version", "rule:" + node, tag, new string('0', 64));
+                var share = (renewals / RenewedVersions) + (at < renewals % RenewedVersions ? 1 : 0);
+                var identifiers = new byte[share][];
+                for (var index = 0; index < share; index++)
+                {
+                    identifiers[index] = (byte[])place.Clone();
+                    identifiers[index][12] = (byte)(index >> 24);
+                    identifiers[index][13] = (byte)(index >> 16);
+                    identifiers[index][14] = (byte)(index >> 8);
+                    identifiers[index][15] = (byte)index;
+                }
+
+                replaced.Add(identifiers);
+                var named = identifiers.Select(StoreComposer.HexOf).ToArray();
+                var version = StoreComposer.RuleVersion(One, objectName, "off:R", named);
+                candidates.Add(versions.Candidate(version));
+                items.Add(StoreComposer.RuleVersionItem(version, objectName, "off:R", named));
+            }
+
+            // The deletion records in the order the writes above leave them: each renews every
+            // version below once, so a version of each object in turn.
+            var deletions = new List<byte[]>(renewals);
+            for (var round = 0; round < replaced.Max(identifiers => identifiers.Length); round++)
+            {
+                deletions.AddRange(replaced.Where(identifiers => round < identifiers.Length).Select(identifiers => identifiers[round]));
+            }
+
+            candidates.Add(versions.Candidate(Head(One, 1, items.ToArray())));
+            return (candidates, deletions);
+        }
+
+        /// <summary>
+        /// The median of a series of a gate's holds of this store, each reading with the forms the
+        /// hold before it kept, after a first that keeps them, in milliseconds.
+        /// </summary>
+        private static double Holds((IReadOnlyList<StoreCandidate> Candidates, IReadOnlyList<byte[]> Deletions) store)
+        {
+            var kept = new StoreKept();
+            var times = new List<double>();
+            try
+            {
+                for (var run = 0; run <= HeldRuns; run++)
+                {
+                    var next = new StoreKept();
+                    var clock = System.Diagnostics.Stopwatch.StartNew();
+                    using (var reading = StoreReading.Of(store.Candidates, store.Deletions, kept, next))
+                    {
+                        var spent = clock.Elapsed.TotalMilliseconds;
+                        kept.Leave(next);
+                        kept = next;
+                        Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                        var found = reading.InForce;
+                        Assert.That(found.Objects, Has.Count.EqualTo(RenewedVersions), "a row at every node");
+                        Assert.That(found.Objects.Where(objectText => found.LostOf(objectText).Count > 0), Is.Empty, "nothing lost");
+                        if (run > 0)
+                        {
+                            times.Add(spent);
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                kept.Clear();
+            }
+
+            times.Sort();
+            return times[times.Count / 2];
         }
     }
 }

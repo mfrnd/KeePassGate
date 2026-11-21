@@ -20,7 +20,8 @@ namespace KeePassGate.Store
     /// **Every format here is the form the store was measured with**, as `probe/store.py` on
     /// `spikes/storage-survival` wrote it, with what `STORE.md` §646 fixed for the store's core
     /// where the measured code left a format open: six bytes of the check in an identifier, S31,
-    /// and two for the number, S12.
+    /// and two for the number, S12. A version of a profile's rule takes the form `split` of
+    /// `probe/store.py`, which was measured beside the form that was run, S8.
     ///
     /// **Whether a node is the store's never rests on its own content passing.** A group is the
     /// plugin's by its identifier alone, and an entry is a record of the store by the first three
@@ -61,10 +62,27 @@ namespace KeePassGate.Store
         public const int SubjectLength = 5;
 
         /// <summary>
-        /// The bytes of a summary entry's height and of a version record's format number, zero
-        /// for every other kind.
+        /// The bytes of a summary entry's height, of a version record's format number and of the
+        /// tag of a profile's name in a version of that profile's rule, zero for every other
+        /// record.
         /// </summary>
         public const int HeightLength = 2;
+
+        /// <summary>
+        /// What ends the node in the object of a profile's rule, the profile's name following it,
+        /// `STORE.md` §609 and §617.
+        /// </summary>
+        public const char ProfileStart = '/';
+
+        /// <summary>What the tag of a profile's name is keyed over, before the name, `STORE.md` §609.</summary>
+        /// <remarks>
+        /// **The name of no kind and of no other label the store keys under.** Each kind's name
+        /// labels the check of a record of that kind, `tag` labels a kind's tag, `subject` a
+        /// subject's hash and `key` the name of a key, so no profile's name gives the text another
+        /// label gives: under `tag`, a profile named after a kind would share that kind's tag, and
+        /// under `profile`, the text of a check of a record of kind `profile`.
+        /// </remarks>
+        public const string ProfileTagText = "name\n";
 
         /// <summary>The bytes of the check an identifier holds, as measured, `STORE.md` §609.</summary>
         public const int CheckLength = 6;
@@ -301,6 +319,53 @@ namespace KeePassGate.Store
         }
 
         /// <summary>
+        /// The tag of a profile's name under this key, `STORE.md` §609: the first two bytes of
+        /// HMAC-SHA256 over `name`, a line feed and the name, read big-endian. A tag of 0 is a
+        /// tag like any other.
+        /// </summary>
+        public static int ProfileTag(byte[] key, string name)
+        {
+            var tag = Keyed(key, ProfileTagText + name, HeightLength);
+            return (tag[0] << 8) | tag[1];
+        }
+
+        /// <summary>
+        /// The subject of an identifier of a record of this kind whose subject member holds this
+        /// value, `STORE.md` §609, with the text whose tag bytes 9 and 10 hold, or null where
+        /// they hold what the row's number names otherwise. A row whose number is
+        /// <see cref="StoreNumber.ProfileTag"/> splits an object of the type `rule` at its first
+        /// `/`: the subject is the text before it, `rule:` and the node, and the tag is of the
+        /// text after it. Every other value gives its row's prefix and itself.
+        /// </summary>
+        /// <param name="value">The value of the row's subject member, or null for a row that names none.</param>
+        /// <remarks>
+        /// **The single place a subject is made from the table**, so that whatever tells a record
+        /// by its subject, a deletion record among it, makes the subject the identifier holds; and
+        /// the single place the core looks into an object beyond its type, `STORE.md` §658, holding
+        /// neither part to a form, since what a node and a name mean is the rules', and an object
+        /// out of their form stops nothing.
+        /// </remarks>
+        internal static string SubjectOf(StoreKind row, string value, out string tagged)
+        {
+            tagged = null;
+            var subject = row.SubjectPrefix + value;
+            if (row.Number != StoreNumber.ProfileTag
+                || !subject.StartsWith(StoreKinds.RuleType + StoreKinds.ObjectTypeEnd, StringComparison.Ordinal))
+            {
+                return subject;
+            }
+
+            var start = subject.IndexOf(ProfileStart);
+            if (start < 0)
+            {
+                return subject;
+            }
+
+            tagged = subject.Substring(start + 1);
+            return subject.Substring(0, start);
+        }
+
+        /// <summary>
         /// The name of a store key, `STORE.md` §649: HMAC-SHA256 under that key over the three
         /// characters `key`, as 64 lowercase hexadecimal characters.
         /// </summary>
@@ -319,8 +384,9 @@ namespace KeePassGate.Store
         /// the subject, a number, and the start of the check.
         /// </summary>
         /// <param name="number">
-        /// The height for a summary entry, the format number for a version record, and 0 for every
-        /// other kind: big-endian in bytes 9 and 10.
+        /// The height for a summary entry, the format number for a version record, the tag of the
+        /// profile's name for a version of a profile's rule, <see cref="SubjectOf"/>, and 0
+        /// for every other record: big-endian in bytes 9 and 10.
         /// </param>
         internal static byte[] Identifier(byte[] key, string kind, string subject, int number, string check)
         {

@@ -12,17 +12,29 @@ using NUnit.Framework;
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// The profiles page against a database: the list in the plugin's store, and the rules
-    /// everywhere.
+    /// The profiles page against a database: the list and the rules, each kept in the plugin's
+    /// store.
     /// </summary>
     /// <remarks>
     /// The symmetry is the thing worth pinning. Adding a name and removing a name each write a
     /// record of the store, and neither writes a rule: a client holds only the names the list
     /// still names, so the list is what decides whether the rules for a name are in force.
+    ///
+    /// **What a profile's count is**, `STORE.md` §636: the groups and entries of the tree walked
+    /// at which a version of its row that grants stands, an empty rule among them, each counted
+    /// once however many versions stand, and none for a rule taken off, lost or out of form.
     /// </remarks>
     [TestFixture]
     public sealed class DatabaseProfilesTests
     {
+        /// <summary>The identifiers of the nodes rules are written for here, as a rule names a node.</summary>
+        private static readonly string Group = new string('a', 32);
+        private static readonly string Entry = new string('b', 32);
+        private static readonly string Another = new string('c', 32);
+
+        /// <summary>A node no tree here holds: in the recycle bin, of the plugin's store, or gone.</summary>
+        private static readonly string Elsewhere = new string('d', 32);
+
         /// <summary>
         /// One authority for the whole fixture, because a record has to carry a real certificate.
         /// </summary>
@@ -150,12 +162,15 @@ namespace KeePassGate.Tests
             // The list is the only thing removal touches. A client holds only the names the list
             // still names, so the rules are inert without being rewritten, and adding the name
             // back is a full undo rather than a fresh start.
-            var group = new TestRuledNode("a group", "{\"ops\":[\"read\"]}");
-            var entry = new TestRuledNode("an entry", "{\"ops\":[\"read\"],\"reader\":[\"list\"]}");
             var database = Serving(new FakeGateDatabase
             {
-                Nodes = new TestRuledNodes(group, entry, new TestRuledNode("another", "{\"reader\":[\"list\"]}"))
+                Nodes = new TestRuledNodes(new TestRuledNode(Group), new TestRuledNode(Entry), new TestRuledNode(Another))
             });
+            TestRuledNodes.Rule(database.Records, Group, "ops", "row:R");
+            TestRuledNodes.Rule(database.Records, Entry, "ops", "row:R");
+            TestRuledNodes.Rule(database.Records, Entry, "reader", "row:L");
+            TestRuledNodes.Rule(database.Records, Another, "reader", "row:L");
+            var before = RulesOf(database);
 
             var profiles = new DatabaseProfiles(database, null);
             profiles.Add("ops");
@@ -164,8 +179,7 @@ namespace KeePassGate.Tests
 
             Assert.That(profiles.Names(), Is.Empty);
             Assert.That(profiles.LastRemoval, Does.Contain("grants nothing").And.Contain("2 rules naming it stay"));
-            Assert.That(group.Current, Is.EqualTo("{\"ops\":[\"read\"]}"), "untouched");
-            Assert.That(entry.Current, Is.EqualTo("{\"ops\":[\"read\"],\"reader\":[\"list\"]}"));
+            Assert.That(RulesOf(database), Is.EqualTo(before), "every version of every rule untouched");
         }
 
         [Test]
@@ -196,9 +210,11 @@ namespace KeePassGate.Tests
         {
             // A full undo: nothing was rewritten, so the rules that were waiting are the rules in
             // force the moment the name is listed again.
-            var group = new TestRuledNode("a group", "{\"ops\":[\"read\"]}");
-            var entry = new TestRuledNode("an entry", "{\"ops\":[],\"reader\":[\"list\"]}");
-            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(group, entry) });
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(new TestRuledNode(Group), new TestRuledNode(Entry)) });
+            TestRuledNodes.Rule(database.Records, Group, "ops", "row:R");
+            TestRuledNodes.Rule(database.Records, Entry, "ops", "row:");
+            TestRuledNodes.Rule(database.Records, Entry, "reader", "row:L");
+            var before = RulesOf(database);
             var profiles = new DatabaseProfiles(database, null);
 
             profiles.Add("ops");
@@ -210,8 +226,7 @@ namespace KeePassGate.Tests
 
             Assert.That(profiles.Add("ops"), Is.Null);
             Assert.That(profiles.Names(), Is.EqualTo(new[] { "ops" }));
-            Assert.That(group.Current, Is.EqualTo("{\"ops\":[\"read\"]}"));
-            Assert.That(entry.Current, Is.EqualTo("{\"ops\":[],\"reader\":[\"list\"]}"));
+            Assert.That(RulesOf(database), Is.EqualTo(before), "every version of every rule untouched");
         }
 
         [Test]
@@ -219,16 +234,16 @@ namespace KeePassGate.Tests
         {
             // The list and the clients holding the name from a single reading, on KeePass's
             // thread, before an Add the operator pressed.
-            var group = new TestRuledNode("a group", "{\"ops\":[\"read\"]}");
-            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(group) });
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(new TestRuledNode(Group)) });
+            TestRuledNodes.Rule(database.Records, Group, "ops", "row:R");
             var profiles = new DatabaseProfiles(database, null);
             profiles.Add("ops");
             profiles.Remove("ops");
             var reads = database.Records.Reads;
 
-            Assert.That(profiles.Returning("ops"), Is.Not.Null);
+            Assert.That(profiles.Returning("ops"), Is.EqualTo("Adding ops again puts the rule naming it back in force."));
 
-            Assert.That(database.Records.Reads - reads, Is.EqualTo(1));
+            Assert.That(database.Records.Reads - reads, Is.EqualTo(1), "the rules counted from that reading too");
         }
 
         [Test]
@@ -246,13 +261,12 @@ namespace KeePassGate.Tests
         {
             // They are edited on other dialogs entirely, so a number kept here would be stale the
             // moment somebody pressed OK on one of them.
-            var node = new TestRuledNode("a group", null);
-            var database = new FakeGateDatabase { Nodes = new TestRuledNodes(node) };
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(new TestRuledNode(Group)) });
             var profiles = new DatabaseProfiles(database, null);
 
             Assert.That(Counted(profiles.Rules(), "ops"), Is.Zero);
 
-            node.Current = "{\"ops\":[\"read\"]}";
+            TestRuledNodes.Rule(database.Records, Group, "ops", "row:R");
 
             Assert.That(Counted(profiles.Rules(), "ops"), Is.EqualTo(1));
         }
@@ -340,10 +354,8 @@ namespace KeePassGate.Tests
         {
             // A record keeps every name it was approved for. The gate reads it beside the list, so
             // a name off the list grants nothing, and the operator is told who would regain it.
-            var database = Serving(new FakeGateDatabase
-            {
-                Nodes = new TestRuledNodes(new TestRuledNode("a group", "{\"ops\":[\"read\"]}"))
-            });
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(new TestRuledNode(Group)) });
+            TestRuledNodes.Rule(database.Records, Group, "ops", "row:R");
             var profiles = new DatabaseProfiles(database, null);
             var store = new Admissions(database);
 
@@ -367,12 +379,9 @@ namespace KeePassGate.Tests
         {
             // Which clients regain a name is the whole of what the operator is agreeing to, so the
             // warning names each of them, as the Clients page calls it, before the rules.
-            var database = Serving(new FakeGateDatabase
-            {
-                Nodes = new TestRuledNodes(
-                    new TestRuledNode("a group", "{\"ops\":[\"read\"]}"),
-                    new TestRuledNode("an entry", "{\"ops\":[\"list\"]}"))
-            });
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(new TestRuledNode(Group), new TestRuledNode(Entry)) });
+            TestRuledNodes.Rule(database.Records, Group, "ops", "row:R");
+            TestRuledNodes.Rule(database.Records, Entry, "ops", "row:L");
             var profiles = new DatabaseProfiles(database, null);
             var store = new Admissions(database);
 
@@ -478,8 +487,9 @@ namespace KeePassGate.Tests
         [Test]
         public void Rules_nobody_can_read_are_not_counted()
         {
-            var node = new TestRuledNode("a group", "{this will not read");
-            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(node) });
+            // A text out of form refuses its profile at the node, and grants it nothing there.
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(new TestRuledNode(Group)) });
+            TestRuledNodes.Rule(database.Records, Group, "ops", "this will not read");
             var profiles = new DatabaseProfiles(database, null);
             profiles.Add("ops");
 
@@ -489,22 +499,140 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Every_profile_is_counted_in_one_walk()
+        public void Every_profile_is_counted_from_one_reading_and_one_walk()
         {
             // The walk is the cost, over every group and entry, and the page asks for a count on
             // every row.
-            var tree = new TestRuledNodes(
-                new TestRuledNode("a group", "{\"ops\":[\"read\"],\"reader\":[\"list\"]}"),
-                new TestRuledNode("an entry", "{\"ops\":[]}"),
-                new TestRuledNode("another", null));
-            var profiles = new DatabaseProfiles(new FakeGateDatabase { Nodes = tree }, null);
+            var tree = new TestRuledNodes(new TestRuledNode(Group), new TestRuledNode(Entry), new TestRuledNode(Another));
+            var database = Serving(new FakeGateDatabase { Nodes = tree });
+            TestRuledNodes.Rule(database.Records, Group, "ops", "row:R");
+            TestRuledNodes.Rule(database.Records, Group, "reader", "row:L");
+            TestRuledNodes.Rule(database.Records, Entry, "ops", "row:");
+            var profiles = new DatabaseProfiles(database, null);
+            var reads = database.Records.Reads;
 
             var counts = profiles.Rules();
 
             Assert.That(tree.Walks, Is.EqualTo(1));
+            Assert.That(database.Records.Reads - reads, Is.EqualTo(1));
             Assert.That(Counted(counts, "ops"), Is.EqualTo(2), "a rule granting nothing still names it");
             Assert.That(Counted(counts, "reader"), Is.EqualTo(1));
             Assert.That(counts.ContainsKey("nobody"), Is.False);
+        }
+
+        [Test]
+        public void A_rule_taken_off_is_counted_as_no_rule()
+        {
+            // The X takes the rule off for real, whatever arrived, and with the switch refusing.
+            var database = Serving(new FakeGateDatabase
+            {
+                Nodes = new TestRuledNodes(new TestRuledNode(Group), new TestRuledNode(Entry), new TestRuledNode(Another))
+            });
+            TestRuledNodes.Rule(database.Records, Group, "ops", "off:R");
+            TestRuledNodes.Rule(database.Records, Entry, "ops", "off:deny");
+            TestRuledNodes.Rule(database.Records, Another, "ops", "off:");
+            TestRuledNodes.Rule(database.Records, Another, "reader", "row:R");
+
+            var counts = new DatabaseProfiles(database, null).Rules();
+
+            Assert.That(counts.ContainsKey("ops"), Is.False);
+            Assert.That(Counted(counts, "reader"), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_rule_standing_in_several_versions_is_counted_once()
+        {
+            // Two copies changed the same rule apart, and both versions stand until somebody
+            // settles them: one rule at one node.
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(new TestRuledNode(Group)) });
+            TestRuledNodes.Rule(database.Records, Group, "ops", "row:R");
+            TestRuledNodes.Rule(database.Records, Group, "ops", "row:RL");
+            Assume.That(RulesOf(database).Single(), Does.StartWith(Group + "/ops: 2 standing"), "both versions stand");
+
+            Assert.That(Counted(new DatabaseProfiles(database, null).Rules(), "ops"), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_rule_granting_beside_a_version_taken_off_is_still_a_rule()
+        {
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(new TestRuledNode(Group)) });
+            TestRuledNodes.Rule(database.Records, Group, "ops", "row:R");
+            TestRuledNodes.Rule(database.Records, Group, "ops", "off:RL");
+
+            Assert.That(Counted(new DatabaseProfiles(database, null).Rules(), "ops"), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void A_rule_whose_only_version_was_lost_is_not_counted()
+        {
+            // A deletion record tells of a version of the row that nothing in force names: the
+            // row refuses its profile at the node, and grants it nothing there.
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(new TestRuledNode(Group), new TestRuledNode(Entry)) });
+            TestRuledNodes.Rule(database.Records, Group, "reader", "row:L");
+            TestRuledNodes.Rule(database.Records, Entry, "ops", "row:L");
+            TestRuledNodes.Lost(database.Records, Group, "ops");
+            Assume.That(RulesOf(database), Does.Contain(Group + "/ops: 0 standing, 1 lost"), "the row is lost");
+
+            Assert.That(Counted(new DatabaseProfiles(database, null).Rules(), "ops"), Is.EqualTo(1), "the entry's rule alone");
+        }
+
+        [Test]
+        public void A_node_is_counted_for_a_profile_only_where_a_version_grants_and_the_row_does_not_refuse()
+        {
+            // A version that grants beside a lost version, or beside a text out of form, refuses
+            // the profile at its node: adding the name back puts no rule in force there.
+            var database = Serving(new FakeGateDatabase
+            {
+                Nodes = new TestRuledNodes(new TestRuledNode(Group), new TestRuledNode(Entry), new TestRuledNode(Another))
+            });
+            TestRuledNodes.Rule(database.Records, Group, "ops", "row:RL");
+            TestRuledNodes.Lost(database.Records, Group, "ops");
+            TestRuledNodes.Rule(database.Records, Entry, "ops", "row:R");
+            TestRuledNodes.Rule(database.Records, Entry, "ops", "row:UR");
+            TestRuledNodes.Rule(database.Records, Another, "ops", "row:L");
+            Assume.That(RulesOf(database), Has.Some.StartsWith(Group + "/ops: 1 standing, 1 lost"), "a granting version beside a lost version");
+            Assume.That(RulesOf(database), Has.Some.StartsWith(Entry + "/ops: 2 standing, 0 lost"), "and beside a text out of form");
+
+            var profiles = new DatabaseProfiles(database, null);
+
+            Assert.That(Counted(profiles.Rules(), "ops"), Is.EqualTo(1), "the row that does not refuse alone");
+            Assert.That(profiles.Add("ops"), Is.Null);
+            Assert.That(profiles.Remove("ops"), Is.Null);
+            Assert.That(profiles.Returning("ops"), Is.EqualTo("Adding ops again puts the rule naming it back in force."));
+        }
+
+        [Test]
+        public void A_rule_for_a_node_outside_the_tree_walked_is_not_counted()
+        {
+            // A node in the recycle bin, a node of the plugin's store, or a node that has gone:
+            // the tree walked does not name it, and its rule puts nothing back in force.
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(new TestRuledNode(Group)) });
+            TestRuledNodes.Rule(database.Records, Group, "ops", "row:R");
+            TestRuledNodes.Rule(database.Records, Elsewhere, "ops", "row:R");
+            TestRuledNodes.Rule(database.Records, Elsewhere, "reader", "row:R");
+
+            var counts = new DatabaseProfiles(database, null).Rules();
+
+            Assert.That(Counted(counts, "ops"), Is.EqualTo(1));
+            Assert.That(counts.ContainsKey("reader"), Is.False);
+        }
+
+        [Test]
+        public void A_node_is_known_by_its_identifier_exactly()
+        {
+            // A rule names its node by the 32 lowercase hexadecimal characters of its identifier:
+            // a node whose identifier differs in a single character, or spelled in capitals, is
+            // another node.
+            var near = Group.Substring(0, 31) + "b";
+            var database = Serving(new FakeGateDatabase { Nodes = new TestRuledNodes(new TestRuledNode(near)) });
+            TestRuledNodes.Rule(database.Records, Group, "ops", "row:R");
+            TestRuledNodes.Rule(database.Records, near.ToUpperInvariant(), "reader", "row:R");
+            var counts = new DatabaseProfiles(database, null).Rules();
+
+            Assert.That(counts, Is.Empty);
+
+            TestRuledNodes.Rule(database.Records, near, "audit", "row:R");
+            Assert.That(new DatabaseProfiles(database, null).Rules(), Is.EqualTo(new Dictionary<string, int> { { "audit", 1 } }));
         }
 
         /// <summary>One profile's count, which is none when the count does not name it.</summary>
@@ -512,6 +640,26 @@ namespace KeePassGate.Tests
         {
             int found;
             return counts.TryGetValue(name, out found) ? found : 0;
+        }
+
+        /// <summary>
+        /// Every row the store holds at the fixture's nodes, each as its node and profile, how many
+        /// versions stand and are lost, and the identifiers of those standing.
+        /// </summary>
+        private static List<string> RulesOf(FakeGateDatabase database)
+        {
+            using (var reading = database.Records.Read())
+            {
+                var rules = StoredRules.Of(reading);
+                return new[] { Group, Entry, Another, Elsewhere }
+                    .SelectMany(node => rules.At(node).Profiles.Select(profile =>
+                    {
+                        var row = rules.At(node).Row(profile);
+                        return node + "/" + profile + ": " + row.Versions.Count + " standing, " + row.Lost.Count + " lost"
+                               + string.Concat(row.Versions.Select(version => " " + version.Id));
+                    }))
+                    .ToList();
+            }
         }
 
         [Test]

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -8,40 +7,44 @@ using KeePass.Forms;
 using KeePassGate.Testing;
 using KeePassGate;
 using KeePassGate.Acl;
-using KeePassGate.Authority;
 using KeePassGate.Bridge;
 using KeePassGate.Diagnostics;
+using KeePassGate.Store;
 using KeePassGate.Ui;
 using KeePassLib;
-using KeePassLib.Collections;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests
 {
     /// <summary>
-    /// The grant editor against KeePass's real group and entry dialogs.
+    /// The grant editor against KeePass's real group and entry dialogs and the plugin's store in a
+    /// real database: what the tab reads, why the tab takes no press, and what an OK writes.
     /// </summary>
     /// <remarks>
-    /// `GrantSheetTests` and `GrantPanelTests` settle what the editor decides. This settles the one
-    /// thing only KeePass can answer, and it is the thing the whole design turns on: **a rule made
-    /// here lands in the copy the dialog writes back on OK**, not on the live node, so the dialog's
-    /// own buttons mean what they say.
+    /// `GrantSheetTests` and `GrantPanelTests` settle what the editor decides. This settles what
+    /// only KeePass and a real database can answer: **a rule changed on the tab is written into
+    /// the plugin's store as the dialog closes with OK**, marking the database, and nothing of the
+    /// node itself changes for it.
     ///
-    /// The dialogs are constructed and read, never shown. `Show` throws inside the message pump
-    /// outside a running KeePass, and WinForms answers with a dialog that blocks the run until
-    /// something kills it. Pressing OK for real belongs to the tier below this one.
+    /// KeePass's dialogs are constructed and read, never shown: shown outside a running KeePass
+    /// they throw inside the message pump, `KeePassDialogs.Close`. Where the close itself is what
+    /// is measured, the tab KeePass's dialog gives is put on a plain modal form, whose own loop
+    /// raises the close as KeePass's dialog raises it.
     /// </remarks>
     [TestFixture]
     [Apartment(ApartmentState.STA)]
+    [NonParallelizable]
     public sealed class GrantEditorInRealDialogsTests
     {
         private TemporaryDatabase _database;
         private ImageList _icons;
+        private WarningLog _log;
 
         [SetUp]
         public void SetUp()
         {
             _database = TemporaryDatabase.New();
+            _log = new WarningLog();
 
             // The entry dialog refuses a null one, and what is in it is never looked at here.
             _icons = new ImageList();
@@ -65,34 +68,33 @@ namespace KeePassGate.Host.Tests
 
                 var node = NodeDialog.Of(dialog, null);
 
-                Assert.That(node, Is.Not.Null);
                 Assert.That(node.Group, Is.SameAs(group));
                 Assert.That(node.Entry, Is.Null);
-                Assert.That(node.HasNode, Is.True);
+                Assert.That(node.Node, Is.EqualTo(Hex.Of(group.Uuid.UuidBytes)));
+                Assert.That(node.Parent, Is.SameAs(_database.RootGroup));
                 Assert.That(node.ReadOnlyReason, Is.Null);
                 Assert.That(node.Scope, Is.EqualTo(GrantTab.GroupScope));
             }
         }
 
         [Test]
-        public void Several_entries_edited_together_get_a_tab_that_cannot_write()
+        public void The_root_group_s_dialog_is_headed_by_a_line_of_its_own()
         {
-            // The worst thing this editor could do. KeePass merges the selection into one
-            // synthetic entry, replacing every value they disagree about with a cue string, and
-            // writes the result back over all of them. That write removes any key the merged copy
-            // no longer carries. Read as a document, that cue says the rules are unreadable, which
-            // is false of every entry in the selection, and the tab's answer to unreadable is a
-            // button that discards them.
-            var group = GroupUnderRoot("Fictitious");
-            var first = EntryIn(group);
-            var second = EntryIn(group);
-            first.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "R")));
-            second.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("editor", "U")));
+            // Nothing is inherited at the root group, so the line about inherited rules is no
+            // line for the root.
+            using (var dialog = GroupDialog(_database.RootGroup))
+            {
+                Assert.That(NodeDialog.Of(dialog, null).Scope, Is.EqualTo(GrantTab.RootScope));
+            }
+        }
 
-            // Built by reflection because the constructor is internal to KeePass. That is
-            // the point of the test rather than an obstacle to it: this is a shape only
-            // KeePass can make, so only KeePass can say whether the guard still matches it.
-            var merged = new object[] { new[] { first, second }, _database.Database, null };
+        [Test]
+        public void Several_entries_edited_together_take_no_press_and_show_no_entry_s_rules()
+        {
+            // KeePass merges the selection into a synthetic entry and writes the result back over
+            // all of them, so that entry is no entry the store holds rules for.
+            var group = GroupUnderRoot("Fictitious");
+            var merged = new object[] { new[] { EntryIn(group), EntryIn(group) }, _database.Database, null };
             var context = typeof(PwEntryForm).Assembly
                 .GetType("KeePass.Util.MultipleValues.MultipleValuesEntryContext")
                 .GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0]
@@ -100,124 +102,970 @@ namespace KeePassGate.Host.Tests
 
             using (var dialog = new PwEntryForm())
             {
-                dialog.InitEx(
-                    (PwEntry)merged[2], PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
-                typeof(PwEntryForm)
-                    .GetProperty("MultipleValuesEntryContext")
-                    .SetValue(dialog, context, null);
+                dialog.InitEx((PwEntry)merged[2], PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
+                typeof(PwEntryForm).GetProperty("MultipleValuesEntryContext").SetValue(dialog, context, null);
 
-                var node = NodeDialog.Of(dialog, null);
+                var tab = Tabs().TabFor(dialog);
 
-                Assert.That(node, Is.Not.Null);
-                Assert.That(node.ReadOnlyReason, Is.Not.Null.And.Contains("Several entries"));
-                Assert.That(node.Store(), Is.Null,
-                    "no store, or the tab would offer to discard rules it must not touch");
-                Assert.That(new NodeDialogs(null).TabFor(dialog).Sheet.Rows.Any(row => row.Local), Is.False,
-                    "the merge is no entry's rules, so none are shown as this one's");
+                Assert.That(tab.Sheet.ReadOnlyReason, Is.EqualTo(GrantTab.SeveralEntries));
+                Assert.That(tab.Sheet.Rows, Is.Empty);
+                Assert.That(tab.Rules, Is.Null, "nothing is written from such a tab");
             }
         }
 
         [Test]
-        public void A_history_revision_gets_a_tab_that_cannot_write()
+        public void A_dialog_that_names_no_database_takes_no_press_and_is_logged_once()
         {
-            // KeePass returns from SaveEntry on its first instruction in this mode, so anything
-            // written here would be thrown away without a word. And the entry behind the dialog
-            // is the old revision, so the rules shown are not the ones in force.
-            var entry = EntryIn(GroupUnderRoot("Fictitious"));
-
-            using (var dialog = new PwEntryForm())
-            {
-                dialog.InitEx(entry, PwEditMode.ViewReadOnlyEntry, _database.Database, _icons, false, false);
-
-                var node = NodeDialog.Of(dialog, null);
-
-                Assert.That(node, Is.Not.Null);
-                Assert.That(node.ReadOnlyReason, Is.Not.Null.And.Contains("earlier version"));
-                Assert.That(node.Store(), Is.Null);
-            }
-        }
-
-        [Test]
-        public void A_history_revision_shows_the_rules_it_had_then()
-        {
-            // The tab says these are the rules the revision had, and an operator reads it before
-            // restoring one. Built from the store alone, it showed only what the group grants.
             var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "RLP")));
-            var entry = EntryIn(group);
-            entry.CustomData.Set(AclDocument.CustomDataKey, Rules.Sealing(("editor", "U")));
-            entry.CreateBackup(_database.Database);
-            entry.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("auditor", "L")));
-            var revision = entry.History.GetAt(0);
 
-            using (var dialog = new PwEntryForm())
+            using (var dialog = new GroupForm())
+            using (var window = new Control())
             {
-                dialog.InitEx(revision, PwEditMode.ViewReadOnlyEntry, _database.Database, _icons, false, false);
+                dialog.InitEx(group, false, null, _database.Database);
+                typeof(GroupForm).GetField(KeePassContract.NodeFormDatabaseField, BindingFlags.NonPublic | BindingFlags.Instance)
+                    .SetValue(dialog, null);
 
-                var sheet = new NodeDialogs(null).TabFor(dialog).Sheet;
+                using (new GrantPanelFactory(Tabs(), _log, null, new Telling(), window, null).CreatePanel(dialog))
+                {
+                    Assert.That(_log.Warnings, Has.Count.EqualTo(1), string.Join(" | ", _log.Warnings));
+                }
 
-                Assert.That(sheet.CanEdit, Is.False);
-                Assert.That(sheet.Default, Is.EqualTo(AclDefault.Deny), "the revision's own seal");
-                Assert.That(sheet.Rows.Single(row => row.Local).Profile, Is.EqualTo("editor"),
-                    "the revision's rule, and not the one in force today");
-            }
-        }
-
-        [Test]
-        public void A_dialog_whose_copy_cannot_be_reached_still_shows_the_rules()
-        {
-            // A KeePass that renamed the dialog's copy. The tab says the rules can be read but
-            // not changed, so they have to be there: a table showing only the inherited rows
-            // reads as a group granting nothing of its own while it hands out passwords.
-            var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "RLP")));
-
-            using (var dialog = GroupFormWithoutACopy(group))
-            {
-                var node = NodeDialog.Of(dialog, null);
-                Assume.That(node.Store(), Is.Null);
-                Assume.That(node.ReadOnlyReason, Does.Contain("can be read but not changed"));
-
-                var sheet = new NodeDialogs(null).TabFor(dialog).Sheet;
-
-                Assert.That(sheet.CanEdit, Is.False);
-                Assert.That(sheet.Rows.Single(row => row.Local).Mask, Is.EqualTo(".R...L.P"));
-            }
-        }
-
-        [Test]
-        public void A_dialog_is_read_once_for_its_tab_so_a_field_KeePass_renamed_is_logged_once()
-        {
-            // The sheet, the store and the top line were asked for apart, and each read the dialog
-            // again: a renamed field was logged three times for every dialog opened.
-            var group = GroupUnderRoot("Fictitious");
-            var log = new WarningLog();
-
-            using (var dialog = GroupFormWithoutACopy(group))
-            using (new GrantPanelFactory(new NodeDialogs(log), log).CreatePanel(dialog))
-            {
-                Assert.That(log.Warnings, Has.Count.EqualTo(1), string.Join(" | ", log.Warnings));
+                Assert.That(Tabs().TabFor(dialog).Sheet.ReadOnlyReason, Is.EqualTo(GrantTab.NoDatabase));
             }
         }
 
         [Test]
         public void A_dialog_about_no_node_states_its_reason_once()
         {
-            // Its top line and its warning band held the same sentence, one under the other.
             using (var dialog = new Form())
-            using (var panel = new GrantPanelFactory(new NodeDialogs(null), null).CreatePanel(dialog))
+            using (var window = new Control())
+            using (var panel = new GrantPanelFactory(Tabs(), null, null, new Telling(), window, null).CreatePanel(dialog))
             {
-                var scope = ControlTree.FindByName<Label>(panel, GrantTab.ScopeLabelName).Text;
-                var warning = ControlTree.FindByName<Label>(panel, GrantTab.WarningLabelName).Text;
+                var scope = ControlTree.FindByName<Label>(panel, GrantTab.ScopeLabelName);
+                var warning = ControlTree.FindByName<Label>(panel, GrantTab.WarningLabelName);
 
-                Assert.That(scope, Is.EqualTo(GrantTab.NoNodeScope));
-                Assert.That(warning, Is.Not.EqualTo(scope));
+                Assert.That(warning.Text, Is.EqualTo(GrantTab.NoNode));
+                Assert.That(warning.Visible, Is.True);
+                Assert.That(scope.Visible, Is.False, "the line at the top stands over no tab that takes no change");
             }
         }
 
+        [Test]
+        public void A_database_with_no_authority_yet_takes_no_press()
+        {
+            using (var dialog = GroupDialog(_database.RootGroup))
+            {
+                var tab = Tabs().TabFor(dialog);
+
+                Assert.That(tab.Sheet.ReadOnlyReason, Is.EqualTo(GrantTab.NoAuthorityYet));
+                Assert.That(tab.Rules, Is.Null);
+            }
+        }
+
+        [Test]
+        public void A_session_whose_dialogs_are_not_watched_takes_no_press()
+        {
+            Seed();
+            using (var dialog = GroupDialog(_database.RootGroup))
+            {
+                var tab = new NodeDialogs(_log, null).TabFor(dialog);
+
+                Assert.That(tab.Sheet.ReadOnlyReason, Is.EqualTo(GrantTab.NotWatched));
+                Assert.That(tab.Rules, Is.Null);
+            }
+        }
+
+        [Test]
+        public void A_group_of_the_plugin_s_store_takes_no_press()
+        {
+            Seed();
+            var store = _database.RootGroup.Groups.Single(group => StoreNodes.Holds(group));
+
+            using (var dialog = GroupDialog(store))
+            {
+                Assert.That(Tabs().TabFor(dialog).Sheet.ReadOnlyReason, Is.EqualTo(GrantTab.StoreNode));
+            }
+        }
+
+        [Test]
+        public void A_history_revision_takes_no_press_and_shows_the_rules_of_the_entry_as_the_rules_stand_now()
+        {
+            Seed();
+            var entry = EntryIn(GroupUnderRoot("Fictitious"));
+            StoreSeeds.Rule(Store(), NodeOf(entry), ("reader", "R"));
+            entry.CreateBackup(_database.Database);
+            StoreSeeds.Rule(Store(), NodeOf(entry), ("reader", "RL"));
+            var revision = entry.History.GetAt(0);
+
+            using (var dialog = new PwEntryForm())
+            {
+                dialog.InitEx(revision, PwEditMode.ViewReadOnlyEntry, _database.Database, _icons, false, false);
+
+                var tab = Tabs().TabFor(dialog);
+
+                Assert.That(tab.Sheet.ReadOnlyReason, Is.EqualTo(GrantTab.EarlierVersion));
+                Assert.That(tab.Rules, Is.Null);
+                Assert.That(tab.Sheet.Rows.Single().Mask, Is.EqualTo(".R...L.."), "the rule of the entry as it stands now");
+            }
+        }
+
+        [Test]
+        public void An_earlier_version_read_from_the_file_shows_every_row_the_entry_shows_as_the_rules_stand_now()
+        {
+            // KeePass reads a revision from the file with no group above it, and its History view
+            // opens the entry dialog over the revision as read only: a tab reading what arrives at
+            // the revision's own group would show no rule from above, no limit and no rule of a
+            // name gone. The tab finds the entry as the entry stands by the revision's identifier.
+            Seed();
+            foreach (var name in new[] { "reader", "deploy", "ops" })
+            {
+                StoreSeeds.Name(Store(), name);
+            }
+
+            var group = GroupUnderRoot("Fictitious");
+            var entry = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(group), ("reader", "RL"), ("deploy", "CRUL"), ("retired", "R"));
+            StoreSeeds.Rule(Store(), NodeOf(entry), ("ops", "CR"));
+            StoreSeeds.TakeOff(Store(), NodeOf(entry), "deploy", "R");
+            entry.CreateBackup(_database.Database);
+            _database.SaveCloseAndReopen();
+
+            var current = _database.RootGroup.FindEntry(entry.Uuid, true);
+            Assert.That(current, Is.Not.Null);
+            var revision = current.History.GetAt(0);
+            Assert.That(revision.ParentGroup, Is.Null, "a revision read from the file knows no group");
+
+            using (var shown = EntryDialog(current, PwEditMode.EditExistingEntry))
+            using (var dialog = EntryDialog(revision, PwEditMode.ViewReadOnlyEntry))
+            {
+                var now = Tabs().TabFor(shown).Sheet.Rows.Select(row => row.ToString()).ToList();
+                var tab = Tabs().TabFor(dialog);
+
+                Assert.That(tab.Sheet.ReadOnlyReason, Is.EqualTo(GrantTab.EarlierVersion));
+                Assert.That(tab.Rules, Is.Null, "nothing is written from such a tab");
+                Assert.That(now.Count, Is.EqualTo(5), string.Join(" | ", now));
+                Assert.That(tab.Sheet.Rows.Select(row => row.ToString()), Is.EqualTo(now), "every row of the entry as the rules stand now");
+                Assert.That(tab.Sheet.Rows.Select(row => row.Kind), Is.SupersetOf(new[] { GrantRowKind.Own, GrantRowKind.Inherited, GrantRowKind.Limit }));
+                Assert.That(tab.Sheet.Rows.SelectMany(row => row.States), Does.Contain(GrantState.NoProfile));
+            }
+        }
+
+        [Test]
+        public void The_tab_shows_the_node_s_rules_and_what_arrives_from_the_group_above()
+        {
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var entry = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(group), ("reader", "RL"));
+            StoreSeeds.Rule(Store(), NodeOf(entry), ("ops", "CR"));
+
+            using (var dialog = EntryDialog(entry, PwEditMode.EditExistingEntry))
+            {
+                var tab = Tabs().TabFor(dialog);
+
+                Assert.That(tab.Sheet.CanEdit, Is.True);
+                Assert.That(tab.Sheet.Rows.Select(row => row.Profile + " " + row.Mask + " " + row.Kind), Is.EqualTo(new[]
+                {
+                    "ops CR...... Own",
+                    "reader .R...L.. Inherited",
+                }));
+            }
+        }
+
+        [Test]
+        public void The_Add_Entry_dialog_shows_what_arrives_at_the_group_the_entry_is_added_to()
+        {
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            StoreSeeds.Rule(Store(), NodeOf(group), ("reader", "RL"));
+
+            // Add Entry gives its entry the group and puts the entry into the group at OK, read off
+            // KeePass 2.62's IL: `MainForm.AddEntryEx` sets `PwEntry.ParentGroup` before `InitEx`
+            // and calls `PwGroup.AddEntry` after the dialog. Set here as that method sets it,
+            // because `AddEntryEx` needs KeePass's main window, which this process has none of,
+            // and the setter is internal to KeePass.
+            var entry = new PwEntry(true, true);
+            typeof(PwEntry).GetProperty("ParentGroup").SetValue(entry, group, null);
+            Assume.That(group.Entries.UCount, Is.Zero);
+
+            using (var dialog = EntryDialog(entry, PwEditMode.AddNewEntry))
+            {
+                var tab = Tabs().TabFor(dialog);
+
+                Assert.That(tab.Sheet.Rows.Single().Kind, Is.EqualTo(GrantRowKind.Inherited));
+                Assert.That(tab.Sheet.Rows.Single().Mask, Is.EqualTo(".R...L.."));
+
+                tab.Sheet.Set("reader", ".R......");
+                Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+                Assert.That(Read().At(NodeOf(entry)).Row("reader").Grants.Select(VerbMask.LetterOf), Is.EquivalentTo(new[] { 'R' }),
+                    "the rule of the entry being added, under the entry's identifier");
+            }
+        }
+
+        [Test]
+        public void OK_writes_the_rule_into_the_store_and_marks_the_database_with_the_entry_unchanged()
+        {
+            Seed();
+            var entry = EntryIn(GroupUnderRoot("Fictitious"));
+            var modified = entry.LastModificationTime;
+            var history = entry.History.UCount;
+            var records = StoreEntries();
+            _database.Database.Modified = false;
+
+            using (var dialog = EntryDialog(entry, PwEditMode.EditExistingEntry))
+            {
+                var tab = Tabs().TabFor(dialog);
+                Assert.That(tab.Sheet.Set("reader", ".R...L.."), Is.Null);
+                Assert.That(StoreEntries(), Is.EqualTo(records), "a press writes nothing");
+
+                Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+            }
+
+            Assert.That(_database.Database.Modified, Is.True, "the store's write marks the database");
+            Assert.That(StoreEntries(), Is.GreaterThan(records), "a version and a summary entry");
+            Assert.That(entry.LastModificationTime, Is.EqualTo(modified), "a rule is no part of its node");
+            Assert.That(entry.History.UCount, Is.EqualTo(history));
+            Assert.That(entry.CustomData.Count, Is.Zero, "nothing in the node's custom data");
+
+            var row = Read().At(NodeOf(entry)).Row("reader");
+            Assert.That(row.Answers, Is.True, "the gate reads the rule at its next hold");
+            Assert.That(VerbMask.Of(row.Grants), Is.EqualTo(".R...L.."));
+        }
+
+        [Test]
+        public void OK_on_the_dialog_writes_once_the_dialog_has_closed_and_Cancel_writes_nothing()
+        {
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+
+            foreach (var result in new[] { DialogResult.Cancel, DialogResult.OK })
+            {
+                var records = StoreEntries();
+                var prompt = new Telling();
+                using (var groupDialog = GroupDialog(group))
+                {
+                    var tab = Tabs().TabFor(groupDialog);
+                    Closed(tab, prompt, result, panel => panel.SetGrant("reader", ".R......"));
+                }
+
+                Assert.That(prompt.Told, Is.Zero, result.ToString());
+                if (result == DialogResult.OK)
+                {
+                    Assert.That(StoreEntries(), Is.GreaterThan(records));
+                    Assert.That(VerbMask.Of(Read().At(NodeOf(group)).Row("reader").Grants), Is.EqualTo(".R......"));
+                }
+                else
+                {
+                    Assert.That(StoreEntries(), Is.EqualTo(records), "Cancel and Escape write nothing");
+                }
+            }
+        }
+
+        [Test]
+        public void A_refused_OK_adds_nothing_and_is_told_once_the_dialog_has_closed()
+        {
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var records = StoreEntries();
+            var prompt = new Telling();
+            const string Busy = "KeePass is saving a database";
+
+            using (var groupDialog = GroupDialog(group))
+            {
+                var tab = new NodeDialogs(_log, Writer(() => Busy)).TabFor(groupDialog);
+                Closed(tab, prompt, DialogResult.OK, panel => panel.SetGrant("reader", ".R......"));
+            }
+
+            Assert.That(StoreEntries(), Is.EqualTo(records), "a write refused adds nothing");
+            Assert.That(prompt.Told, Is.EqualTo(1));
+            Assert.That(prompt.News, Is.EqualTo(GrantTab.NotKept + Busy));
+            Assert.That(_log.Warnings, Has.Some.Contains(NodeOf(group).Substring(0, 8)), "the log names the node");
+        }
+
+        [Test]
+        public void The_message_after_a_refused_OK_waits_for_a_save_of_KeePass_s_own_to_end()
+        {
+            // KeePass saves right after an entry's dialog where it saves after every edit, and
+            // pumps as it saves: the message is not shown inside that save, and is shown at the
+            // first Idle once KeePass is no longer busy, asked as the writer asks it.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var prompt = new Telling();
+            var saving = false;
+            const string Refused = "the database maintenance dialog is open on this database";
+
+            using (var groupDialog = GroupDialog(group))
+            using (var window = new Form { ShowInTaskbar = false, StartPosition = FormStartPosition.Manual, Left = -2000, Top = -2000 })
+            using (var dialog = new Form { ShowInTaskbar = false, StartPosition = FormStartPosition.Manual, Left = -2000, Top = -2000 })
+            {
+                window.Show();
+                var tab = new NodeDialogs(_log, Writer(() => Refused)).TabFor(groupDialog);
+                Assume.That(tab.Sheet.CanEdit, Is.True, tab.Sheet.ReadOnlyReason);
+                var factory = new GrantPanelFactory(new TheTab(tab), null, null, prompt, window, null)
+                {
+                    Busy = () => saving ? "KeePass is in the middle of an operation of its own, such as saving" : null,
+                };
+
+                var panel = (GrantPanel)factory.CreatePanel(dialog);
+                dialog.Controls.Add(panel);
+                dialog.Shown += (sender, e) => dialog.BeginInvoke(new Action(() =>
+                {
+                    panel.SetGrant("reader", ".R......");
+                    saving = true;
+                    dialog.DialogResult = DialogResult.OK;
+                }));
+
+                dialog.ShowDialog();
+                for (var i = 0; i < 8; i++)
+                {
+                    Application.DoEvents();
+                }
+
+                Assert.That(prompt.Told, Is.Zero, "the message stood inside the save");
+
+                saving = false;
+                Application.RaiseIdle(EventArgs.Empty);
+
+                Assert.That(prompt.Told, Is.EqualTo(1), "the message was not shown once the save had ended");
+                Assert.That(prompt.News, Is.EqualTo(GrantTab.NotKept + Refused));
+            }
+        }
+
+        [Test]
+        public void A_rule_whose_new_version_does_not_fit_is_told_as_not_kept_and_the_rest_is_written()
+        {
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            Crowded(group, "reader");
+
+            using (var groupDialog = GroupDialog(group))
+            {
+                var tab = Tabs().TabFor(groupDialog);
+                Assert.That(tab.Sheet.CanEdit, Is.True, tab.Sheet.ReadOnlyReason);
+                Assert.That(tab.Sheet.Rows.Count(row => row.Profile == "reader" && row.Kind == GrantRowKind.Lost), Is.EqualTo(Crowd));
+                Assert.That(tab.Sheet.Set("reader", ".RU....."), Is.Null);
+                Assert.That(tab.Sheet.Set("ops", ".R......"), Is.Null);
+
+                Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.EqualTo(
+                    GrantTab.NotAllKept + Environment.NewLine + GrantTab.NoRoom + Environment.NewLine + GrantTab.ShownAsKept));
+            }
+
+            var rules = Read().At(NodeOf(group));
+            Assert.That(rules.Row("reader").Lost, Has.Count.EqualTo(Crowd), "the rule left stands as it was");
+            Assert.That(VerbMask.Of(rules.Row("ops").Grants), Is.EqualTo(".R......"), "the rest of the OK is written");
+            Assert.That(_log.Warnings, Has.Some.Contains("reader"), "the log names the rule");
+            Assert.That(_log.Warnings, Has.Some.Contains(NodeOf(group).Substring(0, 8)), "and the node");
+        }
+
+        /// <summary>How many lost versions a crowded rule holds: more than a single version can name in a string.</summary>
+        private const int Crowd = (StoreFormat.MaxWritten / 32) + 1;
+
+        /// <summary>
+        /// A rule of the profile at the group in a single version, and beside the version
+        /// <see cref="Crowd"/> versions lost: deletion records of identifiers a version of the
+        /// row's object could have, which nothing names. No version naming every version shown fits
+        /// a string.
+        /// </summary>
+        private void Crowded(PwGroup group, string profile)
+        {
+            StoreSeeds.Rule(Store(), NodeOf(group), (profile, "R"));
+            using (var reading = new KdbxStore(_database.Database, GateVersion.Current, null).Read())
+            {
+                var key = (byte[])reading.InForce.Key.Bytes.Clone();
+                try
+                {
+                    var objectName = StoreComposer.RowObject(NodeOf(group), profile);
+                    var place = StoreComposer.Version(key, objectName, StoreComposer.Content(("doc", "row:R"))).Hex.Substring(0, 20);
+                    for (var at = 0; at < Crowd; at++)
+                    {
+                        var lost = StoreComposer.BytesOf(place + at.ToString("x12", System.Globalization.CultureInfo.InvariantCulture));
+                        _database.Database.DeletedObjects.Add(new PwDeletedObject(new PwUuid(lost), DateTime.UtcNow));
+                    }
+                }
+                finally
+                {
+                    Array.Clear(key, 0, key.Length);
+                }
+            }
+        }
+
+        [Test]
+        public void A_renewal_below_that_does_not_fit_is_named_in_the_log_by_its_node_and_told_in_no_message()
+        {
+            // `STORE.md` §643: the version below is left as it was, the rest of the OK is written,
+            // and since no press of the operator's was left out, nothing is told after the close.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var entry = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "R"));
+            CrowdedBelow(entry, "reader");
+            var prompt = new Telling();
+
+            using (var groupDialog = GroupDialog(group))
+            {
+                var tab = Tabs().TabFor(groupDialog);
+                Assume.That(tab.Sheet.CanEdit, Is.True, tab.Sheet.ReadOnlyReason);
+                Closed(tab, prompt, DialogResult.OK, panel => panel.SetGrant("reader", ".RU....."));
+            }
+
+            Assert.That(prompt.Told, Is.Zero, "a renewal left is told in no message");
+            Assert.That(VerbMask.Of(Read().At(NodeOf(group)).Row("reader").Grants), Is.EqualTo(".RU....."), "the rest of the OK is written");
+            Assert.That(VerbMask.Of(Read().At(NodeOf(entry)).Row("reader").Versions.Single().Letters), Is.EqualTo(".R......"), "left as it was");
+            Assert.That(
+                _log.Warnings,
+                Has.Some.Matches<string>(warning => warning.Contains(NodeOf(entry).Substring(0, 8)) && warning.Contains("was left as it was")),
+                "the log names the node below: " + string.Join(" | ", _log.Warnings));
+        }
+
+        /// <summary>
+        /// A rule of the profile taken off at the entry, seeing read arrive, in a single version
+        /// naming as many identifiers a version of its object could have as the version and its
+        /// item fit a string with: a renewal naming the version as well fits no string.
+        /// </summary>
+        private void CrowdedBelow(PwEntry entry, string profile)
+        {
+            var store = Store();
+            byte[] key;
+            using (var reading = store.Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+
+            try
+            {
+                var objectName = StoreComposer.RowObject(NodeOf(entry), profile);
+                var place = StoreComposer.Version(key, objectName, StoreComposer.Content(("doc", "off:R"))).Hex.Substring(0, 20);
+                var names = new System.Collections.Generic.List<string>();
+                string Named(int at) => place + at.ToString("x12", System.Globalization.CultureInfo.InvariantCulture);
+                for (var at = 0; at < (StoreFormat.MaxWritten / 33) - 20; at++)
+                {
+                    names.Add(Named(at));
+                }
+
+                string Item(System.Collections.Generic.IEnumerable<string> after)
+                {
+                    var listed = after.ToArray();
+                    return StoreComposer.RuleVersionItem(StoreComposer.RuleVersion(key, objectName, "off:R", listed), objectName, "off:R", listed);
+                }
+
+                while (Item(names.Concat(new[] { Named(names.Count) })).Length <= StoreFormat.MaxWritten)
+                {
+                    names.Add(Named(names.Count));
+                }
+
+                var version = StoreRecord.Compose(key, StoreKinds.Version, new System.Collections.Generic.Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    { StoreKinds.After, string.Join(" ", names) },
+                    { StoreKinds.Doc, "off:R" },
+                    { StoreKinds.ObjectMember, objectName },
+                });
+                var written = store.Write(new[] { new StoreAct("a rule crowded", key, StoreFormat.KeyName(key), new[] { version }, null) });
+                Assume.That(written.Taken, Is.True, written.Reason);
+            }
+            finally
+            {
+                Array.Clear(key, 0, key.Length);
+            }
+        }
+
+        [Test]
+        public void OK_at_a_group_carries_a_widening_into_the_versions_below_that_follow_it()
+        {
+            // `STORE.md` §617: N took the rule off seeing read arrive, and follows its group; the
+            // OK at the group writes N anew with what arrives now, and deletes the version it
+            // replaces with a single deletion record, in the same write.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var below = new PwGroup(true, true, "Fictitious below", PwIcon.Folder);
+            group.AddGroup(below, true);
+            var entry = EntryIn(below);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "R"));
+            StoreSeeds.TakeOff(Store(), NodeOf(below), "reader", "R");
+            StoreSeeds.TakeOff(Store(), NodeOf(entry), "reader", "R");
+            var replaced = Read().At(NodeOf(entry)).Row("reader").Versions.Single().Id;
+            var deletions = _database.Database.DeletedObjects.UCount;
+
+            using (var dialog = GroupDialog(group))
+            {
+                var tab = Tabs().TabFor(dialog);
+                Assert.That(tab.Sheet.Set("reader", ".RU....."), Is.Null);
+                Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+            }
+
+            foreach (var node in new[] { NodeOf(below), NodeOf(entry) })
+            {
+                var version = Read().At(node).Row("reader").Versions.Single();
+                Assert.That(version.Kind, Is.EqualTo(RowVersionKind.TakenOff), node);
+                Assert.That(VerbMask.Of(version.Letters), Is.EqualTo(".RU....."), node);
+            }
+
+            Assert.That(_database.RootGroup.FindEntry(new PwUuid(StoreComposer.BytesOf(replaced)), true), Is.Null, "the version renewed is deleted");
+            Assert.That(
+                _database.Database.DeletedObjects.Count(deleted => Hex.Of(deleted.Uuid.UuidBytes) == replaced), Is.EqualTo(1),
+                "with a single deletion record");
+            Assert.That(_database.Database.DeletedObjects.UCount - deletions, Is.EqualTo(3), "the two versions renewed and the summary entry");
+        }
+
+        [Test]
+        public void A_version_below_made_apart_and_merged_in_under_the_open_dialog_is_left_and_goes_on_cutting()
+        {
+            // `STORE.md` §617: the version reaches the database by a merge while the group's dialog
+            // stands, so the tab never held it, and the OK leaves it as it is.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var entry = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "R"));
+            using (var copy = TemporaryDatabase.New())
+            {
+                copy.Database.RootGroup.Uuid = _database.RootGroup.Uuid;
+                copy.Database.MergeIn(_database.Database, PwMergeMethod.Synchronize, null);
+                StoreSeeds.TakeOff(DatabaseAuthority.Store(copy.Database), NodeOf(entry), "reader", "R");
+
+                using (var dialog = GroupDialog(group))
+                {
+                    var tab = Tabs().TabFor(dialog);
+                    Assert.That(tab.Sheet.Set("reader", ".RU....."), Is.Null);
+
+                    _database.Database.MergeIn(copy.Database, PwMergeMethod.Synchronize, null);
+                    Assume.That(Read().At(NodeOf(entry)).Row("reader").Versions, Has.Count.EqualTo(1), "the version made apart landed");
+
+                    Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+                }
+            }
+
+            var version = Read().At(NodeOf(entry)).Row("reader").Versions.Single();
+            Assert.That(VerbMask.Of(version.Letters), Is.EqualTo(".R......"), "not renewed");
+            Assert.That(VerbMask.Of(Read().At(NodeOf(group)).Row("reader").Grants), Is.EqualTo(".RU....."), "and the rest of the OK written");
+            Assert.That(
+                _log.Warnings,
+                Has.Some.Matches<string>(warning => warning.Contains(NodeOf(entry).Substring(0, 8)) && warning.Contains("not carried")),
+                "the log names the node below the change did not reach, and why: " + string.Join(" | ", _log.Warnings));
+        }
+
+        [Test]
+        public void A_reading_made_again_before_a_press_lets_the_OK_carry_a_version_below_that_landed_before_it()
+        {
+            // `STORE.md` §617: the entry's rule is taken off while the group's dialog stands, and
+            // the tab reads the store again as a record that lands makes it; the press made after
+            // that reading keeps the entry's version, so the OK carries the widening there.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var entry = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "R"));
+
+            using (var dialog = GroupDialog(group))
+            {
+                var tab = Tabs().TabFor(dialog);
+                StoreSeeds.TakeOff(Store(), NodeOf(entry), "reader", "R");
+                var again = tab.Again();
+                tab.Sheet.Rebase(again.Rule, again.Above, again.Names, again.ReadOnlyReason);
+                Assert.That(tab.Sheet.Set("reader", ".RU....."), Is.Null);
+                Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+            }
+
+            Assert.That(Letters(entry), Is.EqualTo(".RU....."), "the version the reading made again held is renewed");
+        }
+
+        [Test]
+        public void OK_at_a_group_carries_a_narrowing_into_a_version_below_that_follows_and_leaves_a_limit()
+        {
+            // `STORE.md` §617: an entry took its rule off seeing what the group gave and another
+            // turned its switch off seeing the same, while a third recorded less, a limit; the
+            // group narrowed carries the first two and leaves the third.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var follower = EntryIn(group);
+            var switched = EntryIn(group);
+            var limit = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "RUL"));
+            StoreSeeds.TakeOff(Store(), NodeOf(follower), "reader", "RUL");
+            StoreSeeds.Seal(Store(), NodeOf(switched));
+            StoreSeeds.Unseal(Store(), NodeOf(switched), ("reader", "RUL"));
+            StoreSeeds.TakeOff(Store(), NodeOf(limit), "reader", "R");
+
+            using (var dialog = GroupDialog(group))
+            {
+                var tab = Tabs().TabFor(dialog);
+                Assert.That(tab.Sheet.Set("reader", ".RU....."), Is.Null);
+                Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+            }
+
+            Assert.That(Letters(follower), Is.EqualTo(".RU....."), "the version that followed records the narrower rule");
+            Assert.That(
+                VerbMask.Of(Read().At(NodeOf(switched)).Switch.Versions.Single().LettersFor("reader")),
+                Is.EqualTo(".RU....."),
+                "and so does the switch that followed");
+            Assert.That(Letters(limit), Is.EqualTo(".R......"), "the limit is left");
+        }
+
+        [Test]
+        public void The_box_ticked_and_cleared_on_a_group_s_tab_carries_the_version_below_that_followed_and_leaves_a_limit()
+        {
+            // `STORE.md` §617: the box ticked renews the entry that followed to nothing and leaves
+            // the limit; cleared again, it renews the entry that recorded nothing arriving, and
+            // leaves the limit, whose letters nothing tells apart from a limit while nothing
+            // arrived.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var follower = EntryIn(group);
+            var limit = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "RL"));
+            StoreSeeds.TakeOff(Store(), NodeOf(follower), "reader", "RL");
+            StoreSeeds.TakeOff(Store(), NodeOf(limit), "reader", "R");
+
+            foreach (var (box, followed) in new[] { (GrantBox.Ticked, "........"), (GrantBox.Cleared, ".R...L..") })
+            {
+                using (var dialog = GroupDialog(group))
+                {
+                    var tab = Tabs().TabFor(dialog);
+                    Assert.That(tab.Sheet.PressBox(), Is.True);
+                    Assume.That(tab.Sheet.Box, Is.EqualTo(box));
+                    Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+                }
+
+                Assert.That(Letters(follower), Is.EqualTo(followed), "the box " + box + ": the version that followed");
+                Assert.That(Letters(limit), Is.EqualTo(".R......"), "the box " + box + ": the limit is left");
+            }
+        }
+
+        [Test]
+        public void A_node_in_the_recycle_bin_follows_a_narrowing_and_a_widening_above_it_by_the_bin_s_path()
+        {
+            // `STORE.md` §617: the entry took its rule off seeing read and write arrive, and was
+            // deleted to the recycle bin. A change at the root reaches it there by the bin's own
+            // path, a narrowing as a widening.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var entry = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "RU"));
+            StoreSeeds.TakeOff(Store(), NodeOf(entry), "reader", "RU");
+            Discard(_database.Database, entry);
+
+            foreach (var (mask, recorded) in new[] { (".R......", ".R......"), (".R...L..", ".R...L..") })
+            {
+                using (var dialog = GroupDialog(_database.RootGroup))
+                {
+                    var tab = Tabs().TabFor(dialog);
+                    Assert.That(tab.Sheet.Set("reader", mask), Is.Null);
+                    Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+                }
+
+                Assert.That(Letters(entry), Is.EqualTo(recorded), "the root set to " + mask);
+            }
+        }
+
+        [Test]
+        public void A_narrowing_above_reaches_a_node_in_the_recycle_bin_and_a_merge_then_gives_no_more_than_either_copy()
+        {
+            // `STORE.md` §617 and §639: both copies grant read at the root and hold an empty rule
+            // at the entry, in a group with no rule. The first takes the entry's rule off, deletes
+            // the entry to the recycle bin, narrows the root to nothing and restores the entry; the
+            // second, apart, gives the group read. The narrowing reached the entry in the bin, so
+            // once the copies meet, the entry gives nothing, which both copies gave.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var entry = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "R"));
+            StoreSeeds.Rule(Store(), NodeOf(entry), ("reader", string.Empty));
+            using (var copy = TemporaryDatabase.New())
+            {
+                copy.Database.RootGroup.Uuid = _database.RootGroup.Uuid;
+                copy.Database.MergeIn(_database.Database, PwMergeMethod.Synchronize, null);
+                var copied = copy.Database.RootGroup.FindGroup(group.Uuid, true);
+                Assume.That(copied, Is.Not.Null);
+
+                using (var dialog = EntryDialog(entry, PwEditMode.EditExistingEntry))
+                {
+                    var tab = Tabs().TabFor(dialog);
+                    Assert.That(tab.Sheet.Remove("reader"), Is.True);
+                    Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+                }
+
+                var bin = Discard(_database.Database, entry);
+                using (var dialog = GroupDialog(_database.RootGroup))
+                {
+                    var tab = Tabs().TabFor(dialog);
+                    Assert.That(tab.Sheet.Set("reader", "........"), Is.Null);
+                    Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+                }
+
+                bin.Entries.Remove(entry);
+                group.AddEntry(entry, true, true);
+                Assert.That(Gives(_database.Database, entry.Uuid), Is.EqualTo("........"), "the first copy gives nothing at the entry");
+
+                using (var dialog = GroupDialog(copied, copy.Database))
+                {
+                    var tab = Tabs().TabFor(dialog);
+                    Assert.That(tab.Sheet.Set("reader", ".R......"), Is.Null);
+                    Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+                }
+
+                Assert.That(Gives(copy.Database, entry.Uuid), Is.EqualTo("........"), "the second copy gives nothing at the entry");
+
+                using (var other = TemporaryDatabase.New())
+                {
+                    other.Database.RootGroup.Uuid = copy.Database.RootGroup.Uuid;
+                    other.Database.MergeIn(copy.Database, PwMergeMethod.Synchronize, null);
+                    other.Database.MergeIn(_database.Database, PwMergeMethod.Synchronize, null);
+                    _database.Database.MergeIn(copy.Database, PwMergeMethod.Synchronize, null);
+
+                    Assert.That(Gives(_database.Database, entry.Uuid), Is.EqualTo("........"), "the first copy, the second merged in");
+                    Assert.That(Gives(other.Database, entry.Uuid), Is.EqualTo("........"), "the second copy, the first merged in");
+                }
+            }
+        }
+
+        /// <summary>
+        /// The entry deleted to the recycle bin as KeePass deletes it: the bin made under the root
+        /// where the database names none, and the entry moved into it.
+        /// </summary>
+        private static PwGroup Discard(PwDatabase database, PwEntry entry)
+        {
+            var bin = database.RootGroup.FindGroup(database.RecycleBinUuid, true);
+            if (bin == null)
+            {
+                bin = new PwGroup(true, true, "Recycle Bin", PwIcon.TrashBin) { EnableAutoType = false, EnableSearching = false };
+                database.RootGroup.AddGroup(bin, true);
+                database.RecycleBinUuid = bin.Uuid;
+                database.RecycleBinChanged = DateTime.UtcNow;
+            }
+
+            entry.ParentGroup.Entries.Remove(entry);
+            bin.AddEntry(entry, true, true);
+            return bin;
+        }
+
+        /// <summary>The letters the single standing version of the rule of the profile `reader` at the entry records.</summary>
+        private string Letters(PwEntry entry)
+        {
+            return VerbMask.Of(Read().At(NodeOf(entry)).Row("reader").Versions.Single().Letters);
+        }
+
+        /// <summary>What the entry of this identifier gives the profile `reader` in this database, as the gate's next hold reads the rules.</summary>
+        private static string Gives(PwDatabase database, PwUuid entry)
+        {
+            using (var reading = new KdbxStore(database, GateVersion.Current, null).Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                var rules = StoredRules.Of(reading);
+                var found = database.RootGroup.FindEntry(entry, true);
+                return VerbMask.Of(AclResolver.Arrives(KdbxNodes.Of(found, CurrentThread.Instance, () => rules), "reader"));
+            }
+        }
+
+        [Test]
+        public void A_node_moved_by_KeePass_out_from_under_the_group_before_the_OK_is_not_carried_along()
+        {
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            var below = new PwGroup(true, true, "Fictitious below", PwIcon.Folder);
+            group.AddGroup(below, true);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "R"));
+            StoreSeeds.TakeOff(Store(), NodeOf(below), "reader", "R");
+
+            using (var dialog = GroupDialog(group))
+            {
+                var tab = Tabs().TabFor(dialog);
+                Assert.That(tab.Sheet.Set("reader", ".RU....."), Is.Null);
+
+                // Moved as KeePass's drag and drop in the tree moves a group.
+                group.Groups.Remove(below);
+                _database.RootGroup.AddGroup(below, true, true);
+
+                Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+            }
+
+            var version = Read().At(NodeOf(below)).Row("reader").Versions.Single();
+            Assert.That(VerbMask.Of(version.Letters), Is.EqualTo(".R......"), "no longer below the group, and not renewed");
+        }
+
+        [TestCaseSource(nameof(Kinds))]
+        public void An_entry_whose_identifier_begins_with_a_kind_s_tag_is_the_store_s_to_the_tree_the_gate_the_write_above_and_the_tab(string kind)
+        {
+            // `STORE.md` §633: an entry whose identifier's first three bytes are the tag of a kind
+            // under a key found is the store's wherever it sits, an entry of the operator's in a
+            // group of the operator's among them. All four agree on it: the tree holds no such
+            // node, the gate finds none, the write above renews nothing there, and its tab takes
+            // no press. An entry beside it with an identifier of its own follows the group.
+            Seed();
+            var group = GroupUnderRoot("Fictitious");
+            byte[] key;
+            using (var reading = new KdbxStore(_database.Database, GateVersion.Current, null).Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+
+            var tagged = new PwEntry(true, true);
+            var identifier = tagged.Uuid.UuidBytes;
+            Buffer.BlockCopy(StoreFormat.Tag(key, kind), 0, identifier, 0, StoreFormat.TagLength);
+            tagged.Uuid = new PwUuid(identifier);
+            group.AddEntry(tagged, true);
+            var plain = EntryIn(group);
+            StoreSeeds.Rule(Store(), NodeOf(_database.RootGroup), ("reader", "R"));
+            StoreSeeds.TakeOff(Store(), NodeOf(tagged), "reader", "R");
+            StoreSeeds.TakeOff(Store(), NodeOf(plain), "reader", "R");
+
+            using (var reading = new KdbxStore(_database.Database, GateVersion.Current, null).Read())
+            {
+                var below = new DatabaseNodes(_database.Database).Tree(reading, StoredRules.Of(reading), _database.RootGroup).Below(NodeOf(_database.RootGroup)).ToList();
+                Assert.That(below, Has.Member(NodeOf(plain)));
+                Assert.That(below, Has.No.Member(NodeOf(tagged)), "the tree holds no such node");
+            }
+
+            var vault = new KdbxVault(_database.Database, null, TestTags.Fixed, null);
+            Assert.That(vault.Entry(tagged.Uuid.ToHexString()), Is.Null, "the gate finds no such entry");
+            Assert.That(AclResolver.Permits(vault.Entry(plain.Uuid.ToHexString()).Node, new[] { "reader" }, AclVerb.Read), Is.True);
+
+            using (var dialog = GroupDialog(_database.RootGroup))
+            {
+                var tab = Tabs().TabFor(dialog);
+                Assert.That(tab.Sheet.Set("reader", ".RU....."), Is.Null);
+                Assert.That(tab.Rules.Write(tab.Sheet.Changes), Is.Null);
+            }
+
+            Assert.That(VerbMask.Of(Read().At(NodeOf(plain)).Row("reader").Versions.Single().Letters), Is.EqualTo(".RU....."));
+            Assert.That(VerbMask.Of(Read().At(NodeOf(tagged)).Row("reader").Versions.Single().Letters), Is.EqualTo(".R......"), "the write above renews nothing there");
+
+            using (var dialog = EntryDialog(tagged, PwEditMode.EditExistingEntry))
+            {
+                Assert.That(Tabs().TabFor(dialog).Sheet.ReadOnlyReason, Is.EqualTo(GrantTab.StoreNode), "its tab takes no press");
+            }
+        }
+
+        /// <summary>The name of every kind of record, each of which a tag tells.</summary>
+        private static System.Collections.Generic.IEnumerable<string> Kinds()
+        {
+            return StoreKinds.All.Select(kind => kind.Name);
+        }
+
+        /// <summary>
+        /// The tab a KeePass dialog gives, on a plain modal form closed with this result once the
+        /// press has been made on the tab, and the message loop run until what was posted ran.
+        /// </summary>
+        private static void Closed(NodeTab tab, Telling prompt, DialogResult result, Action<GrantPanel> press)
+        {
+            using (var window = new Form { ShowInTaskbar = false, StartPosition = FormStartPosition.Manual, Left = -2000, Top = -2000 })
+            using (var dialog = new Form { ShowInTaskbar = false, StartPosition = FormStartPosition.Manual, Left = -2000, Top = -2000 })
+            {
+                window.Show();
+                var factory = new GrantPanelFactory(new TheTab(tab), null, null, prompt, window, null);
+                var panel = (GrantPanel)factory.CreatePanel(dialog);
+                dialog.Controls.Add(panel);
+                dialog.Shown += (sender, e) => dialog.BeginInvoke(new Action(() =>
+                {
+                    press(panel);
+                    dialog.DialogResult = result;
+                }));
+
+                dialog.ShowDialog();
+                for (var i = 0; i < 8; i++)
+                {
+                    Application.DoEvents();
+                }
+            }
+        }
+
+        private NodeDialogs Tabs()
+        {
+            return new NodeDialogs(_log, Writer(() => null));
+        }
+
+        /// <summary>A writer over this thread, saving nothing, answering busy as told.</summary>
+        private DatabaseWriter Writer(Func<string> busy)
+        {
+            return new DatabaseWriter(CurrentThread.Instance, saved => { }, busy, null, null, null, _log);
+        }
+
+        /// <summary>An authority in the database's store, which every write of a rule needs.</summary>
+        private void Seed()
+        {
+            StoreSeeds.Authority(Store());
+            _database.Database.Modified = false;
+        }
+
+        private IGateStore Store()
+        {
+            return DatabaseAuthority.Store(_database.Database);
+        }
+
+        /// <summary>The rules of a reading made now, as the gate's next hold reads them.</summary>
+        private StoredRules Read()
+        {
+            using (var reading = new KdbxStore(_database.Database, GateVersion.Current, null).Read())
+            {
+                return StoredRules.Of(reading);
+            }
+        }
+
+        /// <summary>How many entries the plugin's store holds.</summary>
+        private int StoreEntries()
+        {
+            return _database.RootGroup.Groups.Where(group => StoreNodes.Holds(group)).Sum(group => (int)group.Entries.UCount);
+        }
+
+        private static string NodeOf(PwGroup group)
+        {
+            return Hex.Of(group.Uuid.UuidBytes);
+        }
+
+        private static string NodeOf(PwEntry entry)
+        {
+            return Hex.Of(entry.Uuid.UuidBytes);
+        }
+
+        private Form GroupDialog(PwGroup group)
+        {
+            return GroupDialog(group, _database.Database);
+        }
+
+        private static Form GroupDialog(PwGroup group, PwDatabase database)
+        {
+            var dialog = new GroupForm();
+            dialog.InitEx(group, false, null, database);
+            return dialog;
+        }
+
+        private Form EntryDialog(PwEntry entry, PwEditMode mode)
+        {
+            var dialog = new PwEntryForm();
+            dialog.InitEx(entry, mode, _database.Database, _icons, false, false);
+            return dialog;
+        }
+
+        private PwGroup GroupUnderRoot(string name)
+        {
+            var group = new PwGroup(true, true, name, PwIcon.Folder);
+            _database.RootGroup.AddGroup(group, true);
+            return group;
+        }
+
+        private static PwEntry EntryIn(PwGroup group)
+        {
+            var entry = new PwEntry(true, true);
+            group.AddEntry(entry, true);
+            return entry;
+        }
+
+        /// <summary>A source handing every dialog the tab a KeePass dialog gave.</summary>
+        private sealed class TheTab : INodeDialogSource
+        {
+            private readonly NodeTab _tab;
+
+            public TheTab(NodeTab tab)
+            {
+                _tab = tab;
+            }
+
+            public NodeTab TabFor(Form dialog)
+            {
+                return _tab;
+            }
+        }
+
+        /// <summary>A log keeping its warnings, and nothing else.</summary>
         private sealed class WarningLog : IGateLog
         {
-            public List<string> Warnings { get; } = new List<string>();
+            public System.Collections.Generic.List<string> Warnings { get; } = new System.Collections.Generic.List<string>();
 
             public void Info(string message)
             {
@@ -237,870 +1085,23 @@ namespace KeePassGate.Host.Tests
             }
         }
 
-        /// <summary>
-        /// A form KeePass's group dialog in name and in its node fields, with no working copy.
-        /// </summary>
-        /// <remarks>
-        /// Emitted rather than declared, because a class of that full name in this assembly would
-        /// shadow KeePass's own `GroupForm` for every other test in it.
-        /// </remarks>
-        private Form GroupFormWithoutACopy(PwGroup group)
+        /// <summary>An operator told things, counted.</summary>
+        private sealed class Telling : IOperatorPrompt
         {
-            var module = AppDomain.CurrentDomain
-                .DefineDynamicAssembly(
-                    new AssemblyName("GroupFormWithoutACopy"), System.Reflection.Emit.AssemblyBuilderAccess.Run)
-                .DefineDynamicModule("GroupFormWithoutACopy");
-            var type = module.DefineType(
-                KeePassContract.GroupFormTypeName, TypeAttributes.Public | TypeAttributes.Class, typeof(Form));
-            type.DefineField(KeePassContract.GroupFormGroupField, typeof(PwGroup), FieldAttributes.Private);
-            type.DefineField(KeePassContract.NodeFormDatabaseField, typeof(PwDatabase), FieldAttributes.Private);
-            type.DefineDefaultConstructor(MethodAttributes.Public);
+            public int Told { get; private set; }
 
-            var built = type.CreateType();
-            var dialog = (Form)Activator.CreateInstance(built);
-            const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
-            built.GetField(KeePassContract.GroupFormGroupField, flags).SetValue(dialog, group);
-            built.GetField(KeePassContract.NodeFormDatabaseField, flags).SetValue(dialog, _database.Database);
-            return dialog;
-        }
+            public string News { get; private set; }
 
-        [TestCase(KeePassContract.EntryFormMultipleField)]
-        [TestCase(KeePassContract.EntryFormEditModeField)]
-        public void An_entry_dialog_that_cannot_say_whether_a_write_would_be_kept_cannot_write(string missing)
-        {
-            // A KeePass that renamed the merged selection or the mode. Read as a field holding
-            // nothing, either one was a single entry as it stands, and the tab wrote into the copy
-            // of a merged selection, whose OK deletes whatever it no longer carries from every
-            // entry in it, or of a revision KeePass keeps nothing of.
-            var entry = EntryIn(GroupUnderRoot("Fictitious"));
-            entry.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "R")));
-
-            using (var dialog = EntryFormWithout(missing, entry))
+            public bool Confirm(string title, string question)
             {
-                var node = NodeDialog.Of(dialog, null);
-
-                Assert.That(node, Is.Not.Null);
-                Assert.That(node.ReadOnlyReason, Does.Contain("can be read but not changed"));
-                Assert.That(node.Store(), Is.Null);
-                Assert.That(new NodeDialogs(null).TabFor(dialog).Sheet.Rows.Single(row => row.Local).Mask,
-                    Is.EqualTo(".R......"), "and the rules are still shown");
-            }
-        }
-
-        /// <summary>
-        /// A form KeePass's entry dialog in name and in its fields, less the one named.
-        /// </summary>
-        /// <remarks>
-        /// Emitted for the reason <see cref="GroupFormWithoutACopy"/> is. What it stands for is a
-        /// KeePass that renamed whichever field is left out.
-        /// </remarks>
-        private Form EntryFormWithout(string missing, PwEntry entry)
-        {
-            var module = AppDomain.CurrentDomain
-                .DefineDynamicAssembly(
-                    new AssemblyName("EntryFormWithout"), System.Reflection.Emit.AssemblyBuilderAccess.Run)
-                .DefineDynamicModule("EntryFormWithout");
-            var type = module.DefineType(
-                KeePassContract.EntryFormTypeName, TypeAttributes.Public | TypeAttributes.Class, typeof(Form));
-            type.DefineField(KeePassContract.EntryFormEntryField, typeof(PwEntry), FieldAttributes.Private);
-            type.DefineField(KeePassContract.NodeFormDatabaseField, typeof(PwDatabase), FieldAttributes.Private);
-            type.DefineField(KeePassContract.NodeFormCustomDataField, typeof(StringDictionaryEx), FieldAttributes.Private);
-
-            if (missing != KeePassContract.EntryFormMultipleField)
-            {
-                type.DefineField(KeePassContract.EntryFormMultipleField, typeof(object), FieldAttributes.Private);
+                return false;
             }
 
-            if (missing != KeePassContract.EntryFormEditModeField)
+            public void Tell(string title, string news)
             {
-                type.DefineField(KeePassContract.EntryFormEditModeField, typeof(PwEditMode), FieldAttributes.Private);
+                Told++;
+                News = news;
             }
-
-            type.DefineDefaultConstructor(MethodAttributes.Public);
-
-            var built = type.CreateType();
-            var dialog = (Form)Activator.CreateInstance(built);
-            const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
-            built.GetField(KeePassContract.EntryFormEntryField, flags).SetValue(dialog, entry);
-            built.GetField(KeePassContract.NodeFormDatabaseField, flags).SetValue(dialog, _database.Database);
-            built.GetField(KeePassContract.NodeFormCustomDataField, flags).SetValue(dialog, entry.CustomData.CloneDeep());
-
-            var mode = built.GetField(KeePassContract.EntryFormEditModeField, flags);
-            if (mode != null)
-            {
-                mode.SetValue(dialog, PwEditMode.EditExistingEntry);
-            }
-
-            return dialog;
-        }
-
-        [Test]
-        public void A_dialog_keeping_its_copy_as_another_type_reads_the_rules_and_writes_none()
-        {
-            // The name KeePass uses for the copy, holding something this plugin cannot write into.
-            // Taken as usable, the tab offered to edit and refused every rule as a copy not yet
-            // made, which was false.
-            var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "R")));
-
-            using (var dialog = GroupFormTyped(group, typeof(object), typeof(PwDatabase)))
-            {
-                var node = NodeDialog.Of(dialog, null);
-
-                Assert.That(node.ReadOnlyReason, Does.Contain("can be read but not changed"));
-                Assert.That(node.Store(), Is.Null);
-                Assert.That(new NodeDialogs(null).TabFor(dialog).Sheet.Rows.Single(row => row.Local).Mask,
-                    Is.EqualTo(".R......"), "and the rules are still shown");
-            }
-        }
-
-        [Test]
-        public void A_dialog_that_names_no_node_is_headed_as_the_dialog_it_is()
-        {
-            // Headed as about neither a group nor an entry, the tab contradicted its own sentence,
-            // which names the group it could not find.
-            using (var dialog = GroupFormTyped(null, typeof(StringDictionaryEx), typeof(PwDatabase)))
-            {
-                var node = NodeDialog.Of(dialog, null);
-
-                Assert.That(node.Scope, Is.EqualTo(GrantTab.GroupScope));
-                Assert.That(node.ReadOnlyReason, Does.Contain("which group"));
-                Assert.That(node.Store(), Is.Null);
-            }
-        }
-
-        [Test]
-        public void A_dialog_keeping_its_database_as_another_type_names_the_database_as_missing()
-        {
-            var group = GroupUnderRoot("Fictitious");
-
-            using (var dialog = GroupFormTyped(group, typeof(StringDictionaryEx), typeof(object)))
-            {
-                var node = NodeDialog.Of(dialog, null);
-
-                Assert.That(node.ReadOnlyReason, Does.Contain("which database"));
-                Assert.That(node.Store(), Is.Null);
-            }
-        }
-
-        /// <summary>
-        /// A form KeePass's group dialog in name and in all three of its fields, with the copy and
-        /// the database of the types given.
-        /// </summary>
-        private Form GroupFormTyped(PwGroup group, Type copy, Type database)
-        {
-            var name = "GroupFormTyped" + copy.Name + database.Name;
-            var module = AppDomain.CurrentDomain
-                .DefineDynamicAssembly(new AssemblyName(name), System.Reflection.Emit.AssemblyBuilderAccess.Run)
-                .DefineDynamicModule(name);
-            var type = module.DefineType(
-                KeePassContract.GroupFormTypeName, TypeAttributes.Public | TypeAttributes.Class, typeof(Form));
-            type.DefineField(KeePassContract.GroupFormGroupField, typeof(PwGroup), FieldAttributes.Private);
-            type.DefineField(KeePassContract.NodeFormCustomDataField, copy, FieldAttributes.Private);
-            type.DefineField(KeePassContract.NodeFormDatabaseField, database, FieldAttributes.Private);
-            type.DefineDefaultConstructor(MethodAttributes.Public);
-
-            var built = type.CreateType();
-            var dialog = (Form)Activator.CreateInstance(built);
-            const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
-            built.GetField(KeePassContract.GroupFormGroupField, flags).SetValue(dialog, group);
-            built.GetField(KeePassContract.NodeFormCustomDataField, flags).SetValue(
-                dialog,
-                copy != typeof(StringDictionaryEx) ? new object()
-                : group == null ? new StringDictionaryEx()
-                : (object)group.CustomData.CloneDeep());
-            built.GetField(KeePassContract.NodeFormDatabaseField, flags).SetValue(
-                dialog, database == typeof(PwDatabase) ? (object)_database.Database : new object());
-            return dialog;
-        }
-
-        [Test]
-        public void A_dialog_that_does_not_say_which_database_it_belongs_to_says_why_it_cannot_write()
-        {
-            // No database is no list of profiles, and a rule is started by choosing one. The tab
-            // was left writable with nothing to choose from, and the pick list's one sentence for
-            // that said this database names no profiles, which is false of the database and sends
-            // the operator to the wrong page.
-            var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "R")));
-
-            using (var dialog = GroupFormWithoutADatabase(group))
-            {
-                var node = NodeDialog.Of(dialog, null);
-
-                Assert.That(node.ReadOnlyReason, Does.Contain("which database"));
-                Assert.That(node.Store(), Is.Null);
-                Assert.That(new NodeDialogs(null).TabFor(dialog).Sheet.Rows.Single(row => row.Local).Mask,
-                    Is.EqualTo(".R......"), "and the rules are still shown");
-            }
-        }
-
-        /// <summary>
-        /// A form KeePass's group dialog in name, with its group and its copy and no database.
-        /// </summary>
-        private static Form GroupFormWithoutADatabase(PwGroup group)
-        {
-            var module = AppDomain.CurrentDomain
-                .DefineDynamicAssembly(
-                    new AssemblyName("GroupFormWithoutADatabase"), System.Reflection.Emit.AssemblyBuilderAccess.Run)
-                .DefineDynamicModule("GroupFormWithoutADatabase");
-            var type = module.DefineType(
-                KeePassContract.GroupFormTypeName, TypeAttributes.Public | TypeAttributes.Class, typeof(Form));
-            type.DefineField(KeePassContract.GroupFormGroupField, typeof(PwGroup), FieldAttributes.Private);
-            type.DefineField(KeePassContract.NodeFormCustomDataField, typeof(StringDictionaryEx), FieldAttributes.Private);
-            type.DefineDefaultConstructor(MethodAttributes.Public);
-
-            var built = type.CreateType();
-            var dialog = (Form)Activator.CreateInstance(built);
-            const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
-            built.GetField(KeePassContract.GroupFormGroupField, flags).SetValue(dialog, group);
-            built.GetField(KeePassContract.NodeFormCustomDataField, flags).SetValue(dialog, group.CustomData.CloneDeep());
-            return dialog;
-        }
-
-        [Test]
-        public void A_rule_deleted_on_the_Plugin_Data_tab_is_gone_from_this_one_too()
-        {
-            // KeePass's Plugin Data tab on the same dialog edits the same copy, and its Delete takes
-            // `KPG` out of it. This tab went on showing the rule the dialog's OK was about to drop,
-            // and choosing the same rule again wrote nothing. Brought forward, it reads the copy
-            // again, and the copy wins.
-            var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "R")));
-
-            using (var dialog = new GroupForm())
-            {
-                dialog.InitEx(group, false, null, _database.Database);
-                var node = NodeDialog.Of(dialog, null);
-
-                using (var panel = new GrantPanel(new NodeDialogs(null).TabFor(dialog).Sheet, node.Store(), node.Scope, null))
-                {
-                    Load(dialog, group.CustomData);
-                    Assume.That(panel.Lines, Has.Some.StartsWith("reader"));
-
-                    // What `UIUtil.StrDictListDeleteSel` does to the copy.
-                    WorkingCopyOf(dialog).Remove(AclDocument.CustomDataKey);
-                    panel.Resync();
-
-                    Assert.That(panel.Lines, Has.None.StartsWith("reader"), "the table shows what OK will keep");
-
-                    Assert.That(panel.SetGrant("reader", ".R......"), Is.Null);
-                    Assert.That(panel.Writes, Is.EqualTo(1), "and the same rule chosen again is written");
-                    Assert.That(WorkingCopyOf(dialog).Get(AclDocument.CustomDataKey), Does.Contain("reader"));
-                }
-            }
-        }
-
-        [Test]
-        public void A_profile_the_database_names_while_a_group_dialog_is_open_is_offered_on_it()
-        {
-            // S194, on the real dialog: an approval answered over it names a profile in the
-            // database's own list, and the tab read that list once, as it was built. Read again
-            // with the rules, from the database the dialog belongs to, it offers the name.
-            Name("reader");
-            var group = GroupUnderRoot("Fictitious");
-
-            using (var dialog = new GroupForm())
-            {
-                dialog.InitEx(group, false, null, _database.Database);
-
-                using (var panel = (GrantPanel)new GrantPanelFactory(new NodeDialogs(null), null).CreatePanel(dialog))
-                {
-                    Assume.That(panel.ProfileChoices, Is.EqualTo(new[] { "reader" }));
-
-                    Name("reader", "fictitious");
-                    panel.Resync();
-
-                    Assert.That(panel.ProfileChoices, Is.EqualTo(new[] { "fictitious", "reader" }));
-                }
-            }
-        }
-
-        [Test]
-        public void An_entry_dialog_is_read_as_the_entry_it_is_about()
-        {
-            var entry = EntryIn(GroupUnderRoot("Fictitious"));
-
-            using (var dialog = new PwEntryForm())
-            {
-                dialog.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
-
-                var node = NodeDialog.Of(dialog, null);
-
-                Assert.That(node, Is.Not.Null);
-                Assert.That(node.Entry, Is.SameAs(entry));
-                Assert.That(node.Group, Is.Null);
-                Assert.That(node.Scope, Is.EqualTo(GrantTab.EntryScope));
-            }
-        }
-
-        [Test]
-        public void The_tab_lands_on_a_real_group_dialog()
-        {
-            var group = GroupUnderRoot("Fictitious");
-
-            using (var dialog = new GroupForm())
-            {
-                dialog.InitEx(group, false, null, _database.Database);
-
-                var injector = new TabPageInjector(
-                    new GrantPanelFactory(new NodeDialogs(null), null),
-                    null,
-                    KeePassContract.NodeFormTabControlName,
-                    GrantTab.Text,
-                    GrantTab.PageControlName);
-
-                Assert.That(injector.Attach(dialog), Is.True, "the dialog has the tab strip we look for");
-                Assert.That(PageOn(dialog), Is.Not.Null);
-                Assert.That(PanelOn(dialog), Is.Not.Null);
-
-                injector.DetachAll();
-                Assert.That(PageOn(dialog), Is.Null, "and nothing of ours is left behind");
-            }
-        }
-
-        [Test]
-        public void Opening_a_group_dialog_and_changing_nothing_leaves_the_node_and_the_database_alone()
-        {
-            // The tab is on a dialog whose OK writes its own copy of the node's settings back over
-            // the node, so anything this panel touches while merely being looked at is a change the
-            // operator did not make and is then asked to save.
-            var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "R")));
-
-            var written = group.CustomData.Get(AclDocument.CustomDataKey);
-            var touched = group.LastModificationTime;
-            _database.Database.Modified = false;
-
-            using (var dialog = new GroupForm())
-            {
-                dialog.InitEx(group, false, null, _database.Database);
-
-                var injector = Injector();
-                Assert.That(injector.Attach(dialog), Is.True);
-
-                var panel = ControlTree.FindByName<GrantPanel>(dialog, GrantTab.PanelControlName);
-                Assert.That(panel, Is.Not.Null);
-                Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R......" }), "it read the rule");
-                Assert.That(panel.Writes, Is.Zero, "and wrote nothing back");
-
-                injector.DetachAll();
-            }
-
-            Assert.That(group.CustomData.Get(AclDocument.CustomDataKey), Is.EqualTo(written));
-            Assert.That(group.LastModificationTime, Is.EqualTo(touched));
-            Assert.That(_database.Database.Modified, Is.False,
-                "nothing on this plugin's tab asked KeePass to save anything");
-        }
-
-        [Test]
-        public void Opening_an_entry_dialog_and_changing_nothing_leaves_the_entry_and_the_database_alone()
-        {
-            var entry = EntryIn(GroupUnderRoot("Fictitious"));
-            entry.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "R")));
-
-            var written = entry.CustomData.Get(AclDocument.CustomDataKey);
-            var touched = entry.LastModificationTime;
-            _database.Database.Modified = false;
-
-            using (var dialog = new PwEntryForm())
-            {
-                dialog.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
-
-                var injector = Injector(KeePassContract.NodeFormTabControlName);
-                Assert.That(injector.Attach(dialog), Is.True);
-
-                var panel = ControlTree.FindByName<GrantPanel>(dialog, GrantTab.PanelControlName);
-                Assert.That(panel, Is.Not.Null);
-                Assert.That(panel.Writes, Is.Zero);
-
-                injector.DetachAll();
-            }
-
-            Assert.That(entry.CustomData.Get(AclDocument.CustomDataKey), Is.EqualTo(written));
-            Assert.That(entry.LastModificationTime, Is.EqualTo(touched));
-            Assert.That(_database.Database.Modified, Is.False);
-        }
-
-        private static TabPageInjector Injector(string tabControlName = null)
-        {
-            return new TabPageInjector(
-                new GrantPanelFactory(new NodeDialogs(null), null),
-                null,
-                tabControlName ?? KeePassContract.NodeFormTabControlName,
-                GrantTab.Text,
-                GrantTab.PageControlName);
-        }
-
-        [Test]
-        public void The_tab_lands_on_a_real_entry_dialog_too()
-        {
-            var entry = EntryIn(GroupUnderRoot("Fictitious"));
-
-            using (var dialog = new PwEntryForm())
-            {
-                dialog.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
-
-                var injector = new TabPageInjector(
-                    new GrantPanelFactory(new NodeDialogs(null), null),
-                    null,
-                    KeePassContract.NodeFormTabControlName,
-                    GrantTab.Text,
-                    GrantTab.PageControlName);
-
-                Assert.That(injector.Attach(dialog), Is.True);
-                Assert.That(PanelOn(dialog), Is.Not.Null);
-
-                injector.DetachAll();
-            }
-        }
-
-        [Test]
-        public void A_dialog_that_is_about_neither_is_not_one_of_these()
-        {
-            using (var other = new Form())
-            {
-                Assert.That(NodeDialog.Of(other, null), Is.Null);
-                Assert.That(NodeDialog.Of(null, null), Is.Null);
-            }
-        }
-
-        [Test]
-        public void A_rule_made_on_a_group_dialog_lands_in_the_copy_and_not_on_the_group()
-        {
-            // The measurement the whole editor rests on. A grant written to the live group would
-            // survive Cancel and be destroyed by OK, which is the worst way for this to fail.
-            var group = GroupUnderRoot("Fictitious");
-
-            using (var dialog = new GroupForm())
-            {
-                dialog.InitEx(group, false, null, _database.Database);
-                Load(dialog, group.CustomData);
-
-                var store = NodeDialog.Of(dialog, null).Store();
-                Assert.That(store, Is.Not.Null);
-
-                var rule = Rules.Granting(("reader", "R"));
-                store.Write(rule);
-
-                Assert.That(group.CustomData.Get(AclDocument.CustomDataKey), Is.Null,
-                    "the live group is untouched until the dialog is accepted");
-                Assert.That(WorkingCopyOf(dialog).Get(AclDocument.CustomDataKey),
-                    Is.EqualTo(rule));
-            }
-        }
-
-        [Test]
-        public void A_rule_made_on_an_entry_dialog_lands_in_the_copy_and_not_on_the_entry()
-        {
-            // The same measurement on the other dialog, which the group one does not stand for.
-            // `PwEntryForm` takes its copy in `InitPropertiesTab` and puts it back in `SaveEntry`,
-            // neither of which is where `GroupForm` does it, so a field of the same name is
-            // evidence that a copy exists and not that the editor writes into the one this dialog
-            // will keep.
-            var entry = EntryIn(GroupUnderRoot("Fictitious"));
-
-            using (var dialog = new PwEntryForm())
-            {
-                dialog.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
-                Load(dialog, entry.CustomData);
-
-                var store = NodeDialog.Of(dialog, null).Store();
-                Assert.That(store, Is.Not.Null);
-
-                var rule = Rules.Granting(("reader", "R"));
-                store.Write(rule);
-
-                Assert.That(entry.CustomData.Get(AclDocument.CustomDataKey), Is.Null,
-                    "the live entry is untouched until the dialog is accepted");
-                Assert.That(WorkingCopyOf(dialog).Get(AclDocument.CustomDataKey),
-                    Is.EqualTo(rule));
-            }
-        }
-
-        [Test]
-        public void An_entry_tab_built_before_the_dialog_has_copied_anything_still_shows_the_rules()
-        {
-            // The ordering again, and it is a different one here: the group dialog makes its copy
-            // in `OnFormLoad` and the entry dialog in `InitPropertiesTab`. Both run after the
-            // window is announced, so the tab is built while the copy is still null either way.
-            var entry = EntryIn(GroupUnderRoot("Fictitious"));
-            var rule = Rules.Granting(("reader", "R"));
-            entry.CustomData.Set(AclDocument.CustomDataKey, rule);
-
-            using (var dialog = new PwEntryForm())
-            {
-                dialog.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
-
-                Assert.That(WorkingCopyOf(dialog), Is.Null, "measured, not assumed");
-                Assert.That(NodeDialog.Of(dialog, null).Store().Read(), Is.EqualTo(rule));
-            }
-        }
-
-        [Test]
-        public void A_grant_made_through_an_entry_dialog_survives_the_file_it_is_written_to()
-        {
-            // Accepting is the half a test that only reads cannot reach, and on this dialog it is
-            // the destructive one: `SaveEntry` assigns its whole copy over the entry's custom data,
-            // so a rule the editor had written anywhere else would be gone here rather than kept.
-            // What follows is the half only a real KDBX4 answers, an entry's custom data being a
-            // 4.1 field: a rule that never reached the file reads exactly like one that did until
-            // the file is opened again.
-            var entry = EntryIn(GroupUnderRoot("Fictitious"));
-            var uuid = entry.Uuid;
-
-            using (var dialog = new PwEntryForm())
-            {
-                dialog.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
-                Load(dialog, entry.CustomData);
-                NodeDialog.Of(dialog, null).Store().Write(Rules.Sealing(("reader", "RL")));
-
-                AcceptAsKeePassWould(dialog, entry);
-            }
-
-            _database.SaveCloseAndReopen();
-
-            var reopened = _database.RootGroup.FindEntry(uuid, true);
-
-            Assert.That(reopened, Is.Not.Null);
-            Assert.That(AclResolver.Permits(KdbxNodes.Of(reopened), new[] { "reader" }, AclVerb.Read), Is.True);
-            Assert.That(AclResolver.Permits(KdbxNodes.Of(reopened), new[] { "nobody" }, AclVerb.Read), Is.False);
-        }
-
-        [Test]
-        public void An_entry_dialog_accepted_with_the_last_rule_gone_leaves_no_key_behind()
-        {
-            // The other direction through the same assignment. A rule taken off has to reach the
-            // entry as an absent key rather than as an empty one, because the resolver reads an
-            // empty document as a rule granting nothing from there down, which is not what taking
-            // the last rule away means.
-            var entry = EntryIn(GroupUnderRoot("Fictitious"));
-            entry.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "R")));
-
-            using (var dialog = new PwEntryForm())
-            {
-                dialog.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
-                Load(dialog, entry.CustomData);
-                NodeDialog.Of(dialog, null).Store().Write(null);
-
-                AcceptAsKeePassWould(dialog, entry);
-            }
-
-            Assert.That(entry.CustomData.Exists(AclDocument.CustomDataKey), Is.False);
-        }
-
-        [Test]
-        public void A_tab_built_before_the_dialog_has_copied_anything_still_shows_the_rules()
-        {
-            // The ordering that decides the whole adapter. KeePass makes its copy while the dialog
-            // loads and announces the window during that same load, so the tab is built while the
-            // copy is still null. Reading from the node is what stops an editor opened on a group
-            // with rules from showing none.
-            var group = GroupUnderRoot("Fictitious");
-            var rule = Rules.Granting(("reader", "R"));
-            group.CustomData.Set(AclDocument.CustomDataKey, rule);
-
-            using (var dialog = new GroupForm())
-            {
-                dialog.InitEx(group, false, null, _database.Database);
-
-                Assert.That(WorkingCopyOf(dialog), Is.Null, "measured, not assumed");
-                Assert.That(NodeDialog.Of(dialog, null).Store().Read(), Is.EqualTo(rule));
-            }
-        }
-
-        [Test]
-        public void A_rule_already_on_a_group_is_read_back_through_the_dialog()
-        {
-            var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "RL")));
-
-            using (var dialog = new GroupForm())
-            {
-                dialog.InitEx(group, false, null, _database.Database);
-
-                var sheet = new NodeDialogs(null).TabFor(dialog).Sheet;
-
-                Assert.That(sheet, Is.Not.Null);
-                Assert.That(sheet.CanEdit, Is.True);
-                Assert.That(sheet.Rows.Single().Mask, Is.EqualTo(".R...L.."));
-            }
-        }
-
-        [Test]
-        public void Removing_the_last_rule_takes_the_key_out_of_the_copy()
-        {
-            var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "R")));
-
-            using (var dialog = new GroupForm())
-            {
-                dialog.InitEx(group, false, null, _database.Database);
-                Load(dialog, group.CustomData);
-
-                var store = NodeDialog.Of(dialog, null).Store();
-                store.Write(null);
-
-                Assert.That(WorkingCopyOf(dialog).Exists(AclDocument.CustomDataKey), Is.False,
-                    "no rules is the absent key, so a node that was cleared looks like one that never had any");
-            }
-        }
-
-        [Test]
-        public void An_entry_inherits_from_the_group_it_is_in()
-        {
-            var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("reader", "RA")));
-            var entry = EntryIn(group);
-
-            using (var dialog = new PwEntryForm())
-            {
-                dialog.InitEx(entry, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
-
-                var sheet = new NodeDialogs(null).TabFor(dialog).Sheet;
-                var row = sheet.Rows.Single();
-
-                Assert.That(row.Profile, Is.EqualTo("reader"));
-                Assert.That(row.Local, Is.False, "shown, but this entry does not own it");
-                Assert.That(row.Mask, Is.EqualTo(".R....A."));
-            }
-        }
-
-        [Test]
-        public void The_root_group_inherits_nothing_because_it_is_the_widest_rule_there_is()
-        {
-            using (var dialog = new GroupForm())
-            {
-                dialog.InitEx(_database.RootGroup, false, null, _database.Database);
-
-                var node = NodeDialog.Of(dialog, null);
-
-                Assert.That(node.Above, Is.Null);
-                Assert.That(new NodeDialogs(null).TabFor(dialog).Sheet.Rows.Where(row => !row.Local), Is.Empty);
-            }
-        }
-
-        [Test]
-        public void The_profiles_offered_are_the_ones_this_database_names()
-        {
-            // From the database's own list, because that is where a profile lives: a name can be
-            // written down before any client holds it, and given its rules then.
-            Name("reader", "editor");
-
-            using (var dialog = new GroupForm())
-            {
-                dialog.InitEx(GroupUnderRoot("Fictitious"), false, null, _database.Database);
-
-                var sheet = new NodeDialogs(null).TabFor(dialog).Sheet;
-
-                Assert.That(sheet.Offered, Is.EqualTo(new[] { "editor", "reader" }));
-            }
-        }
-
-        [Test]
-        public void A_profile_only_an_admission_record_still_holds_is_not_offered()
-        {
-            // What a removal on the Profiles page leaves: the list has let the name go and a
-            // client's record still holds it. Offering it would let a rule be written for a name
-            // that grants nothing, which reads exactly like one that works.
-            Admit("reader", "ops");
-            Name("reader");
-
-            using (var dialog = new GroupForm())
-            {
-                dialog.InitEx(GroupUnderRoot("Fictitious"), false, null, _database.Database);
-
-                var sheet = new NodeDialogs(null).TabFor(dialog).Sheet;
-
-                Assert.That(sheet.Offered, Is.EqualTo(new[] { "reader" }));
-                Assert.That(sheet.Available, Does.Not.Contain("ops"));
-            }
-        }
-
-        [Test]
-        public void A_rule_left_behind_by_a_removed_profile_is_shown_granting_nothing()
-        {
-            // Removing a profile touches the list and nothing else, so a group keeps its rule for
-            // the name. The dialog shows it, marked, because adding the name again brings it back
-            // into force and this is the node it would be in force on.
-            Name("reader");
-            var group = GroupUnderRoot("Fictitious");
-            group.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("ops", "R"), ("reader", "L")));
-
-            using (var dialog = new GroupForm())
-            {
-                dialog.InitEx(group, false, null, _database.Database);
-
-                var sheet = new NodeDialogs(null).TabFor(dialog).Sheet;
-
-                Assert.That(sheet.Rows.Select(row => row.Profile + (row.Named ? "" : " (not named)")),
-                    Is.EqualTo(new[] { "ops (not named)", "reader" }));
-            }
-        }
-
-        [Test]
-        public void A_grant_made_through_a_dialog_survives_the_file_it_is_written_to()
-        {
-            // The dialog's copy is only a copy until KeePass puts it back, which is what pressing
-            // OK does and what this stands in for. What it then proves is the half only a real
-            // KDBX4 can: the rule is still there after a save, a close and an open.
-            var group = GroupUnderRoot("Fictitious");
-            var uuid = group.Uuid;
-
-            using (var dialog = new GroupForm())
-            {
-                dialog.InitEx(group, false, null, _database.Database);
-                Load(dialog, group.CustomData);
-                NodeDialog.Of(dialog, null).Store().Write(Rules.Sealing(("reader", "RL")));
-
-                AcceptAsKeePassWould(dialog, group);
-            }
-
-            _database.SaveCloseAndReopen();
-
-            var reopened = _database.RootGroup.FindGroup(uuid, true);
-
-            Assert.That(reopened, Is.Not.Null);
-            Assert.That(AclResolver.Permits(KdbxNodes.Of(reopened), new[] { "reader" }, AclVerb.List), Is.True);
-            Assert.That(AclResolver.Permits(KdbxNodes.Of(reopened), new[] { "nobody" }, AclVerb.Read), Is.False);
-        }
-
-        /// <summary>
-        /// What KeePass does to a node's custom data when its dialog is accepted, which cannot be
-        /// driven here because showing the dialog is what would raise it.
-        /// </summary>
-        /// <remarks>
-        /// **The whole dictionary, not the one key**, because that is what both dialogs do and what
-        /// makes the write-back destructive rather than a merge: `GroupForm.OnBtnOK` assigns
-        /// `m_sdCustomData` over the group's custom data, and `PwEntryForm.SaveEntry` assigns it
-        /// over the entry it was handed. A helper that copied only this plugin's key would pass
-        /// whether or not the editor had written into the copy the dialog keeps, which is the one
-        /// thing these tests exist to decide. Only the timing is ours, as in `SnapshotHazardTests`,
-        /// and the setter is reached by reflection because KeePass keeps it internal rather than
-        /// because a plugin would ever want it.
-        /// </remarks>
-        private static void AcceptAsKeePassWould(Form dialog, PwGroup group)
-        {
-            WriteBack(typeof(PwGroup), group, WorkingCopyOf(dialog));
-        }
-
-        /// <summary>The same, on the dialog whose accept is `SaveEntry` rather than `OnBtnOK`.</summary>
-        private static void AcceptAsKeePassWould(Form dialog, PwEntry entry)
-        {
-            WriteBack(typeof(PwEntry), entry, WorkingCopyOf(dialog));
-        }
-
-        private static void WriteBack(Type node, object target, StringDictionaryEx copy)
-        {
-            node.GetProperty("CustomData")
-                .GetSetMethod(true)
-                .Invoke(target, new object[] { copy });
-        }
-
-        private static TabPage PageOn(Form dialog)
-        {
-            return ControlTree.FindByName<TabPage>(dialog, GrantTab.PageControlName);
-        }
-
-        private static Control PanelOn(Form dialog)
-        {
-            return ControlTree.FindByName<GrantPanel>(dialog, GrantTab.PanelControlName);
-        }
-
-        private static StringDictionaryEx WorkingCopyOf(Form dialog)
-        {
-            return (StringDictionaryEx)WorkingCopyField(dialog).GetValue(dialog);
-        }
-
-        private static FieldInfo WorkingCopyField(Form dialog)
-        {
-            var field = dialog.GetType().GetField(
-                KeePassContract.NodeFormCustomDataField, BindingFlags.NonPublic | BindingFlags.Instance);
-
-            Assert.That(field, Is.Not.Null, "the dialog no longer keeps a copy, which the contract test says too");
-            return field;
-        }
-
-        /// <summary>
-        /// What KeePass does while a dialog loads: takes its own copy of the node's custom data.
-        /// Done here because showing the dialog is what would otherwise raise it, and showing one
-        /// outside a running KeePass hangs the run.
-        /// </summary>
-        private static void Load(Form dialog, StringDictionaryEx live)
-        {
-            WorkingCopyField(dialog).SetValue(dialog, live.CloneDeep());
-        }
-
-        /// <summary>
-        /// Makes these names the database's list of profiles, as the page does, under an authority
-        /// made first where the database has none.
-        /// </summary>
-        private void Name(params string[] profiles)
-        {
-            var store = new KdbxStore(_database.Database, GateVersion.Current, null);
-            Keyed();
-
-            IReadOnlyList<string> named;
-            using (var reading = store.Read())
-            {
-                named = ProfileNames.Of(reading).Names;
-            }
-
-            foreach (var profile in named.Where(profile => !profiles.Contains(profile)))
-            {
-                StoreSeeds.Unname(store, profile);
-            }
-
-            foreach (var profile in profiles.Where(profile => !named.Contains(profile)))
-            {
-                StoreSeeds.Name(store, profile);
-            }
-        }
-
-        /// <summary>An authority in the database, made where it has none.</summary>
-        private void Keyed()
-        {
-            using (var reading = new KdbxStore(_database.Database, GateVersion.Current, null).Read())
-            {
-                if (reading.InForce != null)
-                {
-                    return;
-                }
-            }
-
-            var created = DatabaseAuthority.Of(_database.Database, null).Create();
-            Assume.That(created.Succeeded, Is.True, created.Message);
-        }
-
-        /// <summary>Admits an invented client into these profiles, the way pairing does.</summary>
-        private void Admit(params string[] profiles)
-        {
-            var authority = DatabaseAuthority.Of(_database.Database, null);
-            Keyed();
-
-            using (var reading = authority.Read())
-            {
-                using (var client = new AuthorityIssuer().IssueClient(
-                    reading.Material.AuthorityKey, "agent-fictitious", profiles).Read())
-                {
-                    new StoredAdmissions(_database.Database).Write(
-                        AdmissionRecord.For(client, System.DateTimeOffset.UtcNow, profiles, StoredAdmissions.AnyIssuer));
-                }
-            }
-        }
-
-        private PwGroup GroupUnderRoot(string name)
-        {
-            var group = new PwGroup(true, true, name, PwIcon.Folder);
-            _database.RootGroup.AddGroup(group, true);
-            return group;
-        }
-
-        private static PwEntry EntryIn(PwGroup group)
-        {
-            var entry = new PwEntry(true, true);
-            group.AddEntry(entry, true);
-            return entry;
         }
     }
 }

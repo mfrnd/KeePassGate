@@ -15,6 +15,12 @@ namespace KeePassGate.Tests
     /// A record composed by the product, `STORE.md` §607 to §609, held byte for byte to the records
     /// the measured code composed from the same members, and the texts its entry carries (S14).
     /// </summary>
+    /// <remarks>
+    /// `tests/Shared/StoreRecordVectors.json` holds, beside its records, the tag of each profile's
+    /// name it uses, held here, and under `texts` the texts of a rule's and a switch's versions in
+    /// form and out of form, which hold nothing of a record's bytes: what such a text means is read
+    /// where the rules are read from the store, and `StoredRulesTests` holds that reading to them.
+    /// </remarks>
     [TestFixture]
     public sealed class StoreRecordTests
     {
@@ -24,6 +30,24 @@ namespace KeePassGate.Tests
             {
                 yield return new TestCaseData(record.Key).SetArgDisplayNames(record.Key);
             }
+        }
+
+        private static IEnumerable<TestCaseData> Tags()
+        {
+            foreach (var tag in (JObject)Vectors()["profileTags"])
+            {
+                yield return new TestCaseData(tag.Key, (string)tag.Value).SetArgDisplayNames(tag.Key);
+            }
+        }
+
+        [TestCaseSource(nameof(Tags))]
+        public void A_profile_s_tag_is_the_one_the_measured_code_gives(string name, string tag)
+        {
+            // `STORE.md` §609: `profile_tag` of `probe/store.py` under the file's key, as four
+            // hexadecimal characters.
+            var key = StoreComposer.BytesOf((string)Vectors()["key"]);
+
+            Assert.That(StoreFormat.ProfileTag(key, name).ToString("x4", System.Globalization.CultureInfo.InvariantCulture), Is.EqualTo(tag));
         }
 
         [TestCaseSource(nameof(Measured))]

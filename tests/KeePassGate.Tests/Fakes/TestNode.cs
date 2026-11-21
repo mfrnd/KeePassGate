@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Generic;
 using KeePassGate.Acl;
+using KeePassGate.Testing;
 
 namespace KeePassGate.Tests.Fakes
 {
@@ -8,20 +8,25 @@ namespace KeePassGate.Tests.Fakes
     /// A node in a tree that is not a database, for asking the resolver what it does.
     /// </summary>
     /// <remarks>
-    /// The whole reason `IAclNode` is a seam. The rules are about a tree and a document, and neither
-    /// of those needs a password manager to exist, so the interesting cases are built in three lines
-    /// instead of being reached through a `.kdbx`. `AclInRealDatabaseTests` is where the same rules are put
-    /// in front of the real thing, and it is small because this is where the thinking happens.
+    /// The whole reason `IAclNode` is a seam. The rules are about a tree and what each node holds,
+    /// and neither needs a password manager to exist, so the interesting cases are built in three
+    /// lines instead of being reached through a `.kdbx`. `AclInRealDatabaseTests` is where the same
+    /// rules are put in front of the real thing, and it is small because this is where the thinking
+    /// happens.
     /// </remarks>
     public sealed class TestNode : IAclNode
     {
-        private TestNode(string name, TestNode parent)
+        private readonly Action _walked;
+
+        private TestNode(string name, TestNode parent, Action walked)
         {
             Name = name;
             Parent = parent;
+            _walked = walked;
         }
 
-        public string Document { get; private set; }
+        /// <summary>The rules put here: `NodeRule.None` until some are.</summary>
+        public NodeRule Rule { get; private set; } = NodeRule.None;
 
         public IAclNode Parent { get; private set; }
 
@@ -34,38 +39,48 @@ namespace KeePassGate.Tests.Fakes
         public T Held<T>(Func<T> walk)
         {
             Walks++;
+            _walked?.Invoke();
             return walk();
         }
 
         /// <summary>The top of a tree, which is what a database's root group is.</summary>
         public static TestNode Root(string name)
         {
-            return new TestNode(name, null);
+            return new TestNode(name, null, null);
+        }
+
+        /// <summary>
+        /// The top of a tree that tells <paramref name="walked"/> of every walk made from any of
+        /// its nodes, for a fake database that counts where it is walked.
+        /// </summary>
+        public static TestNode Root(string name, Action walked)
+        {
+            return new TestNode(name, null, walked);
         }
 
         /// <summary>A group or an entry under this one.</summary>
         public TestNode Child(string name)
         {
-            return new TestNode(name, this);
+            return new TestNode(name, this, _walked);
         }
 
-        /// <summary>Writes a document here, exactly as given, including a broken one.</summary>
-        public TestNode Holding(string document)
+        /// <summary>Puts these rules here, as the store holds them, in place of whatever was here.</summary>
+        public TestNode Holding(NodeRule rule)
         {
-            Document = document;
+            Rule = rule ?? throw new ArgumentNullException(nameof(rule));
             return this;
         }
 
-        /// <summary>Writes one rule here, which is what most of these trees need.</summary>
+        /// <summary>Puts a rule here for a single profile, which is what most of these trees need.</summary>
         public TestNode Granting(string profile, params AclVerb[] verbs)
         {
-            return Holding(Written(AclDefault.Inherit, profile, verbs));
+            return Holding(Rules.Node(false, (profile, VerbMask.Of(verbs))));
         }
 
-        /// <summary>Writes a rule here that stops anything it does not name.</summary>
+        /// <summary>Puts a rule here for a single profile, with the switch refusing anything it does not name.</summary>
         public TestNode Sealing(string profile, params AclVerb[] verbs)
         {
-            return Holding(Written(AclDefault.Deny, profile, verbs));
+            return Holding(Rules.Node(true, (profile, VerbMask.Of(verbs))));
         }
 
         /// <summary>Points this node's parent at itself, which no database can do and a bug can.</summary>
@@ -73,14 +88,6 @@ namespace KeePassGate.Tests.Fakes
         {
             Parent = this;
             return this;
-        }
-
-        /// <summary>The rule as the grant editor writes it, through the plugin's own writer.</summary>
-        private static string Written(AclDefault fallback, string profile, AclVerb[] verbs)
-        {
-            return AclDocument.Of(
-                fallback,
-                new Dictionary<string, IEnumerable<AclVerb>> { { profile, verbs } }).Write();
         }
     }
 }

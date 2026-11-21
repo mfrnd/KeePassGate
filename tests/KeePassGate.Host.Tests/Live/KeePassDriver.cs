@@ -208,6 +208,81 @@ namespace KeePassGate.Host.Tests.Live
             return OpenFromMenu("Entry", "Edit", "Edit Entry");
         }
 
+        /// <summary>
+        /// Add Entry, by KeePass's own shortcut Ctrl+I, into whichever group the tree has selected.
+        /// </summary>
+        /// <remarks>
+        /// **By the shortcut rather than the Entry menu**, because the item of that menu was not
+        /// found through the tree in a run where the menu's Edit item was. The shortcut is what an
+        /// operator presses, and the dialog is waited for by its title as a menu's dialog is.
+        /// </remarks>
+        public AutomationElement OpenAddEntryDialog()
+        {
+            const string title = "Add Entry";
+            Keyboard.Front(_mainWindow);
+            Keyboard.SendControl('i');
+            var dialog = Uia.WaitForOrNull(
+                () => Window(_process, shown => shown.IndexOf(title, StringComparison.OrdinalIgnoreCase) >= 0),
+                TimeSpan.FromSeconds(15));
+            if (dialog == null)
+            {
+                throw new TimeoutException("The " + title + " dialog never opened. Windows: " + NativeWindows.Titles(_process));
+            }
+
+            _diagnostics.AppendLine("opened " + title + " with Ctrl+I");
+            return dialog;
+        }
+
+        /// <summary>
+        /// Selects the group of this name in the tree, as a click on it does, and answers once the
+        /// tree reports it selected.
+        /// </summary>
+        /// <remarks>
+        /// Through the tree's selection pattern, which KeePass handles as a click on the group: the
+        /// entry list shows that group's entries, and Edit Group and Add Entry act on it.
+        /// </remarks>
+        public void SelectGroup(string name)
+        {
+            var item = Uia.WaitFor(
+                "the group " + name + " in the tree",
+                () => Uia.Descendant(_mainWindow, ControlType.TreeItem, shown => shown == name));
+
+            object pattern;
+            if (item.TryGetCurrentPattern(ScrollItemPattern.Pattern, out pattern))
+            {
+                ((ScrollItemPattern)pattern).ScrollIntoView();
+            }
+
+            var selection = (SelectionItemPattern)item.GetCurrentPattern(SelectionItemPattern.Pattern);
+            selection.Select();
+            Uia.WaitFor(
+                "the group " + name + " selected",
+                () => selection.Current.IsSelected ? name : null,
+                TimeSpan.FromSeconds(10));
+            _diagnostics.AppendLine("selected the group " + name);
+        }
+
+        /// <summary>
+        /// Selects the entry of this title in the entry list, which shows the group the tree has
+        /// selected, and answers once the list reports it selected.
+        /// </summary>
+        public void SelectEntry(string title)
+        {
+            var list = Uia.WaitFor("the entry list", () => Uia.ById(_mainWindow, "m_lvEntries"));
+            var row = Uia.WaitFor(
+                "the entry " + title + " in the list",
+                () => Uia.Descendant(list, ControlType.DataItem, shown => shown == title)
+                      ?? Uia.Descendant(list, ControlType.ListItem, shown => shown == title));
+
+            var selection = (SelectionItemPattern)row.GetCurrentPattern(SelectionItemPattern.Pattern);
+            selection.Select();
+            Uia.WaitFor(
+                "the entry " + title + " selected",
+                () => selection.Current.IsSelected ? title : null,
+                TimeSpan.FromSeconds(10));
+            _diagnostics.AppendLine("selected the entry " + title);
+        }
+
         /// <summary>Tools, TAN Wizard, on whichever group the tree has selected.</summary>
         public AutomationElement OpenTanWizard()
         {

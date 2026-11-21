@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 
 namespace KeePassGate.Store
@@ -18,6 +17,7 @@ namespace KeePassGate.Store
     internal sealed class FoundKey
     {
         private readonly Dictionary<string, string> _subjects = new Dictionary<string, string>(StringComparer.Ordinal);
+        private readonly Dictionary<string, int> _names = new Dictionary<string, int>(StringComparer.Ordinal);
         private int[] _tags;
 
         public FoundKey(byte[] bytes)
@@ -60,16 +60,16 @@ namespace KeePassGate.Store
         }
 
         /// <summary>
-        /// The tag of a kind of `StoreKinds` under the key, as the six hexadecimal characters an
-        /// identifier under it begins with.
+        /// The tag of a kind of `StoreKinds` under the key, as the number the first three bytes of
+        /// an identifier under it make, `StoreId.Tag`.
         /// </summary>
-        public string TagOf(StoreKind kind)
+        public int TagOf(StoreKind kind)
         {
             for (var index = 0; index < StoreKinds.All.Count; index++)
             {
                 if (ReferenceEquals(StoreKinds.All[index], kind))
                 {
-                    return Tags[index].ToString("x6", CultureInfo.InvariantCulture);
+                    return Tags[index];
                 }
             }
 
@@ -107,13 +107,45 @@ namespace KeePassGate.Store
         }
 
         /// <summary>
-        /// Overwrites the key, and lets go of the subjects hashed under it, which the key overwritten
-        /// would not give. Its name stays, which tells nothing of it.
+        /// The hash of a subject under the key as the number an identifier's bytes 4 to 8 make,
+        /// `StoreId.Subject`: <see cref="Subject"/>, made and kept as that is.
+        /// </summary>
+        public long SubjectHash(string subject)
+        {
+            return Convert.ToInt64(Subject(subject), 16);
+        }
+
+        /// <summary>
+        /// The tag of a profile's name under the key, `STORE.md` §609: made the first time it is
+        /// asked for and kept with the key, as a subject's hash is, and asked from where a subject
+        /// is.
+        /// </summary>
+        /// <remarks>
+        /// A reading asks for the tag of a name the file knows only where a deletion record of a
+        /// rule's version whose content is nowhere lies at a node's rows, so that it can tell of
+        /// every name of that tag, `STORE.md` §617, and only for a name no row record shows.
+        /// </remarks>
+        public int NameTag(string name)
+        {
+            int tag;
+            if (!_names.TryGetValue(name, out tag))
+            {
+                tag = StoreFormat.ProfileTag(Bytes, name);
+                _names[name] = tag;
+            }
+
+            return tag;
+        }
+
+        /// <summary>
+        /// Overwrites the key, and lets go of the subjects and the names hashed under it, which the
+        /// key overwritten would not give. Its name stays, which tells nothing of it.
         /// </summary>
         public void Clear()
         {
             Array.Clear(Bytes, 0, Bytes.Length);
             _subjects.Clear();
+            _names.Clear();
         }
     }
 }

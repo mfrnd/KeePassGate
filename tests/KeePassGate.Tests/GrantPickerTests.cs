@@ -121,7 +121,7 @@ namespace KeePassGate.Tests
         {
             // A list with no text of its own, announced as a bare list: the keyboard's only way
             // to write a rule, named to nobody using it without the screen.
-            Using(Rules.Granting(("reader", "R")), (form, panel, grid) =>
+            Using(Rules.Node(false, ("reader", "R")), (form, panel, grid) =>
             {
                 panel.Press(column == ProfileColumn ? grid.NewRowIndex : 0, column);
                 OffScreenForm.Pump();
@@ -229,9 +229,8 @@ namespace KeePassGate.Tests
         /// </summary>
         private void OnScreen(string[] names, bool nearTheBottom, Action<Form, GrantPanel, DataGridView, ToolStripDropDown, ListBox> work)
         {
-            var store = new FakeGrantStore(null);
             using (var form = OffScreenForm.New())
-            using (var panel = new GrantPanel(new GrantSheet(store.Read(), null, names, null), store, GrantTab.GroupScope, null))
+            using (var panel = new GrantPanel(GrantSheet.Of(NodeRule.None, null, names, null), GrantTab.GroupScope, null, null, null))
             {
                 var area = Screen.PrimaryScreen.WorkingArea;
                 form.ClientSize = new Size(420, 220);
@@ -348,7 +347,7 @@ namespace KeePassGate.Tests
             // by a call: the press goes through the loop, where the dropdown closes itself on it
             // before the table is handed it, and the table and the dialog are left as they were.
             Using(
-                Rules.Granting(("reader", "R"), ("ops", "RL")),
+                Rules.Node(false, ("reader", "R"), ("ops", "RL")),
                 (form, panel, grid) =>
                 {
                     grid.Focus();
@@ -422,7 +421,7 @@ namespace KeePassGate.Tests
             // next one. Each took the dialog's buttons for itself, so the first gave OK and Cancel
             // back under the second, and the second then put back the nothing it had found.
             Using(
-                Rules.Granting(("reader", "R")),
+                Rules.Node(false, ("reader", "R")),
                 (form, panel, grid) =>
                 {
                     var accept = new Button();
@@ -463,12 +462,11 @@ namespace KeePassGate.Tests
             // and the picker was disposed inside its own `Closed`. What WinForms asked of it next
             // threw from a message hook, past every handler, and ended the process: KeePass with
             // its fatal error, and this test host rather than this assertion.
-            var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
             ToolStripDropDown open;
 
             using (var form = OffScreenForm.New())
             using (var panel = new GrantPanel(
-                new GrantSheet(store.Read(), null, new[] { "reader", "ops" }, null), store, GrantTab.GroupScope, null))
+                GrantSheet.Of(Rules.Node(false, ("reader", "R")), null, new[] { "reader", "ops" }, null), GrantTab.GroupScope, null, null, null))
             {
                 var accept = new Button();
                 var cancel = new Button();
@@ -520,7 +518,7 @@ namespace KeePassGate.Tests
             // moved the focus into it. The letters worked, but only after checking one with the
             // pointer first.
             Using(
-                Rules.Granting(("reader", "")),
+                Rules.Node(false, ("reader", "")),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, MaskColumn);
@@ -555,8 +553,8 @@ namespace KeePassGate.Tests
                     panel.ClosePicker();
                     OffScreenForm.Pump();
 
-                    Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R...L.." }));
-                    Assert.That(panel.Writes, Is.Zero, "nothing was checked, so nothing was decided");
+                    Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R...L.. " + GrantTab.InheritedWord }));
+                    Assert.That(Pressed, Is.False, "nothing was checked, so nothing was decided");
                 });
         }
 
@@ -575,18 +573,18 @@ namespace KeePassGate.Tests
                     OffScreenForm.Pump();
 
                     Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R......" }));
-                    Assert.That(panel.Writes, Is.EqualTo(1));
+                    Assert.That(Pressed, Is.True);
                 });
         }
 
         [Test]
         public void A_rule_the_sheet_refuses_is_said_rather_than_swallowed()
         {
-            // A profile name no certificate could carry. The reader takes any member name, so a
-            // document written by hand can hold one and the table shows it. The picker then
-            // opened on it, took a rule, and closed without writing or saying anything.
+            // A profile name no certificate could carry, which a record composed by something
+            // other than the plugin can hold, and the table shows. A picker that took a rule on it
+            // and closed without a word would be a control that did nothing.
             Using(
-                "{\"Default\":[\"read\"]}",
+                Rules.Stored(("Default", "row:R")),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, MaskColumn);
@@ -598,19 +596,18 @@ namespace KeePassGate.Tests
 
                     Assert.That(panel.Warning, Is.Not.Null.And.Not.Empty,
                         "a picker that closes on a refusal it never mentions is a control that did nothing");
-                    Assert.That(panel.Writes, Is.Zero);
+                    Assert.That(Pressed, Is.False);
                 });
         }
 
         [Test]
         public void A_rule_whose_name_arrived_with_spaces_round_it_can_still_be_taken_off()
         {
-            // The editor cannot write such a name, but the reader accepts any member name, so a
-            // hand-written document can carry one. The table draws it trimmed, and the X used to
-            // ask for the trimmed name. That is not the key the rule is under, so the button
-            // removed nothing and said nothing. The name is carried on the row now.
+            // The editor cannot write such a name, but a record composed elsewhere can carry one.
+            // The table draws it trimmed, and the X has to take off the rule under the name the
+            // record holds, which the row carries, rather than the name the cell shows.
             Using(
-                "{\" reader \":[\"read\"]}",
+                Rules.Stored((" reader ", "row:R")),
                 (form, panel, grid) =>
                 {
                     Assert.That(panel.Lines.Count, Is.EqualTo(1));
@@ -618,8 +615,10 @@ namespace KeePassGate.Tests
                     panel.Press(0, ForgetColumn);
                     OffScreenForm.Pump();
 
-                    Assert.That(panel.Lines, Is.Empty);
-                    Assert.That(panel.Writes, Is.EqualTo(1));
+                    Assert.That(Pressed, Is.True);
+                    Assert.That(((GrantRow)grid.Rows[0].Tag).Profile, Is.EqualTo(" reader "));
+                    Assert.That(((GrantRow)grid.Rows[0].Tag).Kind, Is.EqualTo(GrantRowKind.Inherited),
+                        "taken off, and shown as what arrives until OK");
                 });
         }
 
@@ -627,7 +626,7 @@ namespace KeePassGate.Tests
         public void Escape_leaves_the_rule_where_it_was()
         {
             Using(
-                Rules.Granting(("reader", "R")),
+                Rules.Node(false, ("reader", "R")),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, MaskColumn);
@@ -646,7 +645,7 @@ namespace KeePassGate.Tests
         public void A_letter_that_names_no_verb_is_left_for_whatever_wants_it()
         {
             Using(
-                Rules.Granting(("reader", "")),
+                Rules.Node(false, ("reader", "")),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, MaskColumn);
@@ -681,7 +680,7 @@ namespace KeePassGate.Tests
             // Changing it in place would be two edits wearing one gesture: the old profile silently
             // loses its rule and the new one silently gains whatever the row held.
             Using(
-                Rules.Granting(("reader", "R")),
+                Rules.Node(false, ("reader", "R")),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, ProfileColumn);
@@ -697,7 +696,7 @@ namespace KeePassGate.Tests
         public void The_permissions_of_a_rule_that_exists_can_be_changed()
         {
             Using(
-                Rules.Granting(("reader", "R")),
+                Rules.Node(false, ("reader", "R")),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, MaskColumn);
@@ -718,7 +717,7 @@ namespace KeePassGate.Tests
             // first cell current and selects it as the window is made, so the first rule on every
             // tab opened in the selection color as though somebody had chosen it.
             Using(
-                Rules.Granting(("reader", "R")),
+                Rules.Node(false, ("reader", "R")),
                 (form, panel, grid) =>
                 {
                     Assert.That(grid.SelectedCells, Is.Empty, "the first rule opened drawn as chosen");
@@ -733,7 +732,7 @@ namespace KeePassGate.Tests
             // the rebuild took the current cell away while the grid kept the focus, so once a rule
             // had been chosen the keyboard opened nothing until an arrow key gave it a cell back.
             Using(
-                Rules.Granting(("reader", "R")),
+                Rules.Node(false, ("reader", "R")),
                 (form, panel, grid) =>
                 {
                     grid.Focus();
@@ -763,7 +762,7 @@ namespace KeePassGate.Tests
             // `ProcessDialogKey` up to the dialog before the table hears it, which is a route of
             // its own, and a dialog that took Alt+Down for itself would have gone unnoticed.
             Using(
-                Rules.Granting(("reader", "R")),
+                Rules.Node(false, ("reader", "R")),
                 (form, panel, grid) =>
                 {
                     grid.Focus();
@@ -823,113 +822,59 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_defect_storing_a_choice_is_recorded_with_the_rule_off_the_sheet_and_the_keys_given_back()
+        public void A_defect_drawing_a_choice_is_recorded_with_the_keys_given_back_and_the_choice_on_the_sheet()
         {
             // What a picker's close does runs a message later, posted, and what it catches there by
             // name is what the user interface throws. A defect goes on to the window's handler,
             // which records it, `DESIGN.md` §141. What it must not leave behind is the dialog's
-            // Enter and Escape still taken, or the refused rule on the sheet: the redraw came
-            // before the store, so a later edit wrote the rule the tab had reported as not applied.
-            var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
+            // Enter and Escape still taken; the choice the sheet took before the table was drawn
+            // again stays on the sheet, and OK writes it. The grid's own event is where a test
+            // can make the drawing fail.
             var incidents = new GateIncidents(new RecordingGateLog());
             WindowHandlers.Incidents = incidents;
 
-            using (var form = OffScreenForm.New())
-            using (var panel = new GrantPanel(
-                new GrantSheet(store.Read(), null, new[] { "reader", "ops" }, null), store, GrantTab.GroupScope, null))
+            try
             {
-                var accept = new Button();
-                var cancel = new Button();
-                form.Controls.Add(accept);
-                form.Controls.Add(cancel);
-                form.AcceptButton = accept;
-                form.CancelButton = cancel;
-
-                panel.Dock = DockStyle.Fill;
-                form.Controls.Add(panel);
-                form.Show();
-                OffScreenForm.Pump();
-
-                panel.Press(0, MaskColumn);
-                OffScreenForm.Pump();
-                Assert.That(panel.Picking, Is.True);
-
-                try
-                {
-                    store.Refusal = new NullReferenceException("a defect while the rule was stored");
-                    panel.Type(Keys.L);
-                    panel.ClosePicker();
-                    OffScreenForm.Pump();
-
-                    Assert.That(_loop, Is.Empty, "a defect on the plugin's own window reached WinForms");
-                    Assert.That(incidents.Recent, Has.Exactly(1).Contains(nameof(NullReferenceException)));
-                    Assert.That(form.AcceptButton, Is.SameAs(accept), "Enter was left with the closed picker");
-                    Assert.That(form.CancelButton, Is.SameAs(cancel), "Escape was left with the closed picker");
-                    Assert.That(panel.Picking, Is.False);
-
-                    store.Refusal = null;
-                    Assert.That(panel.AddGrant("ops"), Is.Null);
-
-                    var stored = new GrantSheet(store.Read(), null, new[] { "reader", "ops" }, null).Rows;
-                    Assert.That(stored.Single(row => row.Profile == "reader").Mask, Is.EqualTo(VerbMask.Of(new[] { AclVerb.Read })),
-                        "the next write carried the rule that was never stored");
-                }
-                finally
-                {
-                    WindowHandlers.Incidents = null;
-                }
-
-                form.Close();
-                OffScreenForm.Pump();
-            }
-        }
-
-        [Test]
-        public void A_redraw_that_fails_leaves_nothing_on_the_sheet_the_store_does_not_hold()
-        {
-            // The rules were redrawn before they were stored, and a redraw that failed left the
-            // edit on the sheet, not stored, for the next write to carry after the tab had reported
-            // it as not applied. Stored first, the edit is in force when the redraw fails. The
-            // grid's own event is where a test can make the redraw fail.
-            var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
-            var incidents = new GateIncidents(new RecordingGateLog());
-            WindowHandlers.Incidents = incidents;
-
-            using (var form = OffScreenForm.New())
-            using (var panel = new GrantPanel(
-                new GrantSheet(store.Read(), null, new[] { "reader", "ops" }, null), store, GrantTab.GroupScope, null))
-            {
-                try
-                {
-                    panel.Dock = DockStyle.Fill;
-                    form.Controls.Add(panel);
-                    form.Show();
-                    OffScreenForm.Pump();
-
-                    var armed = true;
-                    ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName).RowsAdded += (sender, e) =>
+                Using(
+                    Rules.Node(false, ("reader", "R")),
+                    (form, panel, grid) =>
                     {
-                        if (armed)
+                        var accept = new Button();
+                        var cancel = new Button();
+                        form.Controls.Add(accept);
+                        form.Controls.Add(cancel);
+                        form.AcceptButton = accept;
+                        form.CancelButton = cancel;
+
+                        panel.Press(0, MaskColumn);
+                        OffScreenForm.Pump();
+                        Assert.That(panel.Picking, Is.True, "nothing opened, so nothing below is measured");
+
+                        var armed = true;
+                        grid.RowsAdded += (sender, e) =>
                         {
-                            throw new NullReferenceException("a defect redrawing the rules");
-                        }
-                    };
+                            if (armed)
+                            {
+                                throw new NullReferenceException("a defect drawing the rules");
+                            }
+                        };
 
-                    ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName).Checked = true;
-                    armed = false;
+                        panel.Type(Keys.L);
+                        panel.ClosePicker();
+                        OffScreenForm.Pump();
+                        armed = false;
 
-                    Assert.That(_loop, Is.Empty);
-                    Assert.That(incidents.Recent, Has.Exactly(1).StartsWith("the seal could not be changed"));
-                    Assert.That(new GrantSheet(store.Read(), null, null, null).Default, Is.EqualTo(AclDefault.Deny),
-                        "stored before the redraw, so the seal is in force rather than waiting on the sheet");
-                }
-                finally
-                {
-                    WindowHandlers.Incidents = null;
-                }
-
-                form.Close();
-                OffScreenForm.Pump();
+                        Assert.That(_loop, Is.Empty, "a defect on the plugin's own window reached WinForms");
+                        Assert.That(incidents.Recent, Has.Exactly(1).Contains(nameof(NullReferenceException)));
+                        Assert.That(form.AcceptButton, Is.SameAs(accept), "Enter was left with the closed picker");
+                        Assert.That(form.CancelButton, Is.SameAs(cancel), "Escape was left with the closed picker");
+                        Assert.That(panel.Picking, Is.False);
+                        Assert.That(Pressed, Is.True, "the choice the sheet took is written at OK");
+                    });
+            }
+            finally
+            {
+                WindowHandlers.Incidents = null;
             }
         }
 
@@ -940,7 +885,7 @@ namespace KeePassGate.Tests
             // throws there is caught by name and put on the tab, with the choice left off the
             // table. Giving the dialog its accept button back is the first thing it does.
             Using(
-                Rules.Granting(("reader", "R")),
+                Rules.Node(false, ("reader", "R")),
                 (form, panel, grid) =>
                 {
                     var accept = new RefusingButton();
@@ -957,9 +902,9 @@ namespace KeePassGate.Tests
                     OffScreenForm.Pump();
                     accept.Refuses = null;
 
-                    Assert.That(panel.Warning, Is.EqualTo("That choice could not be applied: " + RefusingButton.Refusal));
+                    Assert.That(panel.Warning, Is.EqualTo(GrantTab.ChoiceNotTaken));
                     Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R......" }));
-                    Assert.That(panel.Writes, Is.Zero);
+                    Assert.That(Pressed, Is.False);
                     Assert.That(_loop, Is.Empty);
                 });
         }
@@ -970,7 +915,7 @@ namespace KeePassGate.Tests
             // The same posted work, failing where its own catch does not reach: in letting go of
             // the dropdown, after the choice was taken. `Later` catches that by name instead.
             Using(
-                Rules.Granting(("reader", "R")),
+                Rules.Node(false, ("reader", "R")),
                 (form, panel, grid) =>
                 {
                     panel.Press(0, MaskColumn);
@@ -993,7 +938,7 @@ namespace KeePassGate.Tests
                     OffScreenForm.Pump();
 
                     Assert.That(thrown, Is.True, "the dropdown was never let go of, so nothing below is measured");
-                    Assert.That(panel.Warning, Is.EqualTo("That picker could not be closed: " + RefusingButton.Refusal));
+                    Assert.That(panel.Warning, Is.EqualTo(GrantTab.PickerNotClosed));
                     Assert.That(_loop, Is.Empty);
                 });
         }
@@ -1018,7 +963,7 @@ namespace KeePassGate.Tests
                 OffScreenForm.Pump();
                 accept.Refuses = null;
 
-                Assert.That(panel.Warning, Is.EqualTo("That picker could not be opened: " + RefusingButton.Refusal));
+                Assert.That(panel.Warning, Is.EqualTo(GrantTab.PickerNotOpened));
                 Assert.That(panel.Lines, Is.EqualTo(new[] { "ops ........" }), "and the profile chosen is on the table");
                 Assert.That(panel.Picking, Is.False);
                 Assert.That(_loop, Is.Empty);
@@ -1026,16 +971,15 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_database_naming_no_profiles_says_so_twice_rather_than_once()
+        public void A_database_naming_no_profile_is_told_before_any_press_and_a_press_on_the_table_opens_nothing_of_a_profile()
         {
-            // The state a database is in before anything has been set up at all: no authority, no
-            // client, no profile. Pressing the cell has nothing to open, and pressing it again has
-            // to be as harmless as the first time.
-            var store = new FakeGrantStore(null);
-
+            // The state a database is in before anything has been set up at all: no client, no
+            // profile. The tab tells so as it opens, offers no empty line to choose a profile on,
+            // and a press on the table, a press on the rule picker of a name gone among them,
+            // leaves the notice standing.
             using (var form = OffScreenForm.New())
             using (var panel = new GrantPanel(
-                new GrantSheet(null, null, null, null), store, GrantTab.GroupScope, null))
+                GrantSheet.Of(Rules.Node(false, ("retired", "R")), null, Array.Empty<string>(), null), GrantTab.GroupScope, null, null, null))
             {
                 panel.Dock = DockStyle.Fill;
                 form.Controls.Add(panel);
@@ -1043,14 +987,17 @@ namespace KeePassGate.Tests
                 OffScreenForm.Pump();
 
                 var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                Assert.That(panel.Warning, Is.EqualTo(GrantTab.NoProfilesYet), "told before any press");
+                Assert.That(grid.NewRowIndex, Is.EqualTo(-1), "no empty line");
 
-                panel.Press(grid.NewRowIndex, ProfileColumn);
-                OffScreenForm.Pump();
-                panel.Press(grid.NewRowIndex, ProfileColumn);
+                PressAt(grid, grid.GetCellDisplayRectangle(ProfileColumn, 0, false));
+                PressAt(grid, grid.GetCellDisplayRectangle(MaskColumn, 0, false));
+                Assert.That(panel.Picking, Is.True, "a rule is chosen on the row of a name gone as on any row");
+                panel.ClosePicker();
                 OffScreenForm.Pump();
 
                 Assert.That(panel.Picking, Is.False);
-                Assert.That(panel.Warning, Is.EqualTo(GrantTab.NoProfilesYet));
+                Assert.That(panel.Warning, Is.EqualTo(GrantTab.NoProfilesYet), "the notice stands after a press");
                 Assert.That(form.IsDisposed, Is.False);
                 Assert.That(_loop, Is.Empty);
 
@@ -1060,20 +1007,214 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_box_s_accessible_object_answers_the_whole_of_its_tooltip_as_its_help()
+        {
+            // Shown, because a box with a window is what an accessibility client asks. Unanswered,
+            // the box's accessible object gives no help at all, while UI automation's own proxy
+            // for a Windows button reads the tooltip's window, cut after 127 characters.
+            Using(Rules.Node(false, ("reader", "R")), (form, panel, grid) =>
+            {
+                var box = ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName);
+                var tip = GrantTab.BoxTip(GrantBox.Cleared, false, true);
+                Assert.That(tip.Length, Is.GreaterThan(127), "a tip short enough to arrive whole tells nothing");
+
+                Assert.That(box.AccessibleDescription, Is.EqualTo(tip));
+                Assert.That(box.AccessibilityObject.Help, Is.EqualTo(tip));
+
+                panel.PressBox();
+                Assert.That(box.AccessibilityObject.Help, Is.EqualTo(GrantTab.BoxTip(GrantBox.Ticked, true, true)), "and follows a press");
+            });
+        }
+
+        /// <summary>
+        /// Every way a press on the table can end, after each of which Enter and Escape are the
+        /// dialog's again.
+        /// </summary>
+        private static readonly string[] Ends =
+        {
+            NothingPressed, PressOnTheEmptyLine, ProfilePickerEscaped, ProfilePickerPressedAway, ProfilePickerPressedBeside,
+            RuleChosenWithEnter, NoRoomToOpen,
+        };
+
+        private const string NothingPressed = "nothing pressed";
+        private const string PressOnTheEmptyLine = "a press on the empty line where every profile has a row";
+        private const string ProfilePickerEscaped = "the profile picker left with Escape";
+        private const string ProfilePickerPressedAway = "the profile picker closed by a press on a rule";
+        private const string ProfilePickerPressedBeside = "the profile picker closed by a press beside the table";
+        private const string RuleChosenWithEnter = "a rule chosen with Enter";
+        private const string NoRoomToOpen = "a picker with no room to open under its row";
+
+        [Test]
+        public void Escape_after_a_press_on_the_table_presses_the_dialog_s_Cancel([ValueSource(nameof(Ends))] string end)
+        {
+            // Escape is the dialog's Cancel, as on every other page of the dialog: left to the
+            // table, Escape is the table's own while the keyboard stands on its empty line, for an
+            // edit no cell here ever starts, and the dialog stays open.
+            Keyed(end, Keys.Escape);
+        }
+
+        [Test]
+        public void Enter_after_a_press_on_the_table_presses_the_dialog_s_OK([ValueSource(nameof(Ends))] string end)
+        {
+            // Enter is the dialog's OK while no picker is open: left to the table, Enter is the
+            // table's own on every row, a move down a row.
+            Keyed(end, Keys.Enter);
+        }
+
+        /// <summary>
+        /// A dialog with an OK and a Cancel of its own, the table pressed as the end names, and
+        /// then the key, posted to the table holding the keyboard: the button the key belongs to is
+        /// pressed once and the other never, and no key of the press itself pressed either.
+        /// </summary>
+        private void Keyed(string end, Keys key)
+        {
+            var names = end == PressOnTheEmptyLine ? new[] { "reader", "ops" } : new[] { "reader", "ops", "deploy" };
+            var sheet = Shown(GrantSheet.Of(Rules.Node(false, ("reader", "R"), ("ops", "RL")), null, names, null));
+
+            using (var form = OffScreenForm.New())
+            using (var panel = new GrantPanel(sheet, GrantTab.GroupScope, null, null, null))
+            using (var accept = new Button { Text = "OK" })
+            using (var cancel = new Button { Text = "Cancel" })
+            {
+                var accepted = 0;
+                var canceled = 0;
+                accept.Click += (sender, e) => accepted++;
+                cancel.Click += (sender, e) => canceled++;
+
+                panel.Dock = DockStyle.Fill;
+                form.Controls.Add(panel);
+                form.Controls.Add(accept);
+                form.Controls.Add(cancel);
+                form.AcceptButton = accept;
+                form.CancelButton = cancel;
+                form.Show();
+                OffScreenForm.Pump();
+
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                try
+                {
+                    grid.Focus();
+                    OffScreenForm.Pump();
+                    End(end, form, panel, grid);
+
+                    Assert.That(panel.Picking, Is.False, "a picker is still open after " + end);
+                    Assert.That(accepted + canceled, Is.Zero, "a key of the press itself pressed a button of the dialog: " + end);
+                    Assert.That(form.AcceptButton, Is.SameAs(accept), "the dialog's OK was not given back after " + end);
+                    Assert.That(form.CancelButton, Is.SameAs(cancel), "the dialog's Cancel was not given back after " + end);
+
+                    // Posted where a key goes, to whatever holds the keyboard: the table, after
+                    // every press on the table.
+                    var holding = Holding(form);
+                    Assert.That(holding, Is.Not.Null, "nothing holds the keyboard after " + end);
+                    Assert.That(holding == grid || end == ProfilePickerPressedBeside, Is.True, "the keyboard left the table after " + end);
+
+                    PressKey(holding, key);
+
+                    Assert.That(key == Keys.Escape ? canceled : accepted, Is.EqualTo(1), key + " after " + end + " left the dialog open");
+                    Assert.That(key == Keys.Escape ? accepted : canceled, Is.Zero, key + " after " + end + " pressed the other button");
+                    Assert.That(_loop, Is.Empty);
+                }
+                finally
+                {
+                    panel.ClosePicker();
+                    OffScreenForm.Pump();
+                    form.Close();
+                    OffScreenForm.Pump();
+                }
+            }
+        }
+
+        /// <summary>Presses the table as the end names, a picker opened by a real press where a picker opens.</summary>
+        private static void End(string end, Form form, GrantPanel panel, DataGridView grid)
+        {
+            switch (end)
+            {
+                case NothingPressed:
+                    return;
+
+                case PressOnTheEmptyLine:
+                    PressAt(grid, grid.GetCellDisplayRectangle(ProfileColumn, grid.NewRowIndex, false));
+                    Assert.That(grid.CurrentCell.RowIndex, Is.EqualTo(grid.NewRowIndex), "the press did not reach the empty line");
+                    Assert.That(panel.Picking, Is.False, "every profile has a row, so nothing opens");
+                    return;
+
+                case ProfilePickerEscaped:
+                case ProfilePickerPressedAway:
+                case ProfilePickerPressedBeside:
+                    PressAt(grid, grid.GetCellDisplayRectangle(ProfileColumn, grid.NewRowIndex, false));
+                    Assert.That(panel.Picking, Is.True, "the press on the empty line opened no picker");
+                    if (end == ProfilePickerEscaped)
+                    {
+                        PressKey(Open(panel), Keys.Escape);
+                    }
+                    else if (end == ProfilePickerPressedAway)
+                    {
+                        PressAt(grid, grid.GetCellDisplayRectangle(ProfileColumn, 0, false));
+                    }
+                    else
+                    {
+                        PressAt(panel, new Rectangle(0, 0, panel.Padding.Left, panel.Padding.Top));
+                    }
+
+                    Assert.That(PumpUntil(() => !panel.Picking, TimeSpan.FromSeconds(2)), Is.True, "the picker did not close: " + end);
+                    OffScreenForm.Pump();
+                    return;
+
+                case RuleChosenWithEnter:
+                    PressAt(grid, grid.GetCellDisplayRectangle(MaskColumn, 0, false));
+                    Assert.That(panel.Picking, Is.True, "the press on a rule opened no picker");
+                    PressKey(Open(panel), Keys.C);
+                    PressKey(Open(panel), Keys.Enter);
+                    Assert.That(PumpUntil(() => !panel.Picking, TimeSpan.FromSeconds(2)), Is.True, "Enter did not close the picker");
+                    OffScreenForm.Pump();
+                    Assert.That(Pressed, Is.True, "Enter chose nothing");
+                    return;
+
+                default:
+                    // The table held to its heading, so that no row has room for a picker under
+                    // it, and F2 on a rule, which opens the picker the keyboard opens. The table
+                    // refuses to scroll a row into a view with no room, and the picker is let go
+                    // of unshown.
+                    grid.CurrentCell = grid.Rows[0].Cells[MaskColumn];
+                    form.ClientSize = new Size(form.ClientSize.Width, form.ClientSize.Height - (grid.Height - grid.ColumnHeadersHeight - 2));
+                    OffScreenForm.Pump();
+                    Assert.That(grid.GetCellDisplayRectangle(MaskColumn, 0, false).Height, Is.Zero, "the row still has room");
+                    PressKey(grid, Keys.F2);
+                    return;
+            }
+        }
+
+        /// <summary>The control of a window that holds the keyboard, or null where none does.</summary>
+        private static Control Holding(Control within)
+        {
+            if (within.Focused)
+            {
+                return within;
+            }
+
+            return within.Controls.Cast<Control>().Select(Holding).FirstOrDefault(control => control != null);
+        }
+
+        /// <summary>The picker that is open.</summary>
+        private static ToolStripDropDown Open(GrantPanel panel)
+        {
+            var open = (ToolStripDropDown)typeof(GrantPanel)
+                .GetField("_open", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(panel);
+            Assert.That(open, Is.Not.Null, "no picker is open");
+            return open;
+        }
+
+        [Test]
         public void A_table_that_cannot_be_changed_can_still_be_scrolled_to_its_last_rule()
         {
             // An entry's earlier version, several entries at once: the tab says nothing can be
             // changed and that the rules stay readable. The table was disabled for it, and a
             // disabled grid takes neither its scroll bar nor the wheel, so only the rules that fit
             // could be read.
-            var store = new FakeGrantStore(Rules.Numbered(MoreRulesThanFit, "RL"));
+            var sheet = GrantSheet.Of(Numbered(MoreRulesThanFit, "RL"), null, null, GrantTab.EarlierVersion);
 
             using (var form = OffScreenForm.New())
-            using (var panel = new GrantPanel(
-                new GrantSheet(store.Read(), null, null, "This is an earlier version of the entry."),
-                store,
-                GrantTab.EntryScope,
-                null))
+            using (var panel = new GrantPanel(sheet, GrantTab.EntryScope, null, null, null))
             {
                 form.ClientSize = TooShortForEveryRow;
                 panel.Dock = DockStyle.Fill;
@@ -1099,7 +1240,7 @@ namespace KeePassGate.Tests
                 OffScreenForm.Pump();
 
                 Assert.That(panel.Picking, Is.False);
-                Assert.That(store.Writes, Is.Zero);
+                Assert.That(sheet.Rows.Any(row => row.Changed), Is.False);
                 Assert.That(_loop, Is.Empty);
 
                 form.Close();
@@ -1177,7 +1318,7 @@ namespace KeePassGate.Tests
                 panel.Type(Keys.Enter);
                 OffScreenForm.Pump();
 
-                Assert.That(panel.Writes, Is.EqualTo(1));
+                Assert.That(Pressed, Is.True);
                 Assert.That(grid.Rows[last].Displayed, Is.True,
                     "the rule was written and scrolled away in the one gesture");
                 Assert.That(_loop, Is.Empty);
@@ -1192,7 +1333,7 @@ namespace KeePassGate.Tests
             // gray, and the only rule on either comes from the group above; what the seal adds is
             // the line drawn through the mask that no longer arrives.
             var arriving = Ink(null);
-            var refused = Ink(Rules.Sealing());
+            var refused = Ink(Rules.Node(true));
 
             Assert.That(refused, Is.GreaterThan(arriving),
                 "a grant the seal is refusing is drawn exactly like one in force");
@@ -1214,7 +1355,7 @@ namespace KeePassGate.Tests
                     Assert.That(panel.Type(Keys.Enter), Is.True);
                     OffScreenForm.Pump();
 
-                    Assert.That(panel.Writes, Is.EqualTo(1), "the rule is this node's own now");
+                    Assert.That(Pressed, Is.True, "the rule is this node's own now");
                     Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R...L.." }));
 
                     var font = grid.Rows[0].Cells[MaskColumn].Style.Font;
@@ -1236,8 +1377,121 @@ namespace KeePassGate.Tests
                     panel.ClosePicker();
                     OffScreenForm.Pump();
 
-                    Assert.That(panel.Writes, Is.Zero);
+                    Assert.That(Pressed, Is.False);
                     Assert.That(grid.Rows[0].Cells[MaskColumn].Style.Font.Strikeout, Is.True);
+                });
+        }
+
+        [Test]
+        public void A_version_of_a_group_and_a_limit_offer_no_list_and_the_inherited_row_of_a_cut_does()
+        {
+            // A row of a group offers its X and no list, `STORE.md` §657: no single press on a
+            // group grants more than some version of the group held. A limit offers its X alone
+            // too, and a rule is chosen on the inherited row above it.
+            Using(
+                Rules.Stored(("ops", "row:R"), ("ops", "row:RL"), ("reader", "off:R")),
+                ReaderAbove(),
+                (form, panel, grid) =>
+                {
+                    Assert.That(panel.Lines, Is.EqualTo(new[]
+                    {
+                        "ops .R...... " + GrantTab.UnmergedWord,
+                        "ops .R...L.. " + GrantTab.UnmergedWord,
+                        "reader .R...L.. " + GrantTab.InheritedWord,
+                        "reader .R...... " + GrantTab.AtMostWord,
+                    }));
+
+                    foreach (var bound in new[] { 0, 1, 3 })
+                    {
+                        panel.Press(bound, MaskColumn);
+                        OffScreenForm.Pump();
+                        Assert.That(panel.Picking, Is.False, panel.Lines[bound]);
+                    }
+
+                    panel.Press(2, MaskColumn);
+                    OffScreenForm.Pump();
+                    Assert.That(panel.Picking, Is.True, "a rule is chosen on the inherited row of a cut");
+                    Assert.That(_loop, Is.Empty);
+                });
+        }
+
+        [Test]
+        public void Enter_on_a_lost_row_with_nothing_checked_chooses_an_empty_rule()
+        {
+            // Enter is no glance: an empty rule is a rule, and replaces the lost version.
+            Using(Rules.Stored(("reader", null)), ReaderAbove(), (form, panel, grid) =>
+            {
+                panel.OpenPicker(0);
+                OffScreenForm.Pump();
+                Assert.That(panel.Picking, Is.True, "no picker opened on the lost row");
+                panel.Type(Keys.Enter);
+                OffScreenForm.Pump();
+
+                var row = _sheet.Rows.Single();
+                Assert.That(row.Kind, Is.EqualTo(GrantRowKind.Own), "an empty rule replaces the lost version");
+                Assert.That(row.Changed, Is.True);
+                Assert.That(_loop, Is.Empty);
+            });
+        }
+
+        [Test]
+        public void An_X_on_a_rule_equal_to_the_inherited_rule_is_taken_back_by_choosing_the_rule_again()
+        {
+            Using(Rules.Node(false, ("reader", "RL")), ReaderAbove(), (form, panel, grid) =>
+            {
+                panel.Press(0, ForgetColumn);
+                Assert.That(_sheet.Rows.Single().Changed, Is.True, "the X took the rule off");
+
+                panel.OpenPicker(0);
+                OffScreenForm.Pump();
+                panel.Type(Keys.Enter);
+                OffScreenForm.Pump();
+
+                Assert.That(_sheet.Rows.Single().Kind, Is.EqualTo(GrantRowKind.Own));
+                Assert.That(_sheet.Changes.IsEmpty, Is.True, "the rule chosen again takes the X back");
+                Assert.That(_loop, Is.Empty);
+            });
+        }
+
+        [Test]
+        public void A_press_whose_rows_are_drawn_again_before_the_release_is_taken_for_no_row()
+        {
+            // The press goes down on the X of a row further down, which closes the picker; what the
+            // picker chose turns the inherited row and its limit into a single row before the
+            // release arrives, so the row under the pointer at the release is the next one. Posted
+            // a message at a time, as a hand makes them, with the loop run between: the table
+            // raises no click for a release over rows drawn since the press went down.
+            Using(
+                Rules.Stored(("aa", "row:R"), ("reader", "off:R"), ("x1", "row:R"), ("x2", "row:R")),
+                ReaderAbove(),
+                (form, panel, grid) =>
+                {
+                    Assert.That(panel.Lines.Count, Is.EqualTo(5), string.Join(" | ", panel.Lines));
+                    var downs = new List<int>();
+                    var clicks = new List<int>();
+                    grid.CellMouseDown += (sender, e) => downs.Add(e.RowIndex);
+                    grid.CellClick += (sender, e) => clicks.Add(e.RowIndex);
+
+                    grid.Focus();
+                    panel.Press(1, MaskColumn);
+                    OffScreenForm.Pump();
+                    Assert.That(panel.Picking, Is.True, "no picker opened on the inherited row");
+                    panel.Type(Keys.C);
+
+                    var cell = grid.GetCellDisplayRectangle(ForgetColumn, 3, false);
+                    var where = (IntPtr)(((cell.Top + (cell.Height / 2)) << 16) | ((cell.Left + (cell.Width / 2)) & 0xFFFF));
+                    TestNativeMethods.PostMessage(grid.Handle, ButtonDownMessage, (IntPtr)1, where);
+                    OffScreenForm.Pump();
+                    Assert.That(panel.Picking, Is.False, "the press did not close the picker");
+                    Assert.That(downs, Is.EqualTo(new[] { 3 }), "the press reached the table on the row of x1");
+                    Assert.That(panel.Lines.Count, Is.EqualTo(4), "the choice was not drawn before the release: " + string.Join(" | ", panel.Lines));
+                    TestNativeMethods.PostMessage(grid.Handle, ButtonUpMessage, IntPtr.Zero, where);
+                    OffScreenForm.Pump();
+
+                    Assert.That(clicks, Is.Empty, "a release over rows drawn since the press was taken as a click");
+                    Assert.That(_sheet.Rows.Where(row => row.Changed).Select(row => row.Profile), Is.EqualTo(new[] { "reader" }),
+                        "a press reached a row it did not go down on: " + string.Join(" | ", panel.Lines));
+                    Assert.That(_loop, Is.Empty);
                 });
         }
 
@@ -1344,6 +1598,38 @@ namespace KeePassGate.Tests
         private const int ButtonUpMessage = 0x0202;
         private const int WheelMessage = 0x020A;
 
+        /// <summary>The sheet of the panel the last `Using` showed.</summary>
+        private static GrantSheet _sheet;
+
+        /// <summary>Keeps a sheet as the sheet of the panel shown, and hands the sheet back.</summary>
+        private static GrantSheet Shown(GrantSheet sheet)
+        {
+            _sheet = sheet;
+            return sheet;
+        }
+
+        /// <summary>Whether a press on the shown panel left a change on its sheet.</summary>
+        private static bool Pressed
+        {
+            get { return _sheet.Rows.Any(row => row.Changed) || _sheet.BoxChanged; }
+        }
+
+        /// <summary>A node granting a mask to each of as many profiles as asked for, named `profile-00` onwards.</summary>
+        private static NodeRule Numbered(int count, string mask)
+        {
+            return Rules.Node(
+                false,
+                Enumerable.Range(0, count)
+                    .Select(i => ("profile-" + i.ToString("00", System.Globalization.CultureInfo.InvariantCulture), mask))
+                    .ToArray());
+        }
+
+        /// <summary>What arrives under a group granting `reader` read and list.</summary>
+        private static AclInheritance ReaderAbove()
+        {
+            return Sheets.Arriving(("reader", "RL"));
+        }
+
         private static void Using(Action<Form, GrantPanel, DataGridView> work)
         {
             Using(null, work);
@@ -1352,21 +1638,18 @@ namespace KeePassGate.Tests
         /// <summary>A node whose only rule comes from the group above it.</summary>
         private static void Inheriting(Action<Form, GrantPanel, DataGridView> work)
         {
-            Using(null, TestNode.Root("a group above").Granting("reader", AclVerb.Read, AclVerb.List), work);
+            Using(null, ReaderAbove(), work);
         }
 
-        /// <summary>A sealed node under a group granting one profile, which the seal refuses.</summary>
+        /// <summary>A node whose box refuses, under a group granting a profile, which the box refuses.</summary>
         private static void Sealed(Action<Form, GrantPanel, DataGridView> work)
         {
-            Using(
-                Rules.Sealing(),
-                TestNode.Root("a group above").Granting("reader", AclVerb.Read, AclVerb.List),
-                work);
+            Using(Rules.Node(true), ReaderAbove(), work);
         }
 
-        private static void Using(string stored, Action<Form, GrantPanel, DataGridView> work)
+        private static void Using(NodeRule rule, Action<Form, GrantPanel, DataGridView> work)
         {
-            Using(stored, null, work);
+            Using(rule, null, work);
         }
 
         /// <summary>
@@ -1374,40 +1657,38 @@ namespace KeePassGate.Tests
         /// </summary>
         /// <remarks>
         /// Shown rather than merely constructed, because a dropdown needs somewhere to appear and a
-        /// grid that has never been drawn reports no cell to put one under. That is the difference
-        /// between this fixture and the one next door, and it is the difference that matters.
+        /// grid that has never been drawn reports no cell to put a dropdown under. That is the
+        /// difference between this fixture and the fixture next door, and the difference that
+        /// matters.
         /// </remarks>
         private static void Using(
-            string stored, IAclNode above, Action<Form, GrantPanel, DataGridView> work)
+            NodeRule rule, AclInheritance above, Action<Form, GrantPanel, DataGridView> work)
         {
-            Using(stored, above, Size.Empty, work);
+            Using(rule, above, Size.Empty, work);
         }
 
         /// <summary>
-        /// A window carrying more rules than it can show, for what happens off the bottom of one.
+        /// A window carrying more rules than it can show, for what happens off the bottom of a
+        /// table.
         /// </summary>
         private static void Cramped(Action<Form, GrantPanel, DataGridView> work)
         {
-            Using(Rules.Numbered(MoreRulesThanFit, "RL"), null, TooShortForEveryRow, work);
+            Using(Numbered(MoreRulesThanFit, "RL"), null, TooShortForEveryRow, work);
         }
 
         /// <summary>The same, at a size of the test's choosing.</summary>
         /// <param name="size">
-        /// How big the window is, or an empty size for the ordinary one. A short window is the only
-        /// way a row comes to be off the bottom of the table, and every other test here wants the
-        /// room rather than the crowding.
+        /// How big the window is, or an empty size for the ordinary window. A short window is the
+        /// only way a row comes to be off the bottom of the table, and every other test here wants
+        /// the room rather than the crowding.
         /// </param>
         private static void Using(
-            string stored, IAclNode above, Size size, Action<Form, GrantPanel, DataGridView> work)
+            NodeRule rule, AclInheritance above, Size size, Action<Form, GrantPanel, DataGridView> work)
         {
-            var store = new FakeGrantStore(stored);
+            _sheet = GrantSheet.Of(rule, above, new[] { "reader", "ops" }, null);
 
             using (var form = OffScreenForm.New())
-            using (var panel = new GrantPanel(
-                new GrantSheet(store.Read(), above, new[] { "reader", "ops" }, null),
-                store,
-                GrantTab.GroupScope,
-                null))
+            using (var panel = new GrantPanel(_sheet, GrantTab.GroupScope, null, null, null))
             {
                 if (!size.IsEmpty)
                 {
@@ -1437,16 +1718,13 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>
-        /// How much is drawn in the mask of a node's one inherited rule, with the node as given.
+        /// How much is drawn in the mask of a node's single inherited rule, with the node as given.
         /// </summary>
-        private static int Ink(string stored)
+        private static int Ink(NodeRule rule)
         {
             var drawn = 0;
 
-            Using(
-                stored,
-                TestNode.Root("a group above").Granting("reader", AclVerb.Read, AclVerb.List),
-                (form, panel, grid) => drawn = Marks(grid, MaskColumn, 0));
+            Using(rule, ReaderAbove(), (form, panel, grid) => drawn = Marks(grid, MaskColumn, 0));
 
             return drawn;
         }

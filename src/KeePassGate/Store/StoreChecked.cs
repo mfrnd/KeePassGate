@@ -15,14 +15,35 @@ namespace KeePassGate.Store
     internal sealed class StoreItem
     {
         public StoreItem(string kind, IReadOnlyDictionary<string, string> members)
+            : this(kind, members, null, null)
+        {
+        }
+
+        /// <summary>An item read from a summary entry, with the identifiers its `after` and its `lost` name.</summary>
+        public StoreItem(string kind, IReadOnlyDictionary<string, string> members, StoreNames named, StoreNames settles)
         {
             Kind = kind;
             Members = members;
+            Named = named;
+            Settles = settles;
         }
 
         public string Kind { get; private set; }
 
         public IReadOnlyDictionary<string, string> Members { get; private set; }
+
+        /// <summary>
+        /// The identifiers its `after` names, read once with the summary entry that holds it; null
+        /// for an item of a kind that names none, and for an item a write makes, which nothing
+        /// asks.
+        /// </summary>
+        public StoreNames Named { get; private set; }
+
+        /// <summary>
+        /// The identifiers its `lost` names, read once with the summary entry that holds it; null
+        /// where it holds no `lost`, and for an item a write makes.
+        /// </summary>
+        public StoreNames Settles { get; private set; }
 
         public string Member(string name)
         {
@@ -97,17 +118,42 @@ namespace KeePassGate.Store
         /// <summary>The members its row names, as the content holds them.</summary>
         public IReadOnlyDictionary<string, string> Members { get; private set; }
 
+        /// <summary>
+        /// The identifiers its content's `after` names, read once with the rest of it and kept
+        /// with the form, `StoreNames`; null for a kind that names none.
+        /// </summary>
+        public StoreNames Named { get; private set; }
+
+        /// <summary>
+        /// The identifiers its content's `lost` names, read once with the rest of it and kept with
+        /// the form; null where it holds no `lost`, as every kind but a version does.
+        /// </summary>
+        public StoreNames Settles { get; private set; }
+
         /// <summary>A summary entry's items of the kinds the plugin knows, in order of their names.</summary>
         public IReadOnlyList<StoreItem> Items { get; private set; }
 
         /// <summary>The store key an authority's or a retirement's content holds, or null.</summary>
         public FoundKey StoreKey { get; private set; }
 
-        /// <summary>What its identifier's subject is made of, where it reads as its kind.</summary>
+        /// <summary>
+        /// What its identifier's subject is made of, where it reads as its kind, as
+        /// `StoreFormat.SubjectOf` makes it from its row.
+        /// </summary>
         public string Subject { get; private set; }
 
-        /// <summary>What bytes 9 and 10 of its identifier hold, where it reads as its kind.</summary>
+        /// <summary>
+        /// What bytes 9 and 10 of its identifier hold, where it reads as its kind: the height or
+        /// the format number, and 0 for every other record, a version of a profile's rule among
+        /// them, whose bytes hold the tag of <see cref="Tagged"/> under each key instead.
+        /// </summary>
         public int Number { get; private set; }
+
+        /// <summary>
+        /// The text whose tag bytes 9 and 10 of its identifier hold, the profile's name of a
+        /// version of that profile's rule, `StoreFormat.SubjectOf`; null for every other record.
+        /// </summary>
+        public string Tagged { get; private set; }
 
         public string Check { get; private set; }
 
@@ -251,7 +297,8 @@ namespace KeePassGate.Store
 
             if (ReadsAsKind)
             {
-                return Same(StoreFormat.Identifier(key, Kind, Subject, Number, Check), entry);
+                var number = Tagged == null ? Number : StoreFormat.ProfileTag(key, Tagged);
+                return Same(StoreFormat.Identifier(key, Kind, Subject, number, Check), entry);
             }
 
             if (!Unknown)
@@ -392,7 +439,9 @@ namespace KeePassGate.Store
                 return;
             }
 
-            var members = Read(content, Row.Members);
+            StoreNames named;
+            StoreNames settles;
+            var members = Read(content, Row.Members, out named, out settles);
             if (members == null)
             {
                 return;
@@ -429,7 +478,11 @@ namespace KeePassGate.Store
             }
 
             Members = members;
-            Subject = Row.SubjectPrefix + (Row.SubjectMember == null ? string.Empty : members[Row.SubjectMember]);
+            Named = named;
+            Settles = settles;
+            string tagged;
+            Subject = StoreFormat.SubjectOf(Row, Row.SubjectMember == null ? null : members[Row.SubjectMember], out tagged);
+            Tagged = tagged;
             ReadsAsKind = true;
         }
 
@@ -460,7 +513,9 @@ namespace KeePassGate.Store
                     continue;
                 }
 
-                var members = Read(pair.Value, row.Item);
+                StoreNames named;
+                StoreNames settles;
+                var members = Read(pair.Value, row.Item, out named, out settles);
                 if (members == null)
                 {
                     return false;
@@ -477,7 +532,7 @@ namespace KeePassGate.Store
                     formats++;
                 }
 
-                known.Add(new StoreItem(kind, members));
+                known.Add(new StoreItem(kind, members, named, settles));
             }
 
             if (formats != 1)
@@ -493,8 +548,18 @@ namespace KeePassGate.Store
         /// The members a row names, each in its form, or null where any is missing or out of form.
         /// A member the row does not name is passed over, `STORE.md` §607.
         /// </summary>
-        private static Dictionary<string, string> Read(JsonBody content, IReadOnlyList<StoreMember> wanted)
+        /// <param name="named">
+        /// The identifiers `after` names, read as its form is asked, or null where the row names
+        /// no `after`.
+        /// </param>
+        /// <param name="settles">
+        /// The identifiers `lost` names, read as its form is asked, or null where the content holds
+        /// no `lost`: the two members of the form of a list a row names.
+        /// </param>
+        private static Dictionary<string, string> Read(JsonBody content, IReadOnlyList<StoreMember> wanted, out StoreNames named, out StoreNames settles)
         {
+            named = null;
+            settles = null;
             var members = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var member in wanted)
             {
@@ -509,7 +574,24 @@ namespace KeePassGate.Store
                     return null;
                 }
 
-                if (!InForm(value, member.Form))
+                if (member.Form == StoreForm.Identifiers)
+                {
+                    var listed = StoreNames.Read(value);
+                    if (listed == null)
+                    {
+                        return null;
+                    }
+
+                    if (member.Name == StoreKinds.Lost)
+                    {
+                        settles = listed;
+                    }
+                    else
+                    {
+                        named = listed;
+                    }
+                }
+                else if (!InForm(value, member.Form))
                 {
                     return null;
                 }

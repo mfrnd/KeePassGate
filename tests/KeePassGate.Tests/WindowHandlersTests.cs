@@ -175,28 +175,72 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_defect_storing_the_seal_is_recorded_and_left_off_the_sheet()
+        public void A_defect_drawing_the_box_pressed_is_recorded_and_the_tab_left_standing()
         {
-            var store = new FakeGrantStore(Rules.Granting(("reader", "R")));
-
             using (var form = OffScreenForm.New())
             using (var panel = new GrantPanel(
-                new GrantSheet(store.Read(), null, new[] { "reader", "ops" }, null), store, GrantTab.GroupScope, null))
+                GrantSheet.Of(Rules.Node(false, ("reader", "R")), null, new[] { "reader", "ops" }, null), GrantTab.GroupScope, null, null, null))
             {
                 form.Controls.Add(panel);
                 form.Show();
                 OffScreenForm.Pump();
 
-                store.Refusal = new NullReferenceException("a defect while the seal was stored");
-                ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName).Checked = true;
+                var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+                var armed = true;
+                grid.RowsAdded += (sender, e) =>
+                {
+                    if (armed)
+                    {
+                        throw new NullReferenceException("a defect while the rules were drawn");
+                    }
+                };
+
+                // The box's own click, as a press raises it: the box takes no mark of its own.
+                typeof(Control).GetMethod("OnClick", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    .Invoke(ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName), new object[] { EventArgs.Empty });
+                armed = false;
 
                 Assert.That(_loop, Is.Empty);
-                Assert.That(_incidents.Recent, Has.Exactly(1).StartsWith("the seal could not be changed"));
+                Assert.That(_incidents.Recent, Has.Exactly(1).StartsWith("the box could not be pressed"));
+                Assert.That(form.IsDisposed, Is.False);
+            }
+        }
 
-                store.Refusal = null;
-                Assert.That(panel.AddGrant("ops"), Is.Null);
-                Assert.That(new GrantSheet(store.Read(), null, null, null).Default, Is.EqualTo(AclDefault.Inherit),
-                    "the next write carried the seal that was never stored");
+        [Test]
+        public void A_defect_writing_at_the_close_of_a_node_s_dialog_is_recorded_and_the_close_goes_on()
+        {
+            var rules = new FakeNodeRules { Thrown = new NullReferenceException("a defect while the rules were written") };
+            var prompt = new FakePrompt(true);
+
+            using (var window = OffScreenForm.New())
+            using (var dialog = OffScreenForm.New())
+            {
+                window.Show();
+                var sheet = GrantSheet.Of(NodeRule.None, null, new[] { "reader" }, null);
+                var factory = new GrantPanelFactory(
+                    new FakeNodeDialogs(new NodeTab(sheet, GrantTab.GroupScope, null, rules)),
+                    null,
+                    null,
+                    prompt,
+                    window,
+                    _incidents);
+
+                using (var panel = (GrantPanel)factory.CreatePanel(dialog))
+                {
+                    dialog.Show();
+                    Assert.That(panel.AddGrant("reader"), Is.Null);
+                }
+
+                dialog.DialogResult = DialogResult.OK;
+                dialog.Close();
+                OffScreenForm.Pump();
+
+                Assert.That(_loop, Is.Empty);
+                Assert.That(_incidents.Recent, Has.Exactly(1).StartsWith("the OK of the " + GateName.OnATab + " tab of a group or an entry did not run to its end"));
+                Assert.That(_incidents.Recent.Single(), Does.EndWith(nameof(NullReferenceException)), "the defect was in the write");
+                Assert.That(dialog.IsDisposed, Is.True, "the dialog closed");
+                Assert.That(prompt.Told, Is.EqualTo(1), "a narrowing the defect kept from the store is seen to be missing");
+                Assert.That(prompt.LastNews, Is.EqualTo(GrantTab.NotKeptDefect));
             }
         }
 

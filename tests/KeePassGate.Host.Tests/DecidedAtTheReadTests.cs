@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using KeePassGate.Acl;
 using KeePassGate.Audit;
 using KeePassGate.Bridge;
 using KeePassGate.Pipeline;
@@ -49,7 +48,7 @@ namespace KeePassGate.Host.Tests
             _database = TemporaryDatabase.New();
 
             _group = new PwGroup(true, true, "Fictitious", PwIcon.Folder);
-            _database.RootGroup.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "RLA")));
+            DatabaseRules.Rule(_database.Database, _database.RootGroup, ("agent", "RLA"));
             _database.RootGroup.AddGroup(_group, true);
 
             _entry = new PwEntry(true, true);
@@ -77,7 +76,7 @@ namespace KeePassGate.Host.Tests
             // second, and is refused: what was typed behind the seal is in neither answer.
             var operatorNext = new OperatorNext(after, () =>
             {
-                _group.CustomData.Set(AclDocument.CustomDataKey, Rules.Sealing());
+                DatabaseRules.Seal(_database.Database, _group);
                 _entry.Strings.Set(Name, new ProtectedString(false, Typed));
                 _entry.Touch(true, false);
             });
@@ -95,8 +94,8 @@ namespace KeePassGate.Host.Tests
             // The same for a move: the entry is dragged into a group the client reaches nothing
             // in, and renamed there.
             var kept = new PwGroup(true, true, "Kept", PwIcon.Folder);
-            kept.CustomData.Set(AclDocument.CustomDataKey, Rules.Sealing());
             _database.RootGroup.AddGroup(kept, true);
+            DatabaseRules.Seal(_database.Database, kept);
             var operatorNext = new OperatorNext(after, () =>
             {
                 _group.Entries.Remove(_entry);
@@ -144,7 +143,7 @@ namespace KeePassGate.Host.Tests
             // open and is longer than a piece, so it is digested a piece at a time. Both are
             // put back in new objects before the request the operator follows, so that its tag
             // is the first over them and their digests are taken after the edit has landed.
-            _database.RootGroup.CustomData.Set(AclDocument.CustomDataKey, Rules.Granting(("agent", "RLAP")));
+            DatabaseRules.Rule(_database.Database, _database.RootGroup, ("agent", "RLAP"));
             var longer = new string('k', 40000);
             _entry.Strings.Set("Longer", new ProtectedString(true, System.Text.Encoding.UTF8.GetBytes(longer)));
             _entry.Strings.Set("Open", new ProtectedString(false, new string('m', (2 * NodeTags.Pieces.Characters) + 7)));

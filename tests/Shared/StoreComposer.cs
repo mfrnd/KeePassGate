@@ -94,6 +94,97 @@ namespace KeePassGate.Testing
             return new Composed(IdentifierOf(key, kind, subject, number, strings[Check]), strings);
         }
 
+        /// <summary>
+        /// A record of kind `version` of this object, `STORE.md` §609: for an object `rule:` that
+        /// holds `/`, the subject is the object before its first `/` and the number the tag of the
+        /// profile's name after it, and for every other object the subject is the object and the
+        /// number 0, as the measured code's `ident` makes them.
+        /// </summary>
+        public static Composed Version(byte[] key, string objectName, string content)
+        {
+            var slash = objectName.StartsWith("rule:", StringComparison.Ordinal) ? objectName.IndexOf('/') : -1;
+            return slash < 0
+                ? Record(key, "version", objectName, content)
+                : Record(key, "version", objectName.Substring(0, slash), content, ProfileTag(key, objectName.Substring(slash + 1)));
+        }
+
+        /// <summary>The object of a profile's row at a node, composed here: `rule:`, the node, `/` and the name.</summary>
+        public static string RowObject(string node, string profile)
+        {
+            return "rule:" + node + "/" + profile;
+        }
+
+        /// <summary>The object of a node's switch, composed here: `switch:` and the node.</summary>
+        public static string SwitchObject(string node)
+        {
+            return "switch:" + node;
+        }
+
+        /// <summary>
+        /// A record of kind `version` of this object, its content holding this text in `doc`, these
+        /// identifiers in `after`, the object and a nonce.
+        /// </summary>
+        /// <param name="after">The identifiers named, separated by single spaces in the order given.</param>
+        public static Composed RuleVersion(byte[] key, string objectName, string doc, params string[] after)
+        {
+            return Version(key, objectName, Content(("after", string.Join(" ", after)), ("doc", doc), ("object", objectName)));
+        }
+
+        /// <summary>
+        /// A record of kind `version` of this object, its content holding this text in `doc`, these
+        /// identifiers in `after`, these in `lost`, the object and a nonce, with no `lost` where it
+        /// names nothing, as `STORE.md` §617 has a version that settles lost versions.
+        /// </summary>
+        /// <param name="after">The identifiers named as replaced, separated by single spaces in the order given.</param>
+        /// <param name="lost">The lost identifiers named as settled, separated by single spaces in the order given.</param>
+        public static Composed RuleVersion(byte[] key, string objectName, string doc, string[] after, string[] lost)
+        {
+            return Version(key, objectName, Content(VersionMembers(objectName, doc, after, lost).ToArray()));
+        }
+
+        /// <summary>
+        /// The item of a summary entry that restates a version of this object, holding this text in
+        /// `doc` and these identifiers in `after`.
+        /// </summary>
+        /// <param name="after">The identifiers named, separated by single spaces in the order given.</param>
+        public static string RuleVersionItem(Composed version, string objectName, string doc, params string[] after)
+        {
+            return Item(
+                ("after", string.Join(" ", after)), ("doc", doc), ("id", version.Hex), ("kind", "version"), ("object", objectName));
+        }
+
+        /// <summary>
+        /// The item of a summary entry that restates a version of this object, holding this text in
+        /// `doc`, these identifiers in `after` and these in `lost`, with no `lost` where it names
+        /// nothing.
+        /// </summary>
+        public static string RuleVersionItem(Composed version, string objectName, string doc, string[] after, string[] lost)
+        {
+            return Item(VersionMembers(objectName, doc, after, lost).Concat(new[] { ("id", version.Hex), ("kind", "version") }).ToArray());
+        }
+
+        /// <summary>The members of a version's content but its nonce, `lost` among them only where it names something.</summary>
+        private static List<(string Name, string Value)> VersionMembers(string objectName, string doc, string[] after, string[] lost)
+        {
+            var members = new List<(string Name, string Value)> { ("after", string.Join(" ", after)), ("doc", doc), ("object", objectName) };
+            if (lost.Length > 0)
+            {
+                members.Add(("lost", string.Join(" ", lost)));
+            }
+
+            return members;
+        }
+
+        /// <summary>
+        /// The tag of a profile's name under a key, `STORE.md` §609: the first two bytes of the
+        /// HMAC over `name`, a line feed and the name, as a number read big-endian.
+        /// </summary>
+        public static int ProfileTag(byte[] key, string name)
+        {
+            var tag = Hmac(key, "name\n" + name);
+            return (tag[0] << 8) | tag[1];
+        }
+
         /// <summary>The check of `STORE.md` §608 over these strings, as lowercase hexadecimal.</summary>
         public static string CheckOf(byte[] key, IReadOnlyDictionary<string, string> strings)
         {

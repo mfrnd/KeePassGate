@@ -187,28 +187,19 @@ and nothing on this page is managed by editing that group.
 **All of that was measured in KeePass with the plugin in it, which is 2.62 or later.** Other
 programs can open the database, KeePassXC, KeePass before 2.48 and programs on Android among
 them, and what follows is what was measured of them for what the plugin keeps outside its own
-group: the standing answers to a renewal and the access rules. **Merging an older copy into the
-database in KeePassXC quietly brings back every standing answer** the older copy still had, and
-a merge either way keeps a group's access rules as they were in the database merged into, however
-the other copy narrowed them. Saving in KeePassXC, from 2.4.1 to 2.8.0, or in KeePass 2.47 keeps
+group: the standing answers to a renewal. **Merging an older copy into the
+database in KeePassXC quietly brings back every standing answer** the older copy still had.
+Saving in KeePassXC, from 2.4.1 to 2.8.0, or in KeePass 2.47 keeps
 what the plugin wrote there but usually drops the times it was written at, and a later
 synchronize in KeePass can then put an older standing answer back over a later answer about the
-same certificate.
-
-**A save in KeePassDroid 2.7 was measured to delete the access rules on every group and entry**,
-and a save in KeePassDX 3.2.0 or 3.3.0 the rules on every group, while a save in KeePassDX 4.5.8 or
-in Keepass2Android 1.15-r6 keeps them. Nothing on a group or entry shows that its rules went. Such
-a group or entry then answers each profile with the nearest rule above it, or refuses a profile no
-rule above names, and its **Refuse any profile not named here** check mark goes with the rules, so
-wherever they narrowed what a group above grants, a program now reaches more. Releases not named
-here were not measured. [`CA.md`](../CA.md) §204 has what was measured.
+same certificate. Releases not named here were not measured. [`CA.md`](../CA.md) §204 has what
+was measured.
 
 So save and merge a paired database only in KeePass with the plugin in it, and after any change
-made anywhere else, look at this list, the Profiles page and the Certificate Authority page. After
-a save in a program that deletes rules, also look at the
-[**KPG** tab](access-control.md#where-the-rules-go) of every group and entry that had rules: the
-**Rules** column on the Profiles page counts, for each profile, the groups and entries left with a
-rule for it.
+made anywhere else, look at this list, the Profiles page and the Certificate Authority page, and
+at the State column on the [**KPG** tab](access-control.md#reading-the-state-column) of the
+groups and entries that hold rules: the **Rules** column on the Profiles page counts, for each
+profile, the groups and entries with a rule for it.
 
 **Nor is anything here managed from KeePass's own Database Maintenance dialog.** Its **Plugin Data**
 tab lists the standing answers to a renewal, which the plugin keeps outside its own group, and
