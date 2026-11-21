@@ -107,7 +107,10 @@ namespace KeePassGate.Store
                     .Select(key => (ISet<string>)new HashSet<string>(
                         key.Tags.Select(tag => tag.ToString("x6", CultureInfo.InvariantCulture)), StringComparer.Ordinal))
                     .ToList();
-                var deleted = Deleted(deletions, keys);
+                // The deletion records by their tags, once for every key, `STORE.md` §649, and the
+                // entries among the candidates they name, in a single pass over them.
+                var named = new HashSet<StoreId>();
+                var byTag = ByTag(deletions, keys, candidates, named);
 
                 // Each entry's record under each key found: the first version, in order, that
                 // passes under it, `STORE.md` §621 and §622.
@@ -123,6 +126,8 @@ namespace KeePassGate.Store
                 for (var at = 0; at < candidates.Count; at++)
                 {
                     var candidate = candidates[at];
+                    StoreId identifier;
+                    var besideDeletion = StoreId.TryOf(candidate.Identifier, out identifier) && named.Contains(identifier);
                     var any = false;
                     for (var key = 0; key < keys.Count; key++)
                     {
@@ -130,7 +135,7 @@ namespace KeePassGate.Store
                         {
                             if (forms[at][index].Passes(keys[key], candidate.Identifier))
                             {
-                                records[key].Add(new FoundRecord(candidate.Hex, forms[at][index], index, deleted.Contains(candidate.Hex)));
+                                records[key].Add(new FoundRecord(candidate.Hex, forms[at][index], index, besideDeletion));
                                 any = true;
                                 break;
                             }
@@ -160,11 +165,9 @@ namespace KeePassGate.Store
                 }
 
                 var kept = keys.Count == 1 ? new List<Relation>() : KeptRelations(keys, records).ToList();
-                var told = keys.Count == 1 ? new List<Relation>() : DeletedRelations(keys, deleted).ToList();
+                var told = keys.Count == 1 ? new List<Relation>() : DeletedRelations(keys, byTag).ToList();
                 var standing = Standing(keys.Count, kept.Concat(told).ToList());
 
-                // The deletion records by their tags, once for every key, `STORE.md` §649.
-                var byTag = ByTag(deleted);
                 if (standing.Count > 1)
                 {
                     // A word is answered under each authority that stands under each key that
@@ -204,7 +207,7 @@ namespace KeePassGate.Store
                 FoundKey key,
                 IReadOnlyList<FoundRecord> records,
                 IReadOnlyList<string> damage,
-                IReadOnlyDictionary<string, List<string>> byTag,
+                IReadOnlyDictionary<int, List<StoreId>> byTag,
                 IReadOnlyCollection<KeyValuePair<string, string>> keptByDeletion,
                 Func<IEnumerable<byte[]>> nodes)
             {
@@ -336,28 +339,26 @@ namespace KeePassGate.Store
             /// §623: by the first eight bytes of each identifier, the tag under the key it was
             /// under and the subject hash of the key it names, looked up once for each pair.
             /// </summary>
-            private static IEnumerable<Relation> DeletedRelations(IReadOnlyList<FoundKey> keys, ISet<string> deleted)
+            private static IEnumerable<Relation> DeletedRelations(IReadOnlyList<FoundKey> keys, IReadOnlyDictionary<int, List<StoreId>> byTag)
             {
-                var byStart = deleted
-                    .GroupBy(identifier => identifier.Substring(0, (StoreFormat.TagLength + StoreFormat.SubjectLength) * 2), StringComparer.Ordinal)
-                    .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
-
                 var keptKind = StoreKinds.Find(StoreKinds.Kept);
                 for (var source = 0; source < keys.Count; source++)
                 {
-                    var tag = keys[source].TagOf(keptKind);
+                    List<StoreId> tagged;
+                    var bySubject = byTag.TryGetValue(keys[source].TagOf(keptKind), out tagged)
+                        ? tagged.ToLookup(identifier => identifier.Subject)
+                        : Enumerable.Empty<StoreId>().ToLookup(identifier => identifier.Subject);
                     for (var target = 0; target < keys.Count; target++)
                     {
-                        List<string> starting;
-                        if (target == source
-                            || !byStart.TryGetValue(tag + keys[source].Subject(StoreFormat.SubjectOf(keptKind, keys[target].Name, out _)), out starting))
+                        if (target == source)
                         {
                             continue;
                         }
 
-                        foreach (var identifier in starting)
+                        var subject = keys[source].SubjectHash(StoreFormat.SubjectOf(keptKind, keys[target].Name, out _));
+                        foreach (var identifier in bySubject[subject].Distinct())
                         {
-                            yield return new Relation(source, target, identifier, Array.Empty<string>());
+                            yield return new Relation(source, target, identifier.ToString(), Array.Empty<string>());
                         }
                     }
                 }
@@ -484,47 +485,70 @@ namespace KeePassGate.Store
 
             /// <summary>
             /// The identifiers the deletion records name whose first three bytes are a tag of a
-            /// kind under a key found: every deletion record that can name a record of the store,
-            /// since a record's identifier begins with its tag.
+            /// kind under a key found, by that tag: every deletion record that can name a record
+            /// of the store, since a record's identifier begins with its tag. Sorted once, for
+            /// every key the reading judges, and with each candidate a deletion record names put
+            /// into <paramref name="named"/>.
             /// </summary>
-            private static ISet<string> Deleted(IReadOnlyList<byte[]> deletions, IReadOnlyList<FoundKey> keys)
+            /// <remarks>
+            /// **A single pass, and no text made of any of them**: each is compared as its bytes,
+            /// `StoreId`, since a file keeps a deletion record for every version a write above
+            /// renewed, for good. A deletion record a file holds twice is listed twice, which
+            /// changes no answer: what is told of by them is worked out into sets, `StoreInForce`.
+            /// </remarks>
+            private static Dictionary<int, List<StoreId>> ByTag(
+                IReadOnlyList<byte[]> deletions, IReadOnlyList<FoundKey> keys, IReadOnlyList<StoreCandidate> candidates, ISet<StoreId> named)
             {
-                var tags = new HashSet<int>(keys.SelectMany(key => key.Tags));
-                var deleted = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var identifier in deletions)
+                var byTag = new Dictionary<int, List<StoreId>>();
+                foreach (var tag in keys.SelectMany(key => key.Tags))
                 {
-                    if (identifier == null || identifier.Length != StoreFormat.TagLength + StoreFormat.SubjectLength + StoreFormat.HeightLength + StoreFormat.CheckLength)
+                    byTag[tag] = new List<StoreId>();
+                }
+
+                var present = new HashSet<StoreId>();
+                foreach (var candidate in candidates)
+                {
+                    StoreId held;
+                    if (StoreId.TryOf(candidate.Identifier, out held))
+                    {
+                        present.Add(held);
+                    }
+                }
+
+                // Most of a file's deletion records share a tag, the tag of `version`, so the
+                // list of the record before is asked first.
+                var lastTag = -1;
+                List<StoreId> last = null;
+                foreach (var bytes in deletions)
+                {
+                    StoreId identifier;
+                    if (!StoreId.TryOf(bytes, out identifier))
                     {
                         continue;
                     }
 
-                    if (tags.Contains(StoreFormat.TagNumber(identifier)))
+                    var tag = identifier.Tag;
+                    if (tag != lastTag)
                     {
-                        deleted.Add(Hex.Of(identifier));
-                    }
-                }
+                        if (!byTag.TryGetValue(tag, out last))
+                        {
+                            lastTag = -1;
+                            continue;
+                        }
 
-                return deleted;
-            }
-
-            /// <summary>
-            /// The identifiers the deletion records name, by the tag each begins with, as
-            /// lowercase hexadecimal: sorted once, for every key the reading judges.
-            /// </summary>
-            private static Dictionary<string, List<string>> ByTag(IEnumerable<string> deleted)
-            {
-                var byTag = new Dictionary<string, List<string>>(StringComparer.Ordinal);
-                foreach (var identifier in deleted)
-                {
-                    List<string> tagged;
-                    var tag = identifier.Substring(0, StoreFormat.TagLength * 2);
-                    if (!byTag.TryGetValue(tag, out tagged))
-                    {
-                        tagged = new List<string>();
-                        byTag[tag] = tagged;
+                        lastTag = tag;
                     }
 
-                    tagged.Add(identifier);
+                    if (last == null)
+                    {
+                        continue;
+                    }
+
+                    last.Add(identifier);
+                    if (present.Contains(identifier))
+                    {
+                        named.Add(identifier);
+                    }
                 }
 
                 return byTag;

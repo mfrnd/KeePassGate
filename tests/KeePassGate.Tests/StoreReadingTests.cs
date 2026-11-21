@@ -541,7 +541,47 @@ namespace KeePassGate.Tests
             Assert.That(kept, Is.All.EqualTo(0), "clearing overwrites every key held");
         }
 
+        [Test]
+        [NonParallelizable]
+        public void A_hold_after_many_renewals_costs_a_small_multiple_of_a_hold_after_none()
+        {
+            // `STORE.md` §620 and §643: a write above renews the versions below, and each renewal
+            // leaves a deletion record, which KeePass keeps for good, and a name in the `after` of
+            // the version written anew. A hold passes over every deletion record, so what it costs
+            // grows with them however little each costs; this holds what each costs to a fraction
+            // of the hold before any renewal. Each a gate's hold, with the forms kept from the hold
+            // before it, the median of a series, both series in the same run and nothing else
+            // running beside them; the store whole, and nothing of it lost. Measured in Release at
+            // about five times, the deletion records in the order writes above leave them, so the
+            // bound is three times what a hold takes and a fraction of what each renewal cost as
+            // text and sets of text, about forty times.
+            var none = Holds(Renewed(0));
+            var many = Holds(Renewed(RenewalsHeld));
+
+            TestContext.Out.WriteLine(string.Format(
+                System.Globalization.CultureInfo.InvariantCulture,
+                "figure: a hold beside {0} versions, after no renewal {1:F2} ms, after {2} renewals {3:F2} ms, {4:F3} microseconds a renewal",
+                RenewedVersions,
+                none,
+                RenewalsHeld,
+                many,
+                (many - none) * 1000 / RenewalsHeld));
+            Assert.That(many, Is.LessThan(none * HoldsApart), "a hold after the renewals against a hold after none");
+        }
+
         private const string Nonce = "00112233445566778899aabbccddeeff";
+
+        /// <summary>The versions that stand in the store of a hold after many renewals.</summary>
+        private const int RenewedVersions = 2000;
+
+        /// <summary>The renewals made before the hold held to a hold after none.</summary>
+        private const int RenewalsHeld = 100000;
+
+        /// <summary>The holds of each series after a first, whose median is taken.</summary>
+        private const int HeldRuns = 11;
+
+        /// <summary>How many times a hold after no renewal a hold after the renewals may take.</summary>
+        private const double HoldsApart = 15;
 
         /// <summary>The node the rows are about.</summary>
         private const string Node = "0123456789abcdef0123456789abcdef";
@@ -614,6 +654,92 @@ namespace KeePassGate.Tests
         private static byte[] Identifier(byte fill)
         {
             return Enumerable.Repeat(fill, 16).ToArray();
+        }
+
+        /// <summary>
+        /// A store as writes above leave it after this many renewals: an authority, versions of a
+        /// row at as many nodes, each naming its share of the renewals as identifiers at its own
+        /// place, each with a deletion record, and a summary entry restating them all.
+        /// </summary>
+        private static (IReadOnlyList<StoreCandidate> Candidates, IReadOnlyList<byte[]> Deletions) Renewed(int renewals)
+        {
+            var versions = new StoreVersions();
+            var candidates = new List<StoreCandidate> { versions.Candidate(Authority(One, 'a')) };
+            var replaced = new List<byte[][]>(RenewedVersions);
+            var items = new List<string> { Format() };
+            var tag = StoreComposer.ProfileTag(One, "pf");
+            for (var at = 0; at < RenewedVersions; at++)
+            {
+                var node = at.ToString("x32", System.Globalization.CultureInfo.InvariantCulture);
+                var objectName = StoreComposer.RowObject(node, "pf");
+                var place = StoreComposer.IdentifierOf(One, "version", "rule:" + node, tag, new string('0', 64));
+                var share = (renewals / RenewedVersions) + (at < renewals % RenewedVersions ? 1 : 0);
+                var identifiers = new byte[share][];
+                for (var index = 0; index < share; index++)
+                {
+                    identifiers[index] = (byte[])place.Clone();
+                    identifiers[index][12] = (byte)(index >> 24);
+                    identifiers[index][13] = (byte)(index >> 16);
+                    identifiers[index][14] = (byte)(index >> 8);
+                    identifiers[index][15] = (byte)index;
+                }
+
+                replaced.Add(identifiers);
+                var named = identifiers.Select(StoreComposer.HexOf).ToArray();
+                var version = StoreComposer.RuleVersion(One, objectName, "off:R", named);
+                candidates.Add(versions.Candidate(version));
+                items.Add(StoreComposer.RuleVersionItem(version, objectName, "off:R", named));
+            }
+
+            // The deletion records in the order the writes above leave them: each renews every
+            // version below once, so a version of each object in turn.
+            var deletions = new List<byte[]>(renewals);
+            for (var round = 0; round < replaced.Max(identifiers => identifiers.Length); round++)
+            {
+                deletions.AddRange(replaced.Where(identifiers => round < identifiers.Length).Select(identifiers => identifiers[round]));
+            }
+
+            candidates.Add(versions.Candidate(Head(One, 1, items.ToArray())));
+            return (candidates, deletions);
+        }
+
+        /// <summary>
+        /// The median of a series of a gate's holds of this store, each reading with the forms the
+        /// hold before it kept, after a first that keeps them, in milliseconds.
+        /// </summary>
+        private static double Holds((IReadOnlyList<StoreCandidate> Candidates, IReadOnlyList<byte[]> Deletions) store)
+        {
+            var kept = new StoreKept();
+            var times = new List<double>();
+            try
+            {
+                for (var run = 0; run <= HeldRuns; run++)
+                {
+                    var next = new StoreKept();
+                    var clock = System.Diagnostics.Stopwatch.StartNew();
+                    using (var reading = StoreReading.Of(store.Candidates, store.Deletions, kept, next))
+                    {
+                        var spent = clock.Elapsed.TotalMilliseconds;
+                        kept.Leave(next);
+                        kept = next;
+                        Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                        var found = reading.InForce;
+                        Assert.That(found.Objects, Has.Count.EqualTo(RenewedVersions), "a row at every node");
+                        Assert.That(found.Objects.Where(objectText => found.LostOf(objectText).Count > 0), Is.Empty, "nothing lost");
+                        if (run > 0)
+                        {
+                            times.Add(spent);
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                kept.Clear();
+            }
+
+            times.Sort();
+            return times[times.Count / 2];
         }
     }
 }

@@ -1322,6 +1322,61 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void A_deletion_record_the_file_holds_twice_tells_of_what_it_tells_of_once()
+        {
+            // A file can hold a deletion record twice, as two copies merged can leave it. The
+            // reading passes over the deletion records as they are listed, and what they tell of
+            // is each told once: a summary entry, a lost row and a removal.
+            var store = new ComposedStore(One);
+            var first = store.Head;
+            var standing = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:R"));
+            store.RestateAll(new[] { ItemOf(standing) });
+            store.Deleted.Add(first.Identifier);
+            var rowTold = ToldOf(RowAt(Node, "pf"));
+            store.Deleted.Add(rowTold);
+            store.Deleted.Add(rowTold);
+            var removal = Removal("ops");
+            store.Delete(removal);
+            store.Delete(removal);
+            store.Add(Profile("ops"));
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(store.Deleted.Count(identifier => identifier.SequenceEqual(first.Identifier)), Is.EqualTo(2), "the summary entry deleted twice");
+                Assert.That(reading.InForce.Told, Is.EqualTo(new[] { first.Hex }), "the summary entry told of once");
+                Assert.That(reading.InForce.LostOf(RowAt(Node, "pf")), Is.EqualTo(new[] { KeePassGate.Hex.Of(rowTold) }), "the row lost once");
+                Assert.That(reading.InForce.RemovalsOnceKnown("ops"), Is.EqualTo(new[] { removal.Hex }), "the removal known once");
+            }
+        }
+
+        [Test]
+        public void A_version_whose_id_is_no_identifier_places_no_deletion_record_and_stands()
+        {
+            // An item's `id` is a text, `STORE.md` §658, so a version carried by an item alone may
+            // be under a text no identifier is, as short as a word. It stands where it is in force
+            // and nothing names it, and it is no place a deletion record lies at, so a deletion
+            // record of a version beside it is told of by the versions whose identifiers are
+            // identifiers, as it is without it.
+            var store = new ComposedStore(One);
+            var standing = store.Add(StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:R"));
+            var odd = StoreComposer.Item(("after", string.Empty), ("doc", "row:R"), ("id", "odd"), ("kind", "version"), ("object", RowAt(Other, "pf")));
+            store.RestateAll(new[] { ItemOf(standing), odd });
+            var told = ToldOf(RowAt(Node, "pf"));
+            store.Deleted.Add(told);
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                var found = reading.InForce;
+                Assert.That(Ids(found.VersionsOf(RowAt(Other, "pf"))), Is.EqualTo(new[] { "odd" }), "carried by an item in force alone, it stands");
+                Assert.That(found.LostOf(RowAt(Node, "pf")), Is.EqualTo(new[] { KeePassGate.Hex.Of(told) }), "the deletion record at the row's place");
+                Assert.That(Ids(found.VersionsOf(RowAt(Node, "pf"))), Is.EqualTo(new[] { standing.Hex }));
+                Assert.That(store.Walks, Is.EqualTo(0), "placed by the version at its place");
+            }
+        }
+
         /// <summary>The node most rules here are at, its identifier as 32 hexadecimal characters.</summary>
         private static readonly string Node = new string('1', 32);
 

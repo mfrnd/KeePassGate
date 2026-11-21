@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 
 namespace KeePassGate.Store
@@ -43,15 +42,25 @@ namespace KeePassGate.Store
     /// its own deletion record. Such a write is refused.
     ///
     /// **Linear in the versions and their names** for each round, and a round follows only a round
-    /// that kept a version; each object is placed under the key once.
+    /// that kept a version; each object is placed under the key once. **The versions in force that
+    /// a version in force names are the reading's**, `StoreInForce.ReplacedVersions`, worked out
+    /// once from the lists read with their forms, so a write that adds no version, which is what
+    /// the room counts at every hold, reads no name of any list where no version in force names a
+    /// version present, which is a store as the plugin's own writes leave it.
     /// </remarks>
     internal sealed class StoreReplaced
     {
         private static readonly StoreKind Row = StoreKinds.Find(StoreKinds.Version);
+        private static readonly IReadOnlyDictionary<string, StoreNaming> NoVersions = new Dictionary<string, StoreNaming>(StringComparer.Ordinal);
+        private static readonly IReadOnlyDictionary<StoreId, StoreNaming> NoVersionsById = new Dictionary<StoreId, StoreNaming>();
+        private static readonly ISet<StoreId> NoIdentifiers = new HashSet<StoreId>();
+        private static readonly ISet<string> NoneReplaced = new HashSet<string>(StringComparer.Ordinal);
 
         private readonly List<StoreNaming> _namers = new List<StoreNaming>();
-        private readonly Dictionary<string, List<string>> _names = new Dictionary<string, List<string>>(StringComparer.Ordinal);
-        private readonly HashSet<string> _carried = new HashSet<string>(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<StoreId>> _names = new Dictionary<string, List<StoreId>>(StringComparer.Ordinal);
+        private IReadOnlyDictionary<StoreId, StoreNaming> _versions = NoVersionsById;
+        private IReadOnlyDictionary<StoreId, string> _ownObjects = new Dictionary<StoreId, string>();
+        private ISet<StoreId> _others = NoIdentifiers;
 
         private StoreReplaced()
         {
@@ -84,61 +93,61 @@ namespace KeePassGate.Store
         /// What a write adding these records does with the versions present, settled as above; with
         /// no version among them, what a write that adds no version does, which the room counts.
         /// </summary>
-        /// <param name="versions">Every version present, by its identifier.</param>
-        /// <param name="others">The identifiers of the records present of another kind.</param>
-        public static StoreReplaced Settle(
-            IReadOnlyDictionary<string, StoreNaming> versions, ISet<string> others, IReadOnlyList<StoreRecord> added)
+        /// <param name="inForce">What is in force in the store, or null for a write that starts a store.</param>
+        public static StoreReplaced Settle(StoreInForce inForce, IReadOnlyList<StoreRecord> added)
         {
             var made = new StoreReplaced();
+            var versions = inForce == null ? NoVersions : inForce.Versions;
+            made._versions = inForce == null ? NoVersionsById : inForce.VersionsById;
+            made._others = inForce == null ? NoIdentifiers : inForce.OthersById;
             var own = added.Where(record => record.Kind == StoreKinds.Version)
                 .Select(record => new StoreNaming(
-                    record.Hex, record.Member(StoreKinds.ObjectMember), record.Member(StoreKinds.After), false, false, null))
+                    record.Hex, record.Member(StoreKinds.ObjectMember), record.Member(StoreKinds.After), null, false, false, null))
                 .ToList();
-            var ownObjects = own.ToDictionary(version => version.Id, version => version.Object, StringComparer.Ordinal);
-            made._carried.UnionWith(versions.Keys);
-            made._carried.UnionWith(ownObjects.Keys);
-            made._carried.UnionWith(others);
+            var ownObjects = own.Where(version => version.Identified).ToDictionary(version => version.Identifier, version => version.Object);
+            made._ownObjects = ownObjects;
 
-            foreach (var version in own.Concat(versions.Values))
-            {
-                made._names[version.Id] = Held(version, versions, ownObjects, others);
-            }
-
-            if (own.Any(version => made._names[version.Id].Any(ownObjects.ContainsKey)))
+            if (own.Any(version => made.Held(version).Any(ownObjects.ContainsKey)))
             {
                 made.NamesItsOwn = true;
                 return made;
             }
 
-            var inForce = versions.Values.Where(version => version.InForce).ToList();
+            // The versions present that a version in force or a version of the write names of its
+            // own object: those a version in force names are the reading's.
+            var inForceVersions = versions.Values.Where(version => version.InForce).ToList();
             var candidates = new HashSet<string>(
-                own.Concat(inForce).SelectMany(version => made._names[version.Id]).Where(versions.ContainsKey), StringComparer.Ordinal);
+                own.SelectMany(made.Held).Select(made.Present).Where(named => named != null).Select(named => named.Id), StringComparer.Ordinal);
+            candidates.UnionWith(inForce == null ? NoneReplaced : inForce.ReplacedVersions);
 
             made._namers.AddRange(own);
-            made._namers.AddRange(inForce.Where(version => !candidates.Contains(version.Id)));
-            var staying = new HashSet<string>(made._namers.SelectMany(version => made._names[version.Id]), StringComparer.Ordinal);
+            made._namers.AddRange(inForceVersions.Where(version => !candidates.Contains(version.Id)));
 
             var kept = new HashSet<string>(StringComparer.Ordinal);
-            while (true)
+            if (candidates.Count > 0)
             {
-                var failing = candidates
-                    .Where(id => !kept.Contains(id) && versions[id].InForce && !made._names[id].All(staying.Contains))
-                    .ToList();
-                if (failing.Count == 0)
+                var staying = new HashSet<StoreId>(made._namers.SelectMany(made.Held));
+                while (true)
                 {
-                    break;
-                }
+                    var failing = candidates
+                        .Where(id => !kept.Contains(id) && versions[id].InForce && !made.Held(versions[id]).All(staying.Contains))
+                        .ToList();
+                    if (failing.Count == 0)
+                    {
+                        break;
+                    }
 
-                foreach (var id in failing)
-                {
-                    kept.Add(id);
-                    made._namers.Add(versions[id]);
-                    staying.UnionWith(made._names[id]);
+                    foreach (var id in failing)
+                    {
+                        kept.Add(id);
+                        made._namers.Add(versions[id]);
+                        staying.UnionWith(made.Held(versions[id]));
+                    }
                 }
             }
 
             made.Deleted = candidates.Where(id => !kept.Contains(id) && versions[id].Record).ToList();
-            made.Restated = inForce
+            made.Restated = inForceVersions
                 .Where(version => !candidates.Contains(version.Id) || (kept.Contains(version.Id) && !version.RecordInForce))
                 .Select(version => version.Id)
                 .ToList();
@@ -153,72 +162,85 @@ namespace KeePassGate.Store
         /// <param name="present">The identifier of every entry of the tree, a record or not.</param>
         /// <param name="held">The identifiers the deletion records of the file name.</param>
         public static StoreReplaced Of(
-            byte[] key, StoreInForce inForce, IReadOnlyList<StoreRecord> added, ISet<string> present, ISet<string> held)
+            byte[] key, StoreInForce inForce, IReadOnlyList<StoreRecord> added, ISet<StoreId> present, ISet<StoreId> held)
         {
-            var made = Settle(
-                inForce == null ? new Dictionary<string, StoreNaming>(StringComparer.Ordinal) : inForce.Versions,
-                inForce == null ? new HashSet<string>(StringComparer.Ordinal) : inForce.Others,
-                added);
+            var made = Settle(inForce, added);
             if (made.NamesItsOwn)
             {
                 return made;
             }
 
-            var tag = Hex.Of(StoreFormat.Tag(key, StoreKinds.Version));
-            var places = new Dictionary<string, string>(StringComparer.Ordinal);
-            var told = new SortedSet<string>(StringComparer.Ordinal);
+            var tag = StoreFormat.Tag(key, StoreKinds.Version);
+            var places = new Dictionary<string, StoreId>(StringComparer.Ordinal);
+            var told = new SortedSet<StoreId>();
             foreach (var namer in made._namers)
             {
-                foreach (var identifier in made._names[namer.Id]
-                             .Where(identifier => !made._carried.Contains(identifier) && !present.Contains(identifier) && !held.Contains(identifier)))
+                foreach (var identifier in made.Held(namer)
+                             .Where(identifier => !made.Carried(identifier) && !present.Contains(identifier) && !held.Contains(identifier)))
                 {
-                    string place;
+                    StoreId place;
                     if (!places.TryGetValue(namer.Object, out place))
                     {
                         string tagged;
                         var subject = StoreFormat.SubjectOf(Row, namer.Object, out tagged);
                         var number = tagged == null ? 0 : StoreFormat.ProfileTag(key, tagged);
-                        place = tag + Hex.Of(StoreFormat.Subject(key, subject)) + number.ToString("x4", CultureInfo.InvariantCulture);
+                        place = StoreId.PlaceOf(tag, StoreFormat.Subject(key, subject), number);
                         places[namer.Object] = place;
                     }
 
-                    if (identifier.StartsWith(place, StringComparison.Ordinal))
+                    if (identifier.Place == place)
                     {
                         told.Add(identifier);
                     }
                 }
             }
 
-            made.Told = told.ToList();
+            made.Told = told.Select(identifier => identifier.ToString()).ToList();
             return made;
+        }
+
+        /// <summary>The version present under this identifier, or null.</summary>
+        private StoreNaming Present(StoreId identifier)
+        {
+            StoreNaming named;
+            return _versions.TryGetValue(identifier, out named) ? named : null;
+        }
+
+        /// <summary>Whether a version present, a version of the write or a record of another kind carries this identifier.</summary>
+        private bool Carried(StoreId identifier)
+        {
+            return _versions.ContainsKey(identifier) || _ownObjects.ContainsKey(identifier) || _others.Contains(identifier);
         }
 
         /// <summary>
         /// The names of a version held named: every name a version of its object carries, and every
-        /// name nothing carries.
+        /// name nothing carries; worked out once for the write.
         /// </summary>
-        private static List<string> Held(
-            StoreNaming version,
-            IReadOnlyDictionary<string, StoreNaming> versions,
-            IReadOnlyDictionary<string, string> ownObjects,
-            ISet<string> others)
+        private List<StoreId> Held(StoreNaming version)
         {
-            var names = new List<string>();
-            foreach (var identifier in StoreFormat.Identifiers(version.After) ?? Array.Empty<string>())
+            List<StoreId> names;
+            if (_names.TryGetValue(version.Id, out names))
+            {
+                return names;
+            }
+
+            names = new List<StoreId>(version.Named.Count);
+            foreach (var identifier in version.Named.All)
             {
                 StoreNaming carried;
                 string ownObject;
-                var held = versions.TryGetValue(identifier, out carried)
+                var held = _versions.TryGetValue(identifier, out carried)
                     ? string.Equals(carried.Object, version.Object, StringComparison.Ordinal)
-                    : ownObjects.TryGetValue(identifier, out ownObject)
+                    : _ownObjects.TryGetValue(identifier, out ownObject)
                         ? string.Equals(ownObject, version.Object, StringComparison.Ordinal)
-                        : !others.Contains(identifier);
+                        : !_others.Contains(identifier);
                 if (held)
                 {
                     names.Add(identifier);
                 }
             }
 
+            _names[version.Id] = names;
             return names;
         }
     }

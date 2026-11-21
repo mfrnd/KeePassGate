@@ -15,14 +15,28 @@ namespace KeePassGate.Store
     internal sealed class StoreItem
     {
         public StoreItem(string kind, IReadOnlyDictionary<string, string> members)
+            : this(kind, members, null)
+        {
+        }
+
+        /// <summary>An item read from a summary entry, with the identifiers its `after` names.</summary>
+        public StoreItem(string kind, IReadOnlyDictionary<string, string> members, StoreNames named)
         {
             Kind = kind;
             Members = members;
+            Named = named;
         }
 
         public string Kind { get; private set; }
 
         public IReadOnlyDictionary<string, string> Members { get; private set; }
+
+        /// <summary>
+        /// The identifiers its `after` names, read once with the summary entry that holds it; null
+        /// for an item of a kind that names none, and for an item a write makes, which nothing
+        /// asks.
+        /// </summary>
+        public StoreNames Named { get; private set; }
 
         public string Member(string name)
         {
@@ -96,6 +110,12 @@ namespace KeePassGate.Store
 
         /// <summary>The members its row names, as the content holds them.</summary>
         public IReadOnlyDictionary<string, string> Members { get; private set; }
+
+        /// <summary>
+        /// The identifiers its content's `after` names, read once with the rest of it and kept
+        /// with the form, `StoreNames`; null for a kind that names none.
+        /// </summary>
+        public StoreNames Named { get; private set; }
 
         /// <summary>A summary entry's items of the kinds the plugin knows, in order of their names.</summary>
         public IReadOnlyList<StoreItem> Items { get; private set; }
@@ -406,7 +426,8 @@ namespace KeePassGate.Store
                 return;
             }
 
-            var members = Read(content, Row.Members);
+            StoreNames named;
+            var members = Read(content, Row.Members, out named);
             if (members == null)
             {
                 return;
@@ -443,6 +464,7 @@ namespace KeePassGate.Store
             }
 
             Members = members;
+            Named = named;
             string tagged;
             Subject = StoreFormat.SubjectOf(Row, Row.SubjectMember == null ? null : members[Row.SubjectMember], out tagged);
             Tagged = tagged;
@@ -476,7 +498,8 @@ namespace KeePassGate.Store
                     continue;
                 }
 
-                var members = Read(pair.Value, row.Item);
+                StoreNames named;
+                var members = Read(pair.Value, row.Item, out named);
                 if (members == null)
                 {
                     return false;
@@ -493,7 +516,7 @@ namespace KeePassGate.Store
                     formats++;
                 }
 
-                known.Add(new StoreItem(kind, members));
+                known.Add(new StoreItem(kind, members, named));
             }
 
             if (formats != 1)
@@ -509,8 +532,14 @@ namespace KeePassGate.Store
         /// The members a row names, each in its form, or null where any is missing or out of form.
         /// A member the row does not name is passed over, `STORE.md` §607.
         /// </summary>
-        private static Dictionary<string, string> Read(JsonBody content, IReadOnlyList<StoreMember> wanted)
+        /// <param name="named">
+        /// The identifiers a member of the form of a list names, read as its form is asked, or
+        /// null where the row names no such member: `after`, the only member of that form a row
+        /// names.
+        /// </param>
+        private static Dictionary<string, string> Read(JsonBody content, IReadOnlyList<StoreMember> wanted, out StoreNames named)
         {
+            named = null;
             var members = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var member in wanted)
             {
@@ -525,7 +554,15 @@ namespace KeePassGate.Store
                     return null;
                 }
 
-                if (!InForm(value, member.Form))
+                if (member.Form == StoreForm.Identifiers)
+                {
+                    named = StoreNames.Read(value);
+                    if (named == null)
+                    {
+                        return null;
+                    }
+                }
+                else if (!InForm(value, member.Form))
                 {
                     return null;
                 }

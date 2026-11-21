@@ -2378,8 +2378,8 @@ none. Nothing of a rule is written on a group or an entry. The write above is bu
 as "What is built of the write above" has it, with what the sheet keeps for it of the versions
 below (§629). **Left to a later commit**: the runs of rules changed apart over synchronized
 copies beyond the histories named below, the drive in a real KeePass beyond a rule set on the
-entry dialog's tab, and every cost but what an OK above many nodes holds KeePass's thread for
-(§643, §644). **A deletion record is judged for
+entry dialog's tab, and every cost but what an OK above many nodes, and a hold and an OK after
+many renewals, hold KeePass's thread for (§643, §644). **A deletion record is judged for
 each object**, as this section has it: a version in force that names it answers for its own
 object and for no other, so where a deletion record tells of the rows of several names whose
 tags meet, a version of a single row naming it leaves every other row of that tag refusing
@@ -2448,7 +2448,8 @@ and §650 are read as those sections have it. None of the differences was run.
 still, `DESIGN.md` §119. Inside a single hold by a connection the tree cannot move, so the store
 is read once there, and every question of that hold is answered from that reading. Between two
 holds the plugin keeps a single thing: **the checked form of a version**, which is whether its
-strings pass the check under a key the file holds, and what they parse to. It is kept by the
+strings pass the check under a key the file holds, and what they parse to, the identifiers each
+of its lists names among it, read once and searched at every hold after. It is kept by the
 identifier of the entry and by the very string objects the version holds, name for name.
 KeePass replaces a string object when a text changes and never changes a string object in
 place, which `KeePassContractTests` pins, so the same objects are the same text, and any other
@@ -2557,7 +2558,10 @@ all those removals, it measured 8.85 ms, 14.7 at worst, and 64.3 ms with the his
 cost about 6 ms at that bound and nothing a run can tell at 32 names (`StoreReadingCostTests`,
 explicit, in Release, the median of 21 after a first). So the estimate holds in its shape, the
 walk somewhat dearer in the product, and reading every entry at every request stays well within
-the five seconds a hold is let run, with a full history on every entry the case that shows.
+the five seconds a hold is let run, with a full history on every entry the case that shows. That
+is a store before writes above have renewed much: every renewal ever made costs every later hold
+for good, and §643 has the line a hold follows and the writes after which it passes a second and
+five seconds.
 *Held by*
 `StoreReadingBoundTests`, `StoreReadingTests` and
 `StoreInRealDatabaseTests`: a string replaced by an object of another text is read at the next
@@ -2623,7 +2627,11 @@ the file's objects name, and `switch:` with it where a deletion record left hold
 10; then, only where a deletion record is still not told of, the same for each group and entry of
 the tree not yet tried, the recycle bin and the plugin's own group among them, walked once and only
 while the reading is made; and a tag for each name the file knows once a deletion record meets a
-node's rows. Each hash and each tag is kept with the key. **The rules are worked out in the hold
+node's rows. Each hash and each tag is kept with the key. **Every `after` is read once**, with the
+checked form of the version that holds it, and kept with that form; a deletion record is compared
+as its bytes and answered by a search of the lists in force of the objects it tells of, with no
+text made of it unless it is lost, so a hold builds nothing as large as the names the lists hold
+(§643). **The rules are worked out in the hold
 that first asks for a rule**: `StoreReadings` keeps them beside the reading they were worked out
 from, answers them for that very reading alone, and lets them go when the reading is replaced, at
 the end of a turn and with the target. A gate's node keeps nothing and asks the rules of the hold it
@@ -5913,6 +5921,39 @@ OKs, beside the deletion records they left, a deletion record for each version e
 The model's own figure, 113 seconds for 2,000 nodes, is of a model that reads its whole file
 again for each node, and is no figure for the product.
 
+**What every renewal costs, for good** (measured by
+`StoreReadingCostTests.What_a_hold_and_an_OK_cost_after_this_many_renewals`, explicit, in
+Release, on a developer's machine, beside the same 10,000 entries: a store composed as writes
+above leave it, 2,000 versions below the root naming between them 0, 20,000, 100,000 and 400,000
+renewals, and 9,000 naming 0, 90,000 and 360,000, each renewal an identifier at its own version's
+place with a deletion record, in the order the writes leave them; the median of 21 holds after a
+first, and of five OKs above those versions after a first). A renewal leaves a deletion record,
+which KeePass keeps for good, and a name in the `after` of the version written anew, which only
+grows, and every later hold passes over both: the two points of the paragraph above lie on a
+line, and the line does not bend. **As first built**, a hold reading an entry beside 2,000
+versions took 32, 103, 278 and 941 ms, with each version's deletion records together, an order
+kinder to it than the writes' own: about 2.3 microseconds a renewal, so that it passed a second
+after about 210 writes above those versions and five seconds after about 1,090. It wrote each
+deletion record as text, read every `after` three times and built a set for each name a list
+held. **Built again**, every `after` read once with the checked form of its version and kept
+with it, each identifier compared as its bytes, and each deletion record answered by a search of
+the lists in force at its place, the same holds took 31, 39, 55 and 134 ms: about 0.25
+microseconds a renewal, the line a hold now follows. Beside 9,000 versions they took 120, 201
+and 223 ms, about 0.29 microseconds a renewal over the run. So a hold passes a second after about
+1,890 writes above 2,000 versions and about 340 above 9,000, and five seconds after about 1,890
+above 9,000; above 2,000 versions it reaches about four seconds at the 7,942 writes a store has
+room for (below), and does not pass five seconds there. **An OK above those versions grows
+faster**, since it reads, checks, composes and writes the text of every name again, in each
+version and in its item: above 2,000 versions the whole OK took 334, 422, 691 and 1,575 ms, about
+3.1 microseconds a renewal, where it took 350, 507, 969 and 4,525 ms as first built, about 10.4.
+Of the 3.1, the reading in the writer's turn, which checks every version afresh, is about 1.1,
+the composition with every renewal 0.9, the plan 1.0, most of it the summary entry restating
+every list, and the application 0.4. Above 9,000 versions the OK took 1,308, 1,708 and 2,908 ms,
+about 4.4 microseconds a renewal. So an OK passes a second after about 110 writes above 2,000
+versions and five seconds after about 750, and above 9,000 versions it is past a second at its
+first write and passes five seconds after about 90. What would take the line away is owed (§644
+item 33).
+
 **How many ruled nodes the 9,999 item names of a summary entry hold** (S13; the same
 computation). With a record for each node and profile, 1,999 nodes of four rows each with the
 switch set fit, and 2,000 do not, by a single item: they are 10,000 items. Without the switch,
@@ -6247,7 +6288,10 @@ that finds a measurement against a decision reports it and does not design aroun
     `version` that nothing answers for (§620); the sizes of §643 in the product's texts; and the
     grant editor, a second KeePass with the plugin, and a device (items 23, 7 and 5). What a write
     above 200, 2,000 and 9,000 versions holds KeePass's thread for, and the opening of a tab above
-    them, is measured (§643), within the five seconds a hold is let run. *Could overturn*: the
+    them, is measured (§643): within the five seconds a hold is let run for a store's first writes
+    above them, and not for good, since every renewal adds to every later hold and OK; §643 has
+    the line each follows and the writes after which each passes five seconds, and item 33 what
+    would take that growth away. *Could overturn*: the
     conditions of the write above as §617 has them for a dialog. **What the build of the rules ran
     of it, and what it leaves** (§617, §620, §629). Run: the reading held to the meanings of the
     measured code, each store read by letters and by capabilities; the acts of an OK held to the
@@ -6368,6 +6412,29 @@ that finds a measurement against a decision reports it and does not design aroun
     model's sequence of names is played through the product's acts and held to the model's file
     by shape, `StoreWriteShapeTests`. *Still owed*: KeePassXC's merge, two KeePass instances
     with the plugin, and a device.
+33. **What would take away for good what each renewal costs** (§643; this document's own,
+    neither designed nor run). Two things a renewal leaves grow for good: its deletion record,
+    which KeePass keeps and every hold passes over, and its name in the `after` of the version
+    written anew, which every OK above that version reads, checks, composes and writes again,
+    in the version and in its item. The constant of each is taken down (§643), and the line
+    stays. **The deletion records** cost a hold nothing more only where the reading keeps, between
+    two holds, what it worked out of them: an index of the reading, kept by the very objects of
+    KeePass's list of deletion records and of the lists that answer each, as the checked forms
+    are kept by their strings (§620), so that a hold passes over only what changed. Kept so, it
+    answers nothing the database does not hold, and it is still an answer kept from an earlier
+    state in everything but its key, which §620 rules out as worded: it needs the argument the
+    forms' cache had, and a hold still looks at every deletion record to know that nothing
+    changed, at a few nanoseconds each. **The lists** stop growing only where a version names
+    less than every version it replaces: a renewal naming the version it renews and a digest of
+    what that version named, or its predecessor alone, with the reading answering a deletion
+    record by following the chain of versions or by the digest instead of by a search of a list.
+    Neither answers for a version lost from the chain or a digest made apart in another copy,
+    which a list answers for today (§617, §639): either changes what a merge of two copies is
+    judged by, and owes the runs of item 24 again before it is taken. A compaction (§643) starts
+    the lists afresh and leaves the deletion records in the file; a store started again under a
+    new key (§632) leaves them as well, and a hold passes over them by their tags alone. Owed by
+    the pull request that designs the compaction, before the store reaches the line's five
+    seconds.
 
 ---
 

@@ -59,6 +59,9 @@ namespace KeePassGate.Host.Tests
         /// <summary>The clients of the gate the growth run measured, `STORE.md` §643.</summary>
         private const int GrowthClients = 10;
 
+        /// <summary>The writes timed after a first in the measurement of a store after many renewals.</summary>
+        private const int RenewedRuns = 5;
+
 #if DEBUG
         private const string Built = "Debug";
 #else
@@ -451,6 +454,165 @@ namespace KeePassGate.Host.Tests
                 Held(database.Database, "a read of an entry after " + OkRuns.ToString(CultureInfo.InvariantCulture) + " more of those writes", read);
                 Assert.That(database.Database.DeletedObjects.UCount, Is.GreaterThanOrEqualTo((uint)((OkRuns + 1) * following)), "a deletion record for every version renewed");
             }
+        }
+
+        [TestCase(2000, 0)]
+        [TestCase(2000, 20000)]
+        [TestCase(2000, 100000)]
+        [TestCase(2000, 400000)]
+        [TestCase(9000, 0)]
+        [TestCase(9000, 90000)]
+        [TestCase(9000, 360000)]
+        public void What_a_hold_and_an_OK_cost_after_this_many_renewals(int standing, int renewals)
+        {
+            // A store as writes above leave it, composed directly rather than written by as many
+            // OKs, `STORE.md` §617 and §643: versions below the root that let the fixture's
+            // profile through, each naming in `after` its share of the renewals made before it,
+            // each an identifier at its own object's place with a deletion record, which KeePass
+            // keeps for good, the deletion records in the order those writes leave them, a version
+            // of each object in turn; and a row at the root. Beside 10,000 entries in a hundred
+            // groups: a hold of the gate reading an entry; and an OK at the root group's dialog
+            // above those versions, the reading in the writer's turn, the composition with every
+            // renewal and the plan each timed apart and not applied, and then the same OK applied,
+            // timed whole.
+            using (var database = TemporaryDatabase.New())
+            {
+                var entries = Fill(database.Database, 0);
+                Counted(database.Database);
+                var plain = new KdbxStore(database.Database, GateVersion.Current, null, entry => null);
+                StoreSeeds.Authority(plain);
+                var root = Hex.Of(database.RootGroup.Uuid.UuidBytes);
+                byte[] key;
+                using (var reading = plain.Read())
+                {
+                    key = (byte[])reading.InForce.Key.Bytes.Clone();
+                }
+
+                var objects = entries.Take(standing).Select(entry => StoreComposer.RowObject(Hex.Of(entry.Uuid.UuidBytes), Profile)).ToList();
+                var named = objects.Select((objectName, at) => Replaced(key, objectName, Share(renewals, at, standing))).ToList();
+                for (var round = 0; round < named.Max(identifiers => identifiers.Count); round++)
+                {
+                    foreach (var identifiers in named.Where(identifiers => round < identifiers.Count))
+                    {
+                        database.Database.DeletedObjects.Add(new PwDeletedObject(new PwUuid(identifiers[round]), DateTime.UtcNow));
+                    }
+                }
+
+                var versions = objects.Select((objectName, at) => Renewed(key, objectName, named[at]))
+                    .Concat(new[] { RuleVersionOf(key, StoreComposer.RowObject(root, Profile), "row:R") })
+                    .ToList();
+                Assert.That(database.Database.DeletedObjects.UCount, Is.EqualTo((uint)renewals), "a deletion record for every renewal");
+                var written = plain.Write(new[] { new StoreAct("versions", key, StoreFormat.KeyName(key), versions, null) });
+                Assert.That(written.Taken, Is.True, written.Reason);
+
+                var what = "after " + renewals.ToString(CultureInfo.InvariantCulture) + " renewals beside "
+                           + standing.ToString(CultureInfo.InvariantCulture) + " versions";
+                Held(database.Database, what + ", a read of an entry", "/entries/" + entries[0].Uuid.ToHexString());
+
+                var readings = new List<double>();
+                var compositions = new List<double>();
+                var plans = new List<double>();
+                for (var run = 0; run <= RenewedRuns; run++)
+                {
+                    RuleChanges changes;
+                    using (var reading = plain.Read())
+                    {
+                        var rules = StoredRules.Of(reading);
+                        var below = rules.Below(root, new DatabaseNodes(database.Database).Tree(reading, rules, database.Database.RootGroup));
+                        changes = new RuleChanges(
+                            new[] { new RowChange(RowChangeKind.Set, Profile, Rules.Letters("RU"), null, rules.At(root), below) }, null);
+                    }
+
+                    var whole = Stopwatch.StartNew();
+                    using (var reading = plain.ForWrite())
+                    {
+                        readings.Add(whole.Elapsed.TotalMilliseconds);
+
+                        var part = Stopwatch.StartNew();
+                        var act = RuleActs.Of(
+                            reading, root, null, rules => new DatabaseNodes(database.Database).Tree(reading, rules, database.Database.RootGroup), changes, out var left);
+                        compositions.Add(part.Elapsed.TotalMilliseconds);
+                        Assert.That(left, Is.Empty);
+                        Assert.That(act.Records, Has.Count.EqualTo(standing + 1), "a renewal for every version below");
+
+                        try
+                        {
+                            part = Stopwatch.StartNew();
+                            var staged = plain.Stage(reading, new[] { act });
+                            plans.Add(part.Elapsed.TotalMilliseconds);
+                            Assert.That(staged.Refused ?? staged.Held, Is.Null);
+
+                            if (run == RenewedRuns)
+                            {
+                                part = Stopwatch.StartNew();
+                                staged.Apply();
+                                var application = part.Elapsed.TotalMilliseconds;
+                                TestContext.Out.WriteLine(string.Format(
+                                    CultureInfo.InvariantCulture,
+                                    "[{0}] {1}, an OK above them applied: the application {2:F2} ms, the whole write {3:F2} ms",
+                                    Built,
+                                    what,
+                                    application,
+                                    whole.Elapsed.TotalMilliseconds));
+                            }
+                        }
+                        finally
+                        {
+                            act.Forget();
+                        }
+                    }
+                }
+
+                Print(what + ", an OK above them, the reading", readings);
+                Print(what + ", an OK above them, the composition", compositions);
+                Print(what + ", an OK above them, the plan", plans);
+                Assert.That(
+                    database.Database.DeletedObjects.UCount, Is.GreaterThanOrEqualTo((uint)(renewals + standing)), "the OK applied renewed every version");
+            }
+        }
+
+        /// <summary>The renewals of a store's that the version at this place of so many below the root names.</summary>
+        private static int Share(int renewals, int at, int standing)
+        {
+            return (renewals / standing) + (at < renewals % standing ? 1 : 0);
+        }
+
+        /// <summary>
+        /// The identifiers of as many versions of this object a renewal replaced, each at the
+        /// object's own place.
+        /// </summary>
+        private static List<byte[]> Replaced(byte[] key, string objectName, int count)
+        {
+            var slash = objectName.IndexOf('/');
+            var place = StoreComposer.IdentifierOf(
+                key, "version", objectName.Substring(0, slash), StoreComposer.ProfileTag(key, objectName.Substring(slash + 1)), new string('0', 64));
+            var replaced = new List<byte[]>(count);
+            for (var index = 0; index < count; index++)
+            {
+                var identifier = (byte[])place.Clone();
+                identifier[12] = (byte)(index >> 24);
+                identifier[13] = (byte)(index >> 16);
+                identifier[14] = (byte)(index >> 8);
+                identifier[15] = (byte)index;
+                replaced.Add(identifier);
+            }
+
+            return replaced;
+        }
+
+        /// <summary>
+        /// A version of this object that takes the rule off for the fixture's profile, naming these
+        /// identifiers: what a version below is after as many renewals of it.
+        /// </summary>
+        private static StoreRecord Renewed(byte[] key, string objectName, IEnumerable<byte[]> replaced)
+        {
+            var named = replaced.Select(Hex.Of).OrderBy(hex => hex, StringComparer.Ordinal);
+            return StoreRecord.Compose(key, "version", new Dictionary<string, string>
+            {
+                { "after", string.Join(" ", named) },
+                { "doc", "off:R" },
+                { "object", objectName },
+            });
         }
 
         /// <summary>

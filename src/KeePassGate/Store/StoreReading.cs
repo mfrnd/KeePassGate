@@ -122,15 +122,45 @@ namespace KeePassGate.Store
         internal IReadOnlyList<byte[]> Deletions { get; private set; }
 
         /// <summary>
-        /// The identifier of every entry in the tree this was read from, in hexadecimal, records
-        /// or not; the candidates' where it was read from candidates alone.
+        /// The identifier of every entry in the tree this was read from, records or not; the
+        /// candidates' where it was read from candidates alone: made the first time a write planned
+        /// against this reading asks, with no text made of any of them.
         /// </summary>
-        internal ISet<string> Present
+        internal ISet<StoreId> Present
         {
-            get { return _present ?? (_present = new HashSet<string>(Candidates.Select(candidate => candidate.Hex), StringComparer.Ordinal)); }
+            get { return _present ?? (_present = Identifiers(_presentEntries ?? Candidates.Select(candidate => candidate.Identifier))); }
         }
 
-        private ISet<string> _present;
+        private ISet<StoreId> _present;
+
+        /// <summary>The identifier of every entry in the tree this was read from, where it was read from a tree.</summary>
+        private IReadOnlyList<byte[]> _presentEntries;
+
+        /// <summary>
+        /// The identifiers the database's deletion records name, each once: made the first time a
+        /// write planned against this reading asks, with no text made of any of them.
+        /// </summary>
+        internal ISet<StoreId> Deleted
+        {
+            get { return _deleted ?? (_deleted = Identifiers(Deletions)); }
+        }
+
+        private ISet<StoreId> _deleted;
+
+        private static ISet<StoreId> Identifiers(IEnumerable<byte[]> identifiers)
+        {
+            var read = new HashSet<StoreId>();
+            foreach (var bytes in identifiers)
+            {
+                StoreId identifier;
+                if (StoreId.TryOf(bytes, out identifier))
+                {
+                    read.Add(identifier);
+                }
+            }
+
+            return read;
+        }
 
         /// <summary>
         /// The room the store has for its next write, `STORE.md` §627, or null where nothing is in
@@ -182,7 +212,7 @@ namespace KeePassGate.Store
                 reading._owned = owned;
                 if (present != null)
                 {
-                    reading._present = new HashSet<string>(present.Select(Hex.Of), StringComparer.Ordinal);
+                    reading._presentEntries = present.ToList();
                 }
 
                 return reading;

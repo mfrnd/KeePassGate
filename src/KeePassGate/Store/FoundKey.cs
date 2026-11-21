@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 
 namespace KeePassGate.Store
@@ -61,16 +60,16 @@ namespace KeePassGate.Store
         }
 
         /// <summary>
-        /// The tag of a kind of `StoreKinds` under the key, as the six hexadecimal characters an
-        /// identifier under it begins with.
+        /// The tag of a kind of `StoreKinds` under the key, as the number the first three bytes of
+        /// an identifier under it make, `StoreId.Tag`.
         /// </summary>
-        public string TagOf(StoreKind kind)
+        public int TagOf(StoreKind kind)
         {
             for (var index = 0; index < StoreKinds.All.Count; index++)
             {
                 if (ReferenceEquals(StoreKinds.All[index], kind))
                 {
-                    return Tags[index].ToString("x6", CultureInfo.InvariantCulture);
+                    return Tags[index];
                 }
             }
 
@@ -105,6 +104,15 @@ namespace KeePassGate.Store
             }
 
             return hash;
+        }
+
+        /// <summary>
+        /// The hash of a subject under the key as the number an identifier's bytes 4 to 8 make,
+        /// `StoreId.Subject`: <see cref="Subject"/>, made and kept as that is.
+        /// </summary>
+        public long SubjectHash(string subject)
+        {
+            return Convert.ToInt64(Subject(subject), 16);
         }
 
         /// <summary>

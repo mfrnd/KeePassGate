@@ -50,7 +50,14 @@ namespace KeePassGate.Store
     /// names, and nothing is looked up through them.
     ///
     /// **What it costs.** Every record and every item once, through sets, and each deletion record
-    /// under the key once. A subject is hashed only where a deletion record under the key carries
+    /// under the key once, compared as its bytes, `StoreId`, with no text made of it unless it is
+    /// handed out. Every list is read once, with the checked form of the version that holds it, and
+    /// kept with that form between two holds, `StoreNames`, so a hold reads no name of a list
+    /// nothing changed: what stands is worked out from the versions of each object, and a deletion
+    /// record at the place of a version is answered by a search of the lists in force of what it
+    /// tells of. A store after many renewals still costs each hold a few lookups for each renewal
+    /// ever made, for good, since KeePass keeps every deletion record, `STORE.md` §643. A subject
+    /// is hashed only where a deletion record under the key carries
     /// the tag of a kind about that subject, and the hash is kept with the key, so a hold of a
     /// store whose deletion records tell of nothing hashes nothing, `FoundKey.Subject`. Everything
     /// is worked out as the reading is made, but the hash of the name an addition is composed
@@ -92,7 +99,7 @@ namespace KeePassGate.Store
         /// The deletion records under the tag of kind `removed`, by the subject hash each carries:
         /// what tells of a removal of a name once the name is known, <see cref="RemovalsOnceKnown"/>.
         /// </summary>
-        private readonly Dictionary<string, List<string>> _removalDeletions = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        private readonly Dictionary<long, List<string>> _removalDeletions = new Dictionary<long, List<string>>();
 
         /// <summary>The keep records a summary entry carries, by identifier, each with its item's members.</summary>
         private readonly Dictionary<string, IReadOnlyDictionary<string, string>> _kept =
@@ -235,7 +242,7 @@ namespace KeePassGate.Store
             }
 
             List<string> told;
-            var subject = Hex.Of(StoreFormat.Subject(Key.Bytes, StoreKinds.Find(StoreKinds.Removed).SubjectPrefix + name));
+            var subject = StoreId.SubjectOf(StoreFormat.Subject(Key.Bytes, StoreKinds.Find(StoreKinds.Removed).SubjectPrefix + name));
             if (!_removalDeletions.TryGetValue(subject, out told))
             {
                 return held;
@@ -295,6 +302,16 @@ namespace KeePassGate.Store
         public ISet<string> Others { get; private set; }
 
         /// <summary>
+        /// The versions of <see cref="Versions"/> whose `id` is an identifier, `StoreId`, by that
+        /// identifier: every version a list or a deletion record can name, since an item's `id` is
+        /// a text.
+        /// </summary>
+        internal IReadOnlyDictionary<StoreId, StoreNaming> VersionsById { get; private set; }
+
+        /// <summary><see cref="Others"/>, as identifiers.</summary>
+        internal ISet<StoreId> OthersById { get; private set; }
+
+        /// <summary>
         /// The text of every object, of every type, that has a standing version or a lost version
         /// under the key, each once: what the rules of a reading are worked out from, `STORE.md`
         /// §617.
@@ -331,9 +348,10 @@ namespace KeePassGate.Store
 
         /// <summary>
         /// The versions present that a version in force names of its own object in `after`:
-        /// replaced, so that none stands, `STORE.md` §617 and §658.
+        /// replaced, so that none stands, `STORE.md` §617 and §658; what a write settles
+        /// beside the versions its own versions name, `StoreReplaced`.
         /// </summary>
-        private ISet<string> ReplacedVersions { get; set; }
+        internal ISet<string> ReplacedVersions { get; private set; }
 
         /// <summary>What the items of the summary entries present restate, by kind, `STORE.md` §658.</summary>
         private HashSet<(string Kind, string Value, string Id)> Restating { get; set; }
@@ -447,8 +465,8 @@ namespace KeePassGate.Store
         /// the deletion records name.
         /// </summary>
         /// <param name="byTag">
-        /// The identifiers the deletion records name that begin with a tag under a key found, as
-        /// lowercase hexadecimal, by that tag.
+        /// The identifiers the deletion records name that begin with a tag under a key found, by
+        /// that tag as a number.
         /// </param>
         /// <param name="keptByDeletion">
         /// The deletion records that tell of a keep record under this key, each with the name of
@@ -462,7 +480,7 @@ namespace KeePassGate.Store
         public static StoreInForce Of(
             FoundKey key,
             IReadOnlyList<FoundRecord> records,
-            IReadOnlyDictionary<string, List<string>> byTag,
+            IReadOnlyDictionary<int, List<StoreId>> byTag,
             IReadOnlyCollection<KeyValuePair<string, string>> keptByDeletion,
             Func<IEnumerable<byte[]>> nodes)
         {
@@ -514,13 +532,13 @@ namespace KeePassGate.Store
         /// tags meet under a key each take the deletion records of both, which tells of more and
         /// never of less.
         /// </summary>
-        private static Dictionary<string, List<string>> ByKind(FoundKey key, IReadOnlyDictionary<string, List<string>> byTag)
+        private static Dictionary<string, List<StoreId>> ByKind(FoundKey key, IReadOnlyDictionary<int, List<StoreId>> byTag)
         {
-            var byKind = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            var byKind = new Dictionary<string, List<StoreId>>(StringComparer.Ordinal);
             foreach (var kind in StoreKinds.All)
             {
-                List<string> tagged;
-                byKind[kind.Name] = byTag.TryGetValue(key.TagOf(kind), out tagged) ? tagged : new List<string>();
+                List<StoreId> tagged;
+                byKind[kind.Name] = byTag.TryGetValue(key.TagOf(kind), out tagged) ? tagged : new List<StoreId>();
             }
 
             return byKind;
@@ -534,7 +552,7 @@ namespace KeePassGate.Store
         /// authority present: the `id` of an authority present is the only value hashed.
         /// </summary>
         public static IReadOnlyList<FoundRecord> Standing(
-            FoundKey key, IReadOnlyList<FoundRecord> records, IReadOnlyDictionary<string, List<string>> byTag)
+            FoundKey key, IReadOnlyList<FoundRecord> records, IReadOnlyDictionary<int, List<StoreId>> byTag)
         {
             var authorities = records.Where(record => record.Is(StoreKinds.Authority) && record.InForce).ToList();
             if (authorities.Count == 0)
@@ -555,7 +573,7 @@ namespace KeePassGate.Store
         /// whose subject hash is that of an `id` given, which are the only values hashed.
         /// </summary>
         public static ISet<string> Retired(
-            FoundKey key, IReadOnlyList<FoundRecord> records, IReadOnlyDictionary<string, List<string>> byTag, IEnumerable<string> ids)
+            FoundKey key, IReadOnlyList<FoundRecord> records, IReadOnlyDictionary<int, List<StoreId>> byTag, IEnumerable<string> ids)
         {
             var retired = new HashSet<string>(
                 records.Where(record => record.Is(StoreKinds.Retired)).Select(record => record.Form.Member(StoreKinds.AuthorityMember)),
@@ -566,22 +584,23 @@ namespace KeePassGate.Store
                 .Where(item => item.Kind == StoreKinds.Retired)
                 .Select(item => item.Member(StoreKinds.AuthorityMember)));
 
-            List<string> told;
+            List<StoreId> told;
             var retirement = StoreKinds.Find(StoreKinds.Retired);
             if (byTag.TryGetValue(key.TagOf(retirement), out told) && told.Count > 0)
             {
-                var subjects = new HashSet<string>(told.Select(SubjectOf), StringComparer.Ordinal);
-                retired.UnionWith(ids.Where(id => subjects.Contains(key.Subject(StoreFormat.SubjectOf(retirement, id, out _)))));
+                var subjects = new HashSet<long>(told.Select(identifier => identifier.Subject));
+                retired.UnionWith(ids.Where(id => subjects.Contains(key.SubjectHash(StoreFormat.SubjectOf(retirement, id, out _)))));
             }
 
             return retired;
         }
 
         /// <summary>
-        /// The deletion records of a kind that tell of this subject: the subject's hash follows
-        /// the tag. The subject is hashed only where there is a deletion record of the kind.
+        /// The deletion records of a kind that tell of this subject, each once: the subject's hash
+        /// follows the tag. The subject is hashed only where there is a deletion record of the
+        /// kind.
         /// </summary>
-        private static IEnumerable<string> Telling(FoundKey key, IReadOnlyDictionary<string, List<string>> byKind, string kind, string subject)
+        private static IEnumerable<string> Telling(FoundKey key, IReadOnlyDictionary<string, List<StoreId>> byKind, string kind, string subject)
         {
             var identifiers = byKind[kind];
             if (identifiers.Count == 0)
@@ -589,8 +608,8 @@ namespace KeePassGate.Store
                 return Array.Empty<string>();
             }
 
-            var hash = key.Subject(subject);
-            return identifiers.Where(identifier => SubjectOf(identifier) == hash);
+            var hash = key.SubjectHash(subject);
+            return identifiers.Where(identifier => identifier.Subject == hash).Distinct().Select(identifier => identifier.ToString());
         }
 
         /// <summary>
@@ -599,7 +618,7 @@ namespace KeePassGate.Store
         /// of a version record by its tag, a number from 1 and the subject hash of that number,
         /// `STORE.md` §623 step 6.
         /// </summary>
-        private void Highest(FoundKey key, IReadOnlyDictionary<string, List<string>> byKind)
+        private void Highest(FoundKey key, IReadOnlyDictionary<string, List<StoreId>> byKind)
         {
             foreach (var record in Records.Where(record => record.Is(StoreKinds.Format)))
             {
@@ -617,9 +636,9 @@ namespace KeePassGate.Store
 
             foreach (var identifier in byKind[StoreKinds.Format])
             {
-                var number = NumberOf(identifier);
+                var number = identifier.Number;
                 var told = StoreFormat.SubjectOf(StoreKinds.Find(StoreKinds.Format), number.ToString(CultureInfo.InvariantCulture), out _);
-                if (number >= 1 && SubjectOf(identifier) == key.Subject(told))
+                if (number >= 1 && identifier.Subject == key.SubjectHash(told))
                 {
                     Format = Math.Max(Format, number);
                 }
@@ -632,7 +651,7 @@ namespace KeePassGate.Store
         /// §623 step 2; the identifiers of the removals of each name; and the deletion records
         /// under the tag of kind `removed`, by subject hash.
         /// </summary>
-        private void Take(FoundKey key, IReadOnlyDictionary<string, List<string>> byKind)
+        private void Take(FoundKey key, IReadOnlyDictionary<string, List<StoreId>> byKind)
         {
             foreach (var row in StoreKinds.All.Where(row => row.Restated == StoreRestated.BySameMember))
             {
@@ -680,17 +699,16 @@ namespace KeePassGate.Store
                 of.Add(removal.Id);
             }
 
-            foreach (var identifier in byKind[StoreKinds.Removed])
+            foreach (var identifier in byKind[StoreKinds.Removed].Distinct())
             {
                 List<string> sharing;
-                var subject = SubjectOf(identifier);
-                if (!_removalDeletions.TryGetValue(subject, out sharing))
+                if (!_removalDeletions.TryGetValue(identifier.Subject, out sharing))
                 {
                     sharing = new List<string>();
-                    _removalDeletions[subject] = sharing;
+                    _removalDeletions[identifier.Subject] = sharing;
                 }
 
-                sharing.Add(identifier);
+                sharing.Add(identifier.ToString());
             }
 
             TakeStatements(key, byKind);
@@ -700,7 +718,7 @@ namespace KeePassGate.Store
         /// The statements that took certificates away, `STORE.md` §623 step 2 and §648, and the
         /// certificates they take away.
         /// </summary>
-        private void TakeStatements(FoundKey key, IReadOnlyDictionary<string, List<string>> byKind)
+        private void TakeStatements(FoundKey key, IReadOnlyDictionary<string, List<StoreId>> byKind)
         {
             var row = StoreKinds.Find(StoreKinds.Withdrawn);
             var answered = new HashSet<string>(StringComparer.Ordinal);
@@ -824,7 +842,7 @@ namespace KeePassGate.Store
         /// </summary>
         /// <param name="knownValues">The values the file knows, asked only where a deletion record carries the tag.</param>
         private static IEnumerable<(string Value, string Identifier)> ToldValues(
-            FoundKey key, IReadOnlyList<string> identifiers, StoreKind row, Func<IEnumerable<string>> knownValues)
+            FoundKey key, IReadOnlyList<StoreId> identifiers, StoreKind row, Func<IEnumerable<string>> knownValues)
         {
             if (identifiers.Count == 0)
             {
@@ -832,11 +850,11 @@ namespace KeePassGate.Store
             }
 
             var known = new HashSet<string>(knownValues(), StringComparer.Ordinal);
-            var hashes = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            var hashes = new Dictionary<long, List<string>>();
             foreach (var value in known)
             {
                 List<string> sharing;
-                var hash = key.Subject(StoreFormat.SubjectOf(row, value, out _));
+                var hash = key.SubjectHash(StoreFormat.SubjectOf(row, value, out _));
                 if (!hashes.TryGetValue(hash, out sharing))
                 {
                     sharing = new List<string>();
@@ -846,14 +864,15 @@ namespace KeePassGate.Store
                 sharing.Add(value);
             }
 
-            foreach (var identifier in identifiers)
+            foreach (var identifier in identifiers.Distinct())
             {
                 List<string> values;
-                if (hashes.TryGetValue(SubjectOf(identifier), out values))
+                if (hashes.TryGetValue(identifier.Subject, out values))
                 {
+                    var text = identifier.ToString();
                     foreach (var value in values)
                     {
-                        yield return (value, identifier);
+                        yield return (value, text);
                     }
                 }
             }
@@ -894,6 +913,7 @@ namespace KeePassGate.Store
                     record.Hex,
                     record.Form.Member(StoreKinds.ObjectMember),
                     record.Form.Member(StoreKinds.After),
+                    record.Form.Named,
                     true,
                     record.InForce,
                     WithId(record.Hex, record.Form.Members));
@@ -908,7 +928,8 @@ namespace KeePassGate.Store
                     StoreNaming version;
                     if (!versions.TryGetValue(id, out version))
                     {
-                        version = new StoreNaming(id, item.Member(StoreKinds.ObjectMember), item.Member(StoreKinds.After), false, false, members);
+                        version = new StoreNaming(
+                            id, item.Member(StoreKinds.ObjectMember), item.Member(StoreKinds.After), item.Named, false, false, members);
                         versions[id] = version;
                     }
 
@@ -929,20 +950,75 @@ namespace KeePassGate.Store
             }
 
             Versions = versions;
+            VersionsById = versions.Values
+                .Where(version => version.Identified)
+                .ToDictionary(version => version.Identifier, version => version);
             Others = new HashSet<string>(Records.Where(record => !record.Is(StoreKinds.Version)).Select(record => record.Hex), StringComparer.Ordinal);
-
-            // What a version in force names of its own object is replaced, `STORE.md` §617.
-            ReplacedVersions = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var naming in versions.Values.Where(version => version.InForce))
+            var othersById = new HashSet<StoreId>();
+            foreach (var hex in Others)
             {
-                ReplacedVersions.UnionWith(Listed(naming.After).Where(identifier =>
+                StoreId other;
+                if (StoreId.TryParse(hex, out other))
                 {
-                    StoreNaming named;
-                    return versions.TryGetValue(identifier, out named) && string.Equals(named.Object, naming.Object, StringComparison.Ordinal);
-                }));
+                    othersById.Add(other);
+                }
             }
 
-            _settled = StoreReplaced.Settle(versions, Others, Array.Empty<StoreRecord>());
+            OthersById = othersById;
+
+            ReplacedVersions = Replaced(versions.Values);
+            _settled = StoreReplaced.Settle(this, Array.Empty<StoreRecord>());
+        }
+
+        /// <summary>
+        /// What a version in force names of its own object is replaced, `STORE.md` §617: of each
+        /// object, every version present that a version in force of that object names.
+        /// </summary>
+        /// <remarks>
+        /// **Asked of the object, and from whichever side is shorter**: each version of the object
+        /// asked of each list in force of it, a search of the list for each, or each name of those
+        /// lists looked up among the versions present. A store after many renewals holds a list
+        /// that grows with every renewal beside a version or two of each object, so the first asks
+        /// a question for each version present and none for each name; a store a merge brought
+        /// many versions of an object in force is asked the second, so nothing here costs more
+        /// than a lookup for each name of each list in force.
+        /// </remarks>
+        private ISet<string> Replaced(IEnumerable<StoreNaming> versions)
+        {
+            var replaced = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var same in versions.GroupBy(version => version.Object, StringComparer.Ordinal))
+            {
+                var inForce = same.Where(version => version.InForce).ToList();
+                if (inForce.Count == 0)
+                {
+                    continue;
+                }
+
+                var present = same.Where(version => version.Identified).ToList();
+                var names = inForce.Sum(version => (long)version.Named.Count);
+                if ((long)present.Count * inForce.Count <= names)
+                {
+                    replaced.UnionWith(present
+                        .Where(version => inForce.Any(naming => naming.Named.Names(version.Identifier)))
+                        .Select(version => version.Id));
+                    continue;
+                }
+
+                replaced.UnionWith(inForce
+                    .SelectMany(naming => naming.Named.All)
+                    .Select(VersionOf)
+                    .Where(named => named != null && string.Equals(named.Object, same.Key, StringComparison.Ordinal))
+                    .Select(named => named.Id));
+            }
+
+            return replaced;
+        }
+
+        /// <summary>The version present under this identifier, or null.</summary>
+        private StoreNaming VersionOf(StoreId identifier)
+        {
+            StoreNaming named;
+            return VersionsById.TryGetValue(identifier, out named) ? named : null;
         }
 
         /// <summary>
@@ -965,20 +1041,16 @@ namespace KeePassGate.Store
         /// </remarks>
         /// <param name="deleted">The deletion records under the tag of kind `version`.</param>
         /// <param name="nodes">The identifier of every group and entry of the tree, or null where there is none.</param>
-        private void Index(FoundKey key, IReadOnlyList<string> deleted, Func<IEnumerable<byte[]>> nodes)
+        private void Index(FoundKey key, IReadOnlyList<StoreId> deleted, Func<IEnumerable<byte[]>> nodes)
         {
-            var told = new HashSet<string>(deleted, StringComparer.Ordinal);
             var losing = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
 
-            // The objects whose versions in force name each identifier: what answers for it, for
-            // each of those objects and no other. A version restated otherwise answers for none.
-            var namedBy = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
-            foreach (var version in Versions.Values.Where(version => version.Object != null && version.InForce && !_differing.ContainsKey(version.Id)))
+            // A deletion record under which a version is present is that version's, and its object
+            // judges it below; every other is told of object by object, `Deletions`.
+            var beside = new HashSet<StoreId>();
+            if (deleted.Count > 0)
             {
-                foreach (var identifier in Listed(version.After))
-                {
-                    SetAt(namedBy, identifier).Add(version.Object);
-                }
+                new Deletions(this, key, losing).Tell(deleted, nodes, beside);
             }
 
             foreach (var version in Versions.Values.Where(version => version.Object != null))
@@ -1003,20 +1075,12 @@ namespace KeePassGate.Store
                 {
                     ListAt(_standing, version.Object).Add(version);
                 }
-                else if (told.Contains(version.Id))
+                else if (version.Identified && beside.Contains(version.Identifier))
                 {
                     // Present beside its own deletion record: told of by its own object, with
                     // nothing hashed.
                     Losing(losing, version.Object).Add(version.Id);
                 }
-            }
-
-            // A deletion record under which a version is present is that version's, and its object
-            // judges it above; every other is told of below, object by object.
-            var left = told.Where(identifier => !Versions.ContainsKey(identifier)).ToList();
-            if (left.Count > 0)
-            {
-                TellOfLost(key, left, nodes, namedBy, losing);
             }
 
             foreach (var standing in _standing.Values)
@@ -1057,71 +1121,116 @@ namespace KeePassGate.Store
         /// row record where one shows the name and hashed otherwise. Whether a version of another
         /// object names a deletion record changes none of this.
         ///
+        /// **What a deletion record costs**: a lookup of its identifier among the versions present,
+        /// a lookup of its place, and a search of each list in force of each object it tells of,
+        /// with no text made of it unless it is lost. What a place tells of, each object and the
+        /// lists in force of it, is worked out once for the place, the first time a deletion
+        /// record lies there. So a store after many renewals, each a deletion record at the place
+        /// of the version that names it, costs a hold a few lookups for each renewal ever made, for
+        /// good, and builds nothing as large as the names its lists hold.
+        ///
         /// **What it adds is bounded**: each deletion record is placed once, and added once to the
         /// set of each object it tells of, so K deletion records at a node's rows add at most K for
         /// each of the M names of their tag, M being 1 but where tags meet; the sets are built once
         /// for the reading.
         /// </remarks>
-        private void TellOfLost(
-            FoundKey key,
-            IReadOnlyList<string> left,
-            Func<IEnumerable<byte[]>> nodes,
-            IReadOnlyDictionary<string, HashSet<string>> namedBy,
-            Dictionary<string, SortedSet<string>> losing)
+        private sealed class Deletions
         {
-            var rules = StoreKinds.RuleType + StoreKinds.ObjectTypeEnd;
-            var switches = StoreKinds.SwitchType + StoreKinds.ObjectTypeEnd;
-            var atRows = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            private static readonly string Rules = StoreKinds.RuleType + StoreKinds.ObjectTypeEnd;
+            private static readonly string Switches = StoreKinds.SwitchType + StoreKinds.ObjectTypeEnd;
+            private static readonly IReadOnlyList<StoreNames> NoLists = Array.Empty<StoreNames>();
 
-            // Lost to this object, unless a version in force of the object names the record.
-            void Tell(string objectText, string identifier)
+            private readonly StoreInForce _inForce;
+            private readonly FoundKey _key;
+            private readonly Dictionary<string, SortedSet<string>> _losing;
+
+            /// <summary>The objects of the versions present, each once.</summary>
+            private readonly HashSet<string> _objects;
+
+            /// <summary>
+            /// The lists of the versions in force of each object, what answers for it and for no
+            /// other object. A version restated otherwise answers for none.
+            /// </summary>
+            private readonly Dictionary<string, List<StoreNames>> _answering = new Dictionary<string, List<StoreNames>>(StringComparer.Ordinal);
+
+            /// <summary>What a deletion record at a node's rows tells of, by the node and its number, once asked.</summary>
+            private readonly Dictionary<(string Node, int Number), IReadOnlyList<ObjectTold>> _atRows = new Dictionary<(string Node, int Number), IReadOnlyList<ObjectTold>>();
+
+            /// <summary>The names the file knows by their tags, worked out once a deletion record lies at a node's rows.</summary>
+            private Dictionary<int, List<string>> _names;
+
+            public Deletions(StoreInForce inForce, FoundKey key, Dictionary<string, SortedSet<string>> losing)
             {
-                HashSet<string> by;
-                if (!namedBy.TryGetValue(identifier, out by) || !by.Contains(objectText))
+                _inForce = inForce;
+                _key = key;
+                _losing = losing;
+                _objects = new HashSet<string>(
+                    inForce.Versions.Values.Select(version => version.Object).Where(objectText => objectText != null), StringComparer.Ordinal);
+                foreach (var version in inForce.Versions.Values.Where(version =>
+                             version.Object != null && version.InForce && !inForce._differing.ContainsKey(version.Id)))
                 {
-                    Losing(losing, objectText).Add(identifier);
+                    ListAt(_answering, version.Object).Add(version.Named);
                 }
             }
 
-            // Placed by a version present at its place, with nothing hashed.
-            var places = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var version in Versions.Values.Where(version => version.Object != null && !places.ContainsKey(PlaceOf(version.Id))))
+            /// <summary>
+            /// Tells of each of these deletion records under the tag of kind `version`, putting
+            /// into <paramref name="beside"/> each under which a version is present, which is
+            /// that version's to judge.
+            /// </summary>
+            public void Tell(IReadOnlyList<StoreId> deleted, Func<IEnumerable<byte[]>> nodes, ISet<StoreId> beside)
             {
-                places[PlaceOf(version.Id)] = version.Object;
+                // Placed by a version present at its place, with nothing hashed: the first version,
+                // in the order of the versions, whose identifier begins with the place's bytes.
+                var places = new Dictionary<StoreId, Place>();
+                foreach (var version in _inForce.Versions.Values.Where(version => version.Object != null))
+                {
+                    var place = StoreId.PlaceOf(version.Id);
+                    if (place.HasValue && !places.ContainsKey(place.Value))
+                    {
+                        places[place.Value] = new Place(version.Object);
+                    }
+                }
+
+                var unplaced = new List<StoreId>();
+                foreach (var identifier in deleted)
+                {
+                    Place place;
+                    if (_inForce.VersionsById.ContainsKey(identifier))
+                    {
+                        beside.Add(identifier);
+                    }
+                    else if (places.TryGetValue(identifier.Place, out place))
+                    {
+                        TellAt(place.Objects ?? (place.Objects = ToldAt(place.Object, identifier.Number)), identifier);
+                    }
+                    else
+                    {
+                        unplaced.Add(identifier);
+                    }
+                }
+
+                if (unplaced.Count > 0)
+                {
+                    TellUnplaced(unplaced, nodes);
+                }
             }
 
-            var unplaced = new List<string>();
-            foreach (var identifier in left)
+            /// <summary>
+            /// The deletion records no version present places: each told of at the node of an
+            /// object the file names whose subject hash it holds, and only where a deletion record
+            /// is still not told of, at each node of the tree.
+            /// </summary>
+            private void TellUnplaced(IReadOnlyList<StoreId> unplaced, Func<IEnumerable<byte[]>> nodes)
             {
-                string objectText;
-                if (!places.TryGetValue(PlaceOf(identifier), out objectText))
-                {
-                    unplaced.Add(identifier);
-                }
-                else if (objectText.StartsWith(rules, StringComparison.Ordinal))
-                {
-                    ListAt(atRows, NodeOf(objectText, rules)).Add(identifier);
-                }
-                else if (objectText.StartsWith(switches, StringComparison.Ordinal))
-                {
-                    Tell(objectText, identifier);
-                }
-
-                // At the place of an object of another type, what it tells of is that type's.
-            }
-
-            var objects = new HashSet<string>(
-                Versions.Values.Select(version => version.Object).Where(objectText => objectText != null), StringComparer.Ordinal);
-            if (unplaced.Count > 0)
-            {
-                var bySubject = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+                var bySubject = new Dictionary<long, List<StoreId>>();
                 foreach (var identifier in unplaced)
                 {
-                    ListAt(bySubject, SubjectOf(identifier)).Add(identifier);
+                    ListAt(bySubject, identifier.Subject).Add(identifier);
                 }
 
-                var zero = unplaced.Any(identifier => NumberOf(identifier) == 0);
-                var unmatched = new HashSet<string>(bySubject.Keys, StringComparer.Ordinal);
+                var zero = unplaced.Any(identifier => identifier.Number == 0);
+                var unmatched = new HashSet<long>(bySubject.Keys);
                 var tried = new HashSet<string>(StringComparer.Ordinal);
 
                 void Try(string node)
@@ -1131,11 +1240,15 @@ namespace KeePassGate.Store
                         return;
                     }
 
-                    List<string> telling;
-                    var rows = key.Subject(rules + node);
+                    List<StoreId> telling;
+                    var rows = _key.SubjectHash(Rules + node);
                     if (bySubject.TryGetValue(rows, out telling))
                     {
-                        ListAt(atRows, node).AddRange(telling);
+                        foreach (var identifier in telling)
+                        {
+                            TellAt(AtRows(node, identifier.Number), identifier);
+                        }
+
                         unmatched.Remove(rows);
                     }
 
@@ -1144,27 +1257,28 @@ namespace KeePassGate.Store
                         return;
                     }
 
-                    var turned = key.Subject(switches + node);
+                    var turned = _key.SubjectHash(Switches + node);
                     if (bySubject.TryGetValue(turned, out telling))
                     {
-                        foreach (var identifier in telling.Where(identifier => NumberOf(identifier) == 0))
+                        var told = new[] { Of(Switches + node) };
+                        foreach (var identifier in telling.Where(identifier => identifier.Number == 0))
                         {
-                            Tell(switches + node, identifier);
+                            TellAt(told, identifier);
                         }
 
                         unmatched.Remove(turned);
                     }
                 }
 
-                foreach (var objectText in objects)
+                foreach (var objectText in _objects)
                 {
-                    if (objectText.StartsWith(rules, StringComparison.Ordinal))
+                    if (objectText.StartsWith(Rules, StringComparison.Ordinal))
                     {
-                        Try(NodeOf(objectText, rules));
+                        Try(NodeOf(objectText, Rules));
                     }
-                    else if (objectText.StartsWith(switches, StringComparison.Ordinal))
+                    else if (objectText.StartsWith(Switches, StringComparison.Ordinal))
                     {
-                        Try(objectText.Substring(switches.Length));
+                        Try(objectText.Substring(Switches.Length));
                     }
                 }
 
@@ -1174,36 +1288,119 @@ namespace KeePassGate.Store
                 {
                     foreach (var node in nodes())
                     {
-                        Try(Hex.Of(node));
+                        StoreId identifier;
+                        Try(StoreId.TryOf(node, out identifier) ? identifier.ToString() : Hex.Of(node));
                     }
                 }
             }
 
-            if (atRows.Count == 0)
+            /// <summary>
+            /// What a deletion record at the place of a version of this object tells of: at a
+            /// rule's place the rows of its node, at a switch's that switch, and at the place of an
+            /// object of another type nothing, what it tells of being that type's.
+            /// </summary>
+            private IReadOnlyList<ObjectTold> ToldAt(string objectText, int number)
             {
-                return;
-            }
-
-            var names = NamesByTag(key, objects, rules);
-            foreach (var row in atRows)
-            {
-                foreach (var identifier in row.Value)
+                if (objectText.StartsWith(Rules, StringComparison.Ordinal))
                 {
-                    var number = NumberOf(identifier);
-                    List<string> tagged;
-                    if (names.TryGetValue(number, out tagged))
-                    {
-                        foreach (var name in tagged)
-                        {
-                            Tell(rules + row.Key + StoreFormat.ProfileStart + name, identifier);
-                        }
-                    }
+                    return AtRows(NodeOf(objectText, Rules), number);
+                }
 
-                    if (number == 0 && objects.Contains(rules + row.Key))
+                return objectText.StartsWith(Switches, StringComparison.Ordinal) ? new[] { Of(objectText) } : Array.Empty<ObjectTold>();
+            }
+
+            /// <summary>
+            /// What a deletion record at a node's rows holding this number tells of: the row of
+            /// every name the file knows whose tag the number is, and with 0 the object of the
+            /// node with no `/` where a version names it.
+            /// </summary>
+            private IReadOnlyList<ObjectTold> AtRows(string node, int number)
+            {
+                IReadOnlyList<ObjectTold> told;
+                if (_atRows.TryGetValue((node, number), out told))
+                {
+                    return told;
+                }
+
+                if (_names == null)
+                {
+                    _names = _inForce.NamesByTag(_key, _objects, Rules);
+                }
+
+                var objects = new List<ObjectTold>();
+                List<string> tagged;
+                if (_names.TryGetValue(number, out tagged))
+                {
+                    objects.AddRange(tagged.Select(name => Of(Rules + node + StoreFormat.ProfileStart + name)));
+                }
+
+                if (number == 0 && _objects.Contains(Rules + node))
+                {
+                    objects.Add(Of(Rules + node));
+                }
+
+                _atRows[(node, number)] = objects;
+                return objects;
+            }
+
+            /// <summary>An object a deletion record tells of, with the lists in force of it.</summary>
+            private ObjectTold Of(string objectText)
+            {
+                List<StoreNames> lists;
+                return new ObjectTold(objectText, _answering.TryGetValue(objectText, out lists) ? lists : NoLists);
+            }
+
+            /// <summary>Lost to each of these objects, unless a version in force of the object names the record.</summary>
+            private void TellAt(IReadOnlyList<ObjectTold> told, StoreId identifier)
+            {
+                for (var at = 0; at < told.Count; at++)
+                {
+                    if (!told[at].AnsweredFor(identifier))
                     {
-                        Tell(rules + row.Key, identifier);
+                        Losing(_losing, told[at].Object).Add(identifier.ToString());
                     }
                 }
+            }
+
+            /// <summary>The place of a version present, and what a deletion record there tells of, once asked.</summary>
+            private sealed class Place
+            {
+                public Place(string objectText)
+                {
+                    Object = objectText;
+                }
+
+                public string Object { get; private set; }
+
+                public IReadOnlyList<ObjectTold> Objects { get; set; }
+            }
+        }
+
+        /// <summary>An object a deletion record tells of, and the lists in force of it that answer for it.</summary>
+        private sealed class ObjectTold
+        {
+            private readonly IReadOnlyList<StoreNames> _answering;
+
+            public ObjectTold(string objectText, IReadOnlyList<StoreNames> answering)
+            {
+                Object = objectText;
+                _answering = answering;
+            }
+
+            public string Object { get; private set; }
+
+            /// <summary>Whether a version in force of the object names this identifier.</summary>
+            public bool AnsweredFor(StoreId identifier)
+            {
+                for (var at = 0; at < _answering.Count; at++)
+                {
+                    if (_answering[at].Names(identifier))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
         }
 
@@ -1252,15 +1449,6 @@ namespace KeePassGate.Store
                 return held.TryGetValue(member, out first) && restated.TryGetValue(member, out second)
                        && string.Equals(first, second, StringComparison.Ordinal);
             });
-        }
-
-        /// <summary>
-        /// The place of a version's identifier: its first ten bytes, the tag of `version`, the
-        /// subject hash and bytes 9 and 10, as hexadecimal, `STORE.md` §609.
-        /// </summary>
-        private static string PlaceOf(string identifier)
-        {
-            return identifier.Substring(0, (StoreFormat.TagLength + StoreFormat.SubjectLength + StoreFormat.HeightLength) * 2);
         }
 
         /// <summary>The node of an object of type `rule`: its text after `rule:` and before the first `/`.</summary>
@@ -1509,12 +1697,6 @@ namespace KeePassGate.Store
                    | long.Parse(parts[2], CultureInfo.InvariantCulture);
         }
 
-        /// <summary>Bytes 4 to 8 of an identifier, the subject's hash, as hexadecimal.</summary>
-        private static string SubjectOf(string identifier)
-        {
-            return identifier.Substring(StoreFormat.TagLength * 2, StoreFormat.SubjectLength * 2);
-        }
-
         /// <summary>Bytes 9 and 10 of an identifier, a height or a format number.</summary>
         private static int NumberOf(string identifier)
         {
@@ -1536,12 +1718,28 @@ namespace KeePassGate.Store
     /// </summary>
     internal sealed class StoreNaming
     {
+        /// <summary>A version of this identifier and object, naming what this `after` holds.</summary>
+        /// <param name="named">
+        /// The identifiers <paramref name="after"/> names, as the checked form that held it read
+        /// them; read from <paramref name="after"/> where none is given, and none where it names
+        /// none in form.
+        /// </param>
         public StoreNaming(
-            string id, string objectText, string after, bool record, bool recordInForce, IReadOnlyDictionary<string, string> members)
+            string id,
+            string objectText,
+            string after,
+            StoreNames named,
+            bool record,
+            bool recordInForce,
+            IReadOnlyDictionary<string, string> members)
         {
             Id = id;
+            StoreId identifier;
+            Identified = StoreId.TryParse(id, out identifier);
+            Identifier = identifier;
             Object = objectText;
             After = after;
+            Named = named ?? StoreNames.Read(after) ?? StoreNames.None;
             Record = record;
             RecordInForce = recordInForce;
             Members = members;
@@ -1550,11 +1748,23 @@ namespace KeePassGate.Store
         /// <summary>The version's identifier: its record's, or its item's `id`.</summary>
         public string Id { get; private set; }
 
+        /// <summary>
+        /// Whether <see cref="Id"/> is an identifier, 32 lowercase hexadecimal characters, which
+        /// an item's `id` need not be: only such a version can be named or told of.
+        /// </summary>
+        internal bool Identified { get; private set; }
+
+        /// <summary><see cref="Id"/> as an identifier, where <see cref="Identified"/>.</summary>
+        internal StoreId Identifier { get; private set; }
+
         /// <summary>What it is a version of.</summary>
         public string Object { get; private set; }
 
         /// <summary>The identifiers it names, as its `after` holds them.</summary>
         public string After { get; private set; }
+
+        /// <summary>The identifiers <see cref="After"/> names, read once with the form that holds it.</summary>
+        internal StoreNames Named { get; private set; }
 
         /// <summary>Whether a record of kind `version` present carries it, in force or not.</summary>
         public bool Record { get; private set; }

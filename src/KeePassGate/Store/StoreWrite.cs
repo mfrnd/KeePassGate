@@ -245,9 +245,15 @@ namespace KeePassGate.Store
             // record a deletion record names, and a record an act before it in this write adds,
             // are not added again. The identifier is the record's own, and a second entry under it
             // would be two entries the tree tells apart by nothing.
-            var once = new HashSet<string>(reading.Present, StringComparer.Ordinal);
-            once.UnionWith(reading.Deletions.Select(Hex.Of));
-            added.RemoveAll(record => !once.Add(record.Hex));
+            var present = reading.Present;
+            var held = reading.Deleted;
+            var once = new HashSet<StoreId>();
+            added.RemoveAll(record =>
+            {
+                StoreId identifier;
+                return StoreId.TryParse(record.Hex, out identifier)
+                    && (present.Contains(identifier) || held.Contains(identifier) || !once.Add(identifier));
+            });
             if (added.Count == 0)
             {
                 return new StoreWrite { Empty = true, Taken = taken, LeftOut = leftOut };
@@ -264,8 +270,7 @@ namespace KeePassGate.Store
             // version of this write names of its own object, deleted only where no answer changes
             // for it. A version that only a version out of force names stands, §623 step 3, so it
             // is not among them.
-            var held = new HashSet<string>(reading.Deletions.Select(Hex.Of), StringComparer.Ordinal);
-            var replaced = StoreReplaced.Of(key, starts ? null : inForce, added, reading.Present, held);
+            var replaced = StoreReplaced.Of(key, starts ? null : inForce, added, present, held);
             if (replaced.NamesItsOwn)
             {
                 return Refusal("a version of the write names a version the same write adds", leftOut);
@@ -331,7 +336,7 @@ namespace KeePassGate.Store
             // tree under that identifier, a record or not: an entry with every string of the store
             // gone stays where it is, and a deletion record for it would have a merge delete it.
             var deletions = (starts ? Enumerable.Empty<string>() : inForce.After)
-                .Where(identifier => !reading.Present.Contains(identifier) && !held.Contains(identifier))
+                .Where(identifier => !Holds(present, identifier) && !Holds(held, identifier))
                 .Concat(replaced.Told)
                 .Distinct(StringComparer.Ordinal)
                 .OrderBy(identifier => identifier, StringComparer.Ordinal)
@@ -503,6 +508,13 @@ namespace KeePassGate.Store
                     yield return addition.Hex;
                 }
             }
+        }
+
+        /// <summary>Whether these identifiers hold this identifier, written as text.</summary>
+        private static bool Holds(ISet<StoreId> identifiers, string identifier)
+        {
+            StoreId read;
+            return StoreId.TryParse(identifier, out read) && identifiers.Contains(read);
         }
 
         /// <summary>A retirement composed again with the store key among its members.</summary>

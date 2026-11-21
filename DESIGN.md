@@ -1475,6 +1475,11 @@ So the rules here:
   read of an entry, a listing and a question about access take a single hold and a single
   reading of the store, a change a single hold before its turn and a reading in each, and the
   hold a connection is judged in works out no rule. `RulesInTheHoldTests` holds the counts.
+  **Every renewal a write above ever made costs every later hold and every later OK above it,
+  for good**, since KeePass keeps the deletion record a renewal leaves and the list of the
+  version written anew only grows: a hold passes a second after about 1,890 writes above 2,000
+  versions, and an OK above them after about 110. `STORE.md` §643 has the line each follows,
+  and §644 what would take the growth away.
 
   **Nothing that waits runs inside a hold**, since the operator's window waits with it: not the
   writer, which waits on that thread itself and is refused as a defect, not the audit's pacing or

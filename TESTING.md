@@ -251,6 +251,12 @@ versions that follow it, with the reading in the writer's turn, the composition,
 the application each timed apart, the opening of that group's tab, and a hold of the gate
 before and after the OKs. `STORE.md` §643 has the figures.
 
+**And what every renewal costs for good**, in
+`What_a_hold_and_an_OK_cost_after_this_many_renewals`: a store composed as writes above leave
+a store, each renewal an identifier in the list of its version with a deletion record at that
+version's place, in the order the writes leave them, then a hold reading an entry and an OK
+above those versions. `STORE.md` §643 has the line each follows.
+
 **It is also where KeePass's own compiler is asked.** `ReferenceVectorsTests` builds a database in
 memory holding the entries `tests/Shared/ReferenceVectors.json` writes down, compiles every value
 in it with KeePass's `SprEngine`, as a copy of the field compiles one less what acts, and holds the
