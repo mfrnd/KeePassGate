@@ -245,6 +245,77 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
+        /// A copy of the database changed and saved on its own, as a second machine changes its
+        /// copy between merges, before KeePass starts.
+        /// </summary>
+        public static void ChangeACopy(string path, Action<PwDatabase> change)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(path), Key(), null);
+                change(database);
+                database.Save(null);
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>
+        /// The rule of the profile at the node set again in a single version that names as many
+        /// identifiers a version of its object could have as the version and its item fit a
+        /// string with, as `GrantEditorInRealDialogsTests.CrowdedBelow` makes a version below: a new
+        /// version naming that version as well fits no string.
+        /// </summary>
+        public static void Crowded(PwDatabase database, string node, string profile, string doc)
+        {
+            var store = DatabaseAuthority.Store(database);
+            byte[] key;
+            using (var reading = store.Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+
+            try
+            {
+                var objectName = StoreComposer.RowObject(node, profile);
+                var place = StoreComposer.Version(key, objectName, StoreComposer.Content(("doc", doc))).Hex.Substring(0, 20);
+                var names = new List<string>();
+                string Named(int at) => place + at.ToString("x12", CultureInfo.InvariantCulture);
+                string Item(IEnumerable<string> after)
+                {
+                    var listed = after.ToArray();
+                    return StoreComposer.RuleVersionItem(StoreComposer.RuleVersion(key, objectName, doc, listed), objectName, doc, listed);
+                }
+
+                for (var at = 0; at < (StoreFormat.MaxWritten / 33) - 20; at++)
+                {
+                    names.Add(Named(at));
+                }
+
+                while (Item(names.Concat(new[] { Named(names.Count) })).Length <= StoreFormat.MaxWritten)
+                {
+                    names.Add(Named(names.Count));
+                }
+
+                var version = StoreRecord.Compose(key, StoreKinds.Version, new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    { StoreKinds.After, string.Join(" ", names) },
+                    { StoreKinds.Doc, doc },
+                    { StoreKinds.ObjectMember, objectName },
+                });
+                var written = store.Write(new[] { new StoreAct("a rule crowded", key, StoreFormat.KeyName(key), new[] { version }, null) });
+                Assert.That(written.Taken, Is.True, written.Reason);
+            }
+            finally
+            {
+                Array.Clear(key, 0, key.Length);
+            }
+        }
+
+        /// <summary>
         /// KeePass's question in a window of its own, titled with KeePass's name alone, other than
         /// the main window, or null when none comes in time.
         /// </summary>

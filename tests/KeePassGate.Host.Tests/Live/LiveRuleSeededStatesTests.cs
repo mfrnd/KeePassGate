@@ -5,11 +5,8 @@ using System.Linq;
 using System.Threading;
 using System.Windows.Automation;
 using KeePassGate.Acl;
-using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassGate.Ui;
-using KeePassLib;
-using KeePassLib.Serialization;
 using NUnit.Framework;
 
 namespace KeePassGate.Host.Tests.Live
@@ -482,12 +479,12 @@ namespace KeePassGate.Host.Tests.Live
             var wider = keePass.CopyDatabase("apart-wider.kdbx");
             var off = keePass.CopyDatabase("apart-off.kdbx");
             keePass.ChangeTheStore(database => StoreSeeds.Rule(DatabaseAuthority.Store(database), LiveRules.Node(BoundUuid), (Profile, "RL")));
-            ChangeACopy(wider, database => StoreSeeds.Rule(DatabaseAuthority.Store(database), LiveRules.Node(BoundUuid), (Profile, "CRL")));
-            ChangeACopy(off, database => StoreSeeds.TakeOff(DatabaseAuthority.Store(database), LiveRules.Node(BoundUuid), Profile, "R"));
+            LiveRules.ChangeACopy(wider, database => StoreSeeds.Rule(DatabaseAuthority.Store(database), LiveRules.Node(BoundUuid), (Profile, "CRL")));
+            LiveRules.ChangeACopy(off, database => StoreSeeds.TakeOff(DatabaseAuthority.Store(database), LiveRules.Node(BoundUuid), Profile, "R"));
             keePass.MergeIntoDatabase(wider);
             keePass.MergeIntoDatabase(off);
 
-            keePass.ChangeTheStore(database => Crowded(database, LiveRules.Node(FullUuid), Profile, "row:R"));
+            keePass.ChangeTheStore(database => LiveRules.Crowded(database, LiveRules.Node(FullUuid), Profile, "row:R"));
 
             var seeded = keePass.ReadRules().Rules;
             Assert.That(LiveRules.Versions(seeded, LiveRules.Node(BoundUuid), Profile), Is.EqualTo("TakenOff .R......, Grants .R...L.., Grants CR...L.."), "seeded at " + Bound);
@@ -495,73 +492,6 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(LiveRules.Versions(seeded, LiveRules.Node(AboveUuid), Profile), Is.EqualTo("Grants .....L.."), "seeded at " + Above);
             Assert.That(LiveRules.Versions(seeded, LiveRules.Node(BelowUuid), Profile), Is.EqualTo("TakenOff .....L.."), "seeded below " + Above);
             Assert.That(LiveRules.Versions(seeded, LiveRules.Node(FullUuid), Profile), Is.EqualTo("Grants .R......"), "seeded at " + Full);
-        }
-
-        private static void ChangeACopy(string path, Action<PwDatabase> change)
-        {
-            var database = new PwDatabase();
-            try
-            {
-                database.Open(IOConnectionInfo.FromPath(path), LiveRules.Key(), null);
-                change(database);
-                database.Save(null);
-            }
-            finally
-            {
-                database.Close();
-            }
-        }
-
-        /// <summary>
-        /// The rule of the profile at the node set again in a single version that names as many
-        /// identifiers a version of its object could have as the version and its item fit a
-        /// string with, as `GrantEditorInRealDialogsTests.CrowdedBelow` makes a version below: a new
-        /// version naming that version as well fits no string.
-        /// </summary>
-        private static void Crowded(PwDatabase database, string node, string profile, string doc)
-        {
-            var store = DatabaseAuthority.Store(database);
-            byte[] key;
-            using (var reading = store.Read())
-            {
-                key = (byte[])reading.InForce.Key.Bytes.Clone();
-            }
-
-            try
-            {
-                var objectName = StoreComposer.RowObject(node, profile);
-                var place = StoreComposer.Version(key, objectName, StoreComposer.Content(("doc", doc))).Hex.Substring(0, 20);
-                var names = new List<string>();
-                string Named(int at) => place + at.ToString("x12", CultureInfo.InvariantCulture);
-                string Item(IEnumerable<string> after)
-                {
-                    var listed = after.ToArray();
-                    return StoreComposer.RuleVersionItem(StoreComposer.RuleVersion(key, objectName, doc, listed), objectName, doc, listed);
-                }
-
-                for (var at = 0; at < (StoreFormat.MaxWritten / 33) - 20; at++)
-                {
-                    names.Add(Named(at));
-                }
-
-                while (Item(names.Concat(new[] { Named(names.Count) })).Length <= StoreFormat.MaxWritten)
-                {
-                    names.Add(Named(names.Count));
-                }
-
-                var version = StoreRecord.Compose(key, StoreKinds.Version, new Dictionary<string, string>(StringComparer.Ordinal)
-                {
-                    { StoreKinds.After, string.Join(" ", names) },
-                    { StoreKinds.Doc, doc },
-                    { StoreKinds.ObjectMember, objectName },
-                });
-                var written = store.Write(new[] { new StoreAct("a rule crowded", key, StoreFormat.KeyName(key), new[] { version }, null) });
-                Assert.That(written.Taken, Is.True, written.Reason);
-            }
-            finally
-            {
-                Array.Clear(key, 0, key.Length);
-            }
         }
     }
 }

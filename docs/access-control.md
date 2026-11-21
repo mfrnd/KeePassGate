@@ -482,6 +482,8 @@ differently, and until it is set again the gate refuses every profile not named 
 box does. The first press ticks it and the next clears it; [Copies of a
 database](#copies-of-a-database) has how it comes about.
 
+![The check box in its third mark, and the inherited rule it refuses](images/rule-box-mixed.png)
+
 ## Removing a rule
 
 The **X** in the last column removes the rule of its row at this group or entry, also while
@@ -597,6 +599,8 @@ made on the KPG tab was kept." Between them is a line for each cause:
 | "The data of KeePassGate in this database cannot be used as the data stands." | the plugin's group stopped being usable while the dialog was open | the Certificate Authority page of the database settings states why |
 | "A change was not in a form the store takes." | the change was none the tab offers | the plugin's log has the details |
 
+![The message after an OK that left a change out](images/rule-not-kept.png)
+
 A message that begins "No change made on the KPG tab was kept:" gives the cause after the colon:
 KeePass was part way through something of its own, a dialog was open that would have undone the
 write, such as **Database Maintenance**, or the database stopped taking rules while the dialog
@@ -643,6 +647,8 @@ single press grants more than some version held. Where each copy removes a diffe
 before the copies meet again, every version is back afterwards, and the choice is made again in a
 copy that holds them all.
 
+![A rule for reader in three versions, a version taking the rule off among them](images/rule-versions.png)
+
 **The check box set differently in two copies shows its third mark**, and the gate refuses every
 profile not named there until the box is pressed: [Refusing everything not
 named](#refusing-everything-not-named).
@@ -656,6 +662,8 @@ the **Limit** row and then **OK**: the inherited row then stands alone. A limit 
 is a rule that was removed while the box was ticked, and grants nothing until its **X** is
 pressed. A group or entry whose rule was removed keeps what it recorded where it is moved, so
 under a group that grants more than its former place it shows a limit the same way.
+
+![A limit under the inherited rule it cuts](images/rule-limit.png)
 
 **What the plugin cannot settle between copies**, each because the database then holds exactly
 what a single careful operator could have made on purpose:

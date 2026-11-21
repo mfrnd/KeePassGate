@@ -88,6 +88,48 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>The client the renewal dialog is photographed asking about.</summary>
         private const string RenewingName = "agent-renewing";
 
+        /// <summary>The copy of the database the pictures of rules made apart are taken over, put back after them.</summary>
+        private const string BeforeTheCopies = "before-the-copies.kdbx";
+
+        /// <summary>A copy of the database changed apart from it and merged back in before KeePass starts.</summary>
+        private const string ApartCopy = "apart-one.kdbx";
+
+        /// <summary>A second such copy.</summary>
+        private const string OtherApartCopy = "apart-two.kdbx";
+
+        /// <summary>A group whose rule for the profile three copies of the database changed apart.</summary>
+        private const string VersionsGroup = "Releases";
+
+        /// <summary>
+        /// The identifier of <see cref="VersionsGroup"/>, written down and patterned as
+        /// `ThrowawayKeePass.AutomationUuid` is.
+        /// </summary>
+        private const string VersionsUuid = "AA000000000000000000000000000003";
+
+        /// <summary>A group whose rule for the profile was taken off while the root granted less than it grants now.</summary>
+        private const string LimitGroup = "Deploy";
+
+        /// <summary>The identifier of <see cref="LimitGroup"/>.</summary>
+        private const string LimitUuid = "AA000000000000000000000000000004";
+
+        /// <summary>A group whose box two copies of the database set differently.</summary>
+        private const string MixedGroup = "Vendors";
+
+        /// <summary>The identifier of <see cref="MixedGroup"/>.</summary>
+        private const string MixedUuid = "AA000000000000000000000000000005";
+
+        /// <summary>A group whose rule for the profile stands in a version no new version fits beside.</summary>
+        private const string FullGroup = "Reports";
+
+        /// <summary>The identifier of <see cref="FullGroup"/>.</summary>
+        private const string FullUuid = "AA000000000000000000000000000006";
+
+        /// <summary>The groups the pictures of rules made apart are of, each with its identifier.</summary>
+        private static readonly (string Name, string Uuid)[] RulesMadeApart =
+        {
+            (VersionsGroup, VersionsUuid), (LimitGroup, LimitUuid), (MixedGroup, MixedUuid), (FullGroup, FullUuid),
+        };
+
         private static readonly TimeSpan DialogTimeout = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan StartTimeout = TimeSpan.FromSeconds(60);
 
@@ -295,6 +337,8 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(_ruleOnTheRoot.Profiles, Does.Contain(Profile),
                 "the rule the pictures are of is not in the database they were taken from");
 
+            ShowRulesMadeApart();
+
             ShowStandingAnswers();
 
             AskToRenew();
@@ -304,6 +348,171 @@ namespace KeePassGate.Host.Tests.Live
             // The moving picture last, because it starts from the database as it was before any
             // of this, which it puts back, and ends with a client paired and revoked in it.
             FilmTheLifecycle();
+        }
+
+        /// <summary>
+        /// The KPG tab of groups whose rules copies of the database changed apart: a rule in
+        /// several versions, a limit under the inherited rule it cuts, and the box in its third
+        /// mark; then the message after an OK that left a change out.
+        /// </summary>
+        /// <remarks>
+        /// **Groups of their own, in a database put back afterwards.** The pictures before these
+        /// and after them are of the database as the walkthrough leaves it: the profiles page
+        /// counts rules, so the groups are made after its picture, and the file is copied before
+        /// they are made and put back once KeePass has gone.
+        ///
+        /// **Made apart in copies and merged before KeePass starts**, as a synchronize merges
+        /// them, for the reason the rule on the root is written into the file: the pictures are of
+        /// the tab reading what copies of a database leave, and nothing written underneath a
+        /// running KeePass is seen.
+        ///
+        /// **Read through UI automation before each shutter**, so that a picture shows the rows
+        /// the page describes rather than whatever the seed happened to leave.
+        /// </remarks>
+        private void ShowRulesMadeApart()
+        {
+            var keePass = _session.KeePass;
+            var before = keePass.CopyDatabase(BeforeTheCopies);
+            SeedRulesMadeApart(keePass);
+
+            var log = keePass.ReadPluginLog();
+            var driver = KeePassDriver.Start(keePass);
+            WaitUntilServing(driver, Occurrences(log, ListeningLine), Occurrences(log, ServingLine));
+
+            var versions = RuleTab.OfGroup(driver, VersionsGroup);
+            Assert.That(Rows(versions), Is.EquivalentTo(new[]
+            {
+                Row(Profile, ".R...LA.", GrantTab.TakenOffWord),
+                Row(Profile, ".R...L..", GrantTab.VersionWord),
+                Row(Profile, "CR...L..", GrantTab.VersionWord),
+            }), "the rule in several versions");
+            Shoot(versions.Dialog, DocumentationImages.RuleVersions, Seal(versions.Dialog));
+            driver.CloseDialog(versions.Dialog);
+
+            var limit = RuleTab.OfGroup(driver, LimitGroup);
+            Assert.That(Rows(limit), Is.EquivalentTo(new[]
+            {
+                Row(Profile, ".R...LA.", GrantTab.InheritedWord),
+                Row(Profile, ".R...L..", GrantTab.LimitWord),
+            }), "the limit under the inherited rule");
+            Shoot(limit.Dialog, DocumentationImages.RuleLimit, Seal(limit.Dialog));
+            driver.CloseDialog(limit.Dialog);
+
+            var mixed = RuleTab.OfGroup(driver, MixedGroup);
+            Assert.That(Rows(mixed), Is.EquivalentTo(new[]
+            {
+                Row(SecondProfile, ".R...L..", string.Empty),
+                Row(Profile, ".R...LA.", GrantTab.RefusedHereWord),
+            }), "the rows under the box in its third mark");
+            var box = Seal(mixed.Dialog);
+            Assert.That(((TogglePattern)box.GetCurrentPattern(TogglePattern.Pattern)).Current.ToggleState,
+                Is.EqualTo(ToggleState.Indeterminate), "the box in its third mark");
+            Shoot(mixed.Dialog, DocumentationImages.RuleBoxMixed, box);
+            driver.CloseDialog(mixed.Dialog);
+
+            ShowAChangeNotKept(driver);
+
+            // Saved, since the OK wrote the change it kept, and KeePass asks before it exits over
+            // changes nobody saved; and then put back, as the remarks above have it.
+            Assert.That(LiveRules.Marked(LiveRules.Save(driver)), Is.False, "the save after the OK that left a change out");
+            Assert.That(driver.ShutDown(), Is.True, "KeePass did not exit cleanly after the pictures of rules made apart");
+            keePass.RestoreDatabase(before);
+        }
+
+        /// <summary>
+        /// The rule of each profile changed on the tab of the group whose rule for the profile no
+        /// new version fits beside, the dialog's OK, and the message raised once the dialog has
+        /// closed: screenshotted, and closed with its OK.
+        /// </summary>
+        private void ShowAChangeNotKept(KeePassDriver driver)
+        {
+            var full = RuleTab.OfGroup(driver, FullGroup);
+            full.SetRule(full.Line("the second profile's rule", line => line.Profile == SecondProfile), "U", ".RU..L..");
+            full.SetRule(full.Line("the profile's rule", line => line.Profile == Profile), "U", ".RU.....");
+            Assert.That(LiveRules.Accept(driver, full.Dialog), Is.True, "the group dialog did not close at its OK");
+
+            var message = driver.WaitForWindow(GrantTab.NotKeptTitle, LiveRules.WindowTimeout);
+            Assert.That(message, Is.Not.Null, "no message after the OK. " + driver.Diagnostics);
+            var text = Uia.Descendant(message, ControlType.Text, shown => shown.Length > 0);
+            Assert.That(
+                text == null ? Uia.Inventory(message) : Uia.Name(text).Replace("\r\n", "\n"),
+                Is.EqualTo(string.Join("\n", GrantTab.NotAllKept, GrantTab.NoRoom, GrantTab.ShownAsKept)),
+                "the message");
+
+            Shoot(message, DocumentationImages.RuleNotKept);
+
+            var window = LiveRules.HandleOf(message);
+            Assert.That(driver.PressButton(message, "OK") && LiveRules.Gone(window, LiveRules.WindowTimeout), Is.True,
+                "the message did not close at its OK");
+        }
+
+        /// <summary>
+        /// The groups the pictures of rules made apart are of, and their rules: some written into
+        /// the file, some made in copies of it and merged as a synchronize merges them, and a
+        /// version no new version fits beside; held to what each picture shows.
+        /// </summary>
+        /// <remarks>
+        /// The root's rule grants the profile `.R...LA.`, so that is what arrives at each group
+        /// and what a version taking the rule off records. The limit records less, `.R...L..`, as
+        /// a rule taken off before the root's rule was widened to what it grants now records.
+        /// </remarks>
+        private static void SeedRulesMadeApart(ThrowawayKeePass keePass)
+        {
+            keePass.ChangeTheStore(database =>
+            {
+                foreach (var (name, uuid) in RulesMadeApart)
+                {
+                    LiveRules.AddGroup(database.RootGroup, name, uuid);
+                }
+
+                var store = DatabaseAuthority.Store(database);
+                StoreSeeds.TakeOff(store, LiveRules.Node(LimitUuid), Profile, "RL");
+                StoreSeeds.Rule(store, LiveRules.Node(MixedUuid), (SecondProfile, "RL"));
+                StoreSeeds.Rule(store, LiveRules.Node(FullUuid), (SecondProfile, "RL"));
+            });
+
+            // This copy and two more, each changing the profile's rule at a group: a version
+            // granting, a wider version and a version taking the rule off. And the box at another
+            // group, ticked in this copy, and ticked and cleared again in the first of the others.
+            var one = keePass.CopyDatabase(ApartCopy);
+            var two = keePass.CopyDatabase(OtherApartCopy);
+            keePass.ChangeTheStore(database =>
+            {
+                var store = DatabaseAuthority.Store(database);
+                StoreSeeds.Rule(store, LiveRules.Node(VersionsUuid), (Profile, "RL"));
+                StoreSeeds.Seal(store, LiveRules.Node(MixedUuid));
+            });
+            LiveRules.ChangeACopy(one, database =>
+            {
+                var store = DatabaseAuthority.Store(database);
+                StoreSeeds.Rule(store, LiveRules.Node(VersionsUuid), (Profile, "CRL"));
+                StoreSeeds.Seal(store, LiveRules.Node(MixedUuid));
+                StoreSeeds.Unseal(store, LiveRules.Node(MixedUuid), (Profile, "RLA"));
+            });
+            LiveRules.ChangeACopy(two, database => StoreSeeds.TakeOff(DatabaseAuthority.Store(database), LiveRules.Node(VersionsUuid), Profile, "RLA"));
+            keePass.MergeIntoDatabase(one);
+            keePass.MergeIntoDatabase(two);
+
+            keePass.ChangeTheStore(database => LiveRules.Crowded(database, LiveRules.Node(FullUuid), Profile, "row:R"));
+
+            var seeded = keePass.ReadRules().Rules;
+            Assert.That(LiveRules.Versions(seeded, LiveRules.Node(VersionsUuid), Profile),
+                Is.EqualTo("Grants .R...L.., TakenOff .R...LA., Grants CR...L.."), "seeded at " + VersionsGroup);
+            Assert.That(LiveRules.Versions(seeded, LiveRules.Node(LimitUuid), Profile), Is.EqualTo("TakenOff .R...L.."), "seeded at " + LimitGroup);
+            Assert.That(seeded.At(LiveRules.Node(MixedUuid)).Switch.Mixed, Is.True, "seeded at " + MixedGroup);
+            Assert.That(LiveRules.Versions(seeded, LiveRules.Node(FullUuid), Profile), Is.EqualTo("Grants .R......"), "seeded at " + FullGroup);
+        }
+
+        /// <summary>Every line of the table but the empty line, as its profile, its mask and its state.</summary>
+        private static IReadOnlyList<string> Rows(RuleTab tab)
+        {
+            return tab.Lines().Where(line => !line.Empty).Select(line => Row(line.Profile, line.Mask, line.State)).ToList();
+        }
+
+        /// <summary>A line of the table as <see cref="Rows"/> gives it.</summary>
+        private static string Row(string profile, string mask, string state)
+        {
+            return profile + " | " + mask + " | " + state;
         }
 
         /// <summary>
