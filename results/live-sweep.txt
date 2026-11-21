@@ -1,0 +1,29 @@
+LiveStoreTests | total 3 passed 3 failed 0 not run 0 | 22 s | 
+LiveGrantPickerCloseTests | total 2 passed 0 failed 2 not run 0 | 31 s | OneTimeSetUp: 'throwaway.kdbx - KeePass' could not be brought to the front, so nothing was typed. In front instead: ''.
+LiveAbandonedSaveTests | total 5 passed 0 failed 5 not run 0 | 21 s | OneTimeSetUp: SetUp : System.InvalidOperationException : Operation is not valid due to the current state of the object.
+LiveApiTests | total 9 passed 9 failed 0 not run 0 | 21 s | 
+LiveAttachmentEditorTests | total 4 passed 0 failed 4 not run 0 | 31 s | OneTimeSetUp: 'throwaway.kdbx - KeePass' could not be brought to the front, so nothing was typed. In front instead: ''.
+LiveAuthorityChooserTests | total 13 passed 0 failed 13 not run 0 | 51 s | OneTimeSetUp: SetUp : System.TimeoutException : Gave up after 30s waiting for the Synchronize with File menu item.
+LiveAuthorityTests | total 7 passed 0 failed 7 not run 0 | 21 s | OneTimeSetUp: 'throwaway.kdbx - KeePass' could not be brought to the front, so nothing was typed. In front instead: ''.
+LiveCertificateTests | total 4 passed 4 failed 0 not run 0 | 24 s | 
+LiveChooserOverTheMainWindowTests | total 7 passed 0 failed 7 not run 0 | 31 s | OneTimeSetUp: SetUp : System.InvalidOperationException : Operation is not valid due to the current state of the object.
+LiveCloseAfterTheFileTests | total 5 passed 5 failed 0 not run 0 | 24 s | 
+LiveCloseBeforeTheFileTests | total 5 passed 3 failed 2 not run 0 | 142 s | 2026-11-21T15:47:43.501Z KPG INFO initializing version 0.2.0
+LiveExitUnderARenewalTests | total 4 passed 1 failed 3 not run 0 | 92 s | Exit was never pressed
+LiveExitUnderAPairingTests | total 4 passed 0 failed 4 not run 0 | 24 s | OneTimeSetUp: 'throwaway.kdbx - KeePass' could not be brought to the front, so nothing was typed. In front instead: ''.
+LiveGateTests | total 12 passed 12 failed 0 not run 0 | 21 s | 
+LiveGrantEditorTests | total 12 passed 0 failed 12 not run 0 | 32 s | OneTimeSetUp: 'throwaway.kdbx - KeePass' could not be brought to the front, so nothing was typed. In front instead: ''.
+LiveKeePassTests | total 10 passed 0 failed 10 not run 0 | 21 s | OneTimeSetUp: 'throwaway.kdbx - KeePass' could not be brought to the front, so nothing was typed. In front instead: ''.
+LiveLockTests | total 5 passed 0 failed 5 not run 0 | 21 s | OneTimeSetUp: 'throwaway.kdbx - KeePass' could not be brought to the front, so nothing was typed. In front instead: ''.
+LiveLockTimerTests | total 3 passed 3 failed 0 not run 0 | 31 s | 
+LiveOwedAnswerAtExitTests | total 3 passed 0 failed 3 not run 0 | 21 s | OneTimeSetUp: 'KeePassGate: a client is asking to renew its certificate' could not be brought to the front, so nothing was typed. In front instead: ''.
+LivePairingTests | total 12 passed 0 failed 12 not run 0 | 21 s | OneTimeSetUp: 'throwaway.kdbx - KeePass' could not be brought to the front, so nothing was typed. In front instead: ''.
+LiveReferenceClientTests | total 16 passed 0 failed 16 not run 0 | 21 s | OneTimeSetUp: 'throwaway.kdbx - KeePass' could not be brought to the front, so nothing was typed. In front instead: ''.
+LiveRenewalTests | total 8 passed 0 failed 8 not run 0 | 21 s | OneTimeSetUp: SetUp : System.InvalidOperationException : Operation is not valid due to the current state of the object.
+LiveRuleOkInsideASaveTests | total 6 passed 0 failed 6 not run 0 | 44 s | OneTimeSetUp: 'throwaway.kdbx - KeePass' could not be brought to the front, so nothing was typed. In front instead: ''.
+LiveRuleSeededStatesTests | total 13 passed 0 failed 13 not run 0 | 32 s | OneTimeSetUp: 'throwaway.kdbx - KeePass' could not be brought to the front, so nothing was typed. In front instead: ''.
+LiveRuleWaitsForTheSaveTests | total 11 passed 0 failed 11 not run 0 | 31 s | OneTimeSetUp: 'throwaway.kdbx - KeePass' could not be brought to the front, so nothing was typed. In front instead: ''.
+LiveSessionLockTests | total 4 passed 4 failed 0 not run 0 | 32 s | 
+LiveStoreSetBackTests | total 5 passed 0 failed 5 not run 0 | 31 s | OneTimeSetUp: 'throwaway.kdbx - KeePass' could not be brought to the front, so nothing was typed. In front instead: ''.
+LiveTanWizardTests | total 4 passed 0 failed 4 not run 0 | 31 s | OneTimeSetUp: 'throwaway.kdbx - KeePass' could not be brought to the front, so nothing was typed. In front instead: ''.
+DocumentationScreenshots | total 2 passed 0 failed 2 not run 0 | 32 s | OneTimeSetUp: 'throwaway.kdbx - KeePass' could not be brought to the front, so nothing was typed. In front instead: ''.

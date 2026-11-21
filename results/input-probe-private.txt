@@ -1,0 +1,56 @@
+16:39:59.818 probe thread desktop: kpg-input-probe
+16:40:03.747 main window 0x185704E8 'throwaway.kdbx - KeePass', Win32 menu 0x0
+16:40:03.747 A0 after start: active 0x185704E8 'throwaway.kdbx - KeePass', focus 0x30300A0 Edit, flags 0x1; GetForegroundWindow 0x0
+16:40:04.252 list 0x49070308, tree 0x2377057A
+16:40:04.252 RESULT | A1 | SetForegroundWindow(main) from another process | returned False; active 0x185704E8 'throwaway.kdbx - KeePass', focus 0x30300A0 Edit, flags 0x1; foreground 0x0
+16:40:04.264 RESULT | A2 | AttachThreadInput, SetActiveWindow(main), SetFocus(list) | attached True: SetActiveWindow 0x185704E8 error 0, SetFocus 0x30300A0 error 0; active 0x185704E8 'throwaway.kdbx - KeePass', focus 0x49070308 WindowsForms10.SysListView32.app.0.2bf8098_r6_ad1, flags 0x0
+16:40:06.274 RESULT | A3 | UI automation SetFocus on the entry list | no exception; active 0x185704E8 'throwaway.kdbx - KeePass', focus 0x49070308 WindowsForms10.SysListView32.app.0.2bf8098_r6_ad1, flags 0x0
+16:40:06.275 quick search combo 0xC850056 WindowsForms10.COMBOBOX.app.0.2bf8098_r6_ad1, edit 0x30300A0
+16:40:06.704 RESULT | T1 | WM_CHAR posted to the quick search box | box reads 'Beta'
+16:40:07.939 RESULT | T2 | Enter posted to the quick search box | list rows 3 -> 0
+16:40:13.501 RESULT | K1 | Ctrl+I posted, Ctrl not held | no dialog
+16:40:14.217 RESULT | K2 | Ctrl+I posted with Ctrl set by AttachThreadInput and SetKeyboardState | dialog opened; active 0x1A720564 'Add Entry', focus 0x313C008A WindowsForms10.EDIT.app.0.2bf8098_r6_ad1, flags 0x1
+16:40:14.330 RESULT | R | PrintWindow(flags 2) of R2-add-entry | True, 495 by 515, distinct colors 2532, R2-add-entry-printwindow-2.png
+16:40:14.454 RESULT | R | PrintWindow(flags 0) of R2-add-entry | True, 495 by 515, distinct colors 2623, R2-add-entry-printwindow-0.png
+16:40:14.476 RESULT | R | BitBlt from GetWindowDC of R2-add-entry | distinct colors 2623, R2-add-entry-bitblt.png
+16:40:14.478 RESULT | R | Graphics.CopyFromScreen over R2-add-entry | threw Win32Exception: The handle is invalid
+16:40:15.423 RESULT | D1 | WM_CHAR posted to the title box | box reads 'Posted'
+16:40:16.262 RESULT | D2 | Enter posted to the title box (the dialog's accept button) | dialog closed; entry 'Posted' listed: True
+16:40:17.406 RESULT | K3 | Escape posted to the dialog's focused control | dialog closed
+16:40:18.663 RESULT | B1 | BM_CLICK sent to Cancel | sent; dialog closed
+16:40:20.171 RESULT | B2 | WM_LBUTTONDOWN and WM_LBUTTONUP posted to Cancel | dialog closed
+16:40:27.427 RESULT | B3 | UI automation Invoke on Cancel | threw InvalidOperationException: Operation is not valid due to the current state of the object.; dialog still open
+16:40:29.079 RESULT | B4 | MSAA accDoDefaultAction on Cancel (LegacyIAccessible default action) | returned; dialog closed
+16:40:32.064 RESULT | V1 | UI automation ValuePattern.SetValue on the title box | box reads 'Automated'
+16:40:34.141 RESULT | V2 | UI automation TogglePattern.Toggle on the Expires box | threw Win32Exception: Hot key is already registered
+16:40:40.581 RESULT | V3 | UI automation Invoke on OK | threw Win32Exception: Hot key is already registered; dialog still open; entry 'Automated' listed: False
+16:40:43.516 RESULT | S1 | Ctrl+S posted, Ctrl not held | title 'throwaway.kdbx* - KeePass' -> 'throwaway.kdbx* - KeePass'
+16:40:46.742 RESULT | S2 | Ctrl+S posted with Ctrl set | title -> 'throwaway.kdbx - KeePass'
+16:40:49.732 File access key 'Alt+f', Database Settings access key 'd', rect 319;311;200;22
+16:40:53.148 RESULT | M1 | Alt+f posted as WM_SYSKEYDOWN, WM_SYSCHAR, WM_SYSKEYUP, Alt not held | menu popups 0 -> 0
+16:40:55.182 RESULT | M2 | Alt+f posted with Alt set | menu popups 0 -> 1
+16:40:55.342 RESULT | M3 | then 'd' posted for the item | Database Settings opened
+16:40:55.406 RESULT | R | PrintWindow(flags 2) of R3-database-settings | True, 492 by 489, distinct colors 2122, R3-database-settings-printwindow-2.png
+16:40:55.432 RESULT | R | PrintWindow(flags 0) of R3-database-settings | True, 492 by 489, distinct colors 2248, R3-database-settings-printwindow-0.png
+16:40:55.448 RESULT | R | BitBlt from GetWindowDC of R3-database-settings | distinct colors 2248, R3-database-settings-bitblt.png
+16:40:55.448 RESULT | R | Graphics.CopyFromScreen over R3-database-settings | threw Win32Exception: The handle is invalid
+16:42:08.634 RESULT | M4 | UI automation Expand on File, Invoke on the item, on a thread of its own | dialog opened; Invoke pending while the dialog is open; a second automation call threw COMException: Operation timed out. (Exception from HRESULT: 0x80131505) after 67,0 s
+16:42:09.156 RESULT | M4b | the pending Invoke after the dialog closed | returned
+16:42:10.030 RESULT | M5 | a click posted to the menu bar at File | menu popups 0 -> 1
+16:42:10.254 RESULT | M6 | then a click posted to the open menu at the item | Database Settings opened
+16:42:13.848 RESULT | L1 | UI automation SelectionItem.Select on a group | selected True
+16:42:14.722 RESULT | L2 | a click posted to the tree at the root group | root selected True, Probe group selected False
+16:42:15.623 RESULT | L3 | a click posted to the list at its second row | second row selected True, first False
+16:42:18.072 RESULT | L4 | UI automation Select on the first row | first selected True, second False
+16:42:18.984 RESULT | C1 | WM_CONTEXTMENU posted to the list, as from the keyboard | menu popups 0 -> 1
+16:42:20.398 RESULT | C2 | WM_RBUTTONDOWN and WM_RBUTTONUP posted to the list at a row | menu popups 0 -> 1
+16:42:22.435 RESULT | C3 | Shift+F10 posted with Shift set | menu popups 0 -> 1
+16:42:23.040 RESULT | C4 | Escape posted to the open context menu | menu popups -> 0
+16:42:26.904 RESULT | H1 | WM_MOUSEMOVE posted over a toolbar button ('New Database') | visible tooltips 0 -> 0
+16:42:29.423 RESULT | H2 | then WM_MOUSEHOVER posted to the toolbar at the button | visible tooltips -> 0
+16:42:32.903 RESULT | H3 | WM_MOUSEMOVE posted over the first entry row | visible tooltips -> 0
+16:42:32.973 RESULT | R | PrintWindow(flags 2) of R1-main | True, 670 by 525, distinct colors 746, R1-main-printwindow-2.png
+16:42:33.023 RESULT | R | PrintWindow(flags 0) of R1-main | True, 670 by 525, distinct colors 954, R1-main-printwindow-0.png
+16:42:33.047 RESULT | R | BitBlt from GetWindowDC of R1-main | distinct colors 954, R1-main-bitblt.png
+16:42:33.047 RESULT | R | Graphics.CopyFromScreen over R1-main | threw Win32Exception: The handle is invalid
+16:42:34.748 KeePass exited with code 0

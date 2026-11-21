@@ -5,7 +5,7 @@ window shares the one visible desktop of the machine it runs on, so runs queue f
 a process start on a desktop of its own, created with `CreateDesktop` and named in
 `STARTUPINFO.lpDesktop`, where its windows are seen by nobody and take no foreground from the
 visible desktop. The question was which of the tiers can run there, in parallel, without disturbing
-the visible desktop or each other.
+the visible desktop or each other, and what the end to end tier would need to follow them.
 
 This branch is taken from `master` and holds nothing else: no plugin, no tests, no design
 documents. Where a run used the product's tests, `RESULTS.md` names the commit of `master` it ran
@@ -16,7 +16,11 @@ against and how to repeat the run.
 **The unit tier and the host tier run on a private desktop as they are**: every test passed there,
 alone, two runs at a time and beside a run on the visible desktop, and nothing reached the visible
 desktop. **The end to end tier does not**: a private desktop has no foreground window, refuses
-synthesized input, and has no screen to copy. `RESULTS.md` has the figures.
+synthesized input, and has no screen to copy. Messages posted to KeePass's windows and Microsoft
+Active Accessibility reached every kind of typing and clicking tried there, so the tier could
+follow, at the price of no longer proving what real input proves; the recommendation is that it
+stays on the visible desktop and everything else leaves it. `RESULTS.md` has the figures and the
+fixture by fixture account.
 
 ## What is here
 
@@ -24,9 +28,9 @@ synthesized input, and has no screen to copy. `RESULTS.md` has the figures.
 | --- | --- |
 | [`RESULTS.md`](RESULTS.md) | the question, the machine, every step with its figures, and the answer |
 | `launcher/` | `private-desktop.ps1` and `PrivateDesktop.cs`, which start a command under a basic user token on a desktop of its own, and `basic-user.ps1`, which lowers the token |
-| `probe/` | `desktop-probe.ps1` with `DesktopProbe.cs`, what a process can do on a private desktop |
-| `runs/` | the scripts that ran the tiers: a tier on a private desktop, two at once, the watcher of the visible desktop, and the readers of the result files |
-| `results/` | the text the desktop probe wrote |
+| `probe/` | `desktop-probe.ps1` with `DesktopProbe.cs`, what a process can do on a private desktop; `InputProbe.cs`, what reaches a real KeePass there without real input, with the scripts that build it, give it a throwaway KeePass and run it; two picture comparisons |
+| `runs/` | the scripts that ran the tiers: a tier on a private desktop, two at once, each end to end fixture alone in sequence, the watcher of the visible desktop, and the readers of the result files |
+| `results/` | the text the probes and the fixture sweep wrote |
 
 ## Running it
 
@@ -39,3 +43,7 @@ KeePassGate worktree at the named commit, built in Debug, with its pinned KeePas
 .\probe\desktop-probe.ps1 -Out C:\work\probe                # on the desktop it is started on
 .\runs\run-tier.ps1 -Tier unit -Worktree C:\src\KeePassGate -Out C:\work\unit
 ```
+
+The input probe and the end to end sweep start KeePass. The sweep must not run beside another end
+to end run on the same machine, whatever desktop that is on; `runs\live-sweep.ps1` gives the
+reason.
