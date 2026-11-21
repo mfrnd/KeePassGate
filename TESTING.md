@@ -825,6 +825,13 @@ commit is held to and not the whole gate: `-Task All` adds the end to end tier, 
 runs the floor. Nothing stops a push to a branch that skipped any of them: what is stopped is the
 merge.
 
+**Every commit of a branch can be held to the gate in CI as well**, each on its own tree and all at
+once, by `.github/workflows/per-commit.yml`, which runs the default `.\build.ps1` at every commit
+after the base a run is given, `master` by default, a job for each commit. It is started by hand
+and by nothing else, as `gh workflow run per-commit.yml --ref <branch>`, with `-f last=<count>` or
+`-f base=<commit>` to gate a part of the branch. It is not a required check, and it runs neither
+the end to end tier nor the code scan; its header has the rest.
+
 **The fast half can run at the commit itself, once it is installed.** `.pre-commit-config.yaml`
 holds the checks cheap enough to run on what is being committed: the client's style and types, the
 spelling and the markdown rules, each run by the tool and the configuration the gate uses, and a
