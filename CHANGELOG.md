@@ -101,15 +101,16 @@ none, since it releases both.
   the dialog is open, and the plugin's log names the name at OK. Everything else on the tab is
   written, and the name comes back by being added on the page again. `STORE.md` §627.
 - **A pairing approved for a name off the list puts the name back only over the removals its
-  dialog showed.** The approval dialog shows a name off the list as restored wherever the
-  database knows a removal of it, made in this copy or brought in by a synchronize, a removal it
-  knows only as a deleted entry among them, or a client still holds it, and as added only where
-  neither holds. Where a synchronize brings a further removal of the name between Approve and the
-  write or while an approval KeePass was too busy to write is held, the pairing writes nothing and
-  spends nothing, and the client is not answered yet: the same request puts the
+  dialog showed, and for the clients it showed.** The approval dialog shows a name off the list as
+  restored wherever the database knows a removal of it, made in this copy or brought in by a
+  synchronize, a removal it knows only as a deleted entry among them, or a client still holds it,
+  and as added only where neither holds. Where a synchronize brings a further removal of the name,
+  or a client regaining it that the dialog did not show, between Approve and the write or while an
+  approval KeePass was too busy to write is held, the pairing writes nothing and spends nothing,
+  and the client is not answered yet: the same request puts the
   dialog in front of the operator again, with no other request's dialog in between. That dialog
-  states beside Refresh "Shown again: the state of the profiles changed.", the same whatever
-  Approve found and naming no profile, since the rows show the state; it opens with the lifetime
+  states beside Refresh "Shown again: the table changed.", the same whatever Approve found and
+  naming no profile, since the rows show what changed; it opens with the lifetime
   the operator picked before and with each profile checked only where the operator left it
   checked and its state is unchanged, shows as restored each name Approve found removed, so that
   its approval writes the name back, and holds Approve disabled for a second from when it comes
@@ -120,8 +121,8 @@ none, since it releases both.
   is left of that budget, and with less than thirty seconds left the client is answered
   `503 busy` with nothing spent. Where the client asks again for an approval KeePass was too busy
   to write and its write finds the profiles moved, that request puts the dialog up in the same
-  way. Nothing of it outlives the request. The plugin's log names each profile and each cause
-  Approve found. An approved name on the list is held to its place there alone, and a renewal
+  way. Nothing of it outlives the request. The plugin's log names each cause Approve found, and no
+  profile. An approved name on the list is held to its place there alone, and a renewal
   adds no name. A pairing or renewal dialog that KeePass never put on the screen is answered
   `503 busy` and written to the audit as nothing, as nobody saw it. `STORE.md` §616
   and `PAIRING.md` §311.
@@ -138,7 +139,7 @@ none, since it releases both.
   "Refresh" for a screen reader, and F5 presses it wherever the focus is; the footer holds the
   countdown and the answers alone. Refresh shows the profiles as they stand, unchecks a row it makes
   Approve do more for and keeps every other check, highlights in light yellow each row whose state
-  it changed, with a tooltip stating what changed, as on a dialog shown again,
+  or clients it changed, with a tooltip stating what changed, as on a dialog shown again,
   brings the first row it changed into view, and enables Approve again a second later, a second in
   which no key but Enter and Escape does anything, no mnemonic, Tab, arrow or Space among them, and
   Enter and Escape refuse. A control disabled while it holds the focus hands the focus to the view
@@ -156,8 +157,8 @@ none, since it releases both.
   the client is answered as before a dialog, with nothing spent and no line in the audit; the
   plugin's log calls that dialog taken off the screen and never unanswered. Where
   Approve finds a change that no reading under the dialog showed, the dialog comes back only where
-  a row reads otherwise than before; where every row reads as before, the approval is written as
-  given. `PAIRING.md` §303 and §311.
+  a row reads otherwise than before, a client regaining a restored name among them; where every
+  row reads as before, the approval is written as given. `PAIRING.md` §303 and §311.
 - **No approval dialog is shown over a store that stopped serving the authority the pairing
   arrived under**, as a synchronize bringing a second authority or a retirement of the authority
   served, or the database being locked or closed, can leave it before the dialog's reading, a
@@ -197,10 +198,12 @@ none, since it releases both.
   click.
   On a dialog shown again, a row whose state changed since the dialog before opens unchecked and
   is highlighted in light yellow over its whole height, whether or not it is then checked, with a
-  tooltip stating to what the state changed, which a screen reader reads with the name: "The row
-  changed after the profile was first shown: Approve now also adds the profile.", "... Approve now
-  also restores the profile." or "... this database names the profile now."; under a high
-  contrast setting its text takes the theme's link color instead. A
+  tooltip stating what changed, which a screen reader reads with the name: "The row changed after
+  the profile was first shown: Approve now also adds the profile.", "... Approve now also restores
+  the profile." or "... this database names the profile now." where the state changed, and
+  "... clients were added.", "... clients were removed." or "... clients were added and removed."
+  where only the clients regaining it did; under a high contrast setting its text takes the
+  theme's link color instead. A
   row the operator unchecked whose state did not change opens unchecked with no highlight. The
   renewal dialog, which offers only names on the list, keeps its list, and a list of it longer
   than it shows reads under it "The list scrolls: Approve grants every checked profile.", naming

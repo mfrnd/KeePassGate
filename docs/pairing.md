@@ -149,10 +149,10 @@ disabled, and beside **Refresh** the dialog reads "The database changed.", the t
 disabled **Refresh** shows "Refresh (F5)". F5 presses **Refresh** wherever the focus is.
 **Refresh** shows the profiles as they stand, unchecks a row whose
 change makes approving do more and keeps every other check, highlights in light yellow each row
-whose entry under **Approve also** it changed, with a tooltip stating what changed, and brings
-the first row it changed into view; **Approve** is enabled again a
-second later, and in that second no key does anything but Enter and Escape, which refuse as
-ever. A change that alters nothing the table shows enables nothing. While the database
+whose entry under **Approve also** or **Regained by** it changed, with a tooltip stating what
+changed, and brings the first such row into view; **Approve** is
+enabled again a second later, and in that second no key does anything but Enter and Escape, which
+refuse as ever. A change that alters nothing the table shows enables nothing. While the database
 cannot be read, both buttons are disabled and beside **Refresh** the dialog reads "The database
 cannot be read for now.", and the next second reads again; where the plugin cannot read the
 database at all, it reads "The database cannot be read." until the dialog ends, with **Refuse**
@@ -231,24 +231,28 @@ shows the dialog again.
 **The dialog can come back after Approve.** It shows the profiles as the database held them when
 it last read them, and the approval is written only while they still stand that way. If, by the
 time it is written, a profile it showed off the list is on the list, a profile it showed on the
-list is off it, or a profile off the list has a removal the dialog did not show, nothing is
-issued, written or spent. That is a change that landed between the dialog's last reading and the
-write, or while an approval was kept. **The program is not answered then, and
+list is off it, a profile off the list has a removal the dialog did not show, or a client the
+dialog did not name under **Regained by** regains an approved profile, nothing is issued, written
+or spent. That is a change that landed between the dialog's last reading and the write, or while
+an approval was kept. **The program is not answered then, and
 the dialog comes straight back** for the same request, with no other program's dialog in
 between, over the profiles as they stand then, wherever a row reads otherwise than before. It
-states beside **Refresh** "Shown again: the state of the profiles changed.", the same whatever
-Approve found: the rows show the state. Where every row reads as before, as a change that went
+states beside **Refresh** "Shown again: the table changed.", the same whatever Approve found: the
+rows show what changed. Where every row reads as before, as a change that went
 back meanwhile leaves it, or a further removal of a profile the dialog already showed as
 **restores the profile**, the dialog does not come back, and the approval is written as given. It
 opens with the lifetime picked on the dialog before, and with a profile checked only where it was
-left checked there and its state is what it was there: **a profile whose state changed comes back
+left checked there and it reads as it read there: **a profile whose state changed comes back
 unchecked**, a profile that was on the list and now reads **restores the profile** for instance,
-so that approving it again is a decision about the profile as it stands. **Such a row is
-highlighted in light yellow**, checked or not, and the pointer resting on it shows what
-**Approve also** reads now, as in "The row changed after the profile was first shown: Approve now
-also restores the profile.", which a screen reader reads with the profile's name; under a
-high contrast setting the
-row keeps the theme's background and its text takes the theme's link color. A profile left
+and so does **a profile a client regains that was not named there under Regained by**, so that
+approving it again is a decision about the profile as it stands. A profile with a client fewer
+keeps its check. **Such a row is highlighted in light yellow**, and so is a row with a client
+fewer, checked or not, and the pointer resting on it shows what changed, which a screen reader
+reads with the profile's name: where the state changed, what **Approve also** reads now, as in "The
+row changed after the profile was first shown: Approve now also restores the profile.", and where
+only the clients changed, whether clients were added, removed, or added and removed; under a high
+contrast setting
+the row keeps the theme's background and its text takes the theme's link color. A profile left
 unchecked on the dialog before whose state did not change comes back unchecked with no highlight.
 **Approve on it takes no press for a second**
 after it comes up, since it comes up where the dialog before stood and a second click meant for
@@ -263,7 +267,7 @@ with less than thirty seconds left it does not come back, the program is told to
 nothing is issued or spent. **Locking KeePass or closing the database before it comes back** keeps
 it from coming back, and the program is told the database is locked; so does an invitation spent
 or run out meanwhile, and the program is told its invitation is gone. The plugin's log names each
-profile and each change Approve found.
+change Approve found, and no profile.
 
 A program that asks again after an approval was kept, as above, and finds by then that the
 profiles moved, gets the same dialog back in the same way, opening with the profiles and the

@@ -318,6 +318,11 @@ namespace KeePassGate.Tests.Fakes
             {
                 return _reading.InForce == null ? (IReadOnlyCollection<string>)Array.Empty<string>() : _reading.InForce.RemovalsOnceKnown(profile);
             }
+
+            public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Regaining(IReadOnlyCollection<string> profiles)
+            {
+                return AskedProfiles.Regaining(_reading, profiles, DateTimeOffset.UtcNow);
+            }
         }
 
         /// <summary>

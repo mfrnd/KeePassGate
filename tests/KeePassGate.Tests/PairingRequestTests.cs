@@ -47,6 +47,7 @@ namespace KeePassGate.Tests
 
             var refreshed = shown.Refreshed(Read("reader", "fresh"));
 
+            Assert.That(refreshed.Refreshes, Is.False);
             Assert.That(refreshed.Profiles.Select(refreshed.Changed), Is.All.False);
             Assert.That(refreshed.Profiles.Select(refreshed.Unchecks), Is.All.False);
         }
@@ -54,26 +55,68 @@ namespace KeePassGate.Tests
         [Test]
         public void A_Refresh_unchecks_a_row_for_which_Approve_does_more_and_highlights_every_row_it_changed()
         {
-            // `on`: on the list, then restored. `back`: restored, then on the list. `same`: added,
-            // then added.
-            var asked = new[] { "on", "back", "same" };
+            // `on`: on the list, then restored. `back`: restored, then on the list. `more`: regained
+            // by a client, then by a second. `fewer`: regained by two clients, then by a single
+            // client. `same`: added, then added.
+            var asked = new[] { "on", "back", "more", "fewer", "same" };
             StoreSeeds.Name(_store, "on");
             StoreSeeds.Name(_store, "back");
-            Taken("back");
+            Admitted(_store, "agent-first", "more", "fewer");
+            var second = Admitted(_store, "agent-second", "fewer");
+            var copy = _store.Copy();
+            Admitted(copy, "agent-third", "more");
+            Taken("back", "more", "fewer");
             var shown = Request(asked).Showing(Read(asked));
-            Assert.That(asked.Select(shown.MarkOf), Is.EqualTo(new[] { ProfileMark.Listed, ProfileMark.Removed, ProfileMark.New }));
+            Assert.That(asked.Select(shown.MarkOf), Is.EqualTo(new[]
+            {
+                ProfileMark.Listed, ProfileMark.Removed, ProfileMark.Removed, ProfileMark.Removed, ProfileMark.New
+            }));
 
             StoreSeeds.Unname(_store, "on");
             StoreSeeds.Name(_store, "back");
+            StoreSeeds.Revoke(_store, CertificateDigest.Of(second));
+            _store.Synchronize(copy);
             var refreshed = shown.Refreshed(Read(asked));
 
-            Assert.That(asked.Select(refreshed.MarkOf), Is.EqualTo(new[] { ProfileMark.Removed, ProfileMark.Listed, ProfileMark.New }));
-            Assert.That(asked.Select(refreshed.Changed), Is.EqualTo(new[] { true, true, false }), "highlighted");
-            Assert.That(asked.Select(refreshed.Unchecks), Is.EqualTo(new[] { true, false, false }), "unchecked");
+            Assert.That(asked.Select(refreshed.MarkOf), Is.EqualTo(new[]
+            {
+                ProfileMark.Removed, ProfileMark.Listed, ProfileMark.Removed, ProfileMark.Removed, ProfileMark.New
+            }));
+            Assert.That(refreshed.Returning("more").Count, Is.EqualTo(2), "a client more");
+            Assert.That(refreshed.Returning("fewer").Count, Is.EqualTo(1), "a client fewer");
+            Assert.That(refreshed.Refreshes, Is.True);
+            Assert.That(asked.Select(refreshed.Changed), Is.EqualTo(new[] { true, true, true, true, false }), "highlighted");
+            Assert.That(asked.Select(refreshed.Unchecks), Is.EqualTo(new[] { true, false, true, false, false }), "unchecked");
 
             var again = refreshed.Refreshed(Read(asked));
-            Assert.That(asked.Select(again.Unchecks), Is.All.False, "a Refresh after it changes nothing");
-            Assert.That(asked.Select(again.Changed), Is.EqualTo(new[] { true, true, false }), "a highlight stays");
+            Assert.That(again.Refreshes, Is.False, "a Refresh after it changes nothing");
+            Assert.That(asked.Select(again.Unchecks), Is.All.False);
+            Assert.That(asked.Select(again.Changed), Is.EqualTo(new[] { true, true, true, true, false }), "a highlight stays");
+        }
+
+        [Test]
+        public void A_dialog_shown_again_highlights_and_unchecks_a_row_a_client_the_dialog_before_did_not_show_regains()
+        {
+            // `ops` regained by `agent-first` before and by `agent-second` as well now: a client the
+            // operator was not shown. `audit` regained by both before and by `agent-first` alone
+            // now: narrower, highlighted as a row of a dialog shown again, and checked as approved.
+            var asked = new[] { "ops", "audit" };
+            Admitted(_store, "agent-first", "ops", "audit");
+            var second = Admitted(_store, "agent-second", "audit");
+            var copy = _store.Copy();
+            Admitted(copy, "agent-third", "ops");
+            Taken("ops", "audit");
+            var before = Read(asked);
+            StoreSeeds.Revoke(_store, CertificateDigest.Of(second));
+            _store.Synchronize(copy);
+
+            var shown = Request(asked, PairingApproval.Approved(asked, TimeSpan.FromDays(30)), before).Showing(Read(asked));
+
+            Assert.That(shown.Again, Is.True);
+            Assert.That(asked.Select(shown.MarkOf), Is.All.EqualTo(ProfileMark.Removed), "restored, as before");
+            Assert.That(asked.Select(shown.Changed), Is.EqualTo(new[] { true, true }));
+            Assert.That(asked.Select(shown.Checks), Is.EqualTo(new[] { false, true }));
+            Assert.That(shown.Differs, Is.True);
         }
 
         [Test]

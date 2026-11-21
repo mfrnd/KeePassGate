@@ -173,26 +173,7 @@ namespace KeePassGate.Gate
                 (profiles ?? Array.Empty<string>()).Where(profile => !string.IsNullOrEmpty(profile) && !named.Contains(profile)),
                 StringComparer.Ordinal);
 
-            // The admissions the reading lists that admit their certificate, and not an admission
-            // whose certificate has expired: it regains nothing, being refused on its dates before
-            // its admission is read. Every admission once, for every name.
-            var listing = StoreAdmissions.Listing(reading);
-            var returning = new Dictionary<string, List<AdmissionRecord>>(StringComparer.Ordinal);
-            foreach (var record in listing.Records.Where(record => listing.StandingOf(record) == AdmissionStanding.Admitted
-                                                                   && !record.HasExpired(now)))
-            {
-                foreach (var profile in (record.Profiles ?? Array.Empty<string>()).Where(off.Contains).Distinct(StringComparer.Ordinal))
-                {
-                    List<AdmissionRecord> holding;
-                    if (!returning.TryGetValue(profile, out holding))
-                    {
-                        holding = new List<AdmissionRecord>();
-                        returning[profile] = holding;
-                    }
-
-                    holding.Add(record);
-                }
-            }
+            var returning = Holding(reading, off, now);
 
             // The removals each name has, counted with the store key as the write counts them, so
             // that a removal only a deletion record tells of is tied to its name here as there.
@@ -203,12 +184,71 @@ namespace KeePassGate.Gate
                 profile => (IReadOnlyCollection<string>)new HashSet<string>(reading.InForce.RemovalsOnceKnown(profile), StringComparer.Ordinal),
                 StringComparer.Ordinal);
 
-            return new AskedProfiles(
-                true,
-                null,
-                listed.ToList(),
-                returning.ToDictionary(pair => pair.Key, pair => (IReadOnlyList<AdmissionRecord>)pair.Value, StringComparer.Ordinal),
-                removals);
+            return new AskedProfiles(true, null, listed.ToList(), returning, removals);
+        }
+
+        /// <summary>
+        /// Of each of these names, the admissions that regain it were it put back on the list: the
+        /// admissions the reading lists that admit their certificate and whose certificate has not
+        /// expired. What a dialog shows under "Regained by", and what the write compares with it,
+        /// `IWriteGround.Regaining`.
+        /// </summary>
+        /// <remarks>
+        /// **An admission whose certificate has expired regains nothing**, being refused on its
+        /// dates before its admission is read. Every admission once, for every name; a name no
+        /// admission holds is absent.
+        /// </remarks>
+        internal static IReadOnlyDictionary<string, IReadOnlyList<AdmissionRecord>> Holding(
+            StoreReading reading, IEnumerable<string> names, DateTimeOffset now)
+        {
+            var wanted = new HashSet<string>(names ?? Array.Empty<string>(), StringComparer.Ordinal);
+            var listing = StoreAdmissions.Listing(reading);
+            var holding = new Dictionary<string, List<AdmissionRecord>>(StringComparer.Ordinal);
+            foreach (var record in listing.Records.Where(record => listing.StandingOf(record) == AdmissionStanding.Admitted
+                                                                   && !record.HasExpired(now)))
+            {
+                foreach (var profile in (record.Profiles ?? Array.Empty<string>()).Where(wanted.Contains).Distinct(StringComparer.Ordinal))
+                {
+                    List<AdmissionRecord> holders;
+                    if (!holding.TryGetValue(profile, out holders))
+                    {
+                        holders = new List<AdmissionRecord>();
+                        holding[profile] = holders;
+                    }
+
+                    holders.Add(record);
+                }
+            }
+
+            return holding.ToDictionary(pair => pair.Key, pair => (IReadOnlyList<AdmissionRecord>)pair.Value, StringComparer.Ordinal);
+        }
+
+        /// <summary>
+        /// Of each of these names, the client keys of the clients regaining the name were it put
+        /// back on the list, from a single listing of the admissions, as <see cref="Holding"/>
+        /// lists the admissions holding it: what a write compares with the clients its dialog
+        /// showed, `IWriteGround.Regaining`. A name no client regains is absent.
+        /// </summary>
+        internal static IReadOnlyDictionary<string, IReadOnlyCollection<string>> Regaining(
+            StoreReading reading, IEnumerable<string> names, DateTimeOffset now)
+        {
+            return Holding(reading, names, now).ToDictionary(
+                pair => pair.Key,
+                pair => (IReadOnlyCollection<string>)pair.Value.Select(record => record.ClientKey).Distinct(StringComparer.Ordinal).ToList(),
+                StringComparer.Ordinal);
+        }
+
+        /// <summary>
+        /// Whether the dialog showed this client regaining this name asked for off the list, by
+        /// the client's key, `CA.md` §223: a client is its client key, however many of its
+        /// certificates hold the name. False for a name the reading did not ask about.
+        /// </summary>
+        public bool Regains(string profile, string clientKey)
+        {
+            IReadOnlyList<AdmissionRecord> holding;
+            return profile != null
+                   && Returning.TryGetValue(profile, out holding)
+                   && holding.Any(record => string.Equals(record.ClientKey, clientKey, StringComparison.Ordinal));
         }
 
         /// <summary>

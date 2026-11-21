@@ -25,13 +25,19 @@ namespace KeePassGate.Pairing
         private readonly Func<AskedProfiles> _read;
         private readonly AskedProfiles _shown;
 
-        /// <summary>The names whose state a Refresh of the dialog changed, <see cref="Refreshed"/>.</summary>
-        private readonly HashSet<string> _refreshed;
+        /// <summary>
+        /// The names whose row a Refresh of the dialog changed, each with what the Refreshes
+        /// changed in it, <see cref="Refreshed"/>.
+        /// </summary>
+        private readonly Dictionary<string, RowChange> _refreshed;
 
         /// <summary>
-        /// The names for which the Refresh that made this request makes Approve do more,
-        /// <see cref="Unchecks"/>; empty for a request no Refresh made.
+        /// The names whose row the Refresh that made this request changed, and of those the names
+        /// for which Approve does more since, <see cref="Refreshes"/> and <see cref="Unchecks"/>;
+        /// empty for a request no Refresh made.
         /// </summary>
+        private readonly HashSet<string> _altered = new HashSet<string>(StringComparer.Ordinal);
+
         private readonly HashSet<string> _widened = new HashSet<string>(StringComparer.Ordinal);
 
         /// <summary>
@@ -95,14 +101,16 @@ namespace KeePassGate.Pairing
             ScreenPlace place,
             Func<AskedProfiles> read,
             AskedProfiles shown,
-            IEnumerable<string> refreshed)
+            IDictionary<string, RowChange> refreshed)
         {
             _earlier = earlier;
             _before = before;
             _place = place;
             _read = read;
             _shown = shown;
-            _refreshed = new HashSet<string>(refreshed ?? Nothing, StringComparer.Ordinal);
+            _refreshed = refreshed == null
+                ? new Dictionary<string, RowChange>(StringComparer.Ordinal)
+                : new Dictionary<string, RowChange>(refreshed, StringComparer.Ordinal);
             _databaseId = databaseId ?? string.Empty;
             _databaseName = databaseName ?? string.Empty;
             _invitationId = invitationId ?? string.Empty;
@@ -193,25 +201,38 @@ namespace KeePassGate.Pairing
 
         /// <summary>
         /// The same request with its content read from this reading, as a Refresh of the dialog
-        /// shows it: each name whose state the reading changes is noted as changed, beside every
+        /// shows it: each name whose row the reading changes is noted as changed, beside every
         /// name a Refresh changed before, <see cref="Changed"/>.
         /// </summary>
         /// <param name="content">A reading that serves, `AskedProfiles.Served`.</param>
         /// <remarks>
-        /// **A row changes where its state does**, in either direction: a Refresh highlights it,
-        /// <see cref="Changed"/>. **Of those, a row for which Approve now does more**, a state that
-        /// adds or restores the profile where the row stated otherwise, is a row the Refresh
+        /// **A row changes where its state does or its clients do**, in either direction: a
+        /// Refresh highlights it, <see cref="Changed"/>. **Of those, a row for which Approve now
+        /// does more**, a state that adds or restores the profile where the row stated otherwise,
+        /// or a client regaining the profile that the row did not name, is a row the Refresh
         /// unchecks, <see cref="Unchecks"/>, so that no single Approve grants what the operator
-        /// checked in another state; a row now on the list, for which Approve does less, keeps its
-        /// check.
+        /// checked in another state; a row for which Approve does less keeps its check.
         /// </remarks>
         public PairingRequest Refreshed(AskedProfiles content)
         {
             var next = With(content, _refreshed);
-            foreach (var profile in _profiles.Where(profile => next.MarkOf(profile) != MarkOf(profile)))
+            foreach (var profile in _profiles)
             {
-                next._refreshed.Add(profile);
-                if (next.MarkOf(profile) != ProfileMark.Listed)
+                var widened = next.Widens(this, profile);
+                var narrowed = next.Narrows(this, profile);
+                if (widened || narrowed)
+                {
+                    // What the Refresh changed, beside what the Refreshes before it changed; a row
+                    // the Refresh changed is never noted as unchanged, and is told as a change of
+                    // its state where nothing else tells what changed.
+                    RowChange before;
+                    next._refreshed.TryGetValue(profile, out before);
+                    var change = next.Against(_shown, profile);
+                    next._refreshed[profile] = before | (change == RowChange.None ? RowChange.State : change);
+                    next._altered.Add(profile);
+                }
+
+                if (widened)
                 {
                     next._widened.Add(profile);
                 }
@@ -221,12 +242,54 @@ namespace KeePassGate.Pairing
         }
 
         /// <summary>
+        /// Whether the Refresh that made this request changed any row of the table, and false for
+        /// a request no Refresh made: a reading that changes no row is taken without a word, and
+        /// an approval then rests on it.
+        /// </summary>
+        public bool Refreshes
+        {
+            get { return _altered.Count > 0; }
+        }
+
+        /// <summary>
         /// Whether the Refresh that made this request unchecks a profile's row: Approve does more
         /// for the profile than the row showed before the Refresh, <see cref="Refreshed"/>.
         /// </summary>
         public bool Unchecks(string profile)
         {
             return profile != null && _widened.Contains(profile);
+        }
+
+        /// <summary>
+        /// Whether Approve does more for a profile as this request shows it than as the request
+        /// before showed it: a state that adds or restores the profile where the state was another,
+        /// or a client regaining the profile that the request before did not show regaining it.
+        /// </summary>
+        private bool Widens(PairingRequest before, string profile)
+        {
+            var mark = MarkOf(profile);
+            var marked = mark != ProfileMark.Listed && mark != before.MarkOf(profile);
+            return marked || Gained(before.Returning(profile), profile);
+        }
+
+        /// <summary>
+        /// Whether Approve does less for a profile as this request shows it than as the request
+        /// before showed it: on the list where it was off it, or a client fewer.
+        /// </summary>
+        private bool Narrows(PairingRequest before, string profile)
+        {
+            var listed = MarkOf(profile) == ProfileMark.Listed && before.MarkOf(profile) != ProfileMark.Listed;
+            return listed || before.Gained(Returning(profile), profile);
+        }
+
+        /// <summary>
+        /// Whether this request shows a client regaining a profile that is not among these
+        /// admissions, by client key: a client is its client key, `CA.md` §223.
+        /// </summary>
+        private bool Gained(IReadOnlyList<AdmissionRecord> shownBefore, string profile)
+        {
+            var known = new HashSet<string>(shownBefore.Select(record => record.ClientKey), StringComparer.Ordinal);
+            return Returning(profile).Any(record => !known.Contains(record.ClientKey));
         }
 
         /// <summary>
@@ -259,7 +322,7 @@ namespace KeePassGate.Pairing
             return PairingApproval.Restated(_earlier.Profiles, _earlier.Lifetime, _shown);
         }
 
-        private PairingRequest With(AskedProfiles content, IEnumerable<string> refreshed)
+        private PairingRequest With(AskedProfiles content, IDictionary<string, RowChange> refreshed)
         {
             if (content == null || !content.Served)
             {
@@ -291,31 +354,37 @@ namespace KeePassGate.Pairing
 
         /// <summary>
         /// Whether a profile's row opens checked: every row of a first dialog, and on a dialog
-        /// shown again a row the operator left checked before and unchanged since,
-        /// <see cref="Changed"/>.
+        /// shown again a row the operator left checked before whose change since, where the row
+        /// changed, makes Approve do no more, <see cref="Changed"/>.
         /// </summary>
         /// <remarks>
         /// **A row whose mark changed opens unchecked**, whatever the operator had there: on the
-        /// list before and removed now, new before and removed now, and so on. What the operator
-        /// approved was the name as it was marked, so a single Approve on the dialog shown again
-        /// grants no name in a state the operator did not approve it in, as putting a name back
-        /// for every rule and client still holding it where the operator approved a name on the
-        /// list. Unchecked as well where nothing tells how the dialog before marked it.
+        /// list before and removed now, new before and removed now, and so on. **So does a row
+        /// that a client regains which the dialog before did not show regaining it.** What the
+        /// operator approved was the name as it was shown, so a single Approve on the dialog shown
+        /// again grants no name in a state the operator did not approve it in, as putting a name
+        /// back for every rule and client still holding it where the operator approved a name on
+        /// the list, or for a client the operator was not shown. Unchecked as well where nothing
+        /// tells how the dialog before showed it. **A row with a client fewer keeps its check**,
+        /// since Approve does less for it, and is highlighted all the same.
         /// </remarks>
         public bool Checks(string profile)
         {
             return _earlier == null
-                   || (_earlier.Profiles.Contains(profile, StringComparer.Ordinal) && !Changed(profile));
+                   || (_earlier.Profiles.Contains(profile, StringComparer.Ordinal)
+                       && !Widened(_before, profile)
+                       && !(profile != null && _refreshed.ContainsKey(profile)));
         }
 
         /// <summary>
-        /// Whether a profile's state changed since the dialog was shown before: on a dialog shown
-        /// again, a profile marked otherwise than the dialog before marked it, or where nothing
-        /// tells how that dialog marked it; and on any dialog, a profile whose state a Refresh
-        /// changed, <see cref="Refreshed"/>.
+        /// Whether a profile's row changed since the dialog was shown before: on a dialog shown
+        /// again, a profile marked otherwise than the dialog before marked it, regained by a client
+        /// that dialog did not show regaining it or no longer by a client it showed, or where
+        /// nothing tells how that dialog showed it; and on any dialog, a profile whose row a
+        /// Refresh changed, <see cref="Refreshed"/>.
         /// </summary>
         /// <remarks>
-        /// **A row of a dialog shown again whose state changed opens unchecked**,
+        /// **A row of a dialog shown again whose change makes Approve do more opens unchecked**,
         /// <see cref="Checks"/>, as a row the operator unchecked does, so the dialog shows the
         /// change apart from the check: the row is highlighted, and its tooltip and the text read
         /// out as the row state the change, `PAIRING.md` §311. **A Refresh unchecks a row only
@@ -324,9 +393,80 @@ namespace KeePassGate.Pairing
         /// </remarks>
         public bool Changed(string profile)
         {
-            var sinceTheDialogBefore = _earlier != null && (_before == null || _before.MarkOf(profile) != MarkOf(profile));
-            var byARefresh = profile != null && _refreshed.Contains(profile);
-            return sinceTheDialogBefore || byARefresh;
+            return ChangeOf(profile) != RowChange.None;
+        }
+
+        /// <summary>
+        /// What changed in a profile's row since the dialog was shown before, on a dialog shown
+        /// again, and by every Refresh, <see cref="Changed"/>: none for a row that did not change.
+        /// </summary>
+        public RowChange ChangeOf(string profile)
+        {
+            RowChange refreshed;
+            var byARefresh = profile != null && _refreshed.TryGetValue(profile, out refreshed) ? refreshed : RowChange.None;
+            return (_earlier != null ? Against(_before, profile) : RowChange.None) | byARefresh;
+        }
+
+        /// <summary>
+        /// What differs in a profile's row from the row a dialog built from this reading showed:
+        /// its state, or else the clients regaining the profile, added or removed; a state where
+        /// nothing tells how that dialog showed the row.
+        /// </summary>
+        /// <remarks>
+        /// **The state alone where the state differs**: the clients follow from the state, since a
+        /// profile on the list or new is regained by nobody.
+        /// </remarks>
+        private RowChange Against(AskedProfiles before, string profile)
+        {
+            if (before == null || before.MarkOf(profile) != MarkOf(profile))
+            {
+                return RowChange.State;
+            }
+
+            var change = RowChange.None;
+            if (Returning(profile).Any(record => !before.Regains(profile, record.ClientKey)))
+            {
+                change |= RowChange.ClientsAdded;
+            }
+
+            if (Narrowed(before, profile))
+            {
+                change |= RowChange.ClientsRemoved;
+            }
+
+            return change;
+        }
+
+        /// <summary>
+        /// Whether a profile's row makes Approve do more than the row a dialog built from this
+        /// reading showed: marked otherwise, or regained by a client that reading did not hold
+        /// regaining it; and where nothing tells how that dialog showed it.
+        /// </summary>
+        private bool Widened(AskedProfiles before, string profile)
+        {
+            if (before == null)
+            {
+                return true;
+            }
+
+            var marked = before.MarkOf(profile) != MarkOf(profile);
+            return marked || Returning(profile).Any(record => !before.Regains(profile, record.ClientKey));
+        }
+
+        /// <summary>
+        /// Whether a client that a dialog built from this reading showed regaining a profile no
+        /// longer regains it, by client key: a row Approve does less for.
+        /// </summary>
+        private bool Narrowed(AskedProfiles before, string profile)
+        {
+            IReadOnlyList<AdmissionRecord> shown;
+            if (before == null || profile == null || !before.Returning.TryGetValue(profile, out shown) || shown == null)
+            {
+                return false;
+            }
+
+            var now = new HashSet<string>(Returning(profile).Select(record => record.ClientKey), StringComparer.Ordinal);
+            return shown.Any(record => !now.Contains(record.ClientKey));
         }
 
         /// <summary>How the dialog marks a profile being asked for.</summary>
@@ -439,6 +579,26 @@ namespace KeePassGate.Pairing
                 Monitor.Exit(screen);
             }
         }
+    }
+
+    /// <summary>
+    /// What changed in a row of the pairing dialog after the profile was first shown,
+    /// `PairingRequest.ChangeOf`.
+    /// </summary>
+    [Flags]
+    public enum RowChange
+    {
+        /// <summary>Nothing: the row reads as when the profile was first shown.</summary>
+        None = 0,
+
+        /// <summary>The profile's state: on the list, new, or removed.</summary>
+        State = 1,
+
+        /// <summary>A client regains the profile that the row did not name.</summary>
+        ClientsAdded = 2,
+
+        /// <summary>A client the row named no longer regains the profile.</summary>
+        ClientsRemoved = 4
     }
 
     public enum PairingDecision

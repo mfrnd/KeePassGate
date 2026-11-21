@@ -2462,11 +2462,12 @@ list and, for each name asked for off it, the clients that regain it and the rem
 operator answers what the dialog showed; the store can change between its last reading and the
 write. So the write, on KeePass's thread and under the writer's lock, reads the store again and
 compares every name the answer rested on with what the dialog showed, a renewal's dropped names
-included, and every removal of an approved name off the list with the removals the dialog held. A
-name put on or taken off the list since the dialog last read the store, or a removal of such a
-name that the dialog did not hold, makes the approval stale rather than part of a record: it is
-used up, nothing is spent, and the
-log names the profile and every cause the write found. A renewal's request then answers
+included, every removal of an approved name off the list with the removals the dialog held, and
+every client regaining such a name with the clients the dialog showed regaining it. A name put on
+or taken off the list since the dialog last read the store, a removal of such a name that the
+dialog did not hold, or a client regaining it that the dialog did not show regaining it, makes the
+approval stale rather than part of a record: it is used up, nothing is spent, and the log names
+every cause the write found, and no profile. A renewal's request then answers
 `503 busy`, and the next request is put to the operator again. A pairing's request is answered
 nothing there: the same request puts the dialog to the operator again, from a reading taken
 afresh, which holds every removal its writes found while the store holds it, stating that it is

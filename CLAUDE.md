@@ -206,9 +206,10 @@ designing around them.
   exactly the approved request, held for the rest of the pairing budget, used once, let go by a
   lock, a close of its database and an exit, and compared under the writer's lock at the write
   with the authority, the profile list, the removals of each approved name off the list that its
-  dialog held, and the renewed record it was approved against. The client is told `heldUntil` in
-  its `503 busy`. **A pairing whose write finds its approval stale is not answered there**: the
-  same request puts the dialog to the operator again, keeping
+  dialog held and the clients it showed regaining that name, and the renewed record it was
+  approved against. The client is told `heldUntil` in its `503 busy`. **A pairing whose write
+  finds its approval stale is not answered there**: the same request puts the dialog to the
+  operator again, keeping
   the screen and what the operator approved as state of its own
   that goes with it, until an approval is written, the operator refuses, or the pairing budget is
   used up, `PAIRING.md` §311. A held approval is the only approval a later request can find stale,
@@ -235,7 +236,7 @@ designing around them.
   finds disables Approve and enables Refresh, which shows the change and highlights the rows it
   changed, so that no row moves under the pointer. A change no tick has read yet, inside work of
   KeePass's own or after the last tick before the press, is caught by the write, which holds the
-  approval to the list and the removals the dialog last showed; the request then
+  approval to the list, the removals and the clients the dialog last showed; the request then
   shows the dialog again where a row differs, and writes the approval over the new reading where
   none does.
 - **The proofs need nothing from the transport.** `tls-server-end-point` is a hash of the

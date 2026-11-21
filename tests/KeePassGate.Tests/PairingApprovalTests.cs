@@ -1267,6 +1267,130 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void On_a_dialog_shown_again_a_row_with_a_client_fewer_is_highlighted_and_keeps_its_check()
+        {
+            // `ops` restored for two clients on the dialog before, approved there; a client of the
+            // two revoked before the dialog shown again: Approve does less for `ops`, so the row
+            // keeps its check, and its change is shown as a Refresh shows it.
+            using (var authority = TestAuthority.New())
+            using (var kept = authority.IssueClient("agent-kept"))
+            using (var revoked = authority.IssueClient("agent-revoked"))
+            {
+                var profiles = new[] { "ops" };
+                authority.KnownProfiles = profiles;
+                authority.Admit(kept, "ops");
+                authority.Admit(revoked, "ops");
+                authority.Forget("ops");
+                var before = authority.Asked(profiles);
+                authority.Revoke(revoked);
+                var request = new PairingRequest(
+                    authority.DatabaseId, "Invented Vault", "abcdef01", "agent-fictitious", profiles, "127.0.0.1:60001",
+                    null, PairingApproval.Approved(profiles), before, null, () => authority.Asked(profiles));
+
+                using (var dialog = new PairingApprovalForm(request.Showing(request.Read()), Timeout))
+                {
+                    ShownAway(dialog);
+                    var list = Profiles(dialog);
+                    Assert.That(Rows(list)[0][2], Is.EqualTo("agent-kept"));
+                    Assert.That(Checks(list), Is.EqualTo(new[] { true }), "a client fewer unchecked the row");
+                    Assert.That(Backgrounds(list)[0], Is.EqualTo(PairingApprovalForm.ChangedBackground), "a client fewer is no change");
+
+                    // The state reads as before, so that the row's words and the notice are true
+                    // of a change of the clients alone.
+                    Assert.That(Rows(list)[0][1], Is.EqualTo(PairingApprovalForm.RemovedState), "the state changed");
+                    Assert.That(TipOf(list, BoxOf(list, 0)), Is.EqualTo(Tooltips.Wrapped(PairingApprovalForm.ClientsRemovedTip)));
+                    Assert.That(Change(dialog), Is.EqualTo("Shown again: the table changed."));
+                }
+            }
+        }
+
+        [Test]
+        public void On_a_dialog_shown_again_a_row_whose_clients_changed_states_whether_clients_were_added_removed_or_both()
+        {
+            // Every name removed on both dialogs, so that no state changed: `more` regained by a
+            // client more, `fewer` by a client fewer, and `other` by another client in place of
+            // the client before.
+            var asked = new[] { "more", "fewer", "other" };
+            using (var authority = TestAuthority.New())
+            using (var clients = new IssuedClients(Enumerable.Range(0, 6).Select(at => authority.IssueClient("agent-" + at))))
+            {
+                var then = PairingRequests.Listing(asked);
+                PairingRequests.Holding(then, clients[0], "more");
+                PairingRequests.Holding(then, clients[1], "fewer");
+                PairingRequests.Holding(then, clients[2], "fewer");
+                PairingRequests.Holding(then, clients[3], "other");
+                PairingRequests.Taken(then, asked);
+                var before = PairingRequests.Read(then, asked);
+
+                var now = PairingRequests.Listing(asked);
+                PairingRequests.Holding(now, clients[0], "more");
+                PairingRequests.Holding(now, clients[4], "more");
+                PairingRequests.Holding(now, clients[1], "fewer");
+                PairingRequests.Holding(now, clients[5], "other");
+                PairingRequests.Taken(now, asked);
+                var request = PairingRequests.Shown(now, asked, earlier: PairingApproval.Approved(asked), before: before);
+                Assert.That(asked.Select(request.MarkOf), Is.All.EqualTo(ProfileMark.Removed), "no state changed");
+
+                using (var dialog = new PairingApprovalForm(request, Timeout))
+                {
+                    ShownAway(dialog);
+                    var list = Profiles(dialog);
+
+                    Assert.That(Enumerable.Range(0, 3).Select(row => TipOf(list, BoxOf(list, row))), Is.EqualTo(new[]
+                    {
+                        PairingApprovalForm.ClientsAddedTip, PairingApprovalForm.ClientsRemovedTip, PairingApprovalForm.ClientsChangedTip
+                    }.Select(tip => Tooltips.Wrapped(tip))));
+                    Assert.That(ProfileRows.Spoken(list).Select(spoken => spoken.Substring(spoken.LastIndexOf(" The row", StringComparison.Ordinal) + 1)),
+                        Is.EqualTo(new[] { PairingApprovalForm.ClientsAddedTip, PairingApprovalForm.ClientsRemovedTip, PairingApprovalForm.ClientsChangedTip }));
+                    Assert.That(Backgrounds(list), Is.All.EqualTo(PairingApprovalForm.ChangedBackground));
+                }
+            }
+        }
+
+        [Test]
+        public void A_Refresh_states_what_it_changed_and_what_the_Refreshes_before_it_changed()
+        {
+            // `ops` restored for a client: a second client admitted under the dialog, and a Refresh
+            // states that clients were added; the first client revoked, and the next Refresh states
+            // that clients were added and removed, since both happened after the profile was first
+            // shown. `catalog`, new, named under the dialog: the state cell empties, and the row
+            // states that this database names the profile now.
+            using (var authority = TestAuthority.New())
+            using (var first = authority.IssueClient("agent-first"))
+            using (var second = authority.IssueClient("agent-second"))
+            {
+                authority.KnownProfiles = new[] { "ops" };
+                authority.Admit(first, "ops");
+                authority.Forget("ops");
+                using (var dialog = Over(authority, "ops", "catalog"))
+                {
+                    ShownOffScreen(dialog);
+                    var list = Profiles(dialog);
+                    Assert.That(Rows(list)[1][1], Is.EqualTo(PairingApprovalForm.NewState));
+
+                    authority.Admit(second, "ops");
+                    authority.Forget("ops");
+                    authority.Name(new[] { "catalog" });
+                    dialog.Watch();
+                    dialog.ShowAsItStands();
+                    OffScreenForm.Pump();
+
+                    Assert.That(Rows(list)[1][1], Is.Empty, "the state cell empties");
+                    Assert.That(TipOf(list, BoxOf(list, 0)), Is.EqualTo(Tooltips.Wrapped(PairingApprovalForm.ClientsAddedTip)));
+                    Assert.That(TipOf(list, BoxOf(list, 1)), Is.EqualTo(Tooltips.Wrapped(PairingApprovalForm.NowListedTip)));
+
+                    Assert.That(authority.Revoke(first), Is.True);
+                    dialog.Watch();
+                    dialog.ShowAsItStands();
+                    OffScreenForm.Pump();
+
+                    Assert.That(TipOf(list, BoxOf(list, 0)), Is.EqualTo(Tooltips.Wrapped(PairingApprovalForm.ClientsChangedTip)));
+                    Assert.That(TipOf(list, BoxOf(list, 1)), Is.EqualTo(Tooltips.Wrapped(PairingApprovalForm.NowListedTip)), "the change before stands");
+                }
+            }
+        }
+
+        [Test]
         public void A_reading_that_throws_under_the_dialog_leaves_the_database_unreadable_and_reads_no_more()
         {
             // What no list names goes on to the handler of the tick, which counts it: once, since
@@ -1315,7 +1439,7 @@ namespace KeePassGate.Tests
             Assert.That(PairingApprovalForm.DatabaseChanged, Is.EqualTo("The database changed."));
             Assert.That(PairingApprovalForm.CannotRead, Is.EqualTo("The database cannot be read for now."));
             Assert.That(PairingApprovalForm.ReadingStopped, Is.EqualTo("The database cannot be read."));
-            Assert.That(PairingApprovalForm.StateChanged, Is.EqualTo("Shown again: the state of the profiles changed."));
+            Assert.That(PairingApprovalForm.StateChanged, Is.EqualTo("Shown again: the table changed."));
             Assert.That(PairingApprovalForm.RefreshName, Is.EqualTo("Refresh"));
             Assert.That(PairingApprovalForm.RefreshTip, Is.EqualTo("Refresh (F5)"));
             Assert.That(PairingApprovalForm.RefreshShowsTip, Is.EqualTo("Refresh shows the change. (F5)"));
@@ -1795,7 +1919,7 @@ namespace KeePassGate.Tests
                        PairingRequests.Shown(store, new[] { "ops", "reader" }, earlier: PairingApproval.Approved(new[] { "ops", "reader" }), before: before), Timeout))
             {
                 ShownOffScreen(dialog);
-                Assert.That(Change(dialog), Is.EqualTo("Shown again: the state of the profiles changed."), "the notice of a dialog shown again");
+                Assert.That(Change(dialog), Is.EqualTo("Shown again: the table changed."), "the notice of a dialog shown again");
                 PairingRequests.Taken(store, "ops");
                 dialog.Watch();
                 Assert.That(Change(dialog), Is.EqualTo("The database changed."), "a change waiting replaces the notice");
@@ -1814,7 +1938,7 @@ namespace KeePassGate.Tests
             // The longest line naming the table, a request for no profile, beside each of the words:
             // within the line at every scaling, on a single line, and where cut, whole in the
             // tooltip; where whole, no tooltip.
-            var texts = new[] { "The database changed.", "The database cannot be read for now.", "The database cannot be read.", "Shown again: the state of the profiles changed." };
+            var texts = new[] { "The database changed.", "The database cannot be read for now.", "The database cannot be read.", "Shown again: the table changed." };
             using (var larger = Scaled(Control.DefaultFont, scaling))
             using (var dialog = New(larger))
             {
@@ -2527,6 +2651,12 @@ namespace KeePassGate.Tests
                 "The row changed after the profile was first shown: Approve now also restores the profile."));
             Assert.That(PairingApprovalForm.NowListedTip, Is.EqualTo(
                 "The row changed after the profile was first shown: this database names the profile now."));
+            Assert.That(PairingApprovalForm.ClientsAddedTip, Is.EqualTo(
+                "The row changed after the profile was first shown: clients were added."));
+            Assert.That(PairingApprovalForm.ClientsRemovedTip, Is.EqualTo(
+                "The row changed after the profile was first shown: clients were removed."));
+            Assert.That(PairingApprovalForm.ClientsChangedTip, Is.EqualTo(
+                "The row changed after the profile was first shown: clients were added and removed."));
         }
 
         [Test]
@@ -4264,7 +4394,8 @@ namespace KeePassGate.Tests
                         .Concat(new[]
                         {
                             PairingApprovalForm.StateChanged, PairingApprovalForm.NowAddsTip, PairingApprovalForm.NowRestoresTip,
-                            PairingApprovalForm.NowListedTip,
+                            PairingApprovalForm.NowListedTip, PairingApprovalForm.ClientsAddedTip, PairingApprovalForm.ClientsRemovedTip,
+                            PairingApprovalForm.ClientsChangedTip,
                             PairingApprovalForm.NoProfilesAsked, PairingApprovalForm.DatabaseChanged, PairingApprovalForm.CannotRead,
                             PairingApprovalForm.ReadingStopped, PairingApprovalForm.RefreshTip, PairingApprovalForm.RefreshShowsTip,
                             "Approved, the client reaches nothing."
@@ -4883,7 +5014,7 @@ namespace KeePassGate.Tests
         {
             // `IUiThread.Run` answers false for a dialog that came up at once and outlasted the
             // wait for its turn, which a dialog given more time than that wait does: it was not
-            // shown late, and its answer is the one given.
+            // shown late, and its answer is the answer given.
             var prompt = new PairingApprovalPrompt(new FakeUiThread { RunsLate = true }, _log)
             {
                 Dialog = (request, allowed) => PairingApproval.Approved(new[] { "ops" })

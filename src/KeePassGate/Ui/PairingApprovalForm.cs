@@ -271,7 +271,9 @@ namespace KeePassGate.Ui
         /// <remarks>
         /// **What changed, and to what the cell now reads**, in a sentence that names no profile
         /// and no client: a highlight alone left the operator looking for the change, and a state
-        /// cell that went empty showed nothing at all, <see cref="ChangeTip"/>.
+        /// cell that went empty showed nothing at all. **The state before the clients**: where the
+        /// state changed, what Approve does is what changed, and the clients follow from the state,
+        /// <see cref="ChangeTip"/>.
         /// </remarks>
         public const string NowAddsTip = "The row changed after the profile was first shown: Approve now also adds the profile.";
 
@@ -282,12 +284,26 @@ namespace KeePassGate.Ui
         public const string NowListedTip = "The row changed after the profile was first shown: this database names the profile now.";
 
         /// <summary>
+        /// The tooltip anywhere on a row whose state reads as when the profile was first shown and
+        /// whose clients changed: some added and none removed, on a dialog shown again or by a
+        /// Refresh.
+        /// </summary>
+        public const string ClientsAddedTip = "The row changed after the profile was first shown: clients were added.";
+
+        /// <summary>The same where some clients were removed and none added.</summary>
+        public const string ClientsRemovedTip = "The row changed after the profile was first shown: clients were removed.";
+
+        /// <summary>The same where some clients were added and others removed.</summary>
+        public const string ClientsChangedTip = "The row changed after the profile was first shown: clients were added and removed.";
+
+        /// <summary>
         /// What changed in a profile's row after the profile was first shown, the tooltip of the
         /// row and what is read out last as its box, or null for a row that did not change.
         /// </summary>
         /// <remarks>
-        /// **True of the row as it stands**: a state that changed is told by what the state cell
-        /// reads now, whatever it read in between.
+        /// **Each sentence true of the row as it stands**: a state that changed is told by what the
+        /// state cell reads now, whatever it read in between, and the clients by whether any were
+        /// added or removed since the profile was first shown, `PairingRequest.ChangeOf`.
         /// </remarks>
         public static string ChangeTip(PairingRequest request, string profile)
         {
@@ -296,12 +312,15 @@ namespace KeePassGate.Ui
                 throw new ArgumentNullException(nameof(request));
             }
 
-            if (!request.Changed(profile))
+            var change = request.ChangeOf(profile);
+            if ((change & RowChange.State) != 0)
             {
-                return null;
+                return request.IsRemoved(profile) ? NowRestoresTip : request.IsNew(profile) ? NowAddsTip : NowListedTip;
             }
 
-            return request.IsRemoved(profile) ? NowRestoresTip : request.IsNew(profile) ? NowAddsTip : NowListedTip;
+            var added = (change & RowChange.ClientsAdded) != 0;
+            var removed = (change & RowChange.ClientsRemoved) != 0;
+            return added && removed ? ClientsChangedTip : added ? ClientsAddedTip : removed ? ClientsRemovedTip : null;
         }
 
         /// <summary>
@@ -453,9 +472,9 @@ namespace KeePassGate.Ui
         /// </summary>
         /// <remarks>
         /// **From the request that puts the dialog up again**, `PairingRequest.Again`, and never
-        /// from anything the client sends. **The words state only that the state changed**:
-        /// never which cause nor which profile, since the rows show the state, and the
-        /// plugin's log names each profile and each cause.
+        /// from anything the client sends. **The words state only that the table changed**:
+        /// never which cause nor which profile, since the rows show what changed, a state or the
+        /// clients regaining a profile, and the plugin's log names each kind of cause.
         /// </remarks>
         public static string Again(PairingRequest request)
         {
@@ -464,9 +483,10 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// The words beside Refresh on a dialog shown again, whatever Approve found, until a change
-        /// waiting to be shown replaces them.
+        /// waiting to be shown replaces them: true where a state changed and where only the
+        /// clients regaining a profile did.
         /// </summary>
-        public const string StateChanged = "Shown again: the state of the profiles changed.";
+        public const string StateChanged = "Shown again: the table changed.";
 
         /// <summary>
         /// The words beside Refresh while what the database holds differs from what the dialog
@@ -1088,7 +1108,7 @@ namespace KeePassGate.Ui
             if (content.Served)
             {
                 var next = _request.Refreshed(content);
-                if (string.Equals(Shows(next), Shows(_request), StringComparison.Ordinal))
+                if (!next.Refreshes)
                 {
                     _request = next;
                     _pending = null;
@@ -1201,12 +1221,6 @@ namespace KeePassGate.Ui
 
             Hold();
             Settle();
-        }
-
-        /// <summary>What the table shows of a request, a row to a line, to compare two readings by.</summary>
-        private static string Shows(PairingRequest request)
-        {
-            return string.Join("\n", request.Profiles.Select(profile => string.Join("\t", Cells(request, profile))));
         }
 
         /// <summary>

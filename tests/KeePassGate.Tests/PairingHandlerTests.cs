@@ -1469,8 +1469,8 @@ namespace KeePassGate.Tests
 
             Assert.That(
                 _log.Warnings.Single(entry => entry.Message.Contains(StaleLine)).Message,
-                Does.Contain("the profile reader is off the list").And.Contain("a removal of the profile ops"),
-                "a single line names both causes");
+                Does.Contain(OffTheListCause).And.Contain(RemovalCause).And.Not.Contain("reader").And.Not.Contain(" ops"),
+                "a single line names both causes, and no profile");
             var shown = approval.Requests[1];
             Assert.That(approval.Asked, Is.EqualTo(2));
             Assert.That(_atEachDialog[1], Is.EqualTo(NothingWritten));
@@ -1761,8 +1761,8 @@ namespace KeePassGate.Tests
         public void The_notice_reads_the_same_whatever_the_write_found_and_the_log_names_each_cause(string how)
         {
             // The dialog shown again states only that the state changed: the rows show the state,
-            // and the log names each profile and each cause
-            // the write found, all of them in a single line.
+            // and the log names each cause the write found, all of them in a single line, and no
+            // profile.
             _target.KnownProfiles = new[] { "reader" };
             var approval = Agreeing();
             _target.BeforeWrite = () =>
@@ -1784,9 +1784,123 @@ namespace KeePassGate.Tests
 
             Assert.That(PairingApprovalForm.Again(approval.Requests[1]), Is.EqualTo(StateChanged));
             var line = _log.Warnings.Select(entry => entry.Message).Single(message => message.Contains(StaleLine));
-            Assert.That(line.Contains("a removal of the profile ops"), Is.EqualTo(how != ByAMove), line);
-            Assert.That(line.Contains("the profile reader is off the list"), Is.EqualTo(how != ByARemoval), line);
+            Assert.That(line.Contains(RemovalCause), Is.EqualTo(how != ByAMove), line);
+            Assert.That(line.Contains(OffTheListCause), Is.EqualTo(how != ByARemoval), line);
+            Assert.That(line, Does.Not.Contain("reader").And.Not.Contain(" ops"));
             Assert.That(context.Status, Is.EqualTo(200), context.Json);
+        }
+
+        /// <summary>The cause a write names for a profile the dialog showed on the list and off it now.</summary>
+        private const string OffTheListCause =
+            "a profile the approval rests on is off the list, and the dialog showed that profile on the list";
+
+        /// <summary>The cause a write names for a removal the dialog did not show.</summary>
+        private const string RemovalCause = "the store holds a removal of an approved profile that the dialog did not show";
+
+        [Test]
+        public void A_client_a_synchronize_admits_holding_a_restored_name_under_the_write_brings_the_dialog_back_with_the_row_unchecked()
+        {
+            // `ops` off the list, the dialog showing it restored and regained by `agent-first`.
+            // KeePass's periodic trigger synchronizes, between Approve and the write, a copy in
+            // which `agent-second` was admitted holding `ops` while `ops` was still on the list
+            // there: the write would give `ops` back to a client no table named. Nothing is
+            // written or spent, and the dialog shown again names both clients, its row unchecked
+            // and highlighted; the operator checks it again, and that approval is written.
+            using (var first = _target.IssueClient("agent-first", "ops"))
+            using (var second = _target.IssueClient("agent-second", "ops"))
+            {
+                var copy = HeldInACopy(first, second, "ops", "ops");
+                _target.BeforeWrite = () =>
+                {
+                    _target.BeforeWrite = null;
+                    _target.Store.Synchronize(copy);
+                };
+                var approval = Answering(request => PairingApproval.Approved(request.Profiles));
+                Hello(ClientProof());
+
+                var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+                Assert.That(approval.Asked, Is.EqualTo(2));
+                Assert.That(Regaining(approval.Requests[0], "ops"), Is.EqualTo(new[] { "CN=agent-first" }));
+                var shown = approval.Requests[1];
+                Assert.That(_atEachDialog[1], Is.EqualTo(NothingWritten), "nothing written or spent before the second Approve");
+                Assert.That(PairingApprovalForm.Again(shown), Is.EqualTo(StateChanged));
+                Assert.That(Regaining(shown, "ops"), Is.EqualTo(new[] { "CN=agent-first", "CN=agent-second" }));
+                Assert.That(shown.MarkOf("ops"), Is.EqualTo(ProfileMark.Removed), "restored, as before");
+                Assert.That(shown.Changed("ops"), Is.True, "highlighted");
+                Assert.That(shown.Checks("ops"), Is.False, "unchecked");
+                Assert.That(_log.Warnings.Single(entry => entry.Message.Contains(StaleLine)).Message, Does.Contain(RegainedCause));
+                Assert.That(context.Status, Is.EqualTo(200), context.Json);
+                Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops" }));
+            }
+        }
+
+        [Test]
+        public void A_client_fewer_regaining_an_approved_name_and_a_client_more_regaining_a_name_left_unchecked_leave_the_approval_standing()
+        {
+            // `agent-first` revoked under the write: `ops` goes back to fewer clients than the
+            // dialog showed. `agent-second`, from a copy, holds `audit`, which the operator left
+            // unchecked: the write restores no `audit`. Neither is a client the approval restores
+            // a name for that no table showed, so the approval is written at the first Approve.
+            using (var first = _target.IssueClient("agent-first", "ops"))
+            using (var second = _target.IssueClient("agent-second", "audit"))
+            {
+                _target.KnownProfiles = new[] { "ops", "audit" };
+                _target.Admit(first, "ops");
+                var copy = _target.Store.Copy();
+                StoreSeeds.Admit(copy, second, DateTimeOffset.UtcNow, "audit");
+                _target.Forget("ops");
+                _target.Forget("audit");
+                _target.BeforeWrite = () =>
+                {
+                    _target.BeforeWrite = null;
+                    StoreSeeds.Revoke(_target.Store, CertificateDigest.Of(first));
+                    _target.Store.Synchronize(copy);
+                };
+                var approval = Answering(request => PairingApproval.Approved(new[] { "ops" }));
+                Hello(ClientProof());
+
+                var context = Request("agent-fictitious", new[] { "ops", "audit" }, approval);
+
+                Assert.That(approval.Asked, Is.EqualTo(1));
+                Assert.That(Regaining(approval.Requests[0], "ops"), Is.EqualTo(new[] { "CN=agent-first" }));
+                Assert.That(Regaining(approval.Requests[0], "audit"), Is.Empty);
+                Assert.That(_log.Warnings.Count(entry => entry.Message.Contains(StaleLine)), Is.Zero);
+                Assert.That(context.Status, Is.EqualTo(200), context.Json);
+                Assert.That(_target.KnownProfiles, Is.EqualTo(new[] { "ops" }));
+            }
+        }
+
+        [Test]
+        public void A_held_approval_of_a_restored_name_is_stale_at_its_retry_once_a_client_the_dialog_did_not_show_regains_the_name()
+        {
+            // As above, with the approval held for a busy KeePass and the copy synchronized
+            // before the retry: the retry's write finds the client, and the retry puts the dialog
+            // up again.
+            using (var first = _target.IssueClient("agent-first", "ops"))
+            using (var second = _target.IssueClient("agent-second", "ops"))
+            {
+                var copy = HeldInACopy(first, second, "ops", "ops");
+                var approval = Answering(request => PairingApproval.Approved(request.Profiles));
+                _target.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
+                Hello(ClientProof());
+                Assert.That(Request("agent-fictitious", new[] { "ops" }, approval).Status, Is.EqualTo(503));
+                Assert.That(_held.Count, Is.EqualTo(1), "the approval is held");
+                _target.AdmitAnswers = null;
+                _target.Store.Synchronize(copy);
+
+                Hello(ClientProof());
+                var context = Request("agent-fictitious", new[] { "ops" }, approval);
+
+                Assert.That(approval.Asked, Is.EqualTo(2));
+                Assert.That(PairingApprovalForm.Again(approval.Requests[1]), Is.EqualTo(StateChanged));
+                Assert.That(Regaining(approval.Requests[1], "ops"), Is.EqualTo(new[] { "CN=agent-first", "CN=agent-second" }));
+                Assert.That(approval.Requests[1].Changed("ops"), Is.True);
+                Assert.That(approval.Requests[1].Checks("ops"), Is.False);
+                Assert.That(_log.Warnings.Single(entry => entry.Message.Contains(StaleLine)).Message, Does.Contain(RegainedCause));
+                Assert.That(context.Status, Is.EqualTo(200), context.Json);
+                Assert.That(_held.Count, Is.Zero);
+            }
         }
 
         [Test]
@@ -1813,9 +1927,7 @@ namespace KeePassGate.Tests
             var context = Request("agent-fictitious", new[] { "ops" }, approval);
 
             Assert.That(approval.Asked, Is.EqualTo(1), "no dialog shown again");
-            Assert.That(
-                _log.Warnings.Single(entry => entry.Message.Contains(StaleLine)).Message,
-                Does.Contain("the profile ops is off the list, and the dialog showed it on the list"));
+            Assert.That(_log.Warnings.Single(entry => entry.Message.Contains(StaleLine)).Message, Does.Contain(OffTheListCause));
             Assert.That(_log.Entries.Select(entry => entry.Message), Has.Some.Contains(AsBeforeLine));
             Assert.That(context.Status, Is.EqualTo(200), context.Json);
             Assert.That(_target.Admitted.Profiles, Is.EqualTo(new[] { "ops" }));
@@ -1924,6 +2036,36 @@ namespace KeePassGate.Tests
             Assert.That(_log.Entries.Select(entry => entry.Message), Has.None.Contains("holds the gate back"));
         }
 
+        /// <summary>
+        /// `agent-first` admitted holding the first name, a copy of the store made while that name
+        /// was on the list, in which `agent-second` was admitted holding the second name, and then
+        /// the first name and, where it differs, the second taken off the list here. The copy, for
+        /// the caller to synchronize in.
+        /// </summary>
+        private MemoryStore HeldInACopy(
+            System.Security.Cryptography.X509Certificates.X509Certificate2 first,
+            System.Security.Cryptography.X509Certificates.X509Certificate2 second,
+            string firstName,
+            string secondName)
+        {
+            _target.KnownProfiles = new[] { firstName, secondName }.Distinct(StringComparer.Ordinal).ToList();
+            _target.Admit(first, firstName);
+            var copy = _target.Store.Copy();
+            StoreSeeds.Admit(copy, second, DateTimeOffset.UtcNow, secondName);
+            foreach (var name in new[] { firstName, secondName }.Distinct(StringComparer.Ordinal))
+            {
+                _target.Forget(name);
+            }
+
+            return copy;
+        }
+
+        /// <summary>The subjects of the clients a dialog shows regaining a name, in order.</summary>
+        private static string[] Regaining(PairingRequest request, string profile)
+        {
+            return request.Returning(profile).Select(record => record.Subject).OrderBy(subject => subject, StringComparer.Ordinal).ToArray();
+        }
+
         /// <summary>The store stops serving this database's authority, or the database shuts.</summary>
         private void StoppedServing(string how)
         {
@@ -1940,6 +2082,10 @@ namespace KeePassGate.Tests
                 _target.Shut = true;
             }
         }
+
+        /// <summary>The cause a write names for a client the dialog did not show regaining a profile.</summary>
+        private const string RegainedCause =
+            "a client regains an approved profile, and the dialog did not show that client regaining that profile";
 
         [Test]
         public void A_name_found_removed_and_unchecked_on_the_dialog_shown_again_stays_off_the_list()
@@ -2695,7 +2841,7 @@ namespace KeePassGate.Tests
         /// <summary>
         /// The notice of a dialog shown again, the same whatever Approve found, naming no profile.
         /// </summary>
-        private const string StateChanged = "Shown again: the state of the profiles changed.";
+        private const string StateChanged = "Shown again: the table changed.";
 
         /// <summary>
         /// What the real dialog opens with for this request: the profiles checked, in the order of

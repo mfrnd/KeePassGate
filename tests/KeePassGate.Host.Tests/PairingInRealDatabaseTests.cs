@@ -1446,7 +1446,7 @@ namespace KeePassGate.Host.Tests
 
                 var context = Pair(book, target, invitation, "agent-fictitious", new[] { "ops" }, operatorAt);
 
-                Assert.That(_log.Warnings, Has.Some.Contains("the profile ops is off the list, and the dialog showed it on the list"));
+                Assert.That(_log.Warnings, Has.Some.Contains(OffTheListCause));
                 Assert.That(atSecond, Is.EqualTo(NothingWritten));
                 Assert.That(shown[0], Does.Not.Contain(ShownAgain));
                 Assert.That(shown[1], Does.Contain(StateChanged));
@@ -1551,6 +1551,73 @@ namespace KeePassGate.Host.Tests
                 Assert.That(held.Count, Is.Zero, "the approval is used up");
                 Assert.That(context.Status, Is.EqualTo(200), context.Json);
                 Assert.That(Names(), Is.EqualTo(new[] { "ops" }));
+            }
+        }
+
+        [Test]
+        public void A_client_KeePass_synchronizes_in_holding_a_restored_name_under_the_write_brings_the_dialog_back_with_the_row_unchecked()
+        {
+            // `ops` named and held by `agent-first`; a copy of the file made then, in which
+            // `agent-second` is admitted holding `ops`; and `ops` taken off the list here, so the
+            // dialog shows it restored and regained by `agent-first`. KeePass's Synchronize brings
+            // the copy in while the operator reads the dialog: the write would give `ops` back to
+            // `agent-second` as well, which no table named, so nothing is written, saved or spent,
+            // and the same request shows the dialog again, the row regained by both clients,
+            // unchecked and highlighted. The operator checks it again, and that approval lands.
+            using (var first = Issue("agent-first", "ops"))
+            using (var second = Issue("agent-second", "ops"))
+            {
+                var store = new KdbxStore(_database.Database, GateVersion.Current, null);
+                StoreSeeds.Name(store, "ops");
+                StoreSeeds.Admit(store, first, DateTimeOffset.UtcNow, "ops");
+                _database.Save();
+                using (var copy = TemporaryDatabase.New())
+                using (var book = new InvitationBook(TimeSpan.FromMinutes(10), null, _log))
+                using (var targets = Targets())
+                {
+                    System.IO.File.Copy(_database.Path, copy.Path, true);
+                    copy.Reopen();
+                    StoreSeeds.Admit(new KdbxStore(copy.Database, GateVersion.Current, null), second, DateTimeOffset.UtcNow, "ops");
+                    StoreSeeds.Unname(store, "ops");
+
+                    var target = targets.Current().Single();
+                    var invitation = book.Invite(target.DatabaseId);
+                    string merged = null;
+                    string atSecond = null;
+                    var shown = new List<PairingRequest>();
+                    var operatorAt = new Answering(request =>
+                    {
+                        shown.Add(request);
+                        if (shown.Count == 1)
+                        {
+                            _database.Database.MergeIn(copy.Database, PwMergeMethod.Synchronize, null);
+                            Assert.That(Names(), Is.Empty, "still off the list once the copy is in");
+                            merged = Snapshot();
+                        }
+                        else
+                        {
+                            atSecond = Standing(book, merged);
+                        }
+
+                        return PairingApproval.Approved(request.Profiles);
+                    });
+
+                    var context = Pair(book, target, invitation, "agent-new", new[] { "ops" }, operatorAt);
+
+                    Assert.That(shown, Has.Count.EqualTo(2));
+                    Assert.That(shown[0].Returning("ops").Select(record => record.Subject), Is.EqualTo(new[] { "CN=agent-first" }));
+                    Assert.That(atSecond, Is.EqualTo(NothingWritten), "nothing written, saved or spent before the second Approve");
+                    Assert.That(_log.Warnings, Has.Some.Contains(RegainedCause));
+                    Assert.That(shown[1].Again, Is.True);
+                    Assert.That(
+                        shown[1].Returning("ops").Select(record => record.Subject).OrderBy(subject => subject, StringComparer.Ordinal),
+                        Is.EqualTo(new[] { "CN=agent-first", "CN=agent-second" }));
+                    Assert.That(shown[1].MarkOf("ops"), Is.EqualTo(ProfileMark.Removed));
+                    Assert.That(shown[1].Changed("ops"), Is.True, "highlighted");
+                    Assert.That(shown[1].Checks("ops"), Is.False, "unchecked");
+                    Assert.That(context.Status, Is.EqualTo(200), context.Json);
+                    Assert.That(Names(), Is.EqualTo(new[] { "ops" }));
+                }
             }
         }
 
@@ -1963,10 +2030,18 @@ namespace KeePassGate.Host.Tests
         }
 
         private const string ShownAgain = "Shown again";
-        private const string StateChanged = "Shown again: the state of the profiles changed.";
+        private const string StateChanged = "Shown again: the table changed.";
 
-        /// <summary>The cause a write names for a removal of `ops` the dialog did not show.</summary>
-        private const string RemovalCause = "the store holds a removal of the profile ops that the dialog did not show";
+        /// <summary>The cause a write names for a removal the dialog did not show.</summary>
+        private const string RemovalCause = "the store holds a removal of an approved profile that the dialog did not show";
+
+        /// <summary>The cause a write names for a profile the dialog showed on the list and off it now.</summary>
+        private const string OffTheListCause =
+            "a profile the approval rests on is off the list, and the dialog showed that profile on the list";
+
+        /// <summary>The cause a write names for a client the dialog did not show regaining a profile.</summary>
+        private const string RegainedCause =
+            "a client regains an approved profile, and the dialog did not show that client regaining that profile";
 
         /// <summary>What the log reads of an approval given again over a reading whose rows read as before.</summary>
         private const string WrittenAsBefore = "so it is written without the dialog again";

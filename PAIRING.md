@@ -223,10 +223,12 @@ name as the write ties it, `StoreInForce.RemovalsOnceKnown`, from the first dial
 identifiers leave the turn, and letting the reading go overwrites the bytes of the key, `CA.md`
 §208. Pairing adds each approved name the database does not hold in the same write as the
 admission, as a record of the plugin's store that names the removals of the name that the dialog
-last showed, `STORE.md` §616: a removal of it that the write finds beyond those, as a synchronize
-brings it between Approve and the write or while the approval is held, makes the approval stale,
-§311, so that no approval puts a name back over a removal the operator was not shown. The names
-the database holds decide which names are in force (`DESIGN.md` §139).
+last showed, `STORE.md` §616, and so gives the name back to every client whose admission holds it:
+a removal of it that the write finds beyond those, or a client regaining it that the dialog did not
+show regaining it, as a synchronize brings either between Approve and the write or while the
+approval is held, makes the approval stale, §311, so that no approval puts a name back over a
+removal the operator was not shown or for a client no table named. The names the database holds
+decide which names are in force (`DESIGN.md` §139).
 
 **The dialog does not change by itself; Refresh shows a change.** On each tick of its countdown,
 every second, the dialog reads the store again in the same way and compares it with what it shows,
@@ -253,12 +255,13 @@ presses it wherever the focus is, which does nothing while nothing waits, and it
 table in the tab order. The picture is read from KeePass's own resources, `KeePassPictures`,
 scaled as KeePass scales its own pictures and copied for the dialog, which lets go of the copy;
 where KeePass has no such picture, Refresh has none, and no text stands in for it. Refresh shows
-the database as it stands, highlights each row whose state it changed as a row of a dialog shown
-again is highlighted, with the same tooltip and text read out, §311, and brings the first row it
-changed into view. **A row the Refresh makes Approve do more for is unchecked**,
-`PairingRequest.Unchecks`: added or restored where it was not, as a row of a dialog shown again
-opens unchecked; every other row keeps its check. Approve is enabled again once
-`PairingApprovalForm.ApproveHeldBack` has passed, as on
+the database as it stands,
+highlights each row whose state or clients it changed as a row of a dialog shown again is
+highlighted, with the same tooltip and text read out, §311, and brings the first row it changed
+into view. **A row the Refresh makes Approve do more for is unchecked**, `PairingRequest.Unchecks`:
+added or restored where it was not, or regained by a client the row did not show, as a row of a
+dialog shown again opens unchecked; every other row keeps its check, a row with a client fewer
+among them. Approve is enabled again once `PairingApprovalForm.ApproveHeldBack` has passed, as on
 a dialog shown again, and **for that moment no key but Enter and Escape does anything**: no letter
 presses a button by its mnemonic, with Alt or typed on a focused button, no Tab or arrow moves the
 focus, no arrow or page key scrolls the table, and no Space presses a button or toggles a row,
@@ -333,16 +336,16 @@ in a single constant, `PairingApprovalForm.StateHeading`, `HeldByHeading`, `NewS
 `RemovedState`, which the tests read rather than repeat. Each row's box is a check box that UI
 automation reads by the row's text read out: the name, then that sentence where the name has a
 state, then the clients regaining it, every client however many, since the approval of the box
-rests on each of them, then the change where its state changed; each cell is a text of its own.
+rests on each of them, then the change where the row changed; each cell is a text of its own.
 **Every part of the dialog that UI automation reads has a name of its own**, since a part with
-none is read by the name of the part before it: a row is read by its profile, the headings by
-"Headings", the line above the table by "Status", Refresh by "Refresh" and the words beside
-Refresh by what they state, the lifetime by "Lifetime", the footer, which holds the countdown and
-the answers alone, by "Answer" and its buttons by "Buttons", the content by "Pairing request" and
-the facts by "Details"; an empty cell and empty words beside Refresh are hidden. Whether a part is
-off the screen is UI automation's own answer: a row scrolled out of the view is read as off the
-screen, and its box and cells, which lie inside the row, as on it, whatever the box or the cell
-answers of itself.
+none is read by the name of the part before it: a row with a box is read by its profile, the
+headings by "Headings", the line above the table by "Status", Refresh by "Refresh" and the words
+beside Refresh by what they state, the lifetime by "Lifetime", the footer, which holds the
+countdown and the answers alone, by "Answer" and its buttons by "Buttons", the content by "Pairing
+request" and the facts by "Details"; an empty cell and empty words beside Refresh are hidden.
+Whether a part is off the screen is UI automation's own answer: a row scrolled out of the view is
+read as off the screen, and its box and cells, which lie inside the row, as on it, whatever the box
+or the cell answers of itself.
 
 **The table is a row of headings that stays where it is above rows that scroll by pixels**,
 `ProfileTable`, each row a box and a cell of text for each column, since neither stock table holds
@@ -483,10 +486,10 @@ client's client key as well, once the record is saved and before the bundle is h
 refused; or unanswered, those two naming no client. An approval that admitted nobody, because the
 record did not land, the invitation was gone by the time the operator answered, or the approval
 was stale at its write, §311, gets no line, and no line carries a profile. A stale approval is
-named in the plugin's log, with the profile and the cause. Unanswered is a dialog that came up and
-closed itself, or that a lock or a close took away: a dialog KeePass's thread never put up was seen
-by nobody, is answered `503 busy`, and gets no line, and a dialog a store no longer served ended
-gets none either.
+named in the plugin's log, with each cause and no profile, as a pairing that lands is. Unanswered
+is a dialog that came up and closed itself, or that a lock or a close took away: a dialog
+KeePass's thread never put up was seen by nobody, is answered `503 busy`, and gets no line, and a
+dialog a store no longer served ended gets none either.
 
 **The client proposes how long its certificate lasts, and the operator picks.** A request may ask
 for anything from a day to a year, and the dialog offers 1, 7, 30, 90 and 365 days under the
@@ -931,11 +934,17 @@ for each approved profile off the list, the removals of it**: the write puts suc
 over the removals of it that the dialog held, and a removal the write finds beyond those, by its
 record, by an item of a summary entry or by its deletion record, counted with the store key, is a
 removal the operator was not shown, however long ago it was made, as an Add on the Profiles page
-that a removal overtook writes nothing, `STORE.md` §627. **What the dialog held is what it last
+that a removal overtook writes nothing, `STORE.md` §627. **And for each approved profile off the
+list, the clients regaining it**: the write gives such a name back to every client whose admission
+holds it and whose certificate has not expired, read in the write's turn as the dialog read them,
+`IWriteGround.Regaining`, and a client the write finds beyond those the dialog showed regaining
+it, by client key, is a client no table named, as a synchronize brings in from a copy that
+admitted it holding the name while the name was still on the list there. A client fewer is
+narrower than what the operator approved, and stands. **What the dialog held is what it last
 showed**: the dialog reads the store with the store key as it comes up and on each tick, §303, so
-the comparison at the write is the backstop for a removal a synchronize brought in between the last
-reading and the write, a reading a tick skipped inside work of KeePass's own among them, or while
-the approval was held. **A reading that shows the table the dialog shows is taken
+the comparison at the write is the backstop for a removal or a client a synchronize brought in
+between the last reading and the write, a reading a tick skipped inside work of KeePass's own among
+them, or while the approval was held. **A reading that shows the table the dialog shows is taken
 without a word**: nothing on the screen changes, Approve stays enabled, and that reading is what
 the approval then rests on, so that a further removal of a name the dialog already shows as
 restored, read by a tick while the dialog stands, makes no approval stale. A further removal read
@@ -943,8 +952,10 @@ by no tick makes the approval stale at the write and brings no dialog back, sinc
 otherwise, below. That holds for an approval written in the request it was given in as for an
 approval held; a renewal adds no name, and an approved name on the list is held to its place there
 alone. **Every cause is found in a single pass**: a write that finds a name moved on the list and a
-removal beyond the dialog's together names both. The plugin's log names each profile and each
-cause: a place on the list other than the dialog showed, or a removal the dialog did not show.
+removal beyond the dialog's together names both. The plugin's log names each cause, and no
+profile, which an admission holds and a file nothing encrypts would hold a second copy of: a place
+on the list other than the dialog showed, a removal the dialog did not show, or a client the
+dialog did not show regaining a name.
 
 **An approval its write finds stale writes nothing and spends nothing, and the request is not
 answered there**. The approval is used up, the invitation
@@ -953,29 +964,35 @@ afresh, and is answered only once an approval is written, the operator refuses, 
 up. A second request would be a different request, whose body can differ, so nothing shown for it
 could rest on what the dialog before showed or what the operator chose there; and a client told to
 ask again that does not would leave the operator believing in a pairing that never landed. **The
-dialog shown again comes up only where a row differs from the dialog before**, a state changed,
-so that its notice is true wherever it stands. Where every row reads as before, as a change that
-went back between the write and the next reading leaves it, or a further removal of a name the
-dialog before showed as restored, no dialog comes up: the approval given there is given again over
-that reading, asked of nobody, and written, and the plugin's log names it so. **The dialog shown
-again** states beside Refresh, on the line above the table, "Shown again: the state of the
-profiles changed.", until a change waiting replaces the notice, the same whatever the write
-found, since the rows show the state and the plugin's log names each profile and each cause. It
-opens with the lifetime picked on the dialog before, and with a row checked only where the
-operator left it checked there and its state is the state it had there: **a row whose state
-changed opens unchecked**, on the list before and restored now, added before and restored now,
-and so on, so that a single Approve grants no name in a state the operator did not approve it in.
-**Such a row is highlighted as well**, since unchecked alone would mean both
+dialog shown again comes up only where a row differs from the dialog before**: a state changed, or
+a client regains a name that the dialog before did not show regaining it, so that its notice is
+true wherever it stands. Where every row reads as before, as a change that went back between the
+write and the next reading leaves it, or a further removal of a name the dialog before showed as
+restored, no dialog comes up: the approval given there is given again over that reading, asked of
+nobody, and written, and the plugin's log names it so. **The dialog shown again** states beside
+Refresh, on the line above the table, "Shown again: the table changed.", until a change waiting
+replaces the notice, the same whatever the write found and true
+where only the clients of a row changed, since the rows show what changed and the plugin's log
+names each kind of cause. It opens with the
+lifetime picked on the dialog before, and with a row checked only where the operator left it
+checked there and it reads as it read there: **a row whose state changed opens unchecked**, on the
+list before and restored now, added before and restored now, and so on, and **so does a row a
+client regains that the dialog before did not show regaining it**, so that a single Approve grants
+no name in a state the operator did not approve it in, nor for a client the operator was not
+shown; a row with a client fewer keeps its check, since Approve does less for it. **Such a row is
+highlighted as well, and so is a row with a client fewer**, since unchecked alone would mean both
 that the operator unchecked it and that its state changed: the whole row, its box among it, over
 its whole height, in a light yellow, `PairingApprovalForm.ChangedBackground`, whatever its box then
 holds, since the change it states is not undone by a check; the tooltip anywhere on the row a
-sentence stating to what the state changed since the profile was first shown, true of a Refresh
-as well, under the whole text of a cell its column cuts; and the same sentence at the end of the
-row's text read out, which UI automation reads as the row's box. **The sentence tells what the
-state cell reads now**: "The row changed after the profile was first shown: Approve now also adds
-the profile.", "... Approve now also restores the profile." or "... this database names the
-profile now.". Each sentence is a single constant, `PairingApprovalForm.ChangeTip` chooses among
-them, and none names a profile or a client. **The meaning rests on no color alone**: under a high contrast
+sentence stating what changed since the profile was first shown, true of a Refresh as well, under
+the whole text of a cell its column cuts; and the same sentence at the end of the row's text read
+out, which UI automation reads as the row's box. **Where the state changed, the sentence tells
+what the state cell reads now**: "The row changed after the profile was first shown: Approve now
+also adds the profile.", "... Approve now also restores the profile." or "... this database names
+the profile now.", the clients following from the state. **Where only the clients changed**:
+"... clients were added.", "... clients were removed." or "... clients were added and removed.".
+Each sentence is a single constant, `PairingApprovalForm.ChangeTip` chooses among them, and none
+names a profile or a client. **The meaning rests on no color alone**: under a high contrast
 setting no fixed color is drawn, and the row keeps the theme's background with its text in the
 theme's hyperlink color, `SystemColors.HotTrack`, which a contrast theme keeps legible there and
 apart from its ordinary text, beside the tooltip and the text read out. A row the operator
@@ -1110,11 +1127,18 @@ The comparison is held by
 `PairingHandlerTests.A_held_approval_of_a_name_off_the_list_is_stale_once_a_removal_the_dialog_did_not_hold_arrives`,
 `PairingHandlerTests.An_approval_of_a_name_off_the_list_is_stale_once_a_removal_arrives_while_the_dialog_stands`,
 `PairingHandlerTests.A_name_on_the_list_whose_addition_names_earlier_removals_is_written_at_the_first_approval`,
-`PairingHandlerTests.An_approval_of_a_name_on_the_list_is_written_whatever_removal_arrives_while_it_stays_on_the_list`
+`PairingHandlerTests.An_approval_of_a_name_on_the_list_is_written_whatever_removal_arrives_while_it_stays_on_the_list`,
+for the clients by
+`ApprovalBookTests.A_held_approval_of_a_name_off_the_list_is_stale_where_a_client_the_dialog_did_not_show_regains_the_name`,
+`PairingHandlerTests.A_client_a_synchronize_admits_holding_a_restored_name_under_the_write_brings_the_dialog_back_with_the_row_unchecked`,
+`PairingHandlerTests.A_client_fewer_regaining_an_approved_name_and_a_client_more_regaining_a_name_left_unchecked_leave_the_approval_standing`,
+`PairingHandlerTests.A_held_approval_of_a_restored_name_is_stale_at_its_retry_once_a_client_the_dialog_did_not_show_regains_the_name`,
+for the log by `ApprovalBookTests.A_stale_approval_s_causes_name_no_profile`,
 and, over real databases synchronized by KeePass,
-`PairingInRealDatabaseTests.A_further_removal_synchronized_in_while_the_dialog_stands_is_written_without_the_dialog_again`
+`PairingInRealDatabaseTests.A_further_removal_synchronized_in_while_the_dialog_stands_is_written_without_the_dialog_again`,
+`PairingInRealDatabaseTests.A_removal_synchronized_in_while_an_approval_is_held_makes_it_stale_at_the_retry`
 and
-`PairingInRealDatabaseTests.A_removal_synchronized_in_while_an_approval_is_held_makes_it_stale_at_the_retry`.
+`PairingInRealDatabaseTests.A_client_KeePass_synchronizes_in_holding_a_restored_name_under_the_write_brings_the_dialog_back_with_the_row_unchecked`.
 The authority is held first, by the plan of the write: an admission is planned only while the
 authority that issued its certificate stands alone in the store, `STORE.md` §627, and a write
 whose plan is refused for it is answered `409 no invitation`, with the approval used up and the

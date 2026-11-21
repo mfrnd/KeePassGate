@@ -147,7 +147,7 @@ namespace KeePassGate.Host.Tests.Live
                     var ids = parts.Select(part => part.Id).ToList();
 
                     Assert.That(parts.Where(part => part.Id == GateTab.ApprovalChangeName).Select(part => part.Type + ": " + part.Name),
-                        Is.EqualTo(new[] { "ControlType.Text: Shown again: the state of the profiles changed." }));
+                        Is.EqualTo(new[] { "ControlType.Text: Shown again: the table changed." }));
                     Assert.That(ids.IndexOf(GateTab.ApprovalChangeName), Is.InRange(ids.IndexOf("KpgApprovalAskingRow"), ids.IndexOf(GateTab.ApprovalProfilesListName)),
                         "the words stand elsewhere than on the line naming the table");
                     Assert.That(ids.IndexOf(GateTab.ApprovalRefreshName), Is.LessThan(ids.IndexOf(GateTab.ApprovalProfilesListName)), "Refresh is read after the table");
