@@ -114,17 +114,22 @@ database. Rules already naming the profile apply at once." for **adds the profil
 restores the profile for every rule and client still naming the profile." for **restores the
 profile**. A screen reader reads a row's box as the name, then the same sentence, then the clients
 regaining the name. No sentence names a profile or a client: the table shows which rows a sentence
-is about.
+is about. A program that asks for no profile is shown "The client asks for no profile." above the
+table, and the pointer resting on it shows "Approved, the client reaches nothing."
 
 A program can ask for up to 32 profiles, and the table shows ten lines at a time. Past ten it
 scrolls, and at the top of the rows the line at its bottom is cut in half to show so, because
 **Approve grants every profile checked, seen or not**. The wheel scrolls it; so do the
-arrows, Page Up, Page Down, Home and End while a box has the focus, and Tab moves from box to box.
-A box keeps the focus when the keys scroll it out of sight, and the table stays where the keys put
-it.
+arrows, Page Up, Page Down, Home and End while a box or the table itself has the focus, and Tab
+moves to the table and from box to box. A box keeps the focus when the keys scroll it out of
+sight, and the table stays where the keys put it.
 A thin line parts each row from the next, and a long row scrolls as the rest do: once its name has
 left the table, the line under it is what tells where the next profile begins. Scroll to the end
-before approving: a program that wanted something past the tenth line would put it there.
+before approving: a program that wanted something past the tenth line would put it there. Where
+**Refresh** makes the rows taller, the table grows with them, up to ten lines, and the dialog grows
+downward with it, **Refuse** and **Approve** lower by as much; Approve takes no press for a moment
+after a Refresh, so a click aimed at where it stood approves nothing. Rows a Refresh makes shorter
+leave the table as tall as it stood.
 
 **Approve adds a profile that this database does not name now and knows no removal of**, so that
 approval does two things: it admits the program, and it adds the name. It is shown because a
@@ -132,11 +137,30 @@ name never seen before and a name used every day would otherwise look identical,
 difference is usually a spelling. A name
 never used before grants nothing until a rule states so, and any rule already naming it applies to
 the new program at once. The tooltip of **adds the profile** states so, and the Profiles page and
-the rules are where to look first. A removed name reads **adds the profile** as well where the
-entry of its removal was deleted and nothing else in this database names it, as a synchronize with
-another copy of the database can leave it: the dialog cannot tell which name a deleted entry was
-for. Approve then writes nothing, and the dialog comes back with the name reading **restores the
-profile**, below.
+the rules are where to look first.
+
+**The dialog does not change by itself while it stands.** It reads the database again every second,
+and when the profiles it asks about stand otherwise than it shows, as a synchronize KeePass runs
+under the dialog brings in another copy, or another program's pairing or renewal kept from earlier
+is written meanwhile, it changes nothing on the screen: **Refresh**, the button with KeePass's
+green pair of arrows at the right end of the line above the table, is enabled, **Approve** is
+disabled, and beside **Refresh** the dialog reads "The database changed.", the tooltip of
+**Refresh** "Refresh shows the change. (F5)"; while nothing waits, the pointer resting on the
+disabled **Refresh** shows "Refresh (F5)". F5 presses **Refresh** wherever the focus is.
+**Refresh** shows the profiles as they stand, unchecks a row whose
+change makes approving do more and keeps every other check, highlights in light yellow each row
+whose entry under **Approve also** it changed, with a tooltip stating what changed, and brings
+the first row it changed into view; **Approve** is enabled again a
+second later, and in that second no key does anything but Enter and Escape, which refuse as
+ever. A change that alters nothing the table shows enables nothing. While the database
+cannot be read, both buttons are disabled and beside **Refresh** the dialog reads "The database
+cannot be read for now.", and the next second reads again; where the plugin cannot read the
+database at all, it reads "The database cannot be read." until the dialog ends, with **Refuse**
+the only button
+enabled. A database that no longer serves this program's authority, as a second authority
+synchronized in or the authority recreated leaves it, closes the dialog, and
+the program is told what it would have been told before any dialog; locking KeePass or closing the
+database takes the dialog away as unanswered.
 
 **Approve restores a profile that is off the list and that this database knows a removal of**, made
 here or in another copy and brought in by a synchronize, or that other clients still hold. Approving
@@ -205,23 +229,25 @@ database or exiting KeePass lets go of every approval kept this way, and asking 
 shows the dialog again.
 
 **The dialog can come back after Approve.** It shows the profiles as the database held them when
-it came up, and the approval is written only while they still stand that way. If, by the time it
-is written, a profile it showed off the list is on the list, a profile it showed on the list is
-off it, or a profile off the list has a removal the dialog did not show, nothing is issued,
-written or spent. Such a removal is a removal a synchronize with another copy of the database
-brought in while the dialog was open or while an approval was kept, or a removal the database
-knows of only as a deleted entry, which the dialog cannot tie to a profile before Approve, even
-where that entry was deleted before the dialog came up. **The program is not answered then, and
+it last read them, and the approval is written only while they still stand that way. If, by the
+time it is written, a profile it showed off the list is on the list, a profile it showed on the
+list is off it, or a profile off the list has a removal the dialog did not show, nothing is
+issued, written or spent. That is a change that landed between the dialog's last reading and the
+write, or while an approval was kept. **The program is not answered then, and
 the dialog comes straight back** for the same request, with no other program's dialog in
-between, over the profiles as they stand then. It states above the table "Shown again: the state
-of the profiles changed.", the same whatever Approve found: the rows show the state. It opens with
-the lifetime picked on the dialog before, and with a profile checked only where it was left
-checked there and its state is what it was there: **a profile whose state changed comes back
-unchecked**, a profile that was on the list and now reads **restores the profile** for instance, so that approving it
-again is a decision about the profile as it stands. **Such a row is highlighted in light yellow**,
-checked or not, and the pointer resting on it shows what **Approve also** reads now, as in "The
-row changed after the profile was first shown: Approve now also restores the profile.", which a
-screen reader reads with the profile's name; under a high contrast setting the
+between, over the profiles as they stand then, wherever a row reads otherwise than before. It
+states beside **Refresh** "Shown again: the state of the profiles changed.", the same whatever
+Approve found: the rows show the state. Where every row reads as before, as a change that went
+back meanwhile leaves it, or a further removal of a profile the dialog already showed as
+**restores the profile**, the dialog does not come back, and the approval is written as given. It
+opens with the lifetime picked on the dialog before, and with a profile checked only where it was
+left checked there and its state is what it was there: **a profile whose state changed comes back
+unchecked**, a profile that was on the list and now reads **restores the profile** for instance,
+so that approving it again is a decision about the profile as it stands. **Such a row is
+highlighted in light yellow**, checked or not, and the pointer resting on it shows what
+**Approve also** reads now, as in "The row changed after the profile was first shown: Approve now
+also restores the profile.", which a screen reader reads with the profile's name; under a
+high contrast setting the
 row keeps the theme's background and its text takes the theme's link color. A profile left
 unchecked on the dialog before whose state did not change comes back unchecked with no highlight.
 **Approve on it takes no press for a second**

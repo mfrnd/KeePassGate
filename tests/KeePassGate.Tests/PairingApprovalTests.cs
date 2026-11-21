@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
 using KeePassGate.Authority;
+using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
@@ -178,13 +179,10 @@ namespace KeePassGate.Tests
             using (var holder = authority.IssueClient("ci-runner"))
             using (var larger = Scaled(Control.DefaultFont, scaling))
             {
-                var request = new PairingRequest(
-                    "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
-                    new[] { "reader", added, returned }, new[] { "reader" }, "127.0.0.1:60001",
-                    new Dictionary<string, IReadOnlyList<AdmissionRecord>>
-                    {
-                        { returned, new[] { AdmissionRecord.For(holder, DateTimeOffset.UtcNow, new[] { returned }, InventedIssuer.Id) } }
-                    });
+                var store = PairingRequests.Listing("reader");
+                PairingRequests.Holding(store, holder, returned);
+                PairingRequests.Taken(store, returned);
+                var request = PairingRequests.Shown(store, new[] { "reader", added, returned });
 
                 using (var dialog = new PairingApprovalForm(request, Timeout, larger))
                 {
@@ -239,12 +237,13 @@ namespace KeePassGate.Tests
                 using (var holders = new IssuedClients(Enumerable.Range(0, 15)
                     .Select(at => authority.IssueClient(new string('W', 62) + at.ToString("00", System.Globalization.CultureInfo.InvariantCulture)))))
                 {
-                    var records = holders.Select(holder => AdmissionRecord.For(holder, DateTimeOffset.UtcNow, removed, InventedIssuer.Id)).ToList();
-                    var returning = removed.ToDictionary(
-                        name => name, name => (IReadOnlyList<AdmissionRecord>)records, StringComparer.Ordinal);
-                    var request = new PairingRequest(
-                        "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious", names, new[] { "ops" },
-                        "127.0.0.1:60001", returning, TimeSpan.FromDays(365), removed, PairingApproval.Approved(names, TimeSpan.FromDays(365)));
+                    var store = PairingRequests.Listing("ops");
+                    holders.ForEach(holder => PairingRequests.Holding(store, holder, removed));
+                    PairingRequests.Taken(store, removed);
+                    var request = PairingRequests.Shown(
+                        store, names, lifetime: TimeSpan.FromDays(365), earlier: PairingApproval.Approved(names, TimeSpan.FromDays(365)));
+                    var records = request.Returning(removed[0]);
+                    Assert.That(records, Has.Count.EqualTo(holders.Count), "every holder regains every removed name");
                     var heldBy = string.Join(Environment.NewLine, ClientList.ClientNames(records));
 
                     using (var larger = Scaled(Control.DefaultFont, scaling))
@@ -253,8 +252,10 @@ namespace KeePassGate.Tests
                         ShownAway(dialog);
 
                         // Every text from the product, the notice's among them, so that what is
-                        // measured is whatever the dialog states at the time.
-                        var notice = Line(dialog, GateTab.ApprovalAgainName, PairingApprovalForm.Again(request), scaling);
+                        // measured is whatever the dialog states at the time: the notice beside
+                        // Refresh, on the line naming the table.
+                        var notice = ControlTree.FindByName<Label>(dialog, GateTab.ApprovalChangeName);
+                        Assert.That(notice.Text, Is.EqualTo(PairingApprovalForm.Again(request)));
                         Line(dialog, "KpgApprovalAskingLabel", PairingApprovalForm.Asking(request), scaling);
 
                         var list = Profiles(dialog);
@@ -271,10 +272,23 @@ namespace KeePassGate.Tests
                         BoxFirst(list);
                         InItsRoom(list);
 
-                        foreach (var name in new[] { GateTab.ApproveButtonName, GateTab.RefuseButtonName })
+                        foreach (var name in new[] { GateTab.ApproveButtonName, GateTab.RefuseButtonName, GateTab.ApprovalRefreshName })
                         {
                             Assert.That(InDialog(Button(dialog, name), dialog).Bottom, Is.LessThanOrEqualTo(Asked(dialog).Height),
                                 name + " is off the bottom of the dialog at " + scaling);
+                            Assert.That(InDialog(Button(dialog, name), dialog).Right, Is.LessThanOrEqualTo(Asked(dialog).Width),
+                                name + " is off the side of the dialog at " + scaling);
+                        }
+
+                        // The words beside Refresh at each of their texts: within the dialog, and
+                        // the dialog no larger for any, since their place keeps its size.
+                        var size = dialog.Size;
+                        foreach (var text in new[] { PairingApprovalForm.DatabaseChanged, PairingApprovalForm.CannotRead, PairingApprovalForm.ReadingStopped })
+                        {
+                            notice.Text = text;
+                            dialog.PerformLayout();
+                            Assert.That(InDialog(notice, dialog).Right, Is.LessThanOrEqualTo(Asked(dialog).Width), "the words are off the side at " + scaling);
+                            Assert.That(dialog.Size, Is.EqualTo(size), "the dialog changed its size for the words at " + scaling);
                         }
 
                         Assert.That(InDialog(Lifetime(dialog).Parent, dialog).Bottom, Is.LessThanOrEqualTo(Asked(dialog).Height),
@@ -636,19 +650,159 @@ namespace KeePassGate.Tests
             }
         }
 
-        [Test]
-        public void Enter_on_a_dialog_shown_again_refuses_while_Approve_is_held_back()
+        [TestCase(Keys.Enter)]
+        [TestCase(Keys.Escape)]
+        public void Enter_and_Escape_on_a_dialog_shown_again_refuse_while_Approve_is_held_back(Keys key)
         {
             using (var dialog = new PairingApprovalForm(ShownAgain(), TimeSpan.FromMinutes(2)))
             {
                 var lifetime = Focused(dialog);
                 Assert.That(Button(dialog, GateTab.ApproveButtonName).Enabled, Is.False);
 
-                Press(lifetime, Keys.Enter);
+                Press(lifetime, key);
 
                 Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.Refused));
             }
         }
+
+        [TestCase(WmSysChar, "Alt and R")]
+        [TestCase(WmChar, "R on Refuse focused")]
+        public void In_the_moment_held_back_the_letter_of_Refuse_refuses_nothing(int message, string how)
+        {
+            // A mnemonic is answered before the key reaches the window it is typed on, so that the
+            // letter of Refuse, with Alt or typed on a focused button, refused there and spent the
+            // invitation, as though no moment were held back. Through the real loop.
+            using (var dialog = new PairingApprovalForm(ShownAgain(), TimeSpan.FromMinutes(2)))
+            {
+                var since = ShownOffScreen(dialog);
+                var refuse = Focus(Button(dialog, GateTab.RefuseButtonName));
+
+                Type(refuse, message, 'r');
+
+                Assert.That(since.Elapsed, Is.LessThan(PairingApprovalForm.ApproveHeldBack), "the letter came too late to measure");
+                Assert.That(dialog.Visible, Is.True, how + " ended the dialog");
+                Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut), how + " answered the dialog");
+                Assert.That(refuse.Focused, Is.True, how + " moved the focus");
+            }
+        }
+
+        [Test]
+        public void In_the_moment_held_back_F5_shows_nothing()
+        {
+            // A dialog shown again for a change of `reader`; within its moment held back, `ops`
+            // taken off the list and read by a tick: Refresh is enabled, and F5 on it leaves the
+            // change waiting.
+            var asked = new[] { "ops", "reader" };
+            var store = PairingRequests.Listing(asked);
+            var before = PairingRequests.Read(store, asked);
+            PairingRequests.Taken(store, "reader");
+            using (var dialog = new PairingApprovalForm(
+                       PairingRequests.Shown(store, asked, earlier: PairingApproval.Approved(asked), before: before), TimeSpan.FromMinutes(2)))
+            {
+                var since = ShownOffScreen(dialog);
+                PairingRequests.Taken(store, "ops");
+                dialog.Watch();
+                var refresh = Focus(Button(dialog, GateTab.ApprovalRefreshName));
+
+                Press(refresh, Keys.F5);
+
+                Assert.That(since.Elapsed, Is.LessThan(PairingApprovalForm.ApproveHeldBack), "the key came too late to measure");
+                Assert.That(Rows(Profiles(dialog))[0][1], Is.Empty, "F5 pressed Refresh");
+                Assert.That(refresh.Enabled, Is.True, "F5 pressed Refresh");
+                Assert.That(refresh.Focused, Is.True, "F5 moved the focus");
+            }
+        }
+
+        [Test]
+        public void In_the_moment_held_back_Tab_moves_no_focus_and_once_the_moment_has_passed_Tab_moves_the_focus_as_ever()
+        {
+            // Tab is answered before the key reaches the window it is typed on, so that Tab moved
+            // the focus while every other key was held back.
+            using (var dialog = new PairingApprovalForm(ShownAgain(), TimeSpan.FromMinutes(2)))
+            {
+                var since = ShownOffScreen(dialog);
+                var refuse = Focus(Button(dialog, GateTab.RefuseButtonName));
+
+                Press(refuse, Keys.Tab);
+
+                Assert.That(since.Elapsed, Is.LessThan(PairingApprovalForm.ApproveHeldBack), "the key came too late to measure");
+                Assert.That(refuse.Focused, Is.True, "Tab moved the focus");
+
+                var approve = Button(dialog, GateTab.ApproveButtonName);
+                Assert.That(PumpUntil(() => approve.Enabled, TimeSpan.FromSeconds(10)), Is.True, "Approve is enabled again");
+                Press(refuse, Keys.Tab);
+                Assert.That(refuse.Focused, Is.False, "Tab moves no focus once the moment has passed");
+                Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut));
+            }
+        }
+
+        [TestCase(Keys.Down)]
+        [TestCase(Keys.PageDown)]
+        public void In_the_moment_held_back_no_arrow_or_page_key_scrolls_the_table_and_once_the_moment_has_passed_the_key_scrolls_the_table_as_ever(Keys key)
+        {
+            // The arrows and the page keys are answered before the key reaches the box it is typed
+            // on, so that they scrolled the table while every other key was held back. A dialog
+            // shown again for a change of the first of more profiles than the table shows.
+            var asked = Enumerable.Range(1, PairingApprovalForm.MostRows + 2)
+                .Select(at => "s" + at.ToString("00", System.Globalization.CultureInfo.InvariantCulture))
+                .ToArray();
+            var store = PairingRequests.Listing(asked);
+            var before = PairingRequests.Read(store, asked);
+            PairingRequests.Taken(store, asked[0]);
+            using (var dialog = new PairingApprovalForm(
+                       PairingRequests.Shown(store, asked, earlier: PairingApproval.Approved(asked), before: before), TimeSpan.FromMinutes(2)))
+            {
+                var since = ShownOffScreen(dialog);
+                var list = Profiles(dialog);
+                var first = ProfileRows.Of(list)[0];
+                var box = Focus(BoxOf(list, 1));
+                Assert.That(first.Top, Is.Zero, "the table starts scrolled");
+
+                Press(box, key);
+
+                Assert.That(since.Elapsed, Is.LessThan(PairingApprovalForm.ApproveHeldBack), "the key came too late to measure");
+                Assert.That(first.Top, Is.Zero, key + " scrolled the table");
+                Assert.That(box.Focused, Is.True, key + " moved the focus");
+
+                var approve = Button(dialog, GateTab.ApproveButtonName);
+                Assert.That(PumpUntil(() => approve.Enabled, TimeSpan.FromSeconds(10)), Is.True, "Approve is enabled again");
+                Press(box, key);
+                Assert.That(first.Top, Is.LessThan(0), key + " scrolls no table once the moment has passed");
+            }
+        }
+
+        [Test]
+        public void In_the_moment_held_back_Space_presses_no_button()
+        {
+            using (var dialog = new PairingApprovalForm(ShownAgain(), TimeSpan.FromMinutes(2)))
+            {
+                var since = ShownOffScreen(dialog);
+                var refuse = Focus(Button(dialog, GateTab.RefuseButtonName));
+
+                Press(refuse, Keys.Space);
+
+                Assert.That(since.Elapsed, Is.LessThan(PairingApprovalForm.ApproveHeldBack), "the key came too late to measure");
+                Assert.That(dialog.Visible, Is.True, "Space ended the dialog");
+                Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut), "Space answered the dialog");
+            }
+        }
+
+        /// <summary>
+        /// Puts a letter on the queue for a control as this message, a typed letter or a letter
+        /// with Alt, and lets the loop deliver it.
+        /// </summary>
+        private static void Type(Control control, int message, char letter)
+        {
+            var withAlt = message == WmSysChar ? (IntPtr)AltContext : IntPtr.Zero;
+            TestNativeMethods.PostMessage(control.Handle, message, (IntPtr)letter, withAlt);
+            OffScreenForm.Pump();
+        }
+
+        /// <summary>The message of a letter typed with Alt.</summary>
+        private const int WmSysChar = 0x0106;
+
+        /// <summary>The bit of a key's message that holds whether Alt was down.</summary>
+        private const int AltContext = 0x20000000;
 
         [Test]
         public void A_first_dialog_holds_Approve_back_for_no_moment_and_carries_no_notice()
@@ -658,20 +812,1372 @@ namespace KeePassGate.Tests
                 ShownOffScreen(dialog);
 
                 Assert.That(Button(dialog, GateTab.ApproveButtonName).Enabled, Is.True);
-                Assert.That(ControlTree.FindByName<Label>(dialog, GateTab.ApprovalAgainName), Is.Null);
+                Assert.That(Change(dialog), Is.Empty, "a first dialog states a notice");
+            }
+        }
+
+        [Test]
+        public void A_change_landing_under_the_open_dialog_enables_Refresh_and_disables_Approve_without_touching_a_row()
+        {
+            // The dialog reads the store again on its own tick, through the real loop, and shows
+            // nothing of what it read: no row, no check and no highlight changes, Refresh is
+            // enabled, Approve disabled and the line states why, and nothing takes the focus.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops", "reader" };
+                using (var dialog = Over(authority, "ops", "reader", "fresh"))
+                {
+                    ShownOffScreen(dialog);
+                    var list = Profiles(dialog);
+                    var refresh = Button(dialog, GateTab.ApprovalRefreshName);
+                    var approve = Button(dialog, GateTab.ApproveButtonName);
+                    var rows = Rows(list).Select(row => string.Join("|", row)).ToList();
+                    Assert.That(refresh.Enabled, Is.False, "nothing to show");
+                    Assert.That(approve.Enabled, Is.True);
+                    Assert.That(Change(dialog), Is.Empty);
+
+                    authority.Forget("ops");
+                    Assert.That(PumpUntil(() => refresh.Enabled, TimeSpan.FromSeconds(10)), Is.True, "a tick read the change");
+
+                    Assert.That(approve.Enabled, Is.False);
+                    Assert.That(Change(dialog), Is.EqualTo(PairingApprovalForm.DatabaseChanged));
+                    Assert.That(Rows(list).Select(row => string.Join("|", row)), Is.EqualTo(rows), "no row touched");
+                    Assert.That(Checks(list), Is.All.True);
+                    Assert.That(Backgrounds(list), Is.All.EqualTo(Unmarked(list)));
+                    Assert.That(refresh.Focused || approve.Focused, Is.False, "no focus taken");
+                }
+            }
+        }
+
+        [Test]
+        public void Refresh_shows_the_change_highlights_the_changed_row_keeps_the_checks_and_enables_Approve()
+        {
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops", "reader" };
+                using (var dialog = Over(authority, "ops", "reader", "fresh"))
+                {
+                    ShownWhereClicksLand(dialog);
+                    var list = Profiles(dialog);
+                    Click(BoxOf(list, 1));
+                    Assert.That(Checks(list), Is.EqualTo(new[] { true, false, true }), "unchecked by the operator");
+
+                    authority.Forget("ops");
+                    dialog.Watch();
+                    var refresh = Button(dialog, GateTab.ApprovalRefreshName);
+                    refresh.PerformClick();
+                    OffScreenForm.Pump();
+
+                    Assert.That(Rows(list).Select(row => row[1]), Is.EqualTo(new[]
+                    {
+                        PairingApprovalForm.RemovedState, string.Empty, PairingApprovalForm.NewState
+                    }));
+                    Assert.That(Checks(list), Is.EqualTo(new[] { false, false, true }),
+                        "the restored row unchecked, the operator's own check kept, by name");
+                    Assert.That(Backgrounds(list), Is.EqualTo(new[] { PairingApprovalForm.ChangedBackground, Unmarked(list), Unmarked(list) }));
+                    Assert.That(TipOf(list, BoxOf(list, 0)), Is.EqualTo(Tooltips.Wrapped(Changed)));
+                    Assert.That(ProfileRows.Spoken(list)[0], Does.EndWith(Changed), "read out with the change");
+                    Assert.That(refresh.Enabled, Is.False);
+                    Assert.That(Change(dialog), Is.Empty);
+                    var approve = Button(dialog, GateTab.ApproveButtonName);
+                    Assert.That(approve.Enabled, Is.False, "Approve takes no press for a moment after a Refresh");
+                    Assert.That(PumpUntil(() => approve.Enabled, TimeSpan.FromSeconds(10)), Is.True, "Approve is enabled again");
+
+                    BoxOf(list, 0).Checked = true;
+                    approve.PerformClick();
+                    var answer = dialog.Answer();
+                    Assert.That(answer.Profiles, Is.EqualTo(new[] { "ops", "fresh" }));
+                    Assert.That(answer.Against.MarkOf("ops"), Is.EqualTo(ProfileMark.Removed), "held to what the dialog showed");
+                }
+            }
+        }
+
+        [Test]
+        public void A_change_that_does_not_alter_what_the_dialog_shows_enables_nothing_and_is_held()
+        {
+            // A further removal of a name already shown as restored, and a name put on the list
+            // that nobody asked for: the table reads the same, so nothing is enabled, and the
+            // approval rests on the latest reading, holding that removal as well.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "gone" };
+                authority.Forget("gone");
+                using (var dialog = Over(authority, "gone"))
+                {
+                    ShownOffScreen(dialog);
+                    var removal = StoreRecords.RemovedApart(authority.Store, "gone");
+                    authority.KnownProfiles = new[] { "unasked" };
+                    dialog.Watch();
+
+                    Assert.That(Button(dialog, GateTab.ApprovalRefreshName).Enabled, Is.False);
+                    Assert.That(Button(dialog, GateTab.ApproveButtonName).Enabled, Is.True);
+                    Assert.That(Change(dialog), Is.Empty);
+
+                    dialog.Approve();
+                    Assert.That(dialog.Answer().Against.Held("gone", removal), Is.True, "the latest reading held");
+                }
+            }
+        }
+
+        [Test]
+        public void Enter_and_the_accept_button_refuse_and_Approve_takes_no_press_while_a_change_waits()
+        {
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops" };
+                using (var dialog = Over(authority, "ops"))
+                {
+                    var lifetime = Focused(dialog);
+                    authority.Forget("ops");
+                    dialog.Watch();
+                    var approve = Button(dialog, GateTab.ApproveButtonName);
+                    Assert.That(approve.Enabled, Is.False, "a change waits");
+                    Assert.That(dialog.AcceptButton, Is.SameAs(Button(dialog, GateTab.RefuseButtonName)), "the accept button refuses");
+
+                    approve.PerformClick();
+                    dialog.Approve();
+                    OffScreenForm.Pump();
+                    Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut), "nothing answered");
+
+                    Press(lifetime, Keys.Enter);
+                    Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.Refused));
+                }
+            }
+        }
+
+        [Test]
+        public void A_tick_reads_nothing_while_KeePass_is_busy()
+        {
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops" };
+                var busy = true;
+                var reads = 0;
+                var profiles = new[] { "ops" };
+                var request = new PairingRequest(
+                    authority.DatabaseId, "Invented Vault", "abcdef01", "agent-fictitious", profiles, "127.0.0.1:60001",
+                    null, null, null, null,
+                    () =>
+                    {
+                        reads++;
+                        return authority.Asked(profiles);
+                    });
+                using (var dialog = new PairingApprovalForm(request.Showing(request.Read()), Timeout, null, () => busy))
+                {
+                    reads = 0;
+                    authority.Forget("ops");
+                    dialog.Watch();
+                    Assert.That(reads, Is.Zero, "KeePass part way through work of its own");
+                    Assert.That(Button(dialog, GateTab.ApprovalRefreshName).Enabled, Is.False);
+
+                    busy = false;
+                    dialog.Watch();
+                    Assert.That(reads, Is.EqualTo(1));
+                    Assert.That(Button(dialog, GateTab.ApprovalRefreshName).Enabled, Is.True);
+                }
+            }
+        }
+
+        [Test]
+        public void A_reading_that_fails_under_the_dialog_disables_Approve_and_Refresh_until_a_tick_reads_again()
+        {
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops" };
+                var failing = false;
+                var profiles = new[] { "ops" };
+                var request = new PairingRequest(
+                    authority.DatabaseId, "Invented Vault", "abcdef01", "agent-fictitious", profiles, "127.0.0.1:60001",
+                    null, null, null, null, () => failing ? AskedProfiles.Unreadable() : authority.Asked(profiles));
+                using (var dialog = new PairingApprovalForm(request.Showing(request.Read()), Timeout))
+                {
+                    failing = true;
+                    dialog.Watch();
+                    Assert.That(Button(dialog, GateTab.ApproveButtonName).Enabled, Is.False);
+                    Assert.That(Button(dialog, GateTab.ApprovalRefreshName).Enabled, Is.False);
+                    Assert.That(Change(dialog), Is.EqualTo(PairingApprovalForm.CannotRead));
+                    dialog.Approve();
+                    Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut), "nothing approved over a database unread");
+
+                    failing = false;
+                    dialog.Watch();
+                    Assert.That(Button(dialog, GateTab.ApproveButtonName).Enabled, Is.True);
+                    Assert.That(Change(dialog), Is.Empty);
+                }
+            }
+        }
+
+        [Test]
+        public void A_lock_under_a_dialog_with_a_change_waiting_closes_it_unanswered()
+        {
+            // A lock leaves no tree: the dialog's reading answers it as unread, and the lock takes
+            // the dialog away as it takes away any dialog.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops" };
+                using (var dialog = Over(authority, "ops"))
+                {
+                    authority.Forget("ops");
+                    dialog.Watch();
+                    authority.Shut = true;
+                    Assert.That(dialog.Withdraw(false), Is.True, "unanswered");
+                    Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.Locked));
+                }
+            }
+        }
+
+        [Test]
+        public void The_countdown_running_out_with_a_change_waiting_is_a_timeout()
+        {
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops" };
+                var profiles = new[] { "ops" };
+                var request = new PairingRequest(
+                    authority.DatabaseId, "Invented Vault", "abcdef01", "agent-fictitious", profiles, "127.0.0.1:60001",
+                    null, null, null, null, () => authority.Asked(profiles));
+                using (var dialog = new PairingApprovalForm(request.Showing(request.Read()), TimeSpan.FromSeconds(2)))
+                {
+                    ShownOffScreen(dialog);
+                    authority.Forget("ops");
+                    dialog.Watch();
+                    Assert.That(Button(dialog, GateTab.ApprovalRefreshName).Enabled, Is.True, "a change waits");
+
+                    Assert.That(PumpUntil(() => !dialog.Visible, TimeSpan.FromSeconds(10)), Is.True, "the countdown closed it");
+                    Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut));
+                }
+            }
+        }
+
+        [Test]
+        public void A_dialog_shown_again_with_a_change_waiting_enables_Approve_only_after_its_moment_and_Refresh()
+        {
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops", "reader" };
+                var profiles = new[] { "ops", "reader" };
+                var before = authority.Asked(profiles);
+                var request = new PairingRequest(
+                    authority.DatabaseId, "Invented Vault", "abcdef01", "agent-fictitious", profiles, "127.0.0.1:60001",
+                    null, PairingApproval.Approved(profiles), before, null, () => authority.Asked(profiles));
+                using (var dialog = new PairingApprovalForm(request.Showing(request.Read()), TimeSpan.FromMinutes(2)))
+                {
+                    var approve = Button(dialog, GateTab.ApproveButtonName);
+                    var since = ShownOffScreen(dialog);
+                    authority.Forget("reader");
+                    dialog.Watch();
+
+                    Assert.That(PumpUntil(() => since.Elapsed > PairingApprovalForm.ApproveHeldBack + TimeSpan.FromMilliseconds(300), TimeSpan.FromSeconds(10)), Is.True);
+                    Assert.That(approve.Enabled, Is.False, "its moment passed, and a change still waits");
+
+                    Button(dialog, GateTab.ApprovalRefreshName).PerformClick();
+                    OffScreenForm.Pump();
+                    Assert.That(PumpUntil(() => approve.Enabled, TimeSpan.FromSeconds(10)), Is.True, "Approve is enabled again");
+                    Assert.That(Backgrounds(Profiles(dialog))[1], Is.EqualTo(PairingApprovalForm.ChangedBackground), "the row a Refresh changed");
+                    Assert.That(Checks(Profiles(dialog)), Is.EqualTo(new[] { true, false }),
+                        "a Refresh unchecks the row it makes Approve do more for, and no other");
+                }
+            }
+        }
+
+        [Test]
+        public void Refresh_brings_the_first_row_it_changed_into_view()
+        {
+            // Twelve names on the list, the last two out of sight: the last taken off the list
+            // under the dialog, a Refresh shows it restored and scrolls its row into view.
+            using (var authority = TestAuthority.New())
+            {
+                var names = Enumerable.Range(1, 12).Select(at => "s" + at.ToString("00", System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+                authority.KnownProfiles = names;
+                using (var dialog = Over(authority, names))
+                {
+                    ShownOffScreen(dialog);
+                    var list = Profiles(dialog);
+                    var view = ProfileRows.View(list);
+                    var last = ProfileRows.Of(list)[11];
+                    Assert.That(last.Top, Is.GreaterThanOrEqualTo(view.ClientSize.Height), "the last row starts out of sight");
+
+                    authority.Forget(names[11]);
+                    dialog.Watch();
+                    Button(dialog, GateTab.ApprovalRefreshName).PerformClick();
+                    OffScreenForm.Pump();
+
+                    Assert.That(Rows(list)[11][1], Is.EqualTo(PairingApprovalForm.RemovedState));
+                    Assert.That(last.Top, Is.GreaterThanOrEqualTo(0), "the row the Refresh changed is out of sight");
+                    Assert.That(last.Bottom, Is.LessThanOrEqualTo(view.ClientSize.Height), "the row the Refresh changed is out of sight");
+                }
+            }
+        }
+
+        [Test]
+        public void A_tooltip_standing_over_a_cell_whose_words_a_Refresh_changes_is_taken_away()
+        {
+            // The tooltip of the state of `fresh`, added, stands over the cell. A removal of `fresh`
+            // lands under the dialog and Refresh shows the name restored: the tooltip that stands
+            // states what the row no longer states, so it goes, and the cell's tooltip is the
+            // words that stand, which the next rest of the pointer shows. The table's tooltips put
+            // up at the cell's place, on the dialog, which comes up without being activated and so
+            // shows a tooltip asked of it, where a tooltip asked of a cell is shown only on an
+            // active window: no pointer is read or moved. The tooltip a rest of the real pointer
+            // brings up over a cell is proved end to end, `LivePairingTests`.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "reader" };
+                using (var dialog = Over(authority, "fresh", "reader"))
+                {
+                    ShownWhereClicksLand(dialog);
+                    var list = Profiles(dialog);
+                    var state = CellOf(list, 0, GateTab.ApprovalStateColumnName);
+                    var tips = ProfileRows.Tips(list);
+                    var tip = (IntPtr)typeof(ToolTip)
+                        .GetProperty("Handle", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .GetValue(tips, null);
+                    Assert.That(TipOf(list, state), Is.EqualTo(Tooltips.Wrapped(PairingApprovalForm.NewTip)));
+                    var at = state.PointToScreen(Middle(state));
+                    tips.Show(TipOf(list, state), dialog, new Point(at.X - dialog.Left, at.Y - dialog.Top));
+                    Assert.That(PumpUntil(() => TestNativeMethods.IsWindowVisible(tip), TimeSpan.FromSeconds(10)), Is.True,
+                        "no tooltip of the table came up over the cell");
+
+                    authority.Name(new[] { "fresh" });
+                    authority.Forget("fresh");
+                    dialog.Watch();
+                    Button(dialog, GateTab.ApprovalRefreshName).PerformClick();
+                    OffScreenForm.Pump();
+
+                    Assert.That(Rows(list)[0][1], Is.EqualTo(PairingApprovalForm.RemovedState));
+                    Assert.That(TestNativeMethods.IsWindowVisible(tip), Is.False, "the tooltip of the words before stands");
+                    Assert.That(TipOf(list, state), Is.EqualTo(Tooltips.Wrapped(PairingApprovalForm.RemovedTip + Environment.NewLine + PairingApprovalForm.NowRestoresTip)));
+                }
+            }
+        }
+
+        [Test]
+        public void Space_on_Refresh_hands_the_focus_to_the_table_and_no_key_acts_for_a_moment()
+        {
+            // Disabling the focused Refresh moved the focus to Refuse, so that a second Space
+            // refused and spent the invitation. Through the real loop.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops", "reader" };
+                using (var dialog = Over(authority, "ops", "reader"))
+                {
+                    ShownOffScreen(dialog);
+                    var list = Profiles(dialog);
+                    authority.Forget("ops");
+                    dialog.Watch();
+                    var refresh = Focus(Button(dialog, GateTab.ApprovalRefreshName));
+
+                    Press(refresh, Keys.Space);
+                    var since = System.Diagnostics.Stopwatch.StartNew();
+                    Assert.That(Rows(list)[0][1], Is.EqualTo(PairingApprovalForm.RemovedState), "Space pressed Refresh");
+                    var view = ProfileRows.View(list);
+                    Assert.That(view.Focused, Is.True, "the focus went elsewhere than the view the rows scroll in");
+                    var shown = Checks(list);
+
+                    Press(view, Keys.Space);
+                    Press(view, Keys.Space);
+                    Assert.That(since.Elapsed, Is.LessThan(PairingApprovalForm.ApproveHeldBack), "the presses came too late to measure");
+                    Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut), "a Space answered the dialog");
+                    Assert.That(Checks(list), Is.EqualTo(shown), "a Space toggled a row");
+
+                    var approve = Button(dialog, GateTab.ApproveButtonName);
+                    Assert.That(PumpUntil(() => approve.Enabled, TimeSpan.FromSeconds(10)), Is.True, "Approve is enabled again");
+                    Assert.That(approve.Focused, Is.False, "enabling Approve took the focus");
+                    Press(view, Keys.Tab);
+                    var box = BoxOf(list, 0);
+                    Assert.That(box.Focused, Is.True, "Tab from the view goes elsewhere than the first box");
+                    var before = box.Checked;
+                    Press(box, Keys.Space);
+                    Assert.That(box.Checked, Is.Not.EqualTo(before), "Space toggles the box once the moment has passed");
+                }
+            }
+        }
+
+        [Test]
+        public void A_tick_that_disables_a_focused_Approve_hands_the_focus_to_the_table_and_holds_keys_back()
+        {
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops", "reader" };
+                using (var dialog = Over(authority, "ops", "reader"))
+                {
+                    ShownOffScreen(dialog);
+                    var list = Profiles(dialog);
+                    var approve = Focus(Button(dialog, GateTab.ApproveButtonName));
+                    authority.Forget("ops");
+                    dialog.Watch();
+
+                    Assert.That(approve.Enabled, Is.False, "a change waits");
+                    var view = ProfileRows.View(list);
+                    Assert.That(view.Focused, Is.True, "the focus went elsewhere than the view the rows scroll in");
+                    Press(view, Keys.Space);
+                    Assert.That(Checks(list), Is.All.True, "a Space toggled a row");
+                    Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut));
+                }
+            }
+        }
+
+        [Test]
+        public void A_reading_under_the_dialog_that_finds_the_store_not_served_ends_the_dialog_with_the_store_s_word()
+        {
+            // The authority retired under the dialog: no later tick reads a store that serves, so
+            // the dialog ends answered as a reading before a dialog is, rather than standing
+            // disabled until its time runs out.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops" };
+                using (var dialog = Over(authority, "ops"))
+                {
+                    ShownOffScreen(dialog);
+                    StoreSeeds.Retire(authority.Store, authority.DatabaseId);
+                    var word = authority.Asked(new[] { "ops" });
+                    Assert.That(word.Served, Is.False, "the store still serves");
+
+                    dialog.Watch();
+                    OffScreenForm.Pump();
+
+                    var answer = dialog.Answer();
+                    Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Unserved));
+                    Assert.That(answer.Word, Is.EqualTo(word.Word));
+                    Assert.That(dialog.Visible, Is.False, "the dialog stands");
+                }
+            }
+        }
+
+        [Test]
+        public void A_second_authority_brought_in_under_the_dialog_ends_the_dialog_answered_undecided()
+        {
+            // A synchronize bringing in a copy that made an authority of its own: the store reads
+            // and serves no authority, and the dialog's own reading, the handler's, answers it with
+            // the store's word as a reading before a dialog is.
+            var store = PairingRequests.Listing("ops");
+            using (var dialog = new PairingApprovalForm(PairingRequests.Shown(store, new[] { "ops" }), Timeout))
+            {
+                ShownOffScreen(dialog);
+                StoreSeeds.Beside(store);
+
+                dialog.Watch();
+                OffScreenForm.Pump();
+
+                var answer = dialog.Answer();
+                Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Unserved), "the dialog stands over a store no tick reads as served");
+                Assert.That(answer.Word, Is.EqualTo(HeldBackTarget.Undecided));
+                Assert.That(dialog.Visible, Is.False, "the dialog stands");
+            }
+        }
+
+        [Test]
+        public void A_reading_that_throws_under_the_dialog_leaves_the_database_unreadable_and_reads_no_more()
+        {
+            // What no list names goes on to the handler of the tick, which counts it: once, since
+            // the dialog reads nothing more, with Approve and Refresh disabled until it ends.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops" };
+                var reads = 0;
+                var throwing = false;
+                var profiles = new[] { "ops" };
+                var request = new PairingRequest(
+                    authority.DatabaseId, "Invented Vault", "abcdef01", "agent-fictitious", profiles, "127.0.0.1:60001",
+                    null, null, null, null,
+                    () =>
+                    {
+                        reads++;
+                        if (throwing)
+                        {
+                            throw new IndexOutOfRangeException("a defect in a reading");
+                        }
+
+                        return authority.Asked(profiles);
+                    });
+                using (var dialog = new PairingApprovalForm(request.Showing(request.Read()), Timeout))
+                {
+                    throwing = true;
+                    Assert.Throws<IndexOutOfRangeException>(() => dialog.Watch(), "what was thrown goes on to the tick's handler");
+                    Assert.That(Button(dialog, GateTab.ApproveButtonName).Enabled, Is.False);
+                    Assert.That(Button(dialog, GateTab.ApprovalRefreshName).Enabled, Is.False);
+                    Assert.That(Button(dialog, GateTab.RefuseButtonName).Enabled, Is.True);
+                    Assert.That(Change(dialog), Is.EqualTo("The database cannot be read."), "the line promises a reading the dialog will not make");
+
+                    throwing = false;
+                    reads = 0;
+                    dialog.Watch();
+                    Assert.That(reads, Is.Zero, "a tick read again after a reading threw");
+                    dialog.Approve();
+                    Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut), "approved over a reading nobody made");
+                }
+            }
+        }
+
+        [Test]
+        public void The_words_beside_Refresh_its_name_and_its_tooltips_read_as_written()
+        {
+            Assert.That(PairingApprovalForm.DatabaseChanged, Is.EqualTo("The database changed."));
+            Assert.That(PairingApprovalForm.CannotRead, Is.EqualTo("The database cannot be read for now."));
+            Assert.That(PairingApprovalForm.ReadingStopped, Is.EqualTo("The database cannot be read."));
+            Assert.That(PairingApprovalForm.StateChanged, Is.EqualTo("Shown again: the state of the profiles changed."));
+            Assert.That(PairingApprovalForm.RefreshName, Is.EqualTo("Refresh"));
+            Assert.That(PairingApprovalForm.RefreshTip, Is.EqualTo("Refresh (F5)"));
+            Assert.That(PairingApprovalForm.RefreshShowsTip, Is.EqualTo("Refresh shows the change. (F5)"));
+        }
+
+        [TestCase(1.00f)]
+        [TestCase(1.50f)]
+        [TestCase(2.00f)]
+        public void The_lifetime_stands_a_gap_under_the_table_and_a_dialog_shown_again_is_as_tall_as_a_first(float scaling)
+        {
+            // Under a table that does not scroll and under a table that scrolls alike, the
+            // lifetime stands the ordinary gap below the table, with no line and no band kept for
+            // a line between the two. A dialog shown again is as tall as a first dialog of the same
+            // rows, its notice standing beside Refresh rather than on a line of its own; and the
+            // footer is the height of its buttons.
+            var few = new[] { "ops", "reader", "deploy" };
+            var many = Enumerable.Range(1, PairingApprovalForm.MostRows + 2).Select(at => "profile-" + at).ToArray();
+            using (var larger = Scaled(Control.DefaultFont, scaling))
+            {
+                foreach (var asked in new[] { few, many })
+                {
+                    using (var dialog = New(larger, asked))
+                    {
+                        ShownAway(dialog);
+                        var list = Profiles(dialog);
+                        var row = Lifetime(dialog).Parent;
+                        var below = InDialog(row, dialog).Top - InDialog(list, dialog).Bottom;
+                        Assert.That(below, Is.EqualTo(row.Margin.Top), "the room between the table and the lifetime for " + asked.Length + " at " + scaling);
+                        Assert.That(LinesUnder(dialog), Is.Empty, "a line under the table for " + asked.Length + " at " + scaling);
+
+                        var footer = ControlTree.FindByName<Control>(dialog, "KpgApprovalFooter");
+                        Assert.That(footer.Height, Is.EqualTo(Button(dialog, GateTab.ApproveButtonName).Height), "the footer is taller than its buttons at " + scaling);
+                        TestContext.Out.WriteLine(asked.Length + " profiles at " + scaling + ": the dialog " + dialog.Size + ", the table " + list.Size);
+                    }
+                }
+
+                var store = PairingRequests.Listing(few);
+                var before = PairingRequests.Read(store, few);
+                PairingRequests.Taken(store, "reader");
+                using (var first = new PairingApprovalForm(PairingRequests.Shown(store, few), Timeout, larger))
+                using (var again = new PairingApprovalForm(PairingRequests.Shown(store, few, earlier: PairingApproval.Approved(few), before: before), Timeout, larger))
+                {
+                    ShownAway(first);
+                    ShownAway(again);
+                    Assert.That(again.Size, Is.EqualTo(first.Size), "the notice of a dialog shown again takes a line of its own at " + scaling);
+                }
+            }
+        }
+
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(3)]
+        public void A_Refresh_that_makes_the_rows_taller_grows_the_view_and_the_dialog_downward_by_as_much(int asked)
+        {
+            // `ops` and the rest on the list, `ops` held by four clients: the view is as tall as
+            // its rows, two lines at the least. `ops` taken off the list and refreshed: its row is
+            // four lines. The view grows to its rows and every client of the row is in sight; the
+            // dialog grows downward by as much, its top edge where it stood, and the lifetime, the
+            // countdown and the answers stand lower by as much. A view kept at two lines hid three
+            // of the four clients below it, beside a scroll bar too short for a thumb.
+            using (var authority = TestAuthority.New())
+            {
+                var names = new[] { "ops" }.Concat(Enumerable.Range(1, asked - 1).Select(at => "s" + at)).ToArray();
+                authority.KnownProfiles = names;
+                using (var clients = new IssuedClients(Enumerable.Range(0, 4).Select(at => authority.IssueClient("agent-" + at))))
+                {
+                    clients.ForEach(client => authority.Admit(client, "ops"));
+                    using (var dialog = Over(authority, names))
+                    {
+                        ShownOffScreen(dialog);
+                        var list = Profiles(dialog);
+                        var view = ProfileRows.View(list);
+                        var single = ProfileRows.Of(list)[0].Height;
+                        var line = CellOf(list, 0, GateTab.ApprovalProfileColumnName).Height;
+                        var before = Math.Max(2, asked) * single;
+                        Assert.That(view.ClientSize.Height, Is.EqualTo(before), "a view other than as tall as its rows");
+                        var bounds = dialog.Bounds;
+                        var below = Below(dialog);
+
+                        authority.Forget("ops");
+                        dialog.Watch();
+                        dialog.ShowAsItStands();
+                        OffScreenForm.Pump();
+
+                        var rows = ProfileRows.Of(list);
+                        Assert.That(rows[0].Height, Is.EqualTo(single + (3 * line)), "a line for each of the four clients");
+                        var grown = Math.Max(2 * single, (asked * single) + (3 * line)) - before;
+                        Assert.That(view.ClientSize.Height, Is.EqualTo(before + grown), "a view other than as tall as its rows");
+                        Assert.That(Scrolls(view, VerticalScrollBar), Is.False, "a client of the row out of sight");
+                        Assert.That(rows[rows.Count - 1].Bottom, Is.LessThanOrEqualTo(view.ClientSize.Height), "a row out of sight");
+                        Assert.That(dialog.Location, Is.EqualTo(bounds.Location), "the dialog's top edge moved");
+                        Assert.That(dialog.Size, Is.EqualTo(new Size(bounds.Width, bounds.Height + grown)), "the dialog grew by other than its rows");
+                        Assert.That(Below(dialog), Is.EqualTo(below.Select(place => Lowered(place, grown))),
+                            "what stands below the table moved by other than the rows' growth");
+                    }
+                }
+            }
+        }
+
+        [TestCase(1.00f)]
+        [TestCase(1.25f)]
+        [TestCase(1.50f)]
+        [TestCase(2.00f)]
+        public void Rows_grown_past_the_most_the_view_shows_grow_it_to_the_most_and_a_line_cut_in_half(float scaling)
+        {
+            // Nine names, `ops` first and held by twenty clients: nine lines, which the view shows
+            // whole. `ops` taken off the list and refreshed: its row is twenty lines, past the most
+            // the view shows. The view grows to the most it shows and a line cut in half at its
+            // bottom, the dialog downward by as much, the dialog still on the smallest screen, and
+            // the scroll bar has room for its thumb. A Refresh that makes the rows taller still
+            // leaves the view as it stands.
+            using (var authority = TestAuthority.New())
+            using (var larger = Scaled(Control.DefaultFont, scaling))
+            {
+                var names = new[] { "ops" }.Concat(Enumerable.Range(1, 8).Select(at => "s" + at)).ToArray();
+                authority.KnownProfiles = names;
+                using (var clients = new IssuedClients(Enumerable.Range(0, 20)
+                    .Select(at => authority.IssueClient("agent-" + at.ToString("00", System.Globalization.CultureInfo.InvariantCulture)))))
+                using (var others = new IssuedClients(Enumerable.Range(0, 10).Select(at => authority.IssueClient("other-" + at))))
+                {
+                    clients.ForEach(client => authority.Admit(client, "ops"));
+                    others.ForEach(client => authority.Admit(client, "s1"));
+                    using (var dialog = Over(authority, larger, names))
+                    {
+                        ShownOffScreen(dialog);
+                        var list = Profiles(dialog);
+                        var view = ProfileRows.View(list);
+                        var single = ProfileRows.Of(list)[0].Height;
+                        var most = PairingApprovalForm.MostRows * single;
+                        Assert.That(view.ClientSize.Height, Is.EqualTo(9 * single), "a view other than as tall as its rows at " + scaling);
+                        var bounds = dialog.Bounds;
+                        var below = Below(dialog);
+
+                        authority.Forget("ops");
+                        dialog.Watch();
+                        dialog.ShowAsItStands();
+                        OffScreenForm.Pump();
+
+                        var grown = view.ClientSize.Height - (9 * single);
+                        Assert.That(Scrolls(view, VerticalScrollBar), Is.True, "twenty-eight lines fit at " + scaling);
+                        Assert.That(view.ClientSize.Height, Is.InRange(most - single, most + single), "a view other than at the most it shows at " + scaling);
+                        AssertCutInHalf(list, "rows grown past the most the view shows at " + scaling);
+                        Assert.That(view.ClientSize.Height, Is.GreaterThanOrEqualTo(
+                                (2 * SystemInformation.VerticalScrollBarArrowHeight) + SystemInformation.VerticalScrollBarThumbHeight),
+                            "no room for the scroll bar's thumb at " + scaling);
+                        Assert.That(dialog.Location, Is.EqualTo(bounds.Location), "the dialog's top edge moved at " + scaling);
+                        Assert.That(dialog.Size, Is.EqualTo(new Size(bounds.Width, bounds.Height + grown)), "the dialog grew by other than its view at " + scaling);
+                        Assert.That(Below(dialog), Is.EqualTo(below.Select(place => Lowered(place, grown))),
+                            "what stands below the table moved by other than the view's growth at " + scaling);
+                        Assert.That(dialog.Height, Is.LessThanOrEqualTo(SmallestWorkingHeight * scaling),
+                            "the grown dialog is taller than the smallest screen at " + scaling);
+                        TestContext.Out.WriteLine(
+                            "at " + scaling.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " a single row is " + single
+                            + " px, a client line " + CellOf(list, 0, GateTab.ApprovalProfileColumnName).Height + " px; the view grew from "
+                            + (9 * single) + " to " + view.ClientSize.Height + " px, the dialog to " + dialog.Size);
+
+                        var height = view.ClientSize.Height;
+                        authority.Forget("s1");
+                        dialog.Watch();
+                        dialog.ShowAsItStands();
+                        OffScreenForm.Pump();
+                        Assert.That(ProfileRows.Of(list)[1].Height, Is.GreaterThan(single), "`s1` gained its clients at " + scaling);
+                        Assert.That(view.ClientSize.Height, Is.EqualTo(height), "a view at its most grew further at " + scaling);
+                        Assert.That(dialog.Size, Is.EqualTo(new Size(bounds.Width, bounds.Height + grown)), "a dialog at its most grew further at " + scaling);
+                    }
+                }
+            }
+        }
+
+        [Test]
+        public void Rows_a_Refresh_makes_shorter_leave_the_view_and_the_dialog_as_they_stand()
+        {
+            // `ops` off the list and held by four clients, with `s1` on it: a row of four lines and
+            // a row of a line, which the view shows whole. Three of the clients revoked and
+            // refreshed: the row is a line again. The view keeps its height, an empty room under
+            // the last row, and nothing on the dialog moves.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops", "s1" };
+                using (var clients = new IssuedClients(Enumerable.Range(0, 4).Select(at => authority.IssueClient("agent-" + at))))
+                {
+                    clients.ForEach(client => authority.Admit(client, "ops"));
+                    authority.Forget("ops");
+                    using (var dialog = Over(authority, "ops", "s1"))
+                    {
+                        ShownOffScreen(dialog);
+                        var list = Profiles(dialog);
+                        var view = ProfileRows.View(list);
+                        var height = view.ClientSize.Height;
+                        var single = ProfileRows.Of(list)[1].Height;
+                        Assert.That(ProfileRows.Of(list)[1].Bottom, Is.EqualTo(height), "a view other than as tall as its rows");
+                        var bounds = dialog.Bounds;
+                        var below = Below(dialog);
+
+                        foreach (var client in clients.Skip(1))
+                        {
+                            authority.Revoke(client);
+                        }
+
+                        dialog.Watch();
+                        dialog.ShowAsItStands();
+                        OffScreenForm.Pump();
+
+                        Assert.That(ProfileRows.Of(list)[0].Height, Is.EqualTo(single), "a line again");
+                        Assert.That(view.ClientSize.Height, Is.EqualTo(height), "the view shrank with its rows");
+                        Assert.That(ProfileRows.Of(list)[1].Bottom, Is.LessThan(height), "no room under the last row");
+                        Assert.That(dialog.Bounds, Is.EqualTo(bounds), "the dialog moved or shrank with its rows");
+                        Assert.That(Below(dialog), Is.EqualTo(below), "what stands below the table moved");
+                    }
+                }
+            }
+        }
+
+        [Test]
+        public void A_dialog_a_Refresh_grows_past_the_bottom_of_the_working_area_moves_up_by_what_is_missing()
+        {
+            // The dialog five pixels above the bottom of the working area of its screen, and grown
+            // by more: it moves up until its bottom stands on the working area's bottom, and
+            // nothing sideways.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops", "s1" };
+                using (var clients = new IssuedClients(Enumerable.Range(0, 4).Select(at => authority.IssueClient("agent-" + at))))
+                {
+                    clients.ForEach(client => authority.Admit(client, "ops"));
+                    using (var dialog = Over(authority, "ops", "s1"))
+                    {
+                        ShownOffScreen(dialog);
+                        var area = Screen.FromControl(dialog).WorkingArea;
+                        dialog.Location = new Point(-4000, area.Bottom - dialog.Height - 5);
+                        var height = dialog.Height;
+
+                        authority.Forget("ops");
+                        dialog.Watch();
+                        dialog.ShowAsItStands();
+                        OffScreenForm.Pump();
+
+                        Assert.That(dialog.Height, Is.GreaterThan(height + 5), "the dialog grew by no more than the room below it");
+                        Assert.That(dialog.Bottom, Is.EqualTo(area.Bottom), "the dialog other than on the bottom of the working area");
+                        Assert.That(dialog.Left, Is.EqualTo(-4000), "the dialog moved sideways");
+                    }
+                }
+            }
+        }
+
+        [TestCase(4)]
+        [TestCase(20)]
+        public void A_press_where_Approve_stood_before_a_Refresh_grew_the_dialog_approves_nothing_in_the_moment_held_back_or_after(int holders)
+        {
+            // A Refresh that grows the dialog moves the answers down by the growth, so that a press
+            // aimed at Approve as it stood lands on whatever stands there now: by four clients on
+            // the layout's empty room beside the lifetime, by twenty in the table, on a client's
+            // line. Pressed there through the message loop in the moment held back after the
+            // Refresh and again after it, the press approves nothing; a press on Approve where it
+            // stands now, after the moment, approves, so that the presses are seen to count.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops", "s1" };
+                using (var clients = new IssuedClients(Enumerable.Range(0, holders)
+                    .Select(at => authority.IssueClient("agent-" + at.ToString("00", System.Globalization.CultureInfo.InvariantCulture)))))
+                {
+                    clients.ForEach(client => authority.Admit(client, "ops"));
+                    using (var dialog = Over(authority, "ops", "s1"))
+                    {
+                        ShownWhereClicksLand(dialog);
+                        var approve = Button(dialog, GateTab.ApproveButtonName);
+                        var stood = dialog.PointToClient(approve.PointToScreen(Middle(approve)));
+                        var height = dialog.Height;
+
+                        authority.Forget("ops");
+                        dialog.Watch();
+                        dialog.ShowAsItStands();
+                        OffScreenForm.Pump();
+                        Assert.That(dialog.Height, Is.GreaterThan(height), "the Refresh grew the dialog");
+                        Assert.That(approve.Enabled, Is.False, "Approve takes a press in the moment after the Refresh");
+
+                        var target = Under(dialog, stood);
+                        Assert.That(target, Is.Not.SameAs(approve), "Approve still stands where it stood");
+                        PressAt(dialog, stood);
+                        Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut), "a press in the moment answered the dialog");
+
+                        Assert.That(PumpUntil(() => approve.Enabled, TimeSpan.FromSeconds(10)), Is.True, "Approve is enabled again");
+                        PressAt(dialog, stood);
+                        Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut), "a press after the moment answered the dialog");
+                        TestContext.Out.WriteLine(
+                            "grown by " + (dialog.Height - height) + " px for " + holders + " clients: the press where Approve stood lands on "
+                            + target.GetType().Name + " '" + target.Name + "' " + target.Text.Split('\n')[0].Trim());
+
+                        PressAt(dialog, dialog.PointToClient(approve.PointToScreen(Middle(approve))));
+                        Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.Approved), "a press on Approve where it stands counted no press");
+                    }
+                }
+            }
+        }
+
+        /// <summary>The deepest control of the dialog at this point of its client area.</summary>
+        private static Control Under(Form dialog, Point point)
+        {
+            Control under = dialog;
+            var at = point;
+            for (var child = under.GetChildAtPoint(at, GetChildAtPointSkip.Invisible); child != null; child = under.GetChildAtPoint(at, GetChildAtPointSkip.Invisible))
+            {
+                at = child.PointToClient(under.PointToScreen(at));
+                under = child;
+            }
+
+            return under;
+        }
+
+        /// <summary>
+        /// A press and a release of the left button at a point of the dialog's client area, put
+        /// on the queue of the deepest control there, and the loop run.
+        /// </summary>
+        private static void PressAt(Form dialog, Point point)
+        {
+            var target = Under(dialog, point);
+            var at = At(target.PointToClient(dialog.PointToScreen(point)));
+            TestNativeMethods.PostMessage(target.Handle, WmLButtonDown, (IntPtr)1, at);
+            TestNativeMethods.PostMessage(target.Handle, WmLButtonUp, IntPtr.Zero, at);
+            OffScreenForm.Pump();
+        }
+
+        /// <summary>A place on the dialog lowered by this many pixels.</summary>
+        private static Rectangle Lowered(Rectangle place, int by)
+        {
+            place.Offset(0, by);
+            return place;
+        }
+
+        /// <summary>Where the lifetime, the countdown and the answers stand on the dialog.</summary>
+        private static Rectangle[] Below(Form dialog)
+        {
+            return new Control[]
+            {
+                Lifetime(dialog).Parent, ControlTree.FindByName<Label>(dialog, GateTab.ApprovalCountdownName),
+                Button(dialog, GateTab.RefuseButtonName), Button(dialog, GateTab.ApproveButtonName)
+            }.Select(control => InDialog(control, dialog)).ToArray();
+        }
+
+        [TestCase(1.00f, false)]
+        [TestCase(1.25f, false)]
+        [TestCase(1.50f, false)]
+        [TestCase(2.00f, false)]
+        [TestCase(1.00f, true)]
+        [TestCase(2.00f, true)]
+        public void Refresh_stands_at_the_table_s_edge_on_the_line_naming_the_table(float scaling, bool mirrored)
+        {
+            // On the line above the table, with no text of its own, its edge on the table's: the
+            // right edge, and the left in a right to left window. The footer holds the countdown
+            // and the answers and nothing else.
+            using (var larger = Scaled(Control.DefaultFont, scaling))
+            using (var dialog = New(larger, "ops", "reader"))
+            {
+                if (mirrored)
+                {
+                    dialog.RightToLeft = RightToLeft.Yes;
+                }
+
+                ShownAway(dialog);
+                var list = InDialog(Profiles(dialog), dialog);
+                var refresh = Button(dialog, GateTab.ApprovalRefreshName);
+                var at = InDialog(refresh, dialog);
+                var asking = InDialog(ControlTree.FindByName<Label>(dialog, "KpgApprovalAskingLabel"), dialog);
+                Assert.That(refresh.Text, Is.Empty, "Refresh has text");
+                Assert.That(refresh.AccessibleName, Is.EqualTo("Refresh"));
+                Assert.That(mirrored ? at.Left : at.Right, Is.EqualTo(mirrored ? list.Left : list.Right), "Refresh is off the table's edge at " + scaling);
+                Assert.That(at.Bottom, Is.LessThanOrEqualTo(list.Top), "Refresh is not above the table at " + scaling);
+                Assert.That(asking.Top + (asking.Height / 2), Is.InRange(at.Top, at.Bottom), "Refresh is off the line naming the table at " + scaling);
+                Assert.That(mirrored ? at.Right <= asking.Left : at.Left >= asking.Right, Is.True, "Refresh covers the line naming the table at " + scaling);
+
+                var footer = ControlTree.FindByName<Control>(dialog, "KpgApprovalFooter");
+                Assert.That(ControlTree.Descendants(footer).OfType<Label>().Select(label => label.Name), Is.EqualTo(new[] { GateTab.ApprovalCountdownName }),
+                    "the footer holds a text other than the countdown");
+                Assert.That(ControlTree.Descendants(footer).OfType<Button>().Select(button => button.Name),
+                    Is.EquivalentTo(new[] { GateTab.RefuseButtonName, GateTab.ApproveButtonName }), "the footer holds a button other than the answers");
+            }
+        }
+
+        [Test]
+        public void F5_does_what_Refresh_does_from_anywhere_on_the_dialog_and_nothing_while_nothing_waits()
+        {
+            // Through the real loop, with the focus on the lifetime and then on a box: nothing
+            // waits, and F5 changes nothing; a change waits, and F5 shows it; in the moment held
+            // back after that, a further change waits and F5 shows nothing; the database cannot
+            // be read, and F5 shows nothing.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops", "reader", "deploy" };
+                var failing = false;
+                var profiles = new[] { "ops", "reader", "deploy" };
+                var request = new PairingRequest(
+                    authority.DatabaseId, "Invented Vault", "abcdef01", "agent-fictitious", profiles, "127.0.0.1:60001",
+                    null, null, null, null, () => failing ? AskedProfiles.Unreadable() : authority.Asked(profiles));
+                using (var dialog = new PairingApprovalForm(request.Showing(request.Read()), Timeout))
+                {
+                    ShownOffScreen(dialog);
+                    var list = Profiles(dialog);
+                    var lifetime = Focus(Lifetime(dialog));
+                    Press(lifetime, Keys.F5);
+                    Assert.That(Rows(list).Select(row => row[1]), Is.All.Empty, "F5 with nothing waiting");
+                    Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut));
+
+                    authority.Forget("ops");
+                    dialog.Watch();
+                    Press(lifetime, Keys.F5);
+                    Assert.That(Rows(list)[0][1], Is.EqualTo(PairingApprovalForm.RemovedState), "F5 left the change waiting");
+                    var since = System.Diagnostics.Stopwatch.StartNew();
+
+                    authority.Forget("reader");
+                    dialog.Watch();
+                    var view = ProfileRows.View(list);
+                    Assert.That(view.Focused || lifetime.Focused, Is.True, "the focus went elsewhere than where it stood or the view");
+                    Press(view.Focused ? (Control)view : lifetime, Keys.F5);
+                    Assert.That(since.Elapsed, Is.LessThan(PairingApprovalForm.ApproveHeldBack), "the key came too late to measure");
+                    Assert.That(Rows(list)[1][1], Is.Empty, "F5 in the moment held back showed the change");
+
+                    var refresh = Button(dialog, GateTab.ApprovalRefreshName);
+                    Assert.That(PumpUntil(() => since.Elapsed > PairingApprovalForm.ApproveHeldBack + TimeSpan.FromMilliseconds(100), TimeSpan.FromSeconds(10)), Is.True);
+                    failing = true;
+                    dialog.Watch();
+                    var box = Focus(BoxOf(list, 2));
+                    Press(box, Keys.F5);
+                    Assert.That(Rows(list)[1][1], Is.Empty, "F5 over a database that cannot be read");
+                    Assert.That(refresh.Enabled, Is.False);
+
+                    failing = false;
+                    dialog.Watch();
+                    Press(box, Keys.F5);
+                    Assert.That(Rows(list)[1][1], Is.EqualTo(PairingApprovalForm.RemovedState), "F5 on a box left the change waiting");
+                    Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut), "F5 answered the dialog");
+                }
+            }
+        }
+
+        [Test]
+        public void The_words_beside_Refresh_and_its_tooltip_state_each_state_of_the_dialog()
+        {
+            // A first dialog states nothing; a change waiting, that the database changed, the
+            // tooltip of Refresh what a press does; the database unreadable, that it cannot be
+            // read for now. A dialog shown again states so until a change waits, and the notice
+            // does not come back after the Refresh.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops", "reader" };
+                var failing = false;
+                var profiles = new[] { "ops", "reader" };
+                var request = new PairingRequest(
+                    authority.DatabaseId, "Invented Vault", "abcdef01", "agent-fictitious", profiles, "127.0.0.1:60001",
+                    null, null, null, null, () => failing ? AskedProfiles.Unreadable() : authority.Asked(profiles));
+                using (var dialog = new PairingApprovalForm(request.Showing(request.Read()), Timeout))
+                {
+                    ShownOffScreen(dialog);
+                    var refresh = Button(dialog, GateTab.ApprovalRefreshName);
+                    var words = ControlTree.FindByName<Label>(dialog, GateTab.ApprovalChangeName);
+                    Assert.That(words.Text, Is.Empty);
+                    Assert.That(words.Visible, Is.False, "an empty text stands, which UI automation reads by the text before it");
+                    Assert.That(FormTip(dialog, refresh), Is.EqualTo(Tooltips.Wrapped("Refresh (F5)")));
+
+                    authority.Forget("ops");
+                    dialog.Watch();
+                    Assert.That(words.Text, Is.EqualTo("The database changed."));
+                    Assert.That(words.Visible, Is.True);
+                    Assert.That(FormTip(dialog, refresh), Is.EqualTo(Tooltips.Wrapped("Refresh shows the change. (F5)")));
+
+                    failing = true;
+                    dialog.Watch();
+                    Assert.That(words.Text, Is.EqualTo("The database cannot be read for now."));
+                    Assert.That(FormTip(dialog, words), Is.EqualTo(words.Width < TextRenderer.MeasureText(words.Text, words.Font, Size.Empty, TextFormatFlags.NoPadding).Width
+                        ? Tooltips.Wrapped(words.Text) : string.Empty), "the tooltip of words that fit, or of words cut");
+                }
+            }
+
+            var store = PairingRequests.Listing("ops", "reader");
+            var before = PairingRequests.Read(store, new[] { "ops", "reader" });
+            PairingRequests.Taken(store, "reader");
+            using (var dialog = new PairingApprovalForm(
+                       PairingRequests.Shown(store, new[] { "ops", "reader" }, earlier: PairingApproval.Approved(new[] { "ops", "reader" }), before: before), Timeout))
+            {
+                ShownOffScreen(dialog);
+                Assert.That(Change(dialog), Is.EqualTo("Shown again: the state of the profiles changed."), "the notice of a dialog shown again");
+                PairingRequests.Taken(store, "ops");
+                dialog.Watch();
+                Assert.That(Change(dialog), Is.EqualTo("The database changed."), "a change waiting replaces the notice");
+                Assert.That(PumpUntil(() => Button(dialog, GateTab.ApprovalRefreshName).Enabled, TimeSpan.FromSeconds(10)), Is.True);
+                dialog.ShowAsItStands();
+                Assert.That(Change(dialog), Is.Empty, "the notice came back after the Refresh");
+            }
+        }
+
+        [TestCase(1.00f)]
+        [TestCase(1.25f)]
+        [TestCase(1.50f)]
+        [TestCase(2.00f)]
+        public void The_words_beside_Refresh_fit_the_line_or_are_cut_and_whole_in_their_tooltip(float scaling)
+        {
+            // The longest line naming the table, a request for no profile, beside each of the words:
+            // within the line at every scaling, on a single line, and where cut, whole in the
+            // tooltip; where whole, no tooltip.
+            var texts = new[] { "The database changed.", "The database cannot be read for now.", "The database cannot be read.", "Shown again: the state of the profiles changed." };
+            using (var larger = Scaled(Control.DefaultFont, scaling))
+            using (var dialog = New(larger))
+            {
+                ShownAway(dialog);
+                var words = ControlTree.FindByName<Label>(dialog, GateTab.ApprovalChangeName);
+                var refresh = InDialog(Button(dialog, GateTab.ApprovalRefreshName), dialog);
+                var asking = InDialog(ControlTree.FindByName<Label>(dialog, "KpgApprovalAskingLabel"), dialog);
+                var place = InDialog(words, dialog);
+                Assert.That(place.Left, Is.GreaterThanOrEqualTo(asking.Right), "the words cover the line naming the table");
+                Assert.That(place.Right, Is.LessThanOrEqualTo(refresh.Left), "the words cover Refresh");
+                Assert.That(words.Height, Is.GreaterThanOrEqualTo(words.Font.Height), "the words are cut through");
+                var height = dialog.Size;
+                foreach (var text in texts)
+                {
+                    var show = typeof(PairingApprovalForm).GetMethod("ShowStatus", BindingFlags.Instance | BindingFlags.NonPublic);
+                    Assert.That(show, Is.Not.Null, "the dialog states nothing beside Refresh");
+                    show.Invoke(dialog, new object[] { text });
+                    var cut = TextRenderer.MeasureText(text, words.Font, Size.Empty, TextFormatFlags.NoPadding).Width > words.ClientSize.Width;
+                    Assert.That(FormTip(dialog, words), Is.EqualTo(cut ? Tooltips.Wrapped(text) : string.Empty), text + " at " + scaling);
+                    var designed = Math.Abs(scaling - 1.00f) < 0.001f;
+                    Assert.That(cut && designed, Is.False, text + " is cut at the size the dialog is designed at, in " + words.ClientSize.Width);
+                    Assert.That(dialog.Size, Is.EqualTo(height), "the dialog changed its size for the words at " + scaling);
+                    TestContext.Out.WriteLine(text + " at " + scaling + (cut ? " cut" : " whole") + " in " + words.ClientSize.Width);
+                }
+            }
+        }
+
+        [Test]
+        public void Refresh_with_no_picture_is_named_tipped_pressed_by_F5_and_throws_nothing()
+        {
+            // Where the reading of KeePass's picture answers nothing, as with no KeePass, Refresh
+            // is a button with no picture and no text, as large as with a picture, named for UI
+            // automation, with its tooltip, and F5 presses it.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops" };
+                using (var dialog = Over(authority, "ops"))
+                {
+                    ShownOffScreen(dialog);
+                    var refresh = Button(dialog, GateTab.ApprovalRefreshName);
+                    Assert.That(refresh.Image, Is.Null);
+                    Assert.That(refresh.Text, Is.Empty);
+                    Assert.That(refresh.AccessibleName, Is.EqualTo("Refresh"));
+                    Assert.That(refresh.Height, Is.GreaterThan(16), "Refresh is smaller than a picture would leave it");
+                    authority.Forget("ops");
+                    dialog.Watch();
+                    Assert.That(FormTip(dialog, refresh), Is.EqualTo(Tooltips.Wrapped("Refresh shows the change. (F5)")));
+                    Press(Focus(Lifetime(dialog)), Keys.F5);
+                    Assert.That(Rows(Profiles(dialog))[0][1], Is.EqualTo(PairingApprovalForm.RemovedState), "F5 left the change waiting");
+                }
+            }
+        }
+
+        [Test]
+        public void Refresh_shows_its_picture_grayed_while_disabled_and_the_focus_round_it_whatever_turned_the_cues_on()
+        {
+            // A picture of the test's own in place of KeePass's, which the dialog keeps: Refresh
+            // shows it, draws it otherwise while disabled, and draws the focus while it holds the
+            // focus, with the focus cues left off.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops" };
+                var profiles = new[] { "ops" };
+                var request = new PairingRequest(
+                    authority.DatabaseId, "Invented Vault", "abcdef01", "agent-fictitious", profiles, "127.0.0.1:60001",
+                    null, null, null, null, () => authority.Asked(profiles));
+                Bitmap given = null;
+                using (var dialog = new PairingApprovalForm(request.Showing(request.Read()), Timeout, null, null, () => given = Arrows()))
+                {
+                    ShownOffScreen(dialog);
+                    var refresh = Button(dialog, GateTab.ApprovalRefreshName);
+                    Assert.That(refresh.Image, Is.SameAs(given), "Refresh shows a picture other than the picture given");
+                    Assert.That(refresh.Text, Is.Empty);
+                    var disabled = Pixels(refresh);
+
+                    authority.Forget("ops");
+                    dialog.Watch();
+                    Assert.That(refresh.Enabled, Is.True, "a change waits");
+                    var enabled = Pixels(refresh);
+                    Assert.That(enabled.SequenceEqual(disabled), Is.False, "a disabled Refresh is drawn as an enabled Refresh is");
+
+                    Lifetime(dialog).Focus();
+                    OffScreenForm.Pump();
+                    var away = Pixels(refresh);
+                    Focus(refresh);
+                    var focused = Pixels(refresh);
+                    Assert.That(focused.SequenceEqual(away), Is.False, "Refresh holding the focus shows no sign of it");
+                }
+
+                Assert.That(() => given.Width, Throws.ArgumentException, "the dialog kept its picture after it went");
+            }
+        }
+
+        [Test]
+        public void A_move_resting_on_a_disabled_Refresh_shows_the_tooltip_of_Refresh_where_the_move_was_and_a_move_off_it_takes_it_away()
+        {
+            // A disabled control is told of no pointer: a move over Refresh, disabled, goes to the
+            // line above the table, which shows the tooltip of Refresh once the move has rested
+            // there for the tooltips' delay, the text UI automation reads as the help of Refresh,
+            // under the place of the move; a move off Refresh takes it away. Messages through the
+            // real loop, and no pointer read or moved: the line reads the place off the message,
+            // where it read the system's pointer and put the tooltip where that pointer stood. The
+            // pointer resting on Refresh itself is proved end to end, `LivePairingTests`.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops" };
+                using (var dialog = Over(authority, "ops"))
+                {
+                    ShownWhereClicksLand(dialog);
+                    var refresh = Button(dialog, GateTab.ApprovalRefreshName);
+                    var line = refresh.Parent;
+                    var asking = ControlTree.FindByName<Label>(dialog, "KpgApprovalAskingLabel");
+                    Assert.That(refresh.Enabled, Is.False, "nothing waits");
+                    var tip = (IntPtr)typeof(ToolTip)
+                        .GetProperty("Handle", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .GetValue(DialogTips(dialog), null);
+                    var on = new Point(refresh.Left + (refresh.Width / 3), refresh.Top + (refresh.Height / 3));
+                    using (new PointerStays(line))
+                    {
+                        MoveOn(line, on);
+                        Assert.That(PumpUntil(() => TestNativeMethods.IsWindowVisible(tip), TimeSpan.FromSeconds(10)), Is.True,
+                            "no tooltip came up where the move rests on a disabled Refresh");
+                        Assert.That(WindowText(tip), Is.EqualTo(Tooltips.Wrapped("Refresh (F5)")));
+                        Assert.That(WindowText(tip), Is.EqualTo(FormTip(dialog, refresh)), "a tooltip other than the help of Refresh");
+                        Assert.That(TestNativeMethods.GetWindowRect(tip, out var shown), Is.True);
+                        var under = line.PointToScreen(on);
+                        Assert.That(new Point(shown.Left, shown.Top), Is.EqualTo(new Point(under.X, under.Y + (SystemInformation.CursorSize.Height * 2 / 3))),
+                            "the tooltip stands elsewhere than under the place of the move");
+
+                        MoveOn(line, new Point(asking.Left + (asking.Width / 2), asking.Top + (asking.Height / 2)));
+                        Assert.That(PumpUntil(() => !TestNativeMethods.IsWindowVisible(tip), TimeSpan.FromSeconds(10)), Is.True,
+                            "the tooltip of Refresh stands where the move left Refresh");
+                    }
+                }
+            }
+        }
+
+        /// <summary>A move of the mouse to this place of a control, sent through the loop.</summary>
+        private static void MoveOn(Control control, Point where)
+        {
+            TestNativeMethods.SendMessage(control.Handle, WmMouseMove, IntPtr.Zero, (IntPtr)((where.Y << 16) | (where.X & 0xFFFF)));
+            OffScreenForm.Pump();
+        }
+
+        private const int WmMouseMove = 0x0200;
+
+        /// <summary>
+        /// Stands for a pointer that stays where the last move sent to a control was: drops the
+        /// leaving the system reports for it.
+        /// </summary>
+        /// <remarks>
+        /// **WinForms asks the system to report the pointer's leaving a control with every move it
+        /// is told of**, `TrackMouseEvent`, and the system answers from its own pointer, which
+        /// stands elsewhere: a leaving is posted at once, and on a desktop of a run's own, where
+        /// there is no pointer, every time. A move sent through the loop is therefore left by the
+        /// pointer straight away, and a rest never happens without this.
+        /// </remarks>
+        private sealed class PointerStays : IMessageFilter, IDisposable
+        {
+            /// <summary>The message that is the system's report that the pointer left a window.</summary>
+            private const int MouseLeave = 0x02A3;
+
+            private readonly IntPtr _window;
+
+            public PointerStays(Control control)
+            {
+                _window = control.Handle;
+                Application.AddMessageFilter(this);
+            }
+
+            public bool PreFilterMessage(ref Message m)
+            {
+                return m.Msg == MouseLeave && m.HWnd == _window;
+            }
+
+            public void Dispose()
+            {
+                Application.RemoveMessageFilter(this);
+            }
+        }
+
+        [Test]
+        public void In_a_right_to_left_window_every_sentence_of_either_dialog_reads_as_it_does_left_to_right()
+        {
+            // English drawn in a right to left reading takes its full stop at its start: ".The
+            // database changed". Each text of each dialog outside the table, the words beside
+            // Refresh in each of their states among them, is drawn under a right to left window
+            // the way it is drawn under a left to right window, wherever on the line it stands.
+            var renewal = new RenewalRequest(
+                "aaaabbbbccccdddd", "Invented Vault", "agent-fictitious",
+                new DateTimeOffset(2026, 4, 1, 9, 0, 0, TimeSpan.Zero), DateTimeOffset.UtcNow.AddDays(40),
+                Array.Empty<string>(), new[] { "gone" }, "127.0.0.1:60001", null);
+            var dialogs = new List<(string What, Func<Form> Make, string Words)>();
+            foreach (var words in new[] { "The database changed.", "The database cannot be read for now.", "The database cannot be read.", "Shown again: the table changed." })
+            {
+                dialogs.Add(("beside Refresh \"" + words + "\"", () => New("ops", "reader"), words));
+            }
+
+            dialogs.Add(("a renewal", () => new RenewalApprovalForm(renewal, Timeout, null), null));
+            foreach (var each in dialogs)
+            {
+                var plain = SentencesDrawn(each.Make, false, each.Words);
+                var mirrored = SentencesDrawn(each.Make, true, each.Words);
+                Assert.That(mirrored.Select(text => text.Key), Is.EqualTo(plain.Select(text => text.Key)), "other texts right to left, " + each.What);
+                if (each.Words != null)
+                {
+                    Assert.That(plain.Select(text => text.Key), Has.Some.StartsWith(GateTab.ApprovalChangeName), "no words beside Refresh");
+                }
+
+                for (var at = 0; at < plain.Count; at++)
+                {
+                    Assert.That(mirrored[at].Value, Is.EqualTo(plain[at].Value), plain[at].Key + " reads otherwise right to left, " + each.What);
+                }
             }
         }
 
         /// <summary>
-        /// A request whose earlier dialog's approval a write found stale: `ops` asked for and on the
-        /// list, approved and marked the same before.
+        /// The ink of every text of a dialog outside its table, each by its name and text, in the
+        /// order of the controls, drawn in a window reading left to right or right to left, and
+        /// with these words beside Refresh where they are given: which columns of the text carry
+        /// ink, from its first to its last, which is the text as it reads, wherever on its line
+        /// it stands.
+        /// </summary>
+        private static IReadOnlyList<KeyValuePair<string, string>> SentencesDrawn(Func<Form> make, bool rightToLeft, string words)
+        {
+            using (var dialog = make())
+            {
+                if (rightToLeft)
+                {
+                    dialog.RightToLeft = RightToLeft.Yes;
+                }
+
+                ShownAway(dialog);
+
+                // No message handled from here on, so that no tick of the countdown changes a text
+                // between the two directions: the countdown is given the same text in both, and the
+                // words beside Refresh stay as given.
+                if (words != null)
+                {
+                    var show = typeof(PairingApprovalForm).GetMethod("ShowStatus", BindingFlags.Instance | BindingFlags.NonPublic);
+                    Assert.That(show, Is.Not.Null, "the dialog states nothing beside Refresh");
+                    show.Invoke(dialog, new object[] { words });
+                }
+
+                foreach (var countdown in ControlTree.Descendants(dialog).OfType<Label>().Where(label => label.Name.EndsWith("Countdown", StringComparison.Ordinal)))
+                {
+                    countdown.Text = "Times out in 120 s; nothing is issued.";
+                }
+
+                var table = ControlTree.Descendants(dialog).OfType<ProfileTable>().SingleOrDefault();
+                var inTable = table == null ? new HashSet<Control>() : new HashSet<Control>(ControlTree.Descendants(table));
+                return ControlTree.Descendants(dialog).OfType<Label>()
+                    .Where(label => label.Visible && label.Text.Length > 0 && !inTable.Contains(label))
+                    .Select(label => new KeyValuePair<string, string>(label.Name + " \"" + label.Text + "\"", Ink(label)))
+                    .ToList();
+            }
+        }
+
+        /// <summary>
+        /// Which columns of a control as drawn carry ink, from the first to the last, as runs of
+        /// the count of dark pixels in each column.
+        /// </summary>
+        private static string Ink(Control control)
+        {
+            using (var picture = Drawn(control))
+            {
+                var columns = Enumerable.Range(0, picture.Width)
+                    .Select(x => Enumerable.Range(0, picture.Height).Count(y => picture.GetPixel(x, y).GetBrightness() < 0.5f))
+                    .ToList();
+                var first = columns.FindIndex(count => count > 0);
+                var last = columns.FindLastIndex(count => count > 0);
+                return first < 0 ? string.Empty : string.Join(",", columns.Skip(first).Take(last - first + 1));
+            }
+        }
+
+        /// <summary>The tooltips of a dialog's own controls, as against its table's.</summary>
+        private static ToolTip DialogTips(Form dialog)
+        {
+            var field = typeof(PairingApprovalForm).GetField("_tips", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, "the dialog keeps no tooltips");
+            return (ToolTip)field.GetValue(dialog);
+        }
+
+        /// <summary>The text of a window, as the window answers it.</summary>
+        private static string WindowText(IntPtr window)
+        {
+            var text = new System.Text.StringBuilder(512);
+            TestNativeMethods.GetWindowText(window, text, text.Capacity);
+            return text.ToString();
+        }
+
+        /// <summary>A picture sixteen pixels square, a green square on a clear ground.</summary>
+        private static Bitmap Arrows()
+        {
+            var picture = new Bitmap(16, 16);
+            using (var graphics = Graphics.FromImage(picture))
+            {
+                graphics.FillRectangle(Brushes.Green, 3, 3, 10, 10);
+            }
+
+            return picture;
+        }
+
+        /// <summary>What a control draws of itself as it stands, its pixels as numbers.</summary>
+        private static int[] Pixels(Control control)
+        {
+            using (var picture = Drawn(control))
+            {
+                return Enumerable.Range(0, picture.Width * picture.Height)
+                    .Select(at => picture.GetPixel(at % picture.Width, at / picture.Width).ToArgb())
+                    .ToArray();
+            }
+        }
+
+        /// <summary>The tooltip the dialog gives a control of its own, empty for none.</summary>
+        private static string FormTip(Form dialog, Control control)
+        {
+            var field = typeof(PairingApprovalForm).GetField("_tips", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, "the dialog keeps no tooltips");
+            return ((ToolTip)field.GetValue(dialog)).GetToolTip(control);
+        }
+
+        /// <summary>
+        /// A first dialog over this store, read as the screen reads it as the dialog comes up, and
+        /// reading it again while it stands.
+        /// </summary>
+        private static PairingApprovalForm Over(TestAuthority authority, params string[] profiles)
+        {
+            return Over(authority, null, profiles);
+        }
+
+        /// <summary>
+        /// A dialog over this authority's store asking for these profiles, built at this font, or
+        /// the system's for null.
+        /// </summary>
+        private static PairingApprovalForm Over(TestAuthority authority, Font font, params string[] profiles)
+        {
+            var request = new PairingRequest(
+                authority.DatabaseId, "Invented Vault", "abcdef01", "agent-fictitious", profiles, "127.0.0.1:60001",
+                null, null, null, null, () => authority.Asked(profiles));
+            var content = request.Read();
+            Assert.That(content.Served, Is.True, "the store serves to begin with");
+            return new PairingApprovalForm(request.Showing(content), Timeout, font);
+        }
+
+        /// <summary>The words beside Refresh.</summary>
+        private static string Change(Form dialog)
+        {
+            return ControlTree.FindByName<Label>(dialog, GateTab.ApprovalChangeName).Text;
+        }
+
+        /// <summary>
+        /// A request whose earlier dialog's approval a write found stale: `ops` and `reader` asked
+        /// for, both on the list before and approved there, and `reader` taken off the list since,
+        /// so that its row differs, as a row of every dialog shown again does.
         /// </summary>
         private static PairingRequest ShownAgain()
         {
-            var known = new[] { "ops" };
-            return new PairingRequest(
-                "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious", known, known, "127.0.0.1:60001",
-                null, null, null, PairingApproval.Approved(known));
+            var known = new[] { "ops", "reader" };
+            var store = PairingRequests.Listing(known);
+            var before = PairingRequests.Read(store, known);
+            PairingRequests.Taken(store, "reader");
+            return PairingRequests.Shown(store, known, earlier: PairingApproval.Approved(known), before: before);
         }
 
         /// <summary>
@@ -759,19 +2265,15 @@ namespace KeePassGate.Tests
             using (var fourth = authority.IssueClient("agent-d"))
             using (var fifth = authority.IssueClient("agent-e"))
             {
-                var crowd = new[] { fifth, third, first, fourth, second }
-                    .Select(client => AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "crowded" }, InventedIssuer.Id))
-                    .ToList();
-                var request = new PairingRequest(
-                    "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
-                    new[] { "reader", "fresh", "gone", "kept", "crowded" }, new[] { "reader" }, "127.0.0.1:60001",
-                    new Dictionary<string, IReadOnlyList<AdmissionRecord>>
-                    {
-                        { "kept", new[] { AdmissionRecord.For(runner, DateTimeOffset.UtcNow, new[] { "kept" }, InventedIssuer.Id) } },
-                        { "crowded", crowd }
-                    },
-                    null,
-                    new[] { "gone" });
+                var store = PairingRequests.Listing("reader");
+                PairingRequests.Holding(store, runner, "kept");
+                foreach (var client in new[] { fifth, third, first, fourth, second })
+                {
+                    PairingRequests.Holding(store, client, "crowded");
+                }
+
+                PairingRequests.Taken(store, "gone", "kept", "crowded");
+                var request = PairingRequests.Shown(store, new[] { "reader", "fresh", "gone", "kept", "crowded" });
                 var rows = new[]
                 {
                     new[] { "reader", string.Empty, string.Empty },
@@ -821,16 +2323,10 @@ namespace KeePassGate.Tests
                 using (var holders = new IssuedClients(Enumerable.Range(0, 4)
                     .Select(at => authority.IssueClient(new string('W', 62) + at.ToString("00", System.Globalization.CultureInfo.InvariantCulture)))))
                 {
-                    var request = new PairingRequest(
-                        "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
-                        new[] { cut, "ops", "gone" }, new[] { "ops" }, "127.0.0.1:60001",
-                        new Dictionary<string, IReadOnlyList<AdmissionRecord>>
-                        {
-                            {
-                                "gone",
-                                holders.Select(holder => AdmissionRecord.For(holder, DateTimeOffset.UtcNow, new[] { "gone" }, InventedIssuer.Id)).ToList()
-                            }
-                        });
+                    var store = PairingRequests.Listing("ops");
+                    holders.ForEach(holder => PairingRequests.Holding(store, holder, "gone"));
+                    PairingRequests.Taken(store, "gone");
+                    var request = PairingRequests.Shown(store, new[] { cut, "ops", "gone" });
 
                     using (var dialog = new PairingApprovalForm(request, Timeout))
                     {
@@ -885,9 +2381,9 @@ namespace KeePassGate.Tests
         {
             // The same names in the same states, on the first dialog of a request: nothing was
             // shown before, so no state changed since.
-            var request = new PairingRequest(
-                "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious", new[] { "ops", "deploy", "reader" },
-                new[] { "reader" }, "127.0.0.1:60001", null, null, new[] { "ops" });
+            var store = PairingRequests.Listing("reader");
+            PairingRequests.Taken(store, "ops");
+            var request = PairingRequests.Shown(store, new[] { "ops", "deploy", "reader" });
 
             using (var dialog = new PairingApprovalForm(request, Timeout))
             {
@@ -1041,11 +2537,13 @@ namespace KeePassGate.Tests
             // never named in the copy read now. Each row's tooltip and text read out state the
             // change, by what its state cell reads now; `kept`, unchanged, states none.
             var asked = new[] { "gone", "back", "fresh", "kept" };
-            var request = ShownAgainOver(asked, new[] { "gone", "fresh", "kept" }, new[] { "back", "kept" }, new[] { "gone" });
-            Assert.That(asked.Select(request.MarkOf), Is.EqualTo(new[]
-            {
-                KeePassGate.Gate.ProfileMark.Removed, KeePassGate.Gate.ProfileMark.Listed, KeePassGate.Gate.ProfileMark.New, KeePassGate.Gate.ProfileMark.Listed
-            }));
+            var before = PairingRequests.Read(PairingRequests.Listing("gone", "fresh", "kept"), asked);
+            var store = PairingRequests.Listing("gone", "kept");
+            PairingRequests.Taken(store, "gone");
+            StoreSeeds.Name(store, "back");
+            var request = PairingRequests.Shown(store, asked, earlier: PairingApproval.Approved(asked), before: before);
+            Assert.That(asked.Select(before.MarkOf), Is.EqualTo(new[] { ProfileMark.Listed, ProfileMark.New, ProfileMark.Listed, ProfileMark.Listed }));
+            Assert.That(asked.Select(request.MarkOf), Is.EqualTo(new[] { ProfileMark.Removed, ProfileMark.Listed, ProfileMark.New, ProfileMark.Listed }));
 
             using (var dialog = new PairingApprovalForm(request, Timeout))
             {
@@ -1104,23 +2602,15 @@ namespace KeePassGate.Tests
         private static PairingRequest ShownAgainOverAChange(string changed)
         {
             var asked = new[] { changed, "deploy", "reader" };
-            var store = new MemoryStore();
-            StoreSeeds.Authority(store);
-            StoreSeeds.Name(store, changed);
-            StoreSeeds.Name(store, "reader");
-            KeePassGate.Gate.AskedProfiles before;
-            using (var reading = store.Read())
-            {
-                before = KeePassGate.Gate.AskedProfiles.Of(reading, asked, DateTimeOffset.UtcNow);
-            }
-
+            var store = PairingRequests.Listing(changed, "reader");
+            var before = PairingRequests.Read(store, asked);
             Assert.That(asked.Select(before.MarkOf), Is.EqualTo(new[]
             {
                 KeePassGate.Gate.ProfileMark.Listed, KeePassGate.Gate.ProfileMark.New, KeePassGate.Gate.ProfileMark.Listed
             }), "the states the dialog before showed");
-            return new PairingRequest(
-                "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious", asked, new[] { "reader" },
-                "127.0.0.1:60001", null, null, new[] { changed }, PairingApproval.Approved(new[] { changed, "reader" }), before);
+
+            PairingRequests.Taken(store, changed);
+            return PairingRequests.Shown(store, asked, earlier: PairingApproval.Approved(new[] { changed, "reader" }), before: before);
         }
 
         [Test]
@@ -1212,11 +2702,12 @@ namespace KeePassGate.Tests
                 using (var holders = new IssuedClients(Enumerable.Range(0, clients)
                     .Select(at => authority.IssueClient("agent-" + at.ToString("00", System.Globalization.CultureInfo.InvariantCulture)))))
                 {
-                    var records = holders.Select(holder => AdmissionRecord.For(holder, DateTimeOffset.UtcNow, new[] { "gone" }, InventedIssuer.Id)).ToList();
-                    var request = new PairingRequest(
-                        "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
-                        new[] { "gone", "reader" }, new[] { "reader" }, "127.0.0.1:60001",
-                        new Dictionary<string, IReadOnlyList<AdmissionRecord>> { { "gone", records } });
+                    var store = PairingRequests.Listing("reader");
+                    holders.ForEach(holder => PairingRequests.Holding(store, holder, "gone"));
+                    PairingRequests.Taken(store, "gone");
+                    var request = PairingRequests.Shown(store, new[] { "gone", "reader" });
+                    var records = request.Returning("gone");
+                    Assert.That(records, Has.Count.EqualTo(clients), "every client regains the name");
 
                     using (var dialog = new PairingApprovalForm(request, Timeout))
                     {
@@ -1255,22 +2746,13 @@ namespace KeePassGate.Tests
             {
                 using (var holders = new IssuedClients(Enumerable.Range(0, 6).Select(at => authority.IssueClient("agent-" + at))))
                 {
-                    var records = holders.Select(holder => AdmissionRecord.For(holder, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id)).ToList();
                     var asked = new[] { "ops", "reader" };
-                    var store = new MemoryStore();
-                    StoreSeeds.Authority(store);
-                    StoreSeeds.Name(store, "ops");
-                    StoreSeeds.Name(store, "reader");
-                    KeePassGate.Gate.AskedProfiles before;
-                    using (var reading = store.Read())
-                    {
-                        before = KeePassGate.Gate.AskedProfiles.Of(reading, asked, DateTimeOffset.UtcNow);
-                    }
-
-                    var request = new PairingRequest(
-                        "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious", asked, new[] { "reader" },
-                        "127.0.0.1:60001", new Dictionary<string, IReadOnlyList<AdmissionRecord>> { { "ops", records } },
-                        null, null, PairingApproval.Approved(asked), before);
+                    var store = PairingRequests.Listing("ops", "reader");
+                    var before = PairingRequests.Read(store, asked);
+                    holders.ForEach(holder => PairingRequests.Holding(store, holder, "ops"));
+                    PairingRequests.Taken(store, "ops");
+                    var request = PairingRequests.Shown(store, asked, earlier: PairingApproval.Approved(asked), before: before);
+                    Assert.That(request.Returning("ops"), Has.Count.EqualTo(holders.Count), "every client regains the name");
 
                     Assert.That(SystemInformation.HighContrast, Is.False, "the colors of the normal theme are measured");
                     using (var dialog = new PairingApprovalForm(request, Timeout))
@@ -1707,13 +3189,10 @@ namespace KeePassGate.Tests
                 var listed = Enumerable.Range(1, 10).Select(at => "s" + at).ToArray();
                 using (var holders = new IssuedClients(Enumerable.Range(0, 3).Select(at => authority.IssueClient("agent-" + at))))
                 {
-                    var records = holders.Select(holder => AdmissionRecord.For(holder, DateTimeOffset.UtcNow, new[] { "gone" }, InventedIssuer.Id)).ToList();
-                    using (var dialog = new PairingApprovalForm(
-                               new PairingRequest(
-                                   "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
-                                   listed.Concat(new[] { "gone" }).ToArray(), listed, "127.0.0.1:60001",
-                                   new Dictionary<string, IReadOnlyList<AdmissionRecord>> { { "gone", records } }),
-                               Timeout))
+                    var store = PairingRequests.Listing(listed);
+                    holders.ForEach(holder => PairingRequests.Holding(store, holder, "gone"));
+                    PairingRequests.Taken(store, "gone");
+                    using (var dialog = new PairingApprovalForm(PairingRequests.Shown(store, listed.Concat(new[] { "gone" }).ToArray()), Timeout))
                     {
                         ShownAway(dialog);
                         var list = Profiles(dialog);
@@ -1773,13 +3252,10 @@ namespace KeePassGate.Tests
             {
                 holders = new IssuedClients(Enumerable.Range(0, 30)
                     .Select(at => authority.IssueClient("agent-" + at.ToString("00", System.Globalization.CultureInfo.InvariantCulture))));
-                var records = holders.Select(holder => AdmissionRecord.For(holder, DateTimeOffset.UtcNow, new[] { "gone" }, InventedIssuer.Id)).ToList();
-                var dialog = new PairingApprovalForm(
-                    new PairingRequest(
-                        "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
-                        new[] { "gone", "reader" }, new[] { "reader" }, "127.0.0.1:60001",
-                        new Dictionary<string, IReadOnlyList<AdmissionRecord>> { { "gone", records } }),
-                    Timeout);
+                var store = PairingRequests.Listing("reader");
+                holders.ForEach(holder => PairingRequests.Holding(store, holder, "gone"));
+                PairingRequests.Taken(store, "gone");
+                var dialog = new PairingApprovalForm(PairingRequests.Shown(store, new[] { "gone", "reader" }), Timeout);
                 list = Profiles(dialog);
                 return dialog;
             }
@@ -1793,8 +3269,11 @@ namespace KeePassGate.Tests
             // line in the system's light edge under each row but the last, across the view, and
             // the yellow to the view's right edge, where no scroll bar stands.
             var asked = new[] { "s1", "s2", "s3" };
+            var store = PairingRequests.Listing(asked);
+            var before = PairingRequests.Read(store, asked);
+            PairingRequests.Taken(store, "s1", "s2");
             Assert.That(SystemInformation.HighContrast, Is.False, "the colors of the normal theme are measured");
-            using (var dialog = new PairingApprovalForm(ShownAgainOver(asked, asked, new[] { "s3" }, new[] { "s1", "s2" }), Timeout))
+            using (var dialog = new PairingApprovalForm(PairingRequests.Shown(store, asked, earlier: PairingApproval.Approved(asked), before: before), Timeout))
             {
                 ShownAway(dialog);
                 var list = Profiles(dialog);
@@ -1828,7 +3307,10 @@ namespace KeePassGate.Tests
         public void A_highlight_reaches_the_scroll_bar_of_a_table_that_scrolls()
         {
             var asked = Enumerable.Range(1, PairingApprovalForm.MostRows + 2).Select(at => "s" + at).ToArray();
-            using (var dialog = new PairingApprovalForm(ShownAgainOver(asked, asked, asked.Skip(1).ToArray(), new[] { "s1" }), Timeout))
+            var store = PairingRequests.Listing(asked);
+            var before = PairingRequests.Read(store, asked);
+            PairingRequests.Taken(store, "s1");
+            using (var dialog = new PairingApprovalForm(PairingRequests.Shown(store, asked, earlier: PairingApproval.Approved(asked), before: before), Timeout))
             {
                 ShownAway(dialog);
                 var list = Profiles(dialog);
@@ -1855,10 +3337,11 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_box_brought_into_view_by_Tab_scrolls_whole_and_paints_the_whole_view()
+        public void A_box_brought_into_view_by_Tab_or_a_row_after_a_Refresh_scrolls_whole_and_paints_the_whole_view()
         {
-            // Tab from a box to the next brings a box out of sight to the top of the view, through
-            // the place a box is scrolled to: the whole view is painted once, with the focus.
+            // Tab from a box to the next brings a box out of sight to the top of the view, and a
+            // Refresh brings the first row it changed into view, both through the place a box is
+            // scrolled to: each paints the whole view within its own handling, as a wheel does.
             using (var dialog = TallRows(out var list, out var holders))
             {
                 using (holders)
@@ -1878,9 +3361,17 @@ namespace KeePassGate.Tests
                             moved += view.AutoScrollPosition == at ? 0 : 1;
                             log.AssertWholeOnce(list, at, "Tab to box " + box);
                         }
+
+                        foreach (var profile in new[] { "a", "d", "b", "c" })
+                        {
+                            var at = view.AutoScrollPosition;
+                            log.Step(dialog, () => ((ProfileTable)list).Reveal(profile));
+                            moved += view.AutoScrollPosition == at ? 0 : 1;
+                            log.AssertWholeOnce(list, at, "the row of " + profile + " brought into view");
+                        }
                     }
 
-                    Assert.That(moved, Is.GreaterThan(1), "the boxes brought into view scrolled too few times to measure");
+                    Assert.That(moved, Is.GreaterThan(4), "the boxes and rows brought into view scrolled too few times to measure");
                 }
             }
         }
@@ -2149,41 +3640,13 @@ namespace KeePassGate.Tests
             {
                 holders = new IssuedClients(Enumerable.Range(0, 20)
                     .Select(at => authority.IssueClient("agent-" + at.ToString("00", System.Globalization.CultureInfo.InvariantCulture))));
-                var records = holders.Select(holder => AdmissionRecord.For(holder, DateTimeOffset.UtcNow, new[] { "a", "c", "d" }, InventedIssuer.Id)).ToList();
-                var dialog = new PairingApprovalForm(
-                    new PairingRequest(
-                        "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
-                        new[] { "a", "b", "c", "d" }, new[] { "b" }, "127.0.0.1:60001",
-                        new Dictionary<string, IReadOnlyList<AdmissionRecord>> { { "a", records }, { "c", records }, { "d", records } }),
-                    Timeout);
+                var store = PairingRequests.Listing("b");
+                holders.ForEach(holder => PairingRequests.Holding(store, holder, "a", "c", "d"));
+                PairingRequests.Taken(store, "a", "c", "d");
+                var dialog = new PairingApprovalForm(PairingRequests.Shown(store, new[] { "a", "b", "c", "d" }), Timeout);
                 list = Profiles(dialog);
                 return dialog;
             }
-        }
-
-        /// <summary>
-        /// A dialog shown again for these profiles, all approved on the dialog before: the dialog
-        /// before read these names on the list, and the reading now holds these on the list and
-        /// these removed.
-        /// </summary>
-        private static PairingRequest ShownAgainOver(string[] asked, string[] listedBefore, string[] listedNow, string[] removedNow)
-        {
-            var store = new MemoryStore();
-            StoreSeeds.Authority(store);
-            foreach (var name in listedBefore)
-            {
-                StoreSeeds.Name(store, name);
-            }
-
-            KeePassGate.Gate.AskedProfiles before;
-            using (var reading = store.Read())
-            {
-                before = KeePassGate.Gate.AskedProfiles.Of(reading, asked, DateTimeOffset.UtcNow);
-            }
-
-            return new PairingRequest(
-                "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious", asked, listedNow,
-                "127.0.0.1:60001", null, null, removedNow, PairingApproval.Approved(asked), before);
         }
 
         /// <summary>What the scroll bar sends a view it scrolls, as a press on the bar sends it.</summary>
@@ -2203,6 +3666,73 @@ namespace KeePassGate.Tests
         private const int PageDown = 3;
 
         [Test]
+        public void A_Refresh_changes_a_row_s_lines_in_place_and_the_view_grows_with_its_rows_and_never_shrinks()
+        {
+            // Ten names on the list, `ops` among them and held by four clients: ten lines, which the
+            // table shows whole. `ops` is taken off the list under the dialog: a Refresh gives the
+            // same row the four clients regaining it, a line each, and the table scrolls, its view
+            // grown on to the next height that cuts a line in half and the dialog with it; three of
+            // the clients revoked, a Refresh makes the row a line again, and the view and the
+            // dialog keep their heights. No check changes but that of the row restored.
+            using (var authority = TestAuthority.New())
+            {
+                var listed = Enumerable.Range(1, 9).Select(at => "s" + at).ToArray();
+                authority.KnownProfiles = listed.Concat(new[] { "ops" }).ToArray();
+                using (var clients = new IssuedClients(Enumerable.Range(0, 4).Select(at => authority.IssueClient("agent-" + at))))
+                {
+                    clients.ForEach(client => authority.Admit(client, "ops"));
+                    using (var dialog = Over(authority, new[] { "ops" }.Concat(listed).ToArray()))
+                    {
+                        ShownOffScreen(dialog);
+                        var list = Profiles(dialog);
+                        var row = ProfileRows.Of(list)[0];
+                        var heldBy = CellOf(list, 0, GateTab.ApprovalHeldByColumnName);
+                        var line = CellOf(list, 0, GateTab.ApprovalProfileColumnName).Height;
+                        var view = ProfileRows.View(list);
+                        var size = dialog.Size;
+                        var height = view.ClientSize.Height;
+                        Assert.That(heldBy.Height, Is.EqualTo(line));
+                        Assert.That(ProfileRows.Of(list)[9].Bottom, Is.EqualTo(height), "ten lines fit");
+                        Assert.That(Scrolls(view, VerticalScrollBar), Is.False);
+
+                        authority.Forget("ops");
+                        dialog.Watch();
+                        dialog.ShowAsItStands();
+                        OffScreenForm.Pump();
+
+                        Assert.That(ProfileRows.Of(list)[0], Is.SameAs(row), "the same row");
+                        Assert.That(CellOf(list, 0, GateTab.ApprovalHeldByColumnName), Is.SameAs(heldBy), "the same cell");
+                        Assert.That(heldBy.Height, Is.EqualTo(4 * line), "a line for each client");
+                        Assert.That(heldBy.Text.Split(new[] { Environment.NewLine }, StringSplitOptions.None), Has.Length.EqualTo(4));
+                        Assert.That(ProfileRows.Of(list)[1].Top, Is.EqualTo(row.Bottom), "the rows under it moved down");
+                        Assert.That(Scrolls(view, VerticalScrollBar), Is.True, "thirteen lines fit");
+                        Assert.That(Scrolls(view, HorizontalScrollBar), Is.False);
+                        Assert.That(view.ClientSize.Height, Is.GreaterThan(height), "the view kept a height that cuts a line other than in half");
+                        AssertCutInHalf(list, "thirteen lines");
+                        var grown = view.ClientSize.Height - height;
+                        Assert.That(dialog.Size, Is.EqualTo(new Size(size.Width, size.Height + grown)), "the dialog grew by other than its view");
+                        Assert.That(Checks(list), Is.EqualTo(new[] { false }.Concat(Enumerable.Repeat(true, 9))),
+                            "restoring `ops` for four clients makes Approve do more for its row alone");
+
+                        foreach (var client in clients.Skip(1))
+                        {
+                            authority.Revoke(client);
+                        }
+
+                        dialog.Watch();
+                        dialog.ShowAsItStands();
+                        OffScreenForm.Pump();
+
+                        Assert.That(heldBy.Height, Is.EqualTo(line), "a line again");
+                        Assert.That(Scrolls(view, VerticalScrollBar), Is.False, "ten lines fit again");
+                        Assert.That(view.ClientSize.Height, Is.EqualTo(height + grown), "the view shrank with its rows");
+                        Assert.That(dialog.Size, Is.EqualTo(new Size(size.Width, size.Height + grown)), "the dialog shrank with its rows");
+                    }
+                }
+            }
+        }
+
+        [Test]
         public void A_box_the_keyboard_reached_draws_the_focus_clear_of_itself_checked_or_not_and_on_a_highlighted_row()
         {
             // A check box draws the focus round its text, and a box with none drew it nowhere; a
@@ -2214,6 +3744,59 @@ namespace KeePassGate.Tests
                 TestNativeMethods.SendMessage(dialog.Handle, ChangeUiStateMessage, (IntPtr)ShowFocusCues, IntPtr.Zero);
                 OffScreenForm.Pump();
                 AssertFocusClearOfEveryBox(Profiles(dialog));
+            }
+        }
+
+        [Test]
+        public void A_box_holding_the_focus_draws_the_focus_clear_of_itself_whatever_turned_the_cues_on()
+        {
+            // Focus cues are shown only once the keyboard has been used on a window, and the focus
+            // handed to a box after a click showed nothing: a Space a moment later checked a row
+            // nobody saw holding the focus.
+            using (var dialog = new PairingApprovalForm(ShownAgainOverAChange("ops"), Timeout))
+            {
+                ShownAway(dialog);
+                TestNativeMethods.SendMessage(dialog.Handle, ChangeUiStateMessage, (IntPtr)HideFocusCues, IntPtr.Zero);
+                OffScreenForm.Pump();
+                AssertFocusClearOfEveryBox(Profiles(dialog));
+            }
+        }
+
+        [Test]
+        public void The_view_holding_the_focus_draws_the_focus_round_itself_whatever_turned_the_cues_on()
+        {
+            // After a Refresh by the mouse the focus is on the view, which showed nothing of it. A
+            // frame of the table's own round the view, in the view's background, carries the focus
+            // while the view holds it: measured in pixels of the table drawn.
+            using (var dialog = New("ops", "reader"))
+            {
+                ShownAway(dialog);
+                var list = Profiles(dialog);
+                var view = ProfileRows.View(list);
+                TestNativeMethods.SendMessage(dialog.Handle, ChangeUiStateMessage, (IntPtr)HideFocusCues, IntPtr.Zero);
+                OffScreenForm.Pump();
+                Focus(BoxOf(list, 0));
+
+                using (var away = Drawn(list))
+                {
+                    Assert.That(((ProfileTable)list).TakeFocus(), Is.True);
+                    OffScreenForm.Pump();
+                    using (var focused = Drawn(list))
+                    {
+                        // The table's client area starts inside its border, where the picture of
+                        // the whole control starts at the border.
+                        var inset = (list.Width - list.ClientSize.Width) / 2;
+                        var frame = Rectangle.Inflate(view.Bounds, 1, 1);
+                        frame.Offset(inset, inset);
+                        var edge = Enumerable.Range(frame.Left, frame.Width).SelectMany(x => new[] { new Point(x, frame.Top), new Point(x, frame.Bottom - 1) })
+                            .Concat(Enumerable.Range(frame.Top, frame.Height).SelectMany(y => new[] { new Point(frame.Left, y), new Point(frame.Right - 1, y) }))
+                            .ToList();
+                        Assert.That(edge.Where(point => away.GetPixel(point.X, point.Y).ToArgb() != view.BackColor.ToArgb()), Is.Empty,
+                            "the frame away from the focus is the view's background");
+                        Assert.That(edge.Count(point => focused.GetPixel(point.X, point.Y).ToArgb() != away.GetPixel(point.X, point.Y).ToArgb()),
+                            Is.GreaterThan(frame.Width), "nothing round the view shows the view holds the focus");
+                    }
+                }
             }
         }
 
@@ -2332,6 +3915,45 @@ namespace KeePassGate.Tests
             }
         }
 
+        /// <summary>Set the hiding of focus cues and of access keys, `UIS_SET` of both.</summary>
+        private const int HideFocusCues = 0x30001;
+
+        [Test]
+        public void After_a_Refresh_by_the_mouse_the_view_holds_the_focus_Space_there_checks_nothing_and_Tab_goes_on_to_the_first_box()
+        {
+            // The focus handed from Refresh, as Refresh is disabled, went to the box of the row
+            // the Refresh brought to the top, unchecked and with no cue drawn: a Space a moment
+            // later checked the row. The view takes it, and the keys there scroll and check nothing.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "ops", "reader" };
+                using (var dialog = Over(authority, "ops", "reader"))
+                {
+                    ShownWhereClicksLand(dialog);
+                    var list = Profiles(dialog);
+                    var view = ProfileRows.View(list);
+                    authority.Forget("ops");
+                    dialog.Watch();
+
+                    Click(Button(dialog, GateTab.ApprovalRefreshName));
+
+                    Assert.That(Rows(list)[0][1], Is.EqualTo(PairingApprovalForm.RemovedState), "the click pressed Refresh");
+                    Assert.That(Checks(list), Is.EqualTo(new[] { false, true }), "the row restored unchecked");
+                    Assert.That(ProfileRows.Boxes(list).Where(box => box.Focused), Is.Empty, "a box took the focus");
+                    Assert.That(view.Focused, Is.True, "the focus went elsewhere than the view");
+
+                    var approve = Button(dialog, GateTab.ApproveButtonName);
+                    Assert.That(PumpUntil(() => approve.Enabled, TimeSpan.FromSeconds(10)), Is.True, "Approve is enabled again");
+                    Press(view, Keys.Space);
+                    Assert.That(Checks(list), Is.EqualTo(new[] { false, true }), "Space on the view changed a check");
+                    Assert.That(dialog.Answer().Decision, Is.EqualTo(PairingDecision.TimedOut), "Space on the view answered the dialog");
+
+                    Press(view, Keys.Tab);
+                    Assert.That(BoxOf(list, 0).Focused, Is.True, "Tab from the view goes elsewhere than the first box");
+                }
+            }
+        }
+
         /// <summary>A control drawn into a picture of its size.</summary>
         private static Bitmap Drawn(Control control)
         {
@@ -2376,10 +3998,10 @@ namespace KeePassGate.Tests
         private static (int Controls, int Layouts) Built(IssuedClients holders, int rows)
         {
             var asked = Enumerable.Range(0, rows).Select(at => "gone-" + at).ToArray();
-            var records = holders.Select(holder => AdmissionRecord.For(holder, DateTimeOffset.UtcNow, asked, InventedIssuer.Id)).ToList();
-            var request = new PairingRequest(
-                "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious", asked, new[] { "ops" }, "127.0.0.1:60001",
-                asked.ToDictionary(name => name, name => (IReadOnlyList<AdmissionRecord>)records, StringComparer.Ordinal));
+            var store = PairingRequests.Listing("ops");
+            holders.ForEach(holder => PairingRequests.Holding(store, holder, asked));
+            PairingRequests.Taken(store, asked);
+            var request = PairingRequests.Shown(store, asked);
             Assert.That(asked.Select(name => request.Returning(name).Count), Is.All.EqualTo(holders.Count), "every client regains every name");
 
             using (var dialog = new PairingApprovalForm(request, Timeout))
@@ -2617,16 +4239,11 @@ namespace KeePassGate.Tests
             using (var authority = TestAuthority.New())
             using (var holder = authority.IssueClient("dromedary-holder"))
             {
-                var request = new PairingRequest(
-                    "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "emu-client",
-                    new[] { "aardvark-listed", "bison-new", "camel-removed", "gnu-removed" }, new[] { "aardvark-listed" },
-                    "127.0.0.1:60001",
-                    new Dictionary<string, IReadOnlyList<AdmissionRecord>>
-                    {
-                        { "camel-removed", new[] { AdmissionRecord.For(holder, DateTimeOffset.UtcNow, new[] { "camel-removed" }, InventedIssuer.Id) } }
-                    },
-                    null,
-                    new[] { "gnu-removed" });
+                var store = PairingRequests.Listing("aardvark-listed");
+                PairingRequests.Holding(store, holder, "camel-removed");
+                PairingRequests.Taken(store, "camel-removed", "gnu-removed");
+                var request = PairingRequests.Shown(
+                    store, new[] { "aardvark-listed", "bison-new", "camel-removed", "gnu-removed" }, "emu-client");
                 var names = request.Profiles.Concat(new[] { "dromedary-holder", "emu-client" }).ToArray();
 
                 using (var dialog = new PairingApprovalForm(request, Timeout))
@@ -2648,7 +4265,9 @@ namespace KeePassGate.Tests
                         {
                             PairingApprovalForm.StateChanged, PairingApprovalForm.NowAddsTip, PairingApprovalForm.NowRestoresTip,
                             PairingApprovalForm.NowListedTip,
-                            PairingApprovalForm.NoProfilesAsked
+                            PairingApprovalForm.NoProfilesAsked, PairingApprovalForm.DatabaseChanged, PairingApprovalForm.CannotRead,
+                            PairingApprovalForm.ReadingStopped, PairingApprovalForm.RefreshTip, PairingApprovalForm.RefreshShowsTip,
+                            "Approved, the client reaches nothing."
                         })
                         .ToList();
 
@@ -2775,12 +4394,9 @@ namespace KeePassGate.Tests
         {
             // The state is for the reader, in a column of its own. A record naming "invented
             // (new)" would be a record for a profile no certificate can carry and no rule can name.
-            using (var dialog = new PairingApprovalForm(
-                new PairingRequest(
-                    "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
-                    new[] { "invented", "retired" }, Array.Empty<string>(), "127.0.0.1:60001",
-                    null, null, new[] { "retired" }),
-                Timeout))
+            var store = PairingRequests.Listing();
+            PairingRequests.Taken(store, "retired");
+            using (var dialog = new PairingApprovalForm(PairingRequests.Shown(store, new[] { "invented", "retired" }), Timeout))
             {
                 Assert.That(Rows(Profiles(dialog)).Select(row => row[0]), Is.EqualTo(new[] { "invented", "retired" }));
 
@@ -2800,16 +4416,11 @@ namespace KeePassGate.Tests
             using (var seven = authority.IssueClient("agent-seven"))
             using (var runner = authority.IssueClient("ci-runner"))
             {
-                var holding = new[]
-                {
-                    AdmissionRecord.For(runner, DateTimeOffset.UtcNow, new[] { "retired" }, InventedIssuer.Id),
-                    AdmissionRecord.For(seven, DateTimeOffset.UtcNow, new[] { "retired", "ops" }, InventedIssuer.Id)
-                };
-
-                var request = new PairingRequest(
-                    "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
-                    new[] { "ops", "retired" }, new[] { "ops" }, "127.0.0.1:60001",
-                    new Dictionary<string, IReadOnlyList<AdmissionRecord>> { { "retired", holding } });
+                var store = PairingRequests.Listing("ops");
+                PairingRequests.Holding(store, runner, "retired");
+                PairingRequests.Holding(store, seven, "retired", "ops");
+                PairingRequests.Taken(store, "retired");
+                var request = PairingRequests.Shown(store, new[] { "ops", "retired" });
 
                 Assert.That(request.IsNew("retired"), Is.False, "it was named once, so approving it creates nothing");
 
@@ -2845,21 +4456,18 @@ namespace KeePassGate.Tests
             using (var one = authority.IssueClient("agent"))
             using (var other = authority.IssueClient("agent"))
             {
-                var paired = AdmissionRecord.For(older, DateTimeOffset.UtcNow, new[] { "retired" }, InventedIssuer.Id);
-                var first = AdmissionRecord.For(one, DateTimeOffset.UtcNow, new[] { "retired" }, InventedIssuer.Id);
-                var second = AdmissionRecord.For(other, DateTimeOffset.UtcNow, new[] { "retired" }, InventedIssuer.Id);
-                var holding = new[]
-                {
-                    paired,
-                    AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "retired" }, InventedIssuer.Id, paired.ClientKey, paired.AdmissionKey),
-                    first,
-                    second
-                };
-
-                var request = new PairingRequest(
-                    "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
-                    new[] { "retired" }, new[] { "ops" }, "127.0.0.1:60001",
-                    new Dictionary<string, IReadOnlyList<AdmissionRecord>> { { "retired", holding } });
+                var store = PairingRequests.Listing("ops");
+                var issuer = StoreSeeds.Served(store);
+                var paired = AdmissionRecord.For(older, DateTimeOffset.UtcNow, new[] { "retired" }, issuer);
+                var first = AdmissionRecord.For(one, DateTimeOffset.UtcNow, new[] { "retired" }, issuer);
+                var second = AdmissionRecord.For(other, DateTimeOffset.UtcNow, new[] { "retired" }, issuer);
+                StoreSeeds.Admit(store, paired);
+                StoreSeeds.Admit(store, AdmissionRecord.For(renewed, DateTimeOffset.UtcNow, new[] { "retired" }, issuer, paired.ClientKey, paired.AdmissionKey));
+                StoreSeeds.Admit(store, first);
+                StoreSeeds.Admit(store, second);
+                PairingRequests.Taken(store, "retired");
+                var request = PairingRequests.Shown(store, new[] { "retired" });
+                Assert.That(request.Returning("retired"), Has.Count.EqualTo(4), "the renewed client through both of its certificates");
 
                 var apart = new[] { first.ClientKey, second.ClientKey }
                     .OrderBy(key => key, StringComparer.Ordinal)
@@ -2885,13 +4493,10 @@ namespace KeePassGate.Tests
                     .Select(i => authority.IssueClient("agent-" + i.ToString("00", System.Globalization.CultureInfo.InvariantCulture)))))
                 {
                     var removed = Enumerable.Range(0, 12).Select(i => "gone-" + i).ToArray();
-                    var records = holders.Select(c => AdmissionRecord.For(c, DateTimeOffset.UtcNow, removed, InventedIssuer.Id)).ToList();
-                    var returning = removed.ToDictionary(
-                        name => name, name => (IReadOnlyList<AdmissionRecord>)records, StringComparer.Ordinal);
-
-                    var request = new PairingRequest(
-                        "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
-                        removed, new[] { "ops" }, "127.0.0.1:60001", returning);
+                    var store = PairingRequests.Listing("ops");
+                    holders.ForEach(holder => PairingRequests.Holding(store, holder, removed));
+                    PairingRequests.Taken(store, removed);
+                    var request = PairingRequests.Shown(store, removed);
 
                     Assert.That(
                         removed.Select(name => PairingApprovalForm.Cells(request, name)[2]),
@@ -2927,19 +4532,16 @@ namespace KeePassGate.Tests
             using (var authority = TestAuthority.New())
             using (var runner = authority.IssueClient("ci-runner"))
             {
-                var holding = new[] { AdmissionRecord.For(runner, DateTimeOffset.UtcNow, new[] { "retired" }, InventedIssuer.Id) };
-                var request = new PairingRequest(
-                    "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
-                    new[] { "named-0", "fresh", "retired" }, known, "127.0.0.1:60001",
-                    new Dictionary<string, IReadOnlyList<AdmissionRecord>> { { "retired", holding } });
+                var store = PairingRequests.Listing(known);
+                PairingRequests.Holding(store, runner, "retired");
+                PairingRequests.Taken(store, "retired");
+                var request = PairingRequests.Shown(store, new[] { "named-0", "fresh", "retired" });
 
                 Assert.That(request.Profiles.Select(profile => PairingApprovalForm.StateTip(request, profile)),
                     Is.EqualTo(new[] { null, PairingApprovalForm.NewTip, PairingApprovalForm.RemovedTip }));
                 Assert.That(PairingApprovalForm.Cells(request, "retired")[2], Is.EqualTo("ci-runner"));
 
-                var listed = new PairingRequest(
-                    "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
-                    new[] { "named-0" }, known, "127.0.0.1:60001");
+                var listed = PairingRequests.Shown(store, new[] { "named-0" });
                 Assert.That(PairingApprovalForm.StateTip(listed, "named-0"), Is.Null,
                     "a list that names every name asked for shows no name as new");
             }
@@ -2970,8 +4572,7 @@ namespace KeePassGate.Tests
         [Test]
         public void A_database_with_no_name_is_still_named_by_its_fingerprint()
         {
-            var facts = PairingApprovalForm.Facts(new PairingRequest(
-                "aaaabbbbccccdddd", "abcdef01", "agent-fictitious", Array.Empty<string>(), null));
+            var facts = PairingApprovalForm.Facts(PairingRequests.Shown(PairingRequests.Listing(), Array.Empty<string>(), databaseName: null));
 
             Assert.That(Named(facts, "Database"), Is.EqualTo("aaaabbbbccccdddd"));
         }
@@ -2987,8 +4588,7 @@ namespace KeePassGate.Tests
         [Test]
         public void The_invitation_row_names_the_invitation_rather_than_the_code()
         {
-            var request = new PairingRequest(
-                "aaaabbbbccccdddd", "abcdef01", "agent-fictitious", Array.Empty<string>(), null);
+            var request = PairingRequests.Shown(PairingRequests.Listing(), Array.Empty<string>(), databaseName: null);
 
             Assert.That(
                 Named(PairingApprovalForm.Facts(request), "Invitation id"), Is.EqualTo("abcdef01"));
@@ -2997,9 +4597,19 @@ namespace KeePassGate.Tests
         [Test]
         public void It_says_when_nothing_at_all_is_being_asked_for()
         {
+            // The line naming the table, and in its tooltip what approving then grants.
             using (var dialog = New())
             {
-                Assert.That(Texts(dialog), Does.Contain("The client asks for no profiles"));
+                var asking = ControlTree.FindByName<Label>(dialog, "KpgApprovalAskingLabel");
+                Assert.That(asking.Text, Is.EqualTo("The client asks for no profile."));
+                Assert.That(PairingApprovalForm.NoProfilesAsked, Is.EqualTo("The client asks for no profile."));
+                Assert.That(FormTip(dialog, asking), Is.EqualTo(Tooltips.Wrapped("Approved, the client reaches nothing.")));
+            }
+
+            using (var dialog = New("ops"))
+            {
+                Assert.That(FormTip(dialog, ControlTree.FindByName<Label>(dialog, "KpgApprovalAskingLabel")), Is.Empty,
+                    "the line naming a table of profiles has a tooltip");
             }
         }
 
@@ -3047,18 +4657,7 @@ namespace KeePassGate.Tests
         /// <summary>The same, for a client that asked for a lifetime.</summary>
         private static PairingApprovalForm New(TimeSpan lifetime, params string[] profiles)
         {
-            return new PairingApprovalForm(
-                new PairingRequest(
-                    "aaaabbbbccccdddd",
-                    "Invented Vault",
-                    "abcdef01",
-                    "agent-fictitious",
-                    profiles,
-                    profiles,
-                    "127.0.0.1:60001",
-                    null,
-                    lifetime),
-                Timeout);
+            return new PairingApprovalForm(PairingRequests.Shown(PairingRequests.Listing(profiles), profiles, lifetime: lifetime), Timeout);
         }
 
         private static ComboBox Lifetime(Control form)
@@ -3079,16 +4678,13 @@ namespace KeePassGate.Tests
             return Request(name, profiles, profiles);
         }
 
+        /// <summary>
+        /// A first dialog's request for these profiles from this client, over a store holding these
+        /// names on its list and no other.
+        /// </summary>
         private static PairingRequest Request(string name, string[] profiles, string[] known)
         {
-            return new PairingRequest(
-                "aaaabbbbccccdddd",
-                "Invented Vault",
-                "abcdef01",
-                name,
-                profiles,
-                known,
-                "127.0.0.1:60001");
+            return PairingRequests.Shown(PairingRequests.Listing(known), profiles, name);
         }
 
         private static Button Button(Control form, string name)
@@ -4015,9 +5611,60 @@ namespace KeePassGate.Tests
             Assert.That(answer.Reason, Is.Not.Empty);
         }
 
+        /// <summary>A request asking for nothing, as the handler makes it, over a store that serves.</summary>
         private static PairingRequest Request()
         {
-            return new PairingRequest("db", "abcdef01", "agent-fictitious", Array.Empty<string>(), null);
+            var store = new MemoryStore();
+            StoreSeeds.Authority(store);
+            return new PairingRequest(
+                "db", null, "abcdef01", "agent-fictitious", Array.Empty<string>(), null, null, null, null, null,
+                () =>
+                {
+                    using (var reading = store.Read())
+                    {
+                        return AskedProfiles.Of(reading, Array.Empty<string>(), DateTimeOffset.UtcNow);
+                    }
+                });
+        }
+
+        /// <summary>A request asking for `ops`, as the handler makes it, whose every reading answers this.</summary>
+        private static PairingRequest Reading(Func<AskedProfiles> read)
+        {
+            return new PairingRequest(
+                "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious", new[] { "ops" }, "127.0.0.1:60001",
+                null, null, null, null, read);
+        }
+
+        [Test]
+        public void A_reading_that_puts_no_dialog_up_is_not_logged_as_shown_late_however_late_the_turn_came()
+        {
+            // The turn came after the wait allowed for it, and its reading did not serve: no dialog
+            // came up, so none is logged as shown late, or as come up late.
+            var prompt = new PairingApprovalPrompt(new FakeUiThread { RunsLate = true, Late = TimeSpan.FromMilliseconds(400) }, _log);
+
+            var answer = prompt.Ask(Reading(() => AskedProfiles.Unserved(HeldBackTarget.Undecided)), TimeSpan.FromMilliseconds(100), Ample);
+
+            Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Unserved));
+            Assert.That(_log.Entries.Select(entry => entry.Message), Has.None.Contains("shown late").And.None.Contains("came up late"));
+        }
+
+        [Test]
+        public void A_pairing_whose_reading_fails_as_its_dialog_comes_up_is_put_to_nobody()
+        {
+            var prompt = new PairingApprovalPrompt(new FakeUiThread(), _log);
+            var dialogs = 0;
+            prompt.Dialog = (asked, timeout) =>
+            {
+                dialogs++;
+                return PairingApproval.Refused();
+            };
+
+            var answer = prompt.Ask(Reading(AskedProfiles.Unreadable), Timeout, Ample);
+
+            Assert.That(dialogs, Is.Zero);
+            Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Unavailable));
+            Assert.That(answer.Reason, Is.EqualTo("the database could not be read as the dialog was to come up"));
+            Assert.That(answer.Shown, Is.False);
         }
 
         private static RenewalRequest Renewal()
@@ -4151,6 +5798,124 @@ namespace KeePassGate.Tests
                 }
 
                 return false;
+            }
+        }
+
+        [Test]
+        public void A_pairing_s_dialog_is_read_in_the_turn_that_puts_it_up_and_shows_what_was_read()
+        {
+            // The reading is taken on KeePass's thread, in the turn the screen gave the request,
+            // after every question asked before a dialog, and the dialog shows that reading.
+            using (var authority = TestAuthority.New())
+            {
+                authority.KnownProfiles = new[] { "reader", "gone" };
+                authority.Forget("gone");
+                var turns = new Turns();
+                var readInTurn = new List<bool>();
+                var profiles = new[] { "reader", "gone", "fresh" };
+                var request = new PairingRequest(
+                    authority.DatabaseId, "Invented Vault", "abcdef01", "agent-fictitious", profiles, "127.0.0.1:60001",
+                    null, null, null, null,
+                    () =>
+                    {
+                        readInTurn.Add(turns.Inside);
+                        return authority.Asked(profiles);
+                    });
+                var prompt = new PairingApprovalPrompt(turns, _log);
+                PairingRequest shown = null;
+                prompt.Dialog = (asked, timeout) =>
+                {
+                    shown = asked;
+                    return PairingApproval.Refused();
+                };
+
+                var answer = prompt.Ask(request, Timeout, Ample);
+
+                Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Refused));
+                Assert.That(readInTurn, Is.EqualTo(new[] { true }), "read once, in the turn");
+                Assert.That(shown, Is.Not.Null, "the dialog came up");
+                Assert.That(shown.Shown, Is.Not.Null, "built from the reading");
+                Assert.That(profiles.Select(shown.MarkOf), Is.EqualTo(new[] { ProfileMark.Listed, ProfileMark.Removed, ProfileMark.New }));
+            }
+        }
+
+        [Test]
+        public void A_pairing_s_reading_that_does_not_serve_as_the_dialog_comes_up_raises_no_dialog()
+        {
+            var request = Reading(() => AskedProfiles.Unserved(HeldBackTarget.Undecided));
+            var prompt = new PairingApprovalPrompt(new Turns(), _log);
+            var dialogs = 0;
+            prompt.Dialog = (asked, timeout) =>
+            {
+                dialogs++;
+                return PairingApproval.Refused();
+            };
+
+            var answer = prompt.Ask(request, Timeout, Ample);
+
+            Assert.That(dialogs, Is.Zero);
+            Assert.That(answer.Decision, Is.EqualTo(PairingDecision.Unserved));
+            Assert.That(answer.Word, Is.EqualTo(HeldBackTarget.Undecided));
+            Assert.That(answer.Shown, Is.False, "asked of nobody");
+        }
+
+        [Test]
+        public void A_pairing_dialog_s_tick_asks_what_a_write_asks_before_it_reads()
+        {
+            var writes = new BusyWrites();
+            var busy = PairingApprovalPrompt.Busy(writes);
+            Assert.That(busy(), Is.False, "nothing under way");
+
+            writes.Interrupting = "KeePass is merging another database into this database";
+            Assert.That(busy(), Is.True, "work of KeePass's own");
+
+            writes.Interrupting = null;
+            writes.Saving = true;
+            Assert.That(busy(), Is.True, "this plugin's own save");
+            Assert.That(PairingApprovalPrompt.Busy(null)(), Is.False, "nothing writes");
+        }
+
+        /// <summary>KeePass's thread as a turn on this thread, answering whether a turn is under way.</summary>
+        private sealed class Turns : IUiThread
+        {
+            public bool Inside { get; private set; }
+
+            public string Stalled
+            {
+                get { return null; }
+            }
+
+            public bool Run(Action work, TimeSpan timeout)
+            {
+                Inside = true;
+                try
+                {
+                    work();
+                }
+                finally
+                {
+                    Inside = false;
+                }
+
+                return true;
+            }
+        }
+
+        /// <summary>The plugin's writes, as busy as a test sets them.</summary>
+        private sealed class BusyWrites : IWriterState
+        {
+            public bool Saving { get; set; }
+
+            public string Interrupting { get; set; }
+
+            string IWriterState.Interrupting()
+            {
+                return Interrupting;
+            }
+
+            public bool Quiet(TimeSpan wait)
+            {
+                return true;
             }
         }
     }

@@ -87,12 +87,13 @@ namespace KeePassGate.Gate
         string AdmissionBlocked { get; }
 
         /// <summary>
-        /// What the store holds now of the profiles a pairing asks for, read in a single hold over
-        /// a single reading: the names on the list, and of each of these profiles off it, the
-        /// admitted clients whose admissions hold it and the removals of it.
+        /// What the store holds now of the profiles a pairing asks for, from a single reading made
+        /// afresh with the store key: the names on the list, and of each of these profiles off it,
+        /// the admitted clients whose admissions hold it and the removals of it.
         /// </summary>
         /// <remarks>
-        /// For the pairing dialog, read before it is shown, and for the approval it gives. The
+        /// For the pairing dialog, read on KeePass's thread as it comes up and on each tick while it
+        /// stands, and for the approval it gives, `PairingRequest.Read`. The
         /// names are what the store's records give, `STORE.md` §616, and a damaged record of a name
         /// stops the store, which is answered its word before anything is read of it: so there is no
         /// list that fails to read on its own. <see cref="AskedProfiles.Unserved"/>, with the word

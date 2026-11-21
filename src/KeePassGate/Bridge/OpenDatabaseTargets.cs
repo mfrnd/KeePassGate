@@ -1580,12 +1580,17 @@ namespace KeePassGate.Bridge
             }
 
             /// <summary>
-            /// What the store holds now of the profiles a pairing asks for, `STORE.md` §616, read in
-            /// a single hold over a single reading, and where the store does not serve this target's
+            /// What the store holds now of the profiles a pairing asks for, `STORE.md` §616, read
+            /// afresh with the store key, and where the store does not serve this target's
             /// authority, nothing but the word the write answers the same store with,
             /// `AskedProfiles.Unserved`. Throws `DatabaseShut` where the database has gone, as
             /// `Unavailable` does.
             /// </summary>
+            /// <remarks>
+            /// **Asked on KeePass's thread**, by the turn that puts the dialog up and by the dialog
+            /// itself, where a hold is simply run; a hold asked from any other thread holds
+            /// KeePass's thread still for it, so that the tree never moves under the reading.
+            /// </remarks>
             public AskedProfiles Asked(IReadOnlyCollection<string> profiles)
             {
                 return _hold.Hold(() => AskedNow(profiles));
@@ -1604,10 +1609,16 @@ namespace KeePassGate.Bridge
                     throw new DatabaseShut("the database closed before a pairing's dialog was read");
                 }
 
-                // Judged by the two members the write judges the same store by, so that the two
-                // answer it alike, `PAIRING.md` §303.
-                var reading = _store.Now(database, database.RootGroup);
-                return StoreReadings.Asked(reading, _databaseId, profiles, DateTimeOffset.UtcNow);
+                // **Afresh, as the writer's turn reads, and let go before anything leaves**: the
+                // removals of each name are counted with the store key, as the write counts them,
+                // and only names and identifiers are handed out; letting the reading go overwrites
+                // the bytes of every key its forms found, `CA.md` §208. Judged by the two members
+                // the write judges the same store by, so that the two answer it alike,
+                // `PAIRING.md` §303.
+                using (var reading = new KdbxStore(database, null, _log).Read())
+                {
+                    return StoreReadings.Asked(reading, _databaseId, profiles, DateTimeOffset.UtcNow);
+                }
             }
 
             public byte[] GateKey

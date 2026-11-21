@@ -66,9 +66,9 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// The size KeePass's icons are designed at, which is the bin's when there is none to
-        /// measure.
+        /// measure, and the picture's of Refresh on the pairing dialog where there is none.
         /// </summary>
-        private const int DesignedSize = 16;
+        internal const int DesignedSize = 16;
 
         /// <summary>The air either side of the bin, which is what 22 left around 16.</summary>
         private const int Air = 3;

@@ -52,16 +52,21 @@ namespace KeePassGate.Ui
     ///   parts of a notch a precision touchpad sends added up, the arrows by a line, Page Up and
     ///   Page Down by a view less a line, Home and End to either end, and Tab moves between the
     ///   boxes, a box out of sight bringing its row's top to the top of the view. **The keys
-    ///   scroll with a box focused**, and the view stays where a key put it: the box keeps the
-    ///   focus out of sight, its focus drawn nowhere, and nothing brings it back into view until
-    ///   the focus moves to it. Space on a box out of sight brings its row into view and changes
-    ///   no check; the press after it changes the check in sight.
+    ///   scroll with a box focused as with the view focused**, and the view stays where a key put
+    ///   it: the box keeps the focus out of sight, its focus drawn nowhere, and nothing brings it
+    ///   back into view until the focus moves to it or a Refresh brings its row into view. Space
+    ///   on a box out of sight brings its row into view and changes no check; the press after it
+    ///   changes the check in sight.
     /// - **A letter typed on a box is the box's own**, and a box ignores it: a letter on a button
     ///   otherwise reaches the dialog's mnemonics without Alt, and the letter of Refuse refused.
-    /// - **The focus round a box is drawn on its row, clear of the box and a pixel inside the row
-    ///   and the view**, where the focus cues are shown, so that the dots stand on the row's own
-    ///   background, never on the blue of a checked box and never on the line between rows or the
-    ///   view's frame: a check box draws the focus round its text and so, with no text, nowhere.
+    ///   So is a letter typed on the view the rows scroll in.
+    /// - **The view takes the focus where the dialog hands the focus to the table**,
+    ///   <see cref="TakeFocus"/>, and is a stop of its own before the boxes, from which Tab goes
+    ///   on to the first box. **The focus is drawn wherever it is, whatever turned the focus cues
+    ///   on or left them off**: round the view, on a frame of the table's own around the view,
+    ///   and round a box, on its row, clear of the box and a pixel inside the row and the view,
+    ///   so that the dots stand on the row's own background, never on the blue of a checked box
+    ///   and never on the line between rows or the view's frame.
     ///   **A double click on a box is the single click it begins with**, since a box double
     ///   clicked otherwise toggles twice, which reads as a click that did nothing.
     /// - **Every part UI automation reads has a name of its own**: the headings by
@@ -89,6 +94,12 @@ namespace KeePassGate.Ui
         /// <summary>How a cell's line is drawn and measured, which has to be a single answer.</summary>
         private const TextFormatFlags LineShape =
             TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine | TextFormatFlags.NoPadding;
+
+        /// <summary>
+        /// The width of the frame of the table's own round the view, in pixels at every scaling,
+        /// as a focus rectangle is: where the focus is drawn while the view holds the focus.
+        /// </summary>
+        private const int Frame = 1;
 
         private readonly ProfileColumn _box;
         private readonly IReadOnlyList<ProfileColumn> _columns;
@@ -157,6 +168,11 @@ namespace KeePassGate.Ui
                 ForeColor = SystemColors.WindowText,
                 Margin = Padding.Empty
             };
+
+            // The frame round the view is the table's own, and shows whether the view holds the
+            // focus: drawn again as the view takes the focus and loses it.
+            _rows.GotFocus += (sender, e) => Invalidate();
+            _rows.LostFocus += (sender, e) => Invalidate();
 
             Controls.Add(_headings);
             Controls.Add(_rows);
@@ -257,6 +273,38 @@ namespace KeePassGate.Ui
             row.Panel.ForeColor = fore;
         }
 
+        /// <summary>Checks or unchecks a profile's box.</summary>
+        internal void Check(string profile, bool isChecked)
+        {
+            if (_byProfile.TryGetValue(profile, out var row))
+            {
+                row.Box.Checked = isChecked;
+            }
+        }
+
+        /// <summary>Scrolls a profile's row into view, as <see cref="Reveal(Row)"/> does.</summary>
+        internal void Reveal(string profile)
+        {
+            if (_byProfile.TryGetValue(profile, out var row))
+            {
+                Reveal(row);
+            }
+        }
+
+        /// <summary>
+        /// Gives the focus to the view the rows scroll in, and answers whether the view took it.
+        /// </summary>
+        /// <remarks>
+        /// **The view and never a box**: a box given the focus after a click showed no sign of it,
+        /// and a Space a moment later checked the row of that box, which was the row a Refresh had
+        /// just brought to the top and unchecked. On the view, Space checks nothing, the keys that
+        /// scroll the table scroll it, and Tab goes on to the first box. Nothing scrolls.
+        /// </remarks>
+        internal bool TakeFocus()
+        {
+            return _rows.Focus();
+        }
+
         /// <summary>
         /// Scrolls a row into view unless its box is in view already, and answers whether the view
         /// moved: the row's top comes to the top of the view where the rows below it fill the
@@ -322,39 +370,45 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// Lays the headings and the rows at the table's width, each row as tall as its tallest
-        /// cell, keeping the place scrolled to; and with <paramref name="fit"/>, makes the view as
-        /// tall as <see cref="ViewHeight"/> answers for the rows.
+        /// cell, keeping the place scrolled to, and makes the view as tall as
+        /// <see cref="ViewHeight"/> answers for the rows: with <paramref name="fit"/>, exactly;
+        /// without it, only where that is taller than the view stands, so that the view grows with
+        /// its rows and never shrinks.
         /// </summary>
         /// <remarks>
-        /// **The view's height is set only where the dialog asks**, as it is built and once it
-        /// has a window, and never after a change of the rows, so that nothing on the dialog moves
-        /// while it stands: rows grown taller than the view scroll.
+        /// **Fitted exactly where the dialog is sized**, as it is built and once it has a window,
+        /// and **grown only after a change of the rows**: a dialog holding its table grows with
+        /// the table, so that rows grown taller than the view are brought into sight up to the
+        /// most the view shows, and rows grown shorter leave the view's height and an empty room
+        /// under the last row rather than moving what stands below the table back up.
         /// </remarks>
         internal void Lay(bool fit)
         {
-            // A name of its own for the view, the table's, since a part with none is read by UI
-            // automation by the name of the part before it.
+            // The view takes the focus, so UI automation reads the view by the table's name.
             _rows.AccessibleName = AccessibleName;
             Measure();
             var bar = SystemInformation.VerticalScrollBarWidth;
             var inner = ClientSize.Width;
-            var room = Math.Max(1, inner - bar);
+            var wide = Math.Max(1, inner - (2 * Frame));
+            var room = Math.Max(1, wide - bar);
             var widths = Widths(room);
             var single = _line + (2 * _pad);
             var heights = _order.Select(row => (2 * _pad) + (_line * row.Cells.Select(cell => Lines(cell.Text).Length).DefaultIfEmpty(1).Max())).ToList();
             var content = heights.Sum();
-            if (fit)
+            var standing = Math.Max(0, ClientSize.Height - single - (2 * Frame));
+            var fitting = ViewHeight(heights, fit ? 0 : standing);
+            if (fit || fitting != standing)
             {
-                Height = (Height - ClientSize.Height) + single + ViewHeight(heights);
+                Height = (Height - ClientSize.Height) + single + fitting + (2 * Frame);
             }
 
-            var height = Math.Max(0, ClientSize.Height - single);
+            var height = Math.Max(0, ClientSize.Height - single - (2 * Frame));
             var scrolls = content > height;
             var mirrored = RightToLeft == RightToLeft.Yes;
 
             SuspendLayout();
-            LayRow(_headings, null, widths, new Rectangle(mirrored ? bar : 0, 0, room, single));
-            _rows.Bounds = new Rectangle(0, single, inner, height);
+            LayRow(_headings, null, widths, new Rectangle(Frame + (mirrored ? bar : 0), 0, room, single));
+            _rows.Bounds = new Rectangle(Frame, single + Frame, wide, height);
 
             // From the top, and then back to the place scrolled to as far as the rows still reach:
             // a row placed while the view is scrolled is placed against the scrolled origin. A row
@@ -371,7 +425,7 @@ namespace KeePassGate.Ui
                 row.Panel.Ruled = at < _order.Count - 1;
                 row.Panel.Rule = RuleColor(SystemInformation.HighContrast);
                 row.Panel.Around = _pad;
-                LayRow(row.Panel, row.Box, widths, new Rectangle(0, y, scrolls ? room : inner, heights[at]));
+                LayRow(row.Panel, row.Box, widths, new Rectangle(0, y, scrolls ? room : wide, heights[at]));
                 y += heights[at];
             }
 
@@ -392,31 +446,44 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// The height the view fits rows of these heights in: as tall as the rows, and two rows of
-        /// a single line at the least; and where the rows are taller than the most rows of a
-        /// single line the view shows, as many whole lines as that room holds from the top of the
-        /// rows and half the line after them.
+        /// The height the view fits rows of these heights in, no lower than
+        /// <paramref name="least"/>: as tall as the rows, and two rows of a single line at the
+        /// least; and where the rows are taller than the most rows of a single line the view
+        /// shows, as many whole lines as that room holds from the top of the rows and half the line
+        /// after them.
         /// </summary>
+        /// <param name="heights">The rows' heights, in order.</param>
+        /// <param name="least">
+        /// The height the view keeps, since it never shrinks; 0 where the view is sized afresh.
+        /// </param>
         /// <remarks>
         /// **Half the line the view's bottom edge meets**, whatever that line is: a row of a single
         /// line, the first or the last line of a taller row, which carry the row's room above or
         /// below the text, or a line between, so that the line cut is cut in half and reads as a
         /// line going on below the view, neither a sliver of a line nor a line nearly whole. A
         /// view of rows that fit ends where the rows end, with no half line of empty room.
+        ///
+        /// **A view kept taller than that, whose rows still scroll**, grows on to the next height
+        /// that cuts a line in half, as far as a row of a single line past the most, so that the
+        /// line its bottom meets is cut in half there too.
         /// </remarks>
-        private int ViewHeight(IReadOnlyList<int> heights)
+        private int ViewHeight(IReadOnlyList<int> heights, int least)
         {
             var single = _line + (2 * _pad);
             var content = heights.Sum();
             var most = _mostRows * single;
-            if (content <= most)
+            var edges = Edges(heights).Concat(new[] { content }).ToList();
+            var cuts = edges.Zip(edges.Skip(1), (above, below) => above + ((below - above) / 2)).ToList();
+            var fitted = content <= most
+                ? Math.Max(2 * single, content)
+                : cuts[edges.FindLastIndex(edge => edge <= most)];
+            var height = Math.Max(least, fitted);
+            if (content > height && height > fitted)
             {
-                return Math.Max(2 * single, content);
+                height = cuts.Where(cut => cut >= height && cut <= most + single).DefaultIfEmpty(height).First();
             }
 
-            var edges = Edges(heights).Concat(new[] { content }).ToList();
-            var whole = edges.FindLastIndex(edge => edge <= most);
-            return edges[whole] + ((edges[whole + 1] - edges[whole]) / 2);
+            return height;
         }
 
         /// <summary>
@@ -472,8 +539,8 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// The arrows, Page Up, Page Down, Home and End scroll the rows while a box has the focus,
-        /// by keys rather than by any answer to a size.
+        /// The arrows, Page Up, Page Down, Home and End scroll the rows while a box or the view
+        /// holds the focus, by keys rather than by any answer to a size.
         /// </summary>
         protected override bool ProcessDialogKey(Keys keyData)
         {
@@ -512,6 +579,37 @@ namespace KeePassGate.Ui
 
                 return base.ProcessDialogKey(keyData);
             }, true);
+        }
+
+        /// <summary>
+        /// Draws the frame round the view in the view's background, and the focus round the view
+        /// on the frame while the view holds the focus, whatever turned the focus cues on.
+        /// </summary>
+        /// <remarks>
+        /// **On a frame of the table's own**, since the rows cover the view to its edges and a
+        /// rectangle the view drew on itself would be drawn under them.
+        /// </remarks>
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            WindowHandlers.Run("the focus of a table of profiles could not be drawn", () =>
+            {
+                base.OnPaint(e);
+                if (e == null)
+                {
+                    return;
+                }
+
+                var frame = Rectangle.Inflate(_rows.Bounds, Frame, Frame);
+                using (var background = new SolidBrush(_rows.BackColor))
+                {
+                    e.Graphics.FillRectangle(background, frame);
+                }
+
+                if (_rows.Focused)
+                {
+                    ControlPaint.DrawFocusRectangle(e.Graphics, frame, _rows.ForeColor, _rows.BackColor);
+                }
+            });
         }
 
         protected override void Dispose(bool disposing)
@@ -875,9 +973,9 @@ namespace KeePassGate.Ui
         /// the row's top edge meets the line under the row above it or the view's frame, and its
         /// bottom edge is the line under it, and a focus drawn along either merges with that line;
         /// on a row of a single line that leaves the focus beside the box's glyph above and below.
-        /// Drawn where the focus cues are shown, and **only where the box is in the view**: a box
-        /// the keys scrolled out of sight keeps the focus, and a focus drawn at the view's edge
-        /// would stand round nothing.
+        /// Drawn whatever the focus cues are, since the focus given to a box after a click turns no
+        /// cue on, and **only where the box is in the view**: a box the keys scrolled out of sight
+        /// keeps the focus, and a focus drawn at the view's edge would stand round nothing.
         ///
         /// **Drawn in a buffer**, as a cell is, so that the headings painted again, outside the
         /// buffer the view is painted in, are shown whole and never their background first.
@@ -922,7 +1020,7 @@ namespace KeePassGate.Ui
                     // A row scrolled up stands at a negative place in the view, and a box the keys
                     // scrolled out of sight keeps the focus with none of it drawn.
                     var view = Parent == null ? Height : Parent.ClientSize.Height;
-                    if (Box != null && Box.Focused && ShowFocusCues && Top + Box.Bottom > 0 && Top + Box.Top < view)
+                    if (Box != null && Box.Focused && Top + Box.Bottom > 0 && Top + Box.Top < view)
                     {
                         var at = Box.Bounds;
                         var top = Math.Max(at.Top - Around, 1 - Math.Min(0, Top));
@@ -936,8 +1034,9 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// The panel the rows scroll in: the wheel scrolls it by lines, and it brings nothing into
-        /// view of its own accord, <see cref="ScrollToControl"/>. It and its rows are painted into
-        /// a single buffer, and wherever it scrolls the whole view is painted: at once after the
+        /// view of its own accord, <see cref="ScrollToControl"/>. It takes the focus, as a stop of
+        /// its own, and a letter typed on it does nothing. It and its rows are painted into a
+        /// single buffer, and wherever it scrolls the whole view is painted: at once after the
         /// wheel, the keys or the scroll bar, <see cref="PaintNow"/>, and with the focus after a
         /// box given the focus, <see cref="Reveal(Row)"/>.
         /// </summary>
@@ -960,6 +1059,8 @@ namespace KeePassGate.Ui
             public RowsPanel(ProfileTable table)
             {
                 _table = table;
+                SetStyle(ControlStyles.Selectable, true);
+                TabStop = true;
             }
 
             /// <summary>The style of a panel, painted into a single buffer with its rows.</summary>
@@ -989,6 +1090,15 @@ namespace KeePassGate.Ui
                 {
                     WindowHandlers.Run("the rows of a table of profiles could not be painted", _table.PaintNow);
                 }
+            }
+
+            /// <summary>
+            /// A letter typed on the view is the view's own, which it ignores, as a box does: on a
+            /// control that leaves a letter to the dialog, the letter reaches the mnemonics.
+            /// </summary>
+            protected override bool IsInputChar(char charCode)
+            {
+                return true;
             }
 
             /// <summary>The height of a line of a cell, which the wheel scrolls by.</summary>
@@ -1024,7 +1134,7 @@ namespace KeePassGate.Ui
             /// <summary>
             /// Answers the place the view stands at, so that the view brings nothing into view of
             /// its own accord: the table brings a box into view where the focus moves to it, and a
-            /// row where a changed check asks, <see cref="Reveal(Row)"/>.
+            /// row where a Refresh or a changed check asks, <see cref="Reveal(Row)"/>.
             /// </summary>
             /// <remarks>
             /// **Asked at every layout of the dialog**, for the control holding the focus, and the
@@ -1034,7 +1144,8 @@ namespace KeePassGate.Ui
             /// that scrolls keeps it, and the box may leave the view: brought back into view at the
             /// next layout, the view went back to where the key found it within a second, and a
             /// row taller than the view was never shown to its last line by the keys with a box
-            /// focused. **A box out of sight stays out of sight** until the focus moves to it.
+            /// focused. **A box out of sight stays out of sight** until the focus moves to it or a
+            /// Refresh brings its row into view.
             /// </remarks>
             protected override Point ScrollToControl(Control activeControl)
             {

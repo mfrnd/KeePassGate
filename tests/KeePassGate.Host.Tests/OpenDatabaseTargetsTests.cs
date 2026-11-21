@@ -221,10 +221,10 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_pairing_s_dialog_is_read_in_a_single_hold_with_the_clients_and_the_removals_of_each_name_off_the_list()
         {
-            // `PAIRING.md` §311: the names on the list, the clients that regain a name off it and
-            // the removals of such a name, from a single reading. The removals are those the
-            // reading tells of the name itself, so a removal of a name the file does not know,
-            // which only a deletion record tells of, is not held: the write finds it.
+            // `PAIRING.md` §303 and §311: the names on the list, the clients that regain a name off
+            // it and the removals of such a name, from a single reading made afresh with the store
+            // key, as the write counts them: a removal of a name the file does not know, which
+            // only a deletion record tells of, is held as well.
             CreateAuthorityIn(_first);
             var store = new KdbxStore(_first.Database, GateVersion.Current, null);
             StoreSeeds.Name(store, "ops");
@@ -251,11 +251,11 @@ namespace KeePassGate.Host.Tests
                 Assert.That(hold.Taken - before, Is.EqualTo(1), "a single hold");
                 Assert.That(asked.Served, Is.True);
                 Assert.That(asked.Listed, Is.EqualTo(new[] { "ops" }));
-                Assert.That(asked.Removed, Is.EqualTo(new[] { "gone" }), "not a name only a deletion record tells of");
+                Assert.That(asked.Removed, Is.EqualTo(new[] { "gone", "unknown" }), "a name only a deletion record tells of among them");
                 Assert.That(asked.Returning.Keys, Is.EqualTo(new[] { "gone" }));
                 Assert.That(asked.Returning["gone"].Single().AdmissionKey, Is.EqualTo(CertificateDigest.Of(client)));
                 Assert.That(asked.Held("gone", gone), Is.True, "a removal by its record");
-                Assert.That(asked.Held("unknown", unknown), Is.False, "a removal only a deletion record tells of");
+                Assert.That(asked.Held("unknown", unknown), Is.True, "a removal only a deletion record tells of");
                 Assert.That(asked.Held("fresh", unknown), Is.False, "a deletion record of another name's removal");
                 Assert.That(asked.Held("ops", gone), Is.False, "a name on the list was not asked about");
             }

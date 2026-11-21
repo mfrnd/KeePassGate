@@ -186,9 +186,12 @@ namespace KeePassGate.Tests.Fakes
         /// </summary>
         public bool Shut { get; set; }
 
+        /// <summary>Set to make the dialog's reading fail, as a reading of a store that cannot be made does.</summary>
+        public Exception AskedThrows { get; set; }
+
         /// <summary>
         /// What this fake's store holds of the profiles a pairing asks for, read from a single
-        /// reading as the real target reads it in a single hold, where the store serves this
+        /// reading with the store key as the real target reads it, where the store serves this
         /// authority, and the word the write answers otherwise, judged as the real target judges
         /// it. Throws as the real target does where the database has gone, <see cref="Shut"/>.
         /// </summary>
@@ -197,6 +200,11 @@ namespace KeePassGate.Tests.Fakes
             if (Shut)
             {
                 throw new KeePassGate.Diagnostics.DatabaseShut("the database closed before the dialog was read");
+            }
+
+            if (AskedThrows != null)
+            {
+                throw AskedThrows;
             }
 
             using (var reading = _store.Read())

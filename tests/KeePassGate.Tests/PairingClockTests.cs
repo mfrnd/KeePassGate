@@ -87,8 +87,15 @@ namespace KeePassGate.Tests
         {
             var book = new ApprovalBook(_clock);
             var until = _clock.Read().After(TimeSpan.FromMinutes(6));
-            var held = book.Hold(
-                "key", "db", new[] { "ops" }, TimeSpan.FromDays(30), KeePassGate.Gate.AskedProfiles.None, until, book.Mark());
+            var store = new MemoryStore();
+            KeePassGate.Testing.StoreSeeds.Authority(store);
+            KeePassGate.Gate.AskedProfiles shown;
+            using (var reading = store.Read())
+            {
+                shown = KeePassGate.Gate.AskedProfiles.Of(reading, new[] { "ops" }, _wall);
+            }
+
+            var held = book.Hold("key", "db", new[] { "ops" }, TimeSpan.FromDays(30), shown, until, book.Mark());
             Assert.That(held.Until, Is.EqualTo(_wall.AddMinutes(6)), "told to the client as the clock read it");
 
             _wall += Hour;

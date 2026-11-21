@@ -2065,7 +2065,8 @@ file call it makes is filtered, as `JsonLinesAudit.Queue` explains. So is the pl
 writer, for the lines KeePass's thread logs, as the `TraceGateLog` constructor explains.
 
 **Places that catch everything without being a kind**, since each throws what it caught again where
-a place of a kind sees it, or must add no exception of its own:
+a place of a kind sees it, must add no exception of its own, or records what it caught as a kind
+does, once where a kind would record it over and over:
 
 - `GateTlsServer`'s callbacks, because Bouncy Castle turns whatever a callback throws into a fatal
   alert, and the call `ControlUiThread` marshals, because WinForms would answer an exception
@@ -2083,6 +2084,11 @@ a place of a kind sees it, or must add no exception of its own:
 - `Unattended.Post`, which catches what its posted work throws as the catch-all of the handler that
   posted it, followed across the post to KeePass's message queue, and what its reporter throws, for
   the reason the log does.
+**A pairing dialog's reading of the store adds no such place.** It runs at each tick of the
+dialog's countdown, inside a handler of the plugin's own windows, whose catch-all counts what no list
+names: the dialog marks the database unreadable in a `finally` where the reading did not complete,
+`PairingApprovalForm.Reading`, and reads nothing more, so that the defect is counted once and no
+Approve is taken over a reading nobody made.
 
 **The plugin's store adds no kind and no such place.** A write the application cannot finish is
 taken back in a `finally`, `StoreEntries.Apply`, so what was thrown goes on untouched to the
@@ -2447,21 +2453,24 @@ does not come is answered `503 busy`.
 requests cannot interleave mutations of the same entry.
 
 **And whatever a record is written with is read again under that lock**, the operator's ruling R11
-for a value read off KeePass's thread. A pairing and a renewal read the names the database holds
-from the plugin's store to build their dialog, in a hold of KeePass's thread, and the operator
-answers what the dialog showed; the store can change between that hold and the write. A pairing
-reads in that single hold, from a single reading, the names on the list and, for each name asked
-for off it, the clients that regain it and the removals of it. So the write, on KeePass's thread
-and under the writer's lock, reads the store again and compares every name the answer rested on
-with what the dialog showed, a renewal's dropped names included, and every removal of an approved
-name off the list with the removals the dialog held. A name put on or taken off the list while the
-dialog stood, or a removal of such a name that the dialog did not hold, as a removal that arrived
-since or a removal that only a deletion record tells of and the hold could not tie to the name,
-makes the approval stale rather than part of a record: it is used up, nothing is spent, and the
+for a value read off KeePass's thread. A renewal reads the names the database holds from the
+plugin's store to build its dialog, in a hold of KeePass's thread. A pairing's dialog reads them
+on KeePass's thread itself, afresh and with the store key, as the writer's turn reads, in the turn
+that puts it up and on each tick while it stands, and shows a change only on Refresh, with
+Approve disabled until then, `PAIRING.md` §303: from a single reading each time, the names on the
+list and, for each name asked for off it, the clients that regain it and the removals of it. The
+operator answers what the dialog showed; the store can change between its last reading and the
+write. So the write, on KeePass's thread and under the writer's lock, reads the store again and
+compares every name the answer rested on with what the dialog showed, a renewal's dropped names
+included, and every removal of an approved name off the list with the removals the dialog held. A
+name put on or taken off the list since the dialog last read the store, or a removal of such a
+name that the dialog did not hold, makes the approval stale rather than part of a record: it is
+used up, nothing is spent, and the
 log names the profile and every cause the write found. A renewal's request then answers
 `503 busy`, and the next request is put to the operator again. A pairing's request is answered
 nothing there: the same request puts the dialog to the operator again, from a reading taken
-afresh and holding the removals its writes found, stating that it is shown again, and nothing of
+afresh, which holds every removal its writes found while the store holds it, stating that it is
+shown again, and nothing of
 the cause, and opening with what the operator approved before, and is answered once an approval
 is written, the operator refuses, or the pairing budget is used up, `PAIRING.md` §311.
 

@@ -1676,8 +1676,8 @@ kind `client`, so that the names and the admission are planned, saved and taken 
 and left out together where the admission's issuer does not stand alone (§627): an addition for
 each approved name the list does not hold in the reading of the write's turn, naming the removals
 of its name in that reading as any addition does. Each of those removals is a removal the approval
-dialog held, as its reading told it or as an earlier write of the same request found it, since a
-removal beyond them makes the approval stale and writes nothing (`PAIRING.md` §311), as an Add
+dialog's last reading held, since a removal beyond them makes the approval stale and writes nothing
+(`PAIRING.md` §311), as an Add
 that a removal overtook writes nothing (§627).
 **A name is added only where a store key stands** (§627 step 1): where none stands, the Profiles
 page refuses the press and states that the database has no certificate authority yet, and with a
@@ -1693,14 +1693,14 @@ reads its admission, from the same reading, and a reading that serves no authori
 no names: a hold of its own for the names would hold KeePass's thread again at every request. A
 held approval is compared at its write, name by name, with the names on the list in the reading of
 the write's turn, and for each approved name off the list with the removals of it in that reading,
-each of which the dialog has to have held, `PAIRING.md` §311. The dialog's reading is a single
-hold over a single reading, taken by a connection, from which no key is taken: the names on the
-list, the clients that regain a name off it and the removals of such a name that the reading tells
-of it, `AskedProfiles`. A removal that only a deletion record tells of, of a name the file does
-not know otherwise, is no removal of any name there, so the write, which counts with the key,
-finds a removal the dialog did not hold: the first approval of such a name writes nothing, the
-same request puts the dialog to the operator again holding what that write found, and its
-approval puts the name back.
+each of which the dialog has to have held, `PAIRING.md` §311. The dialog's reading is a reading
+made afresh on KeePass's thread with the store key, as the writer's turn reads, in the turn that
+puts the dialog up and on each tick while it stands, and let go before anything leaves the turn:
+the names on the list, the clients that regain a name off it and the removals of such a name
+counted as the write counts them, `AskedProfiles`, a removal that only a deletion record tells of,
+of a name the file does not know otherwise, among them. So the first approval of such a name puts
+the name back, and the write finds a removal the dialog did not hold only where it landed after
+the dialog last read the store.
 The log names an act about a name by the name at the settings dialog's OK, and the audit holds no
 line for a name added or removed, `DESIGN.md` §120. The grant editor's pick list is read from the
 store at each redraw of its tab, and is empty where the store names nothing or cannot be read, so

@@ -325,16 +325,7 @@ namespace KeePassGate.Tests
         {
             if (_kind == "pairing")
             {
-                return new PairingApprovalForm(
-                    new PairingRequest(
-                        "aaaabbbbccccdddd",
-                        "Invented Vault",
-                        "abcdef01",
-                        "agent-fictitious",
-                        new[] { "ops" },
-                        new[] { "ops" },
-                        "127.0.0.1:60001"),
-                    Timeout);
+                return new PairingApprovalForm(PairingRequests.Shown(PairingRequests.Listing("ops"), new[] { "ops" }), Timeout);
             }
 
             var today = new DateTime(2026, 10, 3);

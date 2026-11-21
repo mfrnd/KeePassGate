@@ -8,29 +8,28 @@ using KeePassGate.Store;
 namespace KeePassGate.Gate
 {
     /// <summary>
-    /// What a pairing's approval dialog is built from, read in a single hold over a single reading
-    /// of the plugin's store, `STORE.md` §616: the names on the list, and of each name asked for that
-    /// the list does not hold, the admitted clients whose admissions hold it and the removals of it.
+    /// What a pairing's approval dialog is built from, read from a single reading of the plugin's
+    /// store made afresh on KeePass's thread, `STORE.md` §616: the names on the list, and of each
+    /// name asked for that the list does not hold, the admitted clients whose admissions hold it
+    /// and the removals of it.
     /// </summary>
     /// <remarks>
-    /// **The removals are those the reading tells of the name**, `StoreInForce.RemovalsOf`: by the
-    /// removal's record, by an item restating it, or by a deletion record of a name the file knows
-    /// otherwise, tied to the name as the reading was made. No connection thread takes a key from a
-    /// reading, so a removal that only a deletion record tells of, of a name the file does not know
-    /// otherwise, is a removal of no name here. The write counts with the key,
-    /// `StoreInForce.RemovalsOnceKnown`, finds it, and the approval is stale, `PAIRING.md` §311.
-    /// The request puts the dialog to the operator again, and that dialog and every dialog of the
-    /// request after it hold what its writes found as well, <see cref="With"/>, so that their
-    /// approvals are not stale over the same removals.
+    /// **The removals are counted with the store key**, `StoreInForce.RemovalsOnceKnown`, as the
+    /// write counts them: by the removal's record, by an item restating it, or by a deletion record,
+    /// a deletion record of a name the file does not know otherwise among them, tied to the name by
+    /// its hash under the key. The reading is made in a single turn of KeePass's thread, as the
+    /// writer's turn reads, and let go before this leaves the turn, which overwrites the bytes of
+    /// the key, `CA.md` §208: only names and identifiers are kept here. So a dialog shown again
+    /// holds every removal a write of its request found, for as long as the store holds it, and
+    /// its approval is not stale over the same removals; no write finds a removal the store no
+    /// longer holds.
     ///
     /// **Read and never changed**, so that the approval holding it compares with what the dialog
-    /// was built from, whichever thread asks.
+    /// showed, whichever thread asks.
     ///
-    /// **Read before the dialog is shown**, and true of the store when it was read and no later: a
-    /// first dialog waits for the screen as long as another pairing or a renewal stands in front of
-    /// the operator, and every dialog stands as long again, so a synchronize in that time still
-    /// leaves a dialog over a store no longer served, its names as this reading found them, and the
-    /// write answers its approval with the store's word, `PAIRING.md` §303.
+    /// **Read as the dialog comes up, and again on each tick while it stands**, `PAIRING.md` §303:
+    /// what the dialog shows is true of the store when the dialog last read it, and a change a
+    /// tick finds waits for Refresh.
     /// </remarks>
     public sealed class AskedProfiles
     {
@@ -41,10 +40,12 @@ namespace KeePassGate.Gate
             string word,
             IReadOnlyList<string> listed,
             IReadOnlyDictionary<string, IReadOnlyList<AdmissionRecord>> returning,
-            IReadOnlyDictionary<string, IReadOnlyCollection<string>> removals)
+            IReadOnlyDictionary<string, IReadOnlyCollection<string>> removals,
+            bool failed = false)
         {
             Served = served;
             Word = word;
+            Failed = failed;
             Listed = listed ?? Array.Empty<string>();
             Returning = returning ?? new Dictionary<string, IReadOnlyList<AdmissionRecord>>(StringComparer.Ordinal);
             _removals = removals ?? new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
@@ -52,12 +53,28 @@ namespace KeePassGate.Gate
         }
 
         /// <summary>
-        /// Nothing read, which an approval held without a dialog keeps: not served, no name on the
-        /// list, nobody holding a name, and no removal.
+        /// A reading that failed, which a later reading may make: nothing to show, and no word,
+        /// since what the store holds is not known. The dialog that a failed reading comes up for
+        /// is not put up, and a dialog standing over a failed reading takes no Approve until a
+        /// reading serves.
         /// </summary>
-        public static AskedProfiles None
+        public static AskedProfiles Unreadable()
         {
-            get { return new AskedProfiles(false, null, null, null, null); }
+            return new AskedProfiles(false, null, null, null, null, true);
+        }
+
+        /// <summary>Whether the reading failed, <see cref="Unreadable"/>.</summary>
+        public bool Failed { get; private set; }
+
+        /// <summary>
+        /// Whether a dialog standing over this reading ends: the store read and no longer serves
+        /// the authority the pairing arrived under, or the database is gone, a state no later tick
+        /// can be counted on to leave. Answered with the store's word,
+        /// `PairingApproval.NoLongerServed`, as before a dialog.
+        /// </summary>
+        public bool Ends
+        {
+            get { return !Served && !Failed; }
         }
 
         /// <summary>
@@ -76,7 +93,8 @@ namespace KeePassGate.Gate
 
         /// <summary>
         /// Whether the reading served the authority the pairing is asked under. A reading that did
-        /// not holds nothing else, <see cref="Unserved"/>, and no dialog is built from it.
+        /// not, or that failed, holds nothing else, <see cref="Unserved"/> and
+        /// <see cref="Unreadable"/>, and no dialog is built from it.
         /// </summary>
         /// <remarks>
         /// **Asked again here, after its connection was judged on it**: a connection to a store
@@ -93,21 +111,12 @@ namespace KeePassGate.Gate
         /// <summary>
         /// Where the reading did not serve, the word under `503` that the write answers the same
         /// store with, and null where the authority asked under went, <see cref="Unserved"/>; null
-        /// where it served.
+        /// where it served or failed.
         /// </summary>
         public string Word { get; private set; }
 
         /// <summary>The names on the list, in ordinal order.</summary>
         public IReadOnlyList<string> Listed { get; private set; }
-
-        /// <summary>
-        /// By name, every removal this holds of a name asked for off the list: what a dialog built
-        /// from it holds, and what the dialog after it holds as well.
-        /// </summary>
-        public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Removals
-        {
-            get { return _removals; }
-        }
 
         /// <summary>
         /// How a dialog built from this marks a name asked for: on the list, removed where a
@@ -133,16 +142,10 @@ namespace KeePassGate.Gate
 
         /// <summary>
         /// The names asked for off the list whose removal the dialog holds, in ordinal order: as
-        /// the reading tells it, made in this copy or brought in by a synchronize, by its record,
-        /// by an item of a summary entry or by a deletion record of a name the file knows
-        /// otherwise, or as a write of the same request found it, <see cref="With"/>. What the
-        /// dialog marks as removed whether or not a client holds them.
+        /// the reading tells it with the store key, made in this copy or brought in by a
+        /// synchronize, by its record, by an item of a summary entry or by a deletion record. What
+        /// the dialog marks as restored whether or not a client holds them.
         /// </summary>
-        /// <remarks>
-        /// **Not a name whose removal only a deletion record tells of, of a name the file does not
-        /// know otherwise**, until a write of the request found it: such a deletion record is tied
-        /// to its name by a hash under the store key, which this reading does not take.
-        /// </remarks>
         public IReadOnlyList<string> Removed { get; private set; }
 
         /// <summary>
@@ -151,8 +154,9 @@ namespace KeePassGate.Gate
         /// from the admissions the reading lists and the removals of it.
         /// </summary>
         /// <param name="reading">
-        /// The reading of a single hold, from which no key is taken, of a store that serves the
-        /// authority the pairing is asked under; a reading that does not is <see cref="Unserved"/>.
+        /// A reading made afresh in this turn of KeePass's thread, whose store key is still whole,
+        /// of a store that serves the authority the pairing is asked under; a reading that does not
+        /// serve is <see cref="Unserved"/>. Let go by its caller once this returns.
         /// </param>
         /// <param name="profiles">The profiles asked for.</param>
         /// <param name="now">The moment a client's certificate is held to, as the gate holds it.</param>
@@ -190,12 +194,13 @@ namespace KeePassGate.Gate
                 }
             }
 
-            // The removals each name has as the reading tells them, without the store key, which
-            // no connection thread takes from a reading. Copied, as the names are, so that
-            // nothing of the reading is held past its hold while an approval holds this.
+            // The removals each name has, counted with the store key as the write counts them, so
+            // that a removal only a deletion record tells of is tied to its name here as there.
+            // Copied, as the names are, so that nothing of the reading is held past its turn while
+            // an approval holds this: its caller lets it go, which overwrites the key's bytes.
             var removals = off.ToDictionary(
                 profile => profile,
-                profile => (IReadOnlyCollection<string>)new HashSet<string>(reading.InForce.RemovalsOf(profile), StringComparer.Ordinal),
+                profile => (IReadOnlyCollection<string>)new HashSet<string>(reading.InForce.RemovalsOnceKnown(profile), StringComparer.Ordinal),
                 StringComparer.Ordinal);
 
             return new AskedProfiles(
@@ -207,41 +212,8 @@ namespace KeePassGate.Gate
         }
 
         /// <summary>
-        /// The same, holding as well the removals that the request's writes found with the store
-        /// key, of each name asked for off the list: what the dialog shown again is built from, and
-        /// what its approval is compared with. A name on the list takes none of them, since a
-        /// dialog shows it on the list whatever was found of it.
-        /// </summary>
-        /// <param name="found">By name, the identifiers of the removals found.</param>
-        public AskedProfiles With(IReadOnlyDictionary<string, IReadOnlyCollection<string>> found)
-        {
-            if (found.Count == 0)
-            {
-                return this;
-            }
-
-            var removals = new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
-            foreach (var pair in _removals)
-            {
-                IReadOnlyCollection<string> more;
-                if (!found.TryGetValue(pair.Key, out more))
-                {
-                    removals[pair.Key] = pair.Value;
-                    continue;
-                }
-
-                var held = new HashSet<string>(pair.Value, StringComparer.Ordinal);
-                held.UnionWith(more);
-                removals[pair.Key] = held;
-            }
-
-            return new AskedProfiles(Served, Word, Listed, Returning, removals);
-        }
-
-        /// <summary>
-        /// Whether the dialog held this removal of a name asked for off the list: as its reading
-        /// told it, or as a write of the same request found it. False for a name the reading did
-        /// not ask about.
+        /// Whether the dialog held this removal of a name asked for off the list, as its reading
+        /// told it. False for a name the reading did not ask about.
         /// </summary>
         public bool Held(string profile, string removal)
         {

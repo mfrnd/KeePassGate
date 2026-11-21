@@ -24,9 +24,6 @@ namespace KeePassGate.Pairing
     /// </remarks>
     public sealed class HeldApproval
     {
-        private static readonly IReadOnlyDictionary<string, IReadOnlyCollection<string>> Nothing =
-            new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
-
         private readonly HashSet<string> _asked;
         private readonly HashSet<string> _listed;
         private readonly AskedProfiles _shown;
@@ -49,7 +46,7 @@ namespace KeePassGate.Pairing
             _asked = new HashSet<string>(asked ?? Array.Empty<string>(), StringComparer.Ordinal);
             _asked.UnionWith(Profiles);
             _listed = new HashSet<string>(listed ?? Array.Empty<string>(), StringComparer.Ordinal);
-            _shown = shown ?? AskedProfiles.None;
+            _shown = shown;
             Record = record;
             Ends = until;
         }
@@ -68,7 +65,7 @@ namespace KeePassGate.Pairing
 
         /// <summary>
         /// What the dialog of a pairing's approval was built from: the names on the list, how
-        /// each name asked for was marked, and the removals it held. None for a renewal's.
+        /// each name asked for was marked, and the removals it held. Null for a renewal's.
         /// </summary>
         internal AskedProfiles Shown
         {
@@ -114,8 +111,7 @@ namespace KeePassGate.Pairing
         /// <param name="reason">
         /// Where it no longer holds what this was approved against, every part, for the log: the
         /// record a renewal renews, or each profile that moved on the list and each removal of an
-        /// approved profile that the reading taken before the dialog did not hold. Null where it
-        /// still does.
+        /// approved profile that the dialog did not show. Null where it still does.
         /// </param>
         /// <remarks>
         /// **The authority is not asked here**: the write's plan holds the admission to the
@@ -131,20 +127,18 @@ namespace KeePassGate.Pairing
         ///
         /// **The removals of each approved name off the list**: the write puts such a name back
         /// over every removal of it the store holds then, `StoreInForce.RemovalsOnceKnown`, and
-        /// each has to be a removal the dialog held: its reading's, or a removal an earlier write
-        /// of the same request found, `AskedProfiles.With`. A removal beyond those, which a
-        /// synchronize can bring at any time while the dialog stands or while this is held, however
-        /// long ago it was made, or which only a deletion record tells of and the dialog's reading
-        /// therefore could not tie to the name, is a removal the operator was not shown, and a
-        /// removal wins over an addition that did not see it, `STORE.md` §627. An approved name on
-        /// the list is held to its place there alone.
+        /// each has to be a removal the dialog's last reading held. A removal beyond those, which a
+        /// synchronize can bring between Approve and the write or while this is held, however long
+        /// ago it was made, is a removal the operator was not shown, and a removal wins over an
+        /// addition that did not see it, `STORE.md` §627. An approved name on the list is held to
+        /// its place there alone.
         ///
         /// **Every part in a single pass**: a name that moved on the list does not stop the
-        /// removals of the others being compared, so that the dialog shown again shows all of what
-        /// the write found and its approval is not stale over a part it was never shown.
+        /// removals of the others being compared, so that the log names every cause the write
+        /// found.
         ///
         /// **This is the read a record's names are written from**, `DESIGN.md` §124: what the
-        /// handler read on its connection thread built the dialog and nothing more. A renewal's
+        /// dialog read built the dialog and nothing more. A renewal's
         /// decision rests on every name its record carries, those the dialog offered and those it
         /// showed as dropped, so a dialog built from a reading the list changed after, which
         /// offered fewer names than the write's reading holds, is caught here rather than written
@@ -159,32 +153,7 @@ namespace KeePassGate.Pairing
         /// </remarks>
         public HeldStaleness Stale(IWriteGround ground, string admissionKey, out string reason)
         {
-            IReadOnlyDictionary<string, IReadOnlyCollection<string>> unseen;
-            return Stale(ground, admissionKey, out reason, out unseen);
-        }
-
-        /// <summary>
-        /// The same, with the removals the write found beside the reason: by name, the removals
-        /// the store holds of each approved name off the list at the write beyond those the dialog
-        /// held.
-        /// </summary>
-        /// <remarks>
-        /// What the write knows that the dialog's reading may not: a deletion record that tells
-        /// of a removal of a name the file does not know otherwise is tied to its name by a hash
-        /// under the store key, which the reading of a connection does not take. **That holds of a
-        /// name the dialog showed on the list as well**: a synchronize that takes it off the list
-        /// can leave nothing naming it but such a deletion record, and a later reading would show
-        /// it as new. The request that was approved holds these for the dialog it puts to the
-        /// operator again, and for every dialog after it, `PairingHandler`.
-        /// </remarks>
-        public HeldStaleness Stale(
-            IWriteGround ground,
-            string admissionKey,
-            out string reason,
-            out IReadOnlyDictionary<string, IReadOnlyCollection<string>> unseen)
-        {
             reason = null;
-            unseen = Nothing;
             if (Record != null)
             {
                 var admission = ground.Admission(admissionKey);
@@ -215,32 +184,23 @@ namespace KeePassGate.Pairing
                 }
             }
 
-            // Each approved name off the list as the write reads it, however the dialog showed it:
-            // of a name it showed on the list, no removal was held. Not for a renewal, which adds
-            // no name and approves only names its dialog offered from the list, so that a name of
-            // it off the list now has moved, which is its cause.
-            var found = new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
-            foreach (var profile in Profiles.Where(profile => Record == null && !named.Contains(profile)))
-            {
-                var beyond = ground.Removals(profile).Where(removal => !_shown.Held(profile, removal)).ToList();
-                if (beyond.Count > 0)
-                {
-                    found[profile] = beyond;
-                }
-            }
-
-            unseen = found;
-
-            // For the log, a name that left the list is named as having moved, and its removals are
-            // kept all the same; the removals of a name the dialog showed off the list are a cause
-            // of their own.
-            var removed = found.Keys.Except(moving, StringComparer.Ordinal).OrderBy(profile => profile, StringComparer.Ordinal).ToList();
+            // Each approved name the dialog showed off the list and the write reads off it, with a
+            // removal of it beyond those the dialog held: a name that left the list is named as
+            // having moved. Not for a renewal, which adds no name and approves only names its
+            // dialog offered from the list, so that a name of it off the list now has moved, which
+            // is its cause.
+            var removed = Profiles
+                .Where(profile => Record == null && !named.Contains(profile) && !moving.Contains(profile))
+                .Distinct(StringComparer.Ordinal)
+                .Where(profile => ground.Removals(profile).Any(removal => !_shown.Held(profile, removal)))
+                .OrderBy(profile => profile, StringComparer.Ordinal)
+                .ToList();
             if (removed.Count > 0)
             {
                 causes.Add((removed.Count == 1
                                ? "the store holds a removal of the profile " + removed[0]
                                : "the store holds removals of the profiles " + string.Join(", ", removed))
-                           + " that the reading taken before the dialog did not hold");
+                           + " that the dialog did not show");
             }
 
             if (causes.Count == 0)
@@ -425,13 +385,15 @@ namespace KeePassGate.Pairing
         /// </summary>
         /// <param name="shown">
         /// What the dialog was built from: which of the approved names the list held, and the
-        /// removals of each approved name off it that the reading held.
+        /// removals of each approved name off it that the reading held. Required: an approval held
+        /// without it would be compared with nothing, `PairingApproval.Against`.
         /// </param>
         /// <param name="mark">
         /// What <see cref="Mark"/> answered before the operator was asked. An approval whose
         /// database a lock or a close let go of since then is answered as an approval that clear
         /// took away: <see cref="HeldApproval.Cleared"/>, and not held.
         /// </param>
+        /// <exception cref="ArgumentNullException">No dialog's reading was given.</exception>
         public HeldApproval Hold(
             string key,
             string databaseId,
@@ -441,7 +403,11 @@ namespace KeePassGate.Pairing
             PairingMoment until,
             long mark)
         {
-            shown = shown ?? AskedProfiles.None;
+            if (shown == null)
+            {
+                throw new ArgumentNullException(nameof(shown), "A pairing's approval is held to what its dialog showed.");
+            }
+
             var listed = (profiles ?? Array.Empty<string>()).Where(shown.Listed.Contains);
             return Held(new HeldApproval(key, databaseId, profiles, lifetime, null, listed, shown, null, until), mark);
         }

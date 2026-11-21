@@ -209,7 +209,7 @@ designing around them.
   dialog held, and the renewed record it was approved against. The client is told `heldUntil` in
   its `503 busy`. **A pairing whose write finds its approval stale is not answered there**: the
   same request puts the dialog to the operator again, keeping
-  the screen, what the operator approved and the removals its writes found as state of its own
+  the screen and what the operator approved as state of its own
   that goes with it, until an approval is written, the operator refuses, or the pairing budget is
   used up, `PAIRING.md` §311. A held approval is the only approval a later request can find stale,
   and that request puts the dialog up again the same way. And the settings dialog a
@@ -228,7 +228,16 @@ designing around them.
   periodic trigger off**, so a synchronize or a save it runs happens inside their modal loop and
   ends by enabling KeePass's main window behind them. `WindowEnabling.ShowDialog` disables it again
   for as long as any dialog of the plugin's stands, the authority chooser and the window under
-  Tools among them, and that, not registering a dialog, is the answer to it.
+  Tools among them, and that, not registering a dialog, is the answer to it. **The pairing dialog
+  reads the store on KeePass's thread with the store key**, afresh, as it comes up and on each tick
+  of its countdown, skipping a tick while KeePass is part way through work of its own, and lets the
+  reading go within the turn, `PAIRING.md` §303. **It does not change by itself**: a change it
+  finds disables Approve and enables Refresh, which shows the change and highlights the rows it
+  changed, so that no row moves under the pointer. A change no tick has read yet, inside work of
+  KeePass's own or after the last tick before the press, is caught by the write, which holds the
+  approval to the list and the removals the dialog last showed; the request then
+  shows the dialog again where a row differs, and writes the approval over the new reading where
+  none does.
 - **The proofs need nothing from the transport.** `tls-server-end-point` is a hash of the
   certificate in use, so each side computes it from bytes it already holds. Do not re-propose
   `TransportContext.GetChannelBinding`: it was necessary while `SslStream` terminated the TLS and

@@ -331,8 +331,18 @@ namespace KeePassGate.Ui
 
         public const string ApprovalDetailLabelName = "KpgApprovalDetailLabel";
 
-        /// <summary>The line stating that the dialog is shown again after Approve.</summary>
-        public const string ApprovalAgainName = "KpgApprovalAgain";
+        /// <summary>
+        /// The words beside Refresh, on the line above the table, stating that the database
+        /// changed under the dialog, that the database cannot be read, for now or for the rest of
+        /// the dialog, or that the dialog is shown again after Approve.
+        /// </summary>
+        public const string ApprovalChangeName = "KpgApprovalChange";
+
+        /// <summary>
+        /// The button with a picture and no text, at the end of the line above the table, that
+        /// shows a change of the database under the dialog.
+        /// </summary>
+        public const string ApprovalRefreshName = "KpgApprovalRefresh";
 
         /// <summary>The table of the profiles asked for, a row for each with a check box.</summary>
         public const string ApprovalProfilesListName = "KpgApprovalProfilesList";

@@ -282,8 +282,8 @@ namespace KeePassGate.Tests
         public void A_held_approval_is_stale_for_every_cause_its_write_finds_in_a_single_pass()
         {
             // `reader` shown on the list and taken off it, and a removal of `ops`, shown off the
-            // list, that only a deletion record tells of: the write names both, and keeps the
-            // removals of both names, neither of which the dialog held.
+            // list, that only a deletion record tells of: the write names both, neither of which
+            // the dialog showed.
             var store = new MemoryStore();
             StoreSeeds.Authority(store);
             StoreSeeds.Name(store, "reader");
@@ -295,16 +295,13 @@ namespace KeePassGate.Tests
 
             using (var reading = store.Read())
             {
+                Assert.That(reading.InForce.RemovalsOnceKnown("ops"), Is.EqualTo(new[] { removal }), "the removal the write finds");
                 string why;
-                IReadOnlyDictionary<string, IReadOnlyCollection<string>> unseen;
 
-                Assert.That(held.Stale(new Ground(reading), null, out why, out unseen), Is.EqualTo(HeldStaleness.Profiles));
-                Assert.That(unseen.Keys, Is.EquivalentTo(new[] { "ops", "reader" }));
-                Assert.That(unseen["ops"], Is.EqualTo(new[] { removal }));
-                Assert.That(unseen["reader"], Is.EqualTo(reading.InForce.RemovalsOf("reader")));
+                Assert.That(held.Stale(new Ground(reading), null, out why), Is.EqualTo(HeldStaleness.Profiles));
                 Assert.That(why, Is.EqualTo(
                     "the profile reader is off the list, and the dialog showed it on the list; "
-                    + "the store holds a removal of the profile ops that the reading taken before the dialog did not hold"));
+                    + "the store holds a removal of the profile ops that the dialog did not show"));
             }
         }
 
@@ -353,7 +350,7 @@ namespace KeePassGate.Tests
             Assert.That(StaleIn(store, held), Is.EqualTo(HeldStaleness.Profiles), "a name shown as held is off the list by now");
             Assert.That(WhyStale(store, held), Is.EqualTo(
                 "the profile ops is off the list, and the dialog showed it on the list; "
-                + "the store holds a removal of the profile new that the reading taken before the dialog did not hold"));
+                + "the store holds a removal of the profile new that the dialog did not show"));
         }
 
         [Test]
@@ -381,45 +378,47 @@ namespace KeePassGate.Tests
             StoreRecords.RemovedApart(store, "new");
             Assert.That(StaleIn(store, fresh), Is.EqualTo(HeldStaleness.Profiles), "a name shown as new was removed since");
             Assert.That(WhyStale(store, fresh),
-                Is.EqualTo("the store holds a removal of the profile new that the reading taken before the dialog did not hold"));
+                Is.EqualTo("the store holds a removal of the profile new that the dialog did not show"));
             Assert.That(StaleIn(store, back), Is.EqualTo(HeldStaleness.None));
 
             StoreRecords.RemovedApart(store, "gone");
             Assert.That(StaleIn(store, back), Is.EqualTo(HeldStaleness.Profiles), "a name shown as removed was removed again");
             Assert.That(WhyStale(store, back),
-                Is.EqualTo("the store holds a removal of the profile gone that the reading taken before the dialog did not hold"));
+                Is.EqualTo("the store holds a removal of the profile gone that the dialog did not show"));
         }
 
         [Test]
-        public void A_removal_only_a_deletion_record_tells_of_is_unseen_until_a_dialog_holds_what_the_write_found()
+        public void A_removal_only_a_deletion_record_tells_of_is_held_by_the_dialog_s_reading_and_lets_the_approval_through()
         {
-            // The dialog's reading takes no key and cannot tie that deletion record to a name
-            // nothing else in the file names, so it holds no removal of `ops`, and the write, which
-            // counts with the key, finds that removal: stale. The removals the write found, carried into
-            // the next dialog's reading, are held there, and the approval of that dialog is not
-            // stale over them again.
+            // The dialog's reading counts with the store key, as the write does, and ties that
+            // deletion record to a name nothing else in the file names: the dialog holds the
+            // removal of `ops`, and the approval is not stale over it. A further removal arriving
+            // after the reading is a removal the dialog did not show: stale.
             var store = new MemoryStore();
             StoreSeeds.Authority(store);
-            StoreRecords.RemovedApart(store, "ops");
+            var removal = StoreRecords.RemovedApart(store, "ops");
             var until = PairingClock.For(() => _now).Read().After(TimeSpan.FromMinutes(6));
-            var first = _book.Hold("pairing", "db", new[] { "ops" }, TimeSpan.FromDays(30), Shown(store, "ops"), until, _book.Mark());
-
-            IReadOnlyCollection<string> found;
             using (var reading = store.Read())
             {
                 Assert.That(reading.InForce.RemovalsOf("ops"), Is.Empty, "a name the file does not know");
-                found = reading.InForce.RemovalsOnceKnown("ops");
-                Assert.That(found, Has.Count.EqualTo(1), "and its removal, once it is");
+                Assert.That(reading.InForce.RemovalsOnceKnown("ops"), Is.EqualTo(new[] { removal }), "and its removal, once it is");
             }
 
-            Assert.That(StaleIn(store, first), Is.EqualTo(HeldStaleness.Profiles));
-            Assert.That(WhyStale(store, first),
-                Is.EqualTo("the store holds a removal of the profile ops that the reading taken before the dialog did not hold"));
+            var shown = Shown(store, "ops");
+            Assert.That(shown.Held("ops", removal), Is.True, "the dialog's reading holds it");
+            var held = _book.Hold("pairing", "db", new[] { "ops" }, TimeSpan.FromDays(30), shown, until, _book.Mark());
+            Assert.That(StaleIn(store, held), Is.EqualTo(HeldStaleness.None));
 
-            var shown = Shown(store, "ops").With(new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal) { { "ops", found } });
-            var second = _book.Hold("pairing", "db", new[] { "ops" }, TimeSpan.FromDays(30), shown, until, _book.Mark());
+            StoreRecords.RemovedApart(store, "ops");
+            Assert.That(StaleIn(store, held), Is.EqualTo(HeldStaleness.Profiles));
+            Assert.That(WhyStale(store, held),
+                Is.EqualTo("the store holds a removal of the profile ops that the dialog did not show"));
+        }
 
-            Assert.That(StaleIn(store, second), Is.EqualTo(HeldStaleness.None));
+        /// <summary>The end of the pairing budget an approval is held for in these tests.</summary>
+        private PairingMoment Until()
+        {
+            return PairingClock.For(() => _now).Read().After(TimeSpan.FromMinutes(6));
         }
 
         /// <summary>What the dialog is built from, read from the store as it stands.</summary>
@@ -482,9 +481,18 @@ namespace KeePassGate.Tests
 
         private HeldApproval Hold(string key, string databaseId, long mark)
         {
-            return _book.Hold(
-                key, databaseId, new[] { "ops" }, TimeSpan.FromDays(30), AskedProfiles.None,
-                PairingClock.For(() => _now).Read().After(TimeSpan.FromMinutes(6)), mark);
+            var store = new MemoryStore();
+            StoreSeeds.Authority(store);
+            return _book.Hold(key, databaseId, new[] { "ops" }, TimeSpan.FromDays(30), Shown(store, "ops"), Until(), mark);
+        }
+
+        [Test]
+        public void A_pairing_s_approval_is_held_only_with_what_its_dialog_showed()
+        {
+            // Compared with nothing at its write, an approval would pass every comparison.
+            Assert.Throws<ArgumentNullException>(() => _book.Hold(
+                "pairing", "db", new[] { "ops" }, TimeSpan.FromDays(30), null, Until(), _book.Mark()));
+            Assert.That(_book.Count, Is.Zero);
         }
     }
 }

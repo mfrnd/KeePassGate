@@ -101,18 +101,17 @@ none, since it releases both.
   the dialog is open, and the plugin's log names the name at OK. Everything else on the tab is
   written, and the name comes back by being added on the page again. `STORE.md` §627.
 - **A pairing approved for a name off the list puts the name back only over the removals its
-  dialog showed.** The approval dialog shows a name off the list as removed wherever the
-  database knows a removal of it, made in this copy or brought in by a synchronize, or a client
-  still holds it, and as new only where neither holds. Where a synchronize brings a further
-  removal of the name while the dialog stands or while an approval KeePass was too busy to write
-  is held, or where the database knows the removal only as a deleted entry of a name it names
-  nowhere else, which the dialog cannot tie to the name before Approve, the pairing writes
-  nothing and spends nothing, and the client is not answered yet: the same request puts the
+  dialog showed.** The approval dialog shows a name off the list as restored wherever the
+  database knows a removal of it, made in this copy or brought in by a synchronize, a removal it
+  knows only as a deleted entry among them, or a client still holds it, and as added only where
+  neither holds. Where a synchronize brings a further removal of the name between Approve and the
+  write or while an approval KeePass was too busy to write is held, the pairing writes nothing and
+  spends nothing, and the client is not answered yet: the same request puts the
   dialog in front of the operator again, with no other request's dialog in between. That dialog
-  states above the table "Shown again: the state of the profiles changed.", the same whatever
+  states beside Refresh "Shown again: the state of the profiles changed.", the same whatever
   Approve found and naming no profile, since the rows show the state; it opens with the lifetime
   the operator picked before and with each profile checked only where the operator left it
-  checked and its state is unchanged, shows as removed each name Approve found removed, so that
+  checked and its state is unchanged, shows as restored each name Approve found removed, so that
   its approval writes the name back, and holds Approve disabled for a second from when it comes
   up, so that a click meant for the dialog before cannot answer it. A lock of KeePass or a close
   of the database before it comes back is answered `503 locked`, and an invitation gone by then
@@ -126,10 +125,43 @@ none, since it releases both.
   adds no name. A pairing or renewal dialog that KeePass never put on the screen is answered
   `503 busy` and written to the audit as nothing, as nobody saw it. `STORE.md` §616
   and `PAIRING.md` §311.
+- **The approval dialog reads the database as it comes up and every second while it stands, and
+  shows a change only on Refresh.** The reading is taken on KeePass's thread with the store key,
+  as a write reads, at the moment the dialog comes up rather than before the request waits for
+  the screen, so a removal the database knows only as a deleted entry of a name it names nowhere
+  else is shown as such from the first dialog, whose approval writes the name back. While the
+  dialog stands, a reading that shows otherwise than the table touches no row: **Refresh** is
+  enabled, **Approve** disabled, and beside Refresh the dialog reads "The database changed.", the
+  tooltip of Refresh "Refresh shows the change. (F5)", and "Refresh (F5)" where the pointer rests
+  on Refresh disabled. Refresh is a square button with KeePass's own picture for Synchronize and
+  no text, as tall as Refuse and Approve, at the right end of the line above the table, named
+  "Refresh" for a screen reader, and F5 presses it wherever the focus is; the footer holds the
+  countdown and the answers alone. Refresh shows the profiles as they stand, unchecks a row it makes
+  Approve do more for and keeps every other check, highlights in light yellow each row whose state
+  it changed, with a tooltip stating what changed, as on a dialog shown again,
+  brings the first row it changed into view, and enables Approve again a second later, a second in
+  which no key but Enter and Escape does anything, no mnemonic, Tab, arrow or Space among them, and
+  Enter and Escape refuse. A control disabled while it holds the focus hands the focus to the view
+  the table's rows scroll in, with the same second held back, so that a second Space neither
+  refuses nor toggles a row; the view draws the focus round itself, on a frame of the table's own,
+  whatever turned the focus cues on, as a box does. A change
+  that alters nothing the table shows enables nothing. While KeePass is part way through work of
+  its own, the dialog reads nothing; while the database cannot be read, Approve and Refresh are
+  disabled and beside Refresh the dialog reads "The database cannot be read for now.", and the
+  plugin's log records a reading that fails once as the readings begin to fail and once as they
+  read again; once a reading under the dialog threw, it reads "The database cannot be read." until
+  the dialog ends. Words too long for the line are cut with an ellipsis and whole in their
+  tooltip, and read left to right in a right to left window. A store that stops
+  serving the authority the pairing arrived under while the dialog stands closes the dialog, and
+  the client is answered as before a dialog, with nothing spent and no line in the audit; the
+  plugin's log calls that dialog taken off the screen and never unanswered. Where
+  Approve finds a change that no reading under the dialog showed, the dialog comes back only where
+  a row reads otherwise than before; where every row reads as before, the approval is written as
+  given. `PAIRING.md` §303 and §311.
 - **No approval dialog is shown over a store that stopped serving the authority the pairing
   arrived under**, as a synchronize bringing a second authority or a retirement of the authority
-  served, or the database being locked or closed, can leave it between the arrival of the
-  pairing and the dialog's reading, a dialog shown again included. The client is answered as the
+  served, or the database being locked or closed, can leave it before the dialog's reading, a
+  dialog shown again included. The client is answered as the
   write answers the same store: the store's word under `503`, `503 undecided`,
   `409 no invitation` for an authority no longer served, or `503 locked`. Nothing is spent, and
   the plugin's log names the invitation, the database and the cause. `PAIRING.md` §303.
@@ -141,16 +173,17 @@ none, since it releases both.
   holds; and **Regained by**, the clients that regain a restored name, each on a line of its own
   however many there are, the other cells of the row at its top. The headings stay in place over
   rows that scroll by pixels, by the wheel, the small turns of a precision touchpad added up, the
-  scroll bar, and the arrows, Page Up, Page Down, Home and End while a box has the focus, so that a
-  row taller than the table is shown to its last line, and nothing scrolls sideways. A box keeps
-  the focus while the keys scroll it out of sight, and the table stays where the keys put it until
-  the focus moves to a box. A thin line parts each row from the next, and a row taller than the
-  table scrolls as the rest do, its box, name and state leaving with its first line. Scrolled to
-  the end, as a row brought into view there leaves it, the table's top cuts no line and no box, and
-  less than a row stays empty below the last row. A highlight reaches the table's edge, or the
-  scroll bar's where the table scrolls, and the focus on a box is drawn clear of the box and inside
-  its row. A screen reader reads every part of the dialog by a name of its own, a row by its
-  profile.
+  scroll bar, and the arrows, Page Up, Page Down, Home and End while a box or the table itself has
+  the focus, so that a row taller than the table is shown to its last line, and nothing scrolls
+  sideways. A box keeps the focus while the keys scroll it out of sight, and the table stays where
+  the keys put it until the focus moves to a box or a Refresh brings a row into view. A thin line
+  parts each row from the next, and a row taller than the table scrolls as the rest do, its box,
+  name and state leaving with its first line. Scrolled to the end, as a row
+  brought into view there leaves it, the table's top cuts no line and no box, and less than a row
+  stays empty below the last row. A highlight reaches the table's
+  edge, or the scroll bar's where the table scrolls, and the focus on a box is drawn clear of the
+  box and inside its row. A screen reader reads every part of the dialog by a name of its own, a
+  row by its profile.
   **No sentence of the dialog names a profile or a client.**
   Above the table, "Profiles the client asks for:", and above that, "Approve issues a certificate
   and saves this database. The KPG tab revokes the certificate." Nothing under the table explains
@@ -161,10 +194,7 @@ none, since it releases both.
   ends in "..." and the cell shows its whole text in a tooltip. A check changes only by a click
   on its box or by Space on a box in sight: Space on a box out of sight brings its row into view
   and changes no check. A letter typed on a box changes nothing, and a double click is a single
-  click. A name whose removal the database knows only as a deleted entry, and that it names
-  nowhere else, as a synchronize with another copy can leave it, still reads "adds the profile" on
-  the first dialog, since the dialog cannot tell which name such a deletion was for; Approve then
-  writes nothing, and the dialog shown again reads "restores the profile".
+  click.
   On a dialog shown again, a row whose state changed since the dialog before opens unchecked and
   is highlighted in light yellow over its whole height, whether or not it is then checked, with a
   tooltip stating to what the state changed, which a screen reader reads with the name: "The row
@@ -179,7 +209,13 @@ none, since it releases both.
   line under the table states it in words; a table that shows everything ends where its rows end.
   A scroll reaches the screen whole: the rows are painted into a single buffer and every scroll
   paints the whole table, so that no picture of the screen shows a strip the scroll uncovered
-  still holding the lines it held before. `PAIRING.md` §303
+  still holding the lines it held before. A dialog is as tall as what it shows as it comes up, and
+  where a Refresh makes the rows taller than the table shows, the table grows with them, up to ten
+  lines, and the dialog grows downward by as much, its top edge where it stood and the answers
+  lower, kept inside the working area of its screen; rows a Refresh makes shorter leave the table
+  and the dialog as they stood. A request for no profile reads "The client asks for no profile."
+  above the table, its tooltip "Approved, the client reaches nothing.", so that the words beside
+  Refresh stand whole. `PAIRING.md` §303
   and §311.
 - **Breaking: the rules are records in the plugin's store, and every rule is entered again.** A
   profile's rule at a group or an entry, and the setting **Refuse any profile not named here**,

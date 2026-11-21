@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Windows.Automation;
 using System.Windows.Forms;
-using KeePassGate.Authority;
+using KeePassGate.Bridge;
 using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Testing;
@@ -35,44 +35,44 @@ namespace KeePassGate.Host.Tests.Live
         [Test]
         public void A_row_is_read_as_its_profile_and_its_box_as_that_profile_s_check_box()
         {
-            var request = new PairingRequest(
-                "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
-                new[] { "ops", "gone", "reader" }, new[] { "reader" }, "127.0.0.1:60001",
-                new Dictionary<string, IReadOnlyList<AdmissionRecord>>(), null, new[] { "gone" });
-
-            using (var dialog = new PairingApprovalForm(request, TimeSpan.FromMinutes(2)))
+            using (var database = TemporaryDatabase.New())
             {
-                dialog.StartPosition = FormStartPosition.Manual;
-                dialog.Location = new Point(-4000, -4000);
-                dialog.ShowInTaskbar = false;
-                dialog.Show();
-                Application.DoEvents();
-
-                var table = ProfileRows.Table(dialog, GateTab.ApprovalProfilesListName);
-                ProfileRows.Boxes(table)[1].Checked = false;
-                var read = Read(table.Handle);
-
-                Assert.That(read.Name, Is.EqualTo("Profiles the client asks for"), "the line above the table, without its colon");
-
-                // The headings, then each row's cells of text after its box, in the order of the
-                // columns; a cell with nothing in it is not read at all, where an empty label would
-                // be read by the name of the label before it.
-                Assert.That(read.Texts, Is.EqualTo(new[]
+                var store = Listing(database, "reader", "gone");
+                StoreSeeds.Unname(store, "gone");
+                using (var dialog = new PairingApprovalForm(Shown(store, new[] { "ops", "gone", "reader" }), TimeSpan.FromMinutes(2)))
                 {
-                    "Grant", "Profile", "Approve also", "Regained by",
-                    "ops", PairingApprovalForm.NewState,
-                    "gone", PairingApprovalForm.RemovedState,
-                    "reader"
-                }));
+                    dialog.StartPosition = FormStartPosition.Manual;
+                    dialog.Location = new Point(-4000, -4000);
+                    dialog.ShowInTaskbar = false;
+                    dialog.Show();
+                    Application.DoEvents();
 
-                // Each row's box, a check box with its check, read out as the row: the name, and
-                // what Approve does for the name in its state.
-                Assert.That(read.Boxes, Is.EqualTo(new[]
-                {
-                    Box + "ops. " + PairingApprovalForm.NewTip + " On",
-                    Box + "gone. " + PairingApprovalForm.RemovedTip + " Off",
-                    Box + "reader On"
-                }));
+                    var table = ProfileRows.Table(dialog, GateTab.ApprovalProfilesListName);
+                    ProfileRows.Boxes(table)[1].Checked = false;
+                    var read = Read(table.Handle);
+
+                    Assert.That(read.Name, Is.EqualTo("Profiles the client asks for"), "the line above the table, without its colon");
+
+                    // The headings, then each row's cells of text after its box, in the order of
+                    // the columns; a cell with nothing in it is not read at all, where an empty
+                    // label would be read by the name of the label before it.
+                    Assert.That(read.Texts, Is.EqualTo(new[]
+                    {
+                        "Grant", "Profile", "Approve also", "Regained by",
+                        "ops", PairingApprovalForm.NewState,
+                        "gone", PairingApprovalForm.RemovedState,
+                        "reader"
+                    }));
+
+                    // Each row's box, a check box with its check, read out as the row: the name,
+                    // and what Approve does for the name in its state.
+                    Assert.That(read.Boxes, Is.EqualTo(new[]
+                    {
+                        Box + "ops. " + PairingApprovalForm.NewTip + " On",
+                        Box + "gone. " + PairingApprovalForm.RemovedTip + " Off",
+                        Box + "reader On"
+                    }));
+                }
             }
         }
 
@@ -83,20 +83,18 @@ namespace KeePassGate.Host.Tests.Live
             // name of its own is read by the name of the part before it: the row of `backup` was
             // read as the clients of `audit`, and the headings, the lifetime and the footer as the
             // line before them.
+            using (var database = TemporaryDatabase.New())
             using (var first = Minted.Named("CN=agent-a").SelfSigned().Read())
             using (var second = Minted.Named("CN=agent-b").SelfSigned().Read())
             using (var third = Minted.Named("CN=agent-c").SelfSigned().Read())
             {
-                Func<System.Security.Cryptography.X509Certificates.X509Certificate2, string, AdmissionRecord> admitted =
-                    (client, profile) => AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { profile }, CertificateDigest.Of(first));
-                var request = new PairingRequest(
-                    "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious",
-                    new[] { "reader", "audit", "backup" }, new[] { "reader" }, "127.0.0.1:60001",
-                    new Dictionary<string, IReadOnlyList<AdmissionRecord>>
-                    {
-                        { "audit", new[] { admitted(first, "audit") } },
-                        { "backup", new[] { admitted(second, "backup"), admitted(third, "backup") } }
-                    });
+                var store = Listing(database, "reader");
+                StoreSeeds.Admit(store, first, DateTimeOffset.UtcNow, "audit");
+                StoreSeeds.Admit(store, second, DateTimeOffset.UtcNow, "backup");
+                StoreSeeds.Admit(store, third, DateTimeOffset.UtcNow, "backup");
+                StoreSeeds.Unname(store, "audit");
+                StoreSeeds.Unname(store, "backup");
+                var request = Shown(store, new[] { "reader", "audit", "backup" });
                 Assert.That(new[] { "audit", "backup" }.Select(profile => request.Returning(profile).Count), Is.EqualTo(new[] { 1, 2 }));
 
                 using (var dialog = new PairingApprovalForm(request, TimeSpan.FromMinutes(2)))
@@ -110,6 +108,7 @@ namespace KeePassGate.Host.Tests.Live
                     {
                         "KpgApprovalLayout: Pairing request",
                         "KpgApprovalDetailLabel: Details",
+                        "KpgApprovalAskingRow: Status",
                         "KpgApprovalProfilesList: Profiles the client asks for",
                         "KpgProfileHeadings: Headings",
                         "KpgProfileRows: Profiles the client asks for",
@@ -120,6 +119,38 @@ namespace KeePassGate.Host.Tests.Live
                         "KpgApprovalFooter: Answer",
                         "KpgApprovalButtonRow: Buttons"
                     }));
+
+                    // Refresh, which has a picture and no text, by its name, and nothing stated
+                    // beside it on a first dialog, where the words are hidden rather than empty.
+                    Assert.That(parts.Where(part => part.Id == GateTab.ApprovalRefreshName).Select(part => part.Type + ": " + part.Name),
+                        Is.EqualTo(new[] { "ControlType.Button: Refresh" }));
+                    Assert.That(parts.Where(part => part.Id == GateTab.ApprovalChangeName), Is.Empty, "words beside Refresh on a first dialog");
+                }
+            }
+        }
+
+        [Test]
+        public void The_words_beside_Refresh_are_read_by_what_they_state()
+        {
+            // A dialog shown again states so beside Refresh, and the words are a text read by
+            // what they state, on the line naming the table and before the table.
+            using (var database = TemporaryDatabase.New())
+            {
+                var asked = new[] { "ops", "reader" };
+                var store = Listing(database, asked);
+                var before = Asked(store, asked);
+                StoreSeeds.Unname(store, "reader");
+                using (var dialog = new PairingApprovalForm(Shown(store, asked, PairingApproval.Approved(asked), before), TimeSpan.FromMinutes(2)))
+                {
+                    Away(dialog);
+                    var parts = Parts(dialog.Handle);
+                    var ids = parts.Select(part => part.Id).ToList();
+
+                    Assert.That(parts.Where(part => part.Id == GateTab.ApprovalChangeName).Select(part => part.Type + ": " + part.Name),
+                        Is.EqualTo(new[] { "ControlType.Text: Shown again: the state of the profiles changed." }));
+                    Assert.That(ids.IndexOf(GateTab.ApprovalChangeName), Is.InRange(ids.IndexOf("KpgApprovalAskingRow"), ids.IndexOf(GateTab.ApprovalProfilesListName)),
+                        "the words stand elsewhere than on the line naming the table");
+                    Assert.That(ids.IndexOf(GateTab.ApprovalRefreshName), Is.LessThan(ids.IndexOf(GateTab.ApprovalProfilesListName)), "Refresh is read after the table");
                 }
             }
         }
@@ -137,33 +168,38 @@ namespace KeePassGate.Host.Tests.Live
         [Test]
         public void A_row_whose_state_changed_is_read_with_the_change_and_no_other_row_is()
         {
-            // A dialog shown again: `ops` and `deploy` new on the dialog before, which a reading
-            // holding nothing shows them as, and the operator approved `ops` alone; now `ops` is
-            // removed. Its row and its box are read with the change, as its tooltip states it;
-            // `deploy`, unchecked by the operator and new as before, is read as its name alone.
+            // A dialog shown again: `ops` and `deploy` new on the dialog before, as a reading of a
+            // store that holds neither shows them, and the operator approved `ops` alone; now
+            // `ops` is removed. Its row and its box are read with the change, as its tooltip
+            // states it; `deploy`, unchecked by the operator and new as before, is read as its name
+            // alone.
             var asked = new[] { "ops", "deploy" };
-            var before = AskedProfiles.None;
-            Assert.That(asked.Select(before.MarkOf), Is.EqualTo(new[] { ProfileMark.New, ProfileMark.New }));
-            var request = new PairingRequest(
-                "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious", asked, Array.Empty<string>(),
-                "127.0.0.1:60001", null, null, new[] { "ops" }, PairingApproval.Approved(new[] { "ops" }), before);
-
-            using (var dialog = new PairingApprovalForm(request, TimeSpan.FromMinutes(2)))
+            using (var database = TemporaryDatabase.New())
             {
-                dialog.StartPosition = FormStartPosition.Manual;
-                dialog.Location = new Point(-4000, -4000);
-                dialog.ShowInTaskbar = false;
-                dialog.Show();
-                Application.DoEvents();
+                var store = Listing(database);
+                var before = Asked(store, asked);
+                Assert.That(asked.Select(before.MarkOf), Is.EqualTo(new[] { ProfileMark.New, ProfileMark.New }));
+                StoreSeeds.Name(store, "ops");
+                StoreSeeds.Unname(store, "ops");
 
-                var table = ProfileRows.Table(dialog, GateTab.ApprovalProfilesListName);
-                var read = Read(table.Handle);
-
-                Assert.That(read.Boxes, Is.EqualTo(new[]
+                using (var dialog = new PairingApprovalForm(
+                           Shown(store, asked, PairingApproval.Approved(new[] { "ops" }), before), TimeSpan.FromMinutes(2)))
                 {
-                    Box + "ops. " + PairingApprovalForm.RemovedTip + " " + PairingApprovalForm.NowRestoresTip + " Off",
-                    Box + "deploy. " + PairingApprovalForm.NewTip + " Off"
-                }));
+                    dialog.StartPosition = FormStartPosition.Manual;
+                    dialog.Location = new Point(-4000, -4000);
+                    dialog.ShowInTaskbar = false;
+                    dialog.Show();
+                    Application.DoEvents();
+
+                    var table = ProfileRows.Table(dialog, GateTab.ApprovalProfilesListName);
+                    var read = Read(table.Handle);
+
+                    Assert.That(read.Boxes, Is.EqualTo(new[]
+                    {
+                        Box + "ops. " + PairingApprovalForm.RemovedTip + " " + PairingApprovalForm.NowRestoresTip + " Off",
+                        Box + "deploy. " + PairingApprovalForm.NewTip + " Off"
+                    }));
+                }
             }
         }
 
@@ -174,26 +210,64 @@ namespace KeePassGate.Host.Tests.Live
             // line under the table states it in words: UI automation reads no such line, under a
             // table that shows everything or a table that scrolls.
             var lines = new List<string>();
-            var few = new[] { "ops", "reader" };
-            var many = Enumerable.Range(1, PairingApprovalForm.MostRows + 2).Select(at => "profile-" + at).ToArray();
-            foreach (var asked in new[] { few, many })
+            using (var database = TemporaryDatabase.New())
             {
-                var request = new PairingRequest(
-                    "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious", asked, asked, "127.0.0.1:60001",
-                    new Dictionary<string, IReadOnlyList<AdmissionRecord>>());
-                using (var dialog = new PairingApprovalForm(request, TimeSpan.FromMinutes(2)))
+                var few = new[] { "ops", "reader" };
+                var many = Enumerable.Range(1, PairingApprovalForm.MostRows + 2).Select(at => "profile-" + at).ToArray();
+                var store = Listing(database, many.Concat(few).ToArray());
+                foreach (var asked in new[] { few, many })
                 {
-                    dialog.StartPosition = FormStartPosition.Manual;
-                    dialog.Location = new Point(-4000, -4000);
-                    dialog.ShowInTaskbar = false;
-                    dialog.Show();
-                    Application.DoEvents();
-                    lines.AddRange(Read(dialog.Handle).Identified.Select(line => asked.Length + " profiles: " + line));
+                    using (var dialog = new PairingApprovalForm(Shown(store, asked), TimeSpan.FromMinutes(2)))
+                    {
+                        dialog.StartPosition = FormStartPosition.Manual;
+                        dialog.Location = new Point(-4000, -4000);
+                        dialog.ShowInTaskbar = false;
+                        dialog.Show();
+                        Application.DoEvents();
+                        lines.AddRange(Read(dialog.Handle).Identified.Select(line => asked.Length + " profiles: " + line));
+                    }
                 }
             }
 
             Assert.That(lines.Where(line => line.Contains("scrolls") || line.Contains("Scrolling")), Is.Empty, "a line under a table read");
             Assert.That(lines, Is.Not.Empty, "nothing of the dialog read");
+        }
+
+        /// <summary>
+        /// The store of this database, serving an authority and holding these names on its list,
+        /// as the dialog reads a store.
+        /// </summary>
+        private static KdbxStore Listing(TemporaryDatabase database, params string[] listed)
+        {
+            var store = new KdbxStore(database.Database, GateVersion.Current, null);
+            StoreSeeds.Authority(store);
+            foreach (var name in listed)
+            {
+                StoreSeeds.Name(store, name);
+            }
+
+            return store;
+        }
+
+        /// <summary>What a dialog for these profiles reads of this store now.</summary>
+        private static AskedProfiles Asked(KdbxStore store, string[] asked)
+        {
+            using (var reading = store.Read())
+            {
+                return AskedProfiles.Of(reading, asked, DateTimeOffset.UtcNow);
+            }
+        }
+
+        /// <summary>
+        /// The request for these profiles as the handler makes it, reading this store, shown as
+        /// the screen shows it as the dialog comes up.
+        /// </summary>
+        private static PairingRequest Shown(KdbxStore store, string[] asked, PairingApproval earlier = null, AskedProfiles before = null)
+        {
+            var request = new PairingRequest(
+                "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious", asked, "127.0.0.1:60001", null, earlier, before,
+                null, () => Asked(store, asked));
+            return request.Showing(request.Read());
         }
 
         /// <summary>How a box is read before its name: by the identifier a fixture finds it by.</summary>

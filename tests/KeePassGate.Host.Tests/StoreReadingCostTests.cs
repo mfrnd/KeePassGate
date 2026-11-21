@@ -247,6 +247,42 @@ namespace KeePassGate.Host.Tests
 
         [TestCase(0)]
         [TestCase(10)]
+        public void What_a_pairing_dialog_s_reading_holds_the_thread_for(int history)
+        {
+            // The reading a pairing's dialog takes on KeePass's thread as it comes up and on each
+            // tick of its countdown while it stands, `PAIRING.md` §303: afresh, with the store key,
+            // through the real target, beside the store a pairing leaves and 32 names on the list,
+            // asked about a name on the list, a name new and a name removed.
+            using (var database = TemporaryDatabase.New())
+            {
+                Fill(database.Database, history);
+                var served = new StoredAdmissions(database.Database);
+                StoreSeeds.Authority(served.Store);
+                var key = served.KeyInForce();
+                Named(database.Database, key, 32);
+                StoreSeeds.Name(new KdbxStore(database.Database, GateVersion.Current, null), Profile);
+                StoreSeeds.Unname(new KdbxStore(database.Database, GateVersion.Current, null), Profile);
+
+                var hold = new Timed();
+                using (var targets = new OpenDatabaseTargets(delegate { return new[] { database.Database }; }, null, hold, null))
+                using (var target = targets.Current().Single())
+                {
+                    var asked = new[] { "named-00", "fresh", Profile };
+                    var reading = target.Asked(asked);
+                    Assert.That(reading.Served, Is.True, "the store serves");
+                    Assert.That(reading.MarkOf(Profile), Is.EqualTo(KeePassGate.Gate.ProfileMark.Removed), "a removed name is among those read");
+                    Report(
+                        "a pairing dialog's reading beside 32 names"
+                        + (history == 0 ? ", entries without history" : ", entries with " + history + " history items"),
+                        hold,
+                        () => target.Asked(asked),
+                        false);
+                }
+            }
+        }
+
+        [TestCase(0)]
+        [TestCase(10)]
         public void What_a_pairing_s_write_approving_32_new_names_holds_the_thread_for(int history)
         {
             // A pairing whose approval adds 32 names the list does not hold, each an addition in

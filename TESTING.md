@@ -381,7 +381,11 @@ not the one waiting for the answer; the certificate that comes back is then used
 connection; and the record is looked for in the `.kdbx`, read as the plugin's store reads it, as
 the pairing's own save left it, before anything else saves the database, and again after KeePass
 has exited. A refusal is driven the same way, spends its invitation, and writes no record and no
-profile it was asked for.
+profile it was asked for. On the way the real pointer rests on Refresh, disabled on a first dialog,
+whose tooltip comes up and goes as the pointer leaves it, and on the cell under **Approve also** of
+the profile the refused request asks for, whose tooltip comes up: the tooltips a rest of the
+pointer brings up, which the unit tier proves without the pointer, with moves sent through the loop
+and with a tooltip put up over the cell.
 
 **The API**, in `LiveApiTests`: a real client with a certificate the database's own authority issued
 creates an entry through the gate, adds a field, reads it back, lists it, and the entry is read out
@@ -778,6 +782,11 @@ is shared by the whole process or the whole account:
   while it loads;
 - a timing written tight enough that a loaded machine misses it, which is better widened than
   marked.
+
+**No test outside the end to end tier reads or moves the real pointer, takes the foreground or
+synthesizes input**, so that the unit tier and the host tier pass on a desktop of their own, where
+there is no pointer, and move nothing another run depends on: a move or a key is sent or posted to
+a window through the loop, and a proof that needs the real pointer is an end to end test.
 
 A fake that the gate's threads write while a test reads takes a lock, as `RecordingGateLog` does.
 Without one the test reads a list that is being added to, which throws only when the timing is

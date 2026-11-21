@@ -48,6 +48,7 @@
     <Compile Include="..\Shared\TestNativeMethods.cs" Link="Shared\TestNativeMethods.cs" />
     <Compile Include="..\Shared\Thrown.cs" Link="Shared\Thrown.cs" />
     <Compile Include="..\Shared\UiLoop.cs" Link="Shared\UiLoop.cs" />
+    <Compile Include="..\Shared\OnScreen.cs" Link="Shared\OnScreen.cs" />
     <Compile Include="..\Shared\ProfileRows.cs" Link="Shared\ProfileRows.cs" />
   </ItemGroup>
 

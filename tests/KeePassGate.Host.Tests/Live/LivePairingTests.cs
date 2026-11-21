@@ -60,6 +60,9 @@ namespace KeePassGate.Host.Tests.Live
         private bool _serverProved;
         private PairingReply _paired;
         private IReadOnlyList<ToggleState> _boxesBeforeApproving;
+        private string _refreshTipShown;
+        private bool _refreshTipGone;
+        private string _cellTipShown;
         private PairingReply _refused;
         private int _statusAfterPairing;
         private string _statusBody;
@@ -154,6 +157,24 @@ namespace KeePassGate.Host.Tests.Live
             // what the boxes held, so a box that opened unchecked is a profile the client never
             // gets, and Approve over no box issues a certificate holding none.
             Assert.That(_boxesBeforeApproving, Is.EqualTo(new[] { ToggleState.On }));
+        }
+
+        [Test]
+        public void The_pointer_resting_on_the_disabled_Refresh_brings_up_its_tooltip_and_leaving_it_takes_the_tooltip_away()
+        {
+            // A disabled control is told of no pointer, and the line above the table shows the
+            // tooltip of Refresh where the pointer rests on Refresh. The real pointer, where the
+            // unit tier sends the moves to the line, `PairingApprovalFormTests`.
+            Assert.That(_refreshTipShown, Is.EqualTo(Tooltips.Wrapped("Refresh (F5)")), "the tooltip that came up");
+            Assert.That(_refreshTipGone, Is.True, "the tooltip of Refresh stands after the pointer left Refresh");
+        }
+
+        [Test]
+        public void The_pointer_resting_on_a_cell_brings_up_the_cell_s_tooltip()
+        {
+            // The state of a name the database does not list, which Approve adds: the tooltip a rest
+            // of the real pointer brings up, where the unit tier puts the tooltip up itself.
+            Assert.That(_cellTipShown, Is.EqualTo(Tooltips.Wrapped(PairingApprovalForm.NewTip)), "the tooltip that came up");
         }
 
         [Test]
@@ -273,9 +294,106 @@ namespace KeePassGate.Host.Tests.Live
         private PairingReply ApproveTheNextRequest(
             KeePassDriver driver, PairingClient client, string name, params string[] profiles)
         {
+            var keePass = _session.KeePass.Process.Id;
             return Decide(driver, client, name, profiles, GateTab.ApproveButtonText,
-                dialog => _boxesBeforeApproving = Boxes(dialog));
+                dialog =>
+                {
+                    _boxesBeforeApproving = Boxes(dialog);
+                    RestOnTheDisabledRefresh(dialog, keePass);
+                });
         }
+
+        /// <summary>
+        /// The real pointer resting on Refresh, disabled on a first dialog where nothing waits: the
+        /// words of the tooltip that comes up, and whether it goes once the pointer rests on the
+        /// line beside Refresh; the pointer put back in the corner afterwards.
+        /// </summary>
+        private void RestOnTheDisabledRefresh(AutomationElement dialog, int keePass)
+        {
+            var refresh = Uia.ById(dialog, GateTab.ApprovalRefreshName);
+            var line = Uia.ById(dialog, "KpgApprovalAskingLabel");
+            Assert.That(refresh.Current.IsEnabled, Is.False, "Refresh is enabled on a first dialog");
+            var expected = Tooltips.Wrapped("Refresh (F5)");
+            try
+            {
+                PointAt(line);
+                PointAt(refresh);
+                _refreshTipShown = WaitFor(() => ShownTips(keePass).FirstOrDefault(tip => tip == expected)) ?? string.Join(" | ", ShownTips(keePass));
+                PointAt(line);
+                _refreshTipGone = WaitFor(() => ShownTips(keePass).Contains(expected) ? null : "gone") != null;
+            }
+            finally
+            {
+                LiveRules.PointerAway();
+            }
+        }
+
+        /// <summary>
+        /// The real pointer resting on the cell under **Approve also** of a profile: the words of
+        /// the tooltip that comes up; the pointer put back in the corner afterwards.
+        /// </summary>
+        private void RestOnTheState(AutomationElement dialog, int keePass, string profile)
+        {
+            var row = Uia.Descendant(dialog, ControlType.Pane, name => name == profile);
+            Assert.That(row, Is.Not.Null, "no row of " + profile + ": " + Uia.Inventory(dialog));
+            var state = Uia.ById(row, GateTab.ApprovalStateColumnName);
+            var expected = Tooltips.Wrapped(PairingApprovalForm.NewTip);
+            try
+            {
+                PointAt(state);
+                _cellTipShown = WaitFor(() => ShownTips(keePass).FirstOrDefault(tip => tip == expected)) ?? string.Join(" | ", ShownTips(keePass));
+            }
+            finally
+            {
+                LiveRules.PointerAway();
+            }
+        }
+
+        /// <summary>The real pointer to the middle of an element, given a moment to be noticed.</summary>
+        private static void PointAt(AutomationElement element)
+        {
+            var box = element.Current.BoundingRectangle;
+            TestNativeMethods.SetPhysicalCursorPos((int)(box.Left + (box.Width / 2)), (int)(box.Top + (box.Height / 2)));
+            Thread.Sleep(200);
+        }
+
+        /// <summary>What an attempt answers within the time a tooltip takes to come up or go, or null.</summary>
+        private static string WaitFor(Func<string> attempt)
+        {
+            var until = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+            string found;
+            while ((found = attempt()) == null && DateTime.UtcNow < until)
+            {
+                Thread.Sleep(100);
+            }
+
+            return found;
+        }
+
+        /// <summary>The words of every visible window of KeePass's that has no title of its own, tooltips among them.</summary>
+        private static IReadOnlyList<string> ShownTips(int keePass)
+        {
+            var shown = new List<string>();
+            TestNativeMethods.EnumWindows((window, parameter) =>
+            {
+                TestNativeMethods.GetWindowThreadProcessId(window, out var process);
+                if (process == keePass && TestNativeMethods.IsWindowVisible(window))
+                {
+                    var text = new System.Text.StringBuilder(1024);
+                    TestNativeMethods.SendMessage(window, GetText, (IntPtr)text.Capacity, text);
+                    if (text.Length > 0)
+                    {
+                        shown.Add(text.ToString());
+                    }
+                }
+
+                return true;
+            }, IntPtr.Zero);
+            return shown;
+        }
+
+        /// <summary>`WM_GETTEXT`, which a tooltip answers with the words it shows.</summary>
+        private const int GetText = 0x000D;
 
         /// <summary>
         /// The check of every row of the table of profiles, as UI automation reads it: every check
@@ -312,7 +430,8 @@ namespace KeePassGate.Host.Tests.Live
             var client = new PairingClient(keePass.Port, token);
             Assert.That(client.Hello().ServerProved, Is.True);
 
-            return Decide(driver, client, "agent-unwanted", new[] { UnlistedProfile }, GateTab.RefuseButtonText, dialog => { });
+            return Decide(driver, client, "agent-unwanted", new[] { UnlistedProfile }, GateTab.RefuseButtonText,
+                dialog => RestOnTheState(dialog, keePass.Process.Id, UnlistedProfile));
         }
 
         private static PairingReply Decide(

@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Windows.Forms;
 using KeePass.Forms;
+using KeePassGate.Testing;
 using KeePassGate.Ui;
 using KeePassLib;
 using NUnit.Framework;
@@ -26,6 +27,54 @@ namespace KeePassGate.Host.Tests
             // A number in a request is a number that has to be written down as a name somewhere, or
             // the next person changing it is choosing blind.
             Assert.That((PwIcon)GateIcon.Standard, Is.EqualTo(PwIcon.TerminalEncrypted));
+        }
+
+        [Test]
+        public void Refresh_on_the_pairing_dialog_shows_KeePass_s_own_picture_for_Synchronize()
+        {
+            // The picture read as the product reads it, through the names of `KeePassContract`, at
+            // the scale KeePass would draw it at here, and the picture Refresh shows: the same
+            // size and the same pixels, and a copy of its own.
+            var resources = typeof(KeePass.Program).Assembly.GetType(KeePassContract.ResourcesTypeName, false);
+            Assert.That(resources, Is.Not.Null, "KeePass has no pictures under that name");
+            var property = resources.GetProperty(
+                KeePassContract.RefreshPictureProperty, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            Assert.That(property, Is.Not.Null, "KeePass has no picture for Synchronize");
+            using (var read = (System.Drawing.Bitmap)property.GetValue(null, null))
+            using (var database = TemporaryDatabase.New())
+            {
+                var scaled = (System.Drawing.Bitmap)KeePass.UI.DpiUtil.ScaleImage(read, false);
+                var store = new KeePassGate.Bridge.KdbxStore(database.Database, GateVersion.Current, null);
+                StoreSeeds.Authority(store);
+                StoreSeeds.Name(store, "ops");
+                var request = new KeePassGate.Pairing.PairingRequest(
+                    "aaaabbbbccccdddd", "Invented Vault", "abcdef01", "agent-fictitious", new[] { "ops" }, "127.0.0.1:60001", null, null, null,
+                    null, () =>
+                    {
+                        using (var reading = store.Read())
+                        {
+                            return KeePassGate.Gate.AskedProfiles.Of(reading, new[] { "ops" }, System.DateTimeOffset.UtcNow);
+                        }
+                    });
+                using (ReferenceEquals(scaled, read) ? null : scaled)
+                {
+                    using (var dialog = new PairingApprovalForm(
+                               request.Showing(request.Read()), System.TimeSpan.FromMinutes(2), null, null, KeePassGate.Bridge.KeePassPictures.Refresh))
+                    {
+                        var shown = (System.Drawing.Bitmap)ControlTree.FindByName<Button>(dialog, GateTab.ApprovalRefreshName).Image;
+                        Assert.That(shown, Is.Not.Null, "Refresh shows no picture");
+                        Assert.That(shown, Is.Not.SameAs(read).And.Not.SameAs(scaled), "Refresh shows a picture other than a copy of its own");
+                        Assert.That(shown.Size, Is.EqualTo(scaled.Size));
+                        for (var y = 0; y < shown.Height; y++)
+                        {
+                            for (var x = 0; x < shown.Width; x++)
+                            {
+                                Assert.That(shown.GetPixel(x, y).ToArgb(), Is.EqualTo(scaled.GetPixel(x, y).ToArgb()), "a pixel other than KeePass's at " + x + ", " + y);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         [Test]

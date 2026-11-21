@@ -985,9 +985,10 @@ namespace KeePassGate
             // screen. The writer too, because a dialog is a turn on KeePass's thread like a write
             // and meets what a write meets there: the prompt waits out the writer's own save and
             // refuses inside KeePass's, as the writer does. The admissions' audit as well, since a
-            // dialog a lock or a close takes away is written down by the prompt as it goes.
+            // dialog a lock or a close takes away is written down by the prompt as it goes. And
+            // KeePass's own picture for Synchronize, which Refresh on the pairing dialog shows.
             var prompt = new PairingApprovalPrompt(
-                ui, _targets.Serving, writer, access.Admissions, mainWindow, _log);
+                ui, _targets.Serving, writer, access.Admissions, mainWindow, KeePassPictures.Refresh, _log);
             var router = GateOperations.Router(
                 GateVersion.Current,
                 GateVersion.Revision,

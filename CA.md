@@ -667,7 +667,8 @@ plugin memory. While locked it is the only identity available and it can do noth
   derived from the host's PKCS#12, is an array of the plugin's own, and it is overwritten with the
   rest, as the array it was derived into is. So are the bytes of the store's key every reading of
   the store finds: the gate's when it lets go of a database's readings, at the lock and at a close;
-  those the tab, the chooser and the writer read, as soon as each is done with its reading; the copy
+  those the tab, the chooser, the writer and the pairing dialog read, as soon as each is done with
+  its reading, the dialog's within the turn it reads in; the copy
   an act of theirs holds, once its write is done, written, refused or thrown; and the key a composed
   record is read back with. The memory a gate keeps of what it served a database with, `STORE.md`
   §656, goes at the lock and at the close as well: a copy of the gate key, overwritten, and the host

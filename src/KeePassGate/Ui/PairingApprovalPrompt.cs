@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
@@ -93,6 +94,9 @@ namespace KeePassGate.Ui
         /// <summary>KeePass's main window, held disabled under the dialog, or null.</summary>
         private readonly Control _mainWindow;
 
+        /// <summary>What reads the picture of Refresh on the pairing dialog, or null.</summary>
+        private readonly Func<Image> _refreshPicture;
+
         /// <summary>
         /// The dialog on the screen until it closes, or a lock or a close of its database withdraws
         /// it, touched only on KeePass's thread.
@@ -163,6 +167,26 @@ namespace KeePassGate.Ui
             AdmissionAudit audit,
             Control mainWindow,
             IGateLog log)
+            : this(ui, serving, writes, audit, mainWindow, null, log)
+        {
+        }
+
+        /// <summary>
+        /// The same, and Refresh on the pairing dialog showing KeePass's own picture.
+        /// </summary>
+        /// <param name="refreshPicture">
+        /// Reads a picture of the caller's own for Refresh as each pairing dialog is built, which
+        /// the dialog keeps and lets go with itself, answering null where there is none; null where
+        /// nothing is read, as where no KeePass is.
+        /// </param>
+        public PairingApprovalPrompt(
+            IUiThread ui,
+            Func<string, bool> serving,
+            IWriterState writes,
+            AdmissionAudit audit,
+            Control mainWindow,
+            Func<Image> refreshPicture,
+            IGateLog log)
         {
             if (ui == null)
             {
@@ -174,6 +198,7 @@ namespace KeePassGate.Ui
             _writes = writes;
             _audit = audit;
             _mainWindow = mainWindow;
+            _refreshPicture = refreshPicture;
             _log = log ?? NullGateLog.Instance;
             Dialog = ShowDialog;
             RenewalDialog = ShowRenewalDialog;
@@ -197,7 +222,7 @@ namespace KeePassGate.Ui
             }
 
             return OnScreen(
-                allowed => Dialog(request, allowed),
+                (allowed, up) => Shown(request, allowed, up),
                 request.DatabaseId,
                 timeout,
                 left,
@@ -211,6 +236,62 @@ namespace KeePassGate.Ui
                 request.Place);
         }
 
+        /// <summary>
+        /// Reads what a pairing's dialog is built from and puts the dialog up over it, on KeePass's
+        /// thread in the turn the screen gave the request; no dialog over a reading that does not
+        /// serve, `PairingApproval.Unserved`, or that failed, which is answered as a request the
+        /// screen could not put to anybody.
+        /// </summary>
+        /// <param name="up">Marks the moment the dialog comes up, called once it does.</param>
+        /// <remarks>
+        /// **Read at the moment the dialog comes up**, after every question the turn asks before a
+        /// dialog, so that the reading is never older than the dialog and never taken inside work
+        /// of KeePass's own: a request waits for the screen as long as another request stands in
+        /// front of the operator, and a reading taken before that wait could be minutes old.
+        ///
+        /// **A dialog shown again comes up only where a row differs from the dialog before**,
+        /// `PairingRequest.Differs`, so that its notice is true wherever it stands. Where every row
+        /// reads as before, a change that went back between the write and this reading, or a
+        /// further removal of a profile the dialog before already showed as restored, the approval
+        /// given there is given again over this reading, `PairingRequest.AsBefore`, as a tick
+        /// taking the same reading under the dialog would have it, and the request writes it.
+        /// </remarks>
+        private PairingApproval Shown(PairingRequest request, TimeSpan allowed, Action up)
+        {
+            var content = request.Read();
+            if (content.Failed)
+            {
+                return PairingApproval.Unavailable(Unread);
+            }
+
+            if (!content.Served)
+            {
+                return PairingApproval.Unserved(content.Word);
+            }
+
+            var shown = request.Showing(content);
+            if (shown.Again && !shown.Differs)
+            {
+                return shown.AsBefore();
+            }
+
+            up();
+            return Dialog(shown, allowed);
+        }
+
+        /// <summary>Why a pairing whose reading failed as its dialog was to come up was put to nobody.</summary>
+        internal const string Unread = "the database could not be read as the dialog was to come up";
+
+        /// <summary>
+        /// Whether KeePass is part way through work of its own, or this plugin's own save is
+        /// running, as a write asks before it is made: what a pairing dialog's tick asks before it
+        /// reads the store again, so that a tree part way through a merge is never read.
+        /// </summary>
+        internal static Func<bool> Busy(IWriterState writes)
+        {
+            return writes == null ? (Func<bool>)(() => false) : () => writes.Saving || writes.Interrupting() != null;
+        }
+
         public RenewalApproval Ask(RenewalRequest request, TimeSpan timeout, TimeSpan left)
         {
             if (request == null)
@@ -219,7 +300,11 @@ namespace KeePassGate.Ui
             }
 
             return OnScreen(
-                allowed => RenewalDialog(request, allowed),
+                (allowed, up) =>
+                {
+                    up();
+                    return RenewalDialog(request, allowed);
+                },
                 request.DatabaseId,
                 timeout,
                 left,
@@ -316,7 +401,10 @@ namespace KeePassGate.Ui
         /// <summary>
         /// Waits for the screen, puts a dialog on it, and waits for the answer.
         /// </summary>
-        /// <param name="dialog">Shows the dialog for as long as it is handed.</param>
+        /// <param name="dialog">
+        /// Shows the dialog for as long as it is handed, calling the action it is handed as the
+        /// dialog comes up, and not where it answers without a dialog.
+        /// </param>
         /// <param name="timeout">
         /// How long the operator is given, and the longest this waits for the screen.
         /// </param>
@@ -339,7 +427,7 @@ namespace KeePassGate.Ui
         /// from the moment this gets it, or null for a request that keeps none.
         /// </param>
         private TAnswer OnScreen<TAnswer>(
-            Func<TimeSpan, TAnswer> dialog,
+            Func<TimeSpan, Action, TAnswer> dialog,
             string databaseId,
             TimeSpan timeout,
             TimeSpan left,
@@ -467,19 +555,26 @@ namespace KeePassGate.Ui
                                     return;
                                 }
 
-                                if (remaining < timeout)
+                                // **Where the dialog comes up, and nowhere before it**: a pairing's
+                                // reading comes first, and a reading that puts no dialog up was
+                                // seen by nobody, late or not.
+                                Action up = () =>
                                 {
-                                    _log.Info("the " + what + " dialog came up late, so the operator " +
-                                              "was given " + Seconds(remaining) + " s to answer it");
-                                }
+                                    if (remaining < timeout)
+                                    {
+                                        _log.Info("the " + what + " dialog came up late, so the operator " +
+                                                  "was given " + Seconds(remaining) + " s to answer it");
+                                    }
 
-                                // For as long as this request's dialog can stand, on the thread
-                                // that withdraws it.
-                                _unanswered = unanswered;
-                                cameUp = waiting.Elapsed;
+                                    // For as long as this request's dialog can stand, on the
+                                    // thread that withdraws it.
+                                    _unanswered = unanswered;
+                                    cameUp = waiting.Elapsed;
+                                };
+
                                 try
                                 {
-                                    answer = dialog(remaining < timeout ? remaining : timeout);
+                                    answer = dialog(remaining < timeout ? remaining : timeout, up);
                                 }
                                 finally
                                 {
@@ -587,7 +682,7 @@ namespace KeePassGate.Ui
 
         private PairingApproval ShowDialog(PairingRequest request, TimeSpan timeout)
         {
-            using (var dialog = new PairingApprovalForm(request, timeout))
+            using (var dialog = new PairingApprovalForm(request, timeout, null, Busy(_writes), _refreshPicture))
             {
                 Show(dialog, request.DatabaseId);
                 var answer = dialog.Answer();
