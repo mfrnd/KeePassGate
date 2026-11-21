@@ -44,6 +44,13 @@ report `measured-rules-across-levels.md`: `run.ps1 -S34`, the forms of the desig
 each played beside the store as decided. Its record is `recorded-s34\`. The section "The two forms
 of S34" at the end holds it.
 
+**A further configuration, the lost versions a version settles**, was added on 2026-11-21 for the
+report `measured-lost-settled.md`: `model\lost_runs.py all`, three ways of answering a deletion
+record of a rule's version played side by side on the same acts, in the model and in `read.py`
+over the files `store.py` writes of the model, with no KeePass. Its record is `recorded-lost\`,
+with the vectors it prints in `recorded-lost\vectors\`. The section "The lost versions a version
+settles" at the end holds it.
+
 | Path | What it is |
 | --- | --- |
 | `model\crdt_model.py` | a copy of `spikes\storage\model\crdt_model.py` with the switches of section "What was added" below; every new switch at its default is the design's model |
@@ -69,6 +76,8 @@ of S34" at the end holds it.
 | `recorded-owed\` | the output of the runs of those forms, which `measured-rules-owed-forms.md` quotes |
 | `probe\s34.py` | the parts on real files of the two forms of S34 (section "The two forms of S34") |
 | `recorded-s34\` | the output of the runs of those forms, which `measured-rules-across-levels.md` quotes |
+| `model\lost_runs.py`, `compare_lost.py` | the parts of the lost versions a version settles (section "The lost versions a version settles"), and the comparisons of their outputs and of the vectors |
+| `recorded-lost\` | the output of those parts, which `measured-lost-settled.md` quotes; `recorded-lost\vectors\` the three files of vectors `vectors.py --lost` prints |
 
 **Everything ran twice**, on 2026-11-16, on a machine other measurements were sharing. Every
 output of the second run is the same as the record line for line, apart from what `compare.py`
@@ -1812,7 +1821,8 @@ with what arrives after it; a version that was cutting already, or `off:deny`, i
   `texts`; no store holds such a text, and none holds an object out of form either.
 - **Two names whose tags meet.** `read.py` keeps a single name for each tag, the last of a set
   whose order changes from run to run, so its answer is neither both rows refused, as the
-  product reads such a deletion record, nor the same in two runs.
+  product reads such a deletion record, nor the same in two runs. Added on 2026-11-21: with
+  `--lost` they are printed, read with every name of the tag, in the section below.
 - **The sequences over three copies** of `measured-rules-per-profile` section 5 and D4 and D5,
   and the residual history over three copies, outside the two copies the write vectors play;
   **the removal forms `void` and `limit`**, and **W9**, which writes a node's rule whole.
@@ -1820,3 +1830,132 @@ with what arrives after it; a version that was cutting already, or `off:deny`, i
   by what arrived alone.
 - **H5, H7 and H13**, which move a node with the model's `nmove`, and **H16**, a name put back on
   the list apart from a row widened, which the reading of rules does not see.
+
+## The lost versions a version settles
+
+Added on 2026-11-21 for `papers\ground\measured-lost-settled.md`. A refinement of the records of
+rules, measured before anything of it is built in the product: a version names in `after` the
+versions of its own object it replaces, and in a new member `lost` the lost versions at its place
+it settles for its own object. It is played beside two other ways of answering a deletion record of
+a rule's version: the measured reading of `read.py`, which answers a deletion record for every
+object once any version names it, and the product's reading as built, which answers it for an
+object only where a version of that object names it. No program but Python runs: every file is
+the model's, written by `store.py`'s Encoder and read by `read.py`. Its record is
+`recorded-lost\`.
+
+### What it runs
+
+`model\lost_runs.py all OUT WORKERS` runs these parts, each into `OUT\<part>.txt`:
+
+| Part | What it is |
+| --- | --- |
+| `tags` | the names: two whose tags meet under the store key of the model's label `K`, `pf`, a name whose tag is 0, and the names a write that touches no rule adds |
+| `hand` | 14 sequences, each step under each of the three behaviors (`crdt_model.JUDGE` and `read.JUDGE` `union`, `object` and `lost`), held to the exact reading of the same file, with each merge held to both copies, a write that touches no rule made on a clone after each merge, and `read.py` over the file the Encoder writes held to the model's fold |
+| `search-two`, `-three`, `-zero`, `-hand`, `-long` | `lost_runs.py search CONFIG 200000 SEED LO HI`: random histories over two copies, played under each behavior; `two` the root and N with `pf` and the two names, `three` with a group G between them, `zero` with `pf` and the name whose tag is 0 and the object of N's rule with no slash, `hand` `two` with a person's deletions and Seal again, each of 4 to 12 steps, and `long` `two` with 8 to 16 |
+| `bridge-two`, `-three`, `-zero`, `-hand` | `lost_runs.py`'s `part_bridge`: 2,000 random histories of each search's alphabet under each behavior, every file read by `read.py` and held to the model's fold after every step |
+
+`compare_lost.py check OUT RECORD` holds a run to the record, `compare_lost.py print VECTORS` prints
+the three files of vectors into `VECTORS` and holds every file `vectors.py` prints to the same file
+printed under each behavior, and `compare_lost.py vectors VECTORS SHARED` compares those files with
+the files the product keeps.
+
+**What a history is held to.** After every step that applied, the copy it changed, under the
+behavior, beside the exact reading of the same file (`World.fold(exact=True)`: every deletion record
+told of by the object of the element it names, which the model knows and a file does not, answered
+where a version in force of that object names it in `after` or in `lost`): a capability the
+behavior gives that the exact reading does not, and a row that refuses under the behavior and not
+under the exact reading where no deletion record it refuses for is of a loss (an identifier the act
+`lose` made, a version the act `del` deleted, or a version replaced only by versions `del`
+deleted). After every merge, every `lose` and every `del`, a write that touches no rule, a profile
+name of `KEPT` added or removed, on a clone: any answer it changes. Every merge is held to both
+copies by capabilities, and a merge beyond both copies is classed as wider than the exact reading,
+beyond both copies read exactly as well, or within what the copies give read exactly.
+
+### The command
+
+From the branch root, in any shell:
+
+```powershell
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\model\lost_runs.py all spikes\storage\probes\store-as-a-whole\out\lost-1 10
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\model\lost_runs.py all spikes\storage\probes\store-as-a-whole\out\lost-2 10
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\compare_lost.py check spikes\storage\probes\store-as-a-whole\out\lost-2 spikes\storage\probes\store-as-a-whole\recorded-lost
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\compare_lost.py print spikes\storage\probes\store-as-a-whole\recorded-lost\vectors
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\compare_lost.py vectors spikes\storage\probes\store-as-a-whole\recorded-lost\vectors <the product's tests\Shared>
+```
+
+The last argument of `all` is the number of processes the searches use. A run writes only into
+its `OUT`; the searches are seeded, each chunk of 500 histories with a seed of its own, and the
+processes' results are gathered in the order of the chunks.
+
+**How long**, in seconds, ten processes; during the first of the searches of run 1 the vectors
+were printed beside it:
+
+| Part | Run 1 | Run 2 |
+| --- | --- | --- |
+| `search-long` | 337 | 323 |
+| `search-three` | 263 | 246 |
+| `search-two`, `search-hand`, `search-zero` | 204, 204, 179 | 207, 192, 211 |
+| `bridge-two`, `-three`, `-zero`, `-hand` | 4, 5, 4, 4 | 4, 5, 4, 4 |
+| `tags`, `hand` | under 1 each | under 1 each |
+| `compare_lost.py print` (12 prints of `vectors.py`) | 14 | 14 |
+
+**How the runs were made.** Run 1 and run 2 were `lost_runs.py all` with ten processes, in turn.
+Run 1's outputs were copied to `recorded-lost\`; `recorded-lost\vectors\` and its two listings,
+`vectors-print.txt` and `vectors-compare.txt`, are what `compare_lost.py print` and `vectors`
+wrote after run 2, into `recorded-lost\` and again into `out\lost-2\`.
+
+**Compared.** Every output of run 2 is the same as `recorded-lost\` line for line, with the
+running times masked: 13 files, the two listings of the vectors among them; and the three files
+of vectors printed into `out\lost-2\vectors\` are the same bytes as those of
+`recorded-lost\vectors\`, and so are those of a third print. During run 1 the files were printed
+twice with the same bytes, before the wording of an `about` text changed.
+
+| Figure | Recorded | Second run | Reproduced |
+| --- | --- | --- | --- |
+| `hand`: steps flagged wider, refused, beyond, changed, file differs, union; object; lost | 11, 0, 0, 0, 0; 0, 50, 3, 5, 0; 0, 0, 0, 0, 0 | the same | yes |
+| searches, histories failing under union, object, lost: `two`, `three`, `zero`, `hand`, `long` | 9,847, 104,015, 0; 7,236, 80,472, 0; 336, 9,956, 0; 5,748, 77,420, 0; 19,436, 137,012, 0 | the same | yes |
+| searches under lost, histories with a merge beyond both copies, the exact reading beyond as well; within the exact readings | 1,316, 1,506, 1,186, 874, 2,745; 577, 610, 277, 409, 1,243 | the same | yes |
+| the same, Synchronize merges | 0, 1, 0, 0, 0; 0, 0, 0, 2, 0 | the same | yes |
+| `bridge-*`: steps compared, steps that differ, each behavior | 12,444 to 13,453 a part; 0 | the same | yes |
+| vectors: each file under `--judge union`, `object`, `lost` | the same bytes as without it, 9 of 9 | the same | yes |
+| vectors: records, stores, sequences added; members changed or removed | 8, 14, 14; 0 | the same | yes |
+
+### What was added for it
+
+Each line added or changed carries "ADDED (lost settled)". With the new switches off, every output
+prints as before: `vectors.py` prints its three files byte for byte as the product keeps them but
+the line ends, and the same under `--judge union`, `--judge object` and `--judge lost`.
+
+- `crdt_model.py`: an element's `lost`; `JUDGE` and `place_of`; `fold(exact=True)` and
+  `judge_dels`, what each deletion record of a version is lost to under each behavior and in the
+  exact reading; `names_lost`, what an act names, used by `rows_act`, `dep_act` and its renewals,
+  the removal of a single version and Seal again; the acts `settle`, `plain` and `lose`; and
+  `loses`, the identifiers `lose` made and the versions `del` deleted, carried by `World.clone`.
+- `store.py`: the Encoder writes `lost` in a version's content and in its summary item, absent
+  where empty.
+- `read.py`: `JUDGE`; a version's and an item's `lost`; `judged`, the same reading as the model's
+  over the file's tags, with a tag of 0 telling of the object with no slash as well.
+- `vectors.py`: `--judge J` and `--lost`; `rule_record` and `restating_version` with `lost`; the
+  records, the stores (`lost_stores`) and the sequences (`lost_command`) of the refinement.
+- `model\lost_runs.py`, `compare_lost.py`: new.
+
+### Defects and limits of this configuration
+
+Reported, not fixed.
+
+- **The model composes every act at its write**, so the lost versions an act names are those of
+  the write's own reading; the product names those the tab showed at the press. A deletion record
+  that lands under an open dialog is not run.
+- **A loss is a deletion record whose content no file holds** (`lose`), or a person's deletion
+  (`del`); a loss by a merge that drops an entry with no deletion record is not in the alphabet.
+- **The exact reading reads the model's elements**, which a file does not carry; it is the oracle
+  of the runs and no reading a gate could make.
+- **The searches hold two copies**, two letters, three profiles at most and three levels at most,
+  and KeePass's Synchronize, Overwrite if newer and KeePassXC as the model has them.
+- **The files are the model's**, written by the Encoder; no file was made or merged by KeePassLib
+  or `keepassxc-cli`, and the product's reading was not run.
+
+### Not run in this configuration
+
+- Real files and every program of the earlier configurations; three copies; the full mask and four
+  profiles in a search; the product.

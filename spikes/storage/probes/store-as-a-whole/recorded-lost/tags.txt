@@ -1,0 +1,4 @@
+== The names (the profile tag of STORE.md 609 under the store key of the model's label K):
+   p = q00331 and q = q00534, tag c699: the first two names q00000, q00001, ... whose tags meet, after 184934 names tried
+   r = pf, tag 5348; g = pg, tag cfd6; z = q184933, tag 0000, the first such name whose tag is 0000
+   names a write that touches no rule adds: kept0 fab7, kept1 8c3e, kept2 0dcf, kept3 f600, kept4 9cf1, kept5 7996

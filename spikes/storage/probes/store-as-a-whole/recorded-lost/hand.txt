@@ -1,0 +1,539 @@
+== The names (the profile tag of STORE.md 609 under the store key of the model's label K):
+   p = q00331 and q = q00534, tag c699: the first two names q00000, q00001, ... whose tags meet, after 184934 names tried
+   r = pf, tag 5348; g = pg, tag cfd6; z = q184933, tag 0000, the first such name whose tag is 0000
+   names a write that touches no rule adds: kept0 fab7, kept1 8c3e, kept2 0dcf, kept3 f600, kept4 9cf1, kept5 7996
+== Each sequence played three times, a world for each behavior, over the same acts. After each
+   step, the copy it changed: what N (and G) gives each profile; the rows and switches that
+   refuse; WIDER where the behavior gives a capability the exact reading of the same file does
+   not; REFUSED where a row refuses under the behavior and not under the exact reading for no
+   loss whose content is nowhere; BEYOND at a merge that gives a capability neither copy gave
+   just before; CHANGED where a write that touches no rule, made on a clone after a merge,
+   changes what the copy gives or refuses; and read.py over the file the Encoder writes,
+   with any difference from the model's fold.
+
+## F1: the fail-open sequence: the root grants p every letter, N holds an empty rule for p made in copy 0 after the copies parted, deleted there for good with a deletion record and its summary entry deleted with none, synchronized into copy 1, which wrote a summary entry of its own meanwhile; copy 1 then sets q's row alone
+   profiles r, p, q; nodes root, N
+   1. row 0 root p rw
+      union  copy 0: N r:r p:rw q:r; refusing none
+      object copy 0: N r:r p:rw q:-; refusing root/q; REFUSED root/q
+      lost   copy 0: N r:r p:rw q:r; refusing none
+   2. merge kp_sync 1 0
+      union  copy 1: N r:r p:rw q:r; refusing none
+      object copy 1: N r:r p:rw q:-; refusing root/q; REFUSED root/q
+      lost   copy 1: N r:r p:rw q:r; refusing none
+   3. padd 1 kept0
+      union  copy 1: N r:r p:rw q:r; refusing none
+      object copy 1: N r:r p:rw q:-; refusing root/q; REFUSED root/q
+      lost   copy 1: N r:r p:rw q:r; refusing none
+   4. row 0 N p 
+      union  copy 0: N r:r p:- q:r; refusing none
+      object copy 0: N r:r p:- q:-; refusing root/q; REFUSED root/q
+      lost   copy 0: N r:r p:- q:r; refusing none
+   5. del 0 (ver rule:N/q00331 new) 1
+      union  copy 0: N r:r p:- q:r; refusing none
+      object copy 0: N r:r p:- q:-; refusing root/q; REFUSED root/q
+      lost   copy 0: N r:r p:- q:r; refusing none
+   6. del 0 (head new) 0
+      union  copy 0: N r:r p:- q:-; refusing N/p, N/q
+      object copy 0: N r:r p:- q:-; refusing N/p, N/q, root/q; REFUSED root/q
+      lost   copy 0: N r:r p:- q:-; refusing N/p, N/q
+   7. merge kp_sync 1 0
+      union  copy 1: N r:r p:- q:-; refusing N/p, N/q
+      object copy 1: N r:r p:- q:-; refusing N/p, N/q, root/q; REFUSED root/q
+      lost   copy 1: N r:r p:- q:-; refusing N/p, N/q
+   8. row 1 N q r
+      union  copy 1: N r:r p:rw q:r; refusing none; WIDER at N for p (rw, exact -)
+      object copy 1: N r:r p:- q:r; refusing N/p, root/q; REFUSED root/q
+      lost   copy 1: N r:r p:- q:r; refusing N/p
+   9. padd 1 kept1
+      union  copy 1: N r:r p:rw q:r; refusing none; WIDER at N for p (rw, exact -)
+      object copy 1: N r:r p:- q:r; refusing N/p, root/q; REFUSED root/q
+      lost   copy 1: N r:r p:- q:r; refusing N/p
+
+## E1: ordinary edits of q at N where p holds a rule: q set, changed, taken off, set again, in copy 0; synchronized; q emptied in copy 1; both ways
+   profiles r, p, q; nodes root, N
+   1. row 0 N p rw
+      union  copy 0: N r:r p:rw q:r; refusing none
+      object copy 0: N r:r p:rw q:r; refusing none
+      lost   copy 0: N r:r p:rw q:r; refusing none
+   2. row 0 N q r
+      union  copy 0: N r:r p:rw q:r; refusing none
+      object copy 0: N r:r p:rw q:r; refusing none
+      lost   copy 0: N r:r p:rw q:r; refusing none
+   3. row 0 N q rw
+      union  copy 0: N r:r p:rw q:rw; refusing none
+      object copy 0: N r:r p:- q:rw; refusing N/p; REFUSED N/p
+      lost   copy 0: N r:r p:rw q:rw; refusing none
+   4. row 0 N q off
+      union  copy 0: N r:r p:rw q:r; refusing none
+      object copy 0: N r:r p:- q:r; refusing N/p; REFUSED N/p
+      lost   copy 0: N r:r p:rw q:r; refusing none
+   5. row 0 N q r
+      union  copy 0: N r:r p:rw q:r; refusing none
+      object copy 0: N r:r p:- q:r; refusing N/p; REFUSED N/p
+      lost   copy 0: N r:r p:rw q:r; refusing none
+   6. merge kp_sync 1 0
+      union  copy 1: N r:r p:rw q:r; refusing none
+      object copy 1: N r:r p:- q:r; refusing N/p; REFUSED N/p
+      lost   copy 1: N r:r p:rw q:r; refusing none
+   7. row 1 N q 
+      union  copy 1: N r:r p:rw q:-; refusing none
+      object copy 1: N r:r p:- q:-; refusing N/p; REFUSED N/p
+      lost   copy 1: N r:r p:rw q:-; refusing none
+   8. merge kp_sync 0 1
+      union  copy 0: N r:r p:rw q:-; refusing none
+      object copy 0: N r:r p:- q:-; refusing N/p; REFUSED N/p
+      lost   copy 0: N r:r p:rw q:-; refusing none
+   9. merge kp_sync 1 0
+      union  copy 1: N r:r p:rw q:-; refusing none
+      object copy 1: N r:r p:- q:-; refusing N/p; REFUSED N/p
+      lost   copy 1: N r:r p:rw q:-; refusing none
+
+## E2: E1 with p and q swapped
+   profiles r, p, q; nodes root, N
+   1. row 0 N q rw
+      union  copy 0: N r:r p:r q:rw; refusing none
+      object copy 0: N r:r p:r q:rw; refusing none
+      lost   copy 0: N r:r p:r q:rw; refusing none
+   2. row 0 N p r
+      union  copy 0: N r:r p:r q:rw; refusing none
+      object copy 0: N r:r p:r q:rw; refusing none
+      lost   copy 0: N r:r p:r q:rw; refusing none
+   3. row 0 N p rw
+      union  copy 0: N r:r p:rw q:rw; refusing none
+      object copy 0: N r:r p:rw q:-; refusing N/q; REFUSED N/q
+      lost   copy 0: N r:r p:rw q:rw; refusing none
+   4. row 0 N p off
+      union  copy 0: N r:r p:r q:rw; refusing none
+      object copy 0: N r:r p:r q:-; refusing N/q; REFUSED N/q
+      lost   copy 0: N r:r p:r q:rw; refusing none
+   5. row 0 N p r
+      union  copy 0: N r:r p:r q:rw; refusing none
+      object copy 0: N r:r p:r q:-; refusing N/q; REFUSED N/q
+      lost   copy 0: N r:r p:r q:rw; refusing none
+   6. merge kp_sync 1 0
+      union  copy 1: N r:r p:r q:rw; refusing none
+      object copy 1: N r:r p:r q:-; refusing N/q; REFUSED N/q
+      lost   copy 1: N r:r p:r q:rw; refusing none
+   7. row 1 N p 
+      union  copy 1: N r:r p:- q:rw; refusing none
+      object copy 1: N r:r p:- q:-; refusing N/q; REFUSED N/q
+      lost   copy 1: N r:r p:- q:rw; refusing none
+   8. merge kp_sync 0 1
+      union  copy 0: N r:r p:- q:rw; refusing none
+      object copy 0: N r:r p:- q:-; refusing N/q; REFUSED N/q
+      lost   copy 0: N r:r p:- q:rw; refusing none
+   9. merge kp_sync 1 0
+      union  copy 1: N r:r p:- q:rw; refusing none
+      object copy 1: N r:r p:- q:-; refusing N/q; REFUSED N/q
+      lost   copy 1: N r:r p:- q:rw; refusing none
+
+## E3: ordinary edits of q at N and at the group G above it, where p holds a rule at both; then of q in copy 1 at both, both ways
+   profiles r, p, q; nodes root, G, N
+   1. row 0 G p r
+      union  copy 0: G r:r p:r q:r; N r:r p:r q:r; refusing none
+      object copy 0: G r:r p:r q:r; N r:r p:r q:r; refusing none
+      lost   copy 0: G r:r p:r q:r; N r:r p:r q:r; refusing none
+   2. row 0 N p rw
+      union  copy 0: G r:r p:r q:r; N r:r p:rw q:r; refusing none
+      object copy 0: G r:r p:r q:r; N r:r p:rw q:r; refusing none
+      lost   copy 0: G r:r p:r q:r; N r:r p:rw q:r; refusing none
+   3. row 0 G q rw
+      union  copy 0: G r:r p:r q:rw; N r:r p:rw q:rw; refusing none
+      object copy 0: G r:r p:r q:rw; N r:r p:rw q:rw; refusing none
+      lost   copy 0: G r:r p:r q:rw; N r:r p:rw q:rw; refusing none
+   4. row 0 G q r
+      union  copy 0: G r:r p:r q:r; N r:r p:rw q:r; refusing none
+      object copy 0: G r:r p:- q:r; N r:r p:rw q:r; refusing G/p; REFUSED G/p
+      lost   copy 0: G r:r p:r q:r; N r:r p:rw q:r; refusing none
+   5. row 0 N q r
+      union  copy 0: G r:r p:r q:r; N r:r p:rw q:r; refusing none
+      object copy 0: G r:r p:- q:r; N r:r p:rw q:r; refusing G/p; REFUSED G/p
+      lost   copy 0: G r:r p:r q:r; N r:r p:rw q:r; refusing none
+   6. row 0 N q off
+      union  copy 0: G r:r p:r q:r; N r:r p:rw q:r; refusing none
+      object copy 0: G r:r p:- q:r; N r:r p:- q:r; refusing G/p, N/p; REFUSED G/p, N/p
+      lost   copy 0: G r:r p:r q:r; N r:r p:rw q:r; refusing none
+   7. row 0 G q off
+      union  copy 0: G r:r p:r q:r; N r:r p:rw q:r; refusing none
+      object copy 0: G r:r p:- q:r; N r:r p:- q:r; refusing G/p, N/p; REFUSED G/p, N/p
+      lost   copy 0: G r:r p:r q:r; N r:r p:rw q:r; refusing none
+   8. merge kp_sync 1 0
+      union  copy 1: G r:r p:r q:r; N r:r p:rw q:r; refusing none
+      object copy 1: G r:r p:- q:r; N r:r p:- q:r; refusing G/p, N/p; REFUSED G/p, N/p
+      lost   copy 1: G r:r p:r q:r; N r:r p:rw q:r; refusing none
+   9. row 1 G q rw
+      union  copy 1: G r:r p:r q:rw; N r:r p:rw q:rw; refusing none
+      object copy 1: G r:r p:- q:rw; N r:r p:- q:rw; refusing G/p, N/p; REFUSED G/p, N/p
+      lost   copy 1: G r:r p:r q:rw; N r:r p:rw q:rw; refusing none
+   10. row 1 N q rw
+      union  copy 1: G r:r p:r q:rw; N r:r p:rw q:rw; refusing none
+      object copy 1: G r:r p:- q:rw; N r:r p:- q:rw; refusing G/p, N/p; REFUSED G/p, N/p
+      lost   copy 1: G r:r p:r q:rw; N r:r p:rw q:rw; refusing none
+   11. merge kp_sync 0 1
+      union  copy 0: G r:r p:r q:rw; N r:r p:rw q:rw; refusing none
+      object copy 0: G r:r p:- q:rw; N r:r p:- q:rw; refusing G/p, N/p; REFUSED G/p, N/p
+      lost   copy 0: G r:r p:r q:rw; N r:r p:rw q:rw; refusing none
+   12. merge kp_sync 1 0
+      union  copy 1: G r:r p:r q:rw; N r:r p:rw q:rw; refusing none
+      object copy 1: G r:r p:- q:rw; N r:r p:- q:rw; refusing G/p, N/p; REFUSED G/p, N/p
+      lost   copy 1: G r:r p:r q:rw; N r:r p:rw q:rw; refusing none
+
+## L1: a true loss of p's version at N (a deletion record at the place of p's row whose content is nowhere), in both copies; q set first, then p
+   profiles r, p, q; nodes root, N
+   1. row 0 N p r
+      union  copy 0: N r:r p:r q:r; refusing none
+      object copy 0: N r:r p:r q:r; refusing none
+      lost   copy 0: N r:r p:r q:r; refusing none
+   2. row 0 N q r
+      union  copy 0: N r:r p:r q:r; refusing none
+      object copy 0: N r:r p:r q:r; refusing none
+      lost   copy 0: N r:r p:r q:r; refusing none
+   3. merge kp_sync 1 0
+      union  copy 1: N r:r p:r q:r; refusing none
+      object copy 1: N r:r p:r q:r; refusing none
+      lost   copy 1: N r:r p:r q:r; refusing none
+   4. lose 0 N/p
+      union  copy 0: N r:r p:- q:-; refusing N/p, N/q
+      object copy 0: N r:r p:- q:-; refusing N/p, N/q
+      lost   copy 0: N r:r p:- q:-; refusing N/p, N/q
+   5. merge kp_sync 1 0
+      union  copy 1: N r:r p:- q:-; refusing N/p, N/q
+      object copy 1: N r:r p:- q:-; refusing N/p, N/q
+      lost   copy 1: N r:r p:- q:-; refusing N/p, N/q
+   6. row 0 N q rw
+      union  copy 0: N r:r p:r q:rw; refusing none; WIDER at N for p (r, exact -)
+      object copy 0: N r:r p:- q:rw; refusing N/p
+      lost   copy 0: N r:r p:- q:rw; refusing N/p
+   7. row 0 N p rw
+      union  copy 0: N r:r p:rw q:rw; refusing none; WIDER at N for p (rw, exact -)
+      object copy 0: N r:r p:rw q:-; refusing N/q; REFUSED N/q
+      lost   copy 0: N r:r p:rw q:rw; refusing none
+   8. merge kp_sync 1 0
+      union  copy 1: N r:r p:rw q:rw; refusing none; WIDER at N for p (rw, exact -)
+      object copy 1: N r:r p:rw q:-; refusing N/q; REFUSED N/q
+      lost   copy 1: N r:r p:rw q:rw; refusing none
+   9. merge kp_sync 0 1
+      union  copy 0: N r:r p:rw q:rw; refusing none; WIDER at N for p (rw, exact -)
+      object copy 0: N r:r p:rw q:-; refusing N/q; REFUSED N/q
+      lost   copy 0: N r:r p:rw q:rw; refusing none
+
+## L2: the same loss; p set first, then q
+   profiles r, p, q; nodes root, N
+   1. row 0 N p r
+      union  copy 0: N r:r p:r q:r; refusing none
+      object copy 0: N r:r p:r q:r; refusing none
+      lost   copy 0: N r:r p:r q:r; refusing none
+   2. row 0 N q r
+      union  copy 0: N r:r p:r q:r; refusing none
+      object copy 0: N r:r p:r q:r; refusing none
+      lost   copy 0: N r:r p:r q:r; refusing none
+   3. merge kp_sync 1 0
+      union  copy 1: N r:r p:r q:r; refusing none
+      object copy 1: N r:r p:r q:r; refusing none
+      lost   copy 1: N r:r p:r q:r; refusing none
+   4. lose 0 N/p
+      union  copy 0: N r:r p:- q:-; refusing N/p, N/q
+      object copy 0: N r:r p:- q:-; refusing N/p, N/q
+      lost   copy 0: N r:r p:- q:-; refusing N/p, N/q
+   5. merge kp_sync 1 0
+      union  copy 1: N r:r p:- q:-; refusing N/p, N/q
+      object copy 1: N r:r p:- q:-; refusing N/p, N/q
+      lost   copy 1: N r:r p:- q:-; refusing N/p, N/q
+   6. row 0 N p rw
+      union  copy 0: N r:r p:rw q:r; refusing none
+      object copy 0: N r:r p:rw q:-; refusing N/q
+      lost   copy 0: N r:r p:rw q:-; refusing N/q
+   7. row 0 N q rw
+      union  copy 0: N r:r p:rw q:rw; refusing none
+      object copy 0: N r:r p:- q:rw; refusing N/p; REFUSED N/p
+      lost   copy 0: N r:r p:rw q:rw; refusing none
+   8. merge kp_sync 1 0
+      union  copy 1: N r:r p:rw q:rw; refusing none
+      object copy 1: N r:r p:- q:rw; refusing N/p; REFUSED N/p
+      lost   copy 1: N r:r p:rw q:rw; refusing none
+   9. merge kp_sync 0 1
+      union  copy 0: N r:r p:rw q:rw; refusing none
+      object copy 0: N r:r p:- q:rw; refusing N/p; REFUSED N/p
+      lost   copy 0: N r:r p:rw q:rw; refusing none
+
+## L3: the same loss; both set in a single write
+   profiles r, p, q; nodes root, N
+   1. row 0 N p r
+      union  copy 0: N r:r p:r q:r; refusing none
+      object copy 0: N r:r p:r q:r; refusing none
+      lost   copy 0: N r:r p:r q:r; refusing none
+   2. row 0 N q r
+      union  copy 0: N r:r p:r q:r; refusing none
+      object copy 0: N r:r p:r q:r; refusing none
+      lost   copy 0: N r:r p:r q:r; refusing none
+   3. merge kp_sync 1 0
+      union  copy 1: N r:r p:r q:r; refusing none
+      object copy 1: N r:r p:r q:r; refusing none
+      lost   copy 1: N r:r p:r q:r; refusing none
+   4. lose 0 N/p
+      union  copy 0: N r:r p:- q:-; refusing N/p, N/q
+      object copy 0: N r:r p:- q:-; refusing N/p, N/q
+      lost   copy 0: N r:r p:- q:-; refusing N/p, N/q
+   5. merge kp_sync 1 0
+      union  copy 1: N r:r p:- q:-; refusing N/p, N/q
+      object copy 1: N r:r p:- q:-; refusing N/p, N/q
+      lost   copy 1: N r:r p:- q:-; refusing N/p, N/q
+   6. rule 0 N p=rw,q=rw
+      union  copy 0: N r:r p:rw q:rw; refusing none
+      object copy 0: N r:r p:- q:-; refusing N/p, N/q; REFUSED N/p, N/q
+      lost   copy 0: N r:r p:rw q:rw; refusing none
+   7. merge kp_sync 1 0
+      union  copy 1: N r:r p:rw q:rw; refusing none
+      object copy 1: N r:r p:- q:-; refusing N/p, N/q; REFUSED N/p, N/q
+      lost   copy 1: N r:r p:rw q:rw; refusing none
+   8. merge kp_sync 0 1
+      union  copy 0: N r:r p:rw q:rw; refusing none
+      object copy 0: N r:r p:- q:-; refusing N/p, N/q; REFUSED N/p, N/q
+      lost   copy 0: N r:r p:rw q:rw; refusing none
+
+## L4: the same loss; q set in copy 0 and p in copy 1, then both ways
+   profiles r, p, q; nodes root, N
+   1. row 0 N p r
+      union  copy 0: N r:r p:r q:r; refusing none
+      object copy 0: N r:r p:r q:r; refusing none
+      lost   copy 0: N r:r p:r q:r; refusing none
+   2. row 0 N q r
+      union  copy 0: N r:r p:r q:r; refusing none
+      object copy 0: N r:r p:r q:r; refusing none
+      lost   copy 0: N r:r p:r q:r; refusing none
+   3. merge kp_sync 1 0
+      union  copy 1: N r:r p:r q:r; refusing none
+      object copy 1: N r:r p:r q:r; refusing none
+      lost   copy 1: N r:r p:r q:r; refusing none
+   4. lose 0 N/p
+      union  copy 0: N r:r p:- q:-; refusing N/p, N/q
+      object copy 0: N r:r p:- q:-; refusing N/p, N/q
+      lost   copy 0: N r:r p:- q:-; refusing N/p, N/q
+   5. merge kp_sync 1 0
+      union  copy 1: N r:r p:- q:-; refusing N/p, N/q
+      object copy 1: N r:r p:- q:-; refusing N/p, N/q
+      lost   copy 1: N r:r p:- q:-; refusing N/p, N/q
+   6. row 0 N q rw
+      union  copy 0: N r:r p:r q:rw; refusing none; WIDER at N for p (r, exact -)
+      object copy 0: N r:r p:- q:rw; refusing N/p
+      lost   copy 0: N r:r p:- q:rw; refusing N/p
+   7. row 1 N p rw
+      union  copy 1: N r:r p:rw q:r; refusing none
+      object copy 1: N r:r p:rw q:-; refusing N/q
+      lost   copy 1: N r:r p:rw q:-; refusing N/q
+   8. merge kp_sync 0 1
+      union  copy 0: N r:r p:rw q:rw; refusing none
+      object copy 0: N r:r p:rw q:rw; refusing none; CHANGED by a write that touches no rule: N p rw to -; N q rw to -; refusing none to N/p, N/q
+      lost   copy 0: N r:r p:rw q:rw; refusing none
+   9. merge kp_sync 1 0
+      union  copy 1: N r:r p:rw q:rw; refusing none
+      object copy 1: N r:r p:rw q:rw; refusing none; CHANGED by a write that touches no rule: N p rw to -; N q rw to -; refusing none to N/p, N/q
+      lost   copy 1: N r:r p:rw q:rw; refusing none
+
+## T1: the sequence of the product's test of two names whose tags meet: both rows set at N in a single write in copy 0, synchronized into copy 1, which then writes a name of its own as the test's next write does; a loss at p's place in copy 0; p set, then q, in copy 0; synchronized into copy 1, and its next write
+   profiles r, g, p, q; nodes root, N
+   1. rule 0 N p=r,q=r
+      union  copy 0: N r:r g:r p:r q:r; refusing none
+      object copy 0: N r:r g:r p:r q:r; refusing none
+      lost   copy 0: N r:r g:r p:r q:r; refusing none
+   2. merge kp_sync 1 0
+      union  copy 1: N r:r g:r p:r q:r; refusing none
+      object copy 1: N r:r g:r p:r q:r; refusing none
+      lost   copy 1: N r:r g:r p:r q:r; refusing none
+   3. padd 1 kept0
+      union  copy 1: N r:r g:r p:r q:r; refusing none
+      object copy 1: N r:r g:r p:r q:r; refusing none
+      lost   copy 1: N r:r g:r p:r q:r; refusing none
+   4. lose 0 N/p
+      union  copy 0: N r:r g:r p:- q:-; refusing N/p, N/q
+      object copy 0: N r:r g:r p:- q:-; refusing N/p, N/q
+      lost   copy 0: N r:r g:r p:- q:-; refusing N/p, N/q
+   5. row 0 N p rw
+      union  copy 0: N r:r g:r p:rw q:r; refusing none
+      object copy 0: N r:r g:r p:rw q:-; refusing N/q
+      lost   copy 0: N r:r g:r p:rw q:-; refusing N/q
+   6. row 0 N q rw
+      union  copy 0: N r:r g:r p:rw q:rw; refusing none
+      object copy 0: N r:r g:r p:- q:rw; refusing N/p; REFUSED N/p
+      lost   copy 0: N r:r g:r p:rw q:rw; refusing none
+   7. merge kp_sync 1 0
+      union  copy 1: N r:r g:r p:rw q:rw; refusing none
+      object copy 1: N r:r g:r p:rw q:rw; refusing none; BEYOND at N for p; CHANGED by a write that touches no rule: N p rw to -; refusing none to N/p
+      lost   copy 1: N r:r g:r p:rw q:rw; refusing none
+   8. padd 1 kept1
+      union  copy 1: N r:r g:r p:rw q:rw; refusing none
+      object copy 1: N r:r g:r p:- q:rw; refusing N/p; REFUSED N/p
+      lost   copy 1: N r:r g:r p:rw q:rw; refusing none
+
+## T2: T1 with q set before p
+   profiles r, g, p, q; nodes root, N
+   1. rule 0 N p=r,q=r
+      union  copy 0: N r:r g:r p:r q:r; refusing none
+      object copy 0: N r:r g:r p:r q:r; refusing none
+      lost   copy 0: N r:r g:r p:r q:r; refusing none
+   2. merge kp_sync 1 0
+      union  copy 1: N r:r g:r p:r q:r; refusing none
+      object copy 1: N r:r g:r p:r q:r; refusing none
+      lost   copy 1: N r:r g:r p:r q:r; refusing none
+   3. padd 1 kept0
+      union  copy 1: N r:r g:r p:r q:r; refusing none
+      object copy 1: N r:r g:r p:r q:r; refusing none
+      lost   copy 1: N r:r g:r p:r q:r; refusing none
+   4. lose 0 N/p
+      union  copy 0: N r:r g:r p:- q:-; refusing N/p, N/q
+      object copy 0: N r:r g:r p:- q:-; refusing N/p, N/q
+      lost   copy 0: N r:r g:r p:- q:-; refusing N/p, N/q
+   5. row 0 N q rw
+      union  copy 0: N r:r g:r p:r q:rw; refusing none; WIDER at N for p (r, exact -)
+      object copy 0: N r:r g:r p:- q:rw; refusing N/p
+      lost   copy 0: N r:r g:r p:- q:rw; refusing N/p
+   6. row 0 N p rw
+      union  copy 0: N r:r g:r p:rw q:rw; refusing none; WIDER at N for p (rw, exact -)
+      object copy 0: N r:r g:r p:rw q:-; refusing N/q; REFUSED N/q
+      lost   copy 0: N r:r g:r p:rw q:rw; refusing none
+   7. merge kp_sync 1 0
+      union  copy 1: N r:r g:r p:rw q:rw; refusing none; WIDER at N for p (rw, exact -)
+      object copy 1: N r:r g:r p:rw q:rw; refusing none; BEYOND at N for q; CHANGED by a write that touches no rule: N q rw to -; refusing none to N/q
+      lost   copy 1: N r:r g:r p:rw q:rw; refusing none
+   8. padd 1 kept1
+      union  copy 1: N r:r g:r p:rw q:rw; refusing none; WIDER at N for p (rw, exact -)
+      object copy 1: N r:r g:r p:rw q:-; refusing N/q; REFUSED N/q
+      lost   copy 1: N r:r g:r p:rw q:rw; refusing none
+
+## T3: T1 with the copies exchanged
+   profiles r, g, p, q; nodes root, N
+   1. rule 1 N p=r,q=r
+      union  copy 1: N r:r g:r p:r q:r; refusing none
+      object copy 1: N r:r g:r p:r q:r; refusing none
+      lost   copy 1: N r:r g:r p:r q:r; refusing none
+   2. merge kp_sync 0 1
+      union  copy 0: N r:r g:r p:r q:r; refusing none
+      object copy 0: N r:r g:r p:r q:r; refusing none
+      lost   copy 0: N r:r g:r p:r q:r; refusing none
+   3. padd 0 kept0
+      union  copy 0: N r:r g:r p:r q:r; refusing none
+      object copy 0: N r:r g:r p:r q:r; refusing none
+      lost   copy 0: N r:r g:r p:r q:r; refusing none
+   4. lose 1 N/p
+      union  copy 1: N r:r g:r p:- q:-; refusing N/p, N/q
+      object copy 1: N r:r g:r p:- q:-; refusing N/p, N/q
+      lost   copy 1: N r:r g:r p:- q:-; refusing N/p, N/q
+   5. row 1 N p rw
+      union  copy 1: N r:r g:r p:rw q:r; refusing none
+      object copy 1: N r:r g:r p:rw q:-; refusing N/q
+      lost   copy 1: N r:r g:r p:rw q:-; refusing N/q
+   6. row 1 N q rw
+      union  copy 1: N r:r g:r p:rw q:rw; refusing none
+      object copy 1: N r:r g:r p:- q:rw; refusing N/p; REFUSED N/p
+      lost   copy 1: N r:r g:r p:rw q:rw; refusing none
+   7. merge kp_sync 0 1
+      union  copy 0: N r:r g:r p:rw q:rw; refusing none
+      object copy 0: N r:r g:r p:rw q:rw; refusing none; BEYOND at N for p; CHANGED by a write that touches no rule: N p rw to -; refusing none to N/p
+      lost   copy 0: N r:r g:r p:rw q:rw; refusing none
+   8. padd 0 kept1
+      union  copy 0: N r:r g:r p:rw q:rw; refusing none
+      object copy 0: N r:r g:r p:- q:rw; refusing N/p; REFUSED N/p
+      lost   copy 0: N r:r g:r p:rw q:rw; refusing none
+
+## Z1: a name z whose tag is 0 and the object of N's rule with no slash: each set and changed, synchronized, z set in copy 1, both ways
+   profiles r, z; nodes root, N
+   1. row 0 N z r
+      union  copy 0: N r:r z:r; refusing none
+      object copy 0: N r:r z:r; refusing none
+      lost   copy 0: N r:r z:r; refusing none
+   2. plain 0 N r
+      union  copy 0: N r:r z:r; refusing none
+      object copy 0: N r:r z:r; refusing none
+      lost   copy 0: N r:r z:r; refusing none
+   3. plain 0 N rw
+      union  copy 0: N r:r z:r; refusing none
+      object copy 0: N r:r z:-; refusing N/z; REFUSED N/z
+      lost   copy 0: N r:r z:r; refusing none
+   4. row 0 N z rw
+      union  copy 0: N r:r z:rw; refusing none
+      object copy 0: N r:r z:rw; refusing N/(no slash)
+      lost   copy 0: N r:r z:rw; refusing none
+   5. plain 0 N 
+      union  copy 0: N r:r z:rw; refusing none
+      object copy 0: N r:r z:-; refusing N/z; REFUSED N/z
+      lost   copy 0: N r:r z:rw; refusing none
+   6. merge kp_sync 1 0
+      union  copy 1: N r:r z:rw; refusing none
+      object copy 1: N r:r z:-; refusing N/z; REFUSED N/z
+      lost   copy 1: N r:r z:rw; refusing none
+   7. row 1 N z r
+      union  copy 1: N r:r z:r; refusing none
+      object copy 1: N r:r z:r; refusing N/(no slash)
+      lost   copy 1: N r:r z:r; refusing none
+   8. merge kp_sync 0 1
+      union  copy 0: N r:r z:r; refusing none
+      object copy 0: N r:r z:r; refusing N/(no slash)
+      lost   copy 0: N r:r z:r; refusing none
+   9. merge kp_sync 1 0
+      union  copy 1: N r:r z:r; refusing none
+      object copy 1: N r:r z:r; refusing N/(no slash)
+      lost   copy 1: N r:r z:r; refusing none
+
+## Z2: a loss at the place of z's row, which the object with no slash shares; z set again
+   profiles r, z; nodes root, N
+   1. row 0 N z r
+      union  copy 0: N r:r z:r; refusing none
+      object copy 0: N r:r z:r; refusing none
+      lost   copy 0: N r:r z:r; refusing none
+   2. plain 0 N r
+      union  copy 0: N r:r z:r; refusing none
+      object copy 0: N r:r z:r; refusing none
+      lost   copy 0: N r:r z:r; refusing none
+   3. lose 0 N/z
+      union  copy 0: N r:r z:-; refusing N/(no slash), N/z
+      object copy 0: N r:r z:-; refusing N/(no slash), N/z
+      lost   copy 0: N r:r z:-; refusing N/(no slash), N/z
+   4. row 0 N z rw
+      union  copy 0: N r:r z:rw; refusing none
+      object copy 0: N r:r z:rw; refusing N/(no slash)
+      lost   copy 0: N r:r z:rw; refusing N/(no slash)
+   5. merge kp_sync 1 0
+      union  copy 1: N r:r z:rw; refusing none
+      object copy 1: N r:r z:rw; refusing N/(no slash)
+      lost   copy 1: N r:r z:rw; refusing N/(no slash)
+
+## W1: the switch of N edited, then a loss of a version of it, and the switch set again
+   profiles r, p, q; nodes root, N
+   1. row 0 N p r
+      union  copy 0: N r:r p:r q:r; refusing none
+      object copy 0: N r:r p:r q:r; refusing none
+      lost   copy 0: N r:r p:r q:r; refusing none
+   2. switch 0 N deny
+      union  copy 0: N r:- p:r q:-; refusing none
+      object copy 0: N r:- p:r q:-; refusing none
+      lost   copy 0: N r:- p:r q:-; refusing none
+   3. switch 0 N inherit
+      union  copy 0: N r:r p:r q:r; refusing none
+      object copy 0: N r:r p:r q:r; refusing none
+      lost   copy 0: N r:r p:r q:r; refusing none
+   4. switch 0 N deny
+      union  copy 0: N r:- p:r q:-; refusing none
+      object copy 0: N r:- p:r q:-; refusing none
+      lost   copy 0: N r:- p:r q:-; refusing none
+   5. merge kp_sync 1 0
+      union  copy 1: N r:- p:r q:-; refusing none
+      object copy 1: N r:- p:r q:-; refusing none
+      lost   copy 1: N r:- p:r q:-; refusing none
+   6. lose 0 sw:N
+      union  copy 0: N r:- p:r q:-; refusing N/switch
+      object copy 0: N r:- p:r q:-; refusing N/switch
+      lost   copy 0: N r:- p:r q:-; refusing N/switch
+   7. switch 0 N deny
+      union  copy 0: N r:- p:r q:-; refusing none
+      object copy 0: N r:- p:r q:-; refusing none
+      lost   copy 0: N r:- p:r q:-; refusing none
+   8. merge kp_sync 1 0
+      union  copy 1: N r:- p:r q:-; refusing none
+      object copy 1: N r:- p:r q:-; refusing none
+      lost   copy 1: N r:- p:r q:-; refusing none
+
+== tally: steps flagged, by behavior
+   union  wider 11, refused 0, beyond 0, changed 0, file differs 0
+   object wider 0, refused 50, beyond 3, changed 5, file differs 0
+   lost   wider 0, refused 0, beyond 0, changed 0, file differs 0

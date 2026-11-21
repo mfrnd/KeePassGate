@@ -1,0 +1,28 @@
+== 200000 histories over two copies, 8 to 16 steps, seed 15; profiles r, p, q; nodes root, N; read and write
+   alphabet: 84 acts (a row set to rw, r, empty or taken off, the switch, a row settled, a loss of a version of a row or of the switch at each node, in either copy) and 6 merges (Synchronize, Overwrite if newer, KeePassXC, either way), an act drawn with 0.6
+   steps drawn 2400392; histories holding a loss 150843, a settle 130190
+   a history fails where a copy, under the behavior, gives a capability the exact reading of the same file does not, refuses a row with no loss at its place behind it, or answers otherwise after a write that touches no rule; a merge beyond both copies is classed by the exact readings
+   union  histories failing 19436: wider than the exact reading 19436; a row refused with no lost version of its own 0; an answer changed by a write that touches no rule 0
+          histories with a merge beyond both copies: wider than the exact reading 179; the exact reading beyond both as well 2654; within what the copies give read exactly 1278
+          merges beyond, wider than the exact reading, by program: kp_sync 18, kp_other 85, xc 97
+          merges beyond, the exact reading beyond both as well, by program: kp_other 1543, xc 1469
+          merges beyond, within what the copies give read exactly, by program: kp_sync 14, kp_other 729, xc 741
+   object histories failing 137012: wider than the exact reading 0; a row refused with no lost version of its own 133031; an answer changed by a write that touches no rule 89373
+          histories with a merge beyond both copies: wider than the exact reading 0; the exact reading beyond both as well 2668; within what the copies give read exactly 8737
+          merges beyond, the exact reading beyond both as well, by program: kp_other 1535, xc 1486
+          merges beyond, within what the copies give read exactly, by program: kp_sync 576, kp_other 3803, xc 7638
+   lost   histories failing 0: wider than the exact reading 0; a row refused with no lost version of its own 0; an answer changed by a write that touches no rule 0
+          histories with a merge beyond both copies: wider than the exact reading 0; the exact reading beyond both as well 2745; within what the copies give read exactly 1243
+          merges beyond, the exact reading beyond both as well, by program: kp_other 1593, xc 1521
+          merges beyond, within what the copies give read exactly, by program: kp_other 712, xc 722
+   shortest drawn, lost, beyond, the exact reading beyond both as well (3 steps, shrunk from 8): lose 0 N/p ; row 0 root p rw ; merge kp_other 1 0
+   shortest drawn, lost, beyond, within what the copies give read exactly (3 steps, shrunk from 8): lose 1 N/q ; row 1 root p rw ; merge xc 0 1
+   shortest drawn, object, beyond, the exact reading beyond both as well (3 steps, shrunk from 8): lose 0 N/p ; row 0 root p rw ; merge kp_other 1 0
+   shortest drawn, object, beyond, within what the copies give read exactly (3 steps, shrunk from 8): row 0 root p rw ; row 0 root q r ; merge xc 0 1
+   shortest drawn, object, changed (2 steps, shrunk from 8): row 1 root q off ; merge xc 1 0
+   shortest drawn, object, refused (1 steps, shrunk from 8): row 0 root p rw
+   shortest drawn, union, beyond, the exact reading beyond both as well (3 steps, shrunk from 8): lose 0 N/p ; row 0 root p rw ; merge kp_other 1 0
+   shortest drawn, union, beyond, wider than the exact reading (5 steps, shrunk from 8): lose 1 root/q ; merge kp_sync 0 1 ; lose 0 N/p ; settle 0 root p ; merge kp_other 1 0
+   shortest drawn, union, beyond, within what the copies give read exactly (3 steps, shrunk from 8): lose 1 N/q ; row 1 root p rw ; merge xc 0 1
+   shortest drawn, union, wider (2 steps, shrunk from 8): lose 1 root/q ; row 1 root p rw
+   time 337 s

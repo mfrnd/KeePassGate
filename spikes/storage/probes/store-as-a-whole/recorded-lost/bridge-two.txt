@@ -1,0 +1,5 @@
+== 2000 histories over two copies, 4 to 12 steps, seed 21, the alphabet of the search two: after every step that applied, the file of the copy it changed written by store.py's Encoder and read by read.py with the same behavior, held to the model's fold of it (what each node gives each profile, the rows and switches lost, and whether the store is whole)
+   union  steps compared 12977; steps that differ 0
+   object steps compared 13051; steps that differ 0
+   lost   steps compared 12990; steps that differ 0
+   time 4 s

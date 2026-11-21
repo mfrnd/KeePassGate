@@ -1,0 +1,52 @@
+== StoreRecordVectors.json
+   members at the top: about, key, profileTags, records, texts
+   key: the same
+   profileTags: the same
+   records: 28 held today, 36 printed; added 8, removed 0, changed 0
+      added: head of height 1, restating versions that settle lost versions
+      added: version, a row replacing a version and settling a lost version
+      added: version, a row replacing a version that settled a lost version, carrying it on
+      added: version, a row settling two lost versions and replacing none
+      added: version, a row whose content no store holds, lost
+      added: version, a rule taken off whose content no store holds, lost
+      added: version, the switch inheriting whose content no store holds, lost
+      added: version, the switch replacing a version and settling a lost version
+   texts: the same
+   about: the text held today, and 982 characters added after it
+== StoreMeaningVectors.json
+   members at the top: about, key, meanings
+   key: the same
+   meanings: 70 held today, 84 printed; added 14, removed 0, changed 0
+      added: rules, a tag of 0: a deletion record at that place settled by z
+      added: rules, a tag of 0: a version of the object with no slash replacing a version
+      added: rules, a tag of 0: a version of z replacing a version, beside the object with no slash
+      added: rules, tags that meet: a deletion record at their place named in after by a version at another node
+      added: rules, tags that meet: a deletion record at their place whose content is nowhere
+      added: rules, tags that meet: a version beside its deletion record, named in lost by its own row
+      added: rules, tags that meet: a version beside its deletion record, named in lost by the other row
+      added: rules, tags that meet: a version of q replacing a version, beside its deletion record
+      added: rules, tags that meet: settled by each, after the next write deleted both summary entries
+      added: rules, tags that meet: settled by each, an earlier summary entry still restating what each replaced
+      added: rules, tags that meet: that deletion record settled by p alone
+      added: rules, tags that meet: that deletion record settled by p and by q
+      added: rules, tags that meet: that deletion record settled by p, and a version of q replacing a version
+      added: rules, the switch: a lost version settled by a version of the switch
+   about: the text held today, and 1512 characters added after it
+== StoreWriteVectors.json
+   members at the top: about, sequences
+   sequences: 35 held today, 49 printed; added 14, removed 0, changed 0
+      added: lost, E1: ordinary edits of q at N where p holds a rule: q set, changed, taken off, set again, in copy 0; synchronized; q emptied in copy 1; both ways
+      added: lost, E2: E1 with p and q swapped
+      added: lost, E3: ordinary edits of q at N and at the group G above it, where p holds a rule at both; then of q in copy 1 at both, both ways
+      added: lost, F1: the fail-open sequence: the root grants p every letter, N holds an empty rule for p made in copy 0 after the copies parted, deleted there for good with a deletion record and its summary entry deleted with none, synchronized into copy 1, which wrote a summary entry of its own meanwhile; copy 1 then sets q's row alone
+      added: lost, L1: a true loss of p's version at N (a deletion record at the place of p's row whose content is nowhere), in both copies; q set first, then p
+      added: lost, L2: the same loss; p set first, then q
+      added: lost, L3: the same loss; both set in a single write
+      added: lost, L4: the same loss; q set in copy 0 and p in copy 1, then both ways
+      added: lost, T1: the sequence of the product's test of two names whose tags meet: both rows set at N in a single write in copy 0, synchronized into copy 1, which then writes a name of its own as the test's next write does; a loss at p's place in copy 0; p set, then q, in copy 0; synchronized into copy 1, and its next write
+      added: lost, T2: T1 with q set before p
+      added: lost, T3: T1 with the copies exchanged
+      added: lost, W1: the switch of N edited, then a loss of a version of it, and the switch set again
+      added: lost, Z1: a name z whose tag is 0 and the object of N's rule with no slash: each set and changed, synchronized, z set in copy 1, both ways
+      added: lost, Z2: a loss at the place of z's row, which the object with no slash shares; z set again
+   about: the text held today, and 1784 characters added after it

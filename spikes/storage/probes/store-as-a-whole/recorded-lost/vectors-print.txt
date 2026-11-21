@@ -1,0 +1,9 @@
+StoreRecordVectors.json with --judge union: the same bytes as without it
+StoreRecordVectors.json with --judge object: the same bytes as without it
+StoreRecordVectors.json with --judge lost: the same bytes as without it
+StoreMeaningVectors.json with --judge union: the same bytes as without it
+StoreMeaningVectors.json with --judge object: the same bytes as without it
+StoreMeaningVectors.json with --judge lost: the same bytes as without it
+StoreWriteVectors.json with --judge union: the same bytes as without it
+StoreWriteVectors.json with --judge object: the same bytes as without it
+StoreWriteVectors.json with --judge lost: the same bytes as without it
