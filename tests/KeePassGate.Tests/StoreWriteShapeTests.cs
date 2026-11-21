@@ -198,9 +198,8 @@ namespace KeePassGate.Tests
         [TestCaseSource(nameof(RuleSequences))]
         public void A_sequence_of_rules_at_single_nodes_writes_and_reads_what_the_model_did(string name)
         {
-            var first = new MemoryStore();
-            StoreSeeds.Authority(first);
             var lost = name.StartsWith("lost, ", StringComparison.Ordinal);
+            var first = StoreFor((JObject)Vectors()["sequences"][name]);
             var sequence = lost ? Renamed((JObject)Vectors()["sequences"][name], first) : (JObject)Vectors()["sequences"][name];
             if (lost)
             {
@@ -267,11 +266,8 @@ namespace KeePassGate.Tests
         /// </summary>
         private static JObject Renamed(JObject sequence, MemoryStore store)
         {
-            var profiles = ((JArray)sequence["profiles"]).Select(profile => (string)profile).ToList();
-            var searched = profiles.Where(Searched).ToList();
-            var others = profiles.Where(profile => !Searched(profile))
-                .Concat(((JArray)sequence["steps"]).Where(step => (string)step["command"] == "Add name").Select(step => (string)step["act"][2]))
-                .ToList();
+            var searched = ((JArray)sequence["profiles"]).Select(profile => (string)profile).Where(Searched).ToList();
+            var others = Others(sequence);
             var model = StoreComposer.MeasuredKey("K");
             Dictionary<string, string> names;
             using (var reading = store.Read())
@@ -311,6 +307,49 @@ namespace KeePassGate.Tests
             {
                 return JObject.Load(reader);
             }
+        }
+
+        /// <summary>
+        /// A store with its authority under whose key the names a sequence takes as they stand
+        /// have tags as the model's key gave them: none of 0, and no two alike. A store's key is
+        /// random and a tag is two bytes of a keyed hash, so under some keys such a name has a
+        /// tag of 0 or the tag of another name of the sequence, which the model's sequence did
+        /// not play; a store with such a key is made again.
+        /// </summary>
+        private static MemoryStore StoreFor(JObject sequence)
+        {
+            while (true)
+            {
+                var store = new MemoryStore();
+                StoreSeeds.Authority(store);
+                using (var reading = store.Read())
+                {
+                    var key = (byte[])reading.InForce.Key.Bytes.Clone();
+                    try
+                    {
+                        var tags = Others(sequence).Distinct(StringComparer.Ordinal).Select(other => StoreComposer.ProfileTag(key, other)).ToList();
+                        if (!tags.Contains(0) && tags.Distinct().Count() == tags.Count)
+                        {
+                            return store;
+                        }
+                    }
+                    finally
+                    {
+                        Array.Clear(key, 0, key.Length);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// The names of a sequence that the model did not search for by their tags: its profiles
+        /// that are no searched name, and each name a step adds.
+        /// </summary>
+        private static List<string> Others(JObject sequence)
+        {
+            return ((JArray)sequence["profiles"]).Select(profile => (string)profile).Where(profile => !Searched(profile))
+                .Concat(((JArray)sequence["steps"]).Where(step => (string)step["command"] == "Add name").Select(step => (string)step["act"][2]))
+                .ToList();
         }
 
         /// <summary>Whether a name is a name the model searched for by its tag: `q` and a counter.</summary>
