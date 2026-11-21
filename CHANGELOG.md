@@ -73,9 +73,8 @@ none, since it releases both.
   by a further entry. 0.2 kept the whole list as a single value in the database's custom data,
   `KPG.Profiles`, and that is reversed rather than migrated: 0.3 reads nothing of that value, so
   in a database whose profiles 0.2 named, the Profiles page lists no name, and each name is
-  entered again there or comes back when a pairing that asks for it is approved. The rules on
-  groups and entries stay where they were, and a rule applies again once the name it is for is
-  on the list.
+  entered again there or comes back when a pairing that asks for it is approved. The rules for
+  groups and entries are entered again as well, below.
   **A name needs the authority first.** On a database with no authority the Profiles page
   refuses a name with "This database has no certificate authority yet. Create it on the
   Certificate Authority page first."; a name added after **Create authority** on the same visit
@@ -101,6 +100,86 @@ none, since it releases both.
   while the dialog is open, OK does not add the name. The line under the list states so while
   the dialog is open, and the plugin's log names the name at OK. Everything else on the tab is
   written, and the name comes back by being added on the page again. `STORE.md` §627.
+- **Breaking: the rules are records in the plugin's store, and every rule is entered again.** A
+  profile's rule at a group or an entry, and the setting **Refuse any profile not named here**,
+  are entries of the group `KeePassGate`, each under the identifier of the group or entry it is
+  about, and nothing of a rule is written on that group or entry. 0.2 kept a group's or an
+  entry's rules in its custom data, and that is reversed rather than migrated: 0.3 reads nothing
+  there and changes nothing there, so in a database whose rules 0.2 wrote, every **KPG** tab
+  shows no rule and no program is granted anything until the rules are set again, once the
+  authority is created and the profiles are named. What 0.2 wrote stays where it was and grants
+  and refuses nothing. Nothing a program is sent changes, and nothing in PyKeePassGate.
+  `STORE.md` §617 and §645.
+- **Breaking: a copy of a group or an entry carries no rule.** A rule belongs to its group or
+  entry by identifier, so **Duplicate Entry**, **Duplicate Group**, a copy made into another
+  group or another database and an entry made from a template have no rule: the copy grants
+  what reaches it from the groups above, where under 0.2 it carried the rules of what it was
+  copied from. A copy of an entry that a rule of its own kept narrow is therefore as open as
+  the group it lands in until a rule is set on the copy. A group or an entry that is moved
+  keeps its rule. **Restoring an earlier version of an entry changes no rule**, where under 0.2
+  it put back the rules that version held, and the **KPG** tab of an earlier version shows the
+  entry's rules as they stand, and takes no change. `STORE.md` §617.
+- **Breaking: a rule cannot be set before the database has its authority.** On a database with
+  no authority the **KPG** tab of a group or an entry takes no change and reads "No
+  certificate authority yet. The KPG tab of the database settings creates the authority." 0.2
+  took a rule before any authority. `STORE.md` §657.
+- **The rules changed on a KPG tab are written together at the dialog's OK.** A press on the tab
+  changes nothing in the database; **OK** writes every change of the tab, puts it in force from
+  the gate's next request and marks the database as changed, also where nothing else on the
+  dialog was touched, so KeePass treats the rules as any unsaved change; Cancel, Escape and
+  the close box discard them, and Escape after a change of rules alone asks nothing. A change
+  of rules alone gives the group or entry no new modification time and an entry no new version
+  in its history. A row or a check box changed on the tab stands on a light yellow until the
+  dialog closes, with "Changed on this tab. OK writes the change, and Cancel discards the
+  change." in its tooltip. With no list open on the table, Enter and Escape are the dialog's OK
+  and Cancel. `STORE.md` §629.
+- **A change that OK did not keep is told in a message once the dialog has closed**, "Not every
+  change made on the KPG tab was kept." or "No change made on the KPG tab was kept.", with a
+  line for each cause, and the plugin's log names the group or entry by the first eight
+  characters of its identifier. A rule changed on a tab is in the plugin's log and in no line
+  of the audit. `STORE.md` §629.
+- **The table of a KPG tab has a State column**, with a tooltip on each of its words:
+  **Inherited** for a rule from a group above, **Refused here** for such a rule where the
+  check box stops it, **No profile** for a rule whose name is off the database's list, and
+  **Limit**, **Version**, **Taken off** and **Lost**, below. A group or an entry holds a rule
+  for as many profiles as are chosen, where 0.2 held 31, and the table scrolls. On a database
+  that names no profile the tab states where profiles are named. `STORE.md` §657.
+- **The X removes a rule also while the check box is ticked**, and until the dialog closes the
+  row shows what the profile is left with: the rule from a group above, refused or in force, or
+  no letter. **A group or an entry whose rule was removed, or whose check box was cleared, is
+  given at most what reached it then.** A rule widened above it later in the same copy of the
+  database carries it along, in the same OK. A widening that arrives from another copy does
+  not: the tab then shows a **Limit** row under the inherited rule, the gate grants what both
+  rows share, and the X on the **Limit** row, with OK, lets the whole grant through. Clearing
+  the check box lets through every profile the table then shows as inherited, a profile whose
+  rule there was removed while the box was ticked among them; a rule given to such a profile
+  on the same tab before OK keeps it out. `STORE.md` §617, §639 and §657.
+- **Copies of a database that each changed rules keep every change once they are synchronized
+  in KeePass, and never grant more at a group or an entry than the rules standing there
+  allow.** 0.2 kept the rules of whichever copy touched the group or entry last, and lost a
+  narrowing made in the other. Different profiles changed at the same group or entry both
+  hold. The same profile's rule changed in both copies shows as rows bound together, a
+  **Version** each, or **Taken off** where a version removed the rule: the gate grants what
+  all versions hold until the operator has removed versions with their X and a single row is
+  left. The check box set differently in two copies shows a third mark and refuses every
+  profile not named until it is pressed. What the plugin does not settle between copies, and
+  what to look at after a synchronize, is in `docs/access-control.md` under "Copies of a
+  database". `STORE.md` §617, §639 and §657.
+- **A rule that was lost refuses its profile where it stood, and a damaged record of a rule
+  stops the store.** A version of a rule that was deleted with its content left nowhere, or
+  that cannot be read, shows as **Lost**: the profile is granted nothing at that group or
+  entry until a rule chosen on the row replaces it, and a lost **Refuse any profile not named
+  here** refuses every profile not named until the box is set again. A record of a rule that
+  fails its check is damage to the store, and every request is answered `503 stopped`, below.
+  Under 0.2 a rule that would not read refused at its group or entry alone, and the tab had a
+  **Discard** button for it, which is gone. `STORE.md` §617, §621 and §624.
+- **The audit gives three further reasons for a refusal by the rules**: `a limit here does not
+  let it through`, `rules here made apart do not all grant it` and `a rule here was lost`; and
+  `a rule here could not be read` is given for a version whose text cannot be read. Each names
+  under `decidedAt` the group or entry whose **KPG** tab shows the cause in its State column.
+  The routes that answer what a client may do at a group or an entry answer what the gate
+  grants there, a limit and several versions taken into account, in the masks they always
+  answered with. `docs/audit.md` and `API.md` §401.
 - **Breaking: `GET /gate/whoami` answers no `profilesUnreadable`, and PyKeePassGate has no
   `Identity.profiles_unreadable`.** A list of profiles that will not read is no state of a 0.3
   database: a record of a name that will not read stops the store, as any record of the store

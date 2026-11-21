@@ -9,18 +9,23 @@ mutual TLS, so that automation and AI agents can each be given a narrow, revocab
 a database.
 
 **Status: released, and changed through pull requests into `master`.** The plugin makes each
-database its own certificate authority, kept with the admissions, the revocations and the
-profile names as entries of a group of the plugin's own in that database, `STORE.md`, and serves a
+database its own certificate authority, kept with the admissions, the revocations, the profile
+names and the rules as entries of a group of the plugin's own in that database, `STORE.md`, and
+serves a
 gate on loopback over mutual TLS 1.3, on Windows only. A client is served only while the database
 holds an admission record for its certificate that nothing refuses. A stranger becomes a client
 by pairing, on an invitation from the KPG tab and an approval dialog the operator answers, and a
 client's certificate is renewed on a dialog of the same kind, given up by the client, taken away
 alone by the operator, or revoked by the operator with every other certificate of its client. The
 OpenAPI document is the routing table, and every route declares the verb it needs: the router
-intersects the record's profiles with the rules kept on groups and entries, which the KPG tab
-of their dialogs edits as a `CRUSDLAP` mask, and writes every decision the rules make, and
+intersects the record's profiles with the rules the store holds for groups and entries, which
+the KPG tab of their dialogs sets as a `CRUSDLAP` mask and writes as the dialog closes with OK,
+and writes every decision the rules make, and
 every pairing, renewal, revocation and certificate taken away, to an audit file outside the
-database. A locked database answers `503 locked`. PyKeePassGate is the reference client, a
+database. A rule changed apart in copies of a database stands in every version and grants what
+all versions allow, and a group or an entry whose rule was removed is given at most what
+reached it then, until the operator settles either on the tab. A locked database answers
+`503 locked`. PyKeePassGate is the reference client, a
 library and a command line covering every route, and a `v` tag publishes the two, the plugin's
 zip as a GitHub release and the client on PyPI. [`docs/`](docs/README.md) is the operator's
 account of all of it.
@@ -34,7 +39,7 @@ account of all of it.
 | [`API.md`](API.md) | the reasoning behind the routes and what is deliberately absent, with the per-route detail in [`openapi.yaml`](src/KeePassGate/Spec/openapi.yaml) |
 | [`CA.md`](CA.md) | the certificate authority: issuance, claims, validation, revocation |
 | [`PAIRING.md`](PAIRING.md) | how a stranger becomes a client, with the flow diagrams |
-| [`STORE.md`](STORE.md) | the store decided for 0.3.0: where the plugin's data lives in a database, how it is written and read, and a section attacking it. **Decided, and built only in part**, the guard, the reading, the authority, the admissions and revocations, and the profile names: 0.2.0 ships the store of `CA.md` §204 |
+| [`STORE.md`](STORE.md) | the store decided for 0.3.0: where the plugin's data lives in a database, how it is written and read, and a section attacking it. **Decided, and built only in part**, the guard, the reading, the authority, the admissions and revocations, the profile names and the rules: 0.2.0 ships the store of `CA.md` §204 |
 | [`FINDINGS.md`](FINDINGS.md) | what was measured rather than assumed, and what turned out wrong |
 | [`TESTING.md`](TESTING.md) | the four test tiers, what each one buys, and how to run them |
 | [`RELEASING.md`](RELEASING.md) | how a version is published, and the settings a release needs |
@@ -1570,7 +1575,11 @@ here can hang or crash the password manager.
 **Start with [`docs/`](docs/README.md) if the question is what this does**, and with the documents
 listed under "Read these before proposing anything" if the question is why it does it that way. A
 change goes in as a pull request into `master`, one topic to each, as
-[`CONVENTIONS.md`](CONVENTIONS.md) sets out.
+[`CONVENTIONS.md`](CONVENTIONS.md) sets out. **For the rules**, [`STORE.md`](STORE.md) §617 is the
+contract, §629 the write a group's or an entry's dialog makes at OK and §657 the grant editor;
+[`docs/access-control.md`](docs/access-control.md) is what an operator is told of them, and
+`STORE.md` §644 what is still owed a run: rules changed apart over synchronized copies beyond
+the histories that ran, the rest of the drive in a real KeePass, and the pictures of the tab.
 
 ## What each part settled
 

@@ -1,8 +1,7 @@
 # Deciding what a profile reaches
 
 A profile is a name the database keeps. On its own it grants nothing. The rules that give it
-meaning live on its groups and entries, and are written on the **KPG** tab of the group and
-entry dialogs.
+meaning are set for groups and entries, on the **KPG** tab of the group and entry dialogs.
 
 Profiles are managed on the **Profiles** page of the database settings, and approving a pairing can
 create one. See [Naming profiles](#naming-profiles).
@@ -16,7 +15,7 @@ Open **File**, **Database Settings**, pick the **KPG** tab, then the **Profiles*
 | | |
 | --- | --- |
 | **Profile** | the name, which is what a rule and a certificate both carry |
-| **Rules** | how many groups and entries have a rule for it, whatever the rule grants, which is how many rules removing it leaves inert; nothing in the recycle bin counts, since no rule there decides anything |
+| **Rules** | how many groups and entries have a rule for it, whatever the rule grants, an empty rule included, which is how many rules removing it leaves inert; a rule that was removed does not count, and nothing in the recycle bin counts, since no rule there decides anything |
 | **Clients** | how many admitted clients hold it, counting only those the gate lets in: the clients page marks the rest |
 | **X** | removes it |
 
@@ -28,7 +27,7 @@ added on the same visit to the dialog, and **OK** writes the authority and the n
 
 Type a name and press **Add**. A name is ASCII letters, digits, hyphens and underscores, up to 64
 of them, so the letters are A to Z without accents, and it is not `default` in any mix of capitals,
-which the stored rules keep for a meaning of their own. It grants nothing until a rule names it.
+a name the plugin keeps for itself. It grants nothing until a rule names it.
 A database holds as many names as are added, and past the rows the page has room for the list
 scrolls down.
 
@@ -66,13 +65,14 @@ that only a later release of the plugin reads. The Certificate Authority page st
 
 **Removing a profile takes it off this list and touches nothing else**, and from then on it grants
 nothing. A program is given only the profiles its record holds that this list still names, so a
-rule naming a removed profile stays on its group or entry, inert, and the access editor shows it
-struck through. The page states how many rules still name it and how many clients still hold it.
+rule naming a removed profile stays where it is, inert, and the **KPG** tab of its group or entry
+shows it struck through, with **No profile** as its state. The page states how many rules still
+name it and how many clients still hold it.
 
-That holds wherever the rule comes from: a group or entry dialog that was open while the profile was
-removed and is then accepted, an old version of an entry restored from its history, or a copy of the
-database merged in. None of them can bring a removed profile back into force through its rules, so
-none of them has to be closed or checked first.
+That holds wherever the rule comes from: a rule set on a group or entry dialog that was open while
+the profile was removed and is then accepted, or a copy of the database synchronized in. Neither
+can bring a removed profile back into force through its rules, so nothing has to be closed or
+checked first.
 
 **Copies of the database that each changed their profiles keep every change once they are
 synchronized.** Each name added and each name removed is an entry of its own in the plugin's
@@ -100,6 +100,12 @@ nothing: the gate refuses it before its record is read. The one exception is a c
 renewed to was recorded without the profile and does not regain it, while the older one, until the
 client gives it up, still holds it and does, which is why the warning still names that client.
 
+**The rules that come back are the rules as every copy of the database left them.** While a name
+is off the list, a change to a rule for it shows no effect, so another copy of the database may
+have widened such a rule without anybody noticing. After adding a name back in a database that is
+synchronized with other copies, look at the rules that name it:
+[Copies of a database](#copies-of-a-database) has the rest.
+
 As everywhere else on this tab, nothing is changed until **OK** is pressed on the settings dialog,
 and **saving the database** is what puts it on disk. Cancel discards it.
 
@@ -110,27 +116,49 @@ the **KPG** tab.
 
 ![The KPG tab on a group, with a rule on it](images/group-access.png)
 
-The line at the top states the same thing on both dialogs: rules are inherited from parent groups
-and can be overwritten. On a group that reaches every entry in it and in the groups inside it; on an
-entry it reaches that entry, with whatever the groups above grant shown among its own rules.
+The table has a row for each profile with a rule here or a rule arriving from a group above: the
+**Profile**, its **Permissions** as a mask, a **State**, and in the last column an **X**. Under the
+table is the check box **Refuse any profile not named here**.
+
+The line at the top states the same thing on both dialogs: "Rules are inherited from parent groups
+and can be overwritten." On a group a rule reaches every entry in it and in the groups inside it; on
+an entry it reaches that entry, with whatever the groups above grant shown among its own rules. On
+the root group, which has nothing above it, the line reads "Rules set at the root group reach every
+group and entry below."
+
+**The database needs its certificate authority before a rule is set.** Until then the tab takes no
+change and reads "No certificate authority yet. The KPG tab of the database settings creates the
+authority." in place of the line at the top:
+[create the authority](getting-started.md#create-the-authority) first.
+
+**And it needs a profile.** On a database that names no profile the tab reads "This database names
+no profile. Profiles are named on the Profiles page of the KPG tab in the database settings.", and
+the table offers no line to choose a profile on. The check box still takes a press.
+The line at the top stays above that notice.
 
 ## Writing a rule
 
 A rule is a profile and an eight character mask. **Neither is typed.** Click the empty line at the
-bottom of the table and pick a profile from the list, then pick what it may do from the list the
-**Permissions** column opens.
+bottom of the table, which reads "Click to choose a profile", and pick a profile from the list,
+then pick what it may do from the list the **Permissions** column opens.
 
-The profiles offered are the ones this database names, less any that already have a rule here. A
-profile a group above grants is already on the table in gray, and the way to change that one is to
-pick a rule on the row that is already there. A list of profiles too long to show whole scrolls
-down.
+The profiles offered are those this database names, less any the table already shows a row for.
+A profile a group above grants is already on the table in gray, and the way to change what that
+profile may do here is to pick a rule on the row that is already there. A list of profiles too long
+to show whole scrolls down, and so does the table once a group or entry holds more rules than the
+tab has room for: a group or an entry holds a rule for as many profiles as are chosen.
 
 Nothing here can be typed because both halves are exact. A mask spelled by hand is a rule nobody
 meant, and a profile spelled by hand is a rule for a name that may not exist, which grants nobody
 anything and reads exactly like a rule that works.
 
 The keyboard opens both lists with **F2** or **Alt+Down** on the cell. Inside a list, **Enter**
-accepts and **Escape** leaves things as they were.
+accepts and **Escape** leaves things as they were. With no list open, **Enter** and **Escape** are
+the dialog's **OK** and **Cancel**, as on the dialog's other tabs.
+
+**Nothing chosen here is written before the dialog's OK.** A row changed on the tab stands on a
+light yellow until the dialog closes, and the tooltips of its cells end with "Changed on this tab.
+OK writes the change, and Cancel discards the change." [Press OK](#press-ok) has the rest.
 
 **Permissions is unavailable on the empty line**, because a rule is a profile first. It opens by
 itself once a profile is chosen.
@@ -377,30 +405,35 @@ with `P`, is unaffected: it has nowhere to put an unprotected value back.
 
 ## Inherited rules
 
-Rules from the groups above are shown among the local ones, in gray, with nothing in the last
-column:
+Rules from the groups above are shown among the rules set here, in gray, with **Inherited** as
+their state and nothing in the last column:
 
 ![The same tab on an entry, showing what the group above grants](images/entry-access.png)
 
-Gray means this node does not carry that rule; a group above does. There is nothing to remove here,
-which is why the last column is empty on those rows.
+Gray means the rule is not set at this group or entry; a group above sets it. There is nothing to
+remove here, which is why the last column is empty on those rows.
 
-This is deliberate. A table listing only what this node grants would report nothing for an entry
-that a group above already opens wide, and somebody reading that would be invited to grant more.
+This is deliberate. A table listing only what is set here would report nothing for an entry that a
+group above already opens wide, and somebody reading that would be invited to grant more.
 
-**A line through the mask means it no longer arrives.** That is what an inherited rule looks like
-once **Refuse any profile not named here** is checked on this node: the rule is still up there and
-still states what it states, and this node has stopped letting it through. The row stays on the
-table because seeing what the check box refuses is the reason for checking it. To let one of them
-back in, click its mask, choose what it may do here and press **Enter**, which puts a rule of this
-node's own on the row. **Enter** keeps the check marks even when they are the ones the rule above
-already had; clicking away from them does not, so looking at a refused rule never lets it through.
+**A rule chosen on an inherited row replaces the inherited rule here and below.** The tooltip of
+the new rule's mask states which way: "Narrows", "Widens", "Replaces" or "The same as", then the
+inherited mask.
 
-**A line through the mask also marks a profile this database no longer names**, on a rule of this
-node's own or one from above. It grants nothing until the profile is added back on the **Profiles**
-page, and its tooltip states as much. A rule from above on a node whose seal refuses it, or whose
-own rules will not read, stays refused there once the name is back, and its tooltip states that too.
-Hovering over the profile shows its whole name, which a long name's column cuts.
+**A line through the mask, with Refused here as the state, is a rule that stops at this group or
+entry.** That is what an inherited rule looks like once **Refuse any profile not named here** is
+ticked here: the rule still stands above, and nothing of it is let through. The row stays on the
+table because seeing what the check box refuses is the reason for ticking it. To let such a profile
+in, click its mask, choose what it may do here and press **Enter**, which puts a rule of this group
+or entry's own on the row. **Enter** keeps the check marks even when they are the same as the rule
+above already had; clicking away from them does not, so looking at a refused rule never lets it
+through.
+
+**A line through the mask, with No profile as the state, is a rule for a name that is off the
+database's list**, set here or arriving from above. It grants nothing until the profile is added
+back on the **Profiles** page, and its tooltip states as much. A rule from above that the ticked
+box refuses stays refused once the name is back, and its tooltip states that too. Hovering over the
+profile shows its whole name, which the column cuts where the name is long.
 
 ## Nearest wins
 
@@ -439,54 +472,212 @@ profile is the one that answers.
 
 Use it on a group holding things no program should reach.
 
+**Clearing the box lets through every profile the table then shows as inherited**, each as far as
+its grant from above reaches at that press. A profile whose rule here was removed while the box was
+ticked is among them. To keep such a profile out, give it a rule on the same tab before **OK**: an
+empty mask keeps it out altogether.
+
+**The box can show a third mark, neither ticked nor clear.** Copies of the database set the box
+differently, and until it is set again the gate refuses every profile not named here, as a ticked
+box does. The first press ticks it and the next clears it; [Copies of a
+database](#copies-of-a-database) has how it comes about.
+
+## Removing a rule
+
+The **X** in the last column removes the rule of its row at this group or entry, also while
+**Refuse any profile not named here** is ticked. Until the dialog closes, the row shows what the
+profile is left with: the rule a group above grants, as **Inherited**; the same rule struck
+through, as **Refused here**, where the box is ticked; or a row with no letter where no rule
+arrives from above.
+
+**A removed rule is not an empty rule.** An empty mask is a rule: it keeps the profile out here and
+below whatever a group above grants. A removed rule leaves the profile to the groups above.
+
+**A profile whose rule was removed is given what the groups above grant, and at most what they
+granted when the rule was removed.** A rule widened above later, in this copy of the database,
+carries this group or entry along: the **OK** that widens the rule above lets the wider grant
+through here as well. Where that **OK** could not, since the rules below were changed while its
+dialog was open, [the plugin's log](getting-started.md#the-plugins-log) names the group or entry
+it left. A widening that arrives from another copy of the database carries nothing along. Either
+shows here as a **Limit**, which [Copies of a database](#copies-of-a-database) describes. The same
+holds where the box was cleared: every profile it let through is given at most what reached this
+group or entry at that press.
+
+**A rule removed while the box was ticked lets nothing through**, since nothing was let through
+when it was removed, and it stays so where another copy of the database clears the box. Clearing
+the box on this tab lets that profile through with the rest, as above.
+
+## Reading the State column
+
+The State cell of a row holds a word, or nothing for a rule set here that stands alone. Hovering
+over the cell states what the word means for that row: what the gate grants the profile here, and
+what a press on the row does.
+
+| State | The row | What the gate grants the profile here |
+| --- | --- | --- |
+| *(empty)* | a rule set here | the permissions shown |
+| **Inherited** | gray: a rule from a group above | the permissions shown, or, with a **Limit** row under it, what both rows share |
+| **Refused here** | gray and struck through: a rule from a group above that the ticked box stops | nothing |
+| **Limit** | under an inherited row, bound to it by a bracket | what this row and the inherited row share; the **X** removes the limit |
+| **Version** | a row of several bound by a bracket: the rule stands in several versions | what all versions hold, until a single version is left; the **X** removes this version |
+| **Taken off** | a row among such versions: in this version the rule was removed | as for **Version** |
+| **Lost** | no letter: a version of the rule was deleted, or cannot be read | nothing; a rule chosen on the row replaces the lost version |
+| **No profile** | struck through: the database's list does not hold the name | nothing, until the name is added back |
+
+Where several states hold for a row, the cell shows the first of **No profile**, **Lost**,
+**Version**, **Taken off**, **Limit**, **Refused here** and **Inherited**, and the tooltip has a
+line for each. **Limit**, **Version** and **Taken off** arise where copies of a database are
+synchronized, and [Copies of a database](#copies-of-a-database) describes what to do about each.
+The rows of a limit and of a rule in several versions stand on a light red, and the letters in
+which their masks differ are bold.
+
+**A lost rule is refused rather than skipped.** Nobody can tell what a lost version was taking
+away, so the profile is granted nothing at that group or entry, and nothing under it unless a
+nearer rule answers. A rule chosen on the row replaces the lost version at **OK**, and the **X**
+takes the rule off. A **Refuse any profile not named here** setting that was lost shows the box
+ticked, with a tooltip stating so, and refuses every profile not named there until the box is set
+again. A lost rule on a group above refuses below as well, and is replaced on the group that
+holds it. A rule is lost where the entries that held it in
+[the plugin's group](getting-started.md#the-plugins-group) were deleted, by hand or by a program
+other than KeePass; some such deletions end the serving of the whole database, as that section
+describes.
+
 ## When the tab changes nothing
 
-**The tab shows the rules and will not change them** in three cases, and the line over the table
-gives the reason:
+**The tab shows the rules and takes no change** in these cases. The table then has no **X** and
+opens no list, the check box is gray, and a line over the table gives the reason, in place of the
+line that states where rules come from:
 
-- **Several entries edited together.** What KeePass's dialog holds for them is no single entry's
-  rules, so open one entry at a time to read or change its rules.
-- **An earlier version of an entry**, opened from its **History** tab. The entry's own rules shown
-  are the ones that version had, not the ones in force, while the rules from the groups above are
-  what those groups grant now, and KeePass keeps nothing changed on that dialog.
-- **A KeePass this plugin cannot reach into**: a KeePass that keeps a dialog's settings somewhere
-  the plugin does not find them, or that does not tell it which database, group or entry the dialog
-  is about. The rules can be read and not changed, and
-  [the plugin's log](getting-started.md#the-plugins-log) names what was missing.
-
-**Rules that cannot be read are refused rather than skipped.** A version of a rule deleted in a
-copy of the database that another copy kept, edited by hand or written by a later version of the
-plugin is shown as **Lost**, and nobody can tell what it was taking away, so the profile is refused
-at that group or entry and everything under it unless a nearer rule admits it. A rule chosen on
-that row replaces the version when OK is pressed. A **Refuse any profile not named here** check mark
-that cannot be read refuses every profile not named there, until the box is set again.
-
-**A rule above that cannot be read** refuses here as well: nothing beyond it arrives, so a profile
-that neither this node nor a group in between names is refused. It is replaced on the group that
-holds it, not here.
+- **No certificate authority yet**, as [Where the rules go](#where-the-rules-go) has it.
+- **The plugin's data cannot be used.** "The data of KeePassGate in this database cannot be used,
+  so no rule can be written." The gate then serves nothing of the database either, and the
+  Certificate Authority page of the database settings states why.
+- **KeePass's dialogs could not be watched.** "The dialogs of KeePass could not be watched in this
+  session, so no rule can be written." [The plugin's log](getting-started.md#the-plugins-log) names
+  what was missing, and nothing is written into the plugin's group until KeePass is started again.
+- **A group or an entry of the plugin's own.** "Data of KeePassGate. No client reaches the data, so
+  no rule applies here."
+  An entry of the operator's own is taken for the plugin's where its identifier begins as the
+  identifiers of the plugin's entries do, which a random identifier meets about once in one and a
+  half million entries: duplicating that entry in KeePass gives the copy a new identifier, and the
+  copy takes rules.
+- **Several entries edited together.** "Several entries at once. Rules are shown and changed for a
+  single entry." Open an entry by itself to change its rules.
+- **An earlier version of an entry**, opened from its **History** tab. "An earlier version of the
+  entry. The rules shown are the rules of the entry as the rules stand now." A rule belongs to the
+  entry and to no version of it, so the tab shows every row the entry's own tab shows.
+- **A KeePass that does not tell the plugin which database, group or entry the dialog is about.**
+  The line names which, and [the plugin's log](getting-started.md#the-plugins-log) what was
+  missing.
 
 ## Press OK
 
-**A rule is written by the dialog's OK and discarded by its Cancel or Escape**, like everything
-else on those dialogs. Then save the database as usual. Nothing on the tab is written while the
-dialog is open, and a rule KeePassGate could not write at OK is named in a message once the dialog
-has closed.
+**The rules changed on the tab are written by the dialog's OK, all of them together, and discarded
+by Cancel, Escape and the close box.** Nothing is written while the dialog is open. KeePass asks
+whether to keep an entry's changes only where the entry itself changed, so **Escape** after
+changing rules alone discards them without a question.
+
+**OK puts the rules in force at once and marks the database as changed.** The gate decides its
+next request by them. KeePass's title shows the database as changed, also where nothing else on
+the dialog was touched, and KeePass treats the rules as any unsaved change when it closes, locks
+or exits.
+**Saving the database** is what puts them in the file, as for any edit. A change of rules alone
+gives the group or entry no new modification time and an entry no new version in its history.
+
+**A change that OK did not keep is told in a message once the dialog has closed**, titled
+"KeePassGate (KPG)". Where part of what was changed was written it begins "Not every change made
+on the KPG tab was kept." and ends "The KPG tab of the group or entry shows the rules as kept.",
+so open the tab again to see which rules stand. Where nothing was written it begins "No change
+made on the KPG tab was kept." Between them is a line for each cause:
+
+| The line | What happened | What to do |
+| --- | --- | --- |
+| "The new version of a rule no longer fits the room the store gives." | the rule was changed more often than its record has room for | the rule stands as it was; the plugin's log names it |
+| "The rules of the group or entry changed in the database while the dialog was open." | the rules there were changed between the press and **OK**, by a synchronize for instance | open the tab again and make the change against what it shows |
+| "The data of KeePassGate in this database cannot be used as the data stands." | the plugin's group stopped being usable while the dialog was open | the Certificate Authority page of the database settings states why |
+| "A change was not in a form the store takes." | the change was none the tab offers | the plugin's log has the details |
+
+A message that begins "No change made on the KPG tab was kept:" gives the cause after the colon:
+KeePass was part way through something of its own, a dialog was open that would have undone the
+write, such as **Database Maintenance**, or the database stopped taking rules while the dialog
+was open. Close what is open, open the tab and make the change again. A message that begins "A
+defect stopped the write" is a fault of the plugin's own, and the rules may or may not have been
+kept: open the tab to see.
+[The plugin's log](getting-started.md#the-plugins-log) names the group or entry by the first
+eight characters of its identifier, never by its title, with every rule that was not written.
 
 The **KPG** tab in the database settings dialog works the same way: both tabs hold every change
 until OK, and OK and Cancel do what they promise.
 
 ## Where a rule is stored
 
-In the plugin's own store in the database, beside the certificate authority and the clients,
-under the identifier of the group or entry it is about. It travels with the database, it is covered
-by the database's encryption, and no other plugin's data is touched.
+In the plugin's own group in the database, `KeePassGate`, beside the certificate authority and the
+clients, under the identifier of the group or entry it is about. It travels with the database, it
+is covered by the database's encryption, and nothing is written on the group or entry itself.
 
-**A rule stays with its node and nothing else.** A group or an entry moved elsewhere keeps its rule.
-A copy is a node of its own, with an identifier of its own, so **Duplicate Entry** and **Duplicate
-Group**, copying entries or a group into another group, and making an entry from a template give the
-copy no rule: it grants what reaches it from the groups above, so look at the **KPG** tab of the
-group it lands in before moving it somewhere a program should not reach. An earlier version of an
-entry, restored from its history, changes no rule.
+**A rule stays with its group or entry and with nothing else.** A group or an entry moved elsewhere
+keeps its rule. A copy is a group or an entry of its own, with an identifier of its own, so
+**Duplicate Entry** and **Duplicate Group**, copying entries or a group into another group or
+another database, and making an entry from a template give the copy no rule: the copy grants what
+reaches it from the groups above. So a copy of an entry that a rule of its own kept narrow is as
+open as the group it lands in: look at the **KPG** tab of the copy, and set its rule, before
+relying on it. An earlier version of an entry, restored from its history, changes no rule.
+
+## Copies of a database
+
+Rules can be changed in two copies of a database before the copies are synchronized in KeePass,
+on two machines for instance. Each change is an entry of its own in the plugin's group, so a
+synchronize brings each copy the changes it lacks, and the gate never grants more at a group or
+entry than the rules standing there allow together.
+
+**Different profiles changed at the same group or entry do not meet.** Both changes hold, and
+nothing is left to settle.
+
+**The same profile's rule changed in both copies stands in both versions.** The tab shows a row
+for each version, bound by a bracket, with **Version** as the state, or **Taken off** for a
+version in which the rule was removed. Until a single version is left, the gate grants what all
+versions hold, which the tooltip of each row states. To choose among them, remove the versions
+that are not wanted with their **X**: the row that is left is a rule like any other, and can be
+changed on the same tab before **OK**. A row of such a group offers its **X** and no list, so no
+single press grants more than some version held. Where each copy removes a different version
+before the copies meet again, every version is back afterwards, and the choice is made again in a
+copy that holds them all.
+
+**The check box set differently in two copies shows its third mark**, and the gate refuses every
+profile not named there until the box is pressed: [Refusing everything not
+named](#refusing-everything-not-named).
+
+**A Limit row is a grant from above held back to what it was.** Where a rule was removed, or the
+box cleared, in a copy, and a rule above was widened in another, the group or entry gives the
+profile what the first copy gave: the inherited row shows the wider rule that arrives, and the
+**Limit** row under it the permissions that arrived when the rule here was removed or the box
+cleared. The gate grants what both rows share. To let the whole grant through, press the **X** on
+the **Limit** row and then **OK**: the inherited row then stands alone. A limit with no letter
+is a rule that was removed while the box was ticked, and grants nothing until its **X** is
+pressed. A group or entry whose rule was removed keeps what it recorded where it is moved, so
+under a group that grants more than its former place it shows a limit the same way.
+
+**What the plugin cannot settle between copies**, each because the database then holds exactly
+what a single careful operator could have made on purpose:
+
+- **A rule above narrowed in a copy and widened again in another that never saw the removal
+  below.** A group or entry whose rule was removed gives again what it gave when the rule was
+  removed, and never more. Synchronize both ways before changing a rule above a group or entry
+  that another copy changed.
+- **Two rules removed in two copies, the upper of which granted exactly what arrived at it
+  anyway.** Nothing marks either place, and the next widening above both reaches the lower. Before
+  widening a rule, look at the tabs of the groups and entries below it that have no rule of their
+  own.
+- **A group or entry with no rule of its own, moved in a copy while a rule above its new place was
+  changed in another.** What has to stay closed wherever it is moved needs a rule of its own.
+- **A limit that stopped holding anything back is forgotten.** Once a rule above is narrowed, in
+  the copy that holds the limit, to what the limit allowed, the limit row goes, and a later
+  widening above in that copy carries the group or entry along.
+- **A name added back in a copy while a rule for it was widened in another**, as [Naming
+  profiles](#naming-profiles) has it.
+
+After synchronizing copies that each changed rules, open the **KPG** tabs of the groups and
+entries that were changed and read their State columns.
 
 ## What a program actually gets
 
@@ -507,7 +698,9 @@ it.
 
 **A program can ask what it may do at a group or an entry** before it tries. It is told one mask for
 each profile it holds, written as this tab writes them, and nothing about a profile it does not
-hold. Each mask is what the rules grant at that node, as this tab shows it there, so a `D` on an
+hold. Each mask is what the gate grants that profile at that group or entry: where this tab shows
+a **Limit** or a rule in several versions there, the mask is what those leave, and for a lost rule
+it holds no letter. It is about that group or entry alone, so a `D` on an
 entry can still be refused by the group it is in, which removing it asks as well. A switch beside
 nothing but `S` or `D` is left out, since it reaches nothing removing does not already take. A group
 or an entry where none of its profiles may do anything is answered as one that does not exist, and

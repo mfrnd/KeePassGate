@@ -60,7 +60,7 @@ flowchart LR
         ca["Authority<br/>certificate and key"]
         host["Host certificate"]
         records["Admission records<br/>one per client certificate"]
-        rules["Rules<br/>on groups and entries"]
+        rules["Rules<br/>for groups and entries"]
     end
 
     ca -->|issues| host
@@ -78,6 +78,12 @@ entry. Each version of a rule is an entry of that group too, under the identifie
 entry it is about. The standing answers to a renewal live in the database's own custom data. All
 of it is inside the database, covered by the database's own encryption, and none of it is
 anywhere else on the machine.
+
+**Nothing of a rule is written on the group or entry it is about**, so a rule stays with its
+group or entry wherever that is moved, and a copy of either carries none. A rule changed in two
+copies of the database stands in both versions once the copies are synchronized, and the gate
+grants what both allow until the operator has chosen between them, as
+[`access-control.md`](access-control.md#copies-of-a-database) describes.
 
 ## How one request is decided
 
@@ -109,7 +115,9 @@ sequenceDiagram
 **Both halves have to allow it.** The record states which profiles a certificate may use, and only
 the ones the database still names count; the rules state what those profiles reach. Neither is
 enough on its own, and the record is read from the open database every time, which is what makes
-revoking one immediate.
+revoking one immediate. The rules are read the same way, from the plugin's group in the open
+database at every request, so a rule is in force from the **OK** of the dialog it was set on,
+before the database is saved.
 
 **KeePass's own policies do not narrow what a program gets.** The options under **Tools**,
 **Options**, **Policy**, whether set there or enforced by an administrator, govern the person at

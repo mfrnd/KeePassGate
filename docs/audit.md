@@ -128,6 +128,26 @@ request that withheld nothing gets no second line.
 like any other: `permitted` when some profile it holds may do something there, `refused` when none
 may.
 
+**Four reasons point at the State column of a KPG tab.** Most refusals by the rules read `a rule
+here does not grant it`, `a rule here refuses anything it does not name` or `no rule anywhere
+grants it`. Four others arise where copies of the database were synchronized or an entry of the
+plugin's group was deleted, and for each, `decidedAt` names the group or entry whose **KPG** tab
+shows why:
+
+| `reason` | On the tab of the group or entry `decidedAt` names |
+| --- | --- |
+| `a limit here does not let it through` | a **Limit** row: a group above grants it, and this group or entry holds the grant back to what reached it earlier |
+| `rules here made apart do not all grant it` | rows with **Version** as their state: a version of the profile's rule grants it and another does not |
+| `a rule here was lost` | a row with **Lost** as its state: a version of the rule was deleted |
+| `a rule here could not be read` | a row with **Lost** as its state: a version of the rule cannot be read |
+
+[Reading the State column](access-control.md#reading-the-state-column) covers what to do about
+each.
+
+**A rule changed on a KPG tab gets no line here.** The audit records what the rules answered, and
+[the plugin's log](getting-started.md#the-plugins-log) records that the rules of a group or an
+entry were written, naming it by the first eight characters of its identifier.
+
 **A locked database is not a decision, and gets no line.** A request that meets the database
 locked, whether it was locked when the request arrived or KeePass locked it while the request was
 still being read, is answered `503 locked` and written down nowhere, because no rule was asked. A
