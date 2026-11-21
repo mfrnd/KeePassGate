@@ -80,7 +80,7 @@ namespace KeePassGate.Tests
             Assert.That(sheet.Box, Is.EqualTo(GrantBox.Ticked));
             var row = Sheets.Single(sheet, "reader");
             Assert.That(row.Kind, Is.EqualTo(GrantRowKind.Inherited));
-            Assert.That(row.States, Is.EqualTo(new[] { GrantState.RefusedHere }));
+            Assert.That(row.States, Is.EqualTo(new[] { GrantState.Refused }));
             Assert.That(row.Granted, Is.EqualTo("........"));
         }
 
@@ -93,7 +93,7 @@ namespace KeePassGate.Tests
             Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
             {
                 "reader .R...L.. Inherited:Inherited",
-                "reader .R...... Limit:Limit",
+                "reader .R...... Limit:AtMost",
             }));
             Assert.That(rows.All(row => row.Bound && row.Group == 2), Is.True);
             Assert.That(rows[1].Version, Is.Null, "a limit is no version of its own");
@@ -112,7 +112,7 @@ namespace KeePassGate.Tests
             Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
             {
                 "reader .R...L.. Inherited:Inherited",
-                "reader .R...... Limit:Limit",
+                "reader .R...... Limit:AtMost",
             }));
         }
 
@@ -126,7 +126,7 @@ namespace KeePassGate.Tests
             Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
             {
                 "reader CR...L.. Inherited:Inherited",
-                "reader .R...... Limit:Limit",
+                "reader .R...... Limit:AtMost",
             }));
         }
 
@@ -137,7 +137,7 @@ namespace KeePassGate.Tests
 
             var limit = sheet.Rows.Single(row => row.Kind == GrantRowKind.Limit);
             Assert.That(limit.Mask, Is.EqualTo("........"));
-            Assert.That(limit.Unreadable, Is.True, "the limit of a rule taken off while the node refused");
+            Assert.That(limit.Refusing, Is.True, "the limit of a rule taken off while the node refused");
         }
 
         [Test]
@@ -157,9 +157,13 @@ namespace KeePassGate.Tests
 
             var limit = sheet.Rows.Single(row => row.Kind == GrantRowKind.Limit);
             Assert.That(limit.Mask, Is.EqualTo("........"));
-            Assert.That(limit.Unreadable, Is.False);
+            Assert.That(limit.Refusing, Is.False);
             Assert.That(limit.Granted, Is.EqualTo("........"));
-            Assert.That(GrantTab.StateTip(limit, true), Is.EqualTo(GrantTab.LimitTip + " " + GrantTab.LimitGrants + " " + GrantTab.LimitRemoval));
+            Assert.That(GrantTab.WordOf(limit), Is.EqualTo("At most"));
+            Assert.That(GrantTab.StateTip(limit, true), Is.EqualTo(
+                "The rule here was removed, or the box below cleared, when less arrived from above than arrives now, so this "
+                + "node lets through at most the permissions shown. The gate grants the permissions that this row and the "
+                + "inherited row share. The X lets the whole rule from above through."));
         }
 
         [Test]
@@ -176,7 +180,7 @@ namespace KeePassGate.Tests
         {
             var sheet = Sheets.Of(Rules.Stored(("reader", "off:R"), (null, "sw:deny")), Sheets.Arriving(("reader", "RL")));
 
-            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader .R...L.. Inherited:RefusedHere" }));
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader .R...L.. Inherited:Refused" }));
         }
 
         [Test]
@@ -201,8 +205,8 @@ namespace KeePassGate.Tests
 
             Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
             {
-                "reader .R...... Version:Version changed",
-                "reader .R...L.. Version:TakenOff changed",
+                "reader .R...... Version:Unmerged changed",
+                "reader .R...L.. Version:Removed changed",
             }));
             Assert.That(sheet.Rows.All(row => row.Granted == ".R......"), Is.True, "what the gate grants once OK is written");
         }
@@ -212,7 +216,7 @@ namespace KeePassGate.Tests
         {
             var sheet = Sheets.Of(Rules.Stored(("reader", "off:CRL"), (null, "sw:inherit reader=R")), Sheets.Arriving(("reader", "CRL")));
             var before = Sheets.Lines(sheet);
-            Assume.That(before, Is.EqualTo(new[] { "reader CR...L.. Inherited:Inherited", "reader .R...... Limit:Limit" }));
+            Assume.That(before, Is.EqualTo(new[] { "reader CR...L.. Inherited:Inherited", "reader .R...... Limit:AtMost" }));
 
             Assert.That(sheet.Set("reader", "CRUSDLAP"), Is.Null);
             Assert.That(sheet.Forget(sheet.Rows.Single()), Is.True);
@@ -226,7 +230,7 @@ namespace KeePassGate.Tests
         {
             var sheet = Sheets.Of(Rules.Stored(("reader", "row:RL"), ("reader", "off:R")), null);
 
-            Assert.That(sheet.RemoveVersion("reader", sheet.Rows.Single(row => row.States.Contains(GrantState.Version)).Version), Is.True);
+            Assert.That(sheet.RemoveVersion("reader", sheet.Rows.Single(row => row.States.Contains(GrantState.Unmerged)).Version), Is.True);
 
             Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader ........ Inherited:Inherited changed" }));
             Assert.That(sheet.Available, Does.Not.Contain("reader"), "the profile of a change is not offered again");
@@ -244,7 +248,7 @@ namespace KeePassGate.Tests
             Assert.That(ticked.Remove("ops"), Is.True);
             Assert.That(cleared.Remove("ops"), Is.True);
 
-            Assert.That(Sheets.Lines(ticked), Is.EqualTo(new[] { "ops ........ Inherited:RefusedHere changed", "reader .R...L.. Inherited:RefusedHere" }));
+            Assert.That(Sheets.Lines(ticked), Is.EqualTo(new[] { "ops ........ Inherited:Refused changed", "reader .R...L.. Inherited:Refused" }));
             Assert.That(Sheets.Single(ticked, "ops").Granted, Is.EqualTo("........"));
             Assert.That(Sheets.Lines(cleared), Is.EqualTo(new[] { "ops ........ Inherited:Inherited changed", "reader .R...L.. Inherited:Inherited" }));
         }
@@ -336,7 +340,7 @@ namespace KeePassGate.Tests
             sheet.PressBox();
             Assert.That(sheet.Box, Is.EqualTo(GrantBox.Ticked));
             Assert.That(sheet.BoxChanged, Is.True);
-            Assert.That(Sheets.Single(sheet, "reader").States, Is.EqualTo(new[] { GrantState.RefusedHere }));
+            Assert.That(Sheets.Single(sheet, "reader").States, Is.EqualTo(new[] { GrantState.Refused }));
 
             sheet.PressBox();
             Assert.That(sheet.Box, Is.EqualTo(GrantBox.Cleared));
@@ -363,7 +367,7 @@ namespace KeePassGate.Tests
             var sheet = Sheets.Of(Rules.Stored((null, "sw:deny"), (null, "sw:inherit")), Sheets.Arriving(("reader", "RL")));
 
             Assert.That(sheet.Box, Is.EqualTo(GrantBox.Mixed));
-            Assert.That(Sheets.Single(sheet, "reader").States, Is.EqualTo(new[] { GrantState.RefusedHere }),
+            Assert.That(Sheets.Single(sheet, "reader").States, Is.EqualTo(new[] { GrantState.Refused }),
                 "the mixed mark counts as ticked");
 
             var seen = new List<GrantBox>();
@@ -379,19 +383,19 @@ namespace KeePassGate.Tests
         [Test]
         public void Ticking_the_box_marks_each_row_whose_state_the_press_changes_and_no_other()
         {
-            // The inherited rules turn refused here and the limit under a rule taken off goes; a
+            // The inherited rules turn Refused and the At most row under a rule taken off goes; a
             // rule of the node's own shows as before. A row that goes needs no mark.
             var sheet = Sheets.Of(Rules.Stored(("ops", "row:RL"), ("reader", "off:R")), Sheets.Arriving(("reader", "CRUL"), ("deploy", "RL")));
             var before = Sheets.Lines(sheet);
             Assert.That(before, Is.EqualTo(new[]
             {
-                "deploy .R...L.. Inherited:Inherited", "ops .R...L.. Own", "reader CRU..L.. Inherited:Inherited", "reader .R...... Limit:Limit",
+                "deploy .R...L.. Inherited:Inherited", "ops .R...L.. Own", "reader CRU..L.. Inherited:Inherited", "reader .R...... Limit:AtMost",
             }));
 
             sheet.PressBox();
             Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
             {
-                "deploy .R...L.. Inherited:RefusedHere changed", "ops .R...L.. Own", "reader CRU..L.. Inherited:RefusedHere changed",
+                "deploy .R...L.. Inherited:Refused changed", "ops .R...L.. Own", "reader CRU..L.. Inherited:Refused changed",
             }));
             Assert.That(GrantTab.StateTip(Sheets.Single(sheet, "deploy"), true), Does.EndWith(GrantTab.ChangedHere));
 
@@ -403,7 +407,7 @@ namespace KeePassGate.Tests
         public void Clearing_the_box_marks_each_rule_from_above_that_arrives_again()
         {
             var sheet = Sheets.Of(Rules.Node(true, ("ops", "RL")), Sheets.Arriving(("reader", "RL")));
-            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "ops .R...L.. Own", "reader .R...L.. Inherited:RefusedHere" }));
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "ops .R...L.. Own", "reader .R...L.. Inherited:Refused" }));
 
             sheet.PressBox();
             Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "ops .R...L.. Own", "reader .R...L.. Inherited:Inherited changed" }));
@@ -417,7 +421,7 @@ namespace KeePassGate.Tests
             var sheet = Sheets.Of(Rules.Stored((null, text)), Sheets.Arriving(("reader", "RL")));
 
             Assert.That(sheet.Box, Is.EqualTo(GrantBox.Lost));
-            Assert.That(Sheets.Single(sheet, "reader").States, Is.EqualTo(new[] { GrantState.RefusedHere }));
+            Assert.That(Sheets.Single(sheet, "reader").States, Is.EqualTo(new[] { GrantState.Refused }));
 
             sheet.PressBox();
 
@@ -432,8 +436,8 @@ namespace KeePassGate.Tests
 
             Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
             {
-                "reader .R...L.. Version:Version",
-                "reader CR...... Version:Version",
+                "reader .R...L.. Version:Unmerged",
+                "reader CR...... Version:Unmerged",
             }));
 
             var rows = sheet.Rows;
@@ -449,8 +453,8 @@ namespace KeePassGate.Tests
 
             Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
             {
-                "reader .R...... Version:TakenOff",
-                "reader .R...L.. Version:Version",
+                "reader .R...... Version:Removed",
+                "reader .R...L.. Version:Unmerged",
             }));
             Assert.That(sheet.Rows.Any(row => row.Kind == GrantRowKind.Limit), Is.False, "a group is no cut");
             Assert.That(sheet.Rows[0].Granted, Is.EqualTo(".R......"));
@@ -468,27 +472,41 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_lost_rule_standing_alone_shows_no_letter_and_takes_a_rule_and_an_X()
+        public void A_rule_whose_content_is_nowhere_standing_alone_is_missing_shows_no_letter_and_takes_a_rule_and_an_X()
         {
             var sheet = Sheets.Of(Rules.Stored(("reader", null)), Sheets.Arriving(("reader", "RL")));
 
             var row = Sheets.Single(sheet, "reader");
-            Assert.That(row.Kind, Is.EqualTo(GrantRowKind.Lost));
-            Assert.That(row.Mask, Is.EqualTo("........"));
-            Assert.That(row.States, Is.EqualTo(new[] { GrantState.Lost }));
-            Assert.That(row.Unreadable, Is.False);
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader ........ Lost:Missing" }));
+            Assert.That(row.States, Is.EqualTo(new[] { GrantState.Missing }), "a state of its own, which the panel draws");
+            Assert.That(GrantTab.WordOf(row), Is.EqualTo("Missing"));
             Assert.That(row.TakesRule && row.Removable && !row.Bound, Is.True);
         }
 
         [Test]
-        public void A_rule_whose_text_is_out_of_form_shows_as_lost_and_unreadable()
+        public void A_rule_whose_text_is_out_of_form_is_unreadable_and_not_missing()
         {
             var sheet = Sheets.Of(Rules.Stored(("reader", "row:lr")), null);
 
             var row = Sheets.Single(sheet, "reader");
-            Assert.That(row.Kind, Is.EqualTo(GrantRowKind.Lost));
-            Assert.That(row.Unreadable, Is.True);
-            Assert.That(row.Mask, Is.EqualTo("........"));
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader ........ Lost:Unreadable" }));
+            Assert.That(row.States, Is.EqualTo(new[] { GrantState.Unreadable }), "a state of its own, which the panel draws");
+            Assert.That(GrantTab.WordOf(row), Is.EqualTo("Unreadable"));
+            Assert.That(row.TakesRule && row.Removable && !row.Bound, Is.True);
+        }
+
+        [Test]
+        public void A_missing_and_an_unreadable_version_in_a_group_each_keep_a_state_of_their_own()
+        {
+            var sheet = Sheets.Of(Rules.Stored(("reader", "row:R"), ("reader", null), ("reader", "row:x")), Sheets.Arriving(("reader", "RL")));
+
+            Assert.That(Sheets.Lines(sheet), Is.EquivalentTo(new[]
+            {
+                "reader ........ Lost:Missing",
+                "reader ........ Lost:Unreadable",
+                "reader .R...... Version:Unmerged",
+            }));
+            Assert.That(sheet.Rows.Select(GrantTab.WordOf), Is.EquivalentTo(new[] { "Missing", "Unreadable", "Unmerged" }));
         }
 
         [Test]
@@ -498,8 +516,8 @@ namespace KeePassGate.Tests
 
             Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
             {
-                "reader ........ Lost:Lost",
-                "reader .R...... Version:Version",
+                "reader ........ Lost:Missing",
+                "reader .R...... Version:Unmerged",
             }));
             Assert.That(sheet.Rows.All(row => row.Bound && row.Granted == "........"), Is.True,
                 "a lost version refuses the profile at the node, whatever stands beside it");
@@ -518,7 +536,7 @@ namespace KeePassGate.Tests
         {
             var sheet = GrantSheet.Of(Rules.Node(true), Sheets.Arriving(("reader", "R")), new[] { "ops" }, null);
 
-            Assert.That(Sheets.Single(sheet, "reader").States, Is.EqualTo(new[] { GrantState.NoProfile, GrantState.RefusedHere }));
+            Assert.That(Sheets.Single(sheet, "reader").States, Is.EqualTo(new[] { GrantState.NoProfile, GrantState.Refused }));
         }
 
         [Test]
@@ -588,7 +606,7 @@ namespace KeePassGate.Tests
 
             Assert.That(sheet.Remove("reader"), Is.True);
 
-            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader .R...L.. Inherited:RefusedHere changed" }));
+            Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[] { "reader .R...L.. Inherited:Refused changed" }));
         }
 
         [Test]
@@ -668,14 +686,14 @@ namespace KeePassGate.Tests
         public void Removing_down_to_a_version_that_takes_the_rule_off_leaves_the_cut_it_holds()
         {
             var sheet = Sheets.Of(Rules.Stored(("reader", "row:RL"), ("reader", "off:R")), Sheets.Arriving(("reader", "RL")));
-            var granting = sheet.Rows.Single(row => row.States.Contains(GrantState.Version));
+            var granting = sheet.Rows.Single(row => row.States.Contains(GrantState.Unmerged));
 
             sheet.RemoveVersion("reader", granting.Version);
 
             Assert.That(Sheets.Lines(sheet), Is.EqualTo(new[]
             {
                 "reader .R...L.. Inherited:Inherited changed",
-                "reader .R...... Limit:Limit changed",
+                "reader .R...... Limit:AtMost changed",
             }));
         }
 
@@ -922,7 +940,7 @@ namespace KeePassGate.Tests
         public void OK_is_handed_a_rule_taken_off_where_a_limit_is_settled_after_versions_were_removed()
         {
             var sheet = Sheets.Of(Rules.Stored(("reader", "row:RL"), ("reader", "off:R")), Sheets.Arriving(("reader", "RL")));
-            sheet.RemoveVersion("reader", sheet.Rows.Single(row => row.States.Contains(GrantState.Version)).Version);
+            sheet.RemoveVersion("reader", sheet.Rows.Single(row => row.States.Contains(GrantState.Unmerged)).Version);
 
             Assert.That(sheet.Settle("reader"), Is.True);
 

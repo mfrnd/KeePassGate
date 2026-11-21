@@ -139,18 +139,18 @@ none, since it releases both.
   characters of its identifier. A rule changed on a tab is in the plugin's log and in no line
   of the audit. `STORE.md` §629.
 - **The table of a KPG tab has a State column**, with a tooltip on each of its words:
-  **Inherited** for a rule from a group above, **Refused here** for such a rule where the
-  check box stops it, **No profile** for a rule whose name is off the database's list, and
-  **Limit**, **Version**, **Taken off** and **Lost**, below. A group or an entry holds a rule
-  for as many profiles as are chosen, where 0.2 held 31, and the table scrolls. On a database
-  that names no profile the tab states where profiles are named. `STORE.md` §657.
+  **Inherited** for a rule from a group above, **Refused** for such a rule where the check box
+  stops it, **No profile** for a rule whose name is off the database's list, and **At most**,
+  **Unmerged**, **Removed**, **Missing** and **Unreadable**, below. A group or an entry holds a
+  rule for as many profiles as are chosen, where 0.2 held 31, and the table scrolls. On a
+  database that names no profile the tab states where profiles are named. `STORE.md` §657.
 - **The X removes a rule also while the check box is ticked**, and until the dialog closes the
   row shows what the profile is left with: the rule from a group above, refused or in force, or
   no letter. **A group or an entry whose rule was removed, or whose check box was cleared, is
   given at most what reached it then.** A rule widened above it later in the same copy of the
   database carries it along, in the same OK. A widening that arrives from another copy does
-  not: the tab then shows a **Limit** row under the inherited rule, the gate grants what both
-  rows share, and the X on the **Limit** row, with OK, lets the whole grant through. Clearing
+  not: the tab then shows an **At most** row under the inherited rule, the gate grants what both
+  rows share, and the X on the **At most** row, with OK, lets the whole grant through. Clearing
   the check box lets through every profile the table then shows as inherited, a profile whose
   rule there was removed while the box was ticked among them; a rule given to such a profile
   on the same tab before OK keeps it out. `STORE.md` §617, §639 and §657.
@@ -158,18 +158,19 @@ none, since it releases both.
   in KeePass, and never grant more at a group or an entry than the rules standing there
   allow.** 0.2 kept the rules of whichever copy touched the group or entry last, and lost a
   narrowing made in the other. Different profiles changed at the same group or entry both
-  hold. The same profile's rule changed in both copies shows as rows bound together, a
-  **Version** each, or **Taken off** where a version removed the rule: the gate grants what
-  all versions hold until the operator has removed versions with their X and a single row is
-  left. The check box set differently in two copies shows a third mark and refuses every
+  hold. The same profile's rule changed in both copies shows as rows bound together, a row
+  **Unmerged** for the rule of each copy, or **Removed** where a copy removed the rule: the gate
+  grants what all the rows share until the operator has removed rows with their X and a single
+  row is left. The check box set differently in two copies shows a third mark and refuses every
   profile not named until it is pressed. What the plugin does not settle between copies, and
   what to look at after a synchronize, is in `docs/access-control.md` under "Copies of a
   database". `STORE.md` §617, §639 and §657.
 - **A rule that was lost refuses its profile where it stood, and a damaged record of a rule
-  stops the store.** A version of a rule that was deleted with its content left nowhere, or
-  that cannot be read, shows as **Lost**: the profile is granted nothing at that group or
-  entry until a rule chosen on the row replaces it, and a lost **Refuse any profile not named
-  here** refuses every profile not named until the box is set again. A record of a rule that
+  stops the store.** A version of a rule that was deleted with its content left nowhere shows
+  as **Missing**, and a version that cannot be read as **Unreadable**: either way the profile is
+  granted nothing at that group or entry until a rule chosen on the row replaces it, and a lost
+  **Refuse any profile not named here** refuses every profile not named until the box is set
+  again. A record of a rule that
   fails its check is damage to the store, and every request is answered `503 stopped`, below.
   Under 0.2 a rule that would not read refused at its group or entry alone, and the tab had a
   **Discard** button for it, which is gone. `STORE.md` §617, §621 and §624.

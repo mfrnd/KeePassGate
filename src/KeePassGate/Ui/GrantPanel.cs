@@ -2229,7 +2229,7 @@ namespace KeePassGate.Ui
             // the database no longer names, and a rule from above the node's box refuses. Kept on
             // the table rather than dropped, since seeing what the box refuses is what an operator
             // ticked the box for, and marked on the mask because a mask is where the eye already is.
-            if (row.States.Contains(GrantState.NoProfile) || row.States.Contains(GrantState.RefusedHere))
+            if (row.States.Contains(GrantState.NoProfile) || row.States.Contains(GrantState.Refused))
             {
                 added.Cells[MaskColumn].Style.Font = _refusedMask;
             }

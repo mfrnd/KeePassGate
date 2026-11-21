@@ -44,7 +44,7 @@ namespace KeePassGate.Tests
             {
                 Assert.That(Lines(panel), Is.EqualTo(new[]
                 {
-                    "ops CR...L..", "reader .R...... Taken off", "reader .R...L.. Version", "reader CR...L.. Version",
+                    "ops CR...L..", "reader .R...... Removed", "reader .R...L.. Unmerged", "reader CR...L.. Unmerged",
                 }));
 
                 var bracket = Bracket.Of(grid, false);
@@ -118,7 +118,7 @@ namespace KeePassGate.Tests
 
             Show(rule, direction, 1f, (panel, grid, picture) =>
             {
-                Assert.That(Lines(panel), Is.EqualTo(new[] { "ops CR...L..", "reader .R...L.. Version", "reader CR...L.. Version" }));
+                Assert.That(Lines(panel), Is.EqualTo(new[] { "ops CR...L..", "reader .R...L.. Unmerged", "reader CR...L.. Unmerged" }));
 
                 var slots = Slots.Of(grid, picture, 0);
                 var bold = slots.Ink(picture, 2);
@@ -167,7 +167,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(
                     grid.Rows.Cast<DataGridViewRow>().Where(row => !row.IsNewRow).Select(row => (string)row.Cells[StateColumn].Value),
-                    Is.EqualTo(new[] { string.Empty, GrantTab.TakenOffWord, GrantTab.VersionWord, GrantTab.VersionWord }));
+                    Is.EqualTo(new[] { string.Empty, GrantTab.RemovedWord, GrantTab.UnmergedWord, GrantTab.UnmergedWord }));
                 Assert.That(grid.Rows[0].AccessibilityObject.Description, Is.EqualTo(GrantTab.ChangedHere));
                 Assert.That(GrantTab.MaskTip((GrantRow)grid.Rows[0].Tag, true), Does.EndWith(GrantTab.ChangedHere));
                 Assert.That(grid.Rows[0].Cells[MaskColumn].ToolTipText, Is.EqualTo(Tooltips.Wrapped(GrantTab.MaskTip((GrantRow)grid.Rows[0].Tag, true))));
@@ -239,7 +239,7 @@ namespace KeePassGate.Tests
         {
             Show(Rules.Stored(("reader", "off:R")), RightToLeft.No, 1f, (panel, grid, picture) =>
             {
-                Assert.That(Lines(panel), Is.EqualTo(new[] { "reader CRU..L.. " + GrantTab.InheritedWord, "reader .R...... " + GrantTab.LimitWord }));
+                Assert.That(Lines(panel), Is.EqualTo(new[] { "reader CRU..L.. " + GrantTab.InheritedWord, "reader .R...... " + GrantTab.AtMostWord }));
 
                 var inherited = InPicture(grid, MaskColumn, 0);
                 var gray = SystemColors.GrayText;

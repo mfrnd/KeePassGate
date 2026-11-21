@@ -5154,23 +5154,39 @@ editor and merged back over synchronized copies, is left to a later commit (§64
 **A state has a column of its own, and each of its words a tooltip** (a later decision). The
 table holds the profile, its permissions as a mask, a State column and the X. A State cell
 holds a word and never a name: where several states hold for a row, the first of this order,
-and the tooltip carries the sentence of each. The words are "No profile", for a rule whose
-name the database no longer names; "Lost", for a row that refuses for a lost version or a text
-that cannot be read; "Version", for a standing version of a rule in several versions; "Taken
-off", for a version of such a rule in which the rule was removed; "Limit", for the limit row
-under a profile that the node cuts; "Refused here", for a rule from above that the node's box
-refuses; and "Inherited", for a rule from above in force at the node. A rule set at the node
-in a single version has no word. **The tooltip of the cell states what the word means**, which
-is what the gate does for the profile at the node in that state, and the same text is the
-cell's accessible description and its accessible help, which UI automation reads as its help
-text; nothing of it is printed under the table. A sentence of the tab names no profile and no
-client, which a cell of the table may, and names its subject and its object where a pronoun
-would stand. **A row or a box that a press changed is told by a further line of its tooltip
-and by its accessible text**, and never by a color alone; each line of a tooltip is folded as
-any tooltip of the plugin is. **A rule that the X removed shows, until the dialog closes, as
-the profile's inherited row in its place**, marked as changed, with the mask that arrives and
-no letter where nothing arrives, so that every change that waits for OK has a row; where the
-box refuses, that row is refused here, struck through, as any row the node does not name.
+and the tooltip carries the sentence of each. The words are:
+
+- "No profile": the database no longer names the profile of the rule.
+- "Missing": a version of the rule was lost, its record deleted by something other than the
+  plugin with its content nowhere, and the gate grants nothing at the node until a rule is chosen.
+- "Unreadable": a version of the rule stands in a text that cannot be read, with the same effect.
+- "Unmerged": copies of the database set the rule differently before they were synchronized, so
+  the rule stands in several versions, a row for each; until a single version is left, the gate
+  grants what all of them share.
+- "Removed": among those rows, a version in which the rule was taken off.
+- "At most": the limit row under a profile that the node cuts. The rule here was taken off, or
+  the box cleared, when less arrived than arrives now, and the node lets through only what
+  arrived then, which the row shows.
+- "Refused": the box "Refuse any profile not named here" is ticked, so a rule from above stops at
+  the node.
+- "Inherited": no rule at the node, and the rule of a group above applies.
+
+A rule set at the node in a single version, in force as shown, has no word. **Missing and
+Unreadable are two states** of the sheet, and the panel draws the word of the state, so the two
+are never told apart by comparing a text: `GrantState.Missing` for a version the store holds as
+lost (§617) and `GrantState.Unreadable` for a version whose text is out of form. **The tooltip
+of the cell explains the word** to an operator meeting the word for the first time: what
+happened, what the gate does for the profile at the node in that state, and what a press on the
+row does; a sentence that names a state names the state by its word. The same text is the cell's
+accessible description and its accessible help, which UI automation reads as its help text;
+nothing of it is printed under the table. A sentence of the tab names no profile and no client,
+which a cell of the table may, and names its subject and its object where a pronoun would
+stand. **A row or a box that a press changed is told by a further line of its tooltip and by
+its accessible text**, and never by a color alone; each line of a tooltip is folded as any
+tooltip of the plugin is. **A rule that the X removed shows, until the dialog closes, as the
+profile's inherited row in its place**, marked as changed, with the mask that arrives and no
+letter where nothing arrives, so that every change that waits for OK has a row; where the box
+refuses, that row is Refused, struck through, as any row the node does not name.
 
 **Enter and Escape are the dialog's OK and Cancel** wherever the table holds the keyboard and
 no picker is open, as on every other page of the dialog, and a picker's own while the picker
@@ -5198,7 +5214,8 @@ section. `GrantSheet` decides what each row
 stands for and what each press hands to OK, with no window in it: a rule of the node's own, a
 rule arriving from above, in force or refused by the box, the limit row under a profile that
 the node cuts, a row for each standing version of a rule in several versions in the order of
-their masks, a lost row, and a rule for a name the database no longer names. It takes a rule
+their masks, a lost row, missing or unreadable, and a rule for a name the database no longer
+names. It takes a rule
 chosen on a row of the node's own, on an inherited row and on a lost row that stands alone,
 and none on a row of a group but where no version of the group reads; every row carries the X
 but an inherited row and the last version that reads beside a lost version, whose removal no

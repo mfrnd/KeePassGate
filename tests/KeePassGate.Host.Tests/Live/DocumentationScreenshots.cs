@@ -382,9 +382,9 @@ namespace KeePassGate.Host.Tests.Live
             var versions = RuleTab.OfGroup(driver, VersionsGroup);
             Assert.That(Rows(versions), Is.EquivalentTo(new[]
             {
-                Row(Profile, ".R...LA.", GrantTab.TakenOffWord),
-                Row(Profile, ".R...L..", GrantTab.VersionWord),
-                Row(Profile, "CR...L..", GrantTab.VersionWord),
+                Row(Profile, ".R...LA.", GrantTab.RemovedWord),
+                Row(Profile, ".R...L..", GrantTab.UnmergedWord),
+                Row(Profile, "CR...L..", GrantTab.UnmergedWord),
             }), "the rule in several versions");
             Shoot(versions.Dialog, DocumentationImages.RuleVersions, Seal(versions.Dialog));
             driver.CloseDialog(versions.Dialog);
@@ -393,7 +393,7 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(Rows(limit), Is.EquivalentTo(new[]
             {
                 Row(Profile, ".R...LA.", GrantTab.InheritedWord),
-                Row(Profile, ".R...L..", GrantTab.LimitWord),
+                Row(Profile, ".R...L..", GrantTab.AtMostWord),
             }), "the limit under the inherited rule");
             Shoot(limit.Dialog, DocumentationImages.RuleLimit, Seal(limit.Dialog));
             driver.CloseDialog(limit.Dialog);
@@ -402,7 +402,7 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(Rows(mixed), Is.EquivalentTo(new[]
             {
                 Row(SecondProfile, ".R...L..", string.Empty),
-                Row(Profile, ".R...LA.", GrantTab.RefusedHereWord),
+                Row(Profile, ".R...LA.", GrantTab.RefusedWord),
             }), "the rows under the box in its third mark");
             var box = Seal(mixed.Dialog);
             Assert.That(((TogglePattern)box.GetCurrentPattern(TogglePattern.Pattern)).Current.ToggleState,

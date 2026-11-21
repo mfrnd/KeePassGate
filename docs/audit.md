@@ -136,10 +136,10 @@ shows why:
 
 | `reason` | On the tab of the group or entry `decidedAt` names |
 | --- | --- |
-| `a limit here does not let it through` | a **Limit** row: a group above grants it, and this group or entry holds the grant back to what reached it earlier |
-| `rules here made apart do not all grant it` | rows with **Version** as their state: a version of the profile's rule grants it and another does not |
-| `a rule here was lost` | a row with **Lost** as its state: a version of the rule was deleted |
-| `a rule here could not be read` | a row with **Lost** as its state: a version of the rule cannot be read |
+| `a limit here does not let it through` | an **At most** row: a group above grants it, and this group or entry holds the grant back to what reached it earlier |
+| `rules here made apart do not all grant it` | rows with **Unmerged** as their state: the rule of a copy grants it and the rule of another copy does not |
+| `a rule here was lost` | a row with **Missing** as its state: the rule's record was deleted |
+| `a rule here could not be read` | a row with **Unreadable** as its state: the rule's record cannot be read |
 
 [Reading the State column](access-control.md#reading-the-state-column) covers what to do about
 each.

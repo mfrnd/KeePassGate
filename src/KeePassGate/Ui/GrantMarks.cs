@@ -18,7 +18,7 @@ namespace KeePassGate.Ui
     /// What the rows of a group differ in is read off the masks that read place by place, and a
     /// place where those masks do not all hold the same character is drawn in bold on each of
     /// them, so the eye reading down the column finds what the versions disagree on in the same
-    /// place on each. A lost or unreadable row and a mask struck through take no bold.
+    /// place on each. A missing or unreadable row and a mask struck through take no bold.
     ///
     /// **A mark beside the words, never in their place.** Each row keeps its word in the State
     /// column, its tooltip and its accessible text; the bracket and the bold letters are drawn in
@@ -230,7 +230,7 @@ namespace KeePassGate.Ui
         /// character, or none where fewer than two masks read.
         /// </summary>
         /// <remarks>
-        /// A lost or unreadable version shows a mask that holds no letter of any version, and a rule
+        /// A missing or unreadable version shows a mask that holds no letter of any version, and a rule
         /// for a name the database no longer names is struck through and grants nothing: neither
         /// is a version the others can disagree with, and counted, either would put in bold the
         /// letters of versions that agree.
@@ -260,12 +260,12 @@ namespace KeePassGate.Ui
             return places.AsReadOnly();
         }
 
-        /// <summary>Whether a row's mask is a version's letters drawn plainly: not lost, not unreadable, not struck through.</summary>
+        /// <summary>Whether a row's mask is a version's letters drawn plainly: not missing, not unreadable, not struck through.</summary>
         private static bool Readable(GrantRow row)
         {
             return row.Kind != GrantRowKind.Lost
                    && !row.States.Contains(GrantState.NoProfile)
-                   && !row.States.Contains(GrantState.RefusedHere);
+                   && !row.States.Contains(GrantState.Refused);
         }
 
         /// <summary>

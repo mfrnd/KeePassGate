@@ -45,17 +45,17 @@ namespace KeePassGate.Tests.Gallery
                 "grant-02-own-and-inherited",
                 Sheet(Rules.Node(false, ("ops", "CRUSDLAP"), ("reader", "R")), Sheets.Arriving(("reader", "RL"), ("deploy", "RLA"))));
 
-            // A profile the node cuts: the inherited row, and bound under it the limit.
+            // A profile the node cuts: the inherited row, and bound under it the limit, At most.
             var cut = Sheet(Rules.Stored(("reader", "off:R"), ("ops", "row:RL")), Sheets.Arriving(("reader", "CRUL"), ("ops", "R")));
             Shoot("grant-03-limit", cut);
 
-            // The same after the X on the limit: the inherited row stands alone until OK.
+            // The same after the X on the At most row: the inherited row stands alone until OK.
             cut.Settle("reader");
             Shoot("grant-04-limit-settled", cut);
 
-            // A rule in several versions made in copies before the copies met, a version that
-            // took the rule off among them: each version a row of its own, bound, with an X and
-            // no list.
+            // A rule in several versions made in copies before the copies met, Unmerged, a version
+            // that took the rule off among them, Removed: each version a row of its own, bound, with
+            // an X and no list.
             Shoot(
                 "grant-05-versions",
                 Sheet(Rules.Stored(("reader", "row:RL"), ("reader", "row:CRL"), ("reader", "off:R"), ("ops", "row:R")), Sheets.Arriving(("reader", "CRUL"))));
@@ -76,9 +76,10 @@ namespace KeePassGate.Tests.Gallery
             // The box in versions that differ: the mixed mark, counted as ticked.
             Shoot("grant-09-box-mixed", Sheet(Rules.Stored((null, "sw:deny"), (null, "sw:inherit"), ("ops", "row:RL")), Sheets.Arriving(("reader", "RL"))));
 
-            // A lost rule, a rule that cannot be read, and a name the database no longer names.
+            // A rule whose record is missing, a rule that cannot be read, and a name the database
+            // no longer names.
             Shoot(
-                "grant-10-lost-and-no-profile",
+                "grant-10-missing-unreadable-and-no-profile",
                 GrantSheet.Of(
                     Rules.Stored(("reader", null), ("ops", "row:x"), ("retired", "row:R")),
                     Sheets.Arriving(("deploy", "R")),
@@ -97,17 +98,17 @@ namespace KeePassGate.Tests.Gallery
             // Read only before the database has an authority.
             Shoot("grant-12-no-authority", GrantSheet.Of(NodeRule.None, Sheets.Arriving(("reader", "RL")), Names, GrantTab.NoAuthorityYet));
 
-            // The longest texts at once: the longest reason, the widest masks, every state word,
-            // a long name, bound with every letter apart.
+            // The longest texts at once: the longest reason, the widest masks, the longest words of
+            // the State column, a long name, bound with every letter apart.
             Shoot(
                 "grant-13-longest-texts",
                 GrantSheet.Of(
                     Rules.Stored(
                         ("a-profile-with-a-name-somebody-really-did-type", "row:CRUSDLAP"),
                         ("a-profile-with-a-name-somebody-really-did-type", "row:"),
-                        ("deploy", "row:CRUSDLAP"), ("deploy", "off:CRUSDLAP"), ("ops", "off:R"), ("reader", null)),
+                        ("deploy", "row:CRUSDLAP"), ("deploy", "off:CRUSDLAP"), ("ops", "off:R"), ("reader", null), ("unread", "row:x")),
                     Sheets.Arriving(("ops", "CRUSDLAP"), ("retired", "CRUSDLAP")),
-                    new[] { "a-profile-with-a-name-somebody-really-did-type", "deploy", "ops", "reader" },
+                    new[] { "a-profile-with-a-name-somebody-really-did-type", "deploy", "ops", "reader", "unread" },
                     GrantTab.EarlierVersion));
 
             // More rows than the table shows at once, with the box ticked over all of them.
@@ -130,7 +131,7 @@ namespace KeePassGate.Tests.Gallery
             set.Set("reader", "CR...L..");
             Shoot("grant-17-rule-set", set);
 
-            // Every mark at once: a changed row, two versions bound, a rule refused here, the box
+            // Every mark at once: a changed row, two versions bound, a rule Refused, the box
             // in the mixed mark. Under a high contrast setting the colors go and the rest stays.
             var every = Sheet(
                 Rules.Stored((null, "sw:deny"), (null, "sw:inherit"), ("reader", "row:RL"), ("reader", "row:CRL"), ("ops", "off:R"), ("deploy", "row:R")),

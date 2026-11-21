@@ -207,7 +207,7 @@ namespace KeePassGate.Tests
 
                 panel.PressBox();
                 OffScreenForm.Pump();
-                Assert.That(panel.Lines.Any(line => line.Contains(GrantTab.RefusedHereWord)), Is.False, "the box still refuses, so no word changed");
+                Assert.That(panel.Lines.Any(line => line.Contains(GrantTab.RefusedWord)), Is.False, "the box still refuses, so no word changed");
                 Assert.That(Widths(grid), Is.EqualTo(before), "the words changed: " + string.Join(" | ", panel.Lines));
                 Assert.That(Sideways(grid), Is.False);
             }
@@ -415,12 +415,9 @@ namespace KeePassGate.Tests
             }
         }
 
-        /// <summary>Every word the State column can show.</summary>
+        /// <summary>Every word the State column can show: the word of every state there is.</summary>
         internal static readonly string[] Words =
-        {
-            GrantTab.NoProfileWord, GrantTab.LostWord, GrantTab.VersionWord, GrantTab.TakenOffWord,
-            GrantTab.LimitWord, GrantTab.RefusedHereWord, GrantTab.InheritedWord,
-        };
+            Enum.GetValues(typeof(GrantState)).Cast<GrantState>().Select(GrantTab.Word).Distinct().ToArray();
 
         private static GrantPanel Table()
         {
@@ -439,7 +436,7 @@ namespace KeePassGate.Tests
         {
             var versions = new List<(string Profile, string Text)>
             {
-                ("deploy", "row:CRUSDLAP"), ("deploy", "off:R"), ("lost", null), ("ops", "off:R"), ("gone", "row:R"),
+                ("deploy", "row:CRUSDLAP"), ("deploy", "off:R"), ("lost", null), ("damaged", "row:x"), ("ops", "off:R"), ("gone", "row:R"),
             };
             if (refusing)
             {
@@ -447,7 +444,7 @@ namespace KeePassGate.Tests
             }
 
             var above = Sheets.Arriving(("ops", "CRUSDLAP"), ("reader", "RL"));
-            var sheet = GrantSheet.Of(Rules.Stored(versions.ToArray()), above, new[] { "deploy", "lost", "ops", "reader" }, null);
+            var sheet = GrantSheet.Of(Rules.Stored(versions.ToArray()), above, new[] { "damaged", "deploy", "lost", "ops", "reader" }, null);
             return new GrantPanel(sheet, GrantTab.GroupScope, null, null, null);
         }
 

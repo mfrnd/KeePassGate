@@ -150,9 +150,9 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(Read(_boundShown), Is.EqualTo(Others.Select(other => Own(other, ".R......"))
                 .Concat(new[]
                 {
-                    Line(".R......", GrantTab.TakenOffWord, Tip(GrantTab.TakenOffTip, grants, GrantTab.VersionRemoval)),
-                    Line(".R...L..", GrantTab.VersionWord, Tip(Count(3), grants, GrantTab.VersionRemoval)),
-                    Line("CR...L..", GrantTab.VersionWord, Tip(Count(3), grants, GrantTab.VersionRemoval)),
+                    Line(".R......", GrantTab.RemovedWord, Tip(GrantTab.RemovedTip, grants, GrantTab.VersionRemoval)),
+                    Line(".R...L..", GrantTab.UnmergedWord, Tip(Count(3), grants, GrantTab.VersionRemoval)),
+                    Line("CR...L..", GrantTab.UnmergedWord, Tip(Count(3), grants, GrantTab.VersionRemoval)),
                 })));
         }
 
@@ -162,7 +162,7 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(Ours(_boundShown).Select(line => line.Offscreen), Is.All.True, "before the scroll: " + string.Join(" / ", _boundShown));
             Assert.That(Ours(_boundScrolled).Count(line => !line.Offscreen), Is.GreaterThan(1),
                 "after the scroll, the rows of the versions in view: " + string.Join(" / ", _boundScrolled));
-            Assert.That(Ours(_boundScrolled).Any(line => line.State == GrantTab.TakenOffWord && !line.Offscreen), Is.True,
+            Assert.That(Ours(_boundScrolled).Any(line => line.State == GrantTab.RemovedWord && !line.Offscreen), Is.True,
                 "after the scroll, the version that takes the rule off in view: " + string.Join(" / ", _boundScrolled));
             Assert.That(Read(_boundScrolled), Is.EqualTo(Read(_boundShown)));
         }
@@ -174,8 +174,8 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(Read(_boundAfterTheX), Is.EqualTo(Others.Select(other => Own(other, ".R......"))
                 .Concat(new[]
                 {
-                    Line(".R...L..", GrantTab.VersionWord, Tip(Count(2), grants, GrantTab.VersionRemoval) + Changed, GrantTab.ChangedHere),
-                    Line("CR...L..", GrantTab.VersionWord, Tip(Count(2), grants, GrantTab.VersionRemoval) + Changed, GrantTab.ChangedHere),
+                    Line(".R...L..", GrantTab.UnmergedWord, Tip(Count(2), grants, GrantTab.VersionRemoval) + Changed, GrantTab.ChangedHere),
+                    Line("CR...L..", GrantTab.UnmergedWord, Tip(Count(2), grants, GrantTab.VersionRemoval) + Changed, GrantTab.ChangedHere),
                 })));
         }
 
@@ -200,7 +200,7 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(Read(_cutShown), Is.EqualTo(new[]
             {
                 Line(".R...L..", GrantTab.InheritedWord, Tip(GrantTab.InheritedCutTip, GrantTab.InheritedCutGrants, GrantTab.InheritedChoice)),
-                Line(".R......", GrantTab.LimitWord, Tip(GrantTab.LimitTip, GrantTab.LimitGrants, GrantTab.LimitRemoval)),
+                Line(".R......", GrantTab.AtMostWord, Tip(GrantTab.AtMostTip, GrantTab.AtMostGrants, GrantTab.AtMostRemoval)),
             }));
         }
 
@@ -296,7 +296,7 @@ namespace KeePassGate.Host.Tests.Live
             // A notch of the wheel at a time, until the version that takes the rule off is in view:
             // the table shows fewer rows than the group and the empty line take, so scrolled to its
             // end the first row of the group is out of view again.
-            Func<TabLine, bool> inView = line => line.Profile == Profile && line.State == GrantTab.TakenOffWord && !line.Offscreen;
+            Func<TabLine, bool> inView = line => line.Profile == Profile && line.State == GrantTab.RemovedWord && !line.Offscreen;
             for (var notch = 0; notch < 8 && !tab.Lines().Any(inView); notch++)
             {
                 tab.ScrollDown(1);
@@ -316,7 +316,7 @@ namespace KeePassGate.Host.Tests.Live
             var mark = _log.Mark;
             var tab = RuleTab.OfGroup(_driver, Cut);
             _cutShown = tab.Lines();
-            tab.PressX(tab.Line("the limit", line => line.State == GrantTab.LimitWord));
+            tab.PressX(tab.Line("the limit", line => line.State == GrantTab.AtMostWord));
             _cutAfterTheX = Shown(tab, lines => Ours(lines).Count() == 1);
             _written[Cut] = Accept(tab, mark);
         }
@@ -440,7 +440,7 @@ namespace KeePassGate.Host.Tests.Live
 
         private static string Count(int versions)
         {
-            return string.Format(CultureInfo.InvariantCulture, GrantTab.VersionTip, versions);
+            return string.Format(CultureInfo.InvariantCulture, GrantTab.UnmergedTip, versions);
         }
 
         /// <summary>

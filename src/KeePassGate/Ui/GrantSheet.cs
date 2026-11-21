@@ -19,7 +19,7 @@ namespace KeePassGate.Ui
             AclGrant inherited,
             int group,
             AclGrant granted,
-            bool unreadable,
+            bool refusing,
             bool takesRule,
             bool removable)
         {
@@ -32,7 +32,7 @@ namespace KeePassGate.Ui
             InheritedMask = inherited == null ? null : VerbMask.Of(inherited);
             Group = group;
             Granted = VerbMask.Of(granted);
-            Unreadable = unreadable;
+            Refusing = refusing;
             TakesRule = takesRule;
             Removable = removable;
         }
@@ -88,11 +88,14 @@ namespace KeePassGate.Ui
         public string Granted { get; private set; }
 
         /// <summary>
-        /// Whether a lost row shows a version whose text cannot be read, rather than a version
-        /// whose content is nowhere; on a limit row, whether the limit is a rule taken off while
-        /// the node refused any profile it does not name.
+        /// Whether a limit row is a rule taken off while the node refused any profile it does not
+        /// name, which lets nothing from above through: false on every other row.
         /// </summary>
-        public bool Unreadable { get; private set; }
+        /// <remarks>
+        /// A lost row tells a version whose content is nowhere from a version whose text cannot be
+        /// read by its state, <see cref="GrantState.Missing"/> or <see cref="GrantState.Unreadable"/>.
+        /// </remarks>
+        public bool Refusing { get; private set; }
 
         /// <summary>
         /// Whether a rule can be chosen on the row: a rule set here, an inherited row, a lost row
@@ -137,30 +140,42 @@ namespace KeePassGate.Ui
         /// <summary>A single standing version of a rule set at this node in several versions, bound with the others.</summary>
         Version,
 
-        /// <summary>A rule set at this node whose version was lost or cannot be read.</summary>
+        /// <summary>A rule set at this node whose version was lost or cannot be read, missing or unreadable.</summary>
         Lost,
     }
 
-    /// <summary>A word of the State column, in the order whose first a cell shows where several hold.</summary>
+    /// <summary>
+    /// A word of the State column, in the order whose first a cell shows where several hold, each
+    /// named as the word, `GrantTab.Word`.
+    /// </summary>
     public enum GrantState
     {
         /// <summary>The database no longer names the row's profile.</summary>
         NoProfile = 0,
 
-        /// <summary>A version of the rule was lost, or cannot be read.</summary>
-        Lost,
+        /// <summary>
+        /// A version of the rule was lost: its record was deleted outside the plugin, and its
+        /// content is nowhere.
+        /// </summary>
+        Missing,
 
-        /// <summary>The rule stands in several versions made in copies of the database.</summary>
-        Version,
+        /// <summary>A version of the rule stands in a text that cannot be read.</summary>
+        Unreadable,
 
-        /// <summary>In this version the rule was taken off.</summary>
-        TakenOff,
+        /// <summary>
+        /// The rule stands in several versions, made in copies of the database before the copies
+        /// were synchronized.
+        /// </summary>
+        Unmerged,
 
-        /// <summary>This node lets a grant from above through only as far as the row shows.</summary>
-        Limit,
+        /// <summary>Among those versions, a version in which the rule was taken off.</summary>
+        Removed,
+
+        /// <summary>This node lets a grant from above through at most as far as the row shows.</summary>
+        AtMost,
 
         /// <summary>This node's box refuses the rule from a group above.</summary>
-        RefusedHere,
+        Refused,
 
         /// <summary>The rule comes from a group above.</summary>
         Inherited,
@@ -860,9 +875,9 @@ namespace KeePassGate.Ui
             }
 
             // A change waiting for OK keeps a row, also where nothing would show once OK is
-            // written: where the box refuses, refused here as every profile the node does not
-            // name is refused, whether or not a rule from above arrives for the profile.
-            var left = BoxRefuses ? GrantState.RefusedHere : GrantState.Inherited;
+            // written: where the box refuses, refused as every profile the node does not name is
+            // refused, whether or not a rule from above arrives for the profile.
+            var left = BoxRefuses ? GrantState.Refused : GrantState.Inherited;
             return rows.Count > 0 ? rows : new[] { Inherited(profile, AclGrant.Nothing, true, 1, left) };
         }
 
@@ -953,17 +968,17 @@ namespace KeePassGate.Ui
                     var outOfForm = version.Kind == RowVersionKind.OutOfForm;
                     var kind = outOfForm ? GrantRowKind.Lost : GrantRowKind.Version;
                     var state = outOfForm
-                        ? GrantState.Lost
-                        : version.Kind == RowVersionKind.Grants ? GrantState.Version : GrantState.TakenOff;
+                        ? GrantState.Unreadable
+                        : version.Kind == RowVersionKind.Grants ? GrantState.Unmerged : GrantState.Removed;
                     var left = readable - (outOfForm ? 0 : 1);
                     group.Add(Row(
                         profile, kind, version.Id, outOfForm ? AclGrant.Nothing : version.Letters, new[] { state }, changed, count,
-                        granted, outOfForm, whole, whole || left > 0));
+                        granted, false, whole, whole || left > 0));
                 }
 
                 foreach (var id in lost)
                 {
-                    group.Add(Row(profile, GrantRowKind.Lost, id, AclGrant.Nothing, new[] { GrantState.Lost }, changed, count, granted, false, whole, true));
+                    group.Add(Row(profile, GrantRowKind.Lost, id, AclGrant.Nothing, new[] { GrantState.Missing }, changed, count, granted, false, whole, true));
                 }
 
                 return group
@@ -974,12 +989,12 @@ namespace KeePassGate.Ui
 
             if (lost.Count == 1)
             {
-                return new[] { Row(profile, GrantRowKind.Lost, lost[0], AclGrant.Nothing, new[] { GrantState.Lost }, changed, 1, AclGrant.Nothing, false, true, true) };
+                return new[] { Row(profile, GrantRowKind.Lost, lost[0], AclGrant.Nothing, new[] { GrantState.Missing }, changed, 1, AclGrant.Nothing, false, true, true) };
             }
 
             if (standing.Count == 1 && standing[0].Kind == RowVersionKind.OutOfForm)
             {
-                return new[] { Row(profile, GrantRowKind.Lost, standing[0].Id, AclGrant.Nothing, new[] { GrantState.Lost }, changed, 1, AclGrant.Nothing, true, true, true) };
+                return new[] { Row(profile, GrantRowKind.Lost, standing[0].Id, AclGrant.Nothing, new[] { GrantState.Unreadable }, changed, 1, AclGrant.Nothing, false, true, true) };
             }
 
             if (standing.Count == 1 && standing[0].Kind == RowVersionKind.Grants)
@@ -995,7 +1010,7 @@ namespace KeePassGate.Ui
                 return Array.Empty<GrantRow>();
             }
 
-            var inherited = BoxRefuses ? GrantState.RefusedHere : GrantState.Inherited;
+            var inherited = BoxRefuses ? GrantState.Refused : GrantState.Inherited;
             var limit = switchAfter == null ? null : standing.Aggregate(AclGrant.Every, (held, version) => held.Cut(version.Letters)).Cut(switchAfter);
             if (limit == null || arriving.Cut(limit).SameAs(arriving))
             {
@@ -1006,7 +1021,7 @@ namespace KeePassGate.Ui
             return new[]
             {
                 Inherited(profile, arriving, changed, 2, inherited),
-                Row(profile, GrantRowKind.Limit, null, limit, new[] { GrantState.Limit }, changed, 2, arriving.Cut(limit), refusing, false, true),
+                Row(profile, GrantRowKind.Limit, null, limit, new[] { GrantState.AtMost }, changed, 2, arriving.Cut(limit), refusing, false, true),
             };
         }
 
@@ -1043,7 +1058,7 @@ namespace KeePassGate.Ui
                 new[] { state },
                 changed,
                 group,
-                state == GrantState.RefusedHere ? AclGrant.Nothing : arriving,
+                state == GrantState.Refused ? AclGrant.Nothing : arriving,
                 false,
                 true,
                 false);
@@ -1058,7 +1073,7 @@ namespace KeePassGate.Ui
             bool changed,
             int group,
             AclGrant granted,
-            bool unreadable,
+            bool refusing,
             bool takesRule,
             bool removable)
         {
@@ -1070,7 +1085,7 @@ namespace KeePassGate.Ui
 
             held.AddRange(states);
             return new GrantRow(
-                profile, kind, version, letters, held.AsReadOnly(), changed, _above.For(profile), group, granted, unreadable, takesRule, removable);
+                profile, kind, version, letters, held.AsReadOnly(), changed, _above.For(profile), group, granted, refusing, takesRule, removable);
         }
 
         private static readonly GrantState[] NoState = Array.Empty<GrantState>();

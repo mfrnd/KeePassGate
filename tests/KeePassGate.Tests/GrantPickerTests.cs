@@ -1395,10 +1395,10 @@ namespace KeePassGate.Tests
                 {
                     Assert.That(panel.Lines, Is.EqualTo(new[]
                     {
-                        "ops .R...... " + GrantTab.VersionWord,
-                        "ops .R...L.. " + GrantTab.VersionWord,
+                        "ops .R...... " + GrantTab.UnmergedWord,
+                        "ops .R...L.. " + GrantTab.UnmergedWord,
                         "reader .R...L.. " + GrantTab.InheritedWord,
-                        "reader .R...... " + GrantTab.LimitWord,
+                        "reader .R...... " + GrantTab.AtMostWord,
                     }));
 
                     foreach (var bound in new[] { 0, 1, 3 })

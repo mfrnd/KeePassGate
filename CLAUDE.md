@@ -1675,19 +1675,22 @@ again.
 
 **A state has a column of its own, and a tooltip for each word.** The table is Profile,
 Permissions, State and the X. A State cell holds a word and never a name, the first that holds of
-No profile, Lost, Version, Taken off, Limit, Refused here and Inherited, and the tooltip of the
-cell states what the word means, which is what the gate does for the profile at the node in that
-state; the same text is the cell's accessible description, and none of it is printed under the
-table. A state joined to a name in a single text was the alternative, and a reader could not
-then tell the name from the state. A sentence of the tab names no profile and no client, which a
-cell may, and names the noun where a pronoun would stand. A row or a box that a press changed is
-told by a line of its tooltip and by its accessible text, never by a color alone.
+No profile, Missing, Unreadable, Unmerged, Removed, At most, Refused and Inherited, and the tooltip
+of the cell explains the word to an operator meeting it for the first time: what happened, what
+the gate does for the profile at the node in that state, and what a press does; the same text is
+the cell's accessible description, and none of it is printed under the table. Missing, a version
+whose record is gone, and Unreadable, a version whose text will not read, are two states of the
+sheet, so the panel draws the word of each and never tells them apart by a text. A state joined
+to a name in a single text was the alternative, and a reader could not then tell the name from
+the state. A sentence of the tab names no profile and no client, which a cell may, and names the
+noun where a pronoun would stand. A row or a box that a press changed is told by a line of its
+tooltip and by its accessible text, never by a color alone.
 
 **The rows the store adds.** A rule changed apart in copies shows a row for each version, bound
 together, each with an X that removes that version and no list of rules: no single press there
-grants more than some version held. A profile that the node cuts shows its inherited row and a
-limit row under it, and the X on the limit row settles it in a single press. A lost rule shows
-as granting nothing, and a rule chosen there settles it. Every row but an inherited row has an
+grants more than some version held. A profile that the node cuts shows its inherited row and an
+At most row under it, and the X on the At most row settles it in a single press. A rule Missing or
+Unreadable shows as granting nothing, and a rule chosen there settles it. Every row but an inherited row has an
 X, and the last version that reads beside a lost version has none, since no press is offered
 that OK could not write. The X takes the rule off, also under a box that refuses; a rule the X
 removed shows, until the dialog closes, as the inherited row in its place, marked as changed.

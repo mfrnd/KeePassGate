@@ -390,7 +390,7 @@ namespace KeePassGate.Host.Tests
         /// <summary>A profile name as long as the issuer allows.</summary>
         private static readonly string Longest = new string('w', 64);
 
-        private static readonly string[] Names = { "reader", "editor", "deploy", "lost", "ops", Longest };
+        private static readonly string[] Names = { "reader", "editor", "deploy", "lost", "damaged", "ops", Longest };
 
         /// <summary>The longest of the texts that can stand above the table.</summary>
         private static readonly string LongestReason = AboveTheTable.OrderByDescending(reason => reason.Length).First();
@@ -399,8 +399,8 @@ namespace KeePassGate.Host.Tests
         {
             var versions = new List<(string Profile, string Text)>
             {
-                ("deploy", "row:CRUSDLAP"), ("deploy", "off:CRUSDLAP"), ("lost", null), ("ops", "off:R"), ("gone", "row:R"),
-                (Longest, "row:CRUSDLAP"),
+                ("deploy", "row:CRUSDLAP"), ("deploy", "off:CRUSDLAP"), ("lost", null), ("damaged", "row:x"), ("ops", "off:R"),
+                ("gone", "row:R"), (Longest, "row:CRUSDLAP"),
             };
             for (var i = 0; i < MoreRulesThanFit; i++)
             {

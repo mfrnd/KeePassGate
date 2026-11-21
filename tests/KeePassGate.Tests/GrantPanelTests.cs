@@ -98,19 +98,44 @@ namespace KeePassGate.Tests
         [Test]
         public void Each_row_is_drawn_as_its_profile_its_mask_and_the_word_of_its_first_state()
         {
-            var rule = Rules.Stored(("reader", "row:R"), ("reader", "row:RL"), ("ops", "off:R"), ("deploy", null));
+            var rule = Rules.Stored(
+                ("reader", "row:R"), ("reader", "row:RL"), ("ops", "off:R"), ("deploy", null), ("damaged", "row:x"), ("tk", "row:RL"), ("tk", "off:R"));
 
-            using (var panel = Panel(rule, Sheets.Arriving(("ops", "RL"), ("zeta", "C"))))
+            using (var panel = new GrantPanel(
+                GrantSheet.Of(rule, Sheets.Arriving(("ops", "RL"), ("zeta", "C")), new[] { "reader", "ops", "deploy", "damaged", "tk" }, null),
+                GrantTab.GroupScope,
+                null, null, null))
             {
                 Assert.That(panel.Lines, Is.EqualTo(new[]
                 {
-                    "deploy ........ " + GrantTab.LostWord,
-                    "ops .R...L.. " + GrantTab.InheritedWord,
-                    "ops .R...... " + GrantTab.LimitWord,
-                    "reader .R...... " + GrantTab.VersionWord,
-                    "reader .R...L.. " + GrantTab.VersionWord,
-                    "zeta C....... " + GrantTab.NoProfileWord,
+                    "damaged ........ Unreadable",
+                    "deploy ........ Missing",
+                    "ops .R...L.. Inherited",
+                    "ops .R...... At most",
+                    "reader .R...... Unmerged",
+                    "reader .R...L.. Unmerged",
+                    "tk .R...... Removed",
+                    "tk .R...L.. Unmerged",
+                    "zeta C....... No profile",
                 }));
+            }
+        }
+
+        [Test]
+        public void The_State_cell_tells_a_record_deleted_from_a_record_that_cannot_be_read()
+        {
+            var sheet = GrantSheet.Of(Rules.Stored(("deleted", null), ("damaged", "row:x")), null, new[] { "deleted", "damaged" }, null);
+
+            using (var panel = new GrantPanel(sheet, GrantTab.GroupScope, null, null, null))
+            {
+                var grid = Grid(panel);
+                var deleted = Row(grid, "deleted").Cells[StateColumn];
+                var damaged = Row(grid, "damaged").Cells[StateColumn];
+
+                Assert.That(deleted.Value, Is.EqualTo("Missing"));
+                Assert.That(damaged.Value, Is.EqualTo("Unreadable"));
+                Assert.That(deleted.AccessibilityObject.Description, Does.StartWith("The record of this row was deleted outside the plugin"));
+                Assert.That(damaged.AccessibilityObject.Description, Does.StartWith("The record of this row is there and cannot be read"));
             }
         }
 
@@ -146,11 +171,7 @@ namespace KeePassGate.Tests
                     Assert.That(tip, Does.Contain("gate grants").Or.Contain("grants nothing"), word);
                 }
 
-                Assert.That(seen, Is.EquivalentTo(new[]
-                {
-                    GrantTab.InheritedWord, GrantTab.LimitWord, GrantTab.VersionWord, GrantTab.TakenOffWord,
-                    GrantTab.LostWord, GrantTab.NoProfileWord,
-                }));
+                Assert.That(seen, Is.EquivalentTo(new[] { "Inherited", "At most", "Unmerged", "Removed", "Missing", "Unreadable", "No profile" }));
             }
         }
 
@@ -172,18 +193,20 @@ namespace KeePassGate.Tests
             Assert.That(Tip("above", GrantRowKind.Inherited), Is.EqualTo(
                 GrantTab.InheritedTip + " " + GrantTab.InheritedGrants + " " + GrantTab.InheritedChoice));
             Assert.That(Tip("ops", GrantRowKind.Inherited), Is.EqualTo(
-                GrantTab.InheritedCutTip + " " + GrantTab.InheritedCutGrants + " " + GrantTab.InheritedChoice));
-            Assert.That(Tip("ops", GrantRowKind.Limit), Is.EqualTo(GrantTab.LimitTip + " " + GrantTab.LimitGrants + " " + GrantTab.LimitRemoval));
-            Assert.That(Tip("deny", GrantRowKind.Limit), Is.EqualTo(GrantTab.LimitRefusingTip + " " + GrantTab.LimitRemoval));
-            Assert.That(Tip("deploy", GrantRowKind.Lost), Is.EqualTo(GrantTab.LostTip + " " + GrantTab.LostChoice));
+                "Inherited from a group above with the permissions shown. The At most row under this row decides how much of the "
+                + "rule the gate grants at this node. A rule chosen here replaces the inherited rule at this node and below."));
+            Assert.That(Tip("ops", GrantRowKind.Limit), Is.EqualTo(GrantTab.AtMostTip + " " + GrantTab.AtMostGrants + " " + GrantTab.AtMostRemoval));
+            Assert.That(Tip("deny", GrantRowKind.Limit), Is.EqualTo(GrantTab.AtMostRefusingTip + " " + GrantTab.AtMostRemoval));
+            Assert.That(Tip("deploy", GrantRowKind.Lost), Is.EqualTo(GrantTab.MissingTip + " " + GrantTab.MissingChoice));
             Assert.That(Tip("lost", GrantRowKind.Lost), Is.EqualTo(GrantTab.UnreadableTip + " " + GrantTab.UnreadableChoice));
             Assert.That(Tip("reader", GrantRowKind.Version), Is.EqualTo(
-                "This rule stands in 2 versions, made in copies of this database before the copies met. Until a single version is "
-                + "left, the gate grants .R...... at this node. " + GrantTab.VersionRemoval));
-            Assert.That(GrantTab.StateTip(rows.First(row => row.States.Contains(GrantState.TakenOff)), true), Is.EqualTo(
-                "In this version the rule was removed, so the version lets a grant from above through only as far as the "
-                + "permissions shown. Until a single version is left, the gate grants ........ at this node. "
-                + GrantTab.VersionRemoval));
+                "Copies of this database set this rule differently before the copies were synchronized, and each of these 2 rows "
+                + "holds the rule of a copy. Until a single rule is left, the gate grants .R...... at this node, the permissions "
+                + "all the rows share. The X removes this row."));
+            Assert.That(GrantTab.StateTip(rows.First(row => row.Profile == "tk" && row.Mask == ".R......"), true), Is.EqualTo(
+                "In a copy of this database this rule was removed, so this row lets a grant from above through only as far as "
+                + "the permissions shown. Until a single rule is left, the gate grants ........ at this node, the permissions all "
+                + "the rows share. The X removes this row."));
             Assert.That(Tip("gone", GrantRowKind.Inherited), Is.EqualTo(
                 GrantTab.NoProfileTip + Environment.NewLine + GrantTab.InheritedTip + " " + GrantTab.InheritedChoice));
         }
@@ -205,7 +228,7 @@ namespace KeePassGate.Tests
             {
                 GrantRowKind.Own, GrantRowKind.Inherited, GrantRowKind.Limit, GrantRowKind.Version,
             }));
-            Assert.That(rows.SelectMany(row => row.States).Distinct(), Does.Contain(GrantState.TakenOff));
+            Assert.That(rows.SelectMany(row => row.States).Distinct(), Does.Contain(GrantState.Removed));
             foreach (var row in rows)
             {
                 foreach (var tip in new[] { true, false }.Select(editable => GrantTab.StateTip(row, editable)))
@@ -231,7 +254,7 @@ namespace KeePassGate.Tests
             var sheet = Sheets.Of(Rules.Stored(("reader", "row:R"), ("reader", null)), null);
 
             Assert.That(GrantTab.StateTip(sheet.Rows.Single(row => row.Kind == GrantRowKind.Lost), true),
-                Is.EqualTo(GrantTab.LostTip + " " + GrantTab.VersionRemoval));
+                Is.EqualTo(GrantTab.MissingTip + " " + GrantTab.VersionRemoval));
         }
 
         [Test]
@@ -242,7 +265,7 @@ namespace KeePassGate.Tests
             Assert.That(sheet.Rows.Select(row => GrantTab.StateTip(row, false)), Is.EqualTo(new[]
             {
                 GrantTab.InheritedCutTip + " " + GrantTab.InheritedCutGrants,
-                GrantTab.LimitTip + " " + GrantTab.LimitGrants,
+                GrantTab.AtMostTip + " " + GrantTab.AtMostGrants,
             }));
         }
 
@@ -251,8 +274,9 @@ namespace KeePassGate.Tests
         {
             var sheet = GrantSheet.Of(Rules.Node(true), Sheets.Arriving(("reader", "R"), ("gone", "R")), new[] { "reader" }, null);
 
-            Assert.That(GrantTab.StateTip(Sheets.Single(sheet, "reader"), true),
-                Is.EqualTo(GrantTab.RefusedHereTip + " " + GrantTab.RefusedHereChoice));
+            Assert.That(GrantTab.StateTip(Sheets.Single(sheet, "reader"), true), Is.EqualTo(
+                "The box under the table refuses any profile not named here, so every rule from a group above stops at this node "
+                + "and the gate grants nothing here. A rule chosen here grants at this node again."));
             Assert.That(GrantTab.StateTip(Sheets.Single(sheet, "gone"), true), Is.EqualTo(GrantTab.NoProfileRefusedTip));
         }
 
@@ -332,7 +356,7 @@ namespace KeePassGate.Tests
                 Assert.That(panel.Lines, Is.EqualTo(new[]
                 {
                     "ops CR......",
-                    "reader ........ " + GrantTab.RefusedHereWord,
+                    "reader ........ Refused",
                 }));
                 Assert.That(rule.Row("reader").Versions.Single().Kind, Is.EqualTo(RowVersionKind.Grants));
                 Assert.That(rule.Switch.Versions, Is.Empty);
@@ -450,7 +474,7 @@ namespace KeePassGate.Tests
 
                 Assert.That(refused.DefaultCellStyle.ForeColor, Is.EqualTo(SystemColors.GrayText));
                 Assert.That(refused.Cells[MaskColumn].Style.Font.Strikeout, Is.True);
-                Assert.That(refused.Cells[StateColumn].Value, Is.EqualTo(GrantTab.RefusedHereWord), "told by the word too");
+                Assert.That(refused.Cells[StateColumn].Value, Is.EqualTo("Refused"), "told by the word too");
                 Assert.That(Row(grid, "ops").Cells[MaskColumn].Style.Font, Is.Null, "a rule of the node's own is drawn plainly");
             }
         }
@@ -466,11 +490,11 @@ namespace KeePassGate.Tests
                 panel.Press(Row(grid, "ops").Index, ForgetColumn);
 
                 var left = Row(grid, "ops");
-                Assert.That(left.Cells[StateColumn].Value, Is.EqualTo(GrantTab.RefusedHereWord));
+                Assert.That(left.Cells[StateColumn].Value, Is.EqualTo(GrantTab.RefusedWord));
                 Assert.That(left.Cells[MaskColumn].Value, Is.EqualTo("........"));
                 Assert.That(left.Cells[MaskColumn].Style.Font.Strikeout, Is.True);
                 Assert.That(left.Cells[StateColumn].ToolTipText, Is.EqualTo(Tooltips.Wrapped(
-                    GrantTab.RefusedHereTip + " " + GrantTab.RefusedHereChoice + Environment.NewLine + GrantTab.ChangedHere)));
+                    GrantTab.RefusedTip + " " + GrantTab.RefusedChoice + Environment.NewLine + GrantTab.ChangedHere)));
             }
         }
 
@@ -704,7 +728,7 @@ namespace KeePassGate.Tests
                 Assert.That(ops.Cells[MaskColumn].ToolTipText, Is.EqualTo(Tooltips.Wrapped(GrantTab.MaskTip((GrantRow)ops.Tag, true))));
                 Assert.That(
                     Shown(grid).Where(row => ((GrantRow)row.Tag).Profile == "reader").Select(row => row.Cells[StateColumn].Value),
-                    Is.EqualTo(new[] { GrantTab.VersionWord, GrantTab.VersionWord }));
+                    Is.EqualTo(new[] { GrantTab.UnmergedWord, GrantTab.UnmergedWord }));
                 Assert.That(
                     Shown(grid).Where(row => ((GrantRow)row.Tag).Bound).All(row => row.Cells[ProfileColumn].Style.Padding.Left > 0),
                     Is.True, "the bracket keeps its room");
@@ -785,7 +809,7 @@ namespace KeePassGate.Tests
 
                 var grid = Grid(panel);
                 var versions = Shown(grid).ToList();
-                Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R...... " + GrantTab.VersionWord, "reader .R...L.. " + GrantTab.TakenOffWord }));
+                Assert.That(panel.Lines, Is.EqualTo(new[] { "reader .R...... " + GrantTab.UnmergedWord, "reader .R...L.. " + GrantTab.RemovedWord }));
                 Assert.That(versions.Select(row => row.DefaultCellStyle.BackColor), Is.EqualTo(new[] { tints.Changed, tints.Changed }));
                 Assert.That(versions.All(row => row.Cells[ProfileColumn].Style.Padding.Left == GrantMarks.Room(grid.Font)), Is.True, "in a bracket");
                 Assert.That(GrantMarks.Of(sheet.Rows, sheet.CanEdit).Select(mark => string.Join(",", mark.Bold)), Is.EqualTo(new[] { "5", "5" }));
@@ -801,7 +825,7 @@ namespace KeePassGate.Tests
                 var grid = Grid(panel);
                 var versions = Shown(grid).ToList();
 
-                Assert.That(versions.Select(row => row.Cells[StateColumn].Value), Is.EqualTo(new[] { GrantTab.LostWord, GrantTab.LostWord }));
+                Assert.That(versions.Select(row => row.Cells[StateColumn].Value), Is.EquivalentTo(new[] { "Missing", "Unreadable" }));
                 Assert.That(versions.Select(row => row.DefaultCellStyle.BackColor), Is.EqualTo(new[] { tints.Bound, tints.Bound }));
                 Assert.That(versions.All(row => row.Cells[ProfileColumn].Style.Padding.Left == GrantMarks.Room(grid.Font)), Is.True, "in a bracket");
             }

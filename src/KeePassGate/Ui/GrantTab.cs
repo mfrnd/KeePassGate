@@ -152,8 +152,8 @@ namespace KeePassGate.Ui
 
         /// <summary>What the last column's heading, a bin, tells the operator.</summary>
         public const string ForgetColumnHelp =
-            "Removes the rule set at this node, a version of a rule, or a limit: the State cell of each "
-            + "row tells which.";
+            "Removes the rule set at this node, or the rule of a copy on a row bound to other rows. On an "
+            + AtMostWord + " row, lets the whole rule from above through.";
 
         /// <summary>The word that starts the tooltip of a rule here over an inherited rule, and the end of it.</summary>
         public const string InheritedFrom = ", inherited from a group above.";
@@ -176,8 +176,8 @@ namespace KeePassGate.Ui
 
         /// <summary>The tooltip of the box where a version of the setting was lost or cannot be read.</summary>
         public const string SealCheckBoxLost =
-            "A version of this setting was deleted or cannot be read, so the gate refuses any profile "
-            + "not named here until the box is set again.";
+            "A record of this setting was deleted outside the plugin or cannot be read, so the gate "
+            + "refuses any profile not named here until the box is set again.";
 
         /// <summary>The further line of the tooltip and the accessible text of a row or a box changed on the tab.</summary>
         public const string ChangedHere = "Changed on this tab. OK writes the change, and Cancel discards the change.";
@@ -186,17 +186,31 @@ namespace KeePassGate.Ui
         public const string ChangedNotWritten = "Changed on this tab. No change can be written now, so OK writes nothing.";
 
         /// <summary>The word of each state in the State column.</summary>
+        /// <remarks>
+        /// **A word is what the operator sees in the cell**, and the tooltip of the cell explains the
+        /// word to an operator meeting the word for the first time: what happened, what the gate
+        /// grants now, and what a press does. A sentence that names a state names the state by its
+        /// word, through the constant here.
+        /// </remarks>
         public const string NoProfileWord = "No profile";
 
-        public const string LostWord = "Lost";
+        /// <summary>A version whose record was deleted outside the plugin, its content nowhere.</summary>
+        public const string MissingWord = "Missing";
 
-        public const string VersionWord = "Version";
+        /// <summary>A version whose record stands in a text that cannot be read.</summary>
+        public const string UnreadableWord = "Unreadable";
 
-        public const string TakenOffWord = "Taken off";
+        /// <summary>A version of a rule that copies of the database set apart before a synchronize.</summary>
+        public const string UnmergedWord = "Unmerged";
 
-        public const string LimitWord = "Limit";
+        /// <summary>Among those versions, a version in which the rule was taken off.</summary>
+        public const string RemovedWord = "Removed";
 
-        public const string RefusedHereWord = "Refused here";
+        /// <summary>The limit row: what this node lets through from above, at most.</summary>
+        public const string AtMostWord = "At most";
+
+        /// <summary>A rule from above that this node's box refuses.</summary>
+        public const string RefusedWord = "Refused";
 
         public const string InheritedWord = "Inherited";
 
@@ -211,12 +225,12 @@ namespace KeePassGate.Ui
         /// <summary>What the gate grants a profile whose rule comes from a group above.</summary>
         public const string InheritedGrants = "The gate grants the permissions shown at this node.";
 
-        /// <summary>The same, for an inherited rule this node cuts, shown above its limit.</summary>
+        /// <summary>The same, for an inherited rule this node cuts, shown above its At most row.</summary>
         public const string InheritedCutTip = "Inherited from a group above with the permissions shown.";
 
-        /// <summary>What the gate grants a profile this node cuts, on the inherited row above the limit.</summary>
+        /// <summary>What the gate grants a profile this node cuts, on the inherited row above the At most row.</summary>
         public const string InheritedCutGrants =
-            "The limit under the inherited row decides how much of the rule the gate grants at this node.";
+            "The " + AtMostWord + " row under this row decides how much of the rule the gate grants at this node.";
 
         /// <summary>
         /// The row a rule removed on the tab leaves where no rule from a group above arrives, and
@@ -236,66 +250,69 @@ namespace KeePassGate.Ui
         /// What the gate does for a profile this node's box refuses: a rule from above refused, and
         /// the row an X leaves where nothing arrives.
         /// </summary>
-        public const string RefusedHereTip =
-            "This node refuses any profile not named here, so every rule from a group above stops at "
-            + "this node and the gate grants nothing here.";
+        public const string RefusedTip =
+            "The box under the table refuses any profile not named here, so every rule from a group "
+            + "above stops at this node and the gate grants nothing here.";
 
         /// <summary>What a rule chosen on a row the box refuses does.</summary>
-        public const string RefusedHereChoice = "A rule chosen here grants at this node again.";
+        public const string RefusedChoice = "A rule chosen here grants at this node again.";
 
-        /// <summary>How far this node lets a grant from above through, on a limit row.</summary>
-        public const string LimitTip =
-            "This node lets a grant from above through only as far as the grant reached when the rule "
-            + "here was removed or the box below was cleared.";
+        /// <summary>How far this node lets a grant from above through, on an At most row.</summary>
+        public const string AtMostTip =
+            "The rule here was removed, or the box below cleared, when less arrived from above than "
+            + "arrives now, so this node lets through at most the permissions shown.";
 
-        /// <summary>What the gate grants a profile this node cuts, on the limit row.</summary>
-        public const string LimitGrants = "The gate grants the permissions that this row and the inherited row share.";
+        /// <summary>What the gate grants a profile this node cuts, on the At most row.</summary>
+        public const string AtMostGrants = "The gate grants the permissions that this row and the inherited row share.";
 
         /// <summary>The same, for a rule taken off while the node refused any profile it does not name.</summary>
-        public const string LimitRefusingTip =
-            "The rule here was removed while this node refused any profile not named here, so the gate "
-            + "grants nothing at this node.";
+        public const string AtMostRefusingTip =
+            "The rule here was removed while this node refused any profile not named here, so nothing "
+            + "from above passes this node and the gate grants nothing here.";
 
-        /// <summary>What the X on a limit row does.</summary>
-        public const string LimitRemoval = "The X removes the limit.";
+        /// <summary>What the X on an At most row does.</summary>
+        public const string AtMostRemoval = "The X lets the whole rule from above through.";
 
-        /// <summary>A rule in several versions, with the count.</summary>
-        public const string VersionTip =
-            "This rule stands in {0} versions, made in copies of this database before the copies met.";
+        /// <summary>A rule in several versions made in copies of the database, with the count of rows.</summary>
+        public const string UnmergedTip =
+            "Copies of this database set this rule differently before the copies were synchronized, and "
+            + "each of these {0} rows holds the rule of a copy.";
 
-        /// <summary>A version in which the rule was taken off.</summary>
-        public const string TakenOffTip =
-            "In this version the rule was removed, so the version lets a grant from above through only "
-            + "as far as the permissions shown.";
+        /// <summary>Among those versions, a version in which the rule was taken off.</summary>
+        public const string RemovedTip =
+            "In a copy of this database this rule was removed, so this row lets a grant from above "
+            + "through only as far as the permissions shown.";
 
         /// <summary>What the gate grants a profile whose rule stands in several versions, with the mask.</summary>
-        public const string GroupGrants = "Until a single version is left, the gate grants {0} at this node.";
+        public const string GroupGrants =
+            "Until a single rule is left, the gate grants {0} at this node, the permissions all the rows share.";
 
-        /// <summary>What the X on a row of a bound group does.</summary>
-        public const string VersionRemoval = "The X removes this version.";
+        /// <summary>What the X on a row of a bound group does: that version goes, and every other row stays.</summary>
+        public const string VersionRemoval = "The X removes this row.";
 
         /// <summary>
         /// What the X on a row does in a group where no version could be left that reads: the rule
         /// is taken off, every version with the rule.
         /// </summary>
-        public const string EveryVersionRemoval = "The X removes the rule, every version with the rule.";
+        public const string EveryVersionRemoval = "The X removes the rule and every row of the rule.";
 
         /// <summary>What a rule chosen on a row of such a group does.</summary>
-        public const string EveryVersionChoice = "A rule chosen here replaces every version.";
+        public const string EveryVersionChoice = "A rule chosen here replaces every row of the rule.";
 
-        /// <summary>What the gate does for a profile a version of whose rule was deleted.</summary>
-        public const string LostTip =
-            "A version of this rule was deleted and the content is nowhere, so the gate grants nothing here.";
+        /// <summary>What the gate does for a profile a version of whose rule was deleted, its content nowhere.</summary>
+        public const string MissingTip =
+            "The record of this row was deleted outside the plugin and the content of the record is "
+            + "gone, so the gate grants nothing here.";
 
-        /// <summary>What a rule chosen on a lost row does.</summary>
-        public const string LostChoice = "A rule chosen here replaces the lost version.";
+        /// <summary>What a rule chosen on a Missing row does.</summary>
+        public const string MissingChoice = "A rule chosen here replaces the missing record.";
 
         /// <summary>What the gate does for a profile a version of whose rule cannot be read.</summary>
         public const string UnreadableTip =
-            "A version of this rule cannot be read, so the gate grants nothing here.";
+            "The record of this row is there and cannot be read, so the gate grants nothing here.";
 
-        /// <summary>What a rule chosen on a row that cannot be read does.</summary>
-        public const string UnreadableChoice = "A rule chosen here replaces the unreadable version.";
+        /// <summary>What a rule chosen on an Unreadable row does.</summary>
+        public const string UnreadableChoice = "A rule chosen here replaces the unreadable record.";
 
         /// <summary>What the gate does for a rule whose profile the database no longer names.</summary>
         public const string NoProfileTip =
@@ -485,16 +502,18 @@ namespace KeePassGate.Ui
             {
                 case GrantState.NoProfile:
                     return NoProfileWord;
-                case GrantState.Lost:
-                    return LostWord;
-                case GrantState.Version:
-                    return VersionWord;
-                case GrantState.TakenOff:
-                    return TakenOffWord;
-                case GrantState.Limit:
-                    return LimitWord;
-                case GrantState.RefusedHere:
-                    return RefusedHereWord;
+                case GrantState.Missing:
+                    return MissingWord;
+                case GrantState.Unreadable:
+                    return UnreadableWord;
+                case GrantState.Unmerged:
+                    return UnmergedWord;
+                case GrantState.Removed:
+                    return RemovedWord;
+                case GrantState.AtMost:
+                    return AtMostWord;
+                case GrantState.Refused:
+                    return RefusedWord;
                 default:
                     return InheritedWord;
             }
@@ -525,35 +544,39 @@ namespace KeePassGate.Ui
                 switch (state)
                 {
                     case GrantState.NoProfile:
-                        lines.Add(states.Contains(GrantState.RefusedHere) ? NoProfileRefusedTip : NoProfileTip);
+                        lines.Add(states.Contains(GrantState.Refused) ? NoProfileRefusedTip : NoProfileTip);
                         break;
 
-                    case GrantState.Lost:
-                        lines.Add(Joined(row.Unreadable ? UnreadableTip : LostTip, editable ? LostPress(row) : null));
+                    case GrantState.Missing:
+                        lines.Add(Joined(MissingTip, editable ? LostPress(row, MissingChoice) : null));
                         break;
 
-                    case GrantState.Version:
+                    case GrantState.Unreadable:
+                        lines.Add(Joined(UnreadableTip, editable ? LostPress(row, UnreadableChoice) : null));
+                        break;
+
+                    case GrantState.Unmerged:
                         lines.Add(Joined(
-                            Joined(Formatted(VersionTip, row.Group), named ? Formatted(GroupGrants, row.Granted) : null),
+                            Joined(Formatted(UnmergedTip, row.Group), named ? Formatted(GroupGrants, row.Granted) : null),
                             editable && row.Removable ? VersionRemoval : null));
                         break;
 
-                    case GrantState.TakenOff:
+                    case GrantState.Removed:
                         lines.Add(Joined(
-                            Joined(TakenOffTip, named ? Formatted(GroupGrants, row.Granted) : null),
+                            Joined(RemovedTip, named ? Formatted(GroupGrants, row.Granted) : null),
                             editable && row.Removable ? VersionRemoval : null));
                         break;
 
-                    case GrantState.Limit:
+                    case GrantState.AtMost:
                         lines.Add(Joined(
-                            row.Unreadable ? LimitRefusingTip : Joined(LimitTip, named ? LimitGrants : null),
-                            editable ? LimitRemoval : null));
+                            row.Refusing ? AtMostRefusingTip : Joined(AtMostTip, named ? AtMostGrants : null),
+                            editable ? AtMostRemoval : null));
                         break;
 
-                    case GrantState.RefusedHere:
+                    case GrantState.Refused:
                         if (named)
                         {
-                            lines.Add(Joined(RefusedHereTip, editable ? RefusedHereChoice : null));
+                            lines.Add(Joined(RefusedTip, editable ? RefusedChoice : null));
                         }
 
                         break;
@@ -619,12 +642,15 @@ namespace KeePassGate.Ui
                 : Joined(Joined(InheritedTip, named ? InheritedGrants : null), editable ? InheritedChoice : null);
         }
 
-        /// <summary>What a press on a lost row does: a choice and an X standing alone, an X in a group.</summary>
-        private static string LostPress(GrantRow row)
+        /// <summary>
+        /// What a press on a lost row, missing or unreadable, does: the choice of its state standing
+        /// alone, an X in a group.
+        /// </summary>
+        private static string LostPress(GrantRow row, string choice)
         {
             if (!row.Bound)
             {
-                return row.Unreadable ? UnreadableChoice : LostChoice;
+                return choice;
             }
 
             if (row.TakesRule)

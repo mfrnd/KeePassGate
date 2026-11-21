@@ -797,11 +797,12 @@ arrives now to them. A rule taken off, or a box cleared, in a copy of a database
 otherwise come to give more than its writer ever saw at the node, once another copy widened a
 rule above it: each change is a record of its own, both arrive at a synchronize, and the node
 would give what neither copy's table gave. With the record the node gives at most what reached
-it when the rule was taken off, and the KPG tab shows the limit with an X that removes it,
-`STORE.md` §639 and §657. **A rule changed apart in two copies stands in both versions and
-grants what both allow**, until the operator has removed versions on the tab. **A version that
-was deleted with its content nowhere, or whose text cannot be read, refuses**: that profile at
-that node for a row, and every profile the node does not name for the switch.
+it when the rule was taken off, and the KPG tab shows the limit, At most in its State column,
+with an X that removes it, `STORE.md` §639 and §657. **A rule changed apart in two copies stands
+in both versions and grants what both allow**, Unmerged on the tab, until the operator has
+removed versions there. **A version that was deleted with its content nowhere, Missing, or whose
+text cannot be read, Unreadable, refuses**: that profile at that node for a row, and every
+profile the node does not name for the switch.
 
 **This reverses the rule document on a node**, which this section was about and was named for:
 one flat object of strings and arrays of strings in the node's `CustomData`, which is exactly

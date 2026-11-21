@@ -420,7 +420,7 @@ group above already opens wide, and somebody reading that would be invited to gr
 the new rule's mask states which way: "Narrows", "Widens", "Replaces" or "The same as", then the
 inherited mask.
 
-**A line through the mask, with Refused here as the state, is a rule that stops at this group or
+**A line through the mask, with Refused as the state, is a rule that stops at this group or
 entry.** That is what an inherited rule looks like once **Refuse any profile not named here** is
 ticked here: the rule still stands above, and nothing of it is let through. The row stays on the
 table because seeing what the check box refuses is the reason for ticking it. To let such a profile
@@ -489,8 +489,8 @@ database](#copies-of-a-database) has how it comes about.
 The **X** in the last column removes the rule of its row at this group or entry, also while
 **Refuse any profile not named here** is ticked. Until the dialog closes, the row shows what the
 profile is left with: the rule a group above grants, as **Inherited**; the same rule struck
-through, as **Refused here**, where the box is ticked; or a row with no letter where no rule
-arrives from above.
+through, as **Refused**, where the box is ticked; or a row with no letter where no rule arrives
+from above.
 
 **A removed rule is not an empty rule.** An empty mask is a rule: it keeps the profile out here and
 below whatever a group above grants. A removed rule leaves the profile to the groups above.
@@ -501,9 +501,9 @@ carries this group or entry along: the **OK** that widens the rule above lets th
 through here as well. Where that **OK** could not, since the rules below were changed while its
 dialog was open, [the plugin's log](getting-started.md#the-plugins-log) names the group or entry
 it left. A widening that arrives from another copy of the database carries nothing along. Either
-shows here as a **Limit**, which [Copies of a database](#copies-of-a-database) describes. The same
-holds where the box was cleared: every profile it let through is given at most what reached this
-group or entry at that press.
+shows here as an **At most** row, which [Copies of a database](#copies-of-a-database) describes.
+The same holds where the box was cleared: every profile it let through is given at most what
+reached this group or entry at that press.
 
 **A rule removed while the box was ticked lets nothing through**, since nothing was let through
 when it was removed, and it stays so where another copy of the database clears the box. Clearing
@@ -511,35 +511,36 @@ the box on this tab lets that profile through with the rest, as above.
 
 ## Reading the State column
 
-The State cell of a row holds a word, or nothing for a rule set here that stands alone. Hovering
-over the cell states what the word means for that row: what the gate grants the profile here, and
-what a press on the row does.
+The State cell of a row holds a word, or nothing for a rule set here that stands alone and is in
+force as shown. Hovering over the cell shows a tooltip explaining the word for that row: what
+happened, what the gate grants the profile here, and what a press on the row does.
 
 | State | The row | What the gate grants the profile here |
 | --- | --- | --- |
 | *(empty)* | a rule set here | the permissions shown |
-| **Inherited** | gray: a rule from a group above | the permissions shown, or, with a **Limit** row under it, what both rows share |
-| **Refused here** | gray and struck through: a rule from a group above that the ticked box stops | nothing |
-| **Limit** | under an inherited row, bound to it by a bracket | what this row and the inherited row share; the **X** removes the limit |
-| **Version** | a row of several bound by a bracket: the rule stands in several versions | what all versions hold, until a single version is left; the **X** removes this version |
-| **Taken off** | a row among such versions: in this version the rule was removed | as for **Version** |
-| **Lost** | no letter: a version of the rule was deleted, or cannot be read | nothing; a rule chosen on the row replaces the lost version |
+| **Inherited** | gray: no rule here, so the rule of a group above applies | the permissions shown, or, with an **At most** row under it, what both rows share |
+| **Refused** | gray and struck through: **Refuse any profile not named here** is ticked, so the rule from above stops here | nothing |
+| **At most** | under an inherited row, bound to it by a bracket: the rule here was removed when less arrived than arrives now, and this row shows what arrived then | what this row and the inherited row share; the **X** lets the whole rule through |
+| **Unmerged** | a row of several bound by a bracket: copies of the database set the rule differently before they were synchronized, and each row is the rule of a copy | what all the rows share, until a single rule is left; the **X** removes this row |
+| **Removed** | a row among such rows: in this copy the rule was removed | as for **Unmerged** |
+| **Missing** | no letter: the rule's record was deleted by something other than the plugin, and its content is gone | nothing, until a rule is chosen on the row |
+| **Unreadable** | no letter: the rule's record is there and cannot be read | nothing, until a rule is chosen on the row |
 | **No profile** | struck through: the database's list does not hold the name | nothing, until the name is added back |
 
-Where several states hold for a row, the cell shows the first of **No profile**, **Lost**,
-**Version**, **Taken off**, **Limit**, **Refused here** and **Inherited**, and the tooltip has a
-line for each. **Limit**, **Version** and **Taken off** arise where copies of a database are
-synchronized, and [Copies of a database](#copies-of-a-database) describes what to do about each.
-The rows of a limit and of a rule in several versions stand on a light red, and the letters in
-which their masks differ are bold.
+Where several states hold for a row, the cell shows the first of **No profile**, **Missing**,
+**Unreadable**, **Unmerged**, **Removed**, **At most**, **Refused** and **Inherited**, and the
+tooltip has a line for each. **At most**, **Unmerged** and **Removed** arise where copies of a
+database are synchronized, and [Copies of a database](#copies-of-a-database) describes what to do
+about each. An **At most** row with the inherited row above it, and the rows of an **Unmerged**
+rule, stand on a light red, and the letters in which their masks differ are bold.
 
-**A lost rule is refused rather than skipped.** Nobody can tell what a lost version was taking
-away, so the profile is granted nothing at that group or entry, and nothing under it unless a
-nearer rule answers. A rule chosen on the row replaces the lost version at **OK**, and the **X**
-takes the rule off. A **Refuse any profile not named here** setting that was lost shows the box
-ticked, with a tooltip stating so, and refuses every profile not named there until the box is set
-again. A lost rule on a group above refuses below as well, and is replaced on the group that
-holds it. A rule is lost where the entries that held it in
+**A Missing or Unreadable rule is refused rather than skipped.** Nobody can tell what the rule
+was taking away, so the profile is granted nothing at that group or entry, and nothing under it
+unless a nearer rule answers. A rule chosen on the row replaces the record at **OK**, and the
+**X** takes the rule off. A **Refuse any profile not named here** setting whose record is missing
+or unreadable shows the box ticked, with a tooltip stating so, and refuses every profile not named
+there until the box is set again. Such a rule on a group above refuses below as well, and is
+replaced on the group that holds it. A rule goes **Missing** where the entries that held it in
 [the plugin's group](getting-started.md#the-plugins-group) were deleted, by hand or by a program
 other than KeePass; some such deletions end the serving of the whole database, as that section
 describes.
@@ -638,32 +639,32 @@ entry than the rules standing there allow together.
 nothing is left to settle.
 
 **The same profile's rule changed in both copies stands in both versions.** The tab shows a row
-for each version, bound by a bracket, with **Version** as the state, or **Taken off** for a
-version in which the rule was removed. Until a single version is left, the gate grants what all
-versions hold, which the tooltip of each row states. To choose among them, remove the versions
-that are not wanted with their **X**: the row that is left is a rule like any other, and can be
-changed on the same tab before **OK**. A row of such a group offers its **X** and no list, so no
-single press grants more than some version held. Where each copy removes a different version
-before the copies meet again, every version is back afterwards, and the choice is made again in a
-copy that holds them all.
+for each copy's rule, bound by a bracket, with **Unmerged** as the state, or **Removed** for a
+copy in which the rule was removed. Until a single rule is left, the gate grants what all the
+rows share, which the tooltip of each row states. To choose among them, remove the rows that are
+not wanted with their **X**: the row that is left is a rule like any other, and can be changed on
+the same tab before **OK**. A row of such a group offers its **X** and no list, so no single press
+grants more than some copy's rule held. Where each copy removes a different row before the copies
+meet again, every row is back afterwards, and the choice is made again in a copy that holds them
+all.
 
-![A rule for reader in three versions, a version taking the rule off among them](images/rule-versions.png)
+![The rule for reader in three rows, Unmerged, with a Removed row among them](images/rule-versions.png)
 
 **The check box set differently in two copies shows its third mark**, and the gate refuses every
 profile not named there until the box is pressed: [Refusing everything not
 named](#refusing-everything-not-named).
 
-**A Limit row is a grant from above held back to what it was.** Where a rule was removed, or the
-box cleared, in a copy, and a rule above was widened in another, the group or entry gives the
+**An At most row is a grant from above held back to what it was.** Where a rule was removed, or
+the box cleared, in a copy, and a rule above was widened in another, the group or entry gives the
 profile what the first copy gave: the inherited row shows the wider rule that arrives, and the
-**Limit** row under it the permissions that arrived when the rule here was removed or the box
+**At most** row under it the permissions that arrived when the rule here was removed or the box
 cleared. The gate grants what both rows share. To let the whole grant through, press the **X** on
-the **Limit** row and then **OK**: the inherited row then stands alone. A limit with no letter
-is a rule that was removed while the box was ticked, and grants nothing until its **X** is
-pressed. A group or entry whose rule was removed keeps what it recorded where it is moved, so
-under a group that grants more than its former place it shows a limit the same way.
+the **At most** row and then **OK**: the inherited row then stands alone. An **At most** row with
+no letter is a rule that was removed while the box was ticked, and grants nothing until its **X**
+is pressed. A group or entry whose rule was removed keeps what it recorded where it is moved, so
+under a group that grants more than its former place it shows an **At most** row the same way.
 
-![A limit under the inherited rule it cuts](images/rule-limit.png)
+![An At most row under the inherited rule it cuts](images/rule-limit.png)
 
 **What the plugin cannot settle between copies**, each because the database then holds exactly
 what a single careful operator could have made on purpose:
@@ -678,9 +679,9 @@ what a single careful operator could have made on purpose:
   own.
 - **A group or entry with no rule of its own, moved in a copy while a rule above its new place was
   changed in another.** What has to stay closed wherever it is moved needs a rule of its own.
-- **A limit that stopped holding anything back is forgotten.** Once a rule above is narrowed, in
-  the copy that holds the limit, to what the limit allowed, the limit row goes, and a later
-  widening above in that copy carries the group or entry along.
+- **An At most row that stopped holding anything back is forgotten.** Once a rule above is
+  narrowed, in the copy that holds the row, to what the row allowed, the **At most** row goes,
+  and a later widening above in that copy carries the group or entry along.
 - **A name added back in a copy while a rule for it was widened in another**, as [Naming
   profiles](#naming-profiles) has it.
 
@@ -707,8 +708,8 @@ it.
 **A program can ask what it may do at a group or an entry** before it tries. It is told one mask for
 each profile it holds, written as this tab writes them, and nothing about a profile it does not
 hold. Each mask is what the gate grants that profile at that group or entry: where this tab shows
-a **Limit** or a rule in several versions there, the mask is what those leave, and for a lost rule
-it holds no letter. It is about that group or entry alone, so a `D` on an
+an **At most** row or **Unmerged** rows there, the mask is what those leave, and for a **Missing**
+or **Unreadable** rule it holds no letter. It is about that group or entry alone, so a `D` on an
 entry can still be refused by the group it is in, which removing it asks as well. A switch beside
 nothing but `S` or `D` is left out, since it reaches nothing removing does not already take. A group
 or an entry where none of its profiles may do anything is answered as one that does not exist, and

@@ -47,7 +47,7 @@ namespace KeePassGate.Tests
             {
                 ".R...... Version", ".R...L.. Version", "CR...L.. Version",
             }));
-            Assert.That(rows[0].States, Is.EqualTo(new[] { GrantState.TakenOff }), "the version that took the rule off");
+            Assert.That(rows[0].States, Is.EqualTo(new[] { GrantState.Removed }), "the version that took the rule off");
 
             Assert.That(Shape(marks), Is.EqualTo(new[] { "first", "middle", "last" }));
             foreach (var mark in marks)
