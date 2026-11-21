@@ -2428,17 +2428,21 @@ node's rules by its identifier from the rules it is handed, so a rule stays with
 the node is moved, and a copy, an entry made from a template and an earlier version of an entry hold
 none. Nothing of a rule is written on a group or an entry. The write above is built with them,
 as "What is built of the write above" has it, with what the sheet keeps for it of the versions
-below (§629). **Left to a later commit**: the runs of rules changed apart over synchronized
-copies beyond the histories named below, the drive in a real KeePass beyond a rule set on the
-entry dialog's tab, and every cost but what an OK above many nodes, and a hold and an OK after
-many renewals, hold KeePass's thread for (§643, §644). **A version's `after` and its `lost`
-are built as this section has them**, as the model has them (`measured-lost-settled` 6):
-`RuleActs` names the versions a write replaces in `after` and the lost versions the tab showed
-in `lost`, every act carrying both on; `StoreChecked` reads `lost` once with the version's
-checked form, as `after`; `StoreInForce` answers a deletion record by its place, a version in
-force of an object there naming it in `after` answering for every object at the place and in
-`lost` for that object alone; and `StoreReplaced` reads nothing of `lost`. **Where the build
-reads otherwise than this section** (each stated for a decision, and none changed here).
+below (§629). **The runs of rules changed apart over synchronized copies** are
+`StoreRuleMergeTests`: copies of a real database that the product wrote, every rule written as a
+node dialog's OK writes it, the tab's own sheet pressed, and the copies brought together by
+`PwDatabase.MergeIn` under each method in each direction, each merge held to both copies by
+capabilities; §639 has what each group of its sequences holds, and §644 item 24 what stays owed.
+**Left to a later commit**: the drive in a real KeePass beyond a rule set on the entry dialog's
+tab, and every cost but what an OK above many nodes, and a hold and an OK after many renewals,
+hold KeePass's thread for (§643, §644). **A version's `after` and its `lost` are built as this
+section has them**, as the model has them (`measured-lost-settled` 6): `RuleActs` names the
+versions a write replaces in `after` and the lost versions the tab showed in `lost`, every act
+carrying both on; `StoreChecked` reads `lost` once with the version's checked form, as `after`;
+`StoreInForce` answers a deletion record by its place, a version in force of an object there
+naming it in `after` answering for every object at the place and in `lost` for that object
+alone; and `StoreReplaced` reads nothing of `lost`. **Where the build reads otherwise than this
+section** (each stated for a decision, and none changed here).
 The file knows a name and a node from the items of every summary entry present, where this
 section has the items of a summary entry in force; knowing more only lets a deletion record
 refuse. And the log names a change of rules by the node and that the rules were written or not,
@@ -2451,8 +2455,10 @@ by capabilities; `AclInheritanceTests` and `AclDecideAnyTests`; `StoreInForceTes
 code (`StoreWriteVectors.json`); `RouterAuthorizationTests`, each refusal with its reason and node;
 and over real databases `AclInRealDatabaseTests`, a group moved keeping its rule and a duplicate
 holding none among them, `RuleWritesInRealDatabaseTests`, `StoreSourceNodesTests`,
-`StoreOnEveryRouteTests` with a rule the product wrote, and
-`MergeInRealDatabaseTests.Rules_changed_apart_end_at_what_the_lower_version_recorded_under_every_method_both_ways`.
+`StoreOnEveryRouteTests` with a rule the product wrote and with what a merge of rules changed
+apart brings,
+`MergeInRealDatabaseTests.Rules_changed_apart_end_at_what_the_lower_version_recorded_under_every_method_both_ways`,
+and `StoreRuleMergeTests`.
 
 ### Renewal answers §618
 
@@ -5455,6 +5461,8 @@ synchronize the node sits under a grant that neither copy's table gave it there,
 in 79 of 200,000 histories of the model with the move in its alphabet. The record of what
 arrived does not touch it (§617): such a node holds no version that could cut. It stays
 accepted, and what has to stay closed wherever it is moved needs a rule on the node itself.
+*Held by* `StoreRuleMergeTests`, pinned at what the sequence on files gave, beyond both copies,
+the merge either way.
 
 **A copy of a narrowed node is read under the rule of the place it lands in** (row 10). *Who:*
 anybody who duplicates, copies or pastes a node, and an import with Create new IDs. *What
@@ -5549,7 +5557,12 @@ histories. And it reached a group between the root and the node, and a group's s
 place of a row, in 16 of 16 cells of each of three sequences. No merge gave more than both
 copies at a single node. *Measured with the record* (`measured-rules-across-levels` 3, 4, 11):
 none of those histories and none of those cells ends with more than both copies gave, by
-letters and by capabilities (§617).
+letters and by capabilities (§617). *Held by* `StoreRuleMergeTests` over copies of a real
+database that the product wrote: O1 to O8 and L1 to L10, and the sequences of the model's own
+writes, each merged once by each method in each direction, end where those runs ended, and no
+merge of them gives a capability beyond both copies; nor does any merge of the hand histories
+H11, H13 and H20, of H1 and H3 split over three copies, of the switch in two inheriting versions
+made apart, or of the press that settles after H1, H3 and H13, taken by the other copy.
 
 **What the record of what arrived leaves: a narrowing above that reaches a copy in a single
 direction and is widened again apart** (accepted, a later decision). *Who:* nobody has to make
@@ -5574,7 +5587,10 @@ stood above it closes it, by refusing, and was not taken (§617). *Measured*
 version recorded, against 294 without the record; none of 200,000 in any configuration of 4
 to 10 steps without a move; a single history of 200,000 with a move in the alphabet, through a
 group's switch; and on files a single sequence through a rule above and a single sequence through a
-move, each ending so.
+move, each ending so. *Held by* `StoreRuleMergeTests`, each pinned at the letters the measurement
+gave and held to be beyond both copies, so that a change either way fails: H4 as the model's own
+writes play it, H5 through a move with the last merge either way, and the history over three copies
+that a search of the model drew, the last merge either way.
 
 **What it leaves: two rules taken off apart, the upper of which gave what arrived anyway, and
 a widening after the copies met** (accepted, the same decision; found by hand and replayed in
@@ -5594,7 +5610,8 @@ copies met the store holds exactly what a single copy holds in which a single op
 both rules off in turn, and there the nodes are meant to follow. The reading without the
 record has it as well. The operator's documentation states that a node whose rule was removed
 follows the group above it, and advises to look, before widening a rule, at the tab of the
-nodes below it that have no rule of their own.
+nodes below it that have no rule of their own. *Held by* `StoreRuleMergeTests`, the model's own
+writes of the sequence over two real copies, the node given the widening at the end.
 
 **What it leaves: a limit that no longer cuts is forgotten** (by design; replayed in the model
 alone). After a sequence that the record closed, an operator narrows the rule above in the
@@ -5602,7 +5619,8 @@ copy that holds both changes, so that the node below is cut no more, and later w
 there. The write above carries the node, which gives the wider rule with no press at the node.
 That is a later widening in a copy that holds the version, by an operator whose tab could show
 the node. The limit rows at the node went when the narrowing was written, and nothing marks
-the node as having been held back (§657).
+the node as having been held back (§657). *Held by* `StoreRuleMergeTests`, after H1, the node
+given the wider rule with no press at it.
 
 **Closed by the build: a loss above, repaired, lifts every limit below.** It is kept among these
 because it ended wider while a version below that recorded letters counted as following
@@ -5656,7 +5674,9 @@ put back, that every rule that names it is restored with it, and the operator's 
 adds the rules another copy changed meanwhile, and advises to look at the rules of a name that
 was put back after a synchronize. An addition that recorded what the rules gave the name is a
 design of its own, neither drafted nor run. *Measured* (`measured-rules-across-levels` 8, H16
-there): on files, in a single sequence, at what the client reaches.
+there): on files, in a single sequence, at what the client reaches. *Held by*
+`StoreRuleMergeTests`, pinned at what a client holding the name reaches at the root, beyond both
+copies, the merge either way.
 
 **Closed by a later decision: rows changed apart at a single node, under a switch that
 refuses.** It is kept among these because it ended wider while removing a row there took the
@@ -5690,7 +5710,11 @@ nothing for the profile, as before. The counts of 67, 68 and 69 above are of for
 written no more. *Measured* (`measured-rules-across-levels` 3, 4): with the record of what
 arrived and a real taking off, none of 200,000 histories and none of the cells on files of the
 sequences at a single node gave more than both copies. A copy that holds the removal and
-turns the switch off itself gives the profile what arrives, by that press (§617).
+turns the switch off itself gives the profile what arrives, by that press (§617). *Held by*
+`StoreRuleMergeTests`: W1 to W8 over copies of a real database that the product wrote, every merge
+by each method in each direction, end where the model's writes ended, with nothing beyond both
+copies, W6 at what that press gives in the copy that made it, and H9, the press in a single copy,
+likewise.
 
 **A 0.2 plugin serves a database that holds the store.** *Who:* a machine that still runs 0.2 on
 the same synchronized file, or a plugin put back to 0.2, with a client that 0.2 still admits
@@ -5826,7 +5850,11 @@ the version that settled it, and narrows the row. *Measured* (`measured-lost-set
 in the model, over two and three copies, a tag of 0, a person's deletions and Seal again, a
 million histories with no row refused for another name's replaced version, no read wider than
 the reading that knows whose each version was, and no merge beyond both copies that that reading
-does not end at as well.
+does not end at as well. *Held by* `StoreRuleMergeTests`, over copies of a real database that the
+product wrote: two names whose tags meet under the copy's key, a version of the first row lost,
+both rows refusing through every merge into the copy that lost it and by Synchronize, the first
+row set again leaving the second refusing for the loss alone, and the second set again settling
+it for itself, after which both rows give what they were set to in each copy the records reach.
 
 **A node whose rule was taken off does not follow a widening made apart, or a move into a wider
 group, until its limit is removed.** *Who:* nobody has to make a mistake. A rule is taken off
@@ -6384,7 +6412,25 @@ that finds a measurement against a decision reports it and does not design aroun
     leaving a limit, a version below that `PwDatabase.MergeIn` brought in under the dialog and a
     node moved out from under the group before the OK; and a node in the recycle bin carried along
     a change above, with the sequence of §639 through the bin over real databases merged by
-    `PwDatabase.MergeIn` in each direction. Owed to the model: the write above where nothing
+    `PwDatabase.MergeIn` in each direction. **Run over synchronized copies since**
+    (`StoreRuleMergeTests`, over real databases the product wrote, every rule written as a node
+    dialog's OK writes it, each merge held to both copies by capabilities and followed by a write
+    of the plugin's own that touches no rule and leaves every answer as it was): every sequence of
+    rules of `StoreWriteVectors.json` over two copies, the answer after each step the model's and a
+    merge beyond both copies exactly where the model's was; those of them that end with the copies
+    met both ways, W1 to W8, O6, O7 and L8 to L10 among them, merged once instead by each method in
+    each direction, also with the entries of either copy dated later, ending where the model's
+    ended; O1 to O5, O8 and L1 to L7 with four profiles and the whole mask, likewise, two of them
+    over three copies; H11, H13, H15 and H20, the press that settles after H1, H3 and H13 taken by
+    the other copy, H1 and H3 split over three copies, and the switch in two inheriting versions
+    made apart; the classes §639 keeps, pinned; the sequence `off:deny` is for, with nothing
+    arriving; an empty rule, a rule taken off and no rule through every merge; a version that lets
+    through and a renewal of it deleted with and without its summary entry and a deletion record,
+    edited within the history limit and past it, and duplicated; a row that refuses for a lost
+    version, set again on the tab and merged back; two names whose tags meet, a name whose tag is
+    0, and a lost version of a name the file does not know; and a node that holds a version that
+    lets through moved into a wider and a narrower group, a group moved with two such nodes, and a
+    node's place decided by a merge. Owed to the model: the write above where nothing
     arrived, which the build renews only for a version that recorded nothing, and the measured
     code for every version (§617); no sequence of `StoreWriteVectors.json` holds that state at an
     act above, so no vector differs. The lost versions a version settles, named in `lost` apart
@@ -6392,11 +6438,13 @@ that finds a measurement against a decision reports it and does not design aroun
     (`measured-lost-settled` 6, §617), and the build reads every store and plays every sequence
     of the vectors of that refinement as the model printed them: the fail-open sequence, edits
     of names whose tags meet, a loss settled in each order and in a single write, a tag of 0
-    beside the object with no slash, and a lost version of the switch. Left to a later commit:
-    the other runs over synchronized copies that the list above names, three copies and the
-    moves among them; a merge under an open dialog in a running KeePass; every cost but that of
-    the write above; and the drive in a real KeePass beyond a rule set on the entry dialog's tab
-    (item 6).
+    beside the object with no slash, and a lost version of the switch. **Still owed** of the list
+    above: the removal of a single version of a rule above, over copies; the press that settles
+    and that removal in a search; a move under an open dialog, and a move by a merge other than
+    Synchronize; the loss of every row of a node at once; more than four profiles; and a tree of
+    more than three levels. Left to a later commit: a merge under an open dialog in a running
+    KeePass; every cost but that of the write above; and the drive in a real KeePass beyond a rule
+    set on the entry dialog's tab (item 6).
 25. **What the Profiles page counts** (§636). Its count of the groups and entries holding a rule
     for a profile, `DatabaseNodes`, leaves the recycle bin out and not the plugin's store, which
     the API leaves out beside it (§633). This item left it to the pull request that brings the

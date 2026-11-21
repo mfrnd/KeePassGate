@@ -44,6 +44,10 @@ namespace KeePassGate.Host.Tests
     /// the store it keeps, beside rules granting everything at the plugin's own group and at a
     /// record of it, which reach nothing.
     ///
+    /// **And again with what a merge of rules brings**: rules changed apart in two copies by the
+    /// product's own OKs, a renewal below among them, and merged, every record of the plugin's
+    /// group then a node of the store each route is driven with.
+    ///
     /// The real router over the real vault and a real database, as `DecidedAtTheReadTests` drives
     /// them, since identifiers, groups and the flat sweep are KeePass's.
     /// </remarks>
@@ -129,6 +133,9 @@ namespace KeePassGate.Host.Tests
         };
 
         private const string Profile = "agent";
+
+        /// <summary>The profile of the rules a merge brings, which the caller does not hold.</summary>
+        private const string Other = "other";
 
         /// <summary>Every verb and both switches, at the root.</summary>
         private const string Everything = "CRUSDLAP";
@@ -217,6 +224,27 @@ namespace KeePassGate.Host.Tests
         [TestCaseSource(nameof(Declared))]
         public void Every_declared_operation_answers_the_store_as_an_absent_node(string operationId)
         {
+            AnswersAsAbsent(operationId, AddTheStore);
+        }
+
+        [TestCaseSource(nameof(Declared))]
+        public void Every_declared_operation_answers_what_a_merge_of_rules_changed_apart_brought_as_an_absent_node(string operationId)
+        {
+            // `STORE.md` §633 and §617: what two copies wrote apart for their rules, and what a
+            // merge brings of it, is absent on every route as the rest of the store is: versions
+            // of a row made apart, a renewal the write above made of a version below, and the
+            // summary entries of both copies. The rules are of a profile the caller does not
+            // hold, so every ordinary answer is the answer it was.
+            AnswersAsAbsent(operationId, AddMergedRules);
+        }
+
+        /// <summary>
+        /// An operation held to the store that <paramref name="add"/> puts into the database: each
+        /// ordinary answer as it was, each request naming a node of the store answered as a node
+        /// that is not there, and nothing of the store changed.
+        /// </summary>
+        private void AnswersAsAbsent(string operationId, Action add)
+        {
             var operation = GateOperations.Document.Operations.Single(o => o.OperationId == operationId);
 
             Names names;
@@ -239,7 +267,7 @@ namespace KeePassGate.Host.Tests
             var ordinary = Ordinary(operation, names).ToList();
             var before = ordinary.Select(request => Send(request)).ToList();
 
-            AddTheStore();
+            add();
             var store = Snapshot();
 
             foreach (var pair in ordinary.Zip(before, (request, answer) => new { request, answer }))
@@ -613,6 +641,46 @@ namespace KeePassGate.Host.Tests
             _stranger.Strings.Set(StoreFormat.DataField, new ProtectedString(true, Stored));
 
             Assume.That(_storeEntries.Count, Is.GreaterThan(10));
+        }
+
+        /// <summary>
+        /// Rules changed apart in a copy of the database and in the database itself, for a
+        /// profile the caller does not hold, each written as an OK on a group's dialog writes it,
+        /// and the copy then merged in by Overwrite if newer: every entry of the plugin's group is
+        /// then a node of the store.
+        /// </summary>
+        private void AddMergedRules()
+        {
+            var root = _database.RootGroup;
+            Assert.That(NodeOks.Pressed(_database.Database, root, sheet => sheet.Set(Other, ".R......") == null), Is.True);
+            Assert.That(NodeOks.Pressed(_database.Database, _fictitious, sheet => sheet.Set(Other, "........") == null), Is.True);
+            Assert.That(NodeOks.Pressed(_database.Database, _fictitious, sheet => sheet.Remove(Other)), Is.True, "the rule taken off");
+            _database.Save();
+            using (var copy = TemporaryDatabase.New())
+            {
+                System.IO.File.Copy(_database.Path, copy.Path, true);
+                copy.Reopen();
+
+                // Apart: the root widened here, which renews the version below that follows it,
+                // and a rule set at the group in the copy.
+                Assert.That(NodeOks.Pressed(_database.Database, root, sheet => sheet.Set(Other, ".RU.....") == null), Is.True);
+                Assert.That(
+                    NodeOks.Pressed(copy.Database, copy.RootGroup.FindGroup(_fictitious.Uuid, true), sheet => sheet.Set(Other, ".R...L..") == null),
+                    Is.True);
+                _database.Database.MergeIn(copy.Database, PwMergeMethod.OverwriteIfNewer, null);
+            }
+
+            using (var reading = DatabaseRules.Keyed(_database.Database).Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(
+                    reading.InForce.VersionsOf(StoreComposer.RowObject(DatabaseRules.Id(_fictitious.Uuid), Other)),
+                    Has.Count.EqualTo(2),
+                    "the versions made apart both stand");
+            }
+
+            _storeEntries.Clear();
+            _storeEntries.AddRange(_storeGroups.SelectMany(group => group.Entries));
         }
 
         private PwGroup StoreGroup(PwGroup parent)
