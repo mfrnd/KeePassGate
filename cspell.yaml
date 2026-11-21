@@ -79,3 +79,25 @@ words:
   # More of the platform, and of the wire
   - Ecas
 
+  # What this branch's own sources and prose need, over what the mainline already knows.
+  - Argb
+  - conhost
+  - copyfromscreen
+  - devmode
+  - keybd
+  - lastinput
+  - LASTINPUTINFO
+  - MOUSEINPUT
+  - nologo
+  - pids
+  - printwindow
+  - PROCESSENTRY
+  - pscustomobject
+  - PSHOME
+  - runas
+  - Segoe
+  - SHOWMINNOACTIVE
+  - STARTUPINFO
+  - trustlevel
+  - wallclock
+  - worktree
