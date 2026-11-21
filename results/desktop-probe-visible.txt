@@ -1,0 +1,27 @@
+﻿
+elevated: False
+apartment: STA
+thread desktop: Default
+window station: WinSta0
+input desktop: Default
+clipboard sequence: 979
+GetCursorPos: True (1279,799) error 0
+foreground before the form: 252314880
+screen: {X=0,Y=0,Width=1280,Height=800} at dpi of a new graphics
+form handle: 656933964 created True visible(win32) True shown in 686,7517 ms; size {Width=400, Height=300} state Normal
+DrawToBitmap distinct colors (every second pixel): 187; pixel in panel Color [A=255, R=70, G=130, B=180]
+PrintWindow(PW_RENDERFULLCONTENT) True distinct colors: 61
+CopyFromScreen distinct colors: 86; pixel in panel Color [A=255, R=70, G=130, B=180]
+after Activate: foreground 656933964 active 656933964 focus 317391498 form 656933964 ContainsFocus True ActiveForm True
+SetForegroundWindow(form): True error 0; foreground now 656933964
+box.Focus: box focused True GetFocus==box True
+SetCursorPos(-37,-23): True error 0; GetCursorPos now (1242,776)
+put the pointer back
+SendInput(zero mouse move): 1 error 0; last input tick 868447203 -> 868488781
+keybd_event(unassigned key 0x97): last input tick 868488781 -> 868488953
+mouse_event(zero move): last input tick now 868489062 pointer (1279,799)
+UIA root:  class #32769 handle 65548
+UIA FromHandle(form): name 'private desktop probe' bounds 100;100;400;300
+UIA root child named like the form: True
+tooltip shown (no exception)
+clipboard sequence at the end: 979

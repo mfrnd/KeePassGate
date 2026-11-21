@@ -89,6 +89,7 @@ words:
   - LASTINPUTINFO
   - MOUSEINPUT
   - nologo
+  - Parallelizable
   - pids
   - printwindow
   - PROCESSENTRY
@@ -98,6 +99,8 @@ words:
   - Segoe
   - SHOWMINNOACTIVE
   - STARTUPINFO
+  - testhost
   - trustlevel
   - wallclock
   - worktree
+  - worktrees

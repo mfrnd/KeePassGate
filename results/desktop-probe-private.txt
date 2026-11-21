@@ -1,0 +1,26 @@
+﻿
+elevated: False
+apartment: STA
+thread desktop: kpg-probe
+window station: WinSta0
+input desktop: Default
+clipboard sequence: 979
+GetCursorPos: False (0,0) error 5
+foreground before the form: 0
+screen: {X=0,Y=0,Width=1280,Height=800} at dpi of a new graphics
+form handle: 1600455214 created True visible(win32) True shown in 655,5181 ms; size {Width=400, Height=300} state Normal
+DrawToBitmap distinct colors (every second pixel): 187; pixel in panel Color [A=255, R=70, G=130, B=180]
+PrintWindow(PW_RENDERFULLCONTENT) True distinct colors: 61
+CopyFromScreen threw Win32Exception: The handle is invalid
+after Activate: foreground 0 active 1600455214 focus 930350092 form 1600455214 ContainsFocus True ActiveForm False
+SetForegroundWindow(form): False error 0; foreground now 0
+box.Focus: box focused True GetFocus==box True
+SetCursorPos(-37,-23): False error 0; GetCursorPos now (0,0)
+SendInput(zero mouse move): 0 error 5; last input tick 868447203 -> 868447203
+keybd_event(unassigned key 0x97): last input tick 868447203 -> 868447203
+mouse_event(zero move): last input tick now 868447203 pointer (0,0)
+UIA root:  class #32769 handle 932119794
+UIA FromHandle(form): name 'private desktop probe' bounds 100;100;400;300
+UIA root child named like the form: True
+tooltip shown (no exception)
+clipboard sequence at the end: 979
