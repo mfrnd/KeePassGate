@@ -5130,7 +5130,12 @@ by* `GrantSheetTests` and `GrantEditorInRealDialogsTests`.
 profile is named, the Profiles page of the KPG tab in the database settings. That is no reason
 of the read only kind, since the box and the X on the row of a name the list no longer holds
 still take a press that OK writes; the table offers no empty line then, since no profile can be
-chosen on the line.
+chosen on the line. **The notice stands in place of the line that states where rules come
+from**, as a reason does, since that line tells that a rule chosen on the table overwrites what
+arrives and no profile can be chosen there: the notice is all that stands over the table, and
+the table takes the room of the line. A record that names a profile brings the
+line back with the empty line, as the tab reads its node again. *Held by* `GrantPanelTests`, and
+in the room of the real group and entry dialogs at each scaling by `GrantTabFitsTests`.
 
 **A row or a switch that refuses is shown, and setting it replaces it** (this document's own;
 not run). A row that refuses for a lost version or for a text out of form (§617) shows as a

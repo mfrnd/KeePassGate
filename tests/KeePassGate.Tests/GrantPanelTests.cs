@@ -930,25 +930,52 @@ namespace KeePassGate.Tests
             }
         }
 
-        [Test]
-        public void A_database_that_names_no_profile_tells_so_over_the_table_before_any_press_and_offers_no_empty_line()
+        [TestCase(GrantTab.GroupScope, TestName = "{m}(group)")]
+        [TestCase(GrantTab.RootScope, TestName = "{m}(root group)")]
+        [TestCase(GrantTab.EntryScope, TestName = "{m}(entry)")]
+        public void A_database_that_names_no_profile_shows_the_notice_alone_over_the_table_and_offers_no_empty_line(string scope)
         {
             // The table holds a rule of a profile the database no longer names, which the box and
-            // the X still take a press on: the tab is not read only, so the line at the top stands.
+            // the X still take a press on: the tab is not read only. The line at the top tells how
+            // a rule chosen on the table replaces what arrives, and no rule can be chosen on a
+            // table where the database names no profile, so the notice stands there alone.
             using (var panel = new GrantPanel(
-                GrantSheet.Of(Rules.Node(false, ("retired", "R")), null, Array.Empty<string>(), null), GrantTab.GroupScope, null, null, null))
+                GrantSheet.Of(Rules.Node(false, ("retired", "R")), null, Array.Empty<string>(), null), scope, null, null, null))
             {
                 var grid = Grid(panel);
+                var line = ControlTree.FindByName<Label>(panel, GrantTab.ScopeLabelName);
 
                 Assert.That(panel.Warning, Is.EqualTo(GrantTab.NoProfilesYet), "told before any press");
                 Assert.That(GrantTab.NoProfilesYet, Does.Contain(GateName.OnATab).And.Contain("Profiles page"));
                 Assert.That(grid.AllowUserToAddRows, Is.False, "no empty line offers a profile where none is named");
                 Assert.That(ControlTree.FindByName<CheckBox>(panel, GrantTab.SealCheckBoxName).Enabled, Is.True);
-                Assert.That(ControlTree.FindByName<Label>(panel, GrantTab.ScopeLabelName).Visible, Is.True);
+                Assert.That(line.Visible, Is.False, "the line at the top stands beside the notice");
 
                 panel.Press(0, ForgetColumn);
                 Assert.That(panel.Lines, Is.EqualTo(new[] { "retired ........ " + GrantTab.NoProfileWord }), "the X takes a press");
                 Assert.That(panel.Warning, Is.EqualTo(GrantTab.NoProfilesYet), "and the notice stands");
+                Assert.That(line.Visible, Is.False, "and stands alone");
+            }
+        }
+
+        [Test]
+        public void A_record_that_names_a_profile_brings_the_line_at_the_top_back_over_the_table()
+        {
+            var notice = new AdmissionNotice();
+            var reading = new GrantReading(NodeRule.None, null, Array.Empty<string>(), null);
+
+            using (var panel = new GrantPanel(
+                GrantSheet.Of(reading.Rule, reading.Above, reading.Names, null), GrantTab.GroupScope, null, () => reading, notice))
+            {
+                var line = ControlTree.FindByName<Label>(panel, GrantTab.ScopeLabelName);
+                Assert.That(line.Visible, Is.False, "the notice alone before the record");
+
+                reading = new GrantReading(NodeRule.None, null, new[] { "reader" }, null);
+                notice.Raise();
+
+                Assert.That(panel.Warning, Is.Null);
+                Assert.That(line.Visible, Is.True, "the line at the top once a profile can be chosen");
+                Assert.That(Grid(panel).AllowUserToAddRows, Is.True);
             }
         }
 

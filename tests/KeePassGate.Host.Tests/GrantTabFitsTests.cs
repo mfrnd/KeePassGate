@@ -163,6 +163,58 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        [Test]
+        [TestCase(1.00f)]
+        [TestCase(1.25f)]
+        [TestCase(1.50f)]
+        [TestCase(2.00f)]
+        public void Where_the_database_names_no_profile_the_notice_stands_alone_and_the_table_takes_the_room_of_the_line_at_the_top(float scaling)
+        {
+            // The same tab over a database that names a profile and over a database that names
+            // none, in the room of the real dialog: the table under the notice alone is taller by
+            // the line at the top, less the notice.
+            var dialogs = new (string Name, Func<Form> New, string Scope)[]
+            {
+                ("group", () => NewGroupForm(), GrantTab.GroupScope),
+                ("root group", () => NewGroupForm(), GrantTab.RootScope),
+                ("entry", () => NewEntryForm(), GrantTab.EntryScope),
+            };
+            var text = scaling.ToString("0.00", CultureInfo.InvariantCulture) + " text";
+
+            foreach (var kind in dialogs)
+            {
+                int named;
+                int line;
+                using (var dialog = kind.New())
+                using (var font = new Font(dialog.Font.FontFamily, dialog.Font.Size * scaling, dialog.Font.Style))
+                using (var panel = new GrantPanel(GrantSheet.Of(NodeRule.None, null, Names, null), kind.Scope, null, null, null))
+                {
+                    LayOut(dialog, KeePassContract.NodeFormTabControlName, font, panel, out _);
+                    var scope = ControlTree.FindByName<Label>(panel, GrantTab.ScopeLabelName);
+                    Assert.That(scope.Visible, Is.True, "the line at the top of the " + kind.Name + " dialog's tab at " + text);
+                    Assert.That(panel.Warning, Is.Null);
+                    line = scope.Height;
+                    named = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName).Height;
+                }
+
+                using (var dialog = kind.New())
+                using (var font = new Font(dialog.Font.FontFamily, dialog.Font.Size * scaling, dialog.Font.Style))
+                using (var panel = new GrantPanel(GrantSheet.Of(NodeRule.None, null, Array.Empty<string>(), null), kind.Scope, null, null, null))
+                {
+                    LayOut(dialog, KeePassContract.NodeFormTabControlName, font, panel, out _);
+                    var scope = ControlTree.FindByName<Label>(panel, GrantTab.ScopeLabelName);
+                    var notice = ControlTree.FindByName<Label>(panel, GrantTab.WarningLabelName);
+                    var grid = ControlTree.FindByName<DataGridView>(panel, GrantTab.GridControlName);
+
+                    Assert.That(notice.Visible && notice.Text == GrantTab.NoProfilesYet, Is.True, "the notice on the " + kind.Name + " dialog's tab at " + text);
+                    Assert.That(scope.Visible, Is.False, "the line at the top beside the notice on the " + kind.Name + " dialog's tab at " + text);
+                    Assert.That(grid.Top, Is.EqualTo(notice.Bottom), "the table under the notice on the " + kind.Name + " dialog's tab at " + text);
+                    Assert.That(grid.Height, Is.EqualTo(named + line - notice.Height),
+                        "the table under the notice alone on the " + kind.Name + " dialog's tab at " + text);
+                }
+            }
+        }
+
         /// <summary>The texts of the tab that stand somewhere other than above the table and are named for no suffix of their kind.</summary>
         private static readonly string[] Elsewhere =
         {
@@ -355,13 +407,18 @@ namespace KeePassGate.Host.Tests
         }
 
         /// <summary>
-        /// Every state the tab has a different height or width in: no rules; a rule; every word of
-        /// the State column with the box cleared and with the box ticked, among more rows than fit;
+        /// Every state the tab has a different height or width in: no rules; a database that names
+        /// no profile, its notice alone over the table; a rule; every word of the State column with
+        /// the box cleared and with the box ticked, among more rows than fit;
         /// and the longest reason the tab gives for taking no press, over versions and a limit.
         /// </summary>
         internal static readonly TabState[] States =
         {
             new TabState("empty", () => GrantSheet.Of(NodeRule.None, null, Names, null), false),
+            new TabState(
+                "naming no profile",
+                () => GrantSheet.Of(Rules.Node(false, ("retired", "RL")), Arriving(("editor", "R")), Array.Empty<string>(), null),
+                false),
             new TabState("with a rule", () => GrantSheet.Of(Rules.Node(false, ("reader", "RL")), Arriving(("editor", "R")), Names, null), false),
             new TabState("with every state, the box cleared", () => EveryState(false, null), true),
             new TabState("with every state, the box ticked", () => EveryState(true, null), true),

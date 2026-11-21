@@ -143,7 +143,8 @@ none, since it releases both.
   stops it, **No profile** for a rule whose name is off the database's list, and **At most**,
   **Unmerged**, **Removed**, **Missing** and **Unreadable**, below. A group or an entry holds a
   rule for as many profiles as are chosen, where 0.2 held 31, and the table scrolls. On a
-  database that names no profile the tab states where profiles are named. `STORE.md` §657.
+  database that names no profile the tab states where profiles are named, in place of the line
+  at the top. `STORE.md` §657.
 - **The X removes a rule also while the check box is ticked**, and until the dialog closes the
   row shows what the profile is left with: the rule from a group above, refused or in force, or
   no letter. **A group or an entry whose rule was removed, or whose check box was cleared, is

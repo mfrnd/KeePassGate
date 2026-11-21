@@ -132,9 +132,9 @@ authority." in place of the line at the top:
 [create the authority](getting-started.md#create-the-authority) first.
 
 **And it needs a profile.** On a database that names no profile the tab reads "This database names
-no profile. Profiles are named on the Profiles page of the KPG tab in the database settings.", and
-the table offers no line to choose a profile on. The check box still takes a press.
-The line at the top stays above that notice.
+no profile. Profiles are named on the Profiles page of the KPG tab in the database settings." in
+place of the line at the top, and the table offers no line to choose a profile on. The check box
+still takes a press.
 
 ## Writing a rule
 

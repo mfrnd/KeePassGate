@@ -2151,7 +2151,8 @@ namespace KeePassGate.Ui
                 // sheet that cannot change. Nor is the empty line offered where the database names
                 // no profile, since no profile can be chosen on the line: the tab tells so over
                 // the table.
-                _grid.AllowUserToAddRows = editable && Any(_sheet.Offered);
+                var choosing = editable && Any(_sheet.Offered);
+                _grid.AllowUserToAddRows = choosing;
 
                 // The heading's instruction only where a rule can be chosen.
                 _grid.Columns[MaskColumn].ToolTipText = Tooltips.Wrapped(
@@ -2170,8 +2171,10 @@ namespace KeePassGate.Ui
                 _grid.ClearSelection();
 
                 // The line about where rules come from and what a rule chosen does only over a
-                // table that takes a press; on a tab that takes none, the reason stands alone.
-                _scope.Visible = editable;
+                // table on which a profile can be chosen: on a tab that takes no press the reason
+                // stands alone, and where the database names no profile the notice does: the room
+                // above the table is the room the rows do not get.
+                _scope.Visible = choosing;
                 Warn(_sheet.Warning);
                 Lend();
             }

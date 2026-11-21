@@ -1704,7 +1704,9 @@ text do not tell as well, and under a high contrast setting no fixed color is dr
 
 **Every text above the table takes at most two lines**, the reasons for which the tab takes no
 change among them, because in the group dialog every line above the table is a row less:
-`GrantTabFitsTests` counts the lines in the real dialogs at each scaling.
+`GrantTabFitsTests` counts the lines in the real dialogs at each scaling. For the same reason a
+reason stands in place of the line at the top rather than under it, and so does the notice of a
+database that names no profile, over a table on which no profile can be chosen.
 
 **The editor used to take care never to write the same rules in other words**, and that care is
 gone with its reason. While a rule was a key of the node's custom data, the entry dialog compared
