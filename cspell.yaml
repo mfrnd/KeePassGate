@@ -81,25 +81,44 @@ words:
 
   # What this branch's own sources and prose need, over what the mainline already knows.
   - Argb
+  - bitblt
   - conhost
+  - CONTEXTMENU
   - copyfromscreen
   - devmode
+  - GUITHREADINFO
   - keybd
+  - KEYUP
   - lastinput
   - LASTINPUTINFO
+  - LBUTTONDOWN
+  - LBUTTONUP
+  - LCONTROL
+  - LMENU
+  - LSHIFT
+  - MOUSEHOVER
   - MOUSEINPUT
+  - MOUSEMOVE
+  - Msaa
   - nologo
+  - oleacc
   - Parallelizable
   - pids
   - printwindow
   - PROCESSENTRY
   - pscustomobject
   - PSHOME
+  - RBUTTONDOWN
+  - RBUTTONUP
   - runas
   - Segoe
   - SHOWMINNOACTIVE
   - STARTUPINFO
+  - SYSCHAR
+  - SYSKEYUP
+  - taskkill
   - testhost
+  - TOOLWINDOW
   - trustlevel
   - wallclock
   - worktree
