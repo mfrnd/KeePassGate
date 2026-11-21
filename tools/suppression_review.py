@@ -1052,27 +1052,31 @@ def _wait(seconds: float) -> None:
     time.sleep(seconds)
 
 
-def _git(root: Path, *arguments: str) -> str:
+def _git(root: Path, *arguments: str, errors: str = "strict") -> str:
     ran = subprocess.run(["git", *arguments], cwd=root, capture_output=True, text=True,  # noqa: S603, S607
-                         encoding="utf-8", check=True)
+                         encoding="utf-8", errors=errors, check=True)
     return ran.stdout
 
 
-def _show(root: Path, commit: str, name: str) -> str | None:
-    # One file as `commit` has it, or None where it has no such file.
+def _show(root: Path, commit: str, name: str) -> bytes | None:
+    # One file as `commit` has it, the bytes it holds, or None where it has no such file. Its
+    # caller decodes them, since what the file is read for decides how.
     shown = subprocess.run(["git", "show", f"{commit}:{name}"], cwd=root,  # noqa: S603, S607
-                           capture_output=True, text=True, encoding="utf-8", check=False)
+                           capture_output=True, check=False)
     return shown.stdout if shown.returncode == 0 else None
 
 
 def _markers_at(root: Path, commit: str, name: str, as_name: str) -> list[Placed]:
     # The markers in one file as `commit` has it, named `as_name`, its name at the head. A file in
-    # no language that holds them is never read, since it need not be text: a picture is not.
+    # no language that holds them is never read, since it need not be text: a picture is not. A
+    # file in such a language is decoded strictly, as the checkout's are, so a byte that is not
+    # UTF-8 stops the review rather than hiding what the file suppresses.
     language = suppressions.language_of(as_name)
     if language is None:
         return []
-    text = _show(root, commit, name)
-    if text is None or suppressions.CANDIDATE.search(text) is None:
+    shown = _show(root, commit, name)
+    text = "" if shown is None else shown.decode("utf-8")
+    if suppressions.CANDIDATE.search(text) is None:
         return []
     source = suppressions.read(text, language)
     return placed(as_name, source, suppressions.suppressions(source, language, as_name))
@@ -1109,7 +1113,9 @@ def view_of(root: Path, files: list[Changed], merge_base: str, commit: str) -> V
     """The pull request's diff as GitHub has it, `commit` against `merge_base`, file by file.
 
     GitHub's own patch where it gives one, and git's diff of the file's two sides where it does
-    not; a file only one side has is all added or all removed.
+    not; a file only one side has is all added or all removed. A file has no lines where git takes
+    it for binary, since a diff shows none of them, and in a text file a byte that is not UTF-8 is
+    read as a replacement character, which leaves every line where it is.
     """
     previous = {c.path: c.previous for c in files}
     lines = _reader(root, {"RIGHT": commit, "LEFT": merge_base}, previous)
@@ -1127,7 +1133,7 @@ def view_of(root: Path, files: list[Changed], merge_base: str, commit: str) -> V
         else:
             patches[changed.path] = read_patch(_git(
                 root, "diff", "--no-color", "--unified=3",
-                f"{merge_base}:{changed.previous}", f"{commit}:{changed.path}"))
+                f"{merge_base}:{changed.previous}", f"{commit}:{changed.path}", errors="replace"))
     return View(patches, lines)
 
 
@@ -1245,16 +1251,38 @@ def _onto_or_not(onto: Callable[[str, int], tuple[str, int | None]], path: str,
 def _reader(root: Path, commits: dict[str, str],
             previous: dict[str, str]) -> Callable[[str, str], list[str]]:
     # Each file as the commit for a side reads it, by its name at the head, which on the left is the
-    # name it had there; read once, and empty where that side has none.
+    # name it had there; read once, and empty where that side has none or git takes it for binary,
+    # which is then never read at all. Text is decoded with any byte that is not UTF-8 replaced,
+    # which keeps every line where git's diff has it.
     read: dict[tuple[str, str], list[str]] = {}
+    empty = _empty_tree(root)
 
     def lines(path: str, side: str) -> list[str]:
         if (path, side) not in read:
-            text = _show(root, commits[side], previous.get(path, path) if side == "LEFT" else path)
-            read[path, side] = text.splitlines() if text is not None else []
+            commit = commits[side]
+            name = previous.get(path, path) if side == "LEFT" else path
+            shown = None if _binary(root, empty, commit, name) else _show(root, commit, name)
+            text = "" if shown is None else shown.decode("utf-8", "replace")
+            read[path, side] = text.splitlines()
         return read[path, side]
 
     return lines
+
+
+def _empty_tree(root: Path) -> str:
+    # The tree that holds nothing, by the name the repository's hash gives it, which git knows
+    # without storing it.
+    made = subprocess.run(["git", "hash-object", "-t", "tree", "--stdin"], cwd=root,  # noqa: S607
+                          input=b"", capture_output=True, check=True)
+    return made.stdout.decode().strip()
+
+
+def _binary(root: Path, empty: str, commit: str, name: str) -> bool:
+    # Whether git's diff takes one file as `commit` has it for binary, by its attributes or by a NUL
+    # among its first bytes: set against the empty tree, a binary's lines count as dashes.
+    # git's own names for what this asks of it: cspell:ignore pathspecs numstat
+    counted = _git(root, "--literal-pathspecs", "diff", "--numstat", empty, commit, "--", name)
+    return counted.startswith("-\t-\t")
 
 
 def _report(text: str) -> None:
