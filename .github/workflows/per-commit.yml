@@ -1,0 +1,249 @@
+# Runs the default gate on each commit of a branch, every commit on its own tree and in a job of
+# its own, all of them at once. `gate.yml` checks the merge a pull request would make, and
+# `CONVENTIONS.md` holds every commit of a branch to the gate as well, since a commit checked out
+# from the history is a commit somebody builds. On a single machine that is a whole gate after a
+# whole gate; here a branch takes about as long as its slowest commit.
+#
+# **Started by hand and by nothing else**, from the Actions page or with
+#
+#     gh workflow run per-commit.yml --ref <branch> -f base=master
+#
+# which gates the commits of `<branch>` after `base`, `master` when it is left out. GitHub offers
+# that only for a file on the default branch, and runs the copy `<branch>` holds, so the branch
+# has to hold this file as well.
+#
+# **A part of a branch is gated through the same form.** `base` is where the commits gated
+# begin, left out itself: a branch of origin, whose range is every commit of the head that branch
+# lacks, or any commit the head descends from, by its hash or as a revision such as `HEAD~10`,
+# which steps back along first parents and so past each merge whole. `last` keeps the newest that
+# many of the commits in the range, the commits a merge brings in included, and the two combine:
+#
+#     gh workflow run per-commit.yml --ref <branch> -f last=10
+#     gh workflow run per-commit.yml --ref <branch> -f base=<hash>
+#
+# **Each commit gets the whole default gate**, `build.ps1` with no task: the prose checks, the
+# client, the build, and the unit and host tiers with the coverage floor. Nothing here guesses
+# which commits could do with less. Left out are the end to end tier, which `gate.yml` runs on the
+# merge and `-Task All` adds, and the code scan, which `codeql.yml` runs on the merge: neither is
+# what a commit is held to on its own.
+#
+# **The commits are `<base>..HEAD`, ancestors first**, and a commit is gated as it stands rather
+# than as it would stand on the base today. A merge commit in the range is gated like any other,
+# as the tree it holds, and the commits it brings in from the base are not in the range. An empty
+# range is refused, since a matrix over nothing produces no jobs and a green check, and so is a
+# range longer than a matrix holds.
+#
+# **Not a required check, and nothing here can pass for the gate.** The ruleset on `master` and
+# the tag ruleset `release gate` require GitHub Actions' `gate passed`, and `release.yml` asks for
+# that name too; a check of that name from here would be a gate without the end to end tier. So
+# the last job, which passes only when every commit did, is `every commit passed`, and every other
+# job is named for what it does or for its commit, abbreviated hash first.
+#
+# **The rest is `gate.yml`'s**: the actions pinned to the commits it pins, read access and
+# nothing more, and the setup of its Windows jobs step for step, guarded on the same files, since
+# a base far enough back reaches commits from before them. A run gives way to a newer run for the
+# same ref, which gates the newer head.
+
+name: per-commit
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Where the commits gated begin, left out itself; a branch of origin, a hash, or a revision such as HEAD~10
+        type: string
+        default: master
+      last:
+        description: Only the newest this many of those commits; empty for all of them
+        type: string
+        default: ''
+
+concurrency:
+  group: per-commit-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Windows PowerShell, which is what the gate is written for, and every job here is on Windows.
+defaults:
+  run:
+    shell: powershell
+
+jobs:
+  commits:
+    name: the commits to gate
+    runs-on: windows-latest
+    timeout-minutes: 10
+    outputs:
+      list: ${{ steps.list.outputs.list }}
+    steps:
+      # The whole history and every branch of origin, since the base can be any of them.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # The inputs and every subject reach the script as data and never as its text: the inputs
+      # through the environment, and the subjects from a file git writes, into JSON that
+      # PowerShell's own writer escapes. Nothing of a subject is printed here, since the runner
+      # carries out a command written anywhere in a line of a step's output.
+      - id: list
+        env:
+          BASE: ${{ inputs.base || 'master' }}
+          LAST: ${{ inputs.last }}
+        run: |
+          # A branch of origin when the base names a branch exactly, and any other commit
+          # otherwise. A branch's range is every commit of the head it lacks, whether or not it has
+          # moved on since the head left it. Any other base has to be a commit the head descends
+          # from, since its range would otherwise take in commits of another line of work. `HEAD`
+          # is the head and no branch, though a clone keeps origin's default branch by that name.
+          $branch = "refs/remotes/origin/$env:BASE"
+          & git show-ref --verify --quiet $branch
+          $onOrigin = $LASTEXITCODE -eq 0 -and $env:BASE -ne 'HEAD'
+          $named = if ($onOrigin) { "origin/$env:BASE" } else { $env:BASE }
+          $base = if ($onOrigin) {
+            & git rev-parse --verify --quiet "$branch^{commit}"
+          }
+          else {
+            & git rev-parse --verify --quiet --end-of-options "$env:BASE^{commit}"
+          }
+          if ($LASTEXITCODE -ne 0 -or -not $base) {
+            throw "The base '$env:BASE' names neither a branch of origin nor a commit."
+          }
+          if (-not $onOrigin) {
+            & git merge-base --is-ancestor $base HEAD
+            if ($LASTEXITCODE -ne 0) {
+              throw "The base '$env:BASE' is $base, which the head $env:GITHUB_SHA does not descend from."
+            }
+          }
+
+          # How many of the newest commits to gate. Compared as text before it is read as a
+          # number, so that a count too large for an integer is still larger than every range.
+          $last = 0
+          if ($env:LAST) {
+            $digits = $env:LAST.TrimStart('0')
+            if ($env:LAST -notmatch '^[0-9]+\z' -or -not $digits) {
+              throw "last is '$env:LAST', where a positive whole number of commits is wanted."
+            }
+            $last = if ($digits.Length -gt 9) { [int]::MaxValue } else { [int] $digits }
+          }
+
+          # Into a file and read back as UTF-8, since Windows PowerShell reads what a program
+          # prints in the console's code page, and a subject beyond ASCII would come back as other
+          # characters. Ancestors first, which `--topo-order` keeps to across a merge as well, and
+          # each record ended by a zero byte, which git never writes into a subject. The option is
+          # git's, spelled its way: cspell:ignore topo
+          $listed = Join-Path $env:RUNNER_TEMP 'commits'
+          & git log --topo-order --reverse -z '--format=%H%x09%h %s' "--output=$listed" "$base..HEAD" --
+          if ($LASTEXITCODE -ne 0) {
+            throw "git could not list the commits after $named."
+          }
+          $records = @([System.IO.File]::ReadAllText($listed, [System.Text.Encoding]::UTF8).Split([char] 0) |
+            Where-Object { $_ })
+          $range = $records.Count
+          if ($last -gt 0) {
+            $records = @($records | Select-Object -Last $last)
+          }
+
+          # A matrix over nothing produces no jobs and a green check, as `gate.yml` explains, and
+          # GitHub refuses a matrix of more jobs than this.
+          if ($records.Count -eq 0) {
+            throw "No commit lies after $named on the way to the head $env:GITHUB_SHA, so there is nothing to gate."
+          }
+          if ($records.Count -gt 256) {
+            throw "$($records.Count) commits lie after $named, and a matrix holds at most 256 jobs. Run this again with last, or with a base nearer the head, to gate them in parts."
+          }
+
+          # Split at the first tab alone, since a subject can hold a tab of its own.
+          $commits = foreach ($record in $records) {
+            $hash, $label = $record -split "`t", 2
+            if ($hash -notmatch '^[0-9a-f]{40}\z') {
+              throw 'git listed a commit whose record does not begin with its hash.'
+            }
+            [ordered] @{ commit = $hash; label = $label }
+          }
+
+          # The array handed over whole, since a pipe would unroll it and a single commit would
+          # come out as a bare object rather than a list holding it.
+          $list = ConvertTo-Json -InputObject @($commits) -Compress
+          Write-Host "Gating $($records.Count) of the $range commit(s) after $named."
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "list=$list`n", (New-Object System.Text.UTF8Encoding $false))
+
+  gate:
+    name: ${{ matrix.label }}
+    needs: commits
+    runs-on: windows-latest
+    timeout-minutes: 45
+    strategy:
+      # Every commit reports for itself, as every check does in `gate.yml`.
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.commits.outputs.list) }}
+    steps:
+      # The head the run was started on, with the whole history: for the anchors check, as
+      # `gate.yml` explains, and for the step below.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # This job's commit, checked here rather than taken on the word of the job that listed it:
+      # a whole hash, and a commit the head descends from, so that nothing is built here but the
+      # history of the branch the run was started on.
+      - name: the commit to gate
+        env:
+          COMMIT: ${{ matrix.commit }}
+        run: |
+          if ($env:COMMIT -notmatch '^[0-9a-f]{40}\z') {
+            throw 'This job was handed a commit that is no whole hash.'
+          }
+          & git merge-base --is-ancestor $env:COMMIT $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) {
+            throw "The head $env:GITHUB_SHA does not descend from $env:COMMIT."
+          }
+          & git checkout --quiet --detach $env:COMMIT
+          if ($LASTEXITCODE -ne 0) {
+            throw "git could not check out $env:COMMIT."
+          }
+
+      # Here for the cache, as in `gate.yml`.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          cache: npm
+
+      # The uv `uv.lock` holds, which has to be named, as `gate.yml` explains.
+      - name: uv, where the client exists
+        if: hashFiles('uv.lock') != ''
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version-file: uv.lock
+          enable-cache: true
+
+      # Its archive, which is hashed against the pin before anything is extracted from it, as
+      # `gate.yml` explains.
+      - name: the pinned KeePass, where a release is pinned
+        if: hashFiles('keepass.sha256') != ''
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .keepass/KeePass-*.zip
+          key: keepass-${{ hashFiles('keepass.version', 'keepass.sha256') }}
+
+      # A forward slash, as in `gate.yml`.
+      - name: the default gate
+        run: ./build.ps1
+
+  # Always run, as `gate passed` is in `gate.yml`, so that a failure, a cancellation or a skip
+  # anywhere above is a failure here rather than a job that never reported.
+  passed:
+    name: every commit passed
+    needs: [commits, gate]
+    if: always()
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          LISTED: ${{ needs.commits.result }}
+          GATED: ${{ needs.gate.result }}
+        run: |
+          if ($env:LISTED -ne 'success' -or $env:GATED -ne 'success') {
+            throw "Listing the commits ended as $env:LISTED and gating them as $env:GATED."
+          }

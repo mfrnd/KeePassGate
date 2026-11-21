@@ -1338,6 +1338,12 @@ Windows, and the client's on Linux as well, under PowerShell 7. The jobs are nev
 and neither is where they run, so what changes in that file is the commit each action is pinned
 to, which its header says as well.
 
+**Every commit of a branch can be gated on its own in CI too.** `.github/workflows/per-commit.yml`
+runs the default `.\build.ps1` at each commit after a base, a job for each commit and all at once,
+started by hand alone, with `gh workflow run per-commit.yml --ref <branch>`. It is not a required
+check, and its last job is `every commit passed` rather than `gate passed`, so that no ruleset
+takes it for the gate, which runs the end to end tier too.
+
 **The fast half can also run at a commit.** `.pre-commit-config.yaml` holds the client's style and
 types, the spelling and the markdown rules, run on what is being committed, and nothing installs
 it: `uv run pre-commit install` does, once per clone. It is not the gate, and `TESTING.md` says
