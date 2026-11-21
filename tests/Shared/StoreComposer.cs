@@ -131,6 +131,18 @@ namespace KeePassGate.Testing
         }
 
         /// <summary>
+        /// A record of kind `version` of this object, its content holding this text in `doc`, these
+        /// identifiers in `after`, these in `lost`, the object and a nonce, with no `lost` where it
+        /// names nothing, as `STORE.md` §617 has a version that settles lost versions.
+        /// </summary>
+        /// <param name="after">The identifiers named as replaced, separated by single spaces in the order given.</param>
+        /// <param name="lost">The lost identifiers named as settled, separated by single spaces in the order given.</param>
+        public static Composed RuleVersion(byte[] key, string objectName, string doc, string[] after, string[] lost)
+        {
+            return Version(key, objectName, Content(VersionMembers(objectName, doc, after, lost).ToArray()));
+        }
+
+        /// <summary>
         /// The item of a summary entry that restates a version of this object, holding this text in
         /// `doc` and these identifiers in `after`.
         /// </summary>
@@ -139,6 +151,28 @@ namespace KeePassGate.Testing
         {
             return Item(
                 ("after", string.Join(" ", after)), ("doc", doc), ("id", version.Hex), ("kind", "version"), ("object", objectName));
+        }
+
+        /// <summary>
+        /// The item of a summary entry that restates a version of this object, holding this text in
+        /// `doc`, these identifiers in `after` and these in `lost`, with no `lost` where it names
+        /// nothing.
+        /// </summary>
+        public static string RuleVersionItem(Composed version, string objectName, string doc, string[] after, string[] lost)
+        {
+            return Item(VersionMembers(objectName, doc, after, lost).Concat(new[] { ("id", version.Hex), ("kind", "version") }).ToArray());
+        }
+
+        /// <summary>The members of a version's content but its nonce, `lost` among them only where it names something.</summary>
+        private static List<(string Name, string Value)> VersionMembers(string objectName, string doc, string[] after, string[] lost)
+        {
+            var members = new List<(string Name, string Value)> { ("after", string.Join(" ", after)), ("doc", doc), ("object", objectName) };
+            if (lost.Length > 0)
+            {
+                members.Add(("lost", string.Join(" ", lost)));
+            }
+
+            return members;
         }
 
         /// <summary>

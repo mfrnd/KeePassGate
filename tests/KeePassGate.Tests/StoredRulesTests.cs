@@ -28,8 +28,10 @@ namespace KeePassGate.Tests
 
         private static IEnumerable<TestCaseData> Stores()
         {
+            // `rules:` the stores of rules, and `rules, ` those of the lost versions a version
+            // settles, which the measured reading reads as the product does.
             return ((JObject)RuleVectors.Meanings["meanings"]).Properties()
-                .Where(store => store.Name.StartsWith("rules:", StringComparison.Ordinal))
+                .Where(store => store.Name.StartsWith("rules:", StringComparison.Ordinal) || store.Name.StartsWith("rules, ", StringComparison.Ordinal))
                 .Select(store => new TestCaseData(store.Name).SetArgDisplayNames(store.Name));
         }
 
@@ -88,7 +90,14 @@ namespace KeePassGate.Tests
                 {
                     string node;
                     string profile;
-                    Assert.That(RuleText.ReadObject(objectText, out node, out profile), Is.True, objectText);
+                    if (!RuleText.ReadObject(objectText, out node, out profile))
+                    {
+                        // The object `rule:` and a node with no `/`, which shares the place of a
+                        // row whose name's tag is 0 and is no node's rule, `STORE.md` §658.
+                        Assert.That(objectText, Does.Match("^rule:[0-9a-f]{32}$"), "an object the vectors hold that is no node's rule");
+                        continue;
+                    }
+
 
                     var standing = rules["standing"][objectText] == null
                         ? Array.Empty<string>()

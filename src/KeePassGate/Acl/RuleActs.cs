@@ -101,9 +101,17 @@ namespace KeePassGate.Acl
     /// store that cannot be read are each left out and handed back with why, and the rest of the
     /// OK is written; nothing at all to write is an act of null with nothing handed back.
     ///
+    /// **What a version replaces apart from what it settles**, `STORE.md` §617. A version names in
+    /// `after` the versions of its own object the tab showed standing and what those name in
+    /// `after`, which the writer knows to be its object's since each stood with its content; and
+    /// in `lost` the lost versions the tab showed for that row or that switch and what the
+    /// versions it replaces name in `lost`, which the file cannot tell whose they were. Every
+    /// renewal, a version removed and the box carry both on. `lost` replaces nothing, so the write
+    /// deletes nothing for it, `StoreReplaced`.
+    ///
     /// **Nothing named of another object.** A name the tab hands over that the reading carries as
     /// a version of another object, or that cannot be a name of the object by its first bytes,
-    /// `STORE.md` §609, is not named.
+    /// `STORE.md` §609, is not named, in `after` or in `lost`.
     ///
     /// **The ceiling of a string**, `STORE.md` §643: a version whose content or the item restating
     /// it would not fit is left as it was and reported, and the rest is composed again as though
@@ -569,7 +577,7 @@ namespace KeePassGate.Acl
                             return new KeyValuePair<string, AclGrant>(
                                 profile, follows.TryGetValue(profile, out arrives) ? arrives : version.LettersFor(profile));
                         });
-                    drafts.Add(new Draft(null, RuleText.Inheriting(letters), Names(RuleText.SwitchObject(node), version.Id, version.After)));
+                    drafts.Add(new Draft(null, RuleText.Inheriting(letters), Names(RuleText.SwitchObject(node), version.Id, version.After, version.Lost)));
                 }
 
                 foreach (var pair in follows)
@@ -577,7 +585,7 @@ namespace KeePassGate.Acl
                     var renewed = RuleText.TakenOff(pair.Value);
                     foreach (var version in rule.Row(pair.Key).Versions.Where(version => version.Kind == RowVersionKind.TakenOff && Text(version) != renewed))
                     {
-                        drafts.Add(new Draft(pair.Key, renewed, Names(RuleText.RowObject(node, pair.Key), version.Id, version.After)));
+                        drafts.Add(new Draft(pair.Key, renewed, Names(RuleText.RowObject(node, pair.Key), version.Id, version.After, version.Lost)));
                     }
                 }
 
@@ -615,13 +623,15 @@ namespace KeePassGate.Acl
             /// <summary>Whether a version's content and the item that restates it each fit the ceiling of a string.</summary>
             /// <remarks>
             /// **The item's length is had from the version's content**, which the same writer
-            /// composed: the content holds `after`, `doc`, `nonce` and `object`, sorted by name in
-            /// ordinal order with no white space, and the item a summary entry restates the version
-            /// by holds `after`, `doc`, `id`, `kind` and `object` written the same way, `STORE.md`
+            /// composed: the content holds `after`, `doc`, `lost` where it settles something,
+            /// `nonce` and `object`, sorted by name in ordinal order with no white space, and the
+            /// item a summary entry restates the version by holds `after`, `doc`, `id`, `kind`,
+            /// `lost` where the version holds it and `object` written the same way, `STORE.md`
             /// §611. So the item is the content with the member `nonce` giving way to `id` and
             /// `kind`, each of whose names and values needs no escape, and no text is composed
-            /// again to measure it. The tests that crowd a version to the ceiling hold this to the
-            /// item composed in full.
+            /// again to measure it: `lost` takes 33 characters for each identifier and 9 for the
+            /// member in both. The tests that crowd a version to the ceiling hold this to the item
+            /// composed in full.
             /// </remarks>
             private static bool Fits(StoreRecord record)
             {
@@ -876,7 +886,7 @@ namespace KeePassGate.Acl
                         key,
                         null,
                         RuleText.Inheriting(letters),
-                        Names(objectText, version.Id, version.After),
+                        Names(objectText, version.Id, version.After, version.Lost),
                         asking.Keys.Any(settled.Contains));
                 }
             }
@@ -984,33 +994,70 @@ namespace KeePassGate.Acl
                 return RuleText.RowObject(_node, profile);
             }
 
-            /// <summary>What a version of a row names: the versions the tab showed and every name of theirs, the lost versions among them.</summary>
-            private IReadOnlyCollection<string> Names(string objectText, RowRule shown)
+            /// <summary>What a version of a row names: the versions the tab showed and what they name, and the lost versions it showed.</summary>
+            private Named Names(string objectText, RowRule shown)
             {
-                return Names(objectText, shown.Versions.SelectMany(version => new[] { version.Id }.Concat(version.After)).Concat(shown.Lost));
+                return Names(objectText, shown.Versions.Select(version => AsReplaced(version)), shown.Lost);
             }
 
-            /// <summary>What a version of the switch names: the versions the tab showed and every name of theirs, the lost versions among them.</summary>
-            private IReadOnlyCollection<string> Names(string objectText, SwitchRule shown)
+            /// <summary>What a version of the switch names: the versions the tab showed and what they name, and the lost versions it showed.</summary>
+            private Named Names(string objectText, SwitchRule shown)
             {
-                return Names(objectText, shown.Versions.SelectMany(version => new[] { version.Id }.Concat(version.After)).Concat(shown.Lost));
+                return Names(objectText, shown.Versions.Select(version => AsReplaced(version)), shown.Lost);
             }
 
-            /// <summary>What a version names: these versions and every name of theirs.</summary>
-            private IReadOnlyCollection<string> Names(string objectText, IEnumerable<RowVersion> versions)
+            /// <summary>What a version names: these versions and what they name.</summary>
+            private Named Names(string objectText, IEnumerable<RowVersion> versions)
             {
                 return Names(objectText, versions, Enumerable.Empty<string>());
             }
 
-            /// <summary>What a version names: these versions and every name of theirs, and these lost versions.</summary>
-            private IReadOnlyCollection<string> Names(string objectText, IEnumerable<RowVersion> versions, IEnumerable<string> lost)
+            /// <summary>What a version names: these versions and what they name, and these lost versions.</summary>
+            private Named Names(string objectText, IEnumerable<RowVersion> versions, IEnumerable<string> lost)
             {
-                return Names(objectText, versions.SelectMany(version => new[] { version.Id }.Concat(version.After)).Concat(lost));
+                return Names(objectText, versions.Select(version => AsReplaced(version)), lost);
             }
 
-            private IReadOnlyCollection<string> Names(string objectText, string id, IEnumerable<string> after)
+            /// <summary>A version of a row as a version replaced: its identifier and what it names.</summary>
+            private static (string Id, IEnumerable<string> After, IEnumerable<string> Lost) AsReplaced(RowVersion version)
             {
-                return Names(objectText, new[] { id }.Concat(after));
+                return (version.Id, version.After, version.Lost);
+            }
+
+            /// <summary>A version of the switch as a version replaced: its identifier and what it names.</summary>
+            private static (string Id, IEnumerable<string> After, IEnumerable<string> Lost) AsReplaced(SwitchVersion version)
+            {
+                return (version.Id, version.After, version.Lost);
+            }
+
+            /// <summary>What a version renewing a single version names: that version and what it names.</summary>
+            private Named Names(string objectText, string id, IEnumerable<string> after, IEnumerable<string> lost)
+            {
+                return Names(objectText, new[] { (id, after, lost) }, Enumerable.Empty<string>());
+            }
+
+            /// <summary>
+            /// What a version replacing these versions names, `STORE.md` §617: in `after` each of
+            /// them and what each names in `after`, and in `lost` the lost versions shown and what
+            /// each names in `lost`, but what `after` names. Both are kept to identifiers that can
+            /// be of this object, <see cref="OfObject"/>.
+            /// </summary>
+            /// <remarks>
+            /// `lost` is mostly empty, so the identifiers replaced are put in a set only where a
+            /// lost version is named: a renewal of a version with a long `after` builds no more.
+            /// </remarks>
+            private Named Names(string objectText, IEnumerable<(string Id, IEnumerable<string> After, IEnumerable<string> Lost)> replaced, IEnumerable<string> shownLost)
+            {
+                var versions = replaced.ToList();
+                var after = OfObject(objectText, versions.SelectMany(version => new[] { version.Id }.Concat(version.After)));
+                var settling = shownLost.Concat(versions.SelectMany(version => version.Lost)).ToList();
+                if (settling.Count == 0)
+                {
+                    return new Named(after, Array.Empty<string>());
+                }
+
+                var replacing = new HashSet<string>(after, StringComparer.Ordinal);
+                return new Named(after, OfObject(objectText, settling.Where(id => !replacing.Contains(id))));
             }
 
             /// <summary>
@@ -1023,7 +1070,7 @@ namespace KeePassGate.Acl
             /// The first bytes of this object's versions are worked out only for an identifier the
             /// reading carries nowhere, which is where they decide anything.
             /// </remarks>
-            private IReadOnlyCollection<string> Names(string objectText, IEnumerable<string> identifiers)
+            private IReadOnlyCollection<string> OfObject(string objectText, IEnumerable<string> identifiers)
             {
                 return identifiers
                     .Where(id => id != null && id.Length == NodeLength)
@@ -1160,6 +1207,26 @@ namespace KeePassGate.Acl
             }
         }
 
+        /// <summary>
+        /// What a version names, `STORE.md` §617: in `after` the versions of its own object it
+        /// replaces and what they name there, and in `lost` the lost versions at its place it
+        /// settles for its own object and what the versions it replaces name there.
+        /// </summary>
+        private sealed class Named
+        {
+            public Named(IReadOnlyCollection<string> after, IReadOnlyCollection<string> lost)
+            {
+                After = after;
+                Lost = lost;
+            }
+
+            /// <summary>The identifiers of `after`, each once and ascending.</summary>
+            public IReadOnlyCollection<string> After { get; private set; }
+
+            /// <summary>The identifiers of `lost`, each once and ascending, none of them in <see cref="After"/>.</summary>
+            public IReadOnlyCollection<string> Lost { get; private set; }
+        }
+
         /// <summary>A version to compose: its object, its text and what it names, and who asked for it.</summary>
         private sealed class Draft
         {
@@ -1167,12 +1234,12 @@ namespace KeePassGate.Acl
             public const string SwitchKey = "switch";
 
             /// <summary>A version at the node, left under this key where it does not fit.</summary>
-            public Draft(string key, string profile, string doc, IReadOnlyCollection<string> after, bool pressed)
+            public Draft(string key, string profile, string doc, Named names, bool pressed)
             {
                 Key = key;
                 Profile = profile;
                 Doc = doc;
-                After = after;
+                Names = names;
                 Pressed = pressed;
             }
 
@@ -1181,11 +1248,11 @@ namespace KeePassGate.Acl
             /// below that does not fit is handed back by its node, and no key leaves it out of a
             /// composing.
             /// </summary>
-            public Draft(string profile, string doc, IReadOnlyCollection<string> after)
+            public Draft(string profile, string doc, Named names)
             {
                 Profile = profile;
                 Doc = doc;
-                After = after;
+                Names = names;
             }
 
             /// <summary>
@@ -1199,7 +1266,7 @@ namespace KeePassGate.Acl
 
             public string Doc { get; private set; }
 
-            public IReadOnlyCollection<string> After { get; private set; }
+            public Named Names { get; private set; }
 
             /// <summary>Whether a press asked for it rather than a renewal.</summary>
             public bool Pressed { get; private set; }
@@ -1216,16 +1283,22 @@ namespace KeePassGate.Acl
                 return "version " + id;
             }
 
-            /// <summary>The record of kind `version`, under the key, at the node.</summary>
+            /// <summary>The record of kind `version`, under the key, at the node: `lost` among its members only where it names something.</summary>
             public StoreRecord Compose(byte[] key, string node)
             {
                 var objectText = Profile == null ? RuleText.SwitchObject(node) : RuleText.RowObject(node, Profile);
-                return StoreRecord.Compose(key, StoreKinds.Version, new Dictionary<string, string>(StringComparer.Ordinal)
+                var members = new Dictionary<string, string>(StringComparer.Ordinal)
                 {
                     { StoreKinds.ObjectMember, objectText },
-                    { StoreKinds.After, string.Join(" ", After) },
+                    { StoreKinds.After, string.Join(" ", Names.After) },
                     { StoreKinds.Doc, Doc },
-                });
+                };
+                if (Names.Lost.Count > 0)
+                {
+                    members[StoreKinds.Lost] = string.Join(" ", Names.Lost);
+                }
+
+                return StoreRecord.Compose(key, StoreKinds.Version, members);
             }
         }
     }

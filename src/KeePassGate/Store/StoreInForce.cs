@@ -914,6 +914,8 @@ namespace KeePassGate.Store
                     record.Form.Member(StoreKinds.ObjectMember),
                     record.Form.Member(StoreKinds.After),
                     record.Form.Named,
+                    record.Form.Member(StoreKinds.Lost),
+                    record.Form.Settles,
                     true,
                     record.InForce,
                     WithId(record.Hex, record.Form.Members));
@@ -929,7 +931,15 @@ namespace KeePassGate.Store
                     if (!versions.TryGetValue(id, out version))
                     {
                         version = new StoreNaming(
-                            id, item.Member(StoreKinds.ObjectMember), item.Member(StoreKinds.After), item.Named, false, false, members);
+                            id,
+                            item.Member(StoreKinds.ObjectMember),
+                            item.Member(StoreKinds.After),
+                            item.Named,
+                            item.Member(StoreKinds.Lost),
+                            item.Settles,
+                            false,
+                            false,
+                            members);
                         versions[id] = version;
                     }
 
@@ -1030,14 +1040,17 @@ namespace KeePassGate.Store
         /// that object names it.
         /// </summary>
         /// <remarks>
-        /// **Answered object by object.** A deletion record is answered for an object only by a
-        /// version in force of that object naming it in `after`, or by a version present under its
-        /// identifier, which is a version of its own object alone. So where it tells of the rows of
-        /// several names that share a tag, a version of a single row naming it answers for that row
-        /// and leaves every other row of the tag refusing until a version of that row names it too;
-        /// the same holds for the object with no `/` under a tag of 0. The measured reading
-        /// answered a deletion record for every object once any version in force named it, and
-        /// this reading is narrower than it there, by design.
+        /// **A version names what it replaces apart from what it settles**, `STORE.md` §617: in
+        /// `after` the versions of its own object that stood with their content, and in `lost` the
+        /// lost versions at its place it settles for its own object alone. So a deletion record a
+        /// version present carries is that version's, and refuses its object unless a version in
+        /// force of that object names it in either list; any other tells of every object at its
+        /// place, the rows of every name of its tag and with 0 the object with no `/`, and refuses
+        /// none of them where a version in force of any of them names it in `after`, since it is
+        /// known whose version it was, and otherwise each of them but those a version in force of
+        /// which names it in `lost`. A loss settled for a single name therefore leaves every other
+        /// row of the tag refusing until a version of that row settles it too, and an edit of a row
+        /// refuses no other row of its tag. A version at another place naming it answers nothing.
         /// </remarks>
         /// <param name="deleted">The deletion records under the tag of kind `version`.</param>
         /// <param name="nodes">The identifier of every group and entry of the tree, or null where there is none.</param>
@@ -1046,11 +1059,12 @@ namespace KeePassGate.Store
             var losing = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
 
             // A deletion record under which a version is present is that version's, and its object
-            // judges it below; every other is told of object by object, `Deletions`.
+            // judges it below; every other is told of at its place, `Deletions`.
             var beside = new HashSet<StoreId>();
-            if (deleted.Count > 0)
+            var told = deleted.Count > 0 ? new Deletions(this, key, losing) : null;
+            if (told != null)
             {
-                new Deletions(this, key, losing).Tell(deleted, nodes, beside);
+                told.Tell(deleted, nodes, beside);
             }
 
             foreach (var version in Versions.Values.Where(version => version.Object != null))
@@ -1075,10 +1089,11 @@ namespace KeePassGate.Store
                 {
                     ListAt(_standing, version.Object).Add(version);
                 }
-                else if (version.Identified && beside.Contains(version.Identifier))
+                else if (version.Identified && beside.Contains(version.Identifier) && (told == null || !told.Settles(version.Object, version.Identifier)))
                 {
                     // Present beside its own deletion record: told of by its own object, with
-                    // nothing hashed.
+                    // nothing hashed, and answered by a version in force of that object naming it
+                    // in `after`, which makes it replaced above, or in `lost`.
                     Losing(losing, version.Object).Add(version.Id);
                 }
             }
@@ -1098,10 +1113,11 @@ namespace KeePassGate.Store
 
         /// <summary>
         /// The rows and the switches that deletion records whose content is nowhere tell of,
-        /// `STORE.md` §617 and §620, each lost to every object it tells of that no version in
-        /// force of that object names it for: a deletion record at the place of a version present
-        /// first, then the nodes of the objects the file names, and the tree's only where a
-        /// deletion record is still not told of.
+        /// `STORE.md` §617 and §620, each lost to every object it tells of where no version in
+        /// force of those objects names it in `after`, but to an object a version in force of
+        /// which names it in `lost`: a deletion record at the place of a version present first,
+        /// then the nodes of the objects the file names, and the tree's only where a deletion
+        /// record is still not told of.
         /// </summary>
         /// <remarks>
         /// **A deletion record tells of a row** by the subject hash of `rule:` and a node and the
@@ -1122,12 +1138,15 @@ namespace KeePassGate.Store
         /// object names a deletion record changes none of this.
         ///
         /// **What a deletion record costs**: a lookup of its identifier among the versions present,
-        /// a lookup of its place, and a search of each list in force of each object it tells of,
-        /// with no text made of it unless it is lost. What a place tells of, each object and the
-        /// lists in force of it, is worked out once for the place, the first time a deletion
-        /// record lies there. So a store after many renewals, each a deletion record at the place
-        /// of the version that names it, costs a hold a few lookups for each renewal ever made, for
-        /// good, and builds nothing as large as the names its lists hold.
+        /// a lookup of its place, and a search of the lists in force of the objects it tells of
+        /// until a list names it, `after` first and `lost` only where no `after` does, with no
+        /// text made of it unless it is lost. A version holds a `lost` only where it settles a
+        /// loss, so a list of `lost` is searched only where a version holds it. What a place
+        /// tells of, each object and the lists in force of it, is worked out once for the place,
+        /// the first time a deletion record lies there. So a store after many renewals, each a
+        /// deletion record at the place of the version that names it, costs a hold a few lookups
+        /// for each renewal ever made, for good, and builds nothing as large as the names its lists
+        /// hold.
         ///
         /// **What it adds is bounded**: each deletion record is placed once, and added once to the
         /// set of each object it tells of, so K deletion records at a node's rows add at most K for
@@ -1148,10 +1167,16 @@ namespace KeePassGate.Store
             private readonly HashSet<string> _objects;
 
             /// <summary>
-            /// The lists of the versions in force of each object, what answers for it and for no
-            /// other object. A version restated otherwise answers for none.
+            /// The lists in `after` of the versions in force of each object, which answer for every
+            /// object at the place of what they name. A version restated otherwise answers for none.
             /// </summary>
             private readonly Dictionary<string, List<StoreNames>> _answering = new Dictionary<string, List<StoreNames>>(StringComparer.Ordinal);
+
+            /// <summary>
+            /// The lists in `lost` of the versions in force of each object, which settle for that
+            /// object alone; only lists that name something are held.
+            /// </summary>
+            private readonly Dictionary<string, List<StoreNames>> _settling = new Dictionary<string, List<StoreNames>>(StringComparer.Ordinal);
 
             /// <summary>What a deletion record at a node's rows tells of, by the node and its number, once asked.</summary>
             private readonly Dictionary<(string Node, int Number), IReadOnlyList<ObjectTold>> _atRows = new Dictionary<(string Node, int Number), IReadOnlyList<ObjectTold>>();
@@ -1170,7 +1195,17 @@ namespace KeePassGate.Store
                              version.Object != null && version.InForce && !inForce._differing.ContainsKey(version.Id)))
                 {
                     ListAt(_answering, version.Object).Add(version.Named);
+                    if (version.Settles.Count > 0)
+                    {
+                        ListAt(_settling, version.Object).Add(version.Settles);
+                    }
                 }
+            }
+
+            /// <summary>Whether a version in force of this object names this identifier in `lost`.</summary>
+            public bool Settles(string objectText, StoreId identifier)
+            {
+                return Of(objectText).Settles(identifier);
             }
 
             /// <summary>
@@ -1346,16 +1381,32 @@ namespace KeePassGate.Store
             /// <summary>An object a deletion record tells of, with the lists in force of it.</summary>
             private ObjectTold Of(string objectText)
             {
-                List<StoreNames> lists;
-                return new ObjectTold(objectText, _answering.TryGetValue(objectText, out lists) ? lists : NoLists);
+                List<StoreNames> answering;
+                List<StoreNames> settling;
+                return new ObjectTold(
+                    objectText,
+                    _answering.TryGetValue(objectText, out answering) ? answering : NoLists,
+                    _settling.TryGetValue(objectText, out settling) ? settling : NoLists);
             }
 
-            /// <summary>Lost to each of these objects, unless a version in force of the object names the record.</summary>
+            /// <summary>
+            /// Lost to each of these objects, the objects at a place: to none where a version in
+            /// force of any of them names the record in `after`, and otherwise to each but those a
+            /// version in force of which names it in `lost`.
+            /// </summary>
             private void TellAt(IReadOnlyList<ObjectTold> told, StoreId identifier)
             {
                 for (var at = 0; at < told.Count; at++)
                 {
-                    if (!told[at].AnsweredFor(identifier))
+                    if (told[at].Replaces(identifier))
+                    {
+                        return;
+                    }
+                }
+
+                for (var at = 0; at < told.Count; at++)
+                {
+                    if (!told[at].Settles(identifier))
                     {
                         Losing(_losing, told[at].Object).Add(identifier.ToString());
                     }
@@ -1376,25 +1427,41 @@ namespace KeePassGate.Store
             }
         }
 
-        /// <summary>An object a deletion record tells of, and the lists in force of it that answer for it.</summary>
+        /// <summary>
+        /// An object a deletion record tells of, and the lists in force of it: those in `after`,
+        /// which answer for every object at their place, and those in `lost`, which settle for it.
+        /// </summary>
         private sealed class ObjectTold
         {
             private readonly IReadOnlyList<StoreNames> _answering;
+            private readonly IReadOnlyList<StoreNames> _settling;
 
-            public ObjectTold(string objectText, IReadOnlyList<StoreNames> answering)
+            public ObjectTold(string objectText, IReadOnlyList<StoreNames> answering, IReadOnlyList<StoreNames> settling)
             {
                 Object = objectText;
                 _answering = answering;
+                _settling = settling;
             }
 
             public string Object { get; private set; }
 
-            /// <summary>Whether a version in force of the object names this identifier.</summary>
-            public bool AnsweredFor(StoreId identifier)
+            /// <summary>Whether a version in force of the object names this identifier in `after`.</summary>
+            public bool Replaces(StoreId identifier)
             {
-                for (var at = 0; at < _answering.Count; at++)
+                return Names(_answering, identifier);
+            }
+
+            /// <summary>Whether a version in force of the object names this identifier in `lost`.</summary>
+            public bool Settles(StoreId identifier)
+            {
+                return Names(_settling, identifier);
+            }
+
+            private static bool Names(IReadOnlyList<StoreNames> lists, StoreId identifier)
+            {
+                for (var at = 0; at < lists.Count; at++)
                 {
-                    if (_answering[at].Names(identifier))
+                    if (lists[at].Names(identifier))
                     {
                         return true;
                     }
@@ -1439,16 +1506,24 @@ namespace KeePassGate.Store
             return names;
         }
 
-        /// <summary>Whether an item restates a version as these members hold it: its object, `after` and text alike.</summary>
+        /// <summary>
+        /// Whether an item restates a version as these members hold it: its object, `after` and
+        /// text alike, and `lost` alike or absent from both.
+        /// </summary>
         private static bool Alike(IReadOnlyDictionary<string, string> held, IReadOnlyDictionary<string, string> restated)
         {
-            return new[] { StoreKinds.ObjectMember, StoreKinds.After, StoreKinds.Doc }.All(member =>
-            {
-                string first;
-                string second;
-                return held.TryGetValue(member, out first) && restated.TryGetValue(member, out second)
-                       && string.Equals(first, second, StringComparison.Ordinal);
-            });
+            string firstLost;
+            string secondLost;
+            held.TryGetValue(StoreKinds.Lost, out firstLost);
+            restated.TryGetValue(StoreKinds.Lost, out secondLost);
+            return string.Equals(firstLost, secondLost, StringComparison.Ordinal)
+                   && new[] { StoreKinds.ObjectMember, StoreKinds.After, StoreKinds.Doc }.All(member =>
+                   {
+                       string first;
+                       string second;
+                       return held.TryGetValue(member, out first) && restated.TryGetValue(member, out second)
+                              && string.Equals(first, second, StringComparison.Ordinal);
+                   });
         }
 
         /// <summary>The node of an object of type `rule`: its text after `rule:` and before the first `/`.</summary>
@@ -1718,17 +1793,24 @@ namespace KeePassGate.Store
     /// </summary>
     internal sealed class StoreNaming
     {
-        /// <summary>A version of this identifier and object, naming what this `after` holds.</summary>
+        /// <summary>A version of this identifier and object, naming what this `after` and this `lost` hold.</summary>
         /// <param name="named">
         /// The identifiers <paramref name="after"/> names, as the checked form that held it read
         /// them; read from <paramref name="after"/> where none is given, and none where it names
         /// none in form.
+        /// </param>
+        /// <param name="lost">The text of its `lost`, or null where it holds none.</param>
+        /// <param name="settles">
+        /// The identifiers <paramref name="lost"/> names, as the checked form that held it read
+        /// them; read from <paramref name="lost"/> where none is given, and none where it names none.
         /// </param>
         public StoreNaming(
             string id,
             string objectText,
             string after,
             StoreNames named,
+            string lost,
+            StoreNames settles,
             bool record,
             bool recordInForce,
             IReadOnlyDictionary<string, string> members)
@@ -1740,6 +1822,8 @@ namespace KeePassGate.Store
             Object = objectText;
             After = after;
             Named = named ?? StoreNames.Read(after) ?? StoreNames.None;
+            Lost = lost;
+            Settles = settles ?? StoreNames.Read(lost) ?? StoreNames.None;
             Record = record;
             RecordInForce = recordInForce;
             Members = members;
@@ -1765,6 +1849,15 @@ namespace KeePassGate.Store
 
         /// <summary>The identifiers <see cref="After"/> names, read once with the form that holds it.</summary>
         internal StoreNames Named { get; private set; }
+
+        /// <summary>
+        /// The lost versions at its place it settles for its own object, as its `lost` holds them,
+        /// or null where it holds none, `STORE.md` §617.
+        /// </summary>
+        public string Lost { get; private set; }
+
+        /// <summary>The identifiers <see cref="Lost"/> names, read once with the form that holds it.</summary>
+        internal StoreNames Settles { get; private set; }
 
         /// <summary>Whether a record of kind `version` present carries it, in force or not.</summary>
         public bool Record { get; private set; }

@@ -15,16 +15,17 @@ namespace KeePassGate.Store
     internal sealed class StoreItem
     {
         public StoreItem(string kind, IReadOnlyDictionary<string, string> members)
-            : this(kind, members, null)
+            : this(kind, members, null, null)
         {
         }
 
-        /// <summary>An item read from a summary entry, with the identifiers its `after` names.</summary>
-        public StoreItem(string kind, IReadOnlyDictionary<string, string> members, StoreNames named)
+        /// <summary>An item read from a summary entry, with the identifiers its `after` and its `lost` name.</summary>
+        public StoreItem(string kind, IReadOnlyDictionary<string, string> members, StoreNames named, StoreNames settles)
         {
             Kind = kind;
             Members = members;
             Named = named;
+            Settles = settles;
         }
 
         public string Kind { get; private set; }
@@ -37,6 +38,12 @@ namespace KeePassGate.Store
         /// asks.
         /// </summary>
         public StoreNames Named { get; private set; }
+
+        /// <summary>
+        /// The identifiers its `lost` names, read once with the summary entry that holds it; null
+        /// where it holds no `lost`, and for an item a write makes.
+        /// </summary>
+        public StoreNames Settles { get; private set; }
 
         public string Member(string name)
         {
@@ -116,6 +123,12 @@ namespace KeePassGate.Store
         /// with the form, `StoreNames`; null for a kind that names none.
         /// </summary>
         public StoreNames Named { get; private set; }
+
+        /// <summary>
+        /// The identifiers its content's `lost` names, read once with the rest of it and kept with
+        /// the form; null where it holds no `lost`, as every kind but a version does.
+        /// </summary>
+        public StoreNames Settles { get; private set; }
 
         /// <summary>A summary entry's items of the kinds the plugin knows, in order of their names.</summary>
         public IReadOnlyList<StoreItem> Items { get; private set; }
@@ -427,7 +440,8 @@ namespace KeePassGate.Store
             }
 
             StoreNames named;
-            var members = Read(content, Row.Members, out named);
+            StoreNames settles;
+            var members = Read(content, Row.Members, out named, out settles);
             if (members == null)
             {
                 return;
@@ -465,6 +479,7 @@ namespace KeePassGate.Store
 
             Members = members;
             Named = named;
+            Settles = settles;
             string tagged;
             Subject = StoreFormat.SubjectOf(Row, Row.SubjectMember == null ? null : members[Row.SubjectMember], out tagged);
             Tagged = tagged;
@@ -499,7 +514,8 @@ namespace KeePassGate.Store
                 }
 
                 StoreNames named;
-                var members = Read(pair.Value, row.Item, out named);
+                StoreNames settles;
+                var members = Read(pair.Value, row.Item, out named, out settles);
                 if (members == null)
                 {
                     return false;
@@ -516,7 +532,7 @@ namespace KeePassGate.Store
                     formats++;
                 }
 
-                known.Add(new StoreItem(kind, members, named));
+                known.Add(new StoreItem(kind, members, named, settles));
             }
 
             if (formats != 1)
@@ -533,13 +549,17 @@ namespace KeePassGate.Store
         /// A member the row does not name is passed over, `STORE.md` §607.
         /// </summary>
         /// <param name="named">
-        /// The identifiers a member of the form of a list names, read as its form is asked, or
-        /// null where the row names no such member: `after`, the only member of that form a row
-        /// names.
+        /// The identifiers `after` names, read as its form is asked, or null where the row names
+        /// no `after`.
         /// </param>
-        private static Dictionary<string, string> Read(JsonBody content, IReadOnlyList<StoreMember> wanted, out StoreNames named)
+        /// <param name="settles">
+        /// The identifiers `lost` names, read as its form is asked, or null where the content holds
+        /// no `lost`: the two members of the form of a list a row names.
+        /// </param>
+        private static Dictionary<string, string> Read(JsonBody content, IReadOnlyList<StoreMember> wanted, out StoreNames named, out StoreNames settles)
         {
             named = null;
+            settles = null;
             var members = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var member in wanted)
             {
@@ -556,10 +576,19 @@ namespace KeePassGate.Store
 
                 if (member.Form == StoreForm.Identifiers)
                 {
-                    named = StoreNames.Read(value);
-                    if (named == null)
+                    var listed = StoreNames.Read(value);
+                    if (listed == null)
                     {
                         return null;
+                    }
+
+                    if (member.Name == StoreKinds.Lost)
+                    {
+                        settles = listed;
+                    }
+                    else
+                    {
+                        named = listed;
                     }
                 }
                 else if (!InForm(value, member.Form))

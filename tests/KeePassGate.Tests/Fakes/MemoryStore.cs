@@ -85,6 +85,13 @@ namespace KeePassGate.Tests.Fakes
             get { return _deletions; }
         }
 
+        /// <summary>
+        /// The identifier of every group and entry of the database's tree, which a reading walks
+        /// where a deletion record is left that no object the file names explains; none, the
+        /// default, for a reading with no tree. Shared by every copy made of this store.
+        /// </summary>
+        public List<byte[]> Tree { get; private set; } = new List<byte[]>();
+
         /// <summary>A record composed by the test, put into the store as it is.</summary>
         public void Put(StoreComposer.Composed record)
         {
@@ -117,6 +124,7 @@ namespace KeePassGate.Tests.Fakes
                 Plugin = Plugin,
                 _candidates = new List<StoreCandidate>(_candidates),
                 _deletions = new List<byte[]>(_deletions),
+                Tree = Tree,
             };
         }
 
@@ -173,7 +181,13 @@ namespace KeePassGate.Tests.Fakes
                 throw once;
             }
 
-            return StoreReading.Afresh(_candidates.ToList(), _deletions.ToList());
+            if (Tree.Count == 0)
+            {
+                return StoreReading.Afresh(_candidates.ToList(), _deletions.ToList());
+            }
+
+            var nodes = Tree.ToList();
+            return StoreReading.AfreshInTree(_candidates.ToList(), _deletions.ToList(), null, () => nodes);
         }
 
         public StoreWritten Write(IReadOnlyList<StoreAct> acts)

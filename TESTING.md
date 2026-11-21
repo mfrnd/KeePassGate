@@ -191,11 +191,24 @@ and synchronized, ends with the names the model named and the same records in bo
 merge in the fourth is held by what is present after it rather than by what it deleted, since the
 model derives a summary entry's identifier from its height and the product does not.
 
+**The three files as they stand are the refinement's**, in which a version names in `lost` the
+lost versions it settles apart from the versions it replaces in `after`: the same script's output
+with `--lost` beside `--records`, `--meanings` and `--writes`, byte for byte, at its commit
+`c0c17f01`, which reads and plays every vector with `model/crdt_model.py` and `probe/read.py` as
+`b3886dc4` made them; every member the files held before is unchanged in them, and they add the
+records, the stores whose names begin with `rules` and a comma and the sequences whose names
+begin with `lost` and a comma. `model/lost_runs.py` at `5ba1d034` played the three readings side
+by side, its runs are recorded at `2517673c`, and `papers/ground/measured-lost-settled.md` at
+`4165ca3b` is the report. `StoreWriteShapeTests` plays those sequences with names searched under
+the store's own key that do there what the model's searched names do under its key, two whose
+tags meet or a name whose tag is 0, and over the sequence's tree, which the model reads a
+deletion record at.
+
 **Where the product is stricter than the measured code on purpose, no vector is changed to
-agree.** A write above renews, where nothing arrived, only a version that recorded nothing, and
-a deletion record is judged for each object; the remark at each place states the difference,
-`STORE.md` §644 records each as owed to the model, and no sequence and no store of the vectors
-holds either state, so the product still reads and writes every vector as printed.
+agree.** A write above renews, where nothing arrived, only a version that recorded nothing; the
+remark at the place states the difference, `STORE.md` §644 records it as owed to the model, and
+no sequence of the vectors holds that state, so the product still reads and writes every vector
+as printed.
 
 **It writes the store into real databases.** `StoreWritesInRealDatabaseTests` writes through the
 product's own commands into a real tree and holds the entries KeePass keeps, the group a write

@@ -182,6 +182,12 @@ namespace KeePassGate.Store
         /// <summary>The member of a summary entry's content and of a version that names what it replaces.</summary>
         public const string After = "after";
 
+        /// <summary>
+        /// The member of a version, and of its item, that names the lost versions at its place it
+        /// settles for its own object, absent where it names none, `STORE.md` §617.
+        /// </summary>
+        public const string Lost = "lost";
+
         /// <summary>The member of a summary entry's content that holds its height.</summary>
         public const string Height = "height";
 
@@ -327,13 +333,15 @@ namespace KeePassGate.Store
                 Members(
                     new StoreMember(ObjectMember, StoreForm.Text),
                     new StoreMember(After, StoreForm.Identifiers),
-                    new StoreMember(Doc, StoreForm.Text)),
+                    new StoreMember(Doc, StoreForm.Text),
+                    new StoreMember(Lost, StoreForm.Identifiers, true)),
                 false, StoreRestated.ById, null,
                 Members(
                     new StoreMember(Id, StoreForm.Text),
                     new StoreMember(ObjectMember, StoreForm.Text),
                     new StoreMember(After, StoreForm.Identifiers),
-                    new StoreMember(Doc, StoreForm.Text))),
+                    new StoreMember(Doc, StoreForm.Text),
+                    new StoreMember(Lost, StoreForm.Identifiers, true))),
             new StoreKind(
                 Kept, "key:", Key, StoreNumber.None,
                 Members(new StoreMember(Key, StoreForm.KeyName), new StoreMember(After, StoreForm.Identifiers)),

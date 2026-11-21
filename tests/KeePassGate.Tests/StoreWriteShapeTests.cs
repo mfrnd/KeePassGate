@@ -198,9 +198,19 @@ namespace KeePassGate.Tests
         [TestCaseSource(nameof(RuleSequences))]
         public void A_sequence_of_rules_at_single_nodes_writes_and_reads_what_the_model_did(string name)
         {
-            var sequence = (JObject)Vectors()["sequences"][name];
             var first = new MemoryStore();
             StoreSeeds.Authority(first);
+            var lost = name.StartsWith("lost, ", StringComparison.Ordinal);
+            var sequence = lost ? Renamed((JObject)Vectors()["sequences"][name], first) : (JObject)Vectors()["sequences"][name];
+            if (lost)
+            {
+                // The model reads a deletion record at every node of its tree, a node no version
+                // names among them, as a gate reads the database's tree.
+                first.Tree.AddRange(new[] { (string)sequence["tree"]["root"] }
+                    .Concat(((JObject)sequence["tree"]["groups"]).Properties().Select(group => group.Name))
+                    .Select(StoreComposer.BytesOf));
+            }
+
             var mapped = StartedRules(first, sequence);
             var copies = new[] { first, first.Copy() };
             var gives = new[] { (JObject)sequence["start"]["answer"]["rules"]["gives"], (JObject)sequence["start"]["answer"]["rules"]["gives"] };
@@ -221,7 +231,7 @@ namespace KeePassGate.Tests
                     Assert.That((int)act[2], Is.EqualTo(copy), where + ": the copy merged into");
                     store.Synchronize(copies[(int)act[3]]);
                 }
-                else
+                else if (!PlayedApart(store, sequence, step, mapped, where))
                 {
                     PlayedRules(store, sequence, step, gives[copy], where);
                 }
@@ -232,15 +242,277 @@ namespace KeePassGate.Tests
             }
         }
 
-        /// <summary>The sequences of rules, the writes above among them, by name.</summary>
+        /// <summary>
+        /// The sequences of rules, the writes above among them, and those of the lost versions a
+        /// version settles, by name.
+        /// </summary>
         private static IEnumerable<TestCaseData> RuleSequences()
         {
             foreach (var name in ((JObject)Vectors()["sequences"]).Properties()
                          .Select(sequence => sequence.Name)
-                         .Where(name => name.StartsWith("rules, ", StringComparison.Ordinal) || name.StartsWith("form, ", StringComparison.Ordinal)))
+                         .Where(name => name.StartsWith("rules, ", StringComparison.Ordinal)
+                                        || name.StartsWith("form, ", StringComparison.Ordinal)
+                                        || name.StartsWith("lost, ", StringComparison.Ordinal)))
             {
                 yield return new TestCaseData(name).SetArgDisplayNames(name.Substring(0, name.IndexOf(':')));
             }
+        }
+
+        /// <summary>
+        /// A sequence of the lost versions a version settles with names that do under this store's
+        /// key what the model's searched names do under its key, `STORE.md` §609: two names whose
+        /// tags meet for the two whose tags meet there, and a name whose tag is 0 for the name
+        /// whose tag is 0, each meeting no other name of the sequence. Every text of the sequence
+        /// holding a searched name holds the name put for it.
+        /// </summary>
+        private static JObject Renamed(JObject sequence, MemoryStore store)
+        {
+            var profiles = ((JArray)sequence["profiles"]).Select(profile => (string)profile).ToList();
+            var searched = profiles.Where(Searched).ToList();
+            var others = profiles.Where(profile => !Searched(profile))
+                .Concat(((JArray)sequence["steps"]).Where(step => (string)step["command"] == "Add name").Select(step => (string)step["act"][2]))
+                .ToList();
+            var model = StoreComposer.MeasuredKey("K");
+            Dictionary<string, string> names;
+            using (var reading = store.Read())
+            {
+                var key = (byte[])reading.InForce.Key.Bytes.Clone();
+                try
+                {
+                    var taken = new HashSet<int>(others.Select(other => StoreComposer.ProfileTag(key, other)));
+                    Assert.That(taken, Does.Not.Contain(0), "no other name of the sequence has a tag of 0 under the store's key");
+                    if (searched.Count == 2)
+                    {
+                        Assert.That(StoreComposer.ProfileTag(model, searched[0]), Is.EqualTo(StoreComposer.ProfileTag(model, searched[1])), "the model's names meet under its key");
+                        var meeting = Meeting(key, taken);
+                        var ordered = new[] { meeting.First, meeting.Second }.OrderBy(name => name, StringComparer.Ordinal).ToList();
+                        var modelOrdered = searched.OrderBy(name => name, StringComparer.Ordinal).ToList();
+                        names = new Dictionary<string, string>(StringComparer.Ordinal) { { modelOrdered[0], ordered[0] }, { modelOrdered[1], ordered[1] } };
+                    }
+                    else
+                    {
+                        Assert.That(StoreComposer.ProfileTag(model, searched.Single()), Is.EqualTo(0), "the model's name has a tag of 0 under its key");
+                        names = new Dictionary<string, string>(StringComparer.Ordinal) { { searched[0], Zero(key) } };
+                    }
+                }
+                finally
+                {
+                    Array.Clear(key, 0, key.Length);
+                }
+            }
+
+            var text = sequence.ToString(Newtonsoft.Json.Formatting.None);
+            foreach (var pair in names)
+            {
+                text = text.Replace(pair.Key, pair.Value);
+            }
+
+            using (var reader = new Newtonsoft.Json.JsonTextReader(new StringReader(text)) { DateParseHandling = Newtonsoft.Json.DateParseHandling.None })
+            {
+                return JObject.Load(reader);
+            }
+        }
+
+        /// <summary>Whether a name is a name the model searched for by its tag: `q` and a counter.</summary>
+        private static bool Searched(string name)
+        {
+            return name.Length > 1 && name[0] == 'q' && name.Skip(1).All(c => c >= '0' && c <= '9');
+        }
+
+        /// <summary>
+        /// Two names whose tags meet under this key, their tag none of these and not 0, found by a
+        /// search. Each begins with `q-`, so it stands where the model's name stands among the
+        /// sequence's other names in a text that orders names, as a switch's does.
+        /// </summary>
+        private static (string First, string Second) Meeting(byte[] key, ISet<int> taken)
+        {
+            var seen = new Dictionary<int, string>();
+            for (var at = 0; ; at++)
+            {
+                var name = "q-" + at.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var tag = StoreComposer.ProfileTag(key, name);
+                string met;
+                if (tag == 0 || taken.Contains(tag))
+                {
+                    continue;
+                }
+
+                if (seen.TryGetValue(tag, out met))
+                {
+                    return (met, name);
+                }
+
+                seen[tag] = name;
+            }
+        }
+
+        /// <summary>A name whose tag is 0 under this key, found by a search, beginning with `q-` as <see cref="Meeting"/>'s do.</summary>
+        private static string Zero(byte[] key)
+        {
+            for (var at = 0; ; at++)
+            {
+                var name = "q-" + at.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (StoreComposer.ProfileTag(key, name) == 0)
+                {
+                    return name;
+                }
+            }
+        }
+
+        /// <summary>
+        /// A command of the sequences of the lost versions a version settles that is no press on a
+        /// node's dialog, played in this copy: a name added, a version lost, an entry of the store
+        /// deleted by hand, and a version of a rule's object with no slash, which the plugin never
+        /// writes. False for every other command.
+        /// </summary>
+        private static bool PlayedApart(MemoryStore store, JObject sequence, JToken step, Dictionary<string, string> mapped, string where)
+        {
+            var act = (JArray)step["act"];
+            switch ((string)step["command"])
+            {
+                case "Add name":
+                    StoreSeeds.Name(store, (string)act[2]);
+                    return true;
+                case "Lose version":
+                    Lose(store, sequence, step, (string)act[2], mapped, where);
+                    return true;
+                case "Delete by hand":
+                    DeletedByHand(store, step, (JArray)act[2], (int)act[3] == 1, mapped, where);
+                    return true;
+                case "Set object with no slash":
+                    SetWithNoSlash(store, (string)sequence["nodes"][(string)act[2]], (string)act[3], where);
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// A deletion record of a version of this object of the model's, `rule:`, a node's label,
+        /// `/` and a name, or `sw:` and a node's label, whose content no file holds: at the place of
+        /// the object under the store's key, the model's identifier taken for it.
+        /// </summary>
+        private static void Lose(MemoryStore store, JObject sequence, JToken step, string modelObject, Dictionary<string, string> mapped, string where)
+        {
+            using (var reading = store.Read())
+            {
+                var key = (byte[])reading.InForce.Key.Bytes.Clone();
+                try
+                {
+                    string subject;
+                    var number = 0;
+                    if (modelObject.StartsWith("sw:", StringComparison.Ordinal))
+                    {
+                        subject = StoreComposer.SwitchObject((string)sequence["nodes"][modelObject.Substring("sw:".Length)]);
+                    }
+                    else
+                    {
+                        var slash = modelObject.IndexOf('/');
+                        subject = "rule:" + (string)sequence["nodes"][modelObject.Substring("rule:".Length, slash - "rule:".Length)];
+                        number = StoreComposer.ProfileTag(key, modelObject.Substring(slash + 1));
+                    }
+
+                    var identifier = StoreComposer.IdentifierOf(key, "version", subject, number, Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N"));
+                    store.Delete(identifier);
+                    var added = ((JArray)step["deletions"]).Select(Id).Where(id => !Previous(step).Deletions.Contains(id)).ToList();
+                    Assert.That(added, Has.Count.EqualTo(1), where + ": the model's deletion record of the version lost");
+                    mapped[added[0]] = KeePassGate.Hex.Of(identifier);
+                }
+                finally
+                {
+                    Array.Clear(key, 0, key.Length);
+                }
+            }
+        }
+
+        /// <summary>
+        /// An entry of the store deleted for good, with a deletion record or with none: the newest
+        /// summary entry, or the product's version the model's deleted version is taken for.
+        /// </summary>
+        private static void DeletedByHand(MemoryStore store, JToken step, JArray what, bool recorded, Dictionary<string, string> mapped, string where)
+        {
+            string hex;
+            if ((string)what[0] == "head")
+            {
+                using (var reading = store.Read())
+                {
+                    var top = reading.InForce.Heads.Max(head => head.Form.Number);
+                    var newest = reading.InForce.Heads.Where(head => head.Form.Number == top).ToList();
+                    Assert.That(newest, Has.Count.EqualTo(1), where + ": a single newest summary entry");
+                    hex = newest[0].Hex;
+                }
+            }
+            else
+            {
+                var deleted = ((JArray)step["deleted"]).Where(item => (string)item["kind"] == "version").Select(Id).ToList();
+                Assert.That(deleted, Has.Count.EqualTo(1), where + ": the model deleted a single version");
+                Assert.That(mapped.ContainsKey(deleted[0]), Is.True, where + ": a version this test has seen");
+                hex = mapped[deleted[0]];
+            }
+
+            store.Drop(hex);
+            if (recorded)
+            {
+                store.Delete(StoreComposer.BytesOf(hex));
+            }
+        }
+
+        /// <summary>
+        /// A version of the object `rule:` and the node with no slash holding these letters, which
+        /// is no node's rule and lies at the place of the rows of a name whose tag is 0, written as
+        /// an act: naming in `after` the versions of that object that stand and what they name
+        /// there, and in `lost` its lost versions and what those name there, as `STORE.md` §617
+        /// has every version name.
+        /// </summary>
+        private static void SetWithNoSlash(MemoryStore store, string node, string letters, string where)
+        {
+            var objectText = "rule:" + node;
+            StoreAct act;
+            using (var reading = store.Read())
+            {
+                var key = (byte[])reading.InForce.Key.Bytes.Clone();
+                try
+                {
+                    var standing = reading.InForce.VersionsOf(objectText);
+                    var after = standing.SelectMany(version => new[] { version.Id }.Concat(Split(version.After)))
+                        .Distinct(StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal).ToList();
+                    var lost = reading.InForce.LostOf(objectText).Concat(standing.SelectMany(version => Split(LostOf(version.Members))))
+                        .Distinct(StringComparer.Ordinal).Except(after, StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal).ToList();
+                    var members = new Dictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        { StoreKinds.ObjectMember, objectText },
+                        { StoreKinds.After, string.Join(" ", after) },
+                        { StoreKinds.Doc, KeePassGate.Acl.RuleText.Row(ModelLetters(letters)) },
+                    };
+                    if (lost.Count > 0)
+                    {
+                        members["lost"] = string.Join(" ", lost);
+                    }
+
+                    act = new StoreAct("a version of a rule's object with no slash", key, reading.InForce.Key.Name, new[] { StoreRecord.Compose(key, StoreKinds.Version, members) }, null);
+                }
+                finally
+                {
+                    Array.Clear(key, 0, key.Length);
+                }
+            }
+
+            try
+            {
+                var done = store.Write(new[] { act });
+                Assert.That(done.Taken, Is.True, where + ": " + done.Reason);
+            }
+            finally
+            {
+                act.Forget();
+            }
+        }
+
+        /// <summary>The text of a version's `lost`, empty where its members hold none.</summary>
+        private static string LostOf(IReadOnlyDictionary<string, string> members)
+        {
+            string lost;
+            return members != null && members.TryGetValue("lost", out lost) ? lost : string.Empty;
         }
 
         /// <summary>
@@ -506,9 +778,14 @@ namespace KeePassGate.Tests
                 var added = after.Deletions.Where(hex => !before.Deletions.Contains(hex)).ToList();
                 var modelAdded = ((JArray)step["deletions"]).Where(item => !previous.Deletions.Contains((string)item["id"])).ToList();
 
+                // What left the file, in each: the model lists as deleted what the deletion records
+                // the step added name, which holds a version lost that no file held and leaves out
+                // an entry deleted with no deletion record.
+                var now = new HashSet<string>(((JArray)step["present"]).Select(Id), StringComparer.Ordinal);
                 Assert.That(
                     before.Present.Where(pair => !after.Present.ContainsKey(pair.Key)).Select(pair => pair.Value).OrderBy(label => label, StringComparer.Ordinal),
-                    Is.EqualTo(((JArray)step["deleted"]).Select(ModelLabel).Where(label => label != null).OrderBy(label => label, StringComparer.Ordinal)),
+                    Is.EqualTo(PreviousPresent(step).Where(item => !now.Contains(Id(item)))
+                        .Select(ModelLabel).Where(label => label != null).OrderBy(label => label, StringComparer.Ordinal)),
                     where + ": the records deleted");
                 Assert.That(
                     added.Where(before.Present.ContainsKey).Select(hex => before.Present[hex]).OrderBy(label => label, StringComparer.Ordinal),
@@ -523,7 +800,10 @@ namespace KeePassGate.Tests
 
             using (var reading = store.Read())
             {
-                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), where + ": " + reading.Reason);
+                // Whole but where the model's copy stopped, as a summary entry deleted with no
+                // deletion record stops it; the rules are read from what is in force either way.
+                var status = (string)step["answer"]["status"];
+                Assert.That(reading.State, Is.EqualTo(status == "incomplete" ? StoreState.Stopped : StoreState.Whole), where + ": " + reading.Reason);
 
                 var heads = reading.InForce.Heads
                     .Select(head => (Height: head.Form.Number, After: Count(head.Form.Member("after")), Items: head.Form.Items.Count(item => item.Kind != "format")))
@@ -571,12 +851,12 @@ namespace KeePassGate.Tests
             JToken step, MemoryStore store, Dictionary<string, string> mapped, HashSet<string> seenModel, HashSet<string> seenProduct, string where)
         {
             var model = ModelVersions((JObject)step["file"]);
-            Dictionary<string, (string Object, string Doc, string After)> product;
+            Dictionary<string, (string Object, string Doc, string After, string Lost)> product;
             using (var reading = store.Read())
             {
                 product = reading.InForce.Versions.Values.ToDictionary(
                     version => version.Id,
-                    version => (version.Object, version.Members[StoreKinds.Doc], version.After ?? string.Empty),
+                    version => (version.Object, version.Members[StoreKinds.Doc], version.After ?? string.Empty, LostOf(version.Members)),
                     StringComparer.Ordinal);
             }
 
@@ -593,6 +873,13 @@ namespace KeePassGate.Tests
                     return mapped[id];
                 });
                 Assert.That(Split(same[0].Value.After), Is.EqualTo(names.OrderBy(id => id, StringComparer.Ordinal)), where + ": what " + version.Value.Doc + " names");
+
+                var settled = Split(version.Value.Lost).Select(id =>
+                {
+                    Assert.That(mapped.ContainsKey(id), Is.True, where + ": the model settles a version this test has seen");
+                    return mapped[id];
+                });
+                Assert.That(Split(same[0].Value.Lost), Is.EqualTo(settled.OrderBy(id => id, StringComparer.Ordinal)), where + ": what " + version.Value.Doc + " settles");
             }
 
             seenModel.UnionWith(model.Keys);
@@ -600,16 +887,16 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>Every version a file of the model holds, by record or by an item of a summary entry, by identifier.</summary>
-        private static Dictionary<string, (string Object, string Doc, string After)> ModelVersions(JObject file)
+        private static Dictionary<string, (string Object, string Doc, string After, string Lost)> ModelVersions(JObject file)
         {
-            var versions = new Dictionary<string, (string Object, string Doc, string After)>(StringComparer.Ordinal);
+            var versions = new Dictionary<string, (string Object, string Doc, string After, string Lost)>(StringComparer.Ordinal);
             foreach (var entry in (JObject)file["entries"])
             {
                 var strings = (JObject)entry.Value["strings"];
                 if ((string)strings["KPG.Kind"] == "version")
                 {
                     var data = JObject.Parse((string)strings["KPG.Data"]);
-                    versions[entry.Key] = ((string)data["object"], (string)data["doc"], (string)data["after"]);
+                    versions[entry.Key] = ((string)data["object"], (string)data["doc"], (string)data["after"], (string)data["lost"]);
                 }
 
                 foreach (var members in strings.Properties()
@@ -617,7 +904,7 @@ namespace KeePassGate.Tests
                              .Select(property => JObject.Parse((string)property.Value))
                              .Where(item => (string)item["kind"] == "version"))
                 {
-                    versions[(string)members["id"]] = ((string)members["object"], (string)members["doc"], (string)members["after"]);
+                    versions[(string)members["id"]] = ((string)members["object"], (string)members["doc"], (string)members["after"], (string)members["lost"]);
                 }
             }
 
@@ -895,6 +1182,15 @@ namespace KeePassGate.Tests
             return (
                 new HashSet<string>(((JArray)last["present"]).Select(Id), StringComparer.Ordinal),
                 new HashSet<string>(((JArray)last["deletions"]).Select(Id), StringComparer.Ordinal));
+        }
+
+        /// <summary>What the model's copy held present before this step: its last step's, or the start's.</summary>
+        private static JArray PreviousPresent(JToken step)
+        {
+            var steps = (JArray)step.Parent;
+            var copy = (int)step["copy"];
+            var last = steps.Take(steps.IndexOf(step)).LastOrDefault(earlier => (int)earlier["copy"] == copy);
+            return (JArray)(last == null ? ((JObject)steps.Parent.Parent)["start"]["present"] : last["present"]);
         }
 
         /// <summary>The identifier of an item the model lists, or the item itself where it is the identifier.</summary>

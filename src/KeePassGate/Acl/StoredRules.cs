@@ -169,8 +169,9 @@ namespace KeePassGate.Acl
 
         /// <summary>
         /// The rules of a node with these versions laid over the versions the reading holds there:
-        /// each version given stands, and every version of its own object that it names, standing
-        /// or lost, stands no more and is lost no more, `STORE.md` §617. What "after" an act is.
+        /// each version given stands, every version of its own object that it names in `after`,
+        /// standing or lost, stands no more and is lost no more, and every lost version of its own
+        /// object that it names in `lost` is lost no more, `STORE.md` §617: what "after" an act is.
         /// </summary>
         /// <param name="laid">Versions of objects of this node; a version of another node is passed over.</param>
         public NodeRule At(string node, IEnumerable<StoreRecord> laid)
@@ -203,14 +204,18 @@ namespace KeePassGate.Acl
                 RuleText.ReadObject(objectText, out at, out profile);
                 var versions = given.Where(version => version.Object == objectText)
                     .Select(version => RuleVersion.Stored(
-                        version.Record.Hex, version.Record.Member(StoreKinds.Doc), version.Record.Member(StoreKinds.After)))
+                        version.Record.Hex,
+                        version.Record.Member(StoreKinds.Doc),
+                        version.Record.Member(StoreKinds.After),
+                        version.Record.Member(StoreKinds.Lost)))
                     .ToList();
                 var named = new HashSet<string>(versions.SelectMany(version => version.After), StringComparer.Ordinal);
+                var settled = new HashSet<string>(named.Concat(versions.SelectMany(version => version.Lost)), StringComparer.Ordinal);
                 var same = objects.Where(item => string.Equals(item.Profile, profile, StringComparison.Ordinal)).ToList();
                 laidOver.Add(new RuleObject(
                     profile,
                     same.SelectMany(item => item.Standing).Where(version => !named.Contains(version.Id)).Concat(versions),
-                    same.SelectMany(item => item.Lost).Where(id => !named.Contains(id))));
+                    same.SelectMany(item => item.Lost).Where(id => !settled.Contains(id))));
             }
 
             var touched = new HashSet<string>(laidOver.Select(item => item.Profile ?? string.Empty), StringComparer.Ordinal);
@@ -226,8 +231,8 @@ namespace KeePassGate.Acl
         }
 
         /// <summary>
-        /// A standing version as the reading holds it: its identifier, its `doc`, and the text of
-        /// its `after`, read only where the acts or the editor ask what it names.
+        /// A standing version as the reading holds it: its identifier, its `doc`, and the texts of
+        /// its `after` and its `lost`, read only where the acts or the editor ask what it names.
         /// </summary>
         private static RuleVersion Version(StoreNaming naming)
         {
@@ -237,7 +242,7 @@ namespace KeePassGate.Acl
                 naming.Members.TryGetValue(StoreKinds.Doc, out doc);
             }
 
-            return RuleVersion.Stored(naming.Id, doc, naming.After);
+            return RuleVersion.Stored(naming.Id, doc, naming.After, naming.Lost);
         }
     }
 }

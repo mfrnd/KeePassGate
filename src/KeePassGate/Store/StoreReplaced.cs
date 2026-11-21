@@ -21,6 +21,11 @@ namespace KeePassGate.Store
     /// name's tag is 0: a name of either is told of for the other. Every other pair of objects
     /// they tell apart, as far as a hash of five bytes and a tag of two can.
     ///
+    /// **`lost` replaces nothing**, `STORE.md` §617: only `after` is read here, so a write deletes
+    /// nothing for a lost version that a version settles and writes no deletion record for it, and
+    /// a version that turns up later under such an identifier with its content stands beside the
+    /// version that settled it.
+    ///
     /// **A deletion changes no answer.** A version is in force where a record of kind `version` in
     /// force or an item of a summary entry in force carries it, and it names what its record
     /// holds, or what its item holds where no record carries it. A version in force that a version
@@ -102,7 +107,7 @@ namespace KeePassGate.Store
             made._others = inForce == null ? NoIdentifiers : inForce.OthersById;
             var own = added.Where(record => record.Kind == StoreKinds.Version)
                 .Select(record => new StoreNaming(
-                    record.Hex, record.Member(StoreKinds.ObjectMember), record.Member(StoreKinds.After), null, false, false, null))
+                    record.Hex, record.Member(StoreKinds.ObjectMember), record.Member(StoreKinds.After), null, null, null, false, false, null))
                 .ToList();
             var ownObjects = own.Where(version => version.Identified).ToDictionary(version => version.Identifier, version => version.Object);
             made._ownObjects = ownObjects;

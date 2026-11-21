@@ -1678,7 +1678,7 @@ told by a line of its tooltip and by its accessible text, never by a color alone
 together, each with an X that removes that version and no list of rules: no single press there
 grants more than some version held. A profile that the node cuts shows its inherited row and a
 limit row under it, and the X on the limit row settles it in a single press. A lost rule shows
-as granting nothing, and a rule chosen there replaces it. Every row but an inherited row has an
+as granting nothing, and a rule chosen there settles it. Every row but an inherited row has an
 X, and the last version that reads beside a lost version has none, since no press is offered
 that OK could not write. The X takes the rule off, also under a box that refuses; a rule the X
 removed shows, until the dialog closes, as the inherited row in its place, marked as changed.

@@ -507,8 +507,10 @@ The tag of the kind, the subject hash and the number tell a node and a tag, and 
 do not tell a row from the row of another profile at the same node whose name has the same
 tag, and they do not tell an object `rule:` and a node, with no `/`, from a row at that node
 whose name's tag is 0. So a deletion record is held to tell of each of them that the file
-knows (§617), and a write adds a deletion record for an identifier that nothing carries only
-where those ten bytes are the bytes of the naming version's own object (§627).
+knows (§617), a version names apart, in `lost`, the lost versions at its place it settles for
+its own object, which it cannot tell were its own (§617), and a write adds a deletion record
+for an identifier that nothing carries only where those ten bytes are the bytes of the naming
+version's own object (§627).
 
 **Why the tag.** The run wrote a row's version with the subject hash over the whole object. In
 that form a deletion record tells the row only by what S8 ruled out: the reading tries each node
@@ -526,11 +528,15 @@ that tells of a version of either row tells of both, so both rows refuse, which 
 tag. Run since, with a reading that tells of every name of a tag
 (`measured-rules-owed-forms` 6): both rows refused and no read was wider, where the reading as
 first run was fail-open for the name it did not keep. So the form is supported with that
-reading, and with no other. Among the names a file knows, some pair meets with a chance of
-0.75% for 32 names, 7.3% for 100 and 39% for 256, and a meeting costs something only where a
-version is lost with no summary entry restating it. The row of `version` in §658 holds the
-form, and the format number stays as it is (§658). *Held by* `StoreFormatTests`,
-`StoreRecordTests` and `StoreKindsTests`, and for the reading by `StoreInForceTests`.
+reading, and with no other. **A version names what it replaces apart from the lost versions it
+settles** (§617; measured, `measured-lost-settled`): a deletion record of a version a row
+replaced, which the version that replaced it names in `after`, refuses neither row, and a lost
+version a row settles in `lost` refuses the other row until that row settles it too. Among the
+names a file knows, some pair meets with a chance of 0.75% for 32 names, 7.3% for 100 and 39%
+for 256, and a meeting costs something only where a version is lost with no summary entry
+restating it. The row of `version` in §658 holds the form, and the format number stays as it
+is (§658). *Held by* `StoreFormatTests`, `StoreRecordTests` and `StoreKindsTests`, and for the
+reading by `StoreInForceTests`.
 
 **The height has two bytes and stops at 65,535** (S12). A summary entry's height is a whole
 number from 1 to 65,535, in its content and in its identifier alike, and a write whose height
@@ -694,7 +700,7 @@ is left to the pull request that brings its meaning, under the item the last col
 | `withdrawn` | `certificate:` and `certificate` | `certificate`, and `renewed` and `from` where it holds them | counts | an item `withdrawn` whose `id` is the record's identifier, with the same `certificate`, `renewed` and `from` | nothing: §648 |
 | `profile` | `profile:` and `name` | `name`, `after` | out of force | nothing | nothing: §616 |
 | `removed` | `profile:` and `name` | `name` | counts | an item `removed` with the same `name`, whose `id` is the record's identifier | nothing |
-| `version` | the `object`; for an object of type `rule`, its text before the first `/`, with the tag of the text after it in bytes 9 and 10 (§609) | `object`, `after`, `doc` | out of force | an item `version` whose `id` is the record's identifier, where no version in force names the record in `after` | S7; nothing for a rule and a switch: §617 |
+| `version` | the `object`; for an object of type `rule`, its text before the first `/`, with the tag of the text after it in bytes 9 and 10 (§609) | `object`, `after`, `doc`, and `lost` where it holds it | out of force | an item `version` whose `id` is the record's identifier, with `lost` where the record holds it, where no version in force names the record in `after` | S7; nothing for a rule and a switch: §617 |
 | `kept` | `key:` and `key` | `key`, `after` | counts | an item `kept` whose `id` is the record's identifier | nothing |
 | `format` | `format:` and `format` | `format`, `plugin` | counts | the item `format` of a summary entry that states a format number at least the record's | nothing |
 | `head` | `store` | `height`, `after`, and every item | out of force | nothing | nothing |
@@ -710,7 +716,9 @@ holds the text to that form** and passes over a text out of it, which stops noth
 admission key only as 64 lowercase hexadecimal characters, and `renewed` is split on single
 spaces into texts held to the same form (§623 step 2). `storeKey`, and the `certificate` of
 `withdrawn` and of its item, are 64 lowercase hexadecimal characters, and `key` is the name of a
-store key (§649). `after` is a list of identifiers (§607). `format` and `height` are whole
+store key (§649). `after`, and the `lost` of `version` and of its item, are lists of
+identifiers (§607), and a `lost` out of that form fails its version as an `after` does (§617).
+`format` and `height` are whole
 numbers from 1 to 65,535 in decimal, with no sign and no leading zero, and `plugin` is three
 such numbers, each from 0, joined by periods.
 
@@ -1741,8 +1749,9 @@ change of class between the forms goes from wider to refusing. The hand deletion
 parts take a single row's version, so they measure the loss of a single row, and the loss of
 every row of a node at once was not run. §644 has what was run and what stays owed.
 
-**What a version holds** (the forms are below, S8). Beside `object` and `after` (§610), a
-version of a profile's rule holds a single thing of three:
+**What a version holds** (the forms are below, S8). Beside `object` and `after` (§610), and
+`lost` where it settles a lost version (below), a version of a profile's rule holds a single
+thing of three:
 
 - **the letters granted**, out of the eight of `CRUSDLAP`;
 - **no letter**, which is an empty rule: the profile may do nothing from there down, as an empty
@@ -2291,16 +2300,53 @@ the next, and was fail-open: the lost version of the name it did not keep read a
 made, and the profile got what arrives from above, in 4 of 6 reads. No profile got the other
 profile's rule under any reading, since a version and an item carry their object, and only a
 deletion record is read by the tag. The reading computes the tag of every name it knows, so it
-can log two names whose tags meet. **A deletion record refuses nothing for an object where a
-version in force of that object names its identifier in `after`, or an item of a summary entry
-in force names it so or carries it as its `id`**: the version it tells of is replaced, or its
-text is still held. That is judged for each object: an identifier that a version of another
-object names is not named for this object. **A version present beside the deletion record that
-names it is told of by its own object**, with nothing hashed, and where no version in force and
-no such item names or carries it, its object refuses for it, whatever else stands (read from
-the measured code, which counts such a version as lost). Which deletion records the reading
-hashes a subject for is in §620, and what the ten keyed bytes of an identifier cannot tell
-apart is in §609.
+can log two names whose tags meet.
+
+**A version names what it replaces apart from the lost versions it settles** (a later decision,
+measured in the model, `measured-lost-settled` 6). A version of a profile's row or of a node's
+switch holds, beside `object`, `after` and `doc`, a member `lost`. **`after`** names the versions
+of its own object it replaces: each version of that object that stood when the write was
+composed, as a record in force or an item of a summary entry in force, which the tab showed, and
+every identifier those name in `after`; the writer knows each to be its own object's, since each
+stood with its content. **`lost`** names the lost versions at its place that the write settles
+for its own object: each identifier the tab showed lost for that row or that switch, and every
+identifier the versions it replaces name in `lost`. The member is absent where it names nothing,
+so a record written where nothing is lost keeps its bytes. Each list holds identifiers of 32
+lowercase hexadecimal characters, each once, ascending by ordinal, separated by a single space,
+and no identifier is in both. **Every later version carries both on**: a version that replaces
+versions names in `after` what they name in `after` and in `lost` what they name in `lost`; a
+renewal by the write above names in `after` the version it renews and that version's `after`,
+and in `lost` that version's `lost`; removing versions where several stand writes each version
+left naming in `after` the versions removed, the version left and what each names in `after`,
+and in `lost` what each names in `lost` and the lost versions the X removed; and sealing the
+store again (§625) writes the same for each object that refuses for a lost version. The item
+`version` of a summary entry restates `lost` as the version holds it, and holds none where the
+version holds none.
+
+**What a deletion record under the tag of `version` refuses.** Where an item of a summary entry
+in force carries its identifier as `id`, nothing: the version's text is held. Otherwise, **where
+the record of a version is present under its identifier**, beside it, it is told of by that
+version's own object alone, with nothing hashed, and refuses that object unless a version in
+force of that object names it in `after` or in `lost` (read from the measured code, which counts
+such a version as lost). **Otherwise it tells of every object at its place that the file knows**:
+the row of every name of its tag at its node, and with 0 in bytes 9 and 10 the object `rule:` and
+the node with no `/` where the file holds a version of it; or, under the subject of a switch, the
+switch. Where a version in force of an object it tells of names it in `after`, it refuses none of
+them: it is known whose version it was, the namer's. Otherwise it refuses each of them but those
+of which a version in force names it in `lost`: it is settled for that object alone. A version
+of an object at another place that names the identifier refuses nothing and answers nothing, and
+no writer names so. **What that closes, measured** (`measured-lost-settled` 3 and 4). The
+measured reading answered a deletion record for every object at its place once any version in
+force named it in `after`, where the acts named the lost versions they settled in `after` too,
+so a lost rule of a name read as never made once a row of a name whose tag meets it was set,
+and that name got what arrives from above; a reading that answered for an object only where a
+version of that object named it closed that, and every ordinary edit of a row then left a
+deletion record that every other row of its tag refused for, and over two copies a Synchronize
+ended beyond both. With the two told apart, no history of a million over two and three copies,
+a tag of 0, a person's deletions and Seal again failed, and every merge beyond both copies was a
+merge the reading that knows whose each version was ends at as well. Which deletion records the
+reading hashes a subject for is in §620, and what the ten keyed bytes of an identifier cannot
+tell apart is in §609.
 
 **What replaces what.** A version replaces only versions of its own object: an identifier in its
 `after` that a version of another object, or a record of another kind, carries is passed over, and
@@ -2310,6 +2356,11 @@ an item of a summary entry in force, is deleted with a deletion record at the pl
 named by a version that stays; a version that only an item of a summary entry carries is restated no
 more on the same condition and stays restated otherwise, and a version that only a version out of
 force names is left. A write whose version names a version of the same write is refused (§610).
+**`lost` replaces nothing.** An identifier named in `lost` has no entry in the copy whose tab
+showed it lost, and keeps the deletion record it has there; the write deletes nothing for it and
+adds no deletion record for it. A version that later turns up under such an identifier with its
+content, and that no version names in `after`, stands beside the versions that settled it, as a
+version made apart does, and with them can only narrow.
 This corrects "a present version": a version present beside a deletion record is out of force,
 by step 1 of §623, and replaces nothing. Every standing version is restated whole by the
 summary entry.
@@ -2358,8 +2409,9 @@ audit holds no line for a rule changed, `DESIGN.md` §120. *Held by* `StoreReadi
 own dialog with the write above. `RuleText` composes and reads every text of the table strictly,
 and an object in any other text than its form. `StoreInForce` holds, for every object of whatever
 type, its standing versions and the versions lost: a version present beside its own deletion record
-that no version in force of its object names and no item of a summary entry in force carries, and
-for a row and a switch a deletion record whose content is nowhere. `StoredRules` works a reading's
+that no version in force of its object names in `after` or in `lost` and no item of a summary entry
+in force carries, and for a row and a switch a deletion record whose content is nowhere, judged at
+its place as above. `StoredRules` works a reading's
 rules out once, each node's by its identifier, and `NodeRule` holds what a row and a switch come to:
 whether each refuses, what the granting versions all hold, and what each version that lets through
 recorded. `AclResolver` makes the single walk with a limit of every letter, and the router, the
@@ -2379,14 +2431,14 @@ as "What is built of the write above" has it, with what the sheet keeps for it o
 below (§629). **Left to a later commit**: the runs of rules changed apart over synchronized
 copies beyond the histories named below, the drive in a real KeePass beyond a rule set on the
 entry dialog's tab, and every cost but what an OK above many nodes, and a hold and an OK after
-many renewals, hold KeePass's thread for (§643, §644). **A deletion record is judged for
-each object**, as this section has it: a version in force that names it answers for its own
-object and for no other, so where a deletion record tells of the rows of several names whose
-tags meet, a version of a single row naming it leaves every other row of that tag refusing
-until a version of that row names it as well. The measured reading answered a deletion record
-for every object once any version in force named it, so the build is narrower than the measured
-code there, by design, and the difference is owed to the model (§644 item 24). **Where the
-build reads otherwise than this section** (each stated for a decision, and none changed here).
+many renewals, hold KeePass's thread for (§643, §644). **A version's `after` and its `lost`
+are built as this section has them**, as the model has them (`measured-lost-settled` 6):
+`RuleActs` names the versions a write replaces in `after` and the lost versions the tab showed
+in `lost`, every act carrying both on; `StoreChecked` reads `lost` once with the version's
+checked form, as `after`; `StoreInForce` answers a deletion record by its place, a version in
+force of an object there naming it in `after` answering for every object at the place and in
+`lost` for that object alone; and `StoreReplaced` reads nothing of `lost`. **Where the build
+reads otherwise than this section** (each stated for a decision, and none changed here).
 The file knows a name and a node from the items of every summary entry present, where this
 section has the items of a summary entry in force; knowing more only lets a deletion record
 refuse. And the log names a change of rules by the node and that the rules were written or not,
@@ -2621,17 +2673,20 @@ the same node, type and tag shares: so no subject is hashed and no tree walked f
 deletion records under that tag each lie at such a place, which is every store the plugin's own
 deletions and renewals leave, since the version that names a deletion record is at its place.
 Whether a version of another object names a deletion record changes none of that, and what a
-deletion record refuses is judged for each object (§617). For a deletion record at no such place:
+deletion record refuses is judged at its place, by `after` for every object there and by `lost`
+for each object alone (§617). For a deletion record at no such place:
 `rule:` and each node that
 the file's objects name, and `switch:` with it where a deletion record left holds 0 in bytes 9 and
 10; then, only where a deletion record is still not told of, the same for each group and entry of
 the tree not yet tried, the recycle bin and the plugin's own group among them, walked once and only
 while the reading is made; and a tag for each name the file knows once a deletion record meets a
-node's rows. Each hash and each tag is kept with the key. **Every `after` is read once**, with the
-checked form of the version that holds it, and kept with that form; a deletion record is compared
-as its bytes and answered by a search of the lists in force of the objects it tells of, with no
-text made of it unless it is lost, so a hold builds nothing as large as the names the lists hold
-(§643). **The rules are worked out in the hold
+node's rows. Each hash and each tag is kept with the key. **Every `after` and every `lost` is
+read once**, with the checked form of the version that holds it, and kept with that form; a
+deletion record is compared as its bytes and answered by a search of the lists in force of the
+objects it tells of, those in `after` first and those in `lost`, which a version holds only where
+it settles a loss, where no `after` names it, with no text made of it unless it is lost, so a
+hold builds nothing as large as the names the lists hold and `lost` adds no pass over the
+deletion records (§643). **The rules are worked out in the hold
 that first asks for a rule**: `StoreReadings` keeps them beside the reading they were worked out
 from, answers them for that very reading alone, and lets them go when the reading is replaced, at
 the end of a turn and with the target. A gate's node keeps nothing and asks the rules of the hold it
@@ -3107,9 +3162,11 @@ that copy as decided (evaluation 6, row 17).
 tab it is applied at the settings dialog's OK (the design paper 5.4).
 
 **What it writes**, as measured in `model/crdt_model.py`: for every object that refuses because a
-deletion record tells of a version whose text is nowhere, a version that grants nothing and names
-what was lost; then a write as §627 has it, which deletes every entry that is damage with a
-deletion record and adds a summary entry over everything that passes and is in force. The
+deletion record tells of a version whose text is nowhere, a version that grants nothing, naming in
+`after` the versions of that object in force and what they name there, and in `lost` what was
+lost and what those versions name there (§617); then a write as §627 has it, which deletes
+every entry that is damage with a deletion record and adds a summary entry over everything that
+passes and is in force. The
 press writes no version below anew: the row or the switch it writes for refused already while
 its version was lost, so nothing that arrives below changes with the press (§617, as run).
 
@@ -5751,6 +5808,26 @@ node's rule met (`measured-store-as-a-whole` 3.1), and with a record for each no
 profile, for the same profile and for different profiles changed apart
 (`measured-rules-per-profile` 4, 5).
 
+**Two names whose tags meet share the place of their rows at a node** (§609). *Who:* nobody has
+to make a mistake; two names meet by chance, about once in 65,536 for a pair. *What happens:* a
+version of either row lost, its deletion record the only trace, refuses both rows, since the file
+cannot tell whose it was. A row set or changed names in `after` the versions it replaces, which
+answers for both rows, so an edit of either row refuses neither, and names in `lost` the lost
+version it settles, which settles it for that row alone: **the other row keeps refusing until
+it is set as well**. Narrower, and once each row at the place is set nothing refuses. *What stays:*
+a merge that carries no deletion record (Overwrite if newer, Overwrite existing, Keep existing,
+KeePassXC) carries neither the loss into the other copy nor the refusal of the other row, which
+is row 2 for a rule: the merged copy gives that row what its own rules give, as the copy that
+held the deletion record gives it in a reading that knows whose each version was. A Synchronize
+carries both,
+and takes the refusal of the other row away only where the merged copy holds the text of the
+version the deletion record names. A lost version whose content turns up again stands beside
+the version that settled it, and narrows the row. *Measured* (`measured-lost-settled` 3 and 4):
+in the model, over two and three copies, a tag of 0, a person's deletions and Seal again, a
+million histories with no row refused for another name's replaced version, no read wider than
+the reading that knows whose each version was, and no merge beyond both copies that that reading
+does not end at as well.
+
 **A node whose rule was taken off does not follow a widening made apart, or a move into a wider
 group, until its limit is removed.** *Who:* nobody has to make a mistake. A rule is taken off
 a node, or its switch is turned off, in a copy, and something above the node is widened in
@@ -5890,9 +5967,11 @@ root widened above 20, 200 and 2,000 nodes that let its profile through wrote 21
 2,001 versions and left 22, 202 and 2,002 deletion records, each version below replaced by its
 renewal in the same write, so no entry and no item more stands afterwards and a deletion
 record more for each node. **A renewal grows a version's `after` as an edit of its row does**:
-33 characters in the version and 33 in its item, for good. A row edited 400 times in a copy
-held 399 identifiers in 13,295 characters of content, and its item 13,301
-(`measured-rules-owed-forms` 7); a version below a row of the root edited 400 times was
+33 characters in the version and 33 in its item, for good. **`lost` takes 33 characters for each
+lost version it settles and 9 for the member**, in the version and in its item, and nothing where
+none is settled; every later version of the object carries it on (`measured-lost-settled` 6).
+A row edited 400 times in a copy held 399 identifiers in 13,295 characters of content, and its
+item 13,301 (`measured-rules-owed-forms` 7); a version below a row of the root edited 400 times was
 renewed 400 times and held 401 identifiers in 13,361 characters, with three deletion records
 left for each edit above. So a version reaches the plugin's ceiling of 262,144 characters at
 about 7,940 identifiers, by its row's own edits and by the changes above it alike, with no
@@ -6308,14 +6387,16 @@ that finds a measurement against a decision reports it and does not design aroun
     `PwDatabase.MergeIn` in each direction. Owed to the model: the write above where nothing
     arrived, which the build renews only for a version that recorded nothing, and the measured
     code for every version (§617); no sequence of `StoreWriteVectors.json` holds that state at an
-    act above, so no vector differs. Owed to the model as well: a deletion record judged for
-    each object, which the measured reading answered for every object once any version in force
-    named it (§617); the build reads every store of `StoreMeaningVectors.json` as the measured
-    reading did, so no vector holds the difference. Left to a later commit: the other runs over
-    synchronized
-    copies that the list above names, three copies and the moves among them; a merge under an
-    open dialog in a running KeePass; every cost but that of the write above; and the drive in a
-    real KeePass beyond a rule set on the entry dialog's tab (item 6).
+    act above, so no vector differs. The lost versions a version settles, named in `lost` apart
+    from the versions it replaces in `after`, are built as the model has them
+    (`measured-lost-settled` 6, §617), and the build reads every store and plays every sequence
+    of the vectors of that refinement as the model printed them: the fail-open sequence, edits
+    of names whose tags meet, a loss settled in each order and in a single write, a tag of 0
+    beside the object with no slash, and a lost version of the switch. Left to a later commit:
+    the other runs over synchronized copies that the list above names, three copies and the
+    moves among them; a merge under an open dialog in a running KeePass; every cost but that of
+    the write above; and the drive in a real KeePass beyond a rule set on the entry dialog's tab
+    (item 6).
 25. **What the Profiles page counts** (§636). Its count of the groups and entries holding a rule
     for a profile, `DatabaseNodes`, leaves the recycle bin out and not the plugin's store, which
     the API leaves out beside it (§633). This item left it to the pull request that brings the

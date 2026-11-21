@@ -37,27 +37,36 @@ namespace KeePassGate.Acl
 
     /// <summary>
     /// A version of an object of a node's rules as the store holds it: its identifier, its text,
-    /// and the identifiers it names.
+    /// the identifiers it names as replaced and the lost identifiers it names as settled.
     /// </summary>
     /// <remarks>
     /// **What a version names is read on first use**, and kept with the version. A version's
     /// `after` grows by an identifier for each edit and each renewal and is never pruned, and the
-    /// walk never reads it: only the acts and the editor do. So a version the reading holds keeps
-    /// the text of its `after` as the store holds it, and nothing parses it at a hold that only
-    /// asks a rule.
+    /// walk never reads it, nor its `lost`: only the acts and the editor do. So a version the
+    /// reading holds keeps the texts of both as the store holds them, and nothing parses them at
+    /// a hold that only asks a rule.
     /// </remarks>
     public sealed class RuleVersion
     {
         /// <summary>The text of `after` as the store holds it, for a version read from the store.</summary>
         private string _named;
 
+        /// <summary>The text of `lost` as the store holds it, for a version read from the store, or null.</summary>
+        private string _settled;
+
         private IReadOnlyList<string> _after;
 
-        /// <summary>A version under this identifier holding this text and naming these identifiers in `after`.</summary>
+        private IReadOnlyList<string> _lost;
+
+        /// <summary>
+        /// A version under this identifier holding this text and naming these identifiers in
+        /// `after`, and nothing in `lost`.
+        /// </summary>
         public RuleVersion(string id, string text, IEnumerable<string> after)
             : this(id, text)
         {
             _after = (after ?? Array.Empty<string>()).Where(name => name != null).ToList().AsReadOnly();
+            _lost = Array.Empty<string>();
         }
 
         private RuleVersion(string id, string text)
@@ -90,13 +99,31 @@ namespace KeePassGate.Acl
             }
         }
 
-        /// <summary>
-        /// A version as the store holds it, with the text of its `after` read only where
-        /// <see cref="After"/> is asked: an `after` out of form names nothing.
-        /// </summary>
-        internal static RuleVersion Stored(string id, string text, string after)
+        /// <summary>The lost identifiers its `lost` names as settled, as the store holds them; none where it holds no `lost`.</summary>
+        public IReadOnlyList<string> Lost
         {
-            return new RuleVersion(id, text) { _named = after };
+            get
+            {
+                // As `After`: either list kept is the answer.
+                var lost = Volatile.Read(ref _lost);
+                if (lost == null)
+                {
+                    lost = (StoreFormat.Identifiers(_settled) ?? Array.Empty<string>()).ToList().AsReadOnly();
+                    Volatile.Write(ref _lost, lost);
+                }
+
+                return lost;
+            }
+        }
+
+        /// <summary>
+        /// A version as the store holds it, with the texts of its `after` and its `lost` read only
+        /// where <see cref="After"/> or <see cref="Lost"/> is asked: a list out of form names
+        /// nothing, and a `lost` that is null names nothing.
+        /// </summary>
+        internal static RuleVersion Stored(string id, string text, string after, string lost)
+        {
+            return new RuleVersion(id, text) { _named = after, _settled = lost };
         }
     }
 
@@ -155,6 +182,12 @@ namespace KeePassGate.Acl
         public IReadOnlyList<string> After
         {
             get { return _version.After; }
+        }
+
+        /// <summary>The lost identifiers its `lost` names as settled, read on first use.</summary>
+        public IReadOnlyList<string> Lost
+        {
+            get { return _version.Lost; }
         }
     }
 
@@ -262,7 +295,7 @@ namespace KeePassGate.Acl
             var held = alike.ToList();
             return held.Count == 1
                 ? held
-                : held.GroupBy(version => string.Join(" ", version.After), StringComparer.Ordinal)
+                : held.GroupBy(version => string.Join(" ", version.After) + "|" + string.Join(" ", version.Lost), StringComparer.Ordinal)
                     .OrderBy(named => named.Key, StringComparer.Ordinal)
                     .Select(named => named.First());
         }
@@ -298,6 +331,12 @@ namespace KeePassGate.Acl
         public IReadOnlyList<string> After
         {
             get { return _version.After; }
+        }
+
+        /// <summary>The lost identifiers its `lost` names as settled, read on first use.</summary>
+        public IReadOnlyList<string> Lost
+        {
+            get { return _version.Lost; }
         }
 
         /// <summary>The letters the version records for a profile: no letter for a profile it does not name, and none unless it inherits.</summary>

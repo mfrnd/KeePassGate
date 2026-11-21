@@ -33,6 +33,9 @@ namespace KeePassGate.Tests
 
         private static readonly string[] Alphabet = { string.Empty, "R", "U", "A", "RU", "RA", "UA", "RUA" };
 
+        /// <summary>No identifier, for a version that names nothing in `after` or in `lost`.</summary>
+        private static readonly string[] NoNames = Array.Empty<string>();
+
         [TestCase("version, a row that grants", "pf", "RU")]
         [TestCase("version, an empty rule", "pg", "")]
         public void A_rule_chosen_is_the_measured_record(string vector, string profile, string mask)
@@ -163,6 +166,255 @@ namespace KeePassGate.Tests
 
                 AssertMeasured(act.Records.Single(), vector);
             }
+        }
+
+        [Test]
+        public void A_rule_chosen_over_a_version_and_a_lost_version_is_the_measured_record()
+        {
+            // The lost version is the measured row whose content no store holds: a deletion
+            // record at the place of the row, beside the version the row replaces.
+            var store = new ComposedStore(MeasuredKey());
+            var granting = store.Add(Measured(RowOf(N, "pf"), "row:RU"));
+            store.Restate(StoreComposer.RuleVersionItem(granting, RowOf(N, "pf"), "row:RU"));
+            store.Deleted.Add(MeasuredId("version, a row whose content no store holds, lost"));
+            using (var reading = store.Read())
+            {
+                var shown = StoredRules.Of(reading).At(N);
+                Assert.That(shown.Row("pf").Lost, Is.EqualTo(new[] { (string)Records()["version, a row whose content no store holds, lost"]["id"] }));
+
+                var act = RuleActs.Of(reading, N, _ => Open(), null, Rows(Set("pf", "R", shown)), out var left);
+
+                Assert.That(left, Is.Empty);
+                AssertMeasured(act.Records.Single(), "version, a row replacing a version and settling a lost version");
+            }
+        }
+
+        [Test]
+        public void A_rule_chosen_over_two_lost_versions_alone_is_the_measured_record()
+        {
+            // Two deletion records at the place of the row and no version there: told of at the
+            // node by the tree, the name known by its row at the root.
+            var store = new ComposedStore(MeasuredKey());
+            var above = store.Add(Measured(RowOf(Root, "pf"), "row:RU"));
+            store.Restate(StoreComposer.RuleVersionItem(above, RowOf(Root, "pf"), "row:RU"));
+            store.Deleted.Add(MeasuredId("version, a row whose content no store holds, lost"));
+            store.Deleted.Add(MeasuredId("version, a rule taken off whose content no store holds, lost"));
+            store.Tree.AddRange(new[] { Root, N }.Select(StoreComposer.BytesOf));
+            using (var reading = store.Read())
+            {
+                var shown = StoredRules.Of(reading).At(N);
+                Assert.That(shown.Row("pf").Lost, Has.Count.EqualTo(2), "both lost to the row");
+
+                var act = RuleActs.Of(reading, N, _ => Open(), null, Rows(Set("pf", "RU", shown)), out _);
+
+                AssertMeasured(act.Records.Single(), "version, a row settling two lost versions and replacing none");
+            }
+        }
+
+        [Test]
+        public void A_rule_chosen_over_a_version_that_settled_a_lost_version_is_the_measured_record()
+        {
+            var store = new ComposedStore(MeasuredKey());
+            var settling = store.Add(StoreComposer.Version(
+                MeasuredKey(), RowOf(N, "pf"), (string)Records()["version, a row replacing a version and settling a lost version"]["content"]));
+            store.Restate(StoreComposer.RuleVersionItem(
+                settling, RowOf(N, "pf"), "row:R", new[] { (string)Records()["version, a row that grants"]["id"] }, new[] { (string)Records()["version, a row whose content no store holds, lost"]["id"] }));
+            store.Deleted.Add(MeasuredId("version, a row whose content no store holds, lost"));
+            using (var reading = store.Read())
+            {
+                var shown = StoredRules.Of(reading).At(N);
+                Assert.That(shown.Row("pf").Refuses, Is.False, "the loss is settled");
+
+                var act = RuleActs.Of(reading, N, _ => Open(), null, Rows(Set("pf", "RU", shown)), out _);
+
+                AssertMeasured(act.Records.Single(), "version, a row replacing a version that settled a lost version, carrying it on");
+            }
+        }
+
+        [Test]
+        public void The_box_ticked_over_a_version_and_a_lost_version_of_the_switch_is_the_measured_record()
+        {
+            var store = new ComposedStore(MeasuredKey());
+            var refusing = store.Add(Measured(SwitchOf(N), "sw:deny"));
+            store.Restate(StoreComposer.RuleVersionItem(refusing, SwitchOf(N), "sw:deny"));
+            store.Deleted.Add(MeasuredId("version, the switch inheriting whose content no store holds, lost"));
+            using (var reading = store.Read())
+            {
+                var shown = StoredRules.Of(reading).At(N);
+                Assert.That(shown.Switch.Lost, Has.Count.EqualTo(1), "the switch's lost version");
+
+                var act = RuleActs.Of(reading, N, _ => Open(), null, Box(true, shown), out _);
+
+                AssertMeasured(act.Records.Single(), "version, the switch replacing a version and settling a lost version");
+            }
+        }
+
+        [Test]
+        public void A_summary_entry_restates_each_version_with_the_lost_versions_it_settles_as_measured()
+        {
+            // `STORE.md` §611: the item `version` restates `lost` as the version holds it.
+            const string Head = "head of height 1, restating versions that settle lost versions";
+            var restated = ((JArray)Records()[Head]["items"]).Where(item => (string)item["kind"] == "version").ToList();
+            var store = new ComposedStore(MeasuredKey());
+            foreach (var item in restated)
+            {
+                var vector = Records().Properties().Single(record => (string)record.Value["id"] == (string)item["id"]).Value;
+                store.Add(StoreComposer.Version(MeasuredKey(), (string)item["object"], (string)vector["content"]));
+            }
+
+            store.RestateAll(restated.Select(item => StoreComposer.Item(((JObject)item).Properties().Select(member => (member.Name, (string)member.Value)).ToArray())));
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(
+                    reading.InForce.Restated().Where(item => item.Kind == StoreKinds.Version)
+                        .Select(item => item.Members.Concat(new[] { new KeyValuePair<string, string>(StoreKinds.ItemKind, item.Kind) })
+                            .OrderBy(member => member.Key, StringComparer.Ordinal).Select(member => member.Key + "=" + member.Value))
+                        .Select(members => string.Join(";", members))
+                        .OrderBy(text => text, StringComparer.Ordinal),
+                    Is.EqualTo(restated
+                        .Select(item => string.Join(";", ((JObject)item).Properties().OrderBy(member => member.Name, StringComparer.Ordinal).Select(member => member.Name + "=" + (string)member.Value)))
+                        .OrderBy(text => text, StringComparer.Ordinal)),
+                    "each item as the measured summary entry holds it");
+            }
+        }
+
+        [Test]
+        public void Each_act_at_the_node_carries_on_what_the_versions_it_replaces_settled()
+        {
+            // `STORE.md` §617: a row taken off, a version removed, the box ticked, the box cleared
+            // and the versions it renews, a limit settled, and an inheriting version of the switch
+            // a press of a row renews, each name in `lost` what the versions they replace named
+            // there, and in `after` nothing of it.
+            var cases = new Dictionary<string, Func<MemoryStore, (string[] Lost, RuleChanges Changes, (string Object, string Doc, string Lost)[] Settled)>>
+            {
+                {
+                    "a rule taken off", store =>
+                    {
+                        var lost = Lost(store, RowOf(N, "pf"), "row:C");
+                        PutSettling(store, RowOf(N, "pf"), "row:R", NoNames, new[] { lost.Hex });
+                        return (new[] { lost.Hex }, Rows(TakeOff("pf", "RU", Shown(store))), new[] { (RowOf(N, "pf"), "off:RU", lost.Hex) });
+                    }
+                },
+                {
+                    "a version removed", store =>
+                    {
+                        var first = Lost(store, RowOf(N, "pf"), "row:C");
+                        var second = Lost(store, RowOf(N, "pf"), "row:D");
+                        var removed = PutSettling(store, RowOf(N, "pf"), "row:R", NoNames, new[] { first.Hex });
+                        PutSettling(store, RowOf(N, "pf"), "row:RU", NoNames, new[] { second.Hex });
+                        return (new[] { first.Hex, second.Hex }, Rows(Remove(Shown(store), "pf", removed.Hex)), new[] { (RowOf(N, "pf"), "row:RU", Sorted(first.Hex, second.Hex)) });
+                    }
+                },
+                {
+                    "the box ticked", store =>
+                    {
+                        var lost = Lost(store, SwitchOf(N), "sw:inherit");
+                        PutSettling(store, SwitchOf(N), "sw:inherit pf=R", NoNames, new[] { lost.Hex });
+                        return (new[] { lost.Hex }, Box(true, Shown(store)), new[] { (SwitchOf(N), "sw:deny", lost.Hex) });
+                    }
+                },
+                {
+                    "the box cleared and the rule taken off it renews", store =>
+                    {
+                        var lostSwitch = Lost(store, SwitchOf(N), "sw:inherit");
+                        var lostRow = Lost(store, RowOf(N, "pf"), "row:C");
+                        PutSettling(store, SwitchOf(N), "sw:deny", NoNames, new[] { lostSwitch.Hex });
+                        PutSettling(store, RowOf(N, "pf"), "off:deny", NoNames, new[] { lostRow.Hex });
+                        return (
+                            new[] { lostSwitch.Hex, lostRow.Hex },
+                            Box(false, Shown(store), ("pf", "RU")),
+                            new[] { (SwitchOf(N), "sw:inherit pf=RU", lostSwitch.Hex), (RowOf(N, "pf"), "off:RU", lostRow.Hex) });
+                    }
+                },
+                {
+                    "a limit settled", store =>
+                    {
+                        var lost = Lost(store, RowOf(N, "pf"), "row:C");
+                        PutSettling(store, RowOf(N, "pf"), "off:R", NoNames, new[] { lost.Hex });
+                        return (new[] { lost.Hex }, Rows(Settle("pf", "RU", Shown(store))), new[] { (RowOf(N, "pf"), "off:RU", lost.Hex) });
+                    }
+                },
+                {
+                    "an inheriting switch a rule taken off renews", store =>
+                    {
+                        var lost = Lost(store, SwitchOf(N), "sw:deny");
+                        PutSettling(store, SwitchOf(N), "sw:inherit pf=R", NoNames, new[] { lost.Hex });
+                        Put(store, RowOf(N, "pf"), "row:R");
+                        return (
+                            new[] { lost.Hex },
+                            Rows(TakeOff("pf", "RU", Shown(store))),
+                            new[] { (RowOf(N, "pf"), "off:RU", string.Empty), (SwitchOf(N), "sw:inherit pf=RU", lost.Hex) });
+                    }
+                },
+            };
+
+            foreach (var pair in cases)
+            {
+                var store = Store();
+                var (lost, changes, settled) = pair.Value(store);
+                Assert.That(Shown(store).Row("pf").Refuses || Shown(store).Switch.Lost.Count > 0, Is.False, pair.Key + ": every loss settled before the act");
+
+                var act = Act(store, changes);
+
+                Assert.That(Settled(act), Is.EquivalentTo(settled), pair.Key + ": what each version settles");
+                Assert.That(act.Records.SelectMany(record => record.Member(StoreKinds.After).Split(' ')).Intersect(lost), Is.Empty, pair.Key + ": and replaces none of it");
+                Write(store, act);
+                var shown = Shown(store);
+                Assert.That(shown.Row("pf").Lost.Concat(shown.Switch.Lost), Is.Empty, pair.Key + ": every loss still settled");
+            }
+        }
+
+        [Test]
+        public void A_renewal_below_carries_on_what_the_version_it_renews_settled()
+        {
+            // `STORE.md` §617: a renewal by the write above names in `lost` the version's own.
+            var tree = Three();
+            var store = Store();
+            Put(store, RowOf(G, "pf"), "row:R");
+            var lost = Lost(store, RowOf(N, "pf"), "row:C");
+            PutSettling(store, RowOf(N, "pf"), "off:R", NoNames, new[] { lost.Hex });
+            Assert.That(ShownAt(store, N).Row("pf").Refuses, Is.False, "the loss is settled");
+
+            var act = Ok(store, G, tree, (shown, below) => Rows(Set("pf", "RU", shown, below)));
+
+            Assert.That(
+                Settled(act).Where(version => version.Object == RowOf(N, "pf")),
+                Is.EqualTo(new[] { (RowOf(N, "pf"), "off:RU", lost.Hex) }),
+                "the renewal of the rule taken off below");
+            Write(store, act);
+            Assert.That(ShownAt(store, N).Row("pf").Refuses, Is.False, "still settled");
+        }
+
+        [Test]
+        public void A_version_whose_lost_versions_do_not_fit_is_left_and_told()
+        {
+            // `STORE.md` §643: `lost` is counted in the version's content and in its item alike,
+            // 33 characters for each identifier and 9 for the member. The crowd fits a version of
+            // the text naming it in `after` alone; beside the version replaced and the member,
+            // two identifiers fewer fit, and the whole crowd does not.
+            var store = Store();
+            var crowd = Crowd(store, RowOf(N, "pf"), "row:RU");
+            Put(store, RowOf(N, "pf"), "row:R");
+            foreach (var hex in crowd.Take(crowd.Length - 2))
+            {
+                store.Delete(StoreComposer.BytesOf(hex));
+            }
+
+            var shown = Shown(store);
+            Assert.That(shown.Row("pf").Lost, Has.Count.EqualTo(crowd.Length - 2), "the crowd lost to the row");
+
+            var fits = Composed(store, Rows(Set("pf", "RU", shown)), out var left);
+            Assert.That(left, Is.Empty, "as many as fit");
+            Assert.That(Settled(fits).Single().Lost.Split(' '), Has.Length.EqualTo(crowd.Length - 2));
+
+            foreach (var hex in crowd.Skip(crowd.Length - 2))
+            {
+                store.Delete(StoreComposer.BytesOf(hex));
+            }
+
+            Assert.That(Composed(store, Rows(Set("pf", "RU", Shown(store))), out left), Is.Null);
+            Assert.That(Told(left), Is.EqualTo(new[] { ("pf", true, RuleLeftReason.TooLong) }), "the whole crowd does not fit");
         }
 
         [Test]
@@ -511,8 +763,10 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Removing_a_lost_version_writes_each_version_left_again_naming_the_lost_version()
+        public void Removing_a_lost_version_writes_each_version_left_again_settling_the_lost_version()
         {
+            // `STORE.md` §617: each version left names itself in `after`, and the lost version the
+            // X removed in `lost`, which replaces nothing.
             var store = Store();
             var narrow = Put(store, RowOf(N, "pf"), "row:R");
             var wide = Put(store, RowOf(N, "pf"), "row:RU");
@@ -524,9 +778,10 @@ namespace KeePassGate.Tests
 
             Assert.That(Written(act), Is.EquivalentTo(new[]
             {
-                (RowOf(N, "pf"), "row:R", Sorted(lost.Hex, narrow.Hex)),
-                (RowOf(N, "pf"), "row:RU", Sorted(lost.Hex, wide.Hex)),
+                (RowOf(N, "pf"), "row:R", narrow.Hex),
+                (RowOf(N, "pf"), "row:RU", wide.Hex),
             }));
+            Assert.That(Settled(act), Is.EquivalentTo(new[] { (RowOf(N, "pf"), "row:R", lost.Hex), (RowOf(N, "pf"), "row:RU", lost.Hex) }));
             Write(store, act);
             Assert.That(Shown(store).Row("pf").Refuses, Is.False, "the loss is answered for the row");
             Assert.That(Standing(store, RowOf(N, "pf")), Is.EqualTo(new[] { "row:R", "row:RU" }));
@@ -638,8 +893,10 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_rule_chosen_over_a_lost_version_names_the_lost_version_and_grants_again()
+        public void A_rule_chosen_over_a_lost_version_settles_it_in_lost_and_grants_again()
         {
+            // `STORE.md` §617: the version replaced in `after`, the lost version in `lost`, and the
+            // write deletes nothing for the lost version and adds no deletion record for it.
             var store = Store();
             var standing = Put(store, RowOf(N, "pf"), "row:R");
             var lost = Lost(store, RowOf(N, "pf"), "row:RU");
@@ -649,11 +906,35 @@ namespace KeePassGate.Tests
 
             var act = Act(store, Rows(Set("pf", "L", shown)));
 
-            Assert.That(Written(act), Is.EqualTo(new[] { (RowOf(N, "pf"), "row:L", Sorted(standing.Hex, lost.Hex)) }));
+            Assert.That(Written(act), Is.EqualTo(new[] { (RowOf(N, "pf"), "row:L", standing.Hex) }));
+            Assert.That(Settled(act), Is.EqualTo(new[] { (RowOf(N, "pf"), "row:L", lost.Hex) }));
+            var deletions = store.Deletions.Count;
             Write(store, act);
+            Assert.That(
+                store.Deletions.Skip(deletions).Select(KeePassGate.Hex.Of),
+                Does.Contain(standing.Hex).And.Not.Contain(lost.Hex),
+                "a deletion record for the version replaced, and none added for the version settled");
             var row = Shown(store).Row("pf");
             Assert.That(row.Refuses, Is.False);
             Assert.That(row.Answers, Is.True);
+        }
+
+        [Test]
+        public void A_rule_chosen_over_a_version_that_settled_a_lost_version_carries_the_lost_version_on()
+        {
+            // `STORE.md` §617: every later version names in `lost` what the versions it replaces
+            // name there, so the loss stays settled once the version that settled it is replaced.
+            var store = Store();
+            var lost = Lost(store, RowOf(N, "pf"), "row:RU");
+            var settling = PutSettling(store, RowOf(N, "pf"), "row:R", NoNames, new[] { lost.Hex });
+            Assert.That(Shown(store).Row("pf").Refuses, Is.False, "the loss is settled");
+
+            var act = Act(store, Rows(Set("pf", "L", Shown(store))));
+
+            Assert.That(Written(act), Is.EqualTo(new[] { (RowOf(N, "pf"), "row:L", settling.Hex) }));
+            Assert.That(Settled(act), Is.EqualTo(new[] { (RowOf(N, "pf"), "row:L", lost.Hex) }));
+            Write(store, act);
+            Assert.That(Shown(store).Row("pf").Answers, Is.True, "still settled once the version that settled it is gone");
         }
 
         [Test]
@@ -1224,9 +1505,10 @@ namespace KeePassGate.Tests
 
             Assert.That(Written(act), Is.EqualTo(new[]
             {
-                (RowOf(G, "pf"), "row:RL", Sorted(standing.Hex, lost.Hex)),
+                (RowOf(G, "pf"), "row:RL", Sorted(standing.Hex)),
                 (RowOf(E, "pf"), "off:R", Sorted(follower.Hex)),
             }));
+            Assert.That(Settled(act), Is.EqualTo(new[] { (RowOf(G, "pf"), "row:RL", lost.Hex), (RowOf(E, "pf"), "off:R", string.Empty) }), "the loss settled at G");
             Write(store, act);
             Assert.That(new[] { N, M, E }.Select(at => GivesIn(store, tree, at, "pf")), Is.EqualTo(new[] { "R", "R", "R" }));
         }
@@ -1752,11 +2034,20 @@ namespace KeePassGate.Tests
         /// </summary>
         private static StoreComposer.Composed Put(MemoryStore store, string objectName, string doc, params string[] after)
         {
+            return PutSettling(store, objectName, doc, after, NoNames);
+        }
+
+        /// <summary>
+        /// A version of this object put into the store as <see cref="Put"/> puts it, naming these
+        /// identifiers in `after` and these lost identifiers in `lost`.
+        /// </summary>
+        private static StoreComposer.Composed PutSettling(MemoryStore store, string objectName, string doc, string[] after, string[] lost)
+        {
             var key = KeyOf(store);
             try
             {
-                var version = StoreComposer.RuleVersion(key, objectName, doc, after);
-                var restating = StoreComposer.RuleVersionItem(version, objectName, doc, after);
+                var version = StoreComposer.RuleVersion(key, objectName, doc, after, lost);
+                var restating = StoreComposer.RuleVersionItem(version, objectName, doc, after, lost);
                 using (var reading = store.Read())
                 {
                     var heads = reading.InForce.HeadsInForce;
@@ -1962,6 +2253,20 @@ namespace KeePassGate.Tests
                 .ToList();
         }
 
+        /// <summary>
+        /// Each version an act writes: its object, its text and the lost versions it settles, none
+        /// where it holds no `lost`, in ordinal order.
+        /// </summary>
+        private static List<(string Object, string Doc, string Lost)> Settled(StoreAct act)
+        {
+            Assert.That(act, Is.Not.Null, "an act is composed");
+            return act.Records
+                .Select(record => (record.Member(StoreKinds.ObjectMember), record.Member(StoreKinds.Doc), record.Member("lost") ?? string.Empty))
+                .OrderBy(version => version.Item1, StringComparer.Ordinal)
+                .ThenBy(version => version.Item2, StringComparer.Ordinal)
+                .ToList();
+        }
+
         private static string Sorted(params string[] identifiers)
         {
             return string.Join(" ", identifiers.Distinct().OrderBy(identifier => identifier, StringComparer.Ordinal));
@@ -2143,6 +2448,12 @@ namespace KeePassGate.Tests
         private static byte[] MeasuredKey()
         {
             return StoreComposer.BytesOf((string)RuleVectors.Records["key"]);
+        }
+
+        /// <summary>The identifier of a measured record, as bytes: a deletion record naming it.</summary>
+        private static byte[] MeasuredId(string vector)
+        {
+            return StoreComposer.BytesOf((string)Records()[vector]["id"]);
         }
 
         /// <summary>A version of this object holding this text, with the nonce the vectors were printed with.</summary>

@@ -339,6 +339,30 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_version_reads_its_lost_where_present_and_a_lost_out_of_form_fails_it_as_an_after_out_of_form_does()
+        {
+            // `STORE.md` §617: `lost` is a list of identifiers as `after` is, absent where it names
+            // nothing, and read in its form with the rest of the version.
+            var rule = "rule:" + Node + "/pf";
+            var named = new string('7', 32) + " " + new string('8', 32);
+            var settling = StoreComposer.Version(One, rule, StoreComposer.Content(("after", string.Empty), ("doc", "row:R"), ("lost", named), ("object", rule)));
+            var form = StoreVersions.Checked(settling.Strings);
+            Assert.That(form.ReadsAsKind, Is.True);
+            Assert.That(form.Members["lost"], Is.EqualTo(named), "read with the version");
+
+            var plain = StoreVersions.Checked(Row("pf").Strings);
+            Assert.That(plain.ReadsAsKind, Is.True);
+            Assert.That(plain.Members.ContainsKey("lost"), Is.False, "absent where it names nothing");
+
+            foreach (var member in new[] { "after", "lost" })
+            {
+                var content = StoreComposer.Content(
+                    ("after", member == "after" ? "not identifiers" : string.Empty), ("doc", "row:R"), ("lost", member == "lost" ? "not identifiers" : named), ("object", rule));
+                Assert.That(StoreVersions.Checked(StoreComposer.Version(One, rule, content).Strings).ReadsAsKind, Is.False, member + " out of form");
+            }
+        }
+
+        [Test]
         public void A_row_s_version_is_a_record_only_under_the_identifier_that_holds_its_profile_s_tag()
         {
             // `STORE.md` §609: a version of a profile's rule is placed by the subject hash of
