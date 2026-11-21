@@ -13,8 +13,9 @@ namespace KeePassGate.Testing
     /// What the tests ask Windows directly is what WinForms, UI automation and .NET Framework either
     /// do not offer or offer only as their own account of it: a key posted to a window's queue, the
     /// focus and the activation as Windows holds them, the windows of another process, a real
-    /// pointer, where the shell drew a window's icon in the notification area, and the backup and
-    /// restore privileges enabled on a copy of the process's token.
+    /// pointer, where the shell drew a window's icon in the notification area, the desktop a thread
+    /// is on and the window station holding it, a desktop a test makes for itself, and the backup
+    /// and restore privileges enabled on a copy of the process's token.
     ///
     /// **Each declaration is called once, by the method of its name in this class**, which is what
     /// every test calls, and is declared in the private class of the DLL it comes from. CodeQL
@@ -47,6 +48,19 @@ namespace KeePassGate.Testing
             return User32.BringWindowToTop(window);
         }
 
+        internal static bool CloseDesktop(IntPtr desktop)
+        {
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
+            return User32.CloseDesktop(desktop);
+        }
+
+        internal static IntPtr CreateDesktop(
+            string name, IntPtr device, IntPtr mode, uint flags, uint access, IntPtr attributes)
+        {
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
+            return User32.CreateDesktop(name, device, mode, flags, access, attributes);
+        }
+
         internal static bool DuplicateTokenEx(
             SafeAccessTokenHandle existing, uint access, IntPtr attributes, int level, int type,
             out SafeAccessTokenHandle copy)
@@ -67,6 +81,12 @@ namespace KeePassGate.Testing
             return User32.GetActiveWindow();
         }
 
+        internal static uint GetCurrentThreadId()
+        {
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
+            return Kernel32.GetCurrentThreadId();
+        }
+
         internal static IntPtr GetFocus()
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
@@ -83,6 +103,25 @@ namespace KeePassGate.Testing
         {
             // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
             return User32.GetKeyboardState(keys);
+        }
+
+        internal static IntPtr GetProcessWindowStation()
+        {
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
+            return User32.GetProcessWindowStation();
+        }
+
+        internal static IntPtr GetThreadDesktop(uint thread)
+        {
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
+            return User32.GetThreadDesktop(thread);
+        }
+
+        internal static bool GetUserObjectInformation(
+            IntPtr handle, int index, char[] information, int length, out int needed)
+        {
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
+            return User32.GetUserObjectInformation(handle, index, information, length, out needed);
         }
 
         internal static bool GetWindowDisplayAffinity(IntPtr window, out uint affinity)
@@ -214,6 +253,12 @@ namespace KeePassGate.Testing
             return User32.SetPhysicalCursorPos(x, y);
         }
 
+        internal static bool SetThreadDesktop(IntPtr desktop)
+        {
+            // codeql[cs/call-to-unmanaged-code] the one call to it, for every caller in the tests
+            return User32.SetThreadDesktop(desktop);
+        }
+
         internal static bool SetWindowPos(
             IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags)
         {
@@ -297,6 +342,16 @@ namespace KeePassGate.Testing
 
             [DllImport("user32.dll")]
             [return: MarshalAs(UnmanagedType.Bool)]
+            // codeql[cs/unmanaged-code] a desktop handle has no managed owner to close it
+            internal static extern bool CloseDesktop(IntPtr desktop);
+
+            [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+            // codeql[cs/unmanaged-code] nothing managed makes a desktop
+            internal static extern IntPtr CreateDesktop(
+                string name, IntPtr device, IntPtr mode, uint flags, uint access, IntPtr attributes);
+
+            [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
             // codeql[cs/unmanaged-code] the window manager's list, where UI automation is a second opinion
             internal static extern bool EnumWindows(EnumWindowsProc callback, IntPtr parameter);
 
@@ -316,6 +371,20 @@ namespace KeePassGate.Testing
             [return: MarshalAs(UnmanagedType.Bool)]
             // codeql[cs/unmanaged-code] the thread's keys as Windows holds them, to put back after a test
             internal static extern bool GetKeyboardState(byte[] keys);
+
+            [DllImport("user32.dll")]
+            // codeql[cs/unmanaged-code] nothing managed names the window station a process is in
+            internal static extern IntPtr GetProcessWindowStation();
+
+            [DllImport("user32.dll")]
+            // codeql[cs/unmanaged-code] nothing managed names the desktop a thread is on
+            internal static extern IntPtr GetThreadDesktop(uint thread);
+
+            [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            // codeql[cs/unmanaged-code] nothing managed reads the name of a desktop or a window station
+            internal static extern bool GetUserObjectInformation(
+                IntPtr handle, int index, [Out] char[] information, int length, out int needed);
 
             [DllImport("user32.dll")]
             [return: MarshalAs(UnmanagedType.Bool)]
@@ -403,6 +472,11 @@ namespace KeePassGate.Testing
 
             [DllImport("user32.dll", SetLastError = true)]
             [return: MarshalAs(UnmanagedType.Bool)]
+            // codeql[cs/unmanaged-code] nothing managed moves a thread to another desktop
+            internal static extern bool SetThreadDesktop(IntPtr desktop);
+
+            [DllImport("user32.dll", SetLastError = true)]
+            [return: MarshalAs(UnmanagedType.Bool)]
             // codeql[cs/unmanaged-code] nothing managed puts a window directly behind another
             internal static extern bool SetWindowPos(
                 IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
@@ -411,6 +485,13 @@ namespace KeePassGate.Testing
             [return: MarshalAs(UnmanagedType.Bool)]
             // codeql[cs/unmanaged-code] nothing managed restores another process's window
             internal static extern bool ShowWindow(IntPtr window, int command);
+        }
+
+        private static class Kernel32
+        {
+            [DllImport("kernel32.dll")]
+            // codeql[cs/unmanaged-code] `ManagedThreadId` is the runtime's number, not the identifier Windows asks for
+            internal static extern uint GetCurrentThreadId();
         }
 
         private static class Shell32

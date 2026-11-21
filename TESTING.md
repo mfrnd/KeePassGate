@@ -761,10 +761,14 @@ is shared by the whole process or the whole account:
 - `Trace.Listeners`, and anything counting the lines that reach them;
 - the time zone, which every `NotAfter` reads;
 - a shown window, the focus, a posted key or a menu left open, since a window another fixture shows
-  takes the activation and closes the menu. Another test process shows its windows on the same
-  screen, and no mark reaches it, so such a fixture carries `[Desktop]` as well, which holds the
-  screen against every other test process for each of its tests. A fixture with one such test
-  among many that show nothing carries it on that test alone;
+  takes the activation and closes the menu. Another test process on the same desktop shows its
+  windows on the same screen, and no mark reaches it, so such a fixture carries `[Desktop]` as
+  well, which holds the desktop against every other test process on it for each of its tests. A
+  fixture with one such test among many that show nothing carries it on that test alone. The lock
+  is the logon session's mutex on the visible desktop and a mutex named for the desktop and its
+  window station on any other, so two runs on the visible desktop take turns, while a run started
+  on a desktop of its own takes no turn with a run on the visible desktop or on any other. A run
+  that cannot read its desktop's name takes the visible desktop's lock;
 - a static the plugin lends out for a while and takes back;
 - the account's key directories: a certificate loaded with its key and without `EphemeralKeySet`
   writes that key there, which `Certificates.WithKeyFile` does for a test whose client is
