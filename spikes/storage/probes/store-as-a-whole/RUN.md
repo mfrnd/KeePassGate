@@ -51,6 +51,14 @@ over the files `store.py` writes of the model, with no KeePass. Its record is `r
 with the vectors it prints in `recorded-lost\vectors\`. The section "The lost versions a version
 settles" at the end holds it.
 
+**A further configuration, the standing answers to a renewal**, was added on 2026-11-22 for the
+report `measured-renewal-answers.md`: `run.ps1 -Answers`, an answer as a version of `renew:` and
+the client key holding the product's texts, refused forever, refused until a moment or lifted, read
+on the chain of those texts at each position of a gate's clock, in the model, over the files
+`store.py` writes of it, and on real files made by KeePassLib and merged by KeePassLib and
+`keepassxc-cli`. Its record is `recorded-answers\`, with the vectors it prints in
+`recorded-answers\vectors\`. The section "The standing answers to a renewal" at the end holds it.
+
 | Path | What it is |
 | --- | --- |
 | `model\crdt_model.py` | a copy of `spikes\storage\model\crdt_model.py` with the switches of section "What was added" below; every new switch at its default is the design's model |
@@ -78,6 +86,8 @@ settles" at the end holds it.
 | `recorded-s34\` | the output of the runs of those forms, which `measured-rules-across-levels.md` quotes |
 | `model\lost_runs.py`, `compare_lost.py` | the parts of the lost versions a version settles (section "The lost versions a version settles"), and the comparisons of their outputs and of the vectors |
 | `recorded-lost\` | the output of those parts, which `measured-lost-settled.md` quotes; `recorded-lost\vectors\` the three files of vectors `vectors.py --lost` prints |
+| `model\answer_runs.py`, `probe\answers.py`, `compare_answers.py` | the parts of the standing answers to a renewal in the model and on real files (section "The standing answers to a renewal"), and the comparisons of the vectors |
+| `recorded-answers\` | the output of those parts, which `measured-renewal-answers.md` quotes; `recorded-answers\vectors\` the three files of vectors `vectors.py --answers` prints |
 
 **Everything ran twice**, on 2026-11-16, on a machine other measurements were sharing. Every
 output of the second run is the same as the record line for line, apart from what `compare.py`
@@ -1959,3 +1969,204 @@ Reported, not fixed.
 
 - Real files and every program of the earlier configurations; three copies; the full mask and four
   profiles in a search; the product.
+
+## The standing answers to a renewal
+
+Added on 2026-11-22 for `papers\ground\measured-renewal-answers.md`. A standing answer to a renewal
+is a version, as a rule's is, of an object of its own, and `STORE.md` §618 and S7 leave its object,
+its texts and an answer until a date open. This configuration measures the design proposed for
+them before anything of it is built in the product: the object `renew:` and the client key; the
+texts `refuse:forever`, `refuse:until:` and a moment, RFC 3339 in UTC to the second, and `ask`, the
+lift; the answer the strictest standing version, a lost version and a text out of form refusing
+forever; a deletion record of an answer told only for a client key the file knows; a version naming
+in `after` what its writer was shown that still stands and, for a lift, in `lost` what it settles;
+a clock read only where a renewal is answered and where a dialog shows; and an answer written into
+the open database and kept by the next save, as a rule set on a node's dialog is. `run.ps1
+-Answers` runs it; its record is `recorded-answers\`.
+
+### What it runs
+
+`run.ps1 -Answers` runs these parts, each into `out\answers\<part>.txt`, held to
+`recorded-answers\` by `compare.py --answers`; after them `compare_answers.py print` writes the three
+files of vectors `vectors.py --answers` prints into `out\answers\vectors\`, with
+`vectors-print.txt`, and `compare_answers.py vectors` holds them to `recorded-lost\vectors\`, the
+files as they stand, in `vectors-compare.txt`.
+
+| Part | What it is |
+| --- | --- |
+| `cells` | `probe\answers.py cells`: A1 to A14, each a base, the acts of each copy and every merge both ways by KeePassLib's five methods and four `keepassxc-cli` releases on real files, the merged file read at each position of the clock, held to both copies just before the merge, to the copy's own ideal and to every decision any gate made; then the acts that follow in the copy merged into |
+| `losses` | `probe\answers.py losses`: an answer until a moment, forever and a lift, synchronized into copy 1, its newest version deleted at copy 0 with a deletion record or with none and the newest summary entry kept, deleted with a deletion record or deleted with none; Seal again where the store stops, the dialog and a lift where the answer refuses; then six merges both ways with copy 1 |
+| `random` | `probe\answers.py random 300 51`: random histories of answers, lifts, dialogs, clocks, renewals, a pairing and a revocation over two copies on real files, with Synchronize, Overwrite if newer and KeePassXC 2.8.0, each merge held to both copies and each step's copy to its own ideal |
+| `model-hand`, `model-losses` | `model\answer_runs.py hand` and `losses`: the same sequences in the model, the merged copy beside its own ideal under both oracles and every decision any gate made; A2, A3 and A11 also with their two writes in the other order; every merged copy read again with every time set to 0 |
+| `laws` | `model\answer_runs.py laws 20000 7`: the meet over every sequence of one to three of eight texts in every order, refusing against the chain at each position of the clock, and 20,000 random pairs of files under a perfect transport |
+| `exhaustive-4`, `exhaustive-5` | `model\answer_runs.py exhaustive`: every sequence of 4 steps of the answers' alphabet over two copies with the deletions by hand and Seal again, and of 5 steps without, the convergence checked at the end |
+| `answers-two`, `-three`, `-hand`, `-long` | `model\answer_runs.py answers`: 200,000 random histories of the answers' acts alone each, two copies, three copies, two with the deletions by hand, Seal again, every deletion record cleared, a lost answer and a text out of form, and two with 8 to 16 steps; each history under both oracles |
+| `search-2`, `search-3` | `model\answer_runs.py search`: the design's twelve configurations over two and three files, 20,000 histories each with the design's seeds, the answers' acts in the alphabet; every history that fails a property that ends it shrunk and classed |
+| `bridge-two`, `bridge-hand` | `model\answer_runs.py bridge`: 2,000 random histories of the answers' alphabet each, the file of the copy each step changed written by `store.py`'s Encoder and read by `read.py`, held to the model's fold |
+
+**The store.** The store as decided (`crdt_model.STORE` with no repair), a rule as a version of a
+node's whole rule, the reading of lost versions of "The lost versions a version settles" (`JUDGE`
+`lost`), and, in the model's searches, a rule, an answer and a lift each written into the open
+database and waiting there for the next save (`pending`, with the acts `save` and `quit`). The
+sequences and the parts on files write each act at once, as every part on files has. On files every
+certificate and client key is 64 lowercase hexadecimal characters (`store.HEX`).
+
+**The two oracles.** A copy's ideal is the same file had every record it received arrived by a
+perfect transport (`World.ideal`); on files the oracle is every decision any gate made, as before.
+With `IDEAL_LOST` on, the oracle the property is asked under, a version that a version of the same
+answer names in `lost` counts as seen and replaced: a lift that settled a lost version was shown it
+lost. With it off the oracle replaces by `after` alone, as for every other object, and the parts
+that run both print each.
+
+**The clock is watched.** `answer_runs.py` replaces each gate's clock with a list that counts every
+read by the act or the operation it is read in; a read inside a fold, a merge, a write of a summary
+entry or an act other than a dialog, an answer, a renewal or the clock's own act is printed as a
+failure. The oracle's own read, where a renewal issued is held to the gate's ideal at its clock, is
+counted apart.
+
+**What a history is held to.** `crdt_model.run` with the answers on: after every step, every copy
+whose store is whole and serves is held to its ideal on the chain, which, the chain being total and
+refusing monotone in it, is every position of the clock at once; a renewal issued is held to the
+gate's ideal just before it at the gate's clock; KeePass ending before a save that discards an answer
+is counted as `accepted:unsaved-answer-lost`, and a quit that discards a lift as
+`info:unsaved-lift-lost`, the stricter way; a renewal issued at a gate whose ideal still refuses at
+another copy's clock as `info:renewal-at-a-clock-ahead`; at the end the copies are synchronized both
+ways and held to converge. A history that fails a property that ends it is shrunk by that property
+and classed by what it holds: a store key lost (decision 9), `STORE.md` §639 rows 1 to 5, or
+`OTHER`, which is printed with every step as a counterexample.
+
+### The command
+
+From the branch root, in Windows PowerShell 5.1, under an ordinary user token, with
+`PSModulePath` removed when started from PowerShell 7:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1 -Answers -Parallel 4
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\compare.py --answers
+```
+
+A run of every part empties `out\answers\` and the databases `work\an-*` and nothing of the other
+configurations'. Each model part draws on four processes of its own; the parts on files start the
+KeePassLib host and `keepassxc-cli` as the earlier parts on files do. Nothing shows a window.
+
+**How long**, in seconds, four parts at once on twelve logical processors, each model part on four
+processes of its own:
+
+| Part | Run 1 | Run 2 |
+| --- | --- | --- |
+| `exhaustive-5` | 3,282 | 3,262 |
+| `exhaustive-4` | 446 | 461 |
+| `answers-long`, `answers-three` | 291, 271 | 291, 276 |
+| `answers-hand`, `answers-two` | 151, 151 | 151, 151 |
+| `search-3`, `search-2` | 130, 90 | 120, 110 |
+| `random`, `cells`, `losses` | 105, 60, 25 | 110, 65, 25 |
+| `laws`, `model-hand`, `model-losses`, `bridge-two`, `bridge-hand` | 10, 5, 5, 5, 5 | 10, 5, 5, 5, 5 |
+
+**How the runs were made.** Two starts of run 1 were stopped and none of their outputs kept: the
+first once its parts on files had run, so that each file there is held to its own ideal as well as
+to every decision any gate made; the second once its model parts had run, so that the detail of
+`one-loss` and of KeePass ending before a save names the copy the answer is compared with rather
+than an ideal. Run 1 and run 2 were then `run.ps1 -Answers -Parallel 4`, in turn; run 1's outputs
+are `recorded-answers\`. `compare_answers.py` compared the vectors with `recorded-lost\vectors\` byte
+for byte in run 1 and found every file different by its line ends alone, the working tree holding
+CRLF; it compares them but the line ends since, and `recorded-answers\vectors\` and its two
+listings, `vectors-print.txt` and `vectors-compare.txt`, are what `compare_answers.py print` and
+`vectors` wrote after run 1, into `recorded-answers\`, the vectors the same bytes as run 1 printed,
+and again in run 2 into `out\answers\`. With the new switches off, the 12 outputs named under "What
+was added for it" printed their records before run 1.
+
+**Compared.** Every output of run 2 is the same as `recorded-answers\` line for line, with the
+masks of "Running it": 18 files, the two listings of the vectors among them; and the three files of
+vectors printed into `out\answers\vectors\` are the same bytes as those of
+`recorded-answers\vectors\` but the line ends.
+
+| Figure | Recorded | Second run | Reproduced |
+| --- | --- | --- | --- |
+| `cells`, 252 cells: below the copy's own ideal; beyond both copies; steps where file and model disagree | 0; 0; 0 | the same | yes |
+| `cells`: against every decision any gate made, as decided, narrower, refusing, wider | 218, 17, 10, 7 (each wider cell an import) | the same | yes |
+| `losses`, 108 cells: below the copy's own ideal; beyond both copies; as decided, narrower, refusing | 0; 0; 83, 16, 9 | the same | yes |
+| `random`: steps; disagreements; merges held and below both copies; files at the end below their own ideal; against every decision, wider, as decided, narrower | 1,686; 0; 960 and 0; 0 of 600; 102, 454, 44 | the same | yes |
+| `model-hand`: cells; below the ideal with `lost` seen; below by `after` alone; cells differing between the orders of the writes; merged copies read with every time at 0 that differ | 136; 0; 5; 0 of 24; 0 of 136 | the same | yes |
+| `model-losses`: cells; below the copy's own ideal; below by `after` alone; read with every time at 0 that differ | 144; 4 (§639 row 5 through an import); 12; 0 of 144 | the same | yes |
+| `laws`: sequences and violations; pairs of texts and violations; pairs of files, versions checked, joined files below | 584, 0; 64, 0; 20,000, 21,824, 0 | the same | yes |
+| `exhaustive-4`, `exhaustive-5`: histories; failures | 1,679,616, 11,881,376; none, none | the same | yes |
+| `answers-two`, `-three`, `-long`: failures; discarded answers; discarded lifts; renewals at a clock ahead | none; 4,750, 3,873, 8,334; 61, 14, 187; 228, 131, 650 | the same | yes |
+| `answers-hand`: `safety`, `one-loss`, `sealed-after-a-loss`, each of §639 rows 2 to 5; discarded answers, lifts; renewals at a clock ahead | 21, 27, 1; 1,965, 54; 61 | the same | yes |
+| `search-2`, `search-3`: `safety` (renewal answers of them, each a store key lost); `rollback-by-overwrite`; discarded answers; renewals at a clock ahead | 4 (3) and 1 (0); 104 and 163; 684 and 466; 3 and 6 | the same | yes |
+| every part: reads of the clock by the dialog, the answer, the renewal and the clock's act; by the oracle; anywhere else | 50,919,549; 5,847,908; none | the same | yes |
+| `bridge-two`, `bridge-hand`: steps compared; differing | 10,641, 10,674; 0, 0 | the same | yes |
+| vectors: records, stores, sequences added; members changed or removed; `--lost` against `recorded-lost\vectors\` | 11 and `renewalTexts`, 28, 14; 0; the same but the line ends | the same | yes |
+
+### What was added for it
+
+Each line added or changed carries "ADDED (renewal answers)". With the new switches off, every part
+prints what it printed before: after the addition, `-Decided` was run again in `store-search`,
+`b-merges` and `b-random`, `-Rows` in `beyond` and `switch`, `-Owed` in `merges4`, the first
+record in `store-scenarios` and `store-section6`, and `model\lost_runs.py` in `tags`, `hand`,
+`search-two` and `bridge-two`; each printed its record line for line, with the masks of "Running
+it": 12 files. `vectors.py --lost` prints the three files of `recorded-lost\vectors\` byte for byte.
+
+- `crdt_model.py`: `ANSWERS`, `MOMENTS`, `CLOCK`, `ANSWER_TEXTS`, `OUT_OF_FORM` and `IDEAL_LOST`;
+  `answer_read`, the strict reader, `answer_key`, `answer_token`, `answer_rank`, `answer_refuses`,
+  `answer_label` and `refusing_at`; `meet` of two answers, the stricter by text; `refusal_of` an
+  answer, `refuse:forever`; each gate's `clock` and what a dialog showed, `seen`, carried by
+  `World.clone`; in `fold`, the client keys the file knows, a deletion record of an answer told only
+  for those, the oracle's `lost` under `IDEAL_LOST`, and the answer read from the chain with its
+  cause, `renew_why`; `judge_dels` and its `known_keys`; the acts `clock` and `see`, the answer act
+  `answer_act` with `shown`, `renewcert` refused where the gate's reading refuses at its clock, an
+  answer and a lift under `pending`, `lose` of an answer and `unreadable`, a text out of form written
+  by a key holder; `narrower_renewals`, `narrower` and `narrower_than` on the chain; in `run`, a
+  renewal issued held to the gate's ideal, the discarded answer and lift of a `quit`, and a renewal
+  at a clock ahead; the alphabet's answers, dialogs and clocks. **A defect of the model is closed
+  under the switch**: its completeness check held a revocation by its certificate where the summary
+  entry restates the client's key, so revoking a client whose certificate had been renewed stopped
+  the store in the model alone, `read.py` and the product reading it whole; with `ANSWERS` it holds
+  the revocation by what it refuses. No earlier output depends on it with the switch off, and the
+  bridge of `bridge-hand` found it.
+- `store.py`: `HEX`, `NAMES` and `cert_hex`, every certificate and client key in hexadecimal, and
+  an answer's text in `doc`.
+- `read.py`: `ANSWERS`; `answer_text`, its own strict reader, `answer_order` and `answer_key_form`;
+  `value_of`, an answer's text kept as it stands; `meet` of two answers; the client keys of the
+  answers the file holds, `renewing`, an object that holds no client key read as the object of
+  nothing; the answer of each with `renew_detail`.
+- `bridge.py`: `answers()`, the configuration; `as_model` maps the hexadecimal names back;
+  `readcheck` compares every answer that is not `ask`, with its cause; `lose` and `unreadable` on
+  files.
+- `vectors.py`: `--answers`; `answer_record`, `answer_reading` and `ANSWER_TEXTS`; the records,
+  `renewalTexts`, the stores (`answer_stores`, `renewals`) and the sequences (`answer_command`) of
+  the answers; `state` and `play` add each step's answers, its clock and `renewalsBeyond`.
+- `model\answer_runs.py`, `probe\answers.py`, `compare_answers.py`: new.
+- `run.ps1`: `-Answers`. `compare.py`: `--answers`, and the vectors of a record byte for byte.
+
+### Defects and limits of this configuration
+
+Reported, not fixed.
+
+- **The clock is the model's alone.** A gate's clock is a position of three, before both moments,
+  between them and after both, set by an act of its own in either direction; a file holds no
+  clock, and every answer is read at each position. A clock set wrong is a gate whose position
+  differs from another gate's.
+- **A dialog is an act, `see`, and the answer the next act.** What a merge brings between them is
+  what lands under an open dialog; a press on the settings dialog and its write at OK are the same
+  act here, and the buffer of the settings dialog, a lift held and composed again at OK, is the
+  `see` before it.
+- **An answer held in the plugin's memory, and an answer that could not be written, have no
+  record** and are not in the model, which holds files.
+- **A loss is a person's deletion, `del`, or a deletion record whose content no file holds,
+  `lose`.** A refusal lost so is a refusal forever whose content nobody can read, which is why the
+  oracle does not hold it.
+- **Two clients and two moments**, a single profile set, rules as a version of a node's whole rule;
+  every certificate and client key is in hexadecimal on files and in the vectors, and the model's
+  names (`c0`, `c0.1`) everywhere else.
+- **Both oracles in four parts and the sequences only**: the design's search and the exhaustive
+  parts run with a lift's `lost` counted as seen alone.
+- **KeePassLib stands for KeePass's window** in every edit and every merge on files, as in the
+  configurations before; the product's reading was not run.
+
+### Not run in this configuration
+
+- Rules per profile beside the answers; a deletion of every summary entry at once.
+- A pairing again apart from a renewal: the model's `renewcert` stands for both, and an answer
+  refuses both alike.
+- The slow key derivation; KeePassXC releases other than 2.8.0 in `random`.
+- The product, a window, a phone.

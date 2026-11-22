@@ -1,0 +1,6 @@
+== every sequence of 4 steps of the answers' alphabet over two copies, client c0: 36 steps wide with the deletions by hand and Seal again, from the store the model starts with, the convergence checked at the end: 1679616 histories  accepted:unsaved-answer-lost x37700, info:renewal-at-a-clock-ahead x750, info:unsaved-lift-lost x18
+    first shortest accepted:unsaved-answer-lost (file 0: renewal of c0 ask where the copy before the quit is forever (refusing at - against 012)): renew 0 c0 forever ; renew 0 c0 forever ; renew 0 c0 forever ; quit 0
+    first shortest info:renewal-at-a-clock-ahead (file 1: renewal of c0): renew 0 c0 forever ; renew 1 c0 until1 ; clock 1 1 ; renewcert 1 c0
+    first shortest info:unsaved-lift-lost (file 0: before the quit, renewal of c0 ask where the copy after the quit is forever (refusing at - against 012)): renew 0 c0 forever ; save 0 ; renew 0 c0 ask ; quit 0
+   the clock read: act:clock 746496, act:renew 1944316, act:renewcert 332282, act:see 345940, the oracle of a renewal issued 373248; elsewhere: never
+== 443 s

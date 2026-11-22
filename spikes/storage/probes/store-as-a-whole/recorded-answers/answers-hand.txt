@@ -1,0 +1,45 @@
+== 200000 histories of the answers' acts alone over 2 copies, 4 to 12 steps, seed 33: 60 acts (four answers about c0 and c1, a dialog, the clock, a renewal, a pairing, a revocation, a save, KeePass ending before a save, deletions by hand of an answer's newest version and of the newest summary entry with a deletion record or with none, Seal again, every deletion record cleared, a lost answer, a text out of form) and 6 merges (Synchronize, Overwrite if newer, KeePassXC), an act drawn with 0.6; each history under both oracles
+   histories; oracle a lift's lost counted as seen: accepted:unsaved-answer-lost x1965, info:renewal-at-a-clock-ahead x61, info:unsaved-lift-lost x54, one-loss x27, safety x21, sealed-after-a-loss x1
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until1 ; quit 1
+    shortest info:renewal-at-a-clock-ahead: lose 0 renew:c1 ; merge kp_other 0 1 ; renew 0 c0 until1 ; pair 1 ; clock 0 2 ; renewcert 0 c0
+    shortest info:unsaved-lift-lost: lose 1 renew:c0 ; renew 1 c0 ask ; del 1 ('ver', 'renew:c1', 'new') 1 ; quit 1
+    one-loss, about a renewal answer, a decision and its summary entry deleted with no deletion record (STORE.md 639 row 3): 1 histories, 1 distinct once shrunk
+        #132138, shrunk to 5 steps: unreadable 0 c0 ; del 0 ('head', 'new') 0 ; pair 1 ; merge kp_sync 0 1 ; del 0 ('ver', 'renew:c0', 'new') 0   (file 0: renewal of c0 ask where the copy before the step is forever (refusing at - against 012))
+    one-loss, about a renewal answer, a decision and its summary entry deleted, and a merge that carries no deletion record (STORE.md 639 rows 2 and 3): 24 histories, 22 distinct once shrunk, the three shortest
+        #8579, shrunk to 4 steps: unreadable 1 c0 ; del 1 ('head', 'new') 0 ; merge kp_other 0 1 ; del 0 ('ver', 'renew:c0', 'new') 0   (file 0: renewal of c0 ask where the copy before the step is forever (refusing at - against 012))
+        #35491, shrunk to 4 steps: unreadable 1 c0 ; merge xc 0 1 ; del 0 ('head', 'new') 0 ; del 0 ('ver', 'renew:c0', 'new') 0   (file 0: renewal of c0 ask where the copy before the step is forever (refusing at - against 012))
+        #37492, shrunk to 4 steps: unreadable 1 c0 ; del 1 ('head', 'new') 0 ; merge xc 0 1 ; del 0 ('ver', 'renew:c0', 'new') 0   (file 0: renewal of c0 ask where the copy before the step is forever (refusing at - against 012))
+    one-loss, about a renewal answer, every deletion record removed while a loss stands (STORE.md 639 row 4): 2 histories, 2 distinct once shrunk
+        #189264, shrunk to 5 steps: unreadable 0 c0 ; clear 0 ; merge kp_sync 0 1 ; del 0 ('ver', 'renew:c0', 'new') 0 ; del 0 ('head', 'new') 0   (file 0: renewal of c0 ask where the copy before the step is forever (refusing at - against 012))
+        #40767, shrunk to 6 steps: renew 0 c0 until1 ; merge kp_other 0 1 ; merge kp_other 1 0 ; del 1 ('ver', 'renew:c0', 'new') 1 ; clear 1 ; del 1 ('head', 'new') 0   (file 1: renewal of c0 ask where the copy before the step is until-1 (refusing at - against 0))
+    safety, about a renewal answer, a decision and its summary entry deleted, and a merge that carries no deletion record (STORE.md 639 rows 2 and 3): 20 histories, 20 distinct once shrunk, the three shortest
+        #5720, shrunk to 5 steps: renew 0 c0 until2 ; merge kp_other 0 1 ; del 0 ('ver', 'renew:c0', 'new') 1 ; merge kp_other 1 0 ; del 1 ('head', 'new') 0   (file 1: renewal of c0 ask where its ideal is until-2 (refusing at - against 01))
+        #13544, shrunk to 5 steps: renew 1 c0 forever ; merge kp_sync 1 0 ; del 1 ('ver', 'renew:c0', 'new') 0 ; del 1 ('head', 'new') 1 ; merge xc 0 1   (file 0: renewal of c0 ask where its ideal is forever (refusing at - against 012))
+        #34730, shrunk to 5 steps: renew 0 c0 until2 ; merge kp_other 0 1 ; del 0 ('head', 'new') 1 ; merge xc 1 0 ; del 1 ('ver', 'renew:c0', 'new') 0   (file 1: renewal of c0 ask where its ideal is until-2 (refusing at - against 01))
+    safety, about a renewal answer, every deletion record removed while a loss stands (STORE.md 639 row 4): 1 histories, 1 distinct once shrunk
+        #40767, shrunk to 6 steps: renew 0 c0 until1 ; merge kp_other 0 1 ; merge kp_other 1 0 ; del 1 ('ver', 'renew:c0', 'new') 1 ; clear 1 ; del 1 ('head', 'new') 0   (file 1: renewal of c0 ask where its ideal is until-1 (refusing at - against 0))
+    sealed-after-a-loss, about a renewal answer, Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5): 1 histories, 1 distinct once shrunk
+        #132610, shrunk to 5 steps: renew 0 c0 until2 ; merge kp_other 0 1 ; del 0 ('head', 'new') 1 ; del 0 ('ver', 'renew:c0', 'new') 0 ; reseal 0   (file 0: renewal of c0 ask where its ideal is until-2 (refusing at - against 01))
+   histories; oracle after alone: accepted:unsaved-answer-lost x1965, info:renewal-at-a-clock-ahead x61, info:unsaved-lift-lost x54, one-loss x27, safety x21, sealed-after-a-loss x1
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until1 ; quit 1
+    shortest info:renewal-at-a-clock-ahead: lose 0 renew:c1 ; merge kp_other 0 1 ; renew 0 c0 until1 ; pair 1 ; clock 0 2 ; renewcert 0 c0
+    shortest info:unsaved-lift-lost: lose 1 renew:c0 ; renew 1 c0 ask ; del 1 ('ver', 'renew:c1', 'new') 1 ; quit 1
+    one-loss, about a renewal answer, a decision and its summary entry deleted with no deletion record (STORE.md 639 row 3): 1 histories, 1 distinct once shrunk
+        #132138, shrunk to 5 steps: unreadable 0 c0 ; del 0 ('head', 'new') 0 ; pair 1 ; merge kp_sync 0 1 ; del 0 ('ver', 'renew:c0', 'new') 0   (file 0: renewal of c0 ask where the copy before the step is forever (refusing at - against 012))
+    one-loss, about a renewal answer, a decision and its summary entry deleted, and a merge that carries no deletion record (STORE.md 639 rows 2 and 3): 24 histories, 22 distinct once shrunk, the three shortest
+        #8579, shrunk to 4 steps: unreadable 1 c0 ; del 1 ('head', 'new') 0 ; merge kp_other 0 1 ; del 0 ('ver', 'renew:c0', 'new') 0   (file 0: renewal of c0 ask where the copy before the step is forever (refusing at - against 012))
+        #35491, shrunk to 4 steps: unreadable 1 c0 ; merge xc 0 1 ; del 0 ('head', 'new') 0 ; del 0 ('ver', 'renew:c0', 'new') 0   (file 0: renewal of c0 ask where the copy before the step is forever (refusing at - against 012))
+        #37492, shrunk to 4 steps: unreadable 1 c0 ; del 1 ('head', 'new') 0 ; merge xc 0 1 ; del 0 ('ver', 'renew:c0', 'new') 0   (file 0: renewal of c0 ask where the copy before the step is forever (refusing at - against 012))
+    one-loss, about a renewal answer, every deletion record removed while a loss stands (STORE.md 639 row 4): 2 histories, 2 distinct once shrunk
+        #189264, shrunk to 5 steps: unreadable 0 c0 ; clear 0 ; merge kp_sync 0 1 ; del 0 ('ver', 'renew:c0', 'new') 0 ; del 0 ('head', 'new') 0   (file 0: renewal of c0 ask where the copy before the step is forever (refusing at - against 012))
+        #40767, shrunk to 6 steps: renew 0 c0 until1 ; merge kp_other 0 1 ; merge kp_other 1 0 ; del 1 ('ver', 'renew:c0', 'new') 1 ; clear 1 ; del 1 ('head', 'new') 0   (file 1: renewal of c0 ask where the copy before the step is until-1 (refusing at - against 0))
+    safety, about a renewal answer, a decision and its summary entry deleted, and a merge that carries no deletion record (STORE.md 639 rows 2 and 3): 20 histories, 20 distinct once shrunk, the three shortest
+        #5720, shrunk to 5 steps: renew 0 c0 until2 ; merge kp_other 0 1 ; del 0 ('ver', 'renew:c0', 'new') 1 ; merge kp_other 1 0 ; del 1 ('head', 'new') 0   (file 1: renewal of c0 ask where its ideal is until-2 (refusing at - against 01))
+        #13544, shrunk to 5 steps: renew 1 c0 forever ; merge kp_sync 1 0 ; del 1 ('ver', 'renew:c0', 'new') 0 ; del 1 ('head', 'new') 1 ; merge xc 0 1   (file 0: renewal of c0 ask where its ideal is forever (refusing at - against 012))
+        #34730, shrunk to 5 steps: renew 0 c0 until2 ; merge kp_other 0 1 ; del 0 ('head', 'new') 1 ; merge xc 1 0 ; del 1 ('ver', 'renew:c0', 'new') 0   (file 1: renewal of c0 ask where its ideal is until-2 (refusing at - against 01))
+    safety, about a renewal answer, every deletion record removed while a loss stands (STORE.md 639 row 4): 1 histories, 1 distinct once shrunk
+        #40767, shrunk to 6 steps: renew 0 c0 until1 ; merge kp_other 0 1 ; merge kp_other 1 0 ; del 1 ('ver', 'renew:c0', 'new') 1 ; clear 1 ; del 1 ('head', 'new') 0   (file 1: renewal of c0 ask where its ideal is until-1 (refusing at - against 0))
+    sealed-after-a-loss, about a renewal answer, Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5): 1 histories, 1 distinct once shrunk
+        #132610, shrunk to 5 steps: renew 0 c0 until2 ; merge kp_other 0 1 ; del 0 ('head', 'new') 1 ; del 0 ('ver', 'renew:c0', 'new') 0 ; reseal 0   (file 0: renewal of c0 ask where its ideal is until-2 (refusing at - against 01))
+   the clock read: act:clock 191410, act:renew 348276, act:renewcert 53568, act:see 65298, the oracle of a renewal issued 127426; elsewhere: never
+== 145 s

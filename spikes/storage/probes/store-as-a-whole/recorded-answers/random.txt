@@ -1,0 +1,5 @@
+== random histories of answers, lifts, dialogs, clocks, renewals and merges, two copies: 300 histories, steps 1686, entry disagreements 0, read differences 0, 104 s
+   files at the end against every decision: WIDER 102, as decided 454, narrower 44
+   files at the end against their own ideal: not below 600; steps at which the copy changed answered below its own ideal: 0
+   merges held to both copies just before: 960; that gave an answer below both: 0
+== 104 s

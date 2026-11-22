@@ -1,0 +1,339 @@
+== A1 to A14 on files, two copies, every merge both ways
+   Each cell: what the merged file answers, the positions of the clock at which it refuses, held to
+   both copies just before the merge and to the oracle, then what the acts after the merge do in
+   that copy. C: steps where the file and the model disagreed, entry by entry and in the read.
+## A1: forever at copy 0, nothing at copy 1
+   renew 0 c0 forever
+   before the merge: copy 0 c0 forever (012) | copy 1 c0 ask (-) [entries 0, read 0]
+   KeePass Synchronize    into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass OverwriteExisting into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass KeepExisting   into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass CreateNewUuids into 1: c0 ask (-); within the copies; not below its own ideal; oracle WIDER: renewal of c0 ask where its ideal is forever (refusing at - against 012); then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+## A2: forever at copy 0, until the later moment at copy 1, apart
+   renew 0 c0 forever ; renew 1 c0 until2
+   before the merge: copy 0 c0 forever (012) | copy 1 c0 until-2 (01) [entries 0, read 0]
+   KeePass Synchronize    into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass OverwriteExisting into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass KeepExisting   into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass CreateNewUuids into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle WIDER: renewal of c0 until-2 where its ideal is forever (refusing at 01 against 012); then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+## A3: until the earlier moment at copy 0, until the later at copy 1, apart; then the clock of the copy merged into moved between the moments, and past both
+   renew 0 c0 until1 ; renew 1 c0 until2
+   before the merge: copy 0 c0 until-1 (0) | copy 1 c0 until-2 (01) [entries 0, read 0]
+   KeePass Synchronize    into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+   KeePass OverwriteExisting into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+   KeePass KeepExisting   into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+   KeePass CreateNewUuids into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 until-1 (0); within the copies; not below its own ideal; oracle WIDER: renewal of c0 until-1 where its ideal is until-2 (refusing at 0 against 01); then renewcert c0 refused, renewcert c0 issued, renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued [entries 0, read 0]
+## A4: forever at copy 0, synchronized, lifted at copy 1 which saw it
+   renew 0 c0 forever ; merge kp_sync 1 0 ; renew 1 c0 ask
+   before the merge: copy 0 c0 forever (012) | copy 1 c0 ask (-) [entries 0, read 0]
+   KeePass Synchronize    into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePass OverwriteExisting into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePass KeepExisting   into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePass CreateNewUuids into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+## A5: until the earlier moment at copy 0, synchronized; copy 0, its clock past that moment, refuses forever, which copy 1 never sees; copy 1 lifts the answer it holds
+   renew 0 c0 until1 ; merge kp_sync 1 0 ; clock 0 1 ; renew 0 c0 forever ; renew 1 c0 ask
+   before the merge: copy 0 c0 forever (012) | copy 1 c0 ask (-) [entries 0, read 0]
+   KeePass Synchronize    into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass OverwriteExisting into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass KeepExisting   into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass CreateNewUuids into 1: c0 ask (-); within the copies; not below its own ideal; oracle WIDER: renewal of c0 ask where its ideal is forever (refusing at - against 012); then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+## A6: copy 0 shows ask on the renewal dialog, a Synchronize brings forever from copy 1 while it stands, copy 0 then refuses until the later moment, naming what it showed
+   renew 1 c0 forever ; see 0 c0 ; merge kp_sync 0 1 ; renew 0 c0 until2
+   before the merge: copy 0 c0 forever (012) | copy 1 c0 forever (012) [entries 0, read 0]
+   KeePass Synchronize    into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass OverwriteExisting into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass KeepExisting   into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass CreateNewUuids into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+## A7: forever at copy 0, synchronized; at copy 0 its version and the summary entry deleted for good with deletion records, the store sealed again, the answer lifted; copy 1 from before
+   renew 0 c0 forever ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 1 ; del 0 ('head', 'new') 1 ; reseal 0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 forever (012) [entries 0, read 0]
+   KeePass Synchronize    into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePass OverwriteExisting into 1: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePass KeepExisting   into 1: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePass CreateNewUuids into 1: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+## A8: forever at copy 0, synchronized, lifted at copy 0; the lift's version and the summary entry deleted for good at copy 0 with deletion records
+   renew 0 c0 forever ; merge kp_sync 1 0 ; renew 0 c0 ask ; del 0 ('ver', 'renew:c0', 'new') 1 ; del 0 ('head', 'new') 1
+   before the merge: copy 0 c0 forever (012) lost | copy 1 c0 forever (012) [entries 0, read 0]
+   KeePass Synchronize    into 1: c0 forever (012) lost; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete); then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012) lost; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete); then renewcert c0 refused [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012) lost; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete); then renewcert c0 refused [entries 0, read 0]
+   KeePass OverwriteExisting into 1: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012) lost; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete); then renewcert c0 refused [entries 0, read 0]
+   KeePass KeepExisting   into 1: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012) lost; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete); then renewcert c0 refused [entries 0, read 0]
+   KeePass CreateNewUuids into 1: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012) lost; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete); then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012) lost; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete); then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012) lost; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete); then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012) lost; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete); then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: c0 forever (012); within the copies; not below its own ideal; oracle narrower: renewal of c0 refused; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 forever (012) lost; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete); then renewcert c0 refused [entries 0, read 0]
+## A9: c1 paired and synchronized; c0 revoked at copy 0 and refused until the later moment at copy 1; c1 refused forever at copy 0 and its certificate renewed at copy 1, which has not seen the refusal; then the renewed certificate asks for a renewal in the copy merged into
+   pair 0 ; merge kp_sync 1 0 ; revoke 0 c0 ; renew 1 c0 until2 ; renew 0 c1 forever ; renewcert 1 c1
+   before the merge: copy 0 c0 ask (-), c1 forever (012) | copy 1 c0 until-2 (01), c1 ask (-) [entries 0, read 0]
+   KeePass Synchronize    into 1: c0 until-2 (01), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: c0 until-2 (01), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+   KeePass OverwriteExisting into 1: c0 until-2 (01), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+   KeePass KeepExisting   into 1: c0 until-2 (01), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+   KeePass CreateNewUuids into 1: c0 until-2 (01), c1 ask (-); within the copies; not below its own ideal; oracle WIDER: client c0 admitted; then renewcert c1 issued, renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 ask (-), c1 forever (012); within the copies; not below its own ideal; oracle WIDER: renewal of c0 ask where its ideal is until-2 (refusing at - against 01); then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: c0 until-2 (01), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: c0 until-2 (01), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: c0 until-2 (01), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: c0 until-2 (01), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c1 refused, renewcert c0 refused [entries 0, read 0]
+## A10: c1 paired; c0 refused forever and c1 until the earlier moment at copy 0, the clock of copy 0 moved past every moment; c0 asks for a renewal, then c1, then c1 is refused forever, naming the answer whose moment has passed; synchronized
+   pair 0 ; renew 0 c0 forever ; renew 0 c1 until1 ; clock 0 2 ; renewcert 0 c0 ; renewcert 0 c1 ; renew 0 c1 forever
+   before the merge: copy 0 c0 forever (012), c1 forever (012) | copy 1 c0 ask (-) [entries 0, read 0]
+   KeePass Synchronize    into 1: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+                          into 0: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+                          into 0: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+   KeePass OverwriteExisting into 1: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+                          into 0: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+   KeePass KeepExisting   into 1: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+                          into 0: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+   KeePass CreateNewUuids into 1: c0 ask (-); within the copies; not below its own ideal; oracle WIDER: renewal of c0 ask where its ideal is forever (refusing at - against 012); then renewcert c0 issued, renewcert c1 refused [entries 0, read 0]
+                          into 0: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+                          into 0: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+                          into 0: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+                          into 0: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+                          into 0: c0 forever (012), c1 forever (012); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused, renewcert c1 refused [entries 0, read 0]
+## A11: forever at copy 0 and until the later moment at copy 1, apart; copy 0's settings dialog shows forever (see), a Synchronize brings the other refusal while it stands, and the press lifts what it showed; the refusal made apart stands
+   renew 0 c0 forever ; renew 1 c0 until2 ; see 0 c0 ; merge kp_sync 0 1 ; renew 0 c0 ask
+   before the merge: copy 0 c0 until-2 (01) | copy 1 c0 until-2 (01) [entries 0, read 0]
+   KeePass Synchronize    into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass OverwriteExisting into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass KeepExisting   into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass CreateNewUuids into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+## A12: forever at copy 0, synchronized; copy 0's settings dialog shows it (see); copy 1 lifts it and refuses until the later moment; a Synchronize brings both while the dialog stands, and the press, whose version was replaced since, comes to nothing
+   renew 0 c0 forever ; merge kp_sync 1 0 ; see 0 c0 ; renew 1 c0 ask ; renew 1 c0 until2 ; merge kp_sync 0 1 ; renew 0 c0 ask
+   before the merge: copy 0 c0 until-2 (01) | copy 1 c0 until-2 (01) [entries 0, read 0]
+   KeePass Synchronize    into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass OverwriteExisting into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass KeepExisting   into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePass CreateNewUuids into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+                          into 0: c0 until-2 (01); within the copies; not below its own ideal; oracle as decided; then renewcert c0 refused [entries 0, read 0]
+## A13: a deletion record of a refusal whose content no file holds reaches copy 0 (crdt_model's `lose`); copy 0 lifts, naming it in lost
+   lose 0 renew:c0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 ask (-) [entries 0, read 0]
+   KeePass Synchronize    into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePass OverwriteExisting into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePass KeepExisting   into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePass CreateNewUuids into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+## A14: a text out of form written by somebody holding the store key at copy 0, beside until the later moment; copy 0 lifts both
+   renew 0 c0 until2 ; unreadable 0 c0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 ask (-) [entries 0, read 0]
+   KeePass Synchronize    into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePass OverwriteIfNewer into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePass OverwriteExisting into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePass KeepExisting   into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePass CreateNewUuids into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.4.2        into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.6.6        into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.7.12       into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+   KeePassXC 2.8.0        into 1: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+                          into 0: c0 ask (-); within the copies; not below its own ideal; oracle as decided; then renewcert c0 issued [entries 0, read 0]
+== tally (sequence, the oracle's class, against both copies just before the merge, against the copy's own ideal):
+   A1 | as decided | within | own ideal: 16
+   A1 import | WIDER | within | own ideal: 1
+   A1 import | as decided | within | own ideal: 1
+   A10 | as decided | within | own ideal: 16
+   A10 import | WIDER | within | own ideal: 1
+   A10 import | as decided | within | own ideal: 1
+   A11 | as decided | within | own ideal: 16
+   A11 import | as decided | within | own ideal: 2
+   A12 | as decided | within | own ideal: 16
+   A12 import | as decided | within | own ideal: 2
+   A13 | as decided | within | own ideal: 16
+   A13 import | as decided | within | own ideal: 2
+   A14 | as decided | within | own ideal: 16
+   A14 import | as decided | within | own ideal: 2
+   A2 | as decided | within | own ideal: 16
+   A2 import | WIDER | within | own ideal: 1
+   A2 import | as decided | within | own ideal: 1
+   A3 | as decided | within | own ideal: 16
+   A3 import | WIDER | within | own ideal: 1
+   A3 import | as decided | within | own ideal: 1
+   A4 | as decided | within | own ideal: 16
+   A4 import | as decided | within | own ideal: 1
+   A4 import | narrower | within | own ideal: 1
+   A5 | as decided | within | own ideal: 16
+   A5 import | WIDER | within | own ideal: 1
+   A5 import | as decided | within | own ideal: 1
+   A6 | as decided | within | own ideal: 16
+   A6 import | as decided | within | own ideal: 2
+   A7 | as decided | within | own ideal: 9
+   A7 | narrower | within | own ideal: 7
+   A7 import | as decided | within | own ideal: 1
+   A7 import | narrower | within | own ideal: 1
+   A8 | narrower | within | own ideal: 7
+   A8 | refuses | within | own ideal: 9
+   A8 import | narrower | within | own ideal: 1
+   A8 import | refuses | within | own ideal: 1
+   A9 | as decided | within | own ideal: 16
+   A9 import | WIDER | within | own ideal: 2
+   cells beyond both copies: 0 of 252; below their own ideal: 0
+== 58 s

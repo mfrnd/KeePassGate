@@ -1,0 +1,11 @@
+== 200000 histories of the answers' acts alone over 2 copies, 8 to 16 steps, seed 34: 38 acts (four answers about c0 and c1, a dialog, the clock, a renewal, a pairing, a revocation, a save, KeePass ending before a save) and 6 merges (Synchronize, Overwrite if newer, KeePassXC), an act drawn with 0.6; each history under both oracles
+   histories; oracle a lift's lost counted as seen: accepted:unsaved-answer-lost x8334, info:renewal-at-a-clock-ahead x650, info:unsaved-lift-lost x187
+    shortest accepted:unsaved-answer-lost: renew 0 c0 forever ; quit 0
+    shortest info:renewal-at-a-clock-ahead: merge kp_other 0 1 ; pair 0 ; renew 1 c0 until1 ; clock 0 2 ; merge kp_sync 0 1 ; merge kp_sync 1 0 ; merge kp_other 0 1 ; renewcert 0 c0
+    shortest info:unsaved-lift-lost: merge kp_sync 0 1 ; merge kp_sync 1 0 ; renew 0 c0 forever ; merge kp_sync 0 1 ; renew 0 c0 ask ; renew 0 c1 ask ; renew 1 c0 forever ; quit 0
+   histories; oracle after alone: accepted:unsaved-answer-lost x8334, info:renewal-at-a-clock-ahead x650, info:unsaved-lift-lost x187
+    shortest accepted:unsaved-answer-lost: renew 0 c0 forever ; quit 0
+    shortest info:renewal-at-a-clock-ahead: merge kp_other 0 1 ; pair 0 ; renew 1 c0 until1 ; clock 0 2 ; merge kp_sync 0 1 ; merge kp_sync 1 0 ; merge kp_other 0 1 ; renewcert 0 c0
+    shortest info:unsaved-lift-lost: merge kp_sync 0 1 ; merge kp_sync 1 0 ; renew 0 c0 forever ; merge kp_sync 0 1 ; renew 0 c0 ask ; renew 0 c1 ask ; renew 1 c0 forever ; quit 0
+   the clock read: act:clock 454678, act:renew 898660, act:renewcert 140410, act:see 177018, the oracle of a renewal issued 303780; elsewhere: never
+== 290 s

@@ -1,0 +1,11 @@
+== 200000 histories of the answers' acts alone over 3 copies, 4 to 12 steps, seed 32: 57 acts (four answers about c0 and c1, a dialog, the clock, a renewal, a pairing, a revocation, a save, KeePass ending before a save) and 18 merges (Synchronize, Overwrite if newer, KeePassXC), an act drawn with 0.6; each history under both oracles
+   histories; oracle a lift's lost counted as seen: accepted:unsaved-answer-lost x3873, info:renewal-at-a-clock-ahead x131, info:unsaved-lift-lost x14
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until1 ; quit 1
+    shortest info:renewal-at-a-clock-ahead: renew 1 c0 until1 ; renew 2 c1 forever ; clock 1 1 ; renewcert 1 c0 ; clock 0 1
+    shortest info:unsaved-lift-lost: renew 0 c0 until1 ; merge kp_other 0 1 ; merge kp_other 1 0 ; quit 0 ; renew 0 c0 ask ; quit 0
+   histories; oracle after alone: accepted:unsaved-answer-lost x3873, info:renewal-at-a-clock-ahead x131, info:unsaved-lift-lost x14
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until1 ; quit 1
+    shortest info:renewal-at-a-clock-ahead: renew 1 c0 until1 ; renew 2 c1 forever ; clock 1 1 ; renewcert 1 c0 ; clock 0 1
+    shortest info:unsaved-lift-lost: renew 0 c0 until1 ; merge kp_other 0 1 ; merge kp_other 1 0 ; quit 0 ; renew 0 c0 ask ; quit 0
+   the clock read: act:clock 303756, act:renew 615250, act:renewcert 97180, act:see 112212, the oracle of a renewal issued 202326; elsewhere: never
+== 270 s

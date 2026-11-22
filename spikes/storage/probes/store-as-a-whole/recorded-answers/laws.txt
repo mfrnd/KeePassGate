@@ -1,0 +1,4 @@
+== the meet over the chain: 8 texts, 5 in form
+   584 sequences of 1 to 3 texts in every order: 0 violations (order, idempotence, the stricter, refusing wherever a text refuses)
+   refusing is monotone in the chain at every position of the clock: 0 violations of 64 pairs
+   20000 random pairs of files under a perfect transport: 21824 versions standing in a copy and named by nothing of the other; the joined file below such a version: 0

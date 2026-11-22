@@ -1,0 +1,197 @@
+== A1 to A14 in the model, two copies, every merge both ways; A2, A3 and A11 also with their two
+   writes in the other order (marked '), so that the other version is the later by its time. Each
+   cell: the merged copy's answer, the positions of the clock at which it refuses (0 before both
+   moments, 1 between, 2 after), its own ideal with a lift's lost counted as seen and with after
+   alone, every decision any gate made, both copies just before; then the acts that follow.
+   Moments: 2026-12-14T23:00:00Z, 2027-03-31T22:00:00Z; clock: 2026-11-22T12:00:00Z, 2027-01-15T12:00:00Z, 2027-06-01T12:00:00Z
+## A1: forever at copy 0, nothing at copy 1
+   renew 0 c0 forever
+   before the merge: copy 0 c0 forever (012) | copy 1 c0 ask (-)
+   Synchronize                                  into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Synchronize                                  into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   KeePassXC                                    into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Create new IDs                               into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 forever; then renewcert c0 issued
+   Create new IDs                               into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+## A2: forever at copy 0, until the later moment at copy 1, apart
+   renew 0 c0 forever ; renew 1 c0 until2
+   before the merge: copy 0 c0 forever (012) | copy 1 c0 until-2 (01)
+   Synchronize                                  into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Synchronize                                  into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   KeePassXC                                    into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Create new IDs                               into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 forever; then renewcert c0 refused
+   Create new IDs                               into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+## A2': forever at copy 0, until the later moment at copy 1, apart; the two writes in the other order
+   renew 1 c0 until2 ; renew 0 c0 forever
+   before the merge: copy 0 c0 forever (012) | copy 1 c0 until-2 (01)
+   Synchronize                                  into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Synchronize                                  into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   KeePassXC                                    into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Create new IDs                               into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 forever; then renewcert c0 refused
+   Create new IDs                               into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+## A3: until the earlier moment at copy 0, until the later at copy 1, apart; then the clock of the copy merged into moved between the moments, and past both
+   renew 0 c0 until1 ; renew 1 c0 until2
+   before the merge: copy 0 c0 until-1 (0) | copy 1 c0 until-2 (01)
+   Synchronize                                  into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued
+   Synchronize                                  into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued
+   KeePassXC                                    into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued
+   KeePassXC                                    into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued
+   Create new IDs                               into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued
+   Create new IDs                               into 0: c0 until-1 (0), store ok; ideal c0 until-1, by after alone c0 until-1, every decision c0 until-2; then renewcert c0 refused, renewcert c0 issued, renewcert c0 issued
+## A3': until the earlier moment at copy 0, until the later at copy 1, apart; then the clock of the copy merged into moved between the moments, and past both; the two writes in the other order
+   renew 1 c0 until2 ; renew 0 c0 until1
+   before the merge: copy 0 c0 until-1 (0) | copy 1 c0 until-2 (01)
+   Synchronize                                  into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued
+   Synchronize                                  into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued
+   KeePassXC                                    into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued
+   KeePassXC                                    into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued
+   Create new IDs                               into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused, renewcert c0 refused, renewcert c0 issued
+   Create new IDs                               into 0: c0 until-1 (0), store ok; ideal c0 until-1, by after alone c0 until-1, every decision c0 until-2; then renewcert c0 refused, renewcert c0 issued, renewcert c0 issued
+## A4: forever at copy 0, synchronized, lifted at copy 1 which saw it
+   renew 0 c0 forever ; merge kp_sync 1 0 ; renew 1 c0 ask
+   before the merge: copy 0 c0 forever (012) | copy 1 c0 ask (-)
+   Synchronize                                  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Synchronize                                  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+## A5: until the earlier moment at copy 0, synchronized; copy 0, its clock past that moment, refuses forever, which copy 1 never sees; copy 1 lifts the answer it holds
+   renew 0 c0 until1 ; merge kp_sync 1 0 ; clock 0 1 ; renew 0 c0 forever ; renew 1 c0 ask
+   before the merge: copy 0 c0 forever (012) | copy 1 c0 ask (-)
+   Synchronize                                  into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Synchronize                                  into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   KeePassXC                                    into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Create new IDs                               into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 forever; then renewcert c0 issued
+   Create new IDs                               into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+## A6: copy 0 shows ask on the renewal dialog, a Synchronize brings forever from copy 1 while it stands, copy 0 then refuses until the later moment, naming what it showed
+   renew 1 c0 forever ; see 0 c0 ; merge kp_sync 0 1 ; renew 0 c0 until2
+   before the merge: copy 0 c0 forever (012) | copy 1 c0 forever (012)
+   Synchronize                                  into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Synchronize                                  into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   KeePassXC                                    into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Create new IDs                               into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Create new IDs                               into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+## A7: forever at copy 0, synchronized; at copy 0 its version and the summary entry deleted for good with deletion records, the store sealed again, the answer lifted; copy 1 from before
+   renew 0 c0 forever ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 1 ; del 0 ('head', 'new') 1 ; reseal 0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 forever (012)
+   Synchronize                                  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+   Synchronize                                  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+   Overwrite if newer, existing, keep existing  into 1: c0 forever (012), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+   KeePassXC                                    into 1: c0 forever (012), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+   Create new IDs                               into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+## A8: forever at copy 0, synchronized, lifted at copy 0; the lift's version and the summary entry deleted for good at copy 0 with deletion records
+   renew 0 c0 forever ; merge kp_sync 1 0 ; renew 0 c0 ask ; del 0 ('ver', 'renew:c0', 'new') 1 ; del 0 ('head', 'new') 1
+   before the merge: copy 0 c0 forever (012) lost | copy 1 c0 forever (012)
+   Synchronize                                  into 1: c0 forever (012) lost, store incomplete; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 refused
+   Synchronize                                  into 0: c0 forever (012) lost, store incomplete; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 forever (012), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 forever (012) lost, store incomplete; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 refused
+   KeePassXC                                    into 1: c0 forever (012), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 forever (012) lost, store incomplete; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 refused
+   Create new IDs                               into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+   Create new IDs                               into 0: c0 forever (012) lost, store incomplete; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 refused
+## A9: c1 paired and synchronized; c0 revoked at copy 0 and refused until the later moment at copy 1; c1 refused forever at copy 0 and its certificate renewed at copy 1, which has not seen the refusal; then the renewed certificate asks for a renewal in the copy merged into
+   pair 0 ; merge kp_sync 1 0 ; revoke 0 c0 ; renew 1 c0 until2 ; renew 0 c1 forever ; renewcert 1 c1
+   before the merge: copy 0 c0 ask (-), c1 forever (012) | copy 1 c0 until-2 (01), c1 ask (-)
+   Synchronize                                  into 1: c0 until-2 (01), c1 forever (012), store ok; ideal c0 until-2, c1 forever, by after alone c0 until-2, c1 forever, every decision c0 until-2, c1 forever; then renewcert c1 refused, renewcert c0 refused
+   Synchronize                                  into 0: c0 until-2 (01), c1 forever (012), store ok; ideal c0 until-2, c1 forever, by after alone c0 until-2, c1 forever, every decision c0 until-2, c1 forever; then renewcert c1 refused, renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 until-2 (01), c1 forever (012), store ok; ideal c0 until-2, c1 forever, by after alone c0 until-2, c1 forever, every decision c0 until-2, c1 forever; then renewcert c1 refused, renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 until-2 (01), c1 forever (012), store ok; ideal c0 until-2, c1 forever, by after alone c0 until-2, c1 forever, every decision c0 until-2, c1 forever; then renewcert c1 refused, renewcert c0 refused
+   KeePassXC                                    into 1: c0 until-2 (01), c1 forever (012), store ok; ideal c0 until-2, c1 forever, by after alone c0 until-2, c1 forever, every decision c0 until-2, c1 forever; then renewcert c1 refused, renewcert c0 refused
+   KeePassXC                                    into 0: c0 until-2 (01), c1 forever (012), store ok; ideal c0 until-2, c1 forever, by after alone c0 until-2, c1 forever, every decision c0 until-2, c1 forever; then renewcert c1 refused, renewcert c0 refused
+   Create new IDs                               into 1: c0 until-2 (01), c1 ask (-), store ok; ideal c0 until-2, c1 ask, by after alone c0 until-2, c1 ask, every decision c0 until-2, c1 forever; then renewcert c1 issued, renewcert c0 refused
+   Create new IDs                               into 0: c0 ask (-), c1 forever (012), store ok; ideal c0 ask, c1 forever, by after alone c0 ask, c1 forever, every decision c0 until-2, c1 forever; then renewcert c1 refused, renewcert c0 refused
+## A10: c1 paired; c0 refused forever and c1 until the earlier moment at copy 0, the clock of copy 0 moved past every moment; c0 asks for a renewal, then c1, then c1 is refused forever, naming the answer whose moment has passed; synchronized
+   pair 0 ; renew 0 c0 forever ; renew 0 c1 until1 ; clock 0 2 ; renewcert 0 c0 (does not apply) ; renewcert 0 c1 ; renew 0 c1 forever
+   before the merge: copy 0 c0 forever (012), c1 forever (012) | copy 1 c0 ask (-), c1 ask (-)
+   Synchronize                                  into 1: c0 forever (012), c1 forever (012), store ok; ideal c0 forever, c1 forever, by after alone c0 forever, c1 forever, every decision c0 forever, c1 forever; then renewcert c0 refused, renewcert c1 refused
+   Synchronize                                  into 0: c0 forever (012), c1 forever (012), store ok; ideal c0 forever, c1 forever, by after alone c0 forever, c1 forever, every decision c0 forever, c1 forever; then renewcert c0 refused, renewcert c1 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 forever (012), c1 forever (012), store ok; ideal c0 forever, c1 forever, by after alone c0 forever, c1 forever, every decision c0 forever, c1 forever; then renewcert c0 refused, renewcert c1 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 forever (012), c1 forever (012), store ok; ideal c0 forever, c1 forever, by after alone c0 forever, c1 forever, every decision c0 forever, c1 forever; then renewcert c0 refused, renewcert c1 refused
+   KeePassXC                                    into 1: c0 forever (012), c1 forever (012), store ok; ideal c0 forever, c1 forever, by after alone c0 forever, c1 forever, every decision c0 forever, c1 forever; then renewcert c0 refused, renewcert c1 refused
+   KeePassXC                                    into 0: c0 forever (012), c1 forever (012), store ok; ideal c0 forever, c1 forever, by after alone c0 forever, c1 forever, every decision c0 forever, c1 forever; then renewcert c0 refused, renewcert c1 refused
+   Create new IDs                               into 1: c0 ask (-), c1 ask (-), store ok; ideal c0 ask, c1 ask, by after alone c0 ask, c1 ask, every decision c0 forever, c1 forever; then renewcert c0 issued, renewcert c1 refused
+   Create new IDs                               into 0: c0 forever (012), c1 forever (012), store ok; ideal c0 forever, c1 forever, by after alone c0 forever, c1 forever, every decision c0 forever, c1 forever; then renewcert c0 refused, renewcert c1 refused
+## A11: forever at copy 0 and until the later moment at copy 1, apart; copy 0's settings dialog shows forever (see), a Synchronize brings the other refusal while it stands, and the press lifts what it showed; the refusal made apart stands
+   renew 0 c0 forever ; renew 1 c0 until2 ; see 0 c0 ; merge kp_sync 0 1 ; renew 0 c0 ask
+   before the merge: copy 0 c0 until-2 (01) | copy 1 c0 until-2 (01)
+   Synchronize                                  into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Synchronize                                  into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   KeePassXC                                    into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Create new IDs                               into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Create new IDs                               into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+## A11': forever at copy 0 and until the later moment at copy 1, apart; copy 0's settings dialog shows forever (see), a Synchronize brings the other refusal while it stands, and the press lifts what it showed; the refusal made apart stands; the two writes in the other order
+   renew 1 c0 until2 ; renew 0 c0 forever ; see 0 c0 ; merge kp_sync 0 1 ; renew 0 c0 ask
+   before the merge: copy 0 c0 until-2 (01) | copy 1 c0 until-2 (01)
+   Synchronize                                  into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Synchronize                                  into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   KeePassXC                                    into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Create new IDs                               into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Create new IDs                               into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+## A12: forever at copy 0, synchronized; copy 0's settings dialog shows it (see); copy 1 lifts it and refuses until the later moment; a Synchronize brings both while the dialog stands, and the press, whose version was replaced since, comes to nothing
+   renew 0 c0 forever ; merge kp_sync 1 0 ; see 0 c0 ; renew 1 c0 ask ; renew 1 c0 until2 ; merge kp_sync 0 1 ; renew 0 c0 ask (does not apply)
+   before the merge: copy 0 c0 until-2 (01) | copy 1 c0 until-2 (01)
+   Synchronize                                  into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Synchronize                                  into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   KeePassXC                                    into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Create new IDs                               into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Create new IDs                               into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+## A13: a deletion record of a refusal whose content no file holds reaches copy 0 (crdt_model's `lose`); copy 0 lifts, naming it in lost
+   lose 0 renew:c0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 ask (-)
+   Synchronize                                  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Synchronize                                  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+## A14: a text out of form written by somebody holding the store key at copy 0, beside until the later moment; copy 0 lifts both
+   renew 0 c0 until2 ; unreadable 0 c0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 ask (-)
+   Synchronize                                  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Synchronize                                  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+== flagged cells: below its ideal by after alone 5
+== cells of A2, A3 and A11 whose answer differs between the two orders of the writes: 0 of 24
+== merged copies read again with every modification time and every deletion record's time set to 0: 136, whose answer or store differs 0
+   the clock read: act:clock 42, act:renew 48, act:renewcert 109, act:see 4; elsewhere: never

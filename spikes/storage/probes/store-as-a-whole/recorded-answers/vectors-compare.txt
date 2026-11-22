@@ -1,0 +1,73 @@
+﻿== StoreRecordVectors.json
+   members at the top: about, key, profileTags, records, renewalTexts, texts
+   key: the same
+   profileTags: the same
+   records: 36 held today, 47 printed; added 11, removed 0, changed 0
+      added: head of height 1, restating answers
+      added: version, a lift naming the refusal it replaces
+      added: version, a lift naming two refusals made apart
+      added: version, a lift replacing a refusal and settling a lost answer
+      added: version, a lift settling a lost answer
+      added: version, a refusal naming the lift it replaces and what the lift replaced
+      added: version, an answer refusing forever whose content no store holds, lost
+      added: version, an answer refusing renewals forever
+      added: version, an answer refusing renewals until a moment
+      added: version, an answer refusing renewals until the later moment, made apart
+      added: version, an answer whose text is out of form
+   renewalTexts: added, 36 entries
+   texts: the same
+   about: the text held today, and 1713 characters added after it
+   lines: 317 added; 1 held today replaced or removed: "about": "Records in the forms STORE.md 614, 615 and 648 fix
+== StoreMeaningVectors.json
+   members at the top: about, key, meanings
+   key: the same
+   meanings: 84 held today, 112 printed; added 28, removed 0, changed 0
+      added: renewals: a deletion record of a version that a standing version names
+      added: renewals: a deletion record of an answer of a client key a revocation makes known
+      added: renewals: a deletion record of an answer of a client key the file does not know
+      added: renewals: a lift naming one of two refusals made apart
+      added: renewals: a lift naming the refusal it replaces, both present
+      added: renewals: a lift whose refusal it replaced is deleted
+      added: renewals: a lost answer
+      added: renewals: a lost answer settled by a lift
+      added: renewals: a lost answer settled by a lift, beside a refusal the lift did not see
+      added: renewals: a text out of form
+      added: renewals: a text out of form, beside until a moment
+      added: renewals: a text out of form, named by a lift
+      added: renewals: a version beside its own deletion record, named in after by a lift
+      added: renewals: a version beside its own deletion record, named in lost by a lift
+      added: renewals: a version carried only by an item
+      added: renewals: a version carried only by an item, beside its deletion record
+      added: renewals: a version present beside its own deletion record
+      added: renewals: an answer of a client key that only the answer makes known
+      added: renewals: an answer under an object that holds no client key
+      added: renewals: an answer under an object that holds no client key, beside the client's own
+      added: renewals: forever and a lift made apart, which did not see it
+      added: renewals: forever and until the later moment, made apart
+      added: renewals: no answer
+      added: renewals: refused forever
+      added: renewals: refused until a moment
+      added: renewals: refused until the later moment
+      added: renewals: two moments, made apart
+      added: renewals: until a moment and a lift made apart, which did not see it
+   about: the text held today, and 1884 characters added after it
+   lines: 2421 added; 1 held today replaced or removed: "about": "What probe/read.py of spikes/storage/probes/store-
+== StoreWriteVectors.json
+   members at the top: about, sequences
+   sequences: 49 held today, 63 printed; added 14, removed 0, changed 0
+      added: answers, A10: c1 paired; c0 refused forever and c1 until the earlier moment at copy 0, the clock of copy 0 moved past every moment; c0 asks for a renewal, then c1, then c1 is refused forever, naming the answer whose moment has passed; synchronized
+      added: answers, A11: forever at copy 0 and until the later moment at copy 1, apart; copy 0's settings dialog shows forever (see), a Synchronize brings the other refusal while it stands, and the press lifts what it showed; the refusal made apart stands
+      added: answers, A12: forever at copy 0, synchronized; copy 0's settings dialog shows it (see); copy 1 lifts it and refuses until the later moment; a Synchronize brings both while the dialog stands, and the press, whose version was replaced since, comes to nothing
+      added: answers, A13: a deletion record of a refusal whose content no file holds reaches copy 0 (crdt_model's `lose`); copy 0 lifts, naming it in lost
+      added: answers, A14: a text out of form written by somebody holding the store key at copy 0, beside until the later moment; copy 0 lifts both
+      added: answers, A1: forever at copy 0, nothing at copy 1
+      added: answers, A2: forever at copy 0, until the later moment at copy 1, apart
+      added: answers, A3: until the earlier moment at copy 0, until the later at copy 1, apart; then the clock of the copy merged into moved between the moments, and past both
+      added: answers, A4: forever at copy 0, synchronized, lifted at copy 1 which saw it
+      added: answers, A5: until the earlier moment at copy 0, synchronized; copy 0, its clock past that moment, refuses forever, which copy 1 never sees; copy 1 lifts the answer it holds
+      added: answers, A6: copy 0 shows ask on the renewal dialog, a Synchronize brings forever from copy 1 while it stands, copy 0 then refuses until the later moment, naming what it showed
+      added: answers, A7: forever at copy 0, synchronized; at copy 0 its version and the summary entry deleted for good with deletion records, the store sealed again, the answer lifted; copy 1 from before
+      added: answers, A8: forever at copy 0, synchronized, lifted at copy 0; the lift's version and the summary entry deleted for good at copy 0 with deletion records
+      added: answers, A9: c1 paired and synchronized; c0 revoked at copy 0 and refused until the later moment at copy 1; c1 refused forever at copy 0 and its certificate renewed at copy 1, which has not seen the refusal; then the renewed certificate asks for a renewal in the copy merged into
+   about: the text held today, and 2009 characters added after it
+   lines: 35143 added; 1 held today replaced or removed: "about": "The file after each act of fixed sequences that th

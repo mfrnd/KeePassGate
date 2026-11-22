@@ -1,0 +1,3 @@
+﻿StoreRecordVectors.json with --lost: the same bytes as recorded-lost\vectors but the line ends
+StoreMeaningVectors.json with --lost: the same bytes as recorded-lost\vectors but the line ends
+StoreWriteVectors.json with --lost: the same bytes as recorded-lost\vectors but the line ends

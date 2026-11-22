@@ -1,0 +1,161 @@
+== Lost versions: an answer at copy 0, synchronized into copy 1, lost at copy 0 in each way; the read; Seal
+   again where the store stops; a lift where the answer refuses; then each merge both ways with copy
+   1, which holds the answer from before. Each step that does not apply is named so.
+## until: the version deleted for good with a deletion record, the summary entry kept
+   step 3 reseal 0 (does not apply)
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Synchronize into 0         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 1  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 0  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+## until: the version deleted for good with a deletion record, the summary entry deleted with a deletion record
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Synchronize into 0         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 1  c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle narrower: renewal of c0 refused [entries 0, read 0]
+   Overwrite if newer into 0  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle narrower: renewal of c0 refused [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+## until: the version deleted for good with a deletion record, the summary entry deleted with no deletion record
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle narrower: renewal of c0 refused [entries 0, read 0]
+   Synchronize into 0         c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle narrower: renewal of c0 refused [entries 0, read 0]
+   Overwrite if newer into 1  c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle narrower: renewal of c0 refused [entries 0, read 0]
+   Overwrite if newer into 0  c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle narrower: renewal of c0 refused [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle narrower: renewal of c0 refused [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle narrower: renewal of c0 refused [entries 0, read 0]
+## until: the version deleted for good with no deletion record, the summary entry kept
+   step 3 reseal 0 (does not apply)
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Synchronize into 0         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 1  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 0  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+## until: the version deleted for good with no deletion record, the summary entry deleted with a deletion record
+   step 6 renew 0 c0 ask (does not apply)
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 until-2 (01), store incomplete; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete) [entries 0, read 0]
+   Synchronize into 0         c0 until-2 (01), store incomplete; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete) [entries 0, read 0]
+   Overwrite if newer into 1  c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 0  c0 until-2 (01), store incomplete; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete) [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+## until: the version deleted for good with no deletion record, the summary entry deleted with no deletion record
+   step 6 renew 0 c0 ask (does not apply)
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Synchronize into 0         c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 1  c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 0  c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 until-2 (01), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+## forever: the version deleted for good with a deletion record, the summary entry kept
+   step 3 reseal 0 (does not apply)
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Synchronize into 0         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 1  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 0  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+## forever: the version deleted for good with a deletion record, the summary entry deleted with a deletion record
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Synchronize into 0         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 1  c0 forever (012), store ok; within the copies; not below its own ideal; oracle narrower: renewal of c0 refused [entries 0, read 0]
+   Overwrite if newer into 0  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 forever (012), store ok; within the copies; not below its own ideal; oracle narrower: renewal of c0 refused [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+## forever: the version deleted for good with a deletion record, the summary entry deleted with no deletion record
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 forever (012), store ok; within the copies; not below its own ideal; oracle narrower: renewal of c0 refused [entries 0, read 0]
+   Synchronize into 0         c0 forever (012), store ok; within the copies; not below its own ideal; oracle narrower: renewal of c0 refused [entries 0, read 0]
+   Overwrite if newer into 1  c0 forever (012), store ok; within the copies; not below its own ideal; oracle narrower: renewal of c0 refused [entries 0, read 0]
+   Overwrite if newer into 0  c0 forever (012), store ok; within the copies; not below its own ideal; oracle narrower: renewal of c0 refused [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 forever (012), store ok; within the copies; not below its own ideal; oracle narrower: renewal of c0 refused [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 forever (012), store ok; within the copies; not below its own ideal; oracle narrower: renewal of c0 refused [entries 0, read 0]
+## forever: the version deleted for good with no deletion record, the summary entry kept
+   step 3 reseal 0 (does not apply)
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Synchronize into 0         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 1  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 0  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+## forever: the version deleted for good with no deletion record, the summary entry deleted with a deletion record
+   step 6 renew 0 c0 ask (does not apply)
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 forever (012), store incomplete; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete) [entries 0, read 0]
+   Synchronize into 0         c0 forever (012), store incomplete; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete) [entries 0, read 0]
+   Overwrite if newer into 1  c0 forever (012), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 0  c0 forever (012), store incomplete; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete) [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 forever (012), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 forever (012), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+## forever: the version deleted for good with no deletion record, the summary entry deleted with no deletion record
+   step 6 renew 0 c0 ask (does not apply)
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 forever (012), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Synchronize into 0         c0 forever (012), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 1  c0 forever (012), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 0  c0 forever (012), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 forever (012), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 forever (012), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+## lift: the version deleted for good with a deletion record, the summary entry kept
+   step 4 reseal 0 (does not apply)
+   step 6 renew 0 c0 ask (does not apply)
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Synchronize into 0         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 1  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 0  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+## lift: the version deleted for good with a deletion record, the summary entry deleted with a deletion record
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Synchronize into 0         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 1  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 0  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+## lift: the version deleted for good with a deletion record, the summary entry deleted with no deletion record
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Synchronize into 0         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 1  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 0  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+## lift: the version deleted for good with no deletion record, the summary entry kept
+   step 4 reseal 0 (does not apply)
+   step 6 renew 0 c0 ask (does not apply)
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Synchronize into 0         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 1  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 0  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+## lift: the version deleted for good with no deletion record, the summary entry deleted with a deletion record
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 ask (-), store incomplete; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete) [entries 0, read 0]
+   Synchronize into 0         c0 ask (-), store incomplete; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete) [entries 0, read 0]
+   Overwrite if newer into 1  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 0  c0 ask (-), store incomplete; within the copies; not below its own ideal; oracle refuses: the whole database (store incomplete) [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+## lift: the version deleted for good with no deletion record, the summary entry deleted with no deletion record
+   copy 0 after the losses and what applied of Seal again and the lift: c0 ask (-), store ok [entries 0, read 0]
+   Synchronize into 1         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Synchronize into 0         c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 1  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   Overwrite if newer into 0  c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 1     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+   KeePassXC 2.8.0 into 0     c0 ask (-), store ok; within the copies; not below its own ideal; oracle as decided [entries 0, read 0]
+== tally (answer, the oracle's class): forever as decided 25, forever narrower 8, forever refuses 3, lift as decided 33, lift refuses 3, until as decided 25, until narrower 8, until refuses 3
+== 24 s

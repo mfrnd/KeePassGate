@@ -1,0 +1,207 @@
+== Lost versions in the model, as answers.py plays them on files: an answer at copy 0 (until the later
+   moment, forever, a lift of forever), synchronized into copy 1, its newest version deleted at copy 0
+   with a deletion record (1) or with none (0), the newest summary entry kept (-), deleted with a
+   deletion record (1) or with none (0); then Seal again where the store stops, the dialog, and a lift
+   where the answer refuses, each where it applies; then every merge both ways with copy 1, from
+   before. Each cell as in the part hand.
+## until, version 1, summary entry -: until; the version deleted for good with a deletion record; the summary entry kept
+   renew 0 c0 until2 ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 1 ; reseal 0 (does not apply) ; see 0 c0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 until-2 (01)
+   Synchronize                                  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Synchronize                                  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 ask; then renewcert c0 refused
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+## until, version 1, summary entry 1: until; the version deleted for good with a deletion record; the summary entry deleted with a deletion record
+   renew 0 c0 until2 ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 1 ; del 0 ('head', 'new') 1 ; reseal 0 ; see 0 c0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 until-2 (01)
+   Synchronize                                  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 until-2, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+   Synchronize                                  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 until-2, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+   Overwrite if newer, existing, keep existing  into 1: c0 until-2 (01), store ok; ideal c0 ask, by after alone c0 until-2, every decision c0 ask; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 until-2, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+   KeePassXC                                    into 1: c0 until-2 (01), store ok; ideal c0 ask, by after alone c0 until-2, every decision c0 ask; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 until-2, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+   Create new IDs                               into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 ask; then renewcert c0 refused
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 until-2, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+## until, version 1, summary entry 0: until; the version deleted for good with a deletion record; the summary entry deleted with no deletion record
+   renew 0 c0 until2 ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 1 ; del 0 ('head', 'new') 0 ; reseal 0 ; see 0 c0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 until-2 (01)
+   Synchronize                                  into 1: c0 until-2 (01), store ok; ideal c0 ask, by after alone c0 until-2, every decision c0 ask; then renewcert c0 refused
+   Synchronize                                  into 0: c0 until-2 (01), store ok; ideal c0 ask, by after alone c0 until-2, every decision c0 ask; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 until-2 (01), store ok; ideal c0 ask, by after alone c0 until-2, every decision c0 ask; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 until-2 (01), store ok; ideal c0 ask, by after alone c0 until-2, every decision c0 ask; then renewcert c0 refused
+   KeePassXC                                    into 1: c0 until-2 (01), store ok; ideal c0 ask, by after alone c0 until-2, every decision c0 ask; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 until-2 (01), store ok; ideal c0 ask, by after alone c0 until-2, every decision c0 ask; then renewcert c0 refused
+   Create new IDs                               into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 ask; then renewcert c0 refused
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 until-2, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+## until, version 0, summary entry -: until; the version deleted for good with no deletion record; the summary entry kept
+   renew 0 c0 until2 ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 0 ; reseal 0 (does not apply) ; see 0 c0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 until-2 (01)
+   Synchronize                                  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Synchronize                                  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 ask; then renewcert c0 refused
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+## until, version 0, summary entry 1: until; the version deleted for good with no deletion record; the summary entry deleted with a deletion record
+   renew 0 c0 until2 ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 0 ; del 0 ('head', 'new') 1 ; reseal 0 ; see 0 c0 ; renew 0 c0 ask (does not apply)
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 until-2 (01)
+   Synchronize                                  into 1: c0 until-2 (01), store incomplete; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Synchronize                                  into 0: c0 until-2 (01), store incomplete; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 until-2 (01), store incomplete; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   KeePassXC                                    into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Create new IDs                               into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 issued; BELOW ITS IDEAL for c0
+## until, version 0, summary entry 0: until; the version deleted for good with no deletion record; the summary entry deleted with no deletion record
+   renew 0 c0 until2 ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 0 ; del 0 ('head', 'new') 0 ; reseal 0 ; see 0 c0 ; renew 0 c0 ask (does not apply)
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 until-2 (01)
+   Synchronize                                  into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Synchronize                                  into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   KeePassXC                                    into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Create new IDs                               into 1: c0 until-2 (01), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 refused
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 until-2, by after alone c0 until-2, every decision c0 until-2; then renewcert c0 issued; BELOW ITS IDEAL for c0
+## forever, version 1, summary entry -: forever; the version deleted for good with a deletion record; the summary entry kept
+   renew 0 c0 forever ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 1 ; reseal 0 (does not apply) ; see 0 c0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 forever (012)
+   Synchronize                                  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Synchronize                                  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+## forever, version 1, summary entry 1: forever; the version deleted for good with a deletion record; the summary entry deleted with a deletion record
+   renew 0 c0 forever ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 1 ; del 0 ('head', 'new') 1 ; reseal 0 ; see 0 c0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 forever (012)
+   Synchronize                                  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+   Synchronize                                  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+   Overwrite if newer, existing, keep existing  into 1: c0 forever (012), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+   KeePassXC                                    into 1: c0 forever (012), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+   Create new IDs                               into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+## forever, version 1, summary entry 0: forever; the version deleted for good with a deletion record; the summary entry deleted with no deletion record
+   renew 0 c0 forever ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 1 ; del 0 ('head', 'new') 0 ; reseal 0 ; see 0 c0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 forever (012)
+   Synchronize                                  into 1: c0 forever (012), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+   Synchronize                                  into 0: c0 forever (012), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 forever (012), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 forever (012), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+   KeePassXC                                    into 1: c0 forever (012), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 forever (012), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+   Create new IDs                               into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 forever, every decision c0 ask; then renewcert c0 issued; below its ideal by after alone for c0
+## forever, version 0, summary entry -: forever; the version deleted for good with no deletion record; the summary entry kept
+   renew 0 c0 forever ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 0 ; reseal 0 (does not apply) ; see 0 c0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 forever (012)
+   Synchronize                                  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Synchronize                                  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 ask; then renewcert c0 refused
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+## forever, version 0, summary entry 1: forever; the version deleted for good with no deletion record; the summary entry deleted with a deletion record
+   renew 0 c0 forever ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 0 ; del 0 ('head', 'new') 1 ; reseal 0 ; see 0 c0 ; renew 0 c0 ask (does not apply)
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 forever (012)
+   Synchronize                                  into 1: c0 forever (012), store incomplete; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Synchronize                                  into 0: c0 forever (012), store incomplete; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 forever (012), store incomplete; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   KeePassXC                                    into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Create new IDs                               into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 issued; BELOW ITS IDEAL for c0
+## forever, version 0, summary entry 0: forever; the version deleted for good with no deletion record; the summary entry deleted with no deletion record
+   renew 0 c0 forever ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 0 ; del 0 ('head', 'new') 0 ; reseal 0 ; see 0 c0 ; renew 0 c0 ask (does not apply)
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 forever (012)
+   Synchronize                                  into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Synchronize                                  into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   KeePassXC                                    into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   KeePassXC                                    into 0: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Create new IDs                               into 1: c0 forever (012), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 refused
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 forever, by after alone c0 forever, every decision c0 forever; then renewcert c0 issued; BELOW ITS IDEAL for c0
+## lift, version 1, summary entry -: lift; the version deleted for good with a deletion record; the summary entry kept
+   renew 0 c0 forever ; renew 0 c0 ask ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 1 ; reseal 0 (does not apply) ; see 0 c0 ; renew 0 c0 ask (does not apply)
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 ask (-)
+   Synchronize                                  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Synchronize                                  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+## lift, version 1, summary entry 1: lift; the version deleted for good with a deletion record; the summary entry deleted with a deletion record
+   renew 0 c0 forever ; renew 0 c0 ask ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 1 ; del 0 ('head', 'new') 1 ; reseal 0 ; see 0 c0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 ask (-)
+   Synchronize                                  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Synchronize                                  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+## lift, version 1, summary entry 0: lift; the version deleted for good with a deletion record; the summary entry deleted with no deletion record
+   renew 0 c0 forever ; renew 0 c0 ask ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 1 ; del 0 ('head', 'new') 0 ; reseal 0 ; see 0 c0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 ask (-)
+   Synchronize                                  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Synchronize                                  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+## lift, version 0, summary entry -: lift; the version deleted for good with no deletion record; the summary entry kept
+   renew 0 c0 forever ; renew 0 c0 ask ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 0 ; reseal 0 (does not apply) ; see 0 c0 ; renew 0 c0 ask (does not apply)
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 ask (-)
+   Synchronize                                  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Synchronize                                  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+## lift, version 0, summary entry 1: lift; the version deleted for good with no deletion record; the summary entry deleted with a deletion record
+   renew 0 c0 forever ; renew 0 c0 ask ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 0 ; del 0 ('head', 'new') 1 ; reseal 0 ; see 0 c0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 ask (-)
+   Synchronize                                  into 1: c0 ask (-), store incomplete; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 refused
+   Synchronize                                  into 0: c0 ask (-), store incomplete; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 refused
+   Overwrite if newer, existing, keep existing  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 0: c0 ask (-), store incomplete; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 refused
+   KeePassXC                                    into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+## lift, version 0, summary entry 0: lift; the version deleted for good with no deletion record; the summary entry deleted with no deletion record
+   renew 0 c0 forever ; renew 0 c0 ask ; merge kp_sync 1 0 ; del 0 ('ver', 'renew:c0', 'new') 0 ; del 0 ('head', 'new') 0 ; reseal 0 ; see 0 c0 ; renew 0 c0 ask
+   before the merge: copy 0 c0 ask (-) | copy 1 c0 ask (-)
+   Synchronize                                  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Synchronize                                  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Overwrite if newer, existing, keep existing  into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   KeePassXC                                    into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 1: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+   Create new IDs                               into 0: c0 ask (-), store ok; ideal c0 ask, by after alone c0 ask, every decision c0 ask; then renewcert c0 issued
+== flagged cells: BELOW ITS IDEAL 4, below its ideal by after alone 12
+== merged copies read again with every modification time and every deletion record's time set to 0: 144, whose answer or store differs 0
+   the clock read: act:renew 30, act:renewcert 112, act:see 18; elsewhere: never
