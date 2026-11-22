@@ -21,7 +21,7 @@ from cryptography.x509.oid import ExtendedKeyUsageOID
 
 from pykeepassgate import api
 from pykeepassgate.errors import GateBusy, RouteRefused
-from pykeepassgate.testing import Authority, FakeGate, held, written
+from pykeepassgate.testing import Authority, FakeGate, Issued, held, written
 from timeouts import PEER_TIMEOUT
 
 
@@ -52,7 +52,6 @@ def test_what_the_documentation_shows_is_enough_to_point_a_client_at_it(tmp_path
     (tmp_path / "gate.key").write_bytes(bytes(32))
 
     with FakeGate(host, authority.pem) as gate:
-        gate.quiet = PEER_TIMEOUT
         gate.handler = lambda path, body, client: (503, '{"error":"busy"}')
         credentials = api.Credentials(tmp_path, gate.port, "CN=agent-invented", "", (), "", "")
         client = api.GateClient(credentials, connection_timeout=PEER_TIMEOUT)
@@ -558,6 +557,24 @@ def test_a_peer_that_goes_quiet_is_let_go(gate: FakeGate) -> None:
             ended = b""
 
     assert ended == b""
+
+
+def test_a_quiet_peer_is_waited_on_through_a_stall_and_let_go_before_a_client_gives_up(
+    host: Issued, authority: Authority
+) -> None:
+    # Read off a gate nothing has set, as a program's tests meet it and as the tests here serve
+    # it. Its threads share the test's process with the client they answer, so a stall of the
+    # process stalls both ends at once, and a wait shorter than the stall ends a handshake the
+    # client is still waiting on. So it is no shorter than `PEER_TIMEOUT`, the tests' own figure
+    # for a wait that outlasts such a stall and what their clients are given: the stand-in's end
+    # is then no weaker than theirs. And it is under the client's own default wait on the gate,
+    # so a client left waiting on a thread that gave up learns of it from the closed connection
+    # rather than from its own timeout.
+    with FakeGate(host, authority.pem) as fresh:
+        waited = fresh.quiet
+
+    assert waited >= PEER_TIMEOUT
+    assert waited < api.DEFAULT_CONNECTION_TIMEOUT
 
 
 def test_a_client_offering_only_tls_12_is_refused(gate: FakeGate, authority: Authority) -> None:

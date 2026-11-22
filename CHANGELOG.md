@@ -392,6 +392,13 @@ none, since it releases both.
   menu lifted the answer standing on another certificate, and the Profiles column showed another
   row's profiles. The headings now do nothing when pressed. 0.2.0 and 0.1.0 have the fault: there
   the page acts on the rows it shows only while no heading was pressed since the dialog opened.
+- **The stand-in gate waits a minute on a peer that sends nothing**, `FakeGate.quiet`, before the
+  thread answering it ends and closes the connection, where it waited ten seconds. A test process
+  kept off the processor for longer than that, as a loaded machine can keep it, made the stand-in
+  give up on a handshake the client was still waiting on, and the test failed with nothing wrong
+  in the program under test. A thread answering a peer that really went quiet ends after a minute,
+  and a test that relied on the ten seconds, to see what a program does when the gate goes quiet,
+  sets `quiet` itself.
 
 ## 0.2.0, 2026-11-17
 

@@ -807,7 +807,6 @@ class TestPinning:
         )
 
         with FakeGate(host, lasting.pem) as gate:
-            gate.quiet = PEER_TIMEOUT
             gate.handler = answers(200, {"ok": True})
             context = transport.paired_context(lasting.pem, client.pem)
 

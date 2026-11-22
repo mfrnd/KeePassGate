@@ -810,8 +810,10 @@ plainly, and the tier takes a few minutes either way.
 plugin builds and its tiers run, prints its output once they are done, and fails if either half did.
 A machine that busy can keep the client's tests off the processor for seconds at a time, so every
 wait they make on a peer in their own process, the stand-in gate or a peer a test writes for itself,
-is `PEER_TIMEOUT` from `tests/pykeepassgate/timeouts.py`, at both ends of the connection, and a test
-about a timeout gives its own, short and beside what it asserts.
+is `PEER_TIMEOUT` from `tests/pykeepassgate/timeouts.py`, at both ends of a connection to a peer a
+test writes, and a test about a timeout gives its own, short and beside what it asserts. The
+stand-in's own end waits for the stand-in's default, which is what a program's tests meet, and
+`test_testing.py` holds that default no shorter than `PEER_TIMEOUT`.
 
 ## What the coverage floor holds
 
