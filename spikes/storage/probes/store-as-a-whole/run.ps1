@@ -120,6 +120,27 @@
       afters, merges4, random4, levels, random3, offlist, tags
                            owed.py: items 1 to 5 of measured-rules-owed-forms.md on real files
 
+    With -Answers (ADDED, renewal answers), the standing answers to a renewal of STORE.md 618 and
+    S7: the store as decided with crdt_model.ANSWERS on, the reading of lost versions of
+    measured-lost-settled, every certificate and client key in hexadecimal on files. Output in
+    `out\answers\`, compared with `recorded-answers\`; databases in `work\an-*`:
+
+      cells, losses, random
+                           answers.py: A1 to A14 and the lost versions on real files, every merge
+                           both ways, and 300 random histories of answers and merges on files
+      model-hand, model-losses
+                           answer_runs.py hand and losses: the same sequences in the model, under
+                           both oracles, with the two orders of the writes made apart
+      laws, exhaustive-4, exhaustive-5
+                           answer_runs.py: the meet over the chain; every sequence of 4 steps of the
+                           answers' alphabet with the deletions by hand, and of 5 without
+      answers-two, answers-three, answers-hand, answers-long
+                           answer_runs.py answers: 200,000 random histories of the answers' acts each
+      search-2, search-3   answer_runs.py search: the design's twelve configurations over 2 and 3
+                           files, 20,000 histories each, its seeds, the answers' acts in the alphabet
+      bridge-two, bridge-hand
+                           answer_runs.py bridge: every file of 2,000 histories read by read.py
+
 .PARAMETER Parts
     Which parts to run; every part by default.
 
@@ -149,9 +170,10 @@ param([string[]] $Parts = @(), [int] $Parallel = 6, [switch] $Decided, [switch] 
     [ValidateSet('', 'nothing', 'profile', 'verb', 'cap', 'cap-items')] [string] $Reading = '',
     [switch] $Rows,     # ADDED (rules per profile)
     [switch] $Owed,     # ADDED (owed forms)
-    [switch] $S34)      # ADDED (S34 forms)
-if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent, ($Reading -ne ''), $Rows.IsPresent, $Owed.IsPresent, $S34.IsPresent | Where-Object { $_ }).Count -gt 1) {
-    throw 'One of -Decided, -Rewrite, -Copies, -Reading, -Rows, -Owed, -S34.'     # ADDED (two readings); -Reading (copies extended); -Rows (rules per profile); -Owed (owed forms); -S34 (S34 forms)
+    [switch] $S34,      # ADDED (S34 forms)
+    [switch] $Answers)  # ADDED (renewal answers)
+if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent, ($Reading -ne ''), $Rows.IsPresent, $Owed.IsPresent, $S34.IsPresent, $Answers.IsPresent | Where-Object { $_ }).Count -gt 1) {
+    throw 'One of -Decided, -Rewrite, -Copies, -Reading, -Rows, -Owed, -S34, -Answers.'     # ADDED (two readings); -Reading (copies extended); -Rows (rules per profile); -Owed (owed forms); -S34 (S34 forms); -Answers (renewal answers)
 }
 
 $ErrorActionPreference = 'Stop'
@@ -311,6 +333,29 @@ if ($S34) {
         }
     }
 }
+# ADDED (renewal answers): the standing answers to a renewal, the longest parts first; each model part
+# draws on four processes of its own
+if ($Answers) {
+    $config = 'answers'
+    $all = [ordered]@{
+        'exhaustive-5'  = @("$model\answer_runs.py", 'exhaustive', '5', 'none', '4')
+        'cells'         = @("$probe\answers.py", 'cells')
+        'random'        = @("$probe\answers.py", 'random', '300', '51')
+        'losses'        = @("$probe\answers.py", 'losses')
+        'exhaustive-4'  = @("$model\answer_runs.py", 'exhaustive', '4', 'faults', '4')
+        'search-3'      = @("$model\answer_runs.py", 'search', '3', '20000', '4')
+        'search-2'      = @("$model\answer_runs.py", 'search', '2', '20000', '4')
+        'answers-long'  = @("$model\answer_runs.py", 'answers', 'two', '200000', '34', '8', '16', '4')
+        'answers-three' = @("$model\answer_runs.py", 'answers', 'three', '200000', '32', '4', '12', '4')
+        'answers-hand'  = @("$model\answer_runs.py", 'answers', 'hand', '200000', '33', '4', '12', '4')
+        'answers-two'   = @("$model\answer_runs.py", 'answers', 'two', '200000', '31', '4', '12', '4')
+        'bridge-two'    = @("$model\answer_runs.py", 'bridge', 'two', '2000', '41', '4')
+        'bridge-hand'   = @("$model\answer_runs.py", 'bridge', 'hand', '2000', '42', '4')
+        'model-hand'    = @("$model\answer_runs.py", 'hand')
+        'model-losses'  = @("$model\answer_runs.py", 'losses')
+        'laws'          = @("$model\answer_runs.py", 'laws', '20000', '7')
+    }
+}
 # Through -File a list arrives as one string, so commas are split here.
 $Parts = @($Parts | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 if ($Parts.Count -eq 0) { $Parts = @($all.Keys) }
@@ -324,7 +369,7 @@ if ($Parts.Count -eq $all.Count) {
     if ($config) {
         # ADDED (two readings): the configuration's own output and databases only
         if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
-        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } elseif ($Rows) { 'pe-*', 'po-*' } elseif ($Owed) { 'qo-*' } elseif ($S34) { 'qss-*', 'qsa-*' } else {     # ADDED (owed forms): qo-*; (S34 forms): qss-* and qsa-*
+        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } elseif ($Rows) { 'pe-*', 'po-*' } elseif ($Owed) { 'qo-*' } elseif ($S34) { 'qss-*', 'qsa-*' } elseif ($Answers) { 'an-*' } else {     # ADDED (owed forms): qo-*; (S34 forms): qss-* and qsa-*; (renewal answers): an-*
             $letter = if ($Reading -eq 'cap-items') { 'i' } else { $Reading[0] }     # ADDED (copies extended)
             "x${letter}h-*", "x${letter}e-*"
         }
