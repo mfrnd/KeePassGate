@@ -169,6 +169,15 @@ M.DEP = S.DEP = 'seen'          # ADDED (form by what arrived): bridge.dep('seen
 # is where no lost version is settled; `--lost` is `--judge lost` with the records, the stores and
 # the sequences of the refinement added (`measured-lost-settled`).
 ARGS = sys.argv[1:]
+# ADDED (renewal answers): `--answers` is `--lost` with the standing answers to a renewal added: the
+# records, the stores and the sequences of measured-renewal-answers, each made with crdt_model.ANSWERS
+# and read.ANSWERS on while it is made, and off for everything else, so that every other vector is as
+# `--lost` prints it.
+ANSWERING = '--answers' in ARGS
+if ANSWERING:
+    ARGS.remove('--answers')
+    if '--lost' not in ARGS:
+        ARGS.append('--lost')
 REFINED = '--lost' in ARGS
 if REFINED:
     ARGS.remove('--lost')
@@ -661,6 +670,96 @@ if REFINED:
         'content, which is what makes them lost. The summary entry that restates versions that '
         'settle lost versions holds an item for each, the item holding lost as the version does, '
         'and no lost where the version holds none.')
+
+# ADDED (renewal answers): the standing answers to a renewal, versions of the object renew: and the
+# client key, in the three texts, with the moments and the clock of crdt_model; and the texts the
+# probe's reader takes and refuses, under a member of their own so that the texts of rules stay as
+# they are.
+RENEW = 'renew:' + K1
+MOMENT1, MOMENT2 = M.MOMENTS
+ANSWER_NONCES = [invented('nonce/answer/%d' % k, 16).hex() for k in range(8)]
+
+
+def answer_record(text, after=(), nonce=NONCE, lost=(), obj=RENEW):
+    """ADDED (renewal answers): a version of an answer as `record` composes it: its subject the object,
+    its number 0."""
+    d = {'after': ' '.join(sorted(after)), 'doc': text, 'nonce': nonce, 'object': obj}
+    if lost:
+        d['lost'] = ' '.join(sorted(lost))
+    made = record('version', d)
+    assert made['id'] == S.ident(ONE, 'version', obj, 0, made['check'])
+    return made
+
+
+def answer_reading(text):
+    """ADDED (renewal answers): what read.py's reader makes of a text: the answer and its moment, or
+    None where the text is out of form."""
+    a = R.answer_text(text)
+    if a is None:
+        return None
+    return {'answer': a[0], 'moment': a[1]} if a[0] == 'until' else {'answer': a[0]}
+
+
+ANSWER_TEXTS = [
+    'refuse:forever', 'ask', 'refuse:until:' + MOMENT1, 'refuse:until:' + MOMENT2,
+    'refuse:until:2026-12-31T23:00:00Z', 'refuse:until:9999-12-31T23:59:59Z',
+    'refuse:until:2026-12-14T23:00:00.000Z', 'refuse:until:2026-12-14T23:00:00.5Z',
+    'refuse:until:2026-12-15T00:00:00+01:00', 'refuse:until:2026-12-14T23:00:00+00:00',
+    'refuse:until:2026-12-14t23:00:00z', 'refuse:until:2026-12-14 23:00:00Z',
+    'refuse:until:2026-12-14T23:00Z', 'refuse:until:2026-12-15', 'refuse:until:2026-02-30T00:00:00Z',
+    'refuse:until:2026-12-14T24:00:00Z', 'refuse:until:2026-1-5T23:00:00Z',
+    'refuse:until:+2026-12-14T23:00:00Z', 'refuse:until:2026-12-14T23:00:00Zx',
+    'refuse:until:2026-12-14T23:00:00Z ', 'refuse:until:', 'refuse:until', 'refuse:', 'refuse:forever ',
+    ' refuse:forever', 'Refuse:forever', 'refuse:Forever', 'REFUSE:FOREVER', 'refuse:forever:',
+    'ask ', 'Ask', 'ASK', 'allowed', 'const:', 'const:rw', '']
+if ANSWERING:
+    forever_r = answer_record('refuse:forever')
+    until_r = answer_record('refuse:until:' + MOMENT1)
+    until2_r = answer_record('refuse:until:' + MOMENT2, nonce=NONCE2)
+    lift_r = answer_record('ask', after=[forever_r['id']])
+    ghost_r = answer_record('refuse:forever', nonce=ANSWER_NONCES[0])
+    lift_lost_r = answer_record('ask', lost=[ghost_r['id']])
+    lift_two_r = answer_record('ask', after=[forever_r['id'], until2_r['id']], nonce=NONCE2)
+    refusal_after_lift_r = answer_record('refuse:until:' + MOMENT2, after=[lift_r['id'], forever_r['id']])
+    lift_carrying_r = answer_record('ask', after=[until2_r['id']], lost=[ghost_r['id']], nonce=ANSWER_NONCES[1])
+    out_of_form_r = answer_record('refuse:until:2026-12-15')
+    ANSWER_RECORDS = {
+        'version, an answer refusing renewals forever': forever_r,
+        'version, an answer refusing renewals until a moment': until_r,
+        'version, an answer refusing renewals until the later moment, made apart': until2_r,
+        'version, a lift naming the refusal it replaces': lift_r,
+        'version, an answer refusing forever whose content no store holds, lost': ghost_r,
+        'version, a lift settling a lost answer': lift_lost_r,
+        'version, a lift naming two refusals made apart': lift_two_r,
+        'version, a refusal naming the lift it replaces and what the lift replaced': refusal_after_lift_r,
+        'version, a lift replacing a refusal and settling a lost answer': lift_carrying_r,
+        'version, an answer whose text is out of form': out_of_form_r,
+    }
+    out['records']['records'].update(ANSWER_RECORDS)
+    out['records']['records']['head of height 1, restating answers'] = record(
+        'head', {'after': '', 'height': '1', 'nonce': NONCE},
+        [FORMAT] + [restating_version(x) for x in (until_r, until2_r, lift_lost_r, refusal_after_lift_r)], 1)
+    out['records']['renewalTexts'] = {t: answer_reading(t) for t in ANSWER_TEXTS}
+    out['records']['about'] += (
+        ' The records whose names hold an answer, a lift or a refusal are the standing answers to a '
+        'renewal of measured-renewal-answers: a version of the object renew: and the client key of '
+        'this file\'s admissions, the key of the client\'s first certificate in 64 lowercase '
+        'hexadecimal characters, its subject that object and its number 0. Its doc is refuse:forever, '
+        'refuse:until: and a moment, RFC 3339 in UTC to the second in 20 characters, or ask, the lift. '
+        'The moments are %s and %s, the first midnight of two days where the operator is, written in '
+        'UTC; the clock the meanings and the writes read them at is %s, before both, %s, between them, '
+        'and %s, after both. A refusal names nothing or the versions it replaces; a lift names in after '
+        'the versions it replaces and in lost the lost versions it settles, and carries on what the '
+        'versions it replaces name in lost. The version refusing forever whose content no store holds '
+        'is composed so that its identifier is lost wherever a store holds its deletion record and '
+        'nothing names it. The answer whose text is out of form holds a day with no time. The summary '
+        'entry restating answers holds an item for four of them, the item holding lost as the version '
+        'does. renewalTexts holds texts of an answer, each with what read.py\'s reader makes of it, the '
+        'answer and, for until, the moment, and null for a text out of form: a text is in form only '
+        'where composing what was read gives the same bytes, so a fraction of a second, an offset, '
+        'lower case, a space, a day with no time, a moment that is no date and anything after the text '
+        'are out of form. The texts of rules are under texts, as before.'
+        % (MOMENT1, MOMENT2, M.CLOCK[0], M.CLOCK[1], M.CLOCK[2]))
 
 
 # 6. ADDED (vectors for the writes): what read.py answers about authorities, admissions and
@@ -1155,6 +1254,130 @@ if REFINED:
     lost_stores()
 
 
+def renewals(r):
+    """ADDED (renewal answers): read.py's answer about each client's renewals: the answer, `ask`,
+    `until:` and the moment or `forever`; its cause (none, stands, lost or unreadable); the texts of
+    the versions that stand and the identifiers of the lost versions; whether it refuses at each
+    position of the clock; and the moment a refusal until a moment holds as notBefore."""
+    out = {}
+    for c, x in sorted(r['renew_detail'].items()):
+        tok = x['value']
+        out[c] = {'value': tok, 'cause': x['cause'], 'standing': x['standing'], 'lost': x['lost'],
+                  'refuses': {clock: M.answer_refuses(tok, clock) for clock in M.CLOCK},
+                  'notBefore': tok[6:] if tok.startswith('until:') else None}
+    return out
+
+
+def answer_stores():
+    """ADDED (renewal answers): small stores of answers about the client of the admission, and what
+    read.py answers for each, read with the reading of answers on."""
+    R.ANSWERS = M.ANSWERS = S.HEX = True
+    OTHER = invented('client/other', 32).hex()
+
+    def ver(text, after=(), lost=(), n=NONCE, obj=RENEW):
+        d = {'after': ' '.join(sorted(after)), 'doc': text, 'nonce': n, 'object': obj}
+        if lost:
+            d['lost'] = ' '.join(sorted(lost))
+        return entry('version', d)
+
+    def item(v):
+        d = json.loads(v[1]['KPG.Data'])
+        it = {'after': d['after'], 'doc': d['doc'], 'id': v[0], 'kind': 'version', 'object': d['object']}
+        if 'lost' in d:
+            it['lost'] = d['lost']
+        return it
+
+    def store(versions, dels=(), restated=None, more=(), more_items=()):
+        present = [AUTH1, PROFILE, ADMITTED] + list(more) + list(versions)
+        if restated is None:
+            named = set(dels)
+            for v in versions:
+                named |= set(json.loads(v[1]['KPG.Data'])['after'].split())
+            restated = [v for v in versions if v[0] not in named]
+        return dump(present + [summary(*([item(v) for v in restated] + list(more_items)))], dels)
+
+    F = ver('refuse:forever')
+    F0 = ver('refuse:forever', n=ANSWER_NONCES[2])
+    U1 = ver('refuse:until:' + MOMENT1)
+    U2 = ver('refuse:until:' + MOMENT2, n=NONCE2)
+    G = ver('refuse:forever', n=ANSWER_NONCES[0])      # whose content no store holds
+    X = ver('refuse:until:2026-12-15')
+    REVOKED_OTHER = entry('revoked', {'client': OTHER, 'nonce': NONCE})
+    REVOKING_OTHER = {'client': OTHER, 'kind': 'revoked'}
+    stores = {
+        'renewals: no answer': store([]),
+        'renewals: refused forever': store([F]),
+        'renewals: refused until a moment': store([U1]),
+        'renewals: refused until the later moment': store([U2]),
+        'renewals: a lift whose refusal it replaced is deleted': store([ver('ask', after=[F[0]])], [F[0]]),
+        'renewals: forever and until the later moment, made apart': store([F, U2]),
+        'renewals: two moments, made apart': store([U1, U2]),
+        'renewals: until a moment and a lift made apart, which did not see it': store(
+            [U1, ver('ask', after=[F0[0]])], [F0[0]]),
+        'renewals: forever and a lift made apart, which did not see it': store(
+            [F, ver('ask', after=[F0[0]])], [F0[0]]),
+        'renewals: a lift naming the refusal it replaces, both present': store([F, ver('ask', after=[F[0]])]),
+        'renewals: a lift naming one of two refusals made apart': store([F, U2, ver('ask', after=[F[0]])]),
+        'renewals: a lost answer': store([], [G[0]]),
+        'renewals: a lost answer settled by a lift': store([ver('ask', lost=[G[0]])], [G[0]]),
+        'renewals: a lost answer settled by a lift, beside a refusal the lift did not see': store(
+            [ver('ask', lost=[G[0]]), U2], [G[0]]),
+        'renewals: a deletion record of a version that a standing version names': store(
+            [ver('refuse:until:' + MOMENT2, after=[F[0]])], [F[0]]),
+        'renewals: a version present beside its own deletion record': store([F], [F[0]]),
+        'renewals: a version beside its own deletion record, named in after by a lift': store(
+            [F, ver('ask', after=[F[0]])], [F[0]]),
+        'renewals: a version beside its own deletion record, named in lost by a lift': store(
+            [F, ver('ask', lost=[F[0]])], [F[0]]),
+        'renewals: a version carried only by an item, beside its deletion record': store([], [F[0]], restated=[F]),
+        'renewals: a version carried only by an item': store([], restated=[F]),
+        'renewals: a text out of form': store([X]),
+        'renewals: a text out of form, beside until a moment': store([X, U1]),
+        'renewals: a text out of form, named by a lift': store([X, ver('ask', after=[X[0]])]),
+        'renewals: a deletion record of an answer of a client key the file does not know': store(
+            [], [ver('refuse:forever', obj='renew:' + OTHER)[0]]),
+        'renewals: a deletion record of an answer of a client key a revocation makes known': store(
+            [], [ver('refuse:forever', obj='renew:' + OTHER)[0]], more=[REVOKED_OTHER],
+            more_items=[REVOKING_OTHER]),
+        'renewals: an answer of a client key that only the answer makes known': store(
+            [ver('refuse:until:' + MOMENT1, obj='renew:' + OTHER)]),
+        'renewals: an answer under an object that holds no client key': store(
+            [ver('refuse:forever', obj='renew:' + 'C3' * 32)]),
+        'renewals: an answer under an object that holds no client key, beside the client\'s own': store(
+            [ver('refuse:forever', obj='renew:' + K1[:63]), U1]),
+    }
+    for name, d in sorted(stores.items()):
+        r = R.read(d, history=True)
+        out['meanings']['meanings'][name] = dict(files(d), **answer(r), renewals=renewals(r))
+    out['meanings']['about'] += (
+        ' The stores whose names begin with renewals: are about the standing answers to a renewal of '
+        'measured-renewal-answers, read by read.py with its reading of answers on. Each holds the first '
+        'authority, the profile record, the admission of the client K1 of the records file but where its '
+        'name gives otherwise, the versions of the object renew: and K1 its name gives, and a summary '
+        'entry restating every version present that no deletion record and no version names, or the '
+        'versions its name gives. The texts and the moments are those of the records file; versions '
+        'made apart differ in their nonce; the version refusing forever whose content no store holds '
+        'is that of the records file. renewals holds, for each client key the file knows, the answer, '
+        'ask, until: and the moment, or forever; its cause, none where no version stands or is lost, '
+        'stands, lost or unreadable; the texts of the versions that stand; the identifiers of the lost '
+        'versions; whether it refuses at each moment of the clock %s, %s and %s, a refusal until a '
+        'moment refusing while the clock is before the moment; and notBefore, the moment of a refusal '
+        'until a moment, null otherwise. The answer is the strictest standing version: forever, then '
+        'the later moment, then the earlier, then ask; a lost version and a text out of form refuse '
+        'forever, the second whatever else stands. A client key is known from an admission, from a '
+        'revocation in a record or a summary item, and from the object of a version present or '
+        'restated; the other key of two stores is 32 invented bytes in hexadecimal, and a deletion '
+        'record of an answer of a key the file does not know tells of nothing. An object renew: that '
+        'holds anything but 64 lowercase hexadecimal characters is the object of nothing, and no '
+        'answer is read from it: C3 repeated 32 times, and the client key less its last character.'
+        % tuple(M.CLOCK))
+    R.ANSWERS = M.ANSWERS = S.HEX = False
+
+
+if ANSWERING:
+    answer_stores()
+
+
 # 7. ADDED (vectors for the writes): the file after each act of a fixed sequence the model plays,
 # written out by store.py's Encoder as the family's runs write it, and read by read.py.
 def described(enc, eid):
@@ -1213,7 +1436,8 @@ def state(W, enc, i, tree):
             'present': sorted((described(enc, eid) for eid in eids), key=by_record),
             'deletions': sorted((described(enc, x) for x in rep.dels), key=by_record),
             'heads': sorted(heads, key=lambda h: (h['height'], h['id'])),
-            'answer': dict(answer(r), rules=rules(r, [ROOT] + sorted(tree, key=depth_of(tree)))),
+            'answer': dict(answer(r), rules=rules(r, [ROOT] + sorted(tree, key=depth_of(tree))),
+                           **({'renewals': renewals(r)} if M.ANSWERS else {})),     # ADDED (renewal answers)
             'file': files(d)}
 
 
@@ -1257,12 +1481,20 @@ def play(nrep, steps, cfg=None):
         before = set(W.reps[i].dels)
         pre = [read_copy(W, enc, k, tree)[3]['words_raw'] for k in (op[2], op[3])] \
             if op[0] == 'merge' else None
+        if M.ANSWERS and op[0] == 'merge':     # ADDED (renewal answers)
+            pre_renew = [read_copy(W, enc, k, tree)[3]['renew'] for k in (op[2], op[3])]
         x = dict(command=command, act=list(op), played=W.step(op), **state(W, enc, i, tree))
         x['deleted'] = sorted((described(enc, u) for u in set(W.reps[i].dels) - before),
                               key=by_record)
         if pre is not None:
             x['beyond'] = beyond(read_copy(W, enc, i, tree)[3]['words_raw'], pre,
                                  [ROOT] + sorted(tree))
+        if M.ANSWERS:   # ADDED (renewal answers): the copy's clock, and answers below both copies
+            x['clock'] = M.CLOCK[W.clock[i]]
+            if op[0] == 'merge':
+                after = read_copy(W, enc, i, tree)[3]['renew']
+                x['renewalsBeyond'] = sorted(c for c, tok in after.items() if all(
+                    M.answer_rank(tok) < M.answer_rank(p.get(c, M.ASK)) for p in pre_renew))
         made['steps'].append(x)
     return made
 
@@ -1612,6 +1844,54 @@ if REFINED:
         'those name in after, and in lost the lost versions its row or switch shows at the write '
         'and what the versions it replaces name in lost. No Synchronize of these gives anything '
         'beyond both copies.' % (LR.P, LR.Q, LR.tag(LR.P), LR.Z))
+
+
+# ADDED (renewal answers): A1 to A14 of probe/answers.py, played by the model with the answers on,
+# every certificate and client key in hexadecimal, then a Synchronize of copy 1 into copy 0 and of
+# copy 0 into copy 1, then the acts that follow in copy 0.
+def answer_command(op):
+    if op[0] == 'merge':
+        return 'Synchronize'
+    if op[0] == 'renew':
+        return {'forever': 'Refuse forever', 'until1': 'Refuse until a date', 'until2': 'Refuse until a date',
+                'ask': 'Allow renewal'}[op[3]]
+    return {'see': 'Show answer', 'clock': 'Set clock', 'renewcert': 'Renew', 'pair': 'Pair',
+            'revoke': 'Revoke', 'del': 'Delete by hand', 'reseal': 'Seal again', 'lose': 'Lose version',
+            'unreadable': 'Write text out of form'}[op[0]]
+
+
+if ANSWERING:
+    import answers as AN        # noqa: E402
+    M.ANSWERS = R.ANSWERS = S.HEX = True
+    for label, what, ops, then in AN.histories():
+        sequence_made = play(2, [(answer_command(op), op) for op in ops + [INTO_0, INTO_1] + AN.bound(then, 0)])
+        sequence_made['clients'] = {c: S.cert_hex(c) for c in ('c0', 'c1')}
+        sequence_made['clock'] = list(M.CLOCK)
+        out['writes']['sequences']['answers, %s: %s' % (label, what)] = sequence_made
+    M.ANSWERS = R.ANSWERS = S.HEX = False
+    out['writes']['about'] += (
+        ' The sequences whose names begin with answers and a comma are A1 to A14 of '
+        'measured-renewal-answers, the standing answers to a renewal, played by the model with its '
+        'answers on (crdt_model.ANSWERS) and read by read.py with its reading of answers on: each '
+        'sequence\'s acts, then a Synchronize of copy 1 into copy 0 and of copy 0 into copy 1, then the '
+        'acts that follow in copy 0. Every certificate and client key is written as 64 lowercase '
+        'hexadecimal characters, the SHA-256 of kpg-store-as-a-whole/certificate/ and the model\'s name, '
+        'a client\'s key that of its first certificate, and clients gives the key of c0 and of c1. An '
+        'answer is a version of renew: and the client key, its text refuse:forever, refuse:until: and a '
+        'moment, or ask, as in the records file; clock gives the three moments of the clock, and every '
+        'step gives the clock of the copy whose file follows and its answer as renewals, as the meanings '
+        'file gives it, and every Synchronize adds renewalsBeyond, each client whose answer after the '
+        'merge is below both copies\' just before it, of which there is none. The further commands: '
+        'Refuse forever and Refuse until a date are the model\'s renew act with forever and with a '
+        'moment, given only where the copy\'s reading asks at its clock, for a client admitted there; '
+        'Allow renewal its renew act with ask, pressed only where the copy\'s reading refuses at its '
+        'clock, naming in after the standing versions it was shown that still stand and in lost the '
+        'lost versions it was shown, writing nothing where it names nothing; Show answer its see act, '
+        'a dialog that shows the answer, whose shown versions the next answer of that copy about that '
+        'client names, and no other; Set clock its clock act; Renew its renewcert act, refused where the '
+        'copy\'s reading refuses at its clock; Pair and Revoke as before; Delete by hand, Seal again and '
+        'Lose version as before; and Write text out of form its unreadable act, somebody holding the store '
+        'key writing an answer whose text is refuse:until:2026-12-15 and a summary entry.')
 
 
 def product(readings):

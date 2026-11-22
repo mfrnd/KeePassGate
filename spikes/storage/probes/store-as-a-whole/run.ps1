@@ -123,7 +123,9 @@
     With -Answers (ADDED, renewal answers), the standing answers to a renewal of STORE.md 618 and
     S7: the store as decided with crdt_model.ANSWERS on, the reading of lost versions of
     measured-lost-settled, every certificate and client key in hexadecimal on files. Output in
-    `out\answers\`, compared with `recorded-answers\`; databases in `work\an-*`:
+    `out\answers\`, compared with `recorded-answers\`; databases in `work\an-*`; then the three files
+    of vectors that `vectors.py --answers` prints, into `out\answers\vectors\`, held to
+    `recorded-lost\vectors\` in `out\answers\vectors-compare.txt`:
 
       cells, losses, random
                            answers.py: A1 to A14 and the lost versions on real files, every merge
@@ -429,6 +431,13 @@ $times | Add-Content -Encoding UTF8 (Join-Path $out 'times.txt')
 if ($Rows) {     # ADDED (rules per profile): each cell of three parts against the store as decided's record
     & uv run --no-project python -I -X utf8 (Join-Path $family 'compare.py') --rows-against-decided |
         Set-Content -Encoding UTF8 (Join-Path $out 'against-decided.txt')
+}
+if ($Answers -and $Parts.Count -eq $all.Count) {     # ADDED (renewal answers): the vectors, and how they hold
+    $vectors = Join-Path $out 'vectors'
+    & uv run --no-project python -I -X utf8 (Join-Path $family 'compare_answers.py') print $vectors |
+        Set-Content -Encoding UTF8 (Join-Path $out 'vectors-print.txt')
+    & uv run --no-project python -I -X utf8 (Join-Path $family 'compare_answers.py') vectors $vectors (Join-Path $family 'recorded-lost\vectors') |
+        Set-Content -Encoding UTF8 (Join-Path $out 'vectors-compare.txt')
 }
 if ($config) {     # ADDED (two readings)
     & uv run --no-project python -I -X utf8 (Join-Path $family 'compare.py') "--$config"

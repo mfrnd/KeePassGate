@@ -15,7 +15,8 @@ ADDED (two readings): with --rewrite or --copies, `out/rewrite` or `out/copies` 
 or `recorded-copies`.
 ADDED (copies extended): with --reading-LEVEL, `out/reading-LEVEL` to `recorded-reading-LEVEL`.
 ADDED (owed forms): with --owed, `out/owed` to `recorded-owed`.
-ADDED (renewal answers): with --answers, `out/answers` to `recorded-answers`.
+ADDED (renewal answers): with --answers, `out/answers` to `recorded-answers`, and the three files of
+`out/answers/vectors` to those of `recorded-answers/vectors` byte for byte but the line ends.
 """
 import os
 import re
@@ -121,6 +122,13 @@ def main():
         diffs = [k for k in range(max(len(x), len(y))) if k >= len(x) or k >= len(y) or x[k] != y[k]]
         print('%s: %d lines, %s' % (name, len(y), 'the same' if not diffs else '%d differ, first at line %d' % (len(diffs), diffs[0] + 1)))
         bad += bool(diffs)
+    if os.path.isdir(os.path.join(REC, 'vectors')):     # ADDED (renewal answers): the vectors, byte for byte
+        for name in sorted(os.listdir(os.path.join(REC, 'vectors'))):
+            a, b = os.path.join(OUT, 'vectors', name), os.path.join(REC, 'vectors', name)
+            same = os.path.exists(a) and open(a, 'rb').read().replace(b'\r\n', b'\n') == \
+                open(b, 'rb').read().replace(b'\r\n', b'\n')
+            print('vectors/%s: %s' % (name, 'the same bytes but the line ends' if same else 'DIFFERS'))
+            bad += not same
     design = os.path.join(BRANCH, 'spikes', 'storage', 'model', 'recorded', 'results-full.txt')
     mine = os.path.join(OUT, 'design-full.txt')
     if os.path.exists(mine):
