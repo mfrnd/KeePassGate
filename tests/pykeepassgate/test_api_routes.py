@@ -24,6 +24,7 @@ from pykeepassgate.errors import ProtocolError, Withheld
 from pykeepassgate.model import Access, Attachment, Entry, Field, Fields, Group, Identity
 from pykeepassgate.testing import FakeGate, identified
 from test_reference import operations, routing_table
+from timeouts import PEER_TIMEOUT
 
 UUID = "7b1c" * 8
 OTHER = "9f86" * 8
@@ -33,7 +34,7 @@ OTHER = "9f86" * 8
 def paired(tmp_path: Path, bundle: dict[str, Any], gate: FakeGate) -> GateClient:
     """A client that has been through pairing with this gate."""
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
-    return GateClient(stored, connection_timeout=10.0)
+    return GateClient(stored, connection_timeout=PEER_TIMEOUT)
 
 
 def answering(gate: FakeGate, body: dict[str, Any], status: int = 200) -> None:
@@ -766,7 +767,9 @@ def test_a_limit_raised_on_the_client_reads_an_attachment_whole(
 ) -> None:
     content = bytes(range(256)) * 12288
     attached(gate, "disk.img", content)
-    raised = GateClient(paired.credentials, connection_timeout=10.0, max_response_kilobytes=8192)
+    raised = GateClient(
+        paired.credentials, connection_timeout=PEER_TIMEOUT, max_response_kilobytes=8192
+    )
 
     assert raised.attachment(UUID, "disk.img").content == content
 

@@ -20,6 +20,7 @@ from pykeepassgate.errors import PreconditionFailed, ProtocolError, RouteRefused
 from pykeepassgate.model import Entry, Group
 from pykeepassgate.testing import FakeGate
 from tagged import NEXT, TAG, UUID, tagging
+from timeouts import PEER_TIMEOUT
 
 GROUP: dict[str, Any] = {
     "uuid": UUID,
@@ -45,7 +46,7 @@ ENTRY: dict[str, Any] = {
 def paired(tmp_path: Path, bundle: dict[str, Any], gate: FakeGate) -> GateClient:
     """A client that has been through pairing with this gate."""
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
-    return GateClient(stored, connection_timeout=10.0)
+    return GateClient(stored, connection_timeout=PEER_TIMEOUT)
 
 
 @pytest.mark.parametrize(

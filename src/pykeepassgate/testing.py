@@ -324,8 +324,15 @@ class FakeGate:
         self.failures: list[BaseException] = []
 
         #: How long a peer may stay quiet, in seconds, before the thread answering it gives up, so
-        #: one that goes quiet mid-request ends its thread rather than parking it.
-        self.quiet = 10.0
+        #: a peer that goes quiet mid-request ends its thread rather than parking it. A minute, as
+        #: a peer that stalls with its process is not a peer that went quiet: the stand-in serves
+        #: from threads of the test's own process, beside the client it answers, and a loaded
+        #: machine can keep that process off the processor for many seconds at a time, which a
+        #: shorter wait would take for a peer gone, ending a handshake the client is still waiting
+        #: on. And shorter than the client's own `DEFAULT_CONNECTION_TIMEOUT`, so a client left
+        #: waiting on a thread that gave up learns of it from the closed connection first. A test
+        #: of what a program does when the gate goes quiet sets a short wait of its own.
+        self.quiet = 60.0
 
         #: The version `GET /gate/status` is answered with, without asking the handler: this
         #: client's own, which it works with, unless a test sets another. `None` hands the route

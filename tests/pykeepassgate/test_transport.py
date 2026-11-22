@@ -34,6 +34,7 @@ from pykeepassgate.errors import (
     TransportError,
 )
 from pykeepassgate.testing import Authority, FakeGate, Issued
+from timeouts import PEER_TIMEOUT
 
 Answers = Callable[[int, "dict[str, Any] | str"], Any]
 
@@ -63,7 +64,7 @@ def _peer(host: Issued, sends: Sequence[bytes], hold: bool = False) -> Iterator[
         # the test asserts, or a test that failed for a reason of its own.
         with contextlib.suppress(OSError):
             raw, _ = listener.accept()
-            raw.settimeout(10.0)
+            raw.settimeout(PEER_TIMEOUT)
             with raw, context.wrap_socket(raw, server_side=True) as wrapped:
                 request = b""
                 while not request.endswith(b"\r\n\r\n"):
@@ -77,17 +78,17 @@ def _peer(host: Issued, sends: Sequence[bytes], hold: bool = False) -> Iterator[
                     wrapped.sendall(piece)
 
                 if hold:
-                    over.wait(10.0)
+                    over.wait(PEER_TIMEOUT)
 
     with socket.create_server((transport.LOOPBACK, 0)) as listener:
-        listener.settimeout(10.0)
+        listener.settimeout(PEER_TIMEOUT)
         thread = threading.Thread(target=answer, args=(listener,), daemon=True)
         thread.start()
         try:
             yield listener.getsockname()[1]
         finally:
             over.set()
-            thread.join(timeout=10.0)
+            thread.join(timeout=PEER_TIMEOUT)
 
 
 class TestResponse:
@@ -479,7 +480,7 @@ class TestConnecting:
         context = transport.unpaired_context()
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ) as connection:
             connection.send("GET", "/gate/whoami")
 
@@ -493,7 +494,7 @@ class TestConnecting:
         context = transport.unpaired_context()
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ) as connection:
             assert connection.server_certificate == host.der
 
@@ -504,7 +505,7 @@ class TestConnecting:
         context = transport.unpaired_context()
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ) as connection:
             reply = connection.send("POST", "/pair/hello", '{"proof":"x"}')
 
@@ -516,7 +517,7 @@ class TestConnecting:
         context = transport.unpaired_context()
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ) as connection:
             assert connection._socket.version() == "TLSv1.3"
 
@@ -541,12 +542,12 @@ class TestDialing:
             transport.unpaired_context(),
             "abc.def.kpg",
             host="gate.invalid",
-            connection_timeout=7.0,
+            connection_timeout=PEER_TIMEOUT,
             dial=dial,
         ) as connection:
             assert connection.send("GET", "/gate/whoami").status == 200
 
-        assert asked == [("gate.invalid", gate.port, 7.0)]
+        assert asked == [("gate.invalid", gate.port, PEER_TIMEOUT)]
 
     def test_a_socket_dialed_blocking_is_held_to_the_timeout_all_the_same(
         self, gate: FakeGate, answers: Answers
@@ -561,10 +562,10 @@ class TestDialing:
             return made
 
         with transport.connect(
-            gate.port, transport.unpaired_context(), "abc.def.kpg", connection_timeout=9.0,
+            gate.port, transport.unpaired_context(), "abc.def.kpg", connection_timeout=PEER_TIMEOUT,
             dial=blocking,
         ) as connection:
-            assert connection._socket.gettimeout() == 9.0
+            assert connection._socket.gettimeout() == PEER_TIMEOUT
 
     def test_a_dial_that_fails_is_a_transport_error_saying_where(self) -> None:
         def refusing(host: str, port: int, timeout: float) -> socket.socket:
@@ -704,7 +705,7 @@ class TestPinning:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ) as connection:
             assert connection.send("GET", "/gate/whoami").status == 200
 
@@ -718,7 +719,7 @@ class TestPinning:
         context = transport.paired_context(stranger.pem, client_certificate.pem)
 
         with pytest.raises(TransportError, match="handshake failed"), transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ):
             pass  # pragma: no cover, the handshake is what raises
 
@@ -734,7 +735,7 @@ class TestPinning:
         assert context.verify_mode == ssl.CERT_REQUIRED
 
         with transport.connect(
-            gate.port, context, "nothing.like.it.kpg", connection_timeout=10.0
+            gate.port, context, "nothing.like.it.kpg", connection_timeout=PEER_TIMEOUT
         ) as open_:
             assert open_.send("GET", "/gate/whoami").status == 200
 
@@ -749,7 +750,7 @@ class TestPinning:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with pytest.raises(TransportError, match=r"handshake failed.*purpose"), transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ):
             pass  # pragma: no cover, the handshake is what raises
 
@@ -781,7 +782,7 @@ class TestPinning:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with pytest.raises(TransportError, match=f"handshake failed.*{reason}"), transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ):
             pass  # pragma: no cover, the handshake is what raises
 
@@ -810,7 +811,7 @@ class TestPinning:
             context = transport.paired_context(lasting.pem, client.pem)
 
             with transport.connect(
-                gate.port, context, "abc.def.kpg", connection_timeout=10.0
+                gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
             ) as connection:
                 assert connection.send("GET", "/gate/whoami").status == 200
 
@@ -846,7 +847,7 @@ class TestTheResponder:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ) as connection, pytest.raises(DatabaseLocked, match="responder identity") as refused:
             connection.send("PUT", "/entries/abc/fields/Password", '{"value":"secret"}')
 
@@ -867,7 +868,7 @@ class TestWhatThisClientWillNotSend:
         smuggled = "/gate/status\r\nX-Injected: yes\r\n\r\nGET /elsewhere HTTP/1.1"
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ) as connection, pytest.raises(ProtocolError, match="request line cannot"):
             connection.send("GET", smuggled)
 
@@ -885,7 +886,7 @@ class TestWhatThisClientWillNotSend:
         beyond = "/groups/über"
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ) as connection, pytest.raises(ProtocolError, match="not a path"):
             connection.send("GET", beyond)
 
@@ -926,7 +927,7 @@ class TestWhatThisClientWillNotSend:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ) as connection, pytest.raises(ProtocolError, match="not a method"):
             connection.send("GET /elsewhere HTTP/1.1", "/gate/status")
 
@@ -944,7 +945,7 @@ class TestTheAnswerIsFramedRatherThanEnded:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ) as connection, pytest.raises(TransportError, match="short of its own content length"):
             connection.send("GET", "/gate/whoami")
 
@@ -959,7 +960,7 @@ class TestTheAnswerIsFramedRatherThanEnded:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ) as connection:
             assert connection.send("GET", "/gate/whoami").body == '{"ok": true}'
 
@@ -971,7 +972,7 @@ class TestTheAnswerIsFramedRatherThanEnded:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ) as connection, pytest.raises(ProtocolError, match="not a content length"):
             connection.send("GET", "/gate/whoami")
 
@@ -986,7 +987,7 @@ class TestTheAnswerIsFramedRatherThanEnded:
 
         started = time.monotonic()
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ) as connection:
             assert connection.send("GET", "/gate/whoami").body == '{"ok": true}'
 
@@ -1000,7 +1001,11 @@ class TestTheAnswerIsFramedRatherThanEnded:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0, max_response_kilobytes=1
+            gate.port,
+            context,
+            "abc.def.kpg",
+            connection_timeout=PEER_TIMEOUT,
+            max_response_kilobytes=1,
         ) as connection, pytest.raises(
             ProtocolError, match=r"over 1 kilobyte.*max_response_kilobytes"
         ):
@@ -1014,7 +1019,11 @@ class TestTheAnswerIsFramedRatherThanEnded:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0, max_response_kilobytes=8
+            gate.port,
+            context,
+            "abc.def.kpg",
+            connection_timeout=PEER_TIMEOUT,
+            max_response_kilobytes=8,
         ) as connection:
             assert connection.send("GET", "/gate/whoami").body == body
 
@@ -1036,7 +1045,7 @@ class TestTheAnswerIsFramedRatherThanEnded:
                 port,
                 transport.unpaired_context(),
                 "abc.def.kpg",
-                connection_timeout=10.0,
+                connection_timeout=PEER_TIMEOUT,
                 max_response_kilobytes=1,
             ) as connection:
                 return connection.send("GET", "/gate/whoami").body
@@ -1083,7 +1092,7 @@ class TestTheAnswerIsFramedRatherThanEnded:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ) as connection, pytest.raises(
             ProtocolError, match=r"over 4096 kilobytes.*No setting raises"
         ) as refused:
@@ -1198,10 +1207,10 @@ class TestAWaitOnThePeer:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ) as connection:
             assert connection.send("GET", "/gate/whoami").body == '{"ok": true}'
-            assert connection._socket.gettimeout() == 10.0
+            assert connection._socket.gettimeout() == PEER_TIMEOUT
 
 
 class TestAnAnswerInChunks:
@@ -1217,7 +1226,7 @@ class TestAnAnswerInChunks:
             port,
             transport.unpaired_context(),
             "abc.def.kpg",
-            connection_timeout=10.0,
+            connection_timeout=PEER_TIMEOUT,
             max_response_kilobytes=max_response_kilobytes,
         ) as connection:
             return connection.send("GET", "/gate/whoami").body
@@ -1346,7 +1355,7 @@ class TestWhenToComeBack:
         context = transport.paired_context(authority.pem, client_certificate.pem)
 
         with transport.connect(
-            gate.port, context, "abc.def.kpg", connection_timeout=10.0
+            gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ) as connection, pytest.raises(DatabaseLocked) as refused:
             connection.send("GET", "/gate/whoami")
 
@@ -1535,7 +1544,7 @@ class TestASettingThatCannotWork:
             pass  # pragma: no cover, the connect is what raises
 
         with pytest.raises(ValueError, match="port"), transport.connect(
-            70000, context, "abc.def.kpg", connection_timeout=10.0
+            70000, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
         ):
             pass  # pragma: no cover, the connect is what raises
 

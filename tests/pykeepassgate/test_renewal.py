@@ -51,6 +51,7 @@ from pykeepassgate.testing import Authority, FakeGate, Issued
 from test_api_routes import disagreements, resolved
 from test_credentials import directory_link
 from test_reference import operations, routing_table
+from timeouts import PEER_TIMEOUT
 
 
 def bundle_for(authority: Authority, issued: Issued, expires: str) -> dict[str, Any]:
@@ -114,7 +115,7 @@ def renewed_certificate(authority: Authority) -> Issued:
 def paired(tmp_path: Path, bundle: dict[str, Any], gate: FakeGate) -> GateClient:
     """A client that has been through pairing with this gate, kept where a profile would be."""
     stored = credentials_module.save(tmp_path / "profiles" / "default", gate.port, bundle)
-    return GateClient(stored, connection_timeout=10.0)
+    return GateClient(stored, connection_timeout=PEER_TIMEOUT)
 
 
 @pytest.fixture
@@ -238,7 +239,7 @@ def test_an_identity_opened_by_a_relative_path_renews_beside_its_own_directory(
 
     monkeypatch.setattr(credentials_module, "prepare", recorded)
 
-    renewal = GateClient.open(directory=Path(opened), connection_timeout=10.0).renew()
+    renewal = GateClient.open(directory=Path(opened), connection_timeout=PEER_TIMEOUT).renew()
 
     assert renewal.retired is None
     assert api.load(kept).expires == "2127-01-02T03:04:05Z"
@@ -269,7 +270,7 @@ def test_a_client_built_to_read_a_kilobyte_still_renews_and_gives_the_old_certif
     # Neither the renewal nor the revocation after it is read under that limit.
     renewing.revocation = (200, json.dumps({"ok": True, "pad": "x" * 2048}))
     stored = credentials_module.save(tmp_path / "profiles" / "default", gate.port, bundle)
-    client = GateClient(stored, connection_timeout=10.0, max_response_kilobytes=1)
+    client = GateClient(stored, connection_timeout=PEER_TIMEOUT, max_response_kilobytes=1)
 
     renewal = client.renew()
 
@@ -395,7 +396,7 @@ def test_a_kept_identity_that_has_expired_is_forgotten_without_asking(
     retired = tmp_path / "kept.retired"
     credentials_module.save(retired, gate.port, {**bundle, "expires": "2001-02-03T04:05:06Z"})
 
-    GateClient(stored, connection_timeout=10.0).renew()
+    GateClient(stored, connection_timeout=PEER_TIMEOUT).renew()
 
     assert not retired.exists()
     assert [path for _, path in gate.requests] == ["/gate/renew", "/gate/certificate"]
@@ -645,7 +646,7 @@ def test_a_kept_identity_under_a_password_is_opened_with_the_one_this_client_was
         client_key=paired.credentials.client_key,
     )
     client = GateClient(
-        paired.credentials, connection_timeout=10.0, key_password="an invented password"
+        paired.credentials, connection_timeout=PEER_TIMEOUT, key_password="an invented password"
     )
 
     client.renew()
@@ -788,7 +789,7 @@ def test_a_renewal_waits_out_two_authorities_on_the_budget_given_for_them(
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
 
     renewal = GateClient(
-        stored, connection_timeout=10.0, retry_undecided_timeout=30.0
+        stored, connection_timeout=PEER_TIMEOUT, retry_undecided_timeout=30.0
     ).renew()
 
     assert renewal.credentials.expires == "2127-01-02T03:04:05Z"
@@ -816,7 +817,7 @@ def test_an_approval_the_gate_holds_is_asked_for_again_until_it_is_written(
     gate.retry_after = "2"
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
 
-    renewal = GateClient(stored, connection_timeout=10.0).renew()
+    renewal = GateClient(stored, connection_timeout=PEER_TIMEOUT).renew()
 
     assert renewal.credentials.expires == "2127-01-02T03:04:05Z"
     assert waited == [2.0, 2.0]
@@ -847,7 +848,7 @@ def test_a_certificate_that_has_expired_is_not_offered_for_renewal(
     )
 
     with pytest.raises(NotAdmitted, match="pair again"):
-        GateClient(stored, connection_timeout=10.0).renew()
+        GateClient(stored, connection_timeout=PEER_TIMEOUT).renew()
 
     assert gate.requests == []
     assert not (tmp_path / "kept.renewing").exists()
@@ -868,7 +869,7 @@ def test_a_renewal_dials_the_way_its_client_does(
 
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
 
-    GateClient(stored, connection_timeout=10.0, host="relay", dial=dial).renew()
+    GateClient(stored, connection_timeout=PEER_TIMEOUT, host="relay", dial=dial).renew()
 
     assert asked == ["relay", "relay", "relay"]
     assert [path for path, _, _ in renewing.seen] == ["/gate/renew", "/gate/certificate"]
@@ -885,7 +886,7 @@ def test_a_renewal_dials_the_way_its_client_does(
                 transport.DEFAULT_CONNECTION_TIMEOUT,
             ],
         ),
-        (10.0, [10.0, transport.PAIRING_CONNECTION_TIMEOUT, 10.0]),
+        (PEER_TIMEOUT, [PEER_TIMEOUT, transport.PAIRING_CONNECTION_TIMEOUT, PEER_TIMEOUT]),
         (600.0, [600.0, 600.0, 600.0]),
     ],
 )
@@ -1152,7 +1153,7 @@ def test_what_was_kept_for_a_revoked_certificate_and_could_not_be_removed_is_nam
     where = tmp_path / "kept"
     stored = credentials_module.save(where, gate.port, bundle)
 
-    renewal = GateClient(stored, connection_timeout=10.0).renew()
+    renewal = GateClient(stored, connection_timeout=PEER_TIMEOUT).renew()
 
     assert renewal.unrevoked is None
     assert renewal.retired == where.with_name("kept.retired")

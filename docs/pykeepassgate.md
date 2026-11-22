@@ -1322,6 +1322,14 @@ answered `500 internal error`, as the plugin
 answers a defect of its own, and what it raised is kept in `gate.failures`. It imports no test
 framework, and the client's own tests build it through fixtures of their own.
 
+**It waits a minute on a peer that sends nothing**, `gate.quiet`, in seconds, before the thread
+answering it gives up and closes the connection. A peer stalled with the test's process is no peer
+gone quiet: the stand-in answers from threads of that process, so a stall on a loaded machine holds
+back the program and the stand-in together, and a minute rides it out while staying under the
+client's default `connection_timeout`, so a client left waiting reads the closed connection first.
+A test of what a program does when the gate goes quiet sets a short `quiet` of its own, such as
+`gate.quiet = 0.5`.
+
 **One refusal it makes on its own, and differently from the plugin.** A client certificate that is
 offered is verified in the handshake, its chain and its dates, because `ssl` cannot ask for one
 without: an expired, not yet valid or foreign one ends the handshake, and the client raises

@@ -76,7 +76,12 @@ def client_certificate(authority: Authority) -> Issued:
 
 @pytest.fixture
 def gate(host: Issued, authority: Authority) -> Iterator[FakeGate]:
-    """A gate that is listening, and stops when the test ends."""
+    """A gate that is listening, and stops when the test ends.
+
+    It waits on a quiet peer for the stand-in's own default, as a program's tests meet it, and
+    `test_testing.py` holds that default no shorter than the tests' clients wait on it, since both
+    ends are threads of this process and are kept off the processor together.
+    """
     with FakeGate(host, authority.pem) as running:
         yield running
 

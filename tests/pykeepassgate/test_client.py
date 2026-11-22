@@ -39,13 +39,14 @@ from pykeepassgate.errors import (
 from pykeepassgate.pairing import Pairing
 from pykeepassgate.testing import FakeGate, Issued
 from test_pairing import INVITATION
+from timeouts import PEER_TIMEOUT
 
 
 @pytest.fixture
 def paired(tmp_path: Path, bundle: dict[str, Any], gate: FakeGate) -> GateClient:
     """A client that has been through pairing with this gate."""
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
-    return GateClient(stored, connection_timeout=10.0)
+    return GateClient(stored, connection_timeout=PEER_TIMEOUT)
 
 
 def test_the_status_route_says_what_the_gate_and_the_database_are(
@@ -132,7 +133,7 @@ def test_a_busy_gate_is_waited_out_before_a_revocation_is_given_up(
     gate.retry_after = "0"
     gate.handler = lambda path, body, client: answers.pop(0)
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
-    client = GateClient(stored, connection_timeout=10.0, retry_busy_timeout=5.0)
+    client = GateClient(stored, connection_timeout=PEER_TIMEOUT, retry_busy_timeout=5.0)
 
     client.revoke_certificate()
 
@@ -332,7 +333,7 @@ def test_a_certificate_that_has_expired_is_named_as_expired_before_anything_is_d
 
     expired = r"expired at 2001-02-03T04:05:06Z.*pair again"
     with pytest.raises(NotAdmitted, match=expired) as refused:
-        GateClient(stored, connection_timeout=10.0).status()
+        GateClient(stored, connection_timeout=PEER_TIMEOUT).status()
 
     assert gate.names == [], "nothing was dialed to learn it"
     # The same refusal is met whatever was asked, so it says what to do for giving the identity up
@@ -354,7 +355,7 @@ def test_a_certificate_expired_only_by_a_clock_ahead_of_the_gate_s_is_still_offe
     )
 
     assert stored.expired, "identity still says so"
-    assert GateClient(stored, connection_timeout=10.0).status().ok
+    assert GateClient(stored, connection_timeout=PEER_TIMEOUT).status().ok
     assert gate.names != [], "the gate was asked"
 
 
@@ -400,12 +401,12 @@ def test_a_certificate_is_offered_until_the_leeway_has_passed_and_not_after(
     )
 
     if dialed:
-        assert GateClient(stored, connection_timeout=10.0).status().ok
+        assert GateClient(stored, connection_timeout=PEER_TIMEOUT).status().ok
         assert gate.names != [], "the gate was asked"
         return
 
     with pytest.raises(NotAdmitted, match="expired at"):
-        GateClient(stored, connection_timeout=10.0).status()
+        GateClient(stored, connection_timeout=PEER_TIMEOUT).status()
 
     assert gate.names == [], "nothing was dialed to learn it"
 
@@ -418,7 +419,7 @@ def test_an_expiry_this_client_cannot_read_leaves_the_gate_to_say(
     stored = credentials_module.save(tmp_path / "kept", gate.port, {**bundle, "expires": expires})
     gate.handler = lambda path, body, client: (200, "{}")
 
-    GateClient(stored, connection_timeout=10.0).get("/gate/whoami")
+    GateClient(stored, connection_timeout=PEER_TIMEOUT).get("/gate/whoami")
 
     assert gate.requests == [("GET", "/gate/whoami")]
 
@@ -453,7 +454,7 @@ def test_a_client_is_one_identity_for_as_long_as_it_lives(
     # connections from the new key while still presenting the old certificate.
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
     paired_with = stored.gate_key
-    client = GateClient(stored, connection_timeout=10.0)
+    client = GateClient(stored, connection_timeout=PEER_TIMEOUT)
     gate.version = None
     gate.handler = lambda path, body, certificate: (
         200,
@@ -504,7 +505,7 @@ def test_a_client_dials_the_host_it_was_given(
     # made to the default instead and this passes for the wrong reason. So the name is different
     # from the default and the request still arrives.
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
-    client = GateClient(stored, connection_timeout=10.0, host="localhost")
+    client = GateClient(stored, connection_timeout=PEER_TIMEOUT, host="localhost")
     gate.handler = lambda path, body, client: (200, "{}")
 
     client.get("/gate/whoami")
@@ -517,7 +518,7 @@ def test_a_client_that_dials_nowhere_says_where_it_tried(
     tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
 ) -> None:
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
-    client = GateClient(stored, connection_timeout=10.0, host="127.0.0.2")
+    client = GateClient(stored, connection_timeout=PEER_TIMEOUT, host="127.0.0.2")
 
     with pytest.raises(TransportError, match=re.escape("127.0.0.2")):
         client.status()
@@ -543,12 +544,13 @@ def test_a_client_connects_through_the_dial_it_was_given(
     gate.handler = lambda path, body, client: (200, "{}")
     dialing = Dialing(gate)
 
-    client = GateClient(stored, connection_timeout=10.0, host="gate.invalid", dial=dialing)
+    client = GateClient(stored, connection_timeout=PEER_TIMEOUT, host="gate.invalid", dial=dialing)
     client.get("/gate/whoami")
     GateClient.open(stored.directory, host="gate.invalid", dial=dialing).get("/gate/whoami")
 
     # Twice each, since each client compares the gate's version with its own first.
-    first, second = ("gate.invalid", gate.port, 10.0), ("gate.invalid", gate.port, 120.0)
+    first = ("gate.invalid", gate.port, PEER_TIMEOUT)
+    second = ("gate.invalid", gate.port, 120.0)
     assert dialing.asked == [first, first, second, second]
     assert gate.requests == [("GET", "/gate/whoami")] * 2
 
@@ -598,7 +600,7 @@ def test_an_answer_over_the_client_s_limit_fails_whole(
     # Not a connection that failed, which is what `TransportError` reports and what a caller
     # retries: the same answer would meet the same limit. The message names what raises it.
     with pytest.raises(ProtocolError, match=r"over 1 kilobyte.*max_response_kilobytes"):
-        GateClient(stored, connection_timeout=10.0, max_response_kilobytes=1).groups()
+        GateClient(stored, connection_timeout=PEER_TIMEOUT, max_response_kilobytes=1).groups()
 
 
 def test_a_limit_raised_past_an_answer_takes_it(
@@ -609,11 +611,15 @@ def test_a_limit_raised_past_an_answer_takes_it(
     credentials_module.save(tmp_path / "kept", gate.port, bundle)
     gate.handler = lambda path, body, client: (200, json.dumps({"ok": True, "pad": "x" * 4096}))
 
-    low = GateClient.open(tmp_path / "kept", connection_timeout=10.0, max_response_kilobytes=1)
+    low = GateClient.open(
+        tmp_path / "kept", connection_timeout=PEER_TIMEOUT, max_response_kilobytes=1
+    )
     with pytest.raises(ProtocolError, match="over 1 kilobyte"):
         low.get("/gate/whoami")
 
-    raised = GateClient.open(tmp_path / "kept", connection_timeout=10.0, max_response_kilobytes=8)
+    raised = GateClient.open(
+        tmp_path / "kept", connection_timeout=PEER_TIMEOUT, max_response_kilobytes=8
+    )
     assert raised.get("/gate/whoami")["ok"] is True
 
 
@@ -637,7 +643,8 @@ def test_the_smallest_limit_is_a_kilobyte_and_a_client_takes_it(
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
     gate.handler = lambda path, body, client: (200, json.dumps({"groups": []}))
 
-    assert GateClient(stored, connection_timeout=10.0, max_response_kilobytes=1).groups() == []
+    client = GateClient(stored, connection_timeout=PEER_TIMEOUT, max_response_kilobytes=1)
+    assert client.groups() == []
 
 
 def test_a_head_asks_whether_a_route_answers_without_taking_the_answer(
@@ -732,7 +739,7 @@ class TestWaitingOutARefusal:
     ) -> GateClient:
         return GateClient(
             stored,
-            connection_timeout=10.0,
+            connection_timeout=PEER_TIMEOUT,
             retry_busy_timeout=retry_busy_timeout,
             retry_locked_timeout=retry_locked_timeout,
             retry_undecided_timeout=retry_undecided_timeout,
@@ -1156,12 +1163,14 @@ def test_a_connection_timeout_given_to_a_tagged_call_is_the_one_it_dials_with(
         return socket.create_connection((host, port), timeout)
 
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
-    client = GateClient(stored, connection_timeout=10.0, dial=dial)
+    client = GateClient(stored, connection_timeout=PEER_TIMEOUT, dial=dial)
 
-    TAGGED[call](client, connection_timeout=3.5)
+    # Longer than the client's own rather than shorter, since both are waits on the stand-in.
+    given = PEER_TIMEOUT + 3.5
+    TAGGED[call](client, connection_timeout=given)
     TAGGED[call](client)
 
-    assert dialed == [10.0, 3.5, 10.0]
+    assert dialed == [PEER_TIMEOUT, given, PEER_TIMEOUT]
 
 
 #: What makes an answer longer than the smallest limit a read can be given, as a member no
@@ -1331,7 +1340,7 @@ def test_a_read_given_a_limit_over_the_client_s_own_takes_what_the_client_s_own_
     call, answer = GROWING[read]
     _padded(gate, answer)
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
-    client = GateClient(stored, connection_timeout=10.0, max_response_kilobytes=1)
+    client = GateClient(stored, connection_timeout=PEER_TIMEOUT, max_response_kilobytes=1)
 
     with pytest.raises(ProtocolError, match="over 1 kilobyte"):
         call(client)
@@ -1356,7 +1365,7 @@ def test_a_first_request_given_the_smallest_limit_is_still_preceded_by_its_compa
     # the read is sent and is what the limit refuses.
     _padded(gate, GROWING["entry"][1])
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
-    client = GateClient(stored, connection_timeout=10.0)
+    client = GateClient(stored, connection_timeout=PEER_TIMEOUT)
 
     with pytest.raises(ProtocolError, match="over 1 kilobyte"):
         client.entry("7b1c" * 8, max_response_kilobytes=1)
@@ -1374,7 +1383,7 @@ def test_a_write_through_send_is_read_under_the_client_s_own_limit(
     # is read under the bounded limit, which the table of bounded exchanges holds.
     _padded(gate, {"uuid": "7b1c" * 8})
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
-    client = GateClient(stored, connection_timeout=10.0, max_response_kilobytes=1)
+    client = GateClient(stored, connection_timeout=PEER_TIMEOUT, max_response_kilobytes=1)
 
     with pytest.raises(ProtocolError, match=r"over 1 kilobyte.*max_response_kilobytes"):
         client.send("POST", "/groups/root/groups", {"Name": "Invented"})
@@ -1423,7 +1432,7 @@ def test_an_answer_of_a_bounded_shape_is_read_whatever_limit_the_client_was_buil
     call, answer = BOUNDED[exchange]
     _padded(gate, answer)
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
-    client = GateClient(stored, connection_timeout=10.0, max_response_kilobytes=1)
+    client = GateClient(stored, connection_timeout=PEER_TIMEOUT, max_response_kilobytes=1)
     limits: list[object] = []
     connect = transport.connect
 

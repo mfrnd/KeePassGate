@@ -50,6 +50,7 @@ from pykeepassgate.pairing import Pairing, lifetime_text
 from pykeepassgate.testing import Authority, FakeGate, Issued
 from test_api_routes import resolved
 from test_reference import operations, routing_table
+from timeouts import PEER_TIMEOUT
 
 TOKEN = bytes(range(32))
 INVITATION = token_module.encode(TOKEN)
@@ -193,7 +194,7 @@ def pairing_gate(gate: FakeGate, host: Issued) -> Gate:
 def test_a_hello_proves_the_token_and_checks_the_answer(
     gate: FakeGate, pairing_gate: Gate
 ) -> None:
-    exchange = Pairing(gate.port, INVITATION, connection_timeout=10.0).hello()
+    exchange = Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT).hello()
 
     assert exchange.challenge == pairing_gate.challenge
     assert exchange.binding == pairing_gate.binding
@@ -203,7 +204,7 @@ def test_a_hello_proves_the_token_and_checks_the_answer(
 def test_the_name_the_hello_arrives_on_is_built_from_the_token(
     gate: FakeGate, pairing_gate: Gate
 ) -> None:
-    Pairing(gate.port, INVITATION, connection_timeout=10.0).hello()
+    Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT).hello()
 
     name = gate.names[-1]
     assert name is not None
@@ -220,7 +221,7 @@ def test_a_hello_to_a_locked_database_spends_nothing(
     gate.serve_with(responder)
 
     with pytest.raises(DatabaseLocked, match="responder identity"):
-        Pairing(gate.port, INVITATION, connection_timeout=10.0).hello()
+        Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT).hello()
 
     assert gate.requests == [], "nothing reached the gate at all"
 
@@ -231,7 +232,7 @@ def test_a_database_locked_between_hello_and_request_is_a_lock_rather_than_an_im
     # KeePass locks after the hello, and the request's connection is served with the responder,
     # which is not the certificate the hello proved. Reported as `ProofRefused` that would be
     # "stop, this is not the right KeePass"; what it is, is a lock to wait out.
-    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT)
     exchange = pairing.hello()
     gate.serve_with(responder)
 
@@ -247,7 +248,7 @@ def test_a_wrong_token_is_refused_at_the_first_route(gate: FakeGate, pairing_gat
     pairing_gate.token = bytes(32)
 
     with pytest.raises(ProofRefused, match="not the token"):
-        Pairing(gate.port, INVITATION, connection_timeout=10.0).hello()
+        Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT).hello()
 
 
 def test_an_answer_that_cannot_prove_the_token_stops_the_exchange(
@@ -258,13 +259,13 @@ def test_an_answer_that_cannot_prove_the_token_stops_the_exchange(
     pairing_gate.server_proof = bytes(32)
 
     with pytest.raises(ProofRefused, match="not the right KeePass"):
-        Pairing(gate.port, INVITATION, connection_timeout=10.0).hello()
+        Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT).hello()
 
 
 def test_a_request_follows_its_own_hello_and_comes_back_with_a_bundle(
     gate: FakeGate, pairing_gate: Gate
 ) -> None:
-    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT)
     exchange = pairing.hello()
     bundle = pairing.request(exchange, "agent-invented", ["reader", "writer"])
 
@@ -281,7 +282,7 @@ def test_a_request_follows_its_own_hello_and_comes_back_with_a_bundle(
 def test_a_lifetime_asked_for_is_sent_and_signed_for(gate: FakeGate, pairing_gate: Gate) -> None:
     # The gate checks the proof over the lifetime the body carries, so this arriving at all is
     # the two halves agreeing on what was signed; `test_protocol.py` pins the bytes.
-    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT)
     exchange = pairing.hello()
     pairing.request(exchange, "agent-invented", ["reader"], timedelta(days=30))
 
@@ -307,7 +308,7 @@ def test_a_lifetime_the_gate_would_refuse_never_reaches_it(
     # The gate refuses it as `400 malformed` before it takes the challenge, as it refuses a name,
     # so this saves the round trip and says which rule was broken. A part of a day is refused
     # rather than rounded, because either way it rounds is a certificate nobody asked for.
-    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT)
     exchange = pairing.hello()
     before = len(gate.requests)
 
@@ -327,7 +328,7 @@ def test_the_request_goes_out_on_a_new_connection_with_a_new_name(
 ) -> None:
     # The gate serves one request per connection, so the exchange spans two, and the challenge is
     # what carries it across.
-    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT)
     pairing.request(pairing.hello(), "agent-invented", [])
 
     assert len(gate.names) == 2
@@ -341,7 +342,7 @@ def test_both_halves_of_the_exchange_go_to_the_host_they_were_given(
     # exchange in the same place: the challenge only carries across if the second connection
     # reaches the same KeePass as the first. `localhost` is the same socket by another name, so
     # what this proves is that the name travels rather than being dropped for the default.
-    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0, host="localhost")
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT, host="localhost")
 
     bundle = pairing.request(pairing.hello(), "agent-invented", [])
 
@@ -361,7 +362,9 @@ def test_both_halves_of_the_exchange_go_through_the_dial_they_were_given(
         asked.append(host)
         return socket.create_connection((transport.LOOPBACK, gate.port), timeout=timeout)
 
-    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0, host="relay", dial=dial)
+    pairing = Pairing(
+        gate.port, INVITATION, connection_timeout=PEER_TIMEOUT, host="relay", dial=dial
+    )
 
     assert pairing.request(pairing.hello(), "agent-invented", [])
     assert asked == ["relay", "relay"]
@@ -383,7 +386,7 @@ def test_both_halves_of_the_exchange_go_through_the_dial_they_were_given(
 
 def test_a_request_with_no_hello_behind_it_cannot_be_built(gate: FakeGate) -> None:
     # Not a protocol refusal but a programming one: there is nothing to carry across.
-    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT)
     with pytest.raises(AttributeError):
         pairing.request(None, "agent-invented", [])  # type: ignore[arg-type]
 
@@ -411,7 +414,7 @@ def test_every_refusal_becomes_the_thing_a_caller_has_to_do_about_it(
     expected: type[Exception],
     why: str,
 ) -> None:
-    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT)
     exchange = pairing.hello()
     pairing_gate.refuse_with = (status, error)
 
@@ -426,7 +429,7 @@ def test_a_busy_gate_is_described_by_what_it_asks_about(
 ) -> None:
     # The gate's check before the dialog looks at no group dialog, so a message guessing at one
     # sends whoever reads it looking for a window that cannot be the cause.
-    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT)
     exchange = pairing.hello()
     pairing_gate.refuse_with = (503, "busy")
 
@@ -452,7 +455,7 @@ def test_the_two_conflicts_say_opposite_things_about_the_invitation(
     # `no exchange` spends the challenge and nothing else, so the same invitation starts again
     # from a hello; `no invitation` leaves nothing to start with. One sentence for both sent a
     # caller holding a good invitation to the operator for another.
-    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT)
     exchange = pairing.hello()
     pairing_gate.refuse_with = (409, error)
 
@@ -472,7 +475,7 @@ def test_an_answer_missing_its_challenge_is_a_protocol_error(
     gate.handler = answer
 
     with pytest.raises(ProtocolError, match="challenge"):
-        Pairing(gate.port, INVITATION, connection_timeout=10.0).hello()
+        Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT).hello()
 
 
 def test_something_that_is_not_a_token_never_reaches_the_socket() -> None:
@@ -494,20 +497,20 @@ def test_the_request_refuses_a_certificate_its_hello_never_proved(
     name and its profiles and then writes the stranger's authority and gate key as the ones to
     trust from here on. The gate makes the mirror comparison and answers `409 no exchange`.
     """
-    exchange = Pairing(gate.port, INVITATION, connection_timeout=10.0).hello()
+    exchange = Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT).hello()
 
     impostor = Authority(tmp_path / "impostor")
     gate.serve_with(impostor.issue("host", ExtendedKeyUsageOID.SERVER_AUTH, "impostor.pem"))
 
     with pytest.raises(ProofRefused, match="different certificate"):
-        Pairing(gate.port, INVITATION, connection_timeout=10.0).request(
+        Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT).request(
             exchange, "agent-invented", ["reader"]
         )
 
 
 def test_a_request_that_reaches_its_own_hello_is_served(gate: FakeGate, pairing_gate: Gate) -> None:
     # The other side of the same check: nothing changed, so nothing is refused.
-    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT)
     exchange = pairing.hello()
 
     handed = pairing.request(exchange, "agent-invented", ["reader"])
@@ -539,11 +542,11 @@ def test_a_shorter_timeout_does_not_hang_up_on_the_operator(
         return connect(*arguments, **named)
 
     monkeypatch.setattr(transport, "connect", recorded)
-    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT)
 
     pairing.request(pairing.hello(), "agent-invented", ["reader"])
 
-    assert timeouts == [10.0, transport.PAIRING_CONNECTION_TIMEOUT]
+    assert timeouts == [PEER_TIMEOUT, transport.PAIRING_CONNECTION_TIMEOUT]
 
 
 @pytest.mark.parametrize(
@@ -573,7 +576,7 @@ def test_a_name_the_gate_would_refuse_never_reaches_it(
     # the round trip and names the rule that was broken. It is also what keeps `proofs.asked`
     # unambiguous: with these characters excluded, neither of its separators can appear inside a
     # part.
-    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT)
     exchange = pairing.hello()
     before = len(gate.requests)
 
@@ -596,7 +599,7 @@ def test_the_profile_ceiling_is_the_routing_document_s() -> None:
 def test_the_names_the_gate_does_allow_are_sent(gate: FakeGate, pairing_gate: Gate) -> None:
     # The other side of it: everything `AuthorityIssuer` accepts has to get through, or this
     # refuses pairings the gate would have served.
-    pairing = Pairing(gate.port, INVITATION, connection_timeout=10.0)
+    pairing = Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT)
     exchange = pairing.hello()
 
     assert pairing.request(exchange, "Agent One_1.2-3", ["read-only", "write_2"])
@@ -687,7 +690,7 @@ def test_a_pairing_s_answers_are_read_under_the_bounded_limit_and_no_setting(
         invitation=INVITATION,
         name="agent-invented",
         directory=tmp_path / "kept",
-        connection_timeout=10.0,
+        connection_timeout=PEER_TIMEOUT,
     )
 
     assert limits == [None, None], "the hello and the request, and a limit of its own for neither"
@@ -758,7 +761,7 @@ def test_an_invitation_pasted_with_white_space_around_it_is_the_invitation(
     # What the command line strips, the library strips too, so a program handed the same paste is
     # not refused what the command line accepts. `token.decode` itself stays exact, as the
     # plugin's decoder is, and a space inside is still refused.
-    pairing = Pairing(gate.port, " " + INVITATION + "\r\n", connection_timeout=10.0)
+    pairing = Pairing(gate.port, " " + INVITATION + "\r\n", connection_timeout=PEER_TIMEOUT)
 
     assert pairing.hello()
 
@@ -953,7 +956,7 @@ class TestWhatPairingMayRepeat:
         gate.retry_after = "2"
 
         exchange = Pairing(
-            gate.port, INVITATION, connection_timeout=10.0, retry_busy_timeout=30.0
+            gate.port, INVITATION, connection_timeout=PEER_TIMEOUT, retry_busy_timeout=30.0
         ).hello()
 
         assert exchange.challenge == pairing_gate.challenge
@@ -969,7 +972,7 @@ class TestWhatPairingMayRepeat:
         pairing_gate.hello_refusals = [(503, "busy")]
 
         exchange = Pairing(
-            gate.port, INVITATION, connection_timeout=10.0, retry_busy_timeout=30.0
+            gate.port, INVITATION, connection_timeout=PEER_TIMEOUT, retry_busy_timeout=30.0
         ).hello()
 
         assert len(gate.names) == 2
@@ -983,7 +986,7 @@ class TestWhatPairingMayRepeat:
         gate.retry_after = "2"
 
         assert Pairing(
-            gate.port, INVITATION, connection_timeout=10.0, retry_locked_timeout=30.0
+            gate.port, INVITATION, connection_timeout=PEER_TIMEOUT, retry_locked_timeout=30.0
         ).hello()
         assert waited == [2.0]
 
@@ -995,12 +998,14 @@ class TestWhatPairingMayRepeat:
         gate.retry_after = "2"
 
         with pytest.raises(AuthorityUndecided):
-            Pairing(gate.port, INVITATION, connection_timeout=10.0, retry_busy_timeout=30.0).hello()
+            Pairing(
+                gate.port, INVITATION, connection_timeout=PEER_TIMEOUT, retry_busy_timeout=30.0
+            ).hello()
         assert waited == []
 
         pairing_gate.hello_refusals = [(503, "undecided")]
         assert Pairing(
-            gate.port, INVITATION, connection_timeout=10.0, retry_undecided_timeout=30.0
+            gate.port, INVITATION, connection_timeout=PEER_TIMEOUT, retry_undecided_timeout=30.0
         ).hello()
         assert waited == [2.0]
 
@@ -1030,7 +1035,7 @@ class TestWhatPairingMayRepeat:
         pairing_gate.hello_refusals = [(503, "busy")]
 
         with pytest.raises(GateBusy):
-            Pairing(gate.port, INVITATION, connection_timeout=10.0).hello()
+            Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT).hello()
 
         assert self._sent(gate, "/pair/hello") == 1
         assert waited == []
@@ -1052,7 +1057,7 @@ class TestWhatPairingMayRepeat:
         pairing = Pairing(
             gate.port,
             INVITATION,
-            connection_timeout=10.0,
+            connection_timeout=PEER_TIMEOUT,
             retry_busy_timeout=300.0,
             retry_locked_timeout=300.0,
         )
@@ -1070,7 +1075,7 @@ class TestWhatPairingMayRepeat:
         pairing_gate.request_refusals = [(503, "locked")] * 3
 
         pairing = Pairing(
-            gate.port, INVITATION, connection_timeout=10.0, retry_locked_timeout=300.0
+            gate.port, INVITATION, connection_timeout=PEER_TIMEOUT, retry_locked_timeout=300.0
         )
 
         exchange = pairing.hello()

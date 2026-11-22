@@ -21,7 +21,8 @@ from cryptography.x509.oid import ExtendedKeyUsageOID
 
 from pykeepassgate import api
 from pykeepassgate.errors import GateBusy, RouteRefused
-from pykeepassgate.testing import Authority, FakeGate, held, written
+from pykeepassgate.testing import Authority, FakeGate, Issued, held, written
+from timeouts import PEER_TIMEOUT
 
 
 def test_it_imports_no_test_framework() -> None:
@@ -53,7 +54,7 @@ def test_what_the_documentation_shows_is_enough_to_point_a_client_at_it(tmp_path
     with FakeGate(host, authority.pem) as gate:
         gate.handler = lambda path, body, client: (503, '{"error":"busy"}')
         credentials = api.Credentials(tmp_path, gate.port, "CN=agent-invented", "", (), "", "")
-        client = api.GateClient(credentials, connection_timeout=10.0)
+        client = api.GateClient(credentials, connection_timeout=PEER_TIMEOUT)
 
         with pytest.raises(GateBusy):
             client.groups()
@@ -96,7 +97,7 @@ def test_a_gate_nobody_scripted_answers_that_it_has_no_such_route(
     stored = api.save(tmp_path / "kept", gate.port, dict(bundle))
 
     with pytest.raises(RouteRefused) as refused:
-        api.GateClient(stored, connection_timeout=10.0).groups()
+        api.GateClient(stored, connection_timeout=PEER_TIMEOUT).groups()
 
     assert (refused.value.status, refused.value.error) == (404, "no such route")
 
@@ -136,9 +137,9 @@ def answered(
     context.check_hostname = False
     context.minimum_version = ssl.TLSVersion.TLSv1_3
     context.maximum_version = ssl.TLSVersion.TLSv1_3
-    with socket.create_connection(("127.0.0.1", gate.port), timeout=10) as raw, context.wrap_socket(
-        raw, server_hostname="abc.def.kpg"
-    ) as wrapped:
+    with socket.create_connection(
+        ("127.0.0.1", gate.port), timeout=PEER_TIMEOUT
+    ) as raw, context.wrap_socket(raw, server_hostname="abc.def.kpg") as wrapped:
         wrapped.sendall(request)
         received = b""
         while chunk := wrapped.recv(4096):
@@ -326,7 +327,7 @@ def test_a_handler_can_ask_which_method_it_is_answering(
 
     gate.handler = entry
     client = api.GateClient(
-        api.save(tmp_path / "kept", gate.port, dict(bundle)), connection_timeout=10.0
+        api.save(tmp_path / "kept", gate.port, dict(bundle)), connection_timeout=PEER_TIMEOUT
     )
 
     assert client.entry(uuid).uuid == uuid
@@ -515,7 +516,7 @@ def test_what_the_library_sends_and_the_plugin_refuses_is_refused_here_too(
     # an attachment whose encoding makes the body too long, each refused by the gate.
     gate.handler = lambda path, body, client: (200, "{}")
     client = api.GateClient(
-        api.save(tmp_path / "kept", gate.port, dict(bundle)), connection_timeout=10.0
+        api.save(tmp_path / "kept", gate.port, dict(bundle)), connection_timeout=PEER_TIMEOUT
     )
 
     with pytest.raises(RouteRefused) as refused:
@@ -549,13 +550,31 @@ def test_a_peer_that_goes_quiet_is_let_go(gate: FakeGate) -> None:
     # gate closes its side, which the peer reads as the end of the stream.
     gate.quiet = 0.5
 
-    with socket.create_connection(("127.0.0.1", gate.port), timeout=10) as raw:
+    with socket.create_connection(("127.0.0.1", gate.port), timeout=PEER_TIMEOUT) as raw:
         try:
             ended = raw.recv(1)
         except ConnectionResetError:
             ended = b""
 
     assert ended == b""
+
+
+def test_a_quiet_peer_is_waited_on_through_a_stall_and_let_go_before_a_client_gives_up(
+    host: Issued, authority: Authority
+) -> None:
+    # Read off a gate nothing has set, as a program's tests meet it and as the tests here serve
+    # it. Its threads share the test's process with the client they answer, so a stall of the
+    # process stalls both ends at once, and a wait shorter than the stall ends a handshake the
+    # client is still waiting on. So it is no shorter than `PEER_TIMEOUT`, the tests' own figure
+    # for a wait that outlasts such a stall and what their clients are given: the stand-in's end
+    # is then no weaker than theirs. And it is under the client's own default wait on the gate,
+    # so a client left waiting on a thread that gave up learns of it from the closed connection
+    # rather than from its own timeout.
+    with FakeGate(host, authority.pem) as fresh:
+        waited = fresh.quiet
+
+    assert waited >= PEER_TIMEOUT
+    assert waited < api.DEFAULT_CONNECTION_TIMEOUT
 
 
 def test_a_client_offering_only_tls_12_is_refused(gate: FakeGate, authority: Authority) -> None:
@@ -568,7 +587,7 @@ def test_a_client_offering_only_tls_12_is_refused(gate: FakeGate, authority: Aut
     context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.maximum_version = ssl.TLSVersion.TLSv1_2
 
-    with socket.create_connection(("127.0.0.1", gate.port), timeout=10) as raw, pytest.raises(
-        ssl.SSLError
-    ):
+    with socket.create_connection(
+        ("127.0.0.1", gate.port), timeout=PEER_TIMEOUT
+    ) as raw, pytest.raises(ssl.SSLError):
         context.wrap_socket(raw, server_hostname="abc.def.kpg")
