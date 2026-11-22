@@ -833,10 +833,11 @@ figure did.
 
 There is CI, and `master` requires its `gate passed` check before a pull request merges into it, as
 `CLAUDE.md` explains. That check passes once every check `build.ps1 -ListGates` names has passed,
-the end to end tier and the coverage floor among them, so the default `.\build.ps1` is what each
-commit is held to and not the whole gate: `-Task All` adds the end to end tier, and `-Task Coverage`
-runs the floor. Nothing stops a push to a branch that skipped any of them: what is stopped is the
-merge.
+the end to end tier among them, so the default `.\build.ps1` is what each commit is held to and not
+the whole gate. The default runs the prose checks, the client's checks beside the rest, the build,
+and both test tiers with the coverage floor, which is `-Task Coverage` on its own; `-Task All` adds
+the end to end tier. Nothing stops a push to a branch that skipped any of them: what is stopped is
+the merge.
 
 **Every commit of a branch can be held to the gate in CI as well**, each on its own tree and all at
 once, by `.github/workflows/per-commit.yml`, which runs the default `.\build.ps1` at every commit
