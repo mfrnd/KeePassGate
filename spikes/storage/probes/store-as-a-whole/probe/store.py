@@ -98,6 +98,23 @@ LETTERS = 'rw'          # ADDED (owed forms): the letters a row's version may ho
 DEP = None
 
 
+# ADDED (renewal answers): the certificates and client keys of the model, `c0` and `c0.1`, written as
+# the product writes them: each certificate as 64 lowercase hexadecimal characters, the SHA-256 of a
+# fixed text and its name, and a client's key as its first certificate's, as the product's client key
+# is the digest of the certificate the client paired with. Off, the model's names as they are.
+HEX = False
+NAMES = {}      # each hexadecimal name written, to the model's name
+
+
+def cert_hex(name):
+    """ADDED (renewal answers): a certificate's name, or a client's key, as the file holds it."""
+    if not HEX:
+        return name
+    h = hashlib.sha256(('kpg-store-as-a-whole/certificate/' + name).encode()).hexdigest()
+    NAMES[h] = name
+    return h
+
+
 def rec_doc(rec, uid=None):
     """ADDED (S34 forms): a record of a rule taken off, as text."""
     if rec[0] == 'deny':
@@ -111,6 +128,8 @@ def doc(f, uid=None):       # ADDED (S34 forms): `uid`, an element's identifier 
     # ADDED (rules per profile): a row's version: 'row:<letters>' (an empty rule is 'row:'), 'off:'
     # the rule taken off, 'void:' a version holding nothing of its own, 'cut:<letters>' letters
     # granted and the rule taken off together; a switch's version: 'sw:deny' or 'sw:inherit'
+    if f[0] == 'ans':   # ADDED (renewal answers): an answer's text, as the model holds it
+        return f[1]
     if f[0] == 'rows':
         if f[1] is None:
             if f[2] and len(f) > 3 and DEP is not None:     # ADDED (S34 forms): a written version's record
@@ -209,6 +228,8 @@ class Encoder:
         if o.startswith('sw:'):     # ADDED (rules per profile): the node's switch
             n = o[3:]
             return 'switch:' + self.nodes.get(n, n)
+        if o.startswith('renew:'):  # ADDED (renewal answers): the client's key as the file holds it
+            return 'renew:' + cert_hex(o[6:])
         return o
 
     def key(self, e):
@@ -231,7 +252,9 @@ class Encoder:
             prot.add('KPG.Data')
         elif e.kind == 'ref' and e.data[0] == 'revoked':
             from crdt_model import ckey
-            kind, d = 'revoked', {'v': '2', 'certificate': e.data[1], 'client': ckey(e.data[1]), 'nonce': nonce}
+            # ADDED (renewal answers): cert_hex
+            kind, d = 'revoked', {'v': '2', 'certificate': cert_hex(e.data[1]), 'client': cert_hex(ckey(e.data[1])),
+                                  'nonce': nonce}
         elif e.kind == 'ref':
             kind, d = 'retired', {'v': '2', 'authority': e.data[1], 'nonce': nonce}
             if e.carry:
@@ -239,8 +262,9 @@ class Encoder:
                 prot.add('KPG.Data')
         elif e.kind == 'rec':
             from crdt_model import ckey
-            kind, d = 'client', {'v': '2', 'certificate': e.obj, 'client': ckey(e.obj), 'issuer': e.data[0],
-                                 'profiles': ' '.join(sorted(e.data[1])), 'nonce': nonce}
+            kind, d = 'client', {'v': '2', 'certificate': cert_hex(e.obj), 'client': cert_hex(ckey(e.obj)),
+                                 'issuer': e.data[0], 'profiles': ' '.join(sorted(e.data[1])),
+                                 'nonce': nonce}     # ADDED (renewal answers): cert_hex
         elif e.kind == 'padd':
             kind, d = 'profile', {'v': '2', 'name': e.obj, 'after': ' '.join(sorted(self.u(x) for x in e.after)),
                                   'nonce': nonce}
@@ -257,7 +281,9 @@ class Encoder:
                                'nonce': nonce}
             items = []
             for t in sorted(e.data['ref']):
-                items.append({'kind': 'revoked', 'client': t[1]} if t[0] == 'revoked' else {'kind': 'retired', 'authority': t[1]})
+                # ADDED (renewal answers): cert_hex
+                items.append({'kind': 'revoked', 'client': cert_hex(t[1])} if t[0] == 'revoked'
+                             else {'kind': 'retired', 'authority': t[1]})
             for (n, pid) in sorted(e.data['prem']):
                 items.append({'kind': 'removed', 'name': n, 'id': self.u(pid)})
             for vid in sorted(e.data['regs']):

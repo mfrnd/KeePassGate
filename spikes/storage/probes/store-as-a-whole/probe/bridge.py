@@ -151,6 +151,19 @@ def dep(form, variant):
     M.ROWS = ROWS = variant
 
 
+def answers():
+    """ADDED (renewal answers): the store as decided with the standing answers to a renewal of
+    crdt_model.ANSWERS, in the model and in read.py, each certificate and client key written as 64
+    hexadecimal characters (store.HEX), and the reading of lost versions of `measured-lost-settled`
+    (JUDGE `lost`), so that a lift names in `lost` what it settles. Rules stay a version of a node's
+    whole rule, as in the store as decided."""
+    global PREFIX
+    decide()
+    M.ANSWERS = RD.ANSWERS = S.HEX = True
+    M.JUDGE = RD.JUDGE = 'lost'
+    PREFIX = 'an-'
+
+
 def use(form):
     """ADDED (rules per profile): 'rows', the configuration's form, or 'whole', a version of a node's
     whole rule as every configuration before, with the words per profile kept on, so that a part
@@ -329,6 +342,12 @@ class Bridge:
         # ADDED (owed forms): NODES for ('N', 'root')
         out['words'] = {inv[n]: w for n, w in r['words'].items() if n in inv and inv[n] in NODES}
         out['words_raw'] = {inv[n]: w for n, w in r['words_raw'].items() if n in inv and inv[n] in NODES}
+        if S.HEX:   # ADDED (renewal answers): certificates and client keys by the model's names
+            def name(x):
+                return S.NAMES.get(x, x)
+            for k in ('adm', 'valid', 'renew', 'renew_detail'):
+                if k in out:
+                    out[k] = {name(c): v for c, v in out[k].items()}
         return out
 
     def readcheck(self, i, d, step):
@@ -341,6 +360,10 @@ class Bridge:
         theirs = (r['status'], r['served'], sorted((c, sorted(p)) for c, p in r['adm'].items()),
                   sorted((n, M.words_text(w)) for n, w in r['words'].items()),     # ADDED (copies extended): words_text
                   sorted(c for c, a in r['renew'].items() if a == 'forever'), sorted(r['names']))
+        if M.ANSWERS:   # ADDED (renewal answers): every answer that is not ask, with its cause
+            why = dict((c, x['cause']) for c, x in r.get('renew_detail', {}).items())
+            mine = mine[:4] + (sorted((c, a, v['renew_why'].get(c)) for c, a in v['renew'].items() if a != 'ask'),) + mine[5:]
+            theirs = theirs[:4] + (sorted((c, a, why.get(c)) for c, a in r['renew'].items() if a != 'ask'),) + theirs[5:]
         if mine != theirs:
             self.readdiff.append((step, i, 'model %r; read.py %r' % (mine, theirs)))
         return r
@@ -464,7 +487,8 @@ class Bridge:
             return self.maintenance(k, op)
         if kind == 'kimport':
             return self.kimport(k, op[1], op[2], op[3], op[4])
-        if kind == 'plantk':        # somebody holding the store key writes a version and a head
+        if kind in ('plantk', 'unreadable'):        # somebody holding the store key writes a version and a head
+            # ADDED (renewal answers): unreadable, an answer whose text is out of form
             i = op[1]
             before = W.reps[i].clone()
             if not W.step(op):
@@ -556,6 +580,10 @@ class Bridge:
             self.h.run('dedupe', f[op[1]])
         elif kind == 'nmove':       # ADDED (S34 forms): N moved between G (General) and the root
             self.h.run('move', f[op[1]], self.ids[op[2]], 'General' if op[3] == 'G' else 'Root', t)
+        elif kind == 'lose':        # ADDED (renewal answers): a deletion record whose entry no file holds
+            self.enc.W = P
+            self.patch(op[1], [self.delline(u, P.reps[op[1]].dels[u]) for u in P.reps[op[1]].dels
+                               if u not in W.reps[op[1]].dels])
         else:
             raise ValueError(op)
         self.W = P

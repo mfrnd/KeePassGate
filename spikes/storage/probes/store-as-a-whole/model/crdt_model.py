@@ -12,6 +12,7 @@ addition. With every new switch at its default the copy is the design's model, a
 its output to the design's record. The recommended store is the preset STORE below Flags.
 """
 import copy
+import datetime     # ADDED (renewal answers)
 import itertools
 import random
 import sys
@@ -120,6 +121,8 @@ def meet(f, g):
     if f[0] == 'sws' and g[0] == 'sws':     # ADDED (rules per profile): the versions of a switch
         D = deps_of(f) | deps_of(g)         # ADDED (S34 forms)
         return ('sws', f[1] | g[1], D) if D else ('sws', f[1] | g[1])
+    if f[0] == 'ans' and g[0] == 'ans':     # ADDED (renewal answers): the stricter, by text alone
+        return max(f, g, key=lambda x: (answer_key(x[1]), x[1]))
     if f[0] == 'pp' or g[0] == 'pp':    # ADDED (copies extended): letter by letter
         f, g = gen(f), gen(g)
         c = f[1] & g[1]
@@ -251,6 +254,8 @@ def refusal_of(obj):
         return ('sws', frozenset(['deny']))
     if ROWS and obj.startswith('rule:') and '/' in obj:
         return row('')
+    if ANSWERS and obj.startswith('renew:'):    # ADDED (renewal answers): refuse:forever
+        return ('ans', FOREVER)
     return REFUSE
 
 
@@ -330,6 +335,104 @@ REMOVE_VERBS = frozenset('sd')       # strip, delete: neither switch is asked ab
 # slash where the file holds a version of it (STORE.md 609); with TAG_OF None every deletion record
 # is told of by the object of the element it names, which is the exact reading.
 JUDGE = None
+
+# ADDED (renewal answers): the standing answers to a renewal as the store keeps them, a version of
+# the object `renew:` and the client key whose `doc` is the product's text: `refuse:forever`,
+# `refuse:until:` and a moment as RFC 3339 in UTC to the second, or `ask`, the lift. A text is in
+# form only where composing what was read gives the same bytes; a text out of form refuses forever
+# and stops nothing. The answer is the strictest standing version: forever, then the later moment,
+# then the earlier, then ask; a lost version refuses forever. Whether an answer refuses is a reading
+# against the gate's clock (`World.clock`, a position of CLOCK for each copy), made where a renewal is
+# answered (`renewcert`) and where a dialog shows (`see`), and nowhere else. ANSWERS False: every
+# renewal answer as before, `forever` and `allowed` as stand-in documents. With it on:
+#   - a refusal is given only where the gate's reading asks at its clock, for a client admitted there,
+#     and a lift only where the reading refuses at its clock (Allow renewal is offered only there);
+#   - an answer names in `after` the standing versions its writer was shown (`see`, or the reading of
+#     the write where no `see` came first) that still stand, with what those name in `after`; a lift
+#     names in `lost` the lost versions it was shown that are still lost, with what the versions it
+#     replaces name in `lost`, and comes to nothing where it names nothing;
+#   - a deletion record of an answer is told only for a client key the file knows: the client of a
+#     record of kind `client` present, a revocation in a record or a summary item, and the object of a
+#     version present or restated, as read.py tells it;
+#   - IDEAL_LOST: in the oracle, a version that a version of the same answer names in `lost` counts as
+#     seen and replaced, a lift that settled a lost version having been shown it lost. Off, the oracle
+#     replaces by `after` alone, as for every other object.
+ANSWERS = False
+FOREVER, ASK, UNTIL = 'refuse:forever', 'ask', 'refuse:until:'
+MOMENTS = ('2026-12-14T23:00:00Z', '2027-03-31T22:00:00Z')     # midnights where the operator is, in UTC
+CLOCK = ('2026-11-22T12:00:00Z', '2027-01-15T12:00:00Z', '2027-06-01T12:00:00Z')    # before, between, after
+ANSWER_TEXTS = {'forever': FOREVER, 'until1': UNTIL + MOMENTS[0], 'until2': UNTIL + MOMENTS[1],
+                'ask': ASK, 'allowed': ASK}
+OUT_OF_FORM = UNTIL + '2026-12-15'      # what `unreadable` writes: a day with no time
+IDEAL_LOST = True
+MOMENT_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
+
+
+def answer_read(text):
+    """ADDED (renewal answers): a text read strictly: ('forever',), ('until', moment), ('ask',), or None
+    for a text out of form."""
+    if text == FOREVER:
+        return ('forever',)
+    if text == ASK:
+        return ('ask',)
+    if isinstance(text, str) and text.startswith(UNTIL):
+        m = text[len(UNTIL):]
+        try:
+            d = datetime.datetime.strptime(m, MOMENT_FORMAT)
+        except ValueError:
+            return None
+        if d.strftime(MOMENT_FORMAT) == m:
+            return ('until', m)
+    return None
+
+
+def answer_key(text):
+    """ADDED (renewal answers): a text's place on the chain, the stricter the greater; a text out of
+    form above forever, since it refuses forever whatever else stands."""
+    a = answer_read(text)
+    if a is None:
+        return (3, '')
+    return {'ask': (0, ''), 'forever': (2, '')}.get(a[0], (1, a[-1]))
+
+
+def answer_token(f):
+    """ADDED (renewal answers): what an answer's value gives: (token, cause). The token is `ask`,
+    `until:` and the moment, or `forever`; the cause `none` (no version), `stands`, `lost` (a lost
+    version, or a version beside its deletion record) or `unreadable` (a text out of form)."""
+    if f is None:
+        return 'ask', 'none'
+    if f[0] != 'ans':
+        return 'forever', 'lost'
+    a = answer_read(f[1])
+    if a is None:
+        return 'forever', 'unreadable'
+    return ('until:' + a[1] if a[0] == 'until' else a[0]), 'stands'
+
+
+def answer_rank(token):
+    """ADDED (renewal answers): a token's place on the chain."""
+    if token.startswith('until:'):
+        return (1, token[6:])
+    return {'ask': (0, ''), 'forever': (2, '')}[token]
+
+
+def answer_refuses(token, clock):
+    """ADDED (renewal answers): whether a token refuses at a moment of the clock."""
+    if token.startswith('until:'):
+        return clock < token[6:]
+    return token == 'forever'
+
+
+def answer_label(token):
+    """ADDED (renewal answers): a token as the runs print it: the moments by their place."""
+    if token.startswith('until:') and token[6:] in MOMENTS:
+        return 'until-%d' % (MOMENTS.index(token[6:]) + 1)
+    return token
+
+
+def refusing_at(token):
+    """ADDED (renewal answers): the clock positions at which a token refuses, as text."""
+    return ''.join(str(p) for p, c in enumerate(CLOCK) if answer_refuses(token, c)) or '-'
 
 
 def place_of(obj):
@@ -480,7 +583,8 @@ GATE_ACTS = ('pair', 'revoke', 'recreate', 'padd', 'prem', 'rule', 'renew', 'ado
              'keep',                             # ADDED (copies extended): no alphabet holds it
              'row', 'switch', 'drop',            # ADDED (rules per profile): with ROWS only
              'lift',                             # ADDED (S34 forms): with DEP only
-             'settle', 'plain')                  # ADDED (lost settled)
+             'settle', 'plain',                  # ADDED (lost settled)
+             'see', 'clock')                     # ADDED (renewal answers): with ANSWERS only
 
 
 class World:
@@ -498,6 +602,8 @@ class World:
         self.Kdisk = [None] * nrep      # ADDED (store-as-a-whole): K of the file on disk (change 4)
         self.stats = {}                 # ADDED (store-as-a-whole): counts of what the repair did
         self.ncert = 0                  # ADDED (store-as-a-whole): certificates renewed so far
+        self.clock = [0] * nrep         # ADDED (renewal answers): each gate's clock, a position of CLOCK
+        self.seen = {}                  # ADDED (renewal answers): (gate, client) -> what a dialog showed
         base = self.reps[0]
         base.nodes = {'root': ['root', 1], 'N': [None, 1]}
         if PARENT:      # ADDED (owed forms): the group between the root and N
@@ -534,6 +640,7 @@ class World:
         w.stats, w.ncert = dict(self.stats), self.ncert
         w.wkey = getattr(self, 'wkey', 'K')
         w.loses = getattr(self, 'loses', frozenset())      # ADDED (lost settled)
+        w.clock, w.seen = list(self.clock), dict(self.seen)     # ADDED (renewal answers)
         return w
 
     # ADDED (store-as-a-whole): the file as another program reads it, and what it holds (change 4)
@@ -631,6 +738,12 @@ class World:
                 present = set()
                 for V in vers.values():
                     present |= set(V)
+            # ADDED (renewal answers): the client keys the file knows
+            known_keys = None
+            if ANSWERS:
+                known_keys = set(ckey(e.obj) for e in ents.values() if e.kind == 'rec')
+                known_keys |= set(s for (k, s) in refusals if k == 'revoked')
+                known_keys |= set(o[6:] for o in set(vers) | supers if o.startswith('renew:'))
             for u in rep.dels:
                 e = EL.get(u)
                 if e is None or e.key not in held:      # ADDED (store-as-a-whole): `not in held`
@@ -657,10 +770,13 @@ class World:
                         if u not in deadall and (u not in present if TAG_READ == 'each' and TAG_OF is not None
                                                  else u not in vers.get(o, {})):
                             lost.setdefault(o, set()).add(u)
+                elif known_keys is not None and e.obj.startswith('renew:') and e.obj[6:] not in known_keys:
+                    continue    # ADDED (renewal answers): an answer of a client key the file does not know
                 elif e.kind in ('ver', 'pin') and u not in deadall and u not in vers.get(e.obj, {}):
                     lost.setdefault(e.obj, set()).add(u)   # a version nothing replaced or carries
             if JUDGE is not None or exact:      # ADDED (lost settled)
-                lost.update(self.judge_dels(rep, ents, vers, supers, held, known, rown, exact))
+                lost.update(self.judge_dels(rep, ents, vers, supers, held, known, rown, exact,
+                                            known_keys))     # ADDED (renewal answers): known_keys
         store = bool(ents) or any(u[0] in 'HT' for u in rep.dels)
         status = 'ok'
         if not heads_live:
@@ -689,7 +805,11 @@ class World:
                 for e in V.values():
                     deadall |= e.after
             for e in ents.values():
-                if (e.kind == 'ref' and e.data not in c_ref) or \
+                # ADDED (renewal answers): with ANSWERS a revocation is held to what it refuses, the
+                # client's key, which is what the summary entry restates; read as its certificate, a
+                # revocation of a client whose certificate was renewed stopped the store in the model
+                # alone (no earlier output changes, since the switch is off in every earlier part)
+                if (e.kind == 'ref' and (rtuple(e.data, fl) if ANSWERS else e.data) not in c_ref) or \
                         (e.kind == 'prem' and (e.obj, e.id) not in c_prem) or \
                         (e.kind in ('ver', 'pin') and e.id not in named and e.id not in deadall
                          and e.id not in c_regs):
@@ -732,6 +852,9 @@ class World:
             dead = set()
             for e in V.values():
                 dead |= e.after
+                # ADDED (renewal answers): in the oracle, what a lift settled in `lost` it saw
+                if ANSWERS and IDEAL_LOST and fl.idealkeys and obj.startswith('renew:'):
+                    dead |= e.lost
             f = None
             for i, e in V.items():
                 if i in dead:
@@ -818,9 +941,12 @@ class World:
             if PP:      # ADDED (copies extended): every word as a profile's letter
                 words_raw[n] = lift(words_raw[n])
             words[n] = words_raw[n] if status == 'ok' and served else frozenset()
-        renew = {}
+        renew, renew_why = {}, {}
         for c in self.clients:
             f = freg('renew:' + c, 0)
+            if ANSWERS:     # ADDED (renewal answers): the chain, read with no clock
+                renew[c], renew_why[c] = answer_token(f)
+                continue
             renew[c] = 'forever' if f is not None and not app(f, ALL) else 'ask'
         # ADDED (store-as-a-whole): `held`, `auths`, the register values
         regval = {}
@@ -833,9 +959,11 @@ class World:
                    held=held, auths=auths, regval=regval)
         if DEP is not None:     # ADDED (S34 forms): what the acts of a form read
             out.update(parent_of=parent_of, walk_above=walk_above, standing_ids=standing_ids)
+        if ANSWERS:     # ADDED (renewal answers)
+            out['renew_why'] = renew_why
         return out
 
-    def judge_dels(self, rep, ents, vers, supers, held, known, rown, exact):
+    def judge_dels(self, rep, ents, vers, supers, held, known, rown, exact, known_keys=None):     # ADDED (renewal answers): known_keys
         """ADDED (lost settled): the objects each deletion record of a version is lost to, under
         JUDGE, as {object: identifiers}. A deletion record of a version a summary entry in force
         restates is lost to nothing: its text is held. With `exact`, the reading that knows whose
@@ -854,6 +982,8 @@ class World:
 
         def at_place(obj):
             """Every object the file knows at the place of a version of `obj`."""
+            if known_keys is not None and obj.startswith('renew:'):     # ADDED (renewal answers)
+                return [obj] if obj[6:] in known_keys else []
             if not obj.startswith('rule:'):
                 return [obj]
             if TAG_OF is None:
@@ -964,10 +1094,21 @@ class World:
 
     def act(self, i, op):
         """A decision made through the gate on file i. False when it does not apply."""
+        if op[0] == 'clock':    # ADDED (renewal answers): ('clock', gate, position), the gate's clock set
+            if not ANSWERS or self.clock[i] == op[2]:
+                return False
+            self.clock[i] = op[2]
+            return True
         rep = self.reps[i]
         v = self.fold(rep)
         self.wkey = sorted(v['held'])[0] if v['held'] else 'K'     # ADDED (store-as-a-whole)
         kind = op[0]
+        if kind == 'see':       # ADDED (renewal answers): ('see', gate, client), a dialog that shows the
+            # client's answer opens: what it shows is kept for the gate's next answer about the client
+            if not ANSWERS or v['status'] != 'ok' or op[2] not in self.clients:
+                return False
+            self.seen[(i, op[2])] = self.shown(v, i, op[2])
+            return True
         if kind == 'settle':    # ADDED (lost settled): ('settle', gate, node, profile), a row that
             # refuses for a lost version set again to the letters its standing versions all grant,
             # an empty rule where none grants: the operator choosing the row on the tab again
@@ -1027,8 +1168,11 @@ class World:
             return False
         # ADDED (store-as-a-whole): a rule waits in memory for the next save (change 4)
         just = False    # ADDED (rules per profile): a rule act that changes no row writes nothing
-        # ADDED (rules per profile): the row acts as well; ADDED (S34 forms): lift
-        if (kind == 'rule' or (ROWS is not None and kind in ('row', 'switch', 'drop', 'lift'))) \
+        # ADDED (rules per profile): the row acts as well; ADDED (S34 forms): lift; ADDED (renewal
+        # answers): an answer and a lift, written into the open database and saved by KeePass or by
+        # a later write of the plugin's own that saves, as a rule set on a node's dialog is (STORE.md 629)
+        if (kind == 'rule' or (ROWS is not None and kind in ('row', 'switch', 'drop', 'lift'))
+                or (ANSWERS and kind == 'renew')) \
                 and self.flags.pending and rep.disk is None:
             rep.disk = rep.clone()
             self.Kdisk[i] = set(self.K[i])
@@ -1066,6 +1210,9 @@ class World:
         elif kind == 'renewcert':
             certs = sorted(x for x in v['adm'] if ckey(x) == op[2])
             if not certs or v['renew'].get(op[2]) == 'forever':
+                return False
+            # ADDED (renewal answers): refused where the gate's reading refuses at its clock
+            if ANSWERS and answer_refuses(v['renew'].get(op[2], ASK), CLOCK[self.clock[i]]):
                 return False
             self.ncert += 1
             c = '%s.%d' % (op[2], self.ncert)
@@ -1124,6 +1271,12 @@ class World:
                 if just:
                     self.flush(i)
                 return False
+        elif kind == 'renew' and ANSWERS:     # ADDED (renewal answers)
+            new += self.answer_act(i, v, op)
+            if not new:
+                if just:
+                    self.flush(i)
+                return False
         elif kind in ('rule', 'renew', 'adopt'):
             if kind == 'rule':
                 obj, doc, node = 'rule:' + op[2], doc_of(op[3]), op[2]     # ADDED (copies extended): doc_of
@@ -1169,10 +1322,60 @@ class World:
         self.K[i].add(self.write_head(rep, set(e.id for e in new)))
         self.Kever[i] |= self.K[i]
         # ADDED (store-as-a-whole); ADDED (rules per profile): the row acts as well
-        if not ((kind == 'rule' or (ROWS is not None and kind in ('row', 'switch', 'drop', 'lift')))     # ADDED (S34 forms): lift
+        if not ((kind == 'rule' or (ROWS is not None and kind in ('row', 'switch', 'drop', 'lift'))     # ADDED (S34 forms): lift
+                 or (ANSWERS and kind == 'renew'))      # ADDED (renewal answers)
                 and self.flags.pending):
             self.flush(i)
         return True
+
+    def shown(self, v, i, c):
+        """ADDED (renewal answers): what a dialog at gate i shows of client c's answer, from the gate's
+        reading `v`: the standing versions, the lost versions, whether the answer refuses at the gate's
+        clock, and whether a certificate of the client is admitted there."""
+        obj = 'renew:' + c
+        V = v['vers'].get(obj, {})
+        dead = set()
+        for e in V.values():
+            dead |= e.after
+        refusing = answer_refuses(v['renew'].get(c, ASK), CLOCK[self.clock[i]])
+        return (frozenset(x for x in V if x not in dead), frozenset(v['lost'].get(obj, ())), refusing,
+                any(ckey(x) == c for x in v['adm']))
+
+    def answer_act(self, i, v, op):
+        """ADDED (renewal answers): ('renew', gate, client, value), value forever, until1, until2 or ask
+        (allowed as well, the stand-in of the runs before). A refusal is given on the renewal dialog,
+        raised where the gate's reading asks at its clock for a client admitted there, and a moment only
+        where it is still ahead at that clock; a lift is pressed where the page showed the answer
+        refusing at the gate's clock, for a client admitted there. Each names what its writer was shown,
+        by the last `see` of that gate and client or by the reading of the write."""
+        c, value = op[2], op[3]
+        if c not in self.clients or value not in ANSWER_TEXTS:
+            return []
+        obj = 'renew:' + c
+        st, lost, refusing, admitted = self.seen.pop((i, c), None) or self.shown(v, i, c)
+        text = ANSWER_TEXTS[value]
+        lift = text == ASK
+        if not admitted or refusing != lift:
+            return []
+        if text.startswith(UNTIL) and not CLOCK[self.clock[i]] < text[len(UNTIL):]:
+            return []
+        V = v['vers'].get(obj, {})
+        dead = set()
+        for e in V.values():
+            dead |= e.after
+        named = set(x for x in st if x in V and x not in dead)     # shown, and still standing
+        after = set(named)
+        for x in named:
+            after |= self.EL[x].after
+        lst = set()
+        if lift:
+            lst = set(x for x in lost if x in v['lost'].get(obj, ()))
+            for x in named:
+                lst |= self.EL[x].lost
+            lst -= after
+            if not after and not lst:
+                return []       # it comes to nothing where it names nothing
+        return [self.mk('ver', obj, after=after, data=('ans', text), lost=lst)]
 
     def names_lost(self, v, obj, replaced, after):
         """ADDED (lost settled): what a version of `obj` names beside the versions it replaces,
@@ -1587,6 +1790,10 @@ class World:
             if not held:
                 return False
             data = ('sws', frozenset(['inherit'])) if op[2].startswith('sw:') else row('r')
+            if op[2].startswith('renew:'):      # ADDED (renewal answers): a refusal forever
+                if not ANSWERS:
+                    return False
+                data = ('ans', FOREVER)
             e = self.mk('ver', op[2], data=data, key=sorted(held)[0])
             self.loses = getattr(self, 'loses', frozenset()) | {e.id}     # the identifiers `lose` made
             rep.dels[e.id] = self.now()
@@ -1687,6 +1894,17 @@ class World:
                 self.EL[e.id] = e
             rep.entries[e.id] = [e.id, t, True]
             self.flush(op[1])       # ADDED (store-as-a-whole): KeePass saves
+            return True
+        # ADDED (renewal answers): ('unreadable', i, client), somebody who holds the store key writes an
+        # answer about the client whose text is out of form, naming nothing, and a summary entry
+        if k == 'unreadable':
+            rep = reps[op[1]]
+            v = self.fold(rep)
+            if not ANSWERS or not v['held'] or op[2] not in self.clients:
+                return False
+            e = self.mk('ver', 'renew:' + op[2], data=('ans', OUT_OF_FORM), key=sorted(v['held'])[0])
+            rep.entries[e.id] = [e.id, self.now(), True]
+            self.write_head(rep, {e.id})
             return True
         # ADDED (store-as-a-whole): a file made by somebody who holds the store key, merged in: a
         # version of N's rule granting read and write that names every version present
@@ -1842,7 +2060,7 @@ INPUTS = (frozenset(), frozenset('r'), frozenset('w'), ALL)
 
 
 # ------------------------------------------------------------------ properties
-def narrower(A, I, nodes):
+def narrower(A, I, nodes, renewals=True, against='its ideal'):     # ADDED (renewal answers): `renewals`, `against`
     """None when A grants nothing I does not; else what is wider."""
     for c, profs in A['adm'].items():
         if c not in I['valid']:
@@ -1852,9 +2070,26 @@ def narrower(A, I, nodes):
     for n in nodes:
         if n in A['words'] and not A['words'][n] <= I['words_raw'].get(n, frozenset()):
             return 'node %s grants %s' % (n, words_text(A['words'][n]))      # ADDED (copies extended): words_text
+    if ANSWERS:     # ADDED (renewal answers)
+        return narrower_renewals(A, I, against) if renewals else None
     for c, a in A['renew'].items():
         if a == 'ask' and I['renew'].get(c) == 'forever' and A['status'] == 'ok' and A['served']:
             return 'renewal of %s asked' % c
+    return None
+
+
+def narrower_renewals(A, I, against='its ideal'):
+    """ADDED (renewal answers): None when no answer of A is below its answer in I on the chain, which,
+    the chain being total and refusing being monotone in it, is: wherever I refuses at a position of
+    the clock, A refuses as well; else the first answer below. Only for a store that serves.
+    `against` names what I is, in the answer."""
+    if A['status'] != 'ok' or not A['served']:
+        return None
+    for c, a in sorted(A['renew'].items()):
+        b = I['renew'].get(c, ASK)
+        if answer_rank(a) < answer_rank(b):
+            return 'renewal of %s %s where %s is %s (refusing at %s against %s)' % (
+                c, answer_label(a), against, answer_label(b), refusing_at(a), refusing_at(b))
     return None
 
 
@@ -1883,6 +2118,10 @@ def narrower_than(A, I, nodes):
         if not I['words_raw'].get(n, frozenset()) <= mine:
             return 'node %s lacks %s' % (n, words_text(I['words_raw'][n] - mine))    # ADDED (copies extended): words_text
     for c, a in A['renew'].items():
+        if ANSWERS:     # ADDED (renewal answers): above its ideal on the chain
+            if answer_rank(a) > answer_rank(I['renew'].get(c, ASK)):
+                return 'renewal of %s refused' % c
+            continue
         if a == 'forever' and I['renew'].get(c) == 'ask':
             return 'renewal of %s refused' % c
     return None
@@ -1904,9 +2143,23 @@ def run(ops, nrep, flags=FULL, check_conv=True, world=None):
         before = None
         if op[0] in ('del', 'edit', 'quit'):    # ADDED (store-as-a-whole): 'quit'
             before = W.fold(W.reps[op[1]])
+        # ADDED (renewal answers): a renewal issued is held to the gate's ideal just before it, at the
+        # gate's clock
+        renewal = None
+        if ANSWERS and op[0] == 'renewcert' and op[1] < len(W.reps):
+            renewal = (W.ideal(op[1]), CLOCK[W.clock[op[1]]])
         stats0 = dict(W.stats)      # ADDED (store-as-a-whole)
         if not W.step(op):
             continue
+        if renewal is not None and answer_refuses(renewal[0]['renew'].get(op[2], ASK), renewal[1]):
+            fails.append(('safety', k, 'file %d: renewal of %s issued where its ideal is %s' % (
+                op[1], op[2], answer_label(renewal[0]['renew'].get(op[2], ASK)))))
+        elif renewal is not None and 'info:renewal-at-a-clock-ahead' not in seen and any(
+                answer_refuses(renewal[0]['renew'].get(op[2], ASK), CLOCK[c]) for c in W.clock):
+            # issued at the gate's clock, where the ideal still refuses at another copy's clock: the
+            # operator approved a renewal that a clock behind it would have refused without asking
+            seen.add('info:renewal-at-a-clock-ahead')
+            fails.append(('info:renewal-at-a-clock-ahead', k, 'file %d: renewal of %s' % (op[1], op[2])))
         sealed = sealed or op[0] == 'reseal'
         for i in range(nrep):
             A = W.fold(W.reps[i])
@@ -1925,9 +2178,20 @@ def run(ops, nrep, flags=FULL, check_conv=True, world=None):
                         if p == 'copy-cap' or p not in seen:
                             seen.add(p)
                             fails.append((p, k, 'file %d: %s' % (i, m)))
-        if before is not None:
+        if before is not None and ANSWERS and op[0] == 'quit':
+            # ADDED (renewal answers): KeePass ending before a save discards an answer or a lift that
+            # waits with every other unsaved change, an accepted class, counted apart from a rule that waits
             A = W.fold(W.reps[op[1]])
-            w = narrower(A, before, W.reps[op[1]].nodes)
+            lift = narrower_renewals(before, A, 'the copy after the quit')    # the stricter way
+            for p, w in (('accepted:unsaved-answer-lost', narrower_renewals(A, before, 'the copy before the quit')),
+                         ('accepted:unsaved-rule-lost', narrower(A, before, W.reps[op[1]].nodes, False)),
+                         ('info:unsaved-lift-lost', lift and 'before the quit, ' + lift)):
+                if w and p not in seen:
+                    seen.add(p)
+                    fails.append((p, k, 'file %d: %s' % (op[1], w)))
+        elif before is not None:
+            A = W.fold(W.reps[op[1]])
+            w = narrower(A, before, W.reps[op[1]].nodes, against='the copy before the step')     # ADDED (renewal answers): against
             if w:
                 # ADDED (store-as-a-whole): KeePass ending before a save is accepted (decision 13)
                 p = 'accepted:unsaved-rule-lost' if op[0] == 'quit' else 'one-loss'
@@ -1981,6 +2245,10 @@ def alphabet(nrep, cfg, flags=None):     # ADDED (store-as-a-whole): `flags`
                  ('padd', r, 'pf'), ('padd', r, 'pg'), ('prem', r, 'pf'), ('prem', r, 'pg'),
                  ('renew', r, 'c0', 'forever'), ('renew', r, 'c0', 'allowed'), ('save', r),
                  ('adopt', r, 0, 'r'), ('copy', r)]
+        if ANSWERS:     # ADDED (renewal answers): the four answers about two clients, a dialog, the clock
+            acts = [a for a in acts if not (a[0] == 'renew' and a[1] == r)]
+            acts += [('renew', r, c, x) for c in ('c0', 'c1') for x in ('forever', 'until1', 'until2', 'ask')]
+            acts += [('see', r, c) for c in ('c0', 'c1')] + [('clock', r, p) for p in range(len(CLOCK))]
         for n in ('root', 'N'):
             for d in DOCS:
                 acts.append(('rule', r, n, d))
@@ -1997,6 +2265,10 @@ def alphabet(nrep, cfg, flags=None):     # ADDED (store-as-a-whole): `flags`
     sels = [('head', 'new'), ('head', 'old'), ('ref', 'revoked'), ('ref', 'retired'),
             ('ver', 'rule:N', 'new'), ('ver', 'rule:N', 'old'), ('ver', 'rule:root', 'new'),
             ('ver', 'renew:c0', 'new'), ('rec',), ('auth',), ('padd',), ('prem',)]
+    if ANSWERS:     # ADDED (renewal answers): an answer replaced, and the other client's answer
+        sels += [('ver', 'renew:c0', 'old'), ('ver', 'renew:c1', 'new')]
+    if ANSWERS and 'foreign' in cfg:     # ADDED (renewal answers): a text out of form, by a key holder
+        faults += [('unreadable', r, c) for r in R for c in ('c0', 'c1')]
     if 'rec' in cfg:
         faults += [('del', r, s, 1) for r in R for s in sels]
         faults += [('reseal', r) for r in R]

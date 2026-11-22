@@ -95,6 +95,52 @@ TAG_READ = 'last'
 # TAG_READ holds, and under a tag of 0 of the object `rule:` and the node with no slash as well,
 # where the file holds a version of it.
 JUDGE = None
+# ADDED (renewal answers): the standing answers to a renewal, STORE.md 618 and its S7. A version
+# of `renew:` and a client key holds `refuse:forever`, `refuse:until:` and a moment, RFC 3339 in UTC to
+# the second, or `ask`, read strictly here and by nothing of the model: a text is in form only where
+# composing what was read gives the same bytes. The answer is the strictest standing version, the
+# later moment the stricter; a lost version and a text out of form refuse forever. The answer names
+# every client key the file knows, from its admissions and revocations and from the object of every
+# version present or restated. No clock is read: `renew` holds `ask`, `until:` and the moment, or
+# `forever`, and `renew_detail` the cause and what stands.
+ANSWERS = False
+ANSWER_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
+
+
+def answer_text(text):
+    """ADDED (renewal answers): ('forever',), ('until', moment), ('ask',), or None out of form."""
+    import datetime
+    if text == 'refuse:forever':
+        return ('forever',)
+    if text == 'ask':
+        return ('ask',)
+    if isinstance(text, str) and text.startswith('refuse:until:'):
+        m = text[13:]
+        try:
+            ok = datetime.datetime.strptime(m, ANSWER_FORMAT).strftime(ANSWER_FORMAT) == m
+        except ValueError:
+            ok = False
+        if ok:
+            return ('until', m)
+    return None
+
+
+def answer_key_form(key):
+    """ADDED (renewal answers): a client key as the product writes it, 64 lowercase hexadecimal
+    characters. With store.HEX off the model's names pass, so that the family's runs read as before."""
+    if not S.HEX:
+        return True
+    return len(key) == 64 and all(c in '0123456789abcdef' for c in key)
+
+
+def answer_order(text):
+    """ADDED (renewal answers): the stricter the greater; out of form the strictest."""
+    a = answer_text(text)
+    if a is None:
+        return (3, '')
+    if a[0] == 'until':
+        return (1, a[1])
+    return (0, '') if a[0] == 'ask' else (2, '')
 
 
 def switch_refuses(s):
@@ -127,7 +173,16 @@ def deps_of(x):
     return frozenset()
 
 
+def value_of(obj, doc):
+    """ADDED (renewal answers): a version's value: an answer's text as it stands, or the text read."""
+    if ANSWERS and obj.startswith('renew:'):
+        return ('ans', doc)
+    return und(doc)
+
+
 def meet(f, g):
+    if f[0] == 'ans' and g[0] == 'ans':     # ADDED (renewal answers): the stricter, by text alone
+        return max(f, g, key=lambda x: (answer_order(x[1]), x[1]))
     if f[0] == 'rows' and g[0] == 'rows':   # ADDED (rules per profile): as crdt_model.meet
         G = f[1] if g[1] is None else g[1] if f[1] is None else f[1] & g[1]
         D = deps_of(f) | deps_of(g)         # ADDED (S34 forms): the records of every version
@@ -432,19 +487,29 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
             supers.add(c.d['object'])
             beside_obj[c.u] = c.d['object']     # ADDED (lost settled)
         else:
-            vers.setdefault(c.d['object'], {})[c.u] = (frozenset(c.d['after'].split()), und(c.d['doc']))
+            # ADDED (renewal answers): value_of for und
+            vers.setdefault(c.d['object'], {})[c.u] = (frozenset(c.d['after'].split()),
+                                                       value_of(c.d['object'], c.d['doc']))
             lostsets[c.u] = frozenset(c.d.get('lost', '').split())     # ADDED (lost settled)
     for h in heads_live:
         for it in heads_items(h):
             if it['kind'] == 'version':
-                vers.setdefault(it['object'], {})[it['id']] = (frozenset(it['after'].split()), und(it['doc']))
+                # ADDED (renewal answers): value_of for und
+                vers.setdefault(it['object'], {})[it['id']] = (frozenset(it['after'].split()),
+                                                               value_of(it['object'], it['doc']))
                 lostsets[it['id']] = frozenset(it.get('lost', '').split())     # ADDED (lost settled)
     # what a deletion record still tells, by its keyed tag and hash (design 5.2 points 3 and 4)
     clients = set(c.d['client'] for c in by.get('client', [])) | set(s for (k, s) in refusals if k == 'revoked')
     clients |= set(s for (k, s, i) in copy_refusals if k == 'revoked')      # ADDED (copies extended)
     authorities = set(c.d['id'] for c in by.get('authority', [])) | set(s for (k, s) in refusals if k == 'retired')
     names = set(c.d['name'] for c in by.get('profile', []) + by.get('removed', [])) | set(n for (n, i) in prem)
-    objects = set(vers) | supers | set('renew:' + c for c in clients)
+    renewing = set(clients)
+    if ANSWERS:     # ADDED (renewal answers): the client key of every answer present or restated; an
+        # object of type renew in any other text than 64 lowercase hexadecimal characters is the object
+        # of nothing (STORE.md 658), which no answer is read from
+        renewing = set(c for c in clients if answer_key_form(c))
+        renewing |= set(o[6:] for o in set(vers) | supers if o.startswith('renew:') and answer_key_form(o[6:]))
+    objects = set(vers) | supers | set('renew:' + c for c in renewing)     # ADDED (renewal answers): renewing
     for g in dump['groups']:
         objects.add('rule:' + g)
     objects.add('rule:' + dump['root'])
@@ -767,8 +832,27 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
         raw[n] = words(n)
     serve = status == 'ok' and served is not None
     renew = {}
-    for cl in sorted(clients):
+    renew_detail = {}       # ADDED (renewal answers)
+    for cl in sorted(renewing):     # ADDED (renewal answers): renewing for clients
         f = freg('renew:' + cl)
+        if ANSWERS:     # ADDED (renewal answers): the chain, with no clock
+            o = 'renew:' + cl
+            if f is None:
+                tok, why = 'ask', 'none'
+            elif f[0] != 'ans':
+                tok, why = 'forever', 'lost'
+            else:
+                a = answer_text(f[1])
+                tok, why = ('forever', 'unreadable') if a is None else \
+                    ('until:' + a[1] if a[0] == 'until' else a[0], 'stands')
+            V = vers.get(o) or {}
+            dd = set()
+            for after, g in V.values():
+                dd |= after
+            renew[cl] = tok
+            renew_detail[cl] = {'value': tok, 'cause': why, 'lost': sorted(lost.get(o, ())),
+                                'standing': sorted(g[1] for i, (after, g) in V.items() if i not in dd)}
+            continue
         if PP and f is not None:    # ADDED (copies extended)
             renew[cl] = 'forever' if not app(gen(f), UNIV) else 'ask'
             continue
@@ -800,6 +884,8 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
         extra['tag_meets'] = sorted(tuple(ps) for ps in profile_tags.values() if len(ps) > 1)
         extra['row_names'] = sorted(row_names)
         extra['known_names'] = sorted(names)
+    if ANSWERS:     # ADDED (renewal answers)
+        extra['renew_detail'] = renew_detail
     return dict(**extra,status=status, served=served, auths=auths, adm=adm if serve else {}, valid=valid,
                 names=sorted(on), words={n: (w if serve else frozenset()) for n, w in raw.items()},
                 words_raw=raw, renew=renew, refusals=refusals, counts=counts,
