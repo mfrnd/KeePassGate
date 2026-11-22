@@ -808,6 +808,10 @@ plainly, and the tier takes a few minutes either way.
 
 **And the client tier runs beside both.** `build.ps1` starts it as a process of its own while the
 plugin builds and its tiers run, prints its output once they are done, and fails if either half did.
+A machine that busy can keep the client's tests off the processor for seconds at a time, so every
+wait they make on a peer in their own process, the stand-in gate or a peer a test writes for itself,
+is `PEER_TIMEOUT` from `tests/pykeepassgate/timeouts.py`, at both ends of the connection, and a test
+about a timeout gives its own, short and beside what it asserts.
 
 ## What the coverage floor holds
 

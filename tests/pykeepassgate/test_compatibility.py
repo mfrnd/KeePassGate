@@ -28,6 +28,7 @@ from pykeepassgate.errors import (
 from pykeepassgate.pairing import Pairing
 from pykeepassgate.testing import Authority, FakeGate, Issued
 from test_pairing import INVITATION, Gate
+from timeouts import PEER_TIMEOUT
 
 #: A version no build of this client is, for a gate it does not work with.
 AHEAD = "99.0.0"
@@ -39,7 +40,7 @@ STATUS = {"ok": True, "database": "abcdef01", "version": __version__, "revision"
 def paired(tmp_path: Path, bundle: dict[str, Any], gate: FakeGate) -> GateClient:
     """A client that has been through pairing with this gate."""
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
-    return GateClient(stored, connection_timeout=10.0)
+    return GateClient(stored, connection_timeout=PEER_TIMEOUT)
 
 
 @pytest.fixture
@@ -285,7 +286,7 @@ def test_a_hello_from_a_gate_the_client_does_not_work_with_ends_the_pairing_befo
     pairing_gate.version = AHEAD
 
     with pytest.raises(IncompatibleGate, match=AHEAD):
-        Pairing(gate.port, INVITATION, connection_timeout=10.0).hello()
+        Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT).hello()
 
     assert [path for _, path in gate.requests] == ["/pair/hello"], "no operator was asked"
 
@@ -301,7 +302,7 @@ def test_pairing_through_the_library_keeps_nothing_from_a_gate_it_does_not_work_
             "agent-invented",
             port=gate.port,
             directory=tmp_path / "kept",
-            connection_timeout=10.0,
+            connection_timeout=PEER_TIMEOUT,
         )
 
     assert [path for _, path in gate.requests] == ["/pair/hello"]
@@ -314,7 +315,7 @@ def test_a_hello_without_a_version_is_from_a_gate_older_than_this_client(
     pairing_gate.version = None
 
     with pytest.raises(IncompatibleGate, match="the gate reports no version"):
-        Pairing(gate.port, INVITATION, connection_timeout=10.0).hello()
+        Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT).hello()
 
 
 def test_a_hello_whose_version_is_not_text_is_a_protocol_error(
@@ -323,7 +324,7 @@ def test_a_hello_whose_version_is_not_text_is_a_protocol_error(
     pairing_gate.version = 2
 
     with pytest.raises(ProtocolError, match="version that is not text"):
-        Pairing(gate.port, INVITATION, connection_timeout=10.0).hello()
+        Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT).hello()
 
 
 def test_an_impostor_is_refused_on_its_proof_before_its_version_is_read(
@@ -335,7 +336,7 @@ def test_an_impostor_is_refused_on_its_proof_before_its_version_is_read(
     pairing_gate.version = AHEAD
 
     with pytest.raises(ProofRefused):
-        Pairing(gate.port, INVITATION, connection_timeout=10.0).hello()
+        Pairing(gate.port, INVITATION, connection_timeout=PEER_TIMEOUT).hello()
 
 
 def test_the_stand_in_answers_the_status_route_itself_as_the_plugin_would(

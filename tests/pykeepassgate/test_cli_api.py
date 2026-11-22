@@ -21,6 +21,7 @@ from pykeepassgate import credentials as credentials_module
 from pykeepassgate.testing import FakeGate, identified
 from test_cli_output import commands
 from test_credentials import linked
+from timeouts import PEER_TIMEOUT
 
 UUID = "7b1c" * 8
 
@@ -166,8 +167,9 @@ def test_connection_timeout_reaches_the_client_rather_than_being_parsed_and_drop
 
     monkeypatch.setattr(api.GateClient, "open", watching)
 
-    assert cli.main(["groups", "--directory", str(kept), "--connection-timeout", "12.5"]) == 0
-    assert asked == [12.5]
+    given = str(PEER_TIMEOUT)
+    assert cli.main(["groups", "--directory", str(kept), "--connection-timeout", given]) == 0
+    assert asked == [PEER_TIMEOUT]
 
 
 def test_groups_under_one_group_walks_a_level(gate: FakeGate, kept: Path) -> None:

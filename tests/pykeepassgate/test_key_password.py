@@ -29,6 +29,7 @@ from test_pairing import INVITATION
 from test_pairing import Gate as PairingGate
 from test_renewal import Gate as RenewalGate
 from test_renewal import bundle_for
+from timeouts import PEER_TIMEOUT
 
 # The encryption scheme PKCS#5 names for a key under a password, named the way it names it.
 # cspell:ignore PBES
@@ -90,7 +91,8 @@ class TestTheKeyOnDisk:
 
         assert encrypted(stored.identity)
         assert opens_with(stored.identity, PASSWORD.encode())
-        assert GateClient(stored, connection_timeout=10.0, key_password=PASSWORD).status().ok
+        client = GateClient(stored, connection_timeout=PEER_TIMEOUT, key_password=PASSWORD)
+        assert client.status().ok
 
     def test_a_key_stored_without_one_is_not(
         self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
@@ -113,8 +115,10 @@ class TestTheKeyOnDisk:
         stored = credentials_module.save(tmp_path / "kept", gate.port, bundle, key_password=given)
         serving_status(gate)
 
-        assert GateClient(stored, connection_timeout=10.0, key_password=PASSWORD.encode()).status()
-        assert GateClient(stored, connection_timeout=10.0, key_password=PASSWORD).status()
+        assert GateClient(
+            stored, connection_timeout=PEER_TIMEOUT, key_password=PASSWORD.encode()
+        ).status()
+        assert GateClient(stored, connection_timeout=PEER_TIMEOUT, key_password=PASSWORD).status()
 
     def test_a_password_outside_ascii_opens_what_it_stored(
         self, tmp_path: Path, bundle: dict[str, Any], gate: FakeGate
@@ -123,7 +127,7 @@ class TestTheKeyOnDisk:
         stored = credentials_module.save(tmp_path / "kept", gate.port, bundle, key_password=typed)
         serving_status(gate)
 
-        assert GateClient(stored, connection_timeout=10.0, key_password=typed).status().ok
+        assert GateClient(stored, connection_timeout=PEER_TIMEOUT, key_password=typed).status().ok
 
 
 class TestOpeningTheKey:
@@ -141,7 +145,7 @@ class TestOpeningTheKey:
     ) -> None:
         # Never OpenSSL's own prompt, which would read a terminal from inside a library call.
         with pytest.raises(StorageError, match=r"identity\.pem holds an encrypted key.*no key"):
-            GateClient(stored, connection_timeout=10.0)
+            GateClient(stored, connection_timeout=PEER_TIMEOUT)
 
         assert gate.names == []
 
@@ -149,7 +153,7 @@ class TestOpeningTheKey:
         self, stored: credentials_module.Credentials, gate: FakeGate
     ) -> None:
         with pytest.raises(StorageError, match=r"identity\.pem.*does not open") as refused:
-            GateClient(stored, connection_timeout=10.0, key_password="not the one")
+            GateClient(stored, connection_timeout=PEER_TIMEOUT, key_password="not the one")
 
         assert "not the one" not in str(refused.value)
         assert gate.names == []
@@ -158,7 +162,7 @@ class TestOpeningTheKey:
         self, stored: credentials_module.Credentials
     ) -> None:
         asked = Counting()
-        client = GateClient(stored, connection_timeout=10.0, key_password=asked)
+        client = GateClient(stored, connection_timeout=PEER_TIMEOUT, key_password=asked)
 
         client.status()
         client.status()
@@ -173,8 +177,8 @@ class TestOpeningTheKey:
         serving_status(gate)
         asked = Counting()
 
-        assert GateClient(plain, connection_timeout=10.0, key_password=asked).status().ok
-        assert GateClient(plain, connection_timeout=10.0, key_password="unused").status().ok
+        assert GateClient(plain, connection_timeout=PEER_TIMEOUT, key_password=asked).status().ok
+        assert GateClient(plain, connection_timeout=PEER_TIMEOUT, key_password="unused").status().ok
         assert asked.asked == 0
 
     def test_what_a_callable_raises_comes_out_as_it_was_raised(
@@ -188,12 +192,14 @@ class TestOpeningTheKey:
             raise Declined
 
         with pytest.raises(Declined):
-            GateClient(stored, connection_timeout=10.0, key_password=declining)
+            GateClient(stored, connection_timeout=PEER_TIMEOUT, key_password=declining)
 
     def test_opening_from_disk_takes_the_password_too(
         self, stored: credentials_module.Credentials
     ) -> None:
-        opened = GateClient.open(stored.directory, connection_timeout=10.0, key_password=PASSWORD)
+        opened = GateClient.open(
+            stored.directory, connection_timeout=PEER_TIMEOUT, key_password=PASSWORD
+        )
 
         assert opened.status().ok
 
@@ -238,7 +244,7 @@ def test_the_longest_key_password_a_key_can_be_stored_under_is_taken(
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle, key_password=longest)
     serving_status(gate)
 
-    assert GateClient(stored, connection_timeout=10.0, key_password=longest).status().ok
+    assert GateClient(stored, connection_timeout=PEER_TIMEOUT, key_password=longest).status().ok
 
 
 @pytest.mark.parametrize(
@@ -435,7 +441,7 @@ class TestRenewingUnderAPassword:
             tmp_path / "profiles" / "default", gate.port, bundle, key_password=PASSWORD
         )
         asked = Counting()
-        client = GateClient(stored, connection_timeout=10.0, key_password=asked)
+        client = GateClient(stored, connection_timeout=PEER_TIMEOUT, key_password=asked)
 
         renewal = client.renew()
 
@@ -455,7 +461,7 @@ class TestRenewingUnderAPassword:
     ) -> None:
         stored = credentials_module.save(tmp_path / "profiles" / "default", gate.port, bundle)
 
-        renewal = GateClient(stored, connection_timeout=10.0, key_password=PASSWORD).renew()
+        renewal = GateClient(stored, connection_timeout=PEER_TIMEOUT, key_password=PASSWORD).renew()
 
         assert not encrypted(renewal.credentials.identity)
 

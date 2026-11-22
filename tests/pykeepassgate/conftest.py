@@ -30,6 +30,7 @@ from cryptography.hazmat.primitives.serialization import pkcs12
 
 from pykeepassgate import transport
 from pykeepassgate.testing import Authority, FakeGate, Handler, Issued
+from timeouts import PEER_TIMEOUT
 
 
 # pytest's own names: cspell:ignore autouse delenv
@@ -76,8 +77,13 @@ def client_certificate(authority: Authority) -> Issued:
 
 @pytest.fixture
 def gate(host: Issued, authority: Authority) -> Iterator[FakeGate]:
-    """A gate that is listening, and stops when the test ends."""
+    """A gate that is listening, and stops when the test ends.
+
+    It waits on a quiet peer as long as the tests' clients wait on it, since both ends are threads
+    of this process and are kept off the processor together.
+    """
     with FakeGate(host, authority.pem) as running:
+        running.quiet = PEER_TIMEOUT
         yield running
 
 

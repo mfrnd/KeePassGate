@@ -32,6 +32,7 @@ from pykeepassgate.errors import (
 from pykeepassgate.model import Entry
 from pykeepassgate.testing import FakeGate
 from test_reference import REPOSITORY
+from timeouts import PEER_TIMEOUT
 
 VECTORS = REPOSITORY / "tests" / "Shared" / "ReferenceVectors.json"
 
@@ -685,7 +686,7 @@ def test_an_entry_a_reference_names_is_read_under_the_limit_the_resolution_was_g
     from pykeepassgate import credentials as credentials_module
 
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
-    client = GateClient(stored, connection_timeout=10.0, max_response_kilobytes=1)
+    client = GateClient(stored, connection_timeout=PEER_TIMEOUT, max_response_kilobytes=1)
     gate.handler = lambda path, body, presented: (
         200, json.dumps(answer(VAULT, {"Notes": "n" * 4096}))
     )

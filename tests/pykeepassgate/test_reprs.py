@@ -31,6 +31,7 @@ from pykeepassgate.errors import (
 )
 from pykeepassgate.model import Entry
 from pykeepassgate.testing import Authority, FakeGate, Issued
+from timeouts import PEER_TIMEOUT
 
 #: A secret nobody would choose, put wherever a value can be and looked for in everything printed.
 SENTINEL = "not-a-real-secret-sentinel"
@@ -42,7 +43,7 @@ UUID = "7b1c" * 8
 def paired(tmp_path: Path, bundle: dict[str, Any], gate: FakeGate) -> GateClient:
     """A client that has been through pairing with this gate."""
     stored = credentials_module.save(tmp_path / "kept", gate.port, bundle)
-    return GateClient(stored, connection_timeout=10.0)
+    return GateClient(stored, connection_timeout=PEER_TIMEOUT)
 
 
 def answering(gate: FakeGate, body: dict[str, Any] | str, status: int = 200) -> None:
@@ -113,7 +114,9 @@ def test_no_object_this_client_reads_or_raises_prints_a_value(
     # Every answer arrives as a response first, over a real connection and parsed from bytes.
     answering(gate, {"value": SENTINEL})
     context = transport.paired_context(authority.pem, client_certificate.pem)
-    with transport.connect(gate.port, context, "abc.def.kpg", connection_timeout=10.0) as opened:
+    with transport.connect(
+        gate.port, context, "abc.def.kpg", connection_timeout=PEER_TIMEOUT
+    ) as opened:
         printed.append(opened.send("GET", "/entries/x/fields/Password"))
     body = json.dumps({"value": SENTINEL}).encode()
     printed.append(
