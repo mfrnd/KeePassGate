@@ -1359,17 +1359,17 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
-        /// Writes a standing answer to renewing one certificate into the file, as the renewal
-        /// dialog's Refuse menu has the plugin write one.
+        /// Writes a standing answer to a client's renewals into the file's store, as the renewal
+        /// dialog's Refuse menu has the plugin write one, `STORE.md` §618.
         /// </summary>
         /// <remarks>**Only before KeePass starts**, like everything else here.</remarks>
-        public void RefuseRenewal(string admissionKey, RenewalRefusal refusal)
+        public void RefuseRenewal(string clientKey, RenewalRefusal refusal)
         {
             var database = new PwDatabase();
             try
             {
                 database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
-                new StoredAdmissions(database).Answers.RefuseRenewal(admissionKey, refusal);
+                new StoredAdmissions(database).Refuse(clientKey, refusal);
                 database.Save(null);
             }
             finally
@@ -1803,6 +1803,56 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
+        /// The standing versions of a client's answer to its renewals that the file's store holds,
+        /// each as its identifier, its text and what it names in `after`, read after KeePass has
+        /// exited, `STORE.md` §618.
+        /// </summary>
+        public IReadOnlyList<Tuple<string, string, string>> ReadAnswerVersions(string clientKey)
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                using (var reading = new KdbxStore(database, GateVersion.Current, null).Read())
+                {
+                    return reading.InForce == null
+                        ? new List<Tuple<string, string, string>>()
+                        : reading.InForce.VersionsOf(RenewalText.ObjectOf(clientKey))
+                            .Select(version =>
+                            {
+                                string doc = null;
+                                if (version.Members != null)
+                                {
+                                    version.Members.TryGetValue(StoreKinds.Doc, out doc);
+                                }
+
+                                return Tuple.Create(version.Id, doc, version.After ?? string.Empty);
+                            })
+                            .ToList();
+                }
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>The keys of the file's own custom data that begin with the plugin's prefix, read after KeePass has exited.</summary>
+        public IReadOnlyList<string> ReadPluginKeysInCustomData()
+        {
+            var database = new PwDatabase();
+            try
+            {
+                database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
+                return database.CustomData.Select(pair => pair.Key).Where(key => key.StartsWith("KPG", StringComparison.Ordinal)).ToList();
+            }
+            finally
+            {
+                database.Close();
+            }
+        }
+
+        /// <summary>
         /// The profile names on the list of the file's store, read after KeePass has exited.
         /// </summary>
         public IReadOnlyList<string> ReadProfileNames()
@@ -1823,16 +1873,16 @@ namespace KeePassGate.Host.Tests.Live
         }
 
         /// <summary>
-        /// The standing answer to renewing one certificate that the file holds, read after KeePass
-        /// has exited, or null when it holds none.
+        /// The strictest standing answer to a client's renewals that the file's store holds, read
+        /// after KeePass has exited, or null when it holds none.
         /// </summary>
-        public RenewalRefusal ReadStandingRefusal(string admissionKey)
+        public RenewalRefusal ReadStandingRefusal(string clientKey)
         {
             var database = new PwDatabase();
             try
             {
                 database.Open(IOConnectionInfo.FromPath(DatabasePath), NewKey(), null);
-                return new StoredAdmissions(database).Answers.StandingRefusal(admissionKey);
+                return new StoredAdmissions(database).Answer(clientKey);
             }
             finally
             {

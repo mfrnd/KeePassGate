@@ -5,7 +5,7 @@ using System.Windows.Forms;
 namespace KeePassGate.Ui
 {
     /// <summary>
-    /// The dialog that asks which day renewals of one certificate are refused until.
+    /// The dialog that asks which day the renewals of one client are refused until.
     /// </summary>
     /// <remarks>
     /// Opened by the renewal dialog's "Refuse until a date..." and by nothing else, which is what
@@ -27,7 +27,7 @@ namespace KeePassGate.Ui
     {
         /// <summary>What choosing a day here does, said once.</summary>
         public const string Explanation =
-            "Every renewal of this certificate is refused without asking until the day chosen " +
+            "Every renewal by this client is refused without asking until the day chosen " +
             "here begins, and asked about again from then on.";
 
         private readonly MonthCalendar _calendar;

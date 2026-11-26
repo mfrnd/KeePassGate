@@ -60,7 +60,8 @@ namespace KeePassGate.Gate
 
         /// <summary>
         /// The admission of this certificate where it counts, with the profiles this database
-        /// names, or null when there is none, `STORE.md` §615.
+        /// names and the standing answers about its client's renewals, or null when there is none,
+        /// `STORE.md` §615 and §618.
         /// </summary>
         /// <remarks>
         /// Read from the database's store on every call rather than cached with the certificates,
@@ -71,7 +72,8 @@ namespace KeePassGate.Gate
         /// profiles are made of: the admission's names less every name the list does not hold, so
         /// taking a name off the list takes it from every client without touching an admission. A
         /// renewal offers the admission's names the list still holds from the same answer, so the
-        /// dialog shows the list as the reading that found the admission had it.
+        /// dialog shows the list as the reading that found the admission had it, and is answered
+        /// by the standing answer of the same reading.
         ///
         /// **Throws `VaultUnsettled` when KeePass's thread could not be held for the reading**,
         /// which is not the same as there being none. **And `DatabaseShut` when the database closed
@@ -122,7 +124,7 @@ namespace KeePassGate.Gate
         /// </summary>
         /// <remarks>
         /// One of the three writes a connection asks of its target, beside <see cref="GiveUp"/>
-        /// and <see cref="RefuseRenewal"/>, the API's own going through <see cref="Vault"/>. It
+        /// and <see cref="AnswerRenewal"/>, the API's own going through <see cref="Vault"/>. It
         /// marshals synchronously like every write this plugin makes, so what it answers is
         /// whether the admission is on disk. It is checked again inside the write, because the
         /// answer to <see cref="AdmissionBlocked"/> can change between asking and writing, and a
@@ -130,8 +132,8 @@ namespace KeePassGate.Gate
         /// nobody can see.
         /// </remarks>
         /// <param name="condition">
-        /// Why the admission may no longer be written, or null when it may, asked of the store and
-        /// the custom data as they stand in the write's own turn on KeePass's thread, under the
+        /// Why the admission may not be written, or null when it may, asked of the store as
+        /// it stands in the write's own turn on KeePass's thread, under the
         /// writer's lock, once the database is known to be writable and before anything is
         /// changed. Where an approval is held, spent and compared with what it was given against.
         /// A refusal is answered as a failure, the caller knowing which part refused. Null for
@@ -164,28 +166,20 @@ namespace KeePassGate.Gate
         VaultWrite GiveUp(string admissionKey, Action audit);
 
         /// <summary>
-        /// The operator's standing answer to renewing this certificate, read now, or null when
-        /// there is none.
-        /// </summary>
-        /// <remarks>
-        /// **A read that fails throws**, an exception `Expected.OfCustomData` names, rather than
-        /// answering null. Null is the answer that puts the renewal dialog in front of the
-        /// operator, and an answer that could not be read is not an answer that is absent, so
-        /// `RenewalHandler` answers the failure `503 busy` instead. An implementation that caught
-        /// it and answered null would ask the operator again something already refused.
-        /// </remarks>
-        RenewalRefusal StandingRefusal(string admissionKey);
-
-        /// <summary>
-        /// Writes the operator's standing answer to renewing this certificate, and makes it durable
-        /// the way every change is.
+        /// Writes the operator's standing answer to a client's renewals into the plugin's store,
+        /// `STORE.md` §618, and makes it durable the way every change is.
         /// </summary>
         /// <remarks>
         /// Asked for in the same breath as the refusal it belongs to, and answered with what came
-        /// of it; the refusal stands whatever this answers, and a failure costs only the standing
-        /// answer, which the caller says in the log.
+        /// of it; the refusal stands whatever this answers, and the caller holds an answer that was
+        /// not written for this session and tells the operator.
         /// </remarks>
-        VaultWrite RefuseRenewal(string admissionKey, RenewalRefusal refusal);
+        /// <param name="clientKey">The client whose renewals are refused.</param>
+        /// <param name="shown">
+        /// The identifiers of the standing versions of the client's answer that the reading before
+        /// the dialog held, which the version written names and nothing else.
+        /// </param>
+        VaultWrite AnswerRenewal(string clientKey, RenewalRefusal refusal, IReadOnlyCollection<string> shown);
 
         /// <summary>
         /// What the API reads and changes, or null when there is nothing to reach.

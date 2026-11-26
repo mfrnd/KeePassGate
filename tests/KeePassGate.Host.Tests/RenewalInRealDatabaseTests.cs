@@ -28,8 +28,9 @@ namespace KeePassGate.Host.Tests
     /// </summary>
     /// <remarks>
     /// The renewed record itself is written exactly as pairing writes one, which
-    /// `PairingInRealDatabaseTests` follows to the file. What is new here is the key a refusal
-    /// leaves when the operator means more than this once.
+    /// `PairingInRealDatabaseTests` follows to the file. What is new here is the version of the
+    /// plugin's store a refusal leaves when the operator means more than this once, `STORE.md`
+    /// §618, about the client.
     /// </remarks>
     [TestFixture]
     [Apartment(ApartmentState.STA)]
@@ -68,53 +69,67 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_standing_answer_is_in_the_file_and_not_only_in_memory()
+        public void A_standing_answer_is_a_version_of_the_store_in_the_file_and_nothing_in_the_custom_data()
         {
-            var result = _writer.RefuseRenewal(_database.Database, Key, RenewalRefusal.Forever());
+            Keyed();
+            var result = _writer.AnswerRenewal(_database.Database, Key, RenewalRefusal.Forever(), Array.Empty<string>());
 
             Assert.That(result.Ok, Is.True, result.Reason);
             Assert.That(_saves, Is.EqualTo(1));
 
             _database.SaveCloseAndReopen();
 
-            var standing = new StoredAdmissions(_database.Database).Answers.StandingRefusal(Key);
-            Assert.That(standing, Is.Not.Null);
-            Assert.That(standing.IsForever, Is.True);
+            var standing = new StoredAdmissions(_database.Database).Standing(Key);
+            Assert.That(standing.Answer, Is.Not.Null);
+            Assert.That(standing.Answer.IsForever, Is.True);
+            Assert.That(standing.Standing, Has.Count.EqualTo(1), "a single version of `renew:` and the client key");
+            Assert.That(_database.Database.CustomData.Select(pair => pair.Key), Has.None.StartsWith("KPG"),
+                "nothing of the plugin's is in the custom data");
         }
 
         [Test]
-        public void A_standing_answer_that_lands_is_announced_and_rebuilds_neither_list()
+        public void A_standing_answer_that_lands_is_announced_and_rebuilds_both_lists()
         {
             // The Clients page draws the client's name red from the answer, so it is told, as it
-            // is of a record; the tree and the entry list show none of it, so neither is rebuilt.
+            // is of a record; the answer adds and deletes entries of the plugin's group, so the
+            // tree and the entry list are rebuilt as for every write into it.
+            Keyed();
             var announced = 0;
             var rebuilt = new List<bool>();
             var writer = new DatabaseWriter(
                 CurrentThread.Instance, Save, (database, lists) => rebuilt.Add(lists), () => announced++, _dialogs, null);
 
-            Assert.That(writer.RefuseRenewal(_database.Database, Key, RenewalRefusal.Forever()).Ok, Is.True);
+            Assert.That(writer.AnswerRenewal(_database.Database, Key, RenewalRefusal.Forever(), Array.Empty<string>()).Ok, Is.True);
             Assert.That(announced, Is.EqualTo(1));
-            Assert.That(rebuilt, Has.None.True);
+            Assert.That(rebuilt, Has.Some.True);
         }
 
         [Test]
-        public void A_later_standing_answer_saved_replaces_the_one_before_it_in_the_file()
+        public void A_later_standing_answer_saved_replaces_the_one_it_names_and_deletes_its_entry_with_a_deletion_record()
         {
+            Keyed();
             var earlier = RenewalRefusal.Until(new DateTimeOffset(2026, 10, 9, 22, 0, 0, TimeSpan.Zero));
-            Assume.That(_writer.RefuseRenewal(_database.Database, Key, earlier).Ok, Is.True);
+            Assume.That(_writer.AnswerRenewal(_database.Database, Key, earlier, Array.Empty<string>()).Ok, Is.True);
+            var shown = new StoredAdmissions(_database.Database).Standing(Key).Standing;
 
-            var result = _writer.RefuseRenewal(_database.Database, Key, RenewalRefusal.Forever());
+            var result = _writer.AnswerRenewal(_database.Database, Key, RenewalRefusal.Forever(), shown);
 
             Assert.That(result.Ok, Is.True, result.Reason);
             _database.SaveCloseAndReopen();
 
-            var standing = new StoredAdmissions(_database.Database).Answers.StandingRefusal(Key);
-            Assert.That(standing.IsForever, Is.True);
+            var standing = new StoredAdmissions(_database.Database).Standing(Key);
+            Assert.That(standing.Answer.IsForever, Is.True);
+            Assert.That(standing.Standing, Has.Count.EqualTo(1).And.None.EqualTo(shown.Single()), "the earlier version is replaced");
+            Assert.That(_database.RootGroup.GetEntries(true).Select(entry => entry.Uuid.ToHexString().ToLowerInvariant()),
+                Has.None.EqualTo(shown.Single()), "and its entry deleted");
+            Assert.That(_database.Database.DeletedObjects.Select(deleted => deleted.Uuid.ToHexString().ToLowerInvariant()),
+                Has.Some.EqualTo(shown.Single()), "with a deletion record");
         }
 
         [Test]
         public void The_maintenance_dialog_open_on_the_database_refuses_it()
         {
+            Keyed();
             using (var form = new DatabaseOperationsForm())
             {
                 form.InitEx(_database.Database);
@@ -122,11 +137,11 @@ namespace KeePassGate.Host.Tests
 
                 try
                 {
-                    var result = _writer.RefuseRenewal(_database.Database, Key, RenewalRefusal.Forever());
+                    var result = _writer.AnswerRenewal(_database.Database, Key, RenewalRefusal.Forever(), Array.Empty<string>());
 
                     Assert.That(result.IsBusy, Is.True, result.Reason);
                     Assert.That(_saves, Is.Zero);
-                    Assert.That(_database.Database.CustomData.Exists(AuthorityKeys.RenewalRefusalKey(Key)), Is.False);
+                    Assert.That(new StoredAdmissions(_database.Database).Answer(Key), Is.Null);
                 }
                 finally
                 {
@@ -136,18 +151,40 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void One_no_save_kept_is_taken_back_out_and_the_answer_before_it_put_back()
+        public void One_no_save_kept_is_taken_back_out_and_the_answer_before_it_stands_again()
         {
+            Keyed();
             var earlier = RenewalRefusal.Until(new DateTimeOffset(2026, 10, 9, 22, 0, 0, TimeSpan.Zero));
-            Assume.That(_writer.RefuseRenewal(_database.Database, Key, earlier).Ok, Is.True);
+            Assume.That(_writer.AnswerRenewal(_database.Database, Key, earlier, Array.Empty<string>()).Ok, Is.True);
+            var shown = new StoredAdmissions(_database.Database).Standing(Key).Standing;
             _database.Database.Modified = false;
 
             var failing = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, null);
-            var result = failing.RefuseRenewal(_database.Database, Key, RenewalRefusal.Forever());
+            var result = failing.AnswerRenewal(_database.Database, Key, RenewalRefusal.Forever(), shown);
 
             Assert.That(result.IsUnsaved, Is.True, result.Reason);
-            Assert.That(_database.Database.CustomData.Get(AuthorityKeys.RenewalRefusalKey(Key)), Is.EqualTo(earlier.Write()));
+            Assert.That(new StoredAdmissions(_database.Database).Standing(Key).Standing, Is.EqualTo(shown));
+            Assert.That(new StoredAdmissions(_database.Database).Answer(Key).NotBefore, Is.EqualTo(earlier.NotBefore));
             Assert.That(_database.Database.Modified, Is.False);
+        }
+
+        [Test]
+        public void A_store_with_no_key_composes_no_answer_and_writes_nothing()
+        {
+            var result = _writer.AnswerRenewal(_database.Database, Key, RenewalRefusal.Forever(), Array.Empty<string>());
+
+            Assert.That(result.Ok, Is.False);
+            Assert.That(result.Reason, Does.Contain("no key"));
+            Assert.That(_saves, Is.Zero);
+        }
+
+        /// <summary>The database's store started, with an authority, so a store key stands to write under.</summary>
+        private void Keyed()
+        {
+            StoreSeeds.Authority(new StoredAdmissions(_database.Database).Store);
+            _database.Save();
+            _database.Database.Modified = false;
+            _saves = 0;
         }
 
         [Test]
@@ -274,7 +311,7 @@ namespace KeePassGate.Host.Tests
                 var key = renewal.Key;
                 _database.Reopen();
 
-                var standing = new StoredAdmissions(_database.Database).Answers.StandingRefusal(key);
+                var standing = new StoredAdmissions(_database.Database).Answer(key);
                 Assert.That(standing, Is.Not.Null, "the file opened afresh holds the answer");
                 Assert.That(standing.IsForever, Is.True);
             }
@@ -286,18 +323,24 @@ namespace KeePassGate.Host.Tests
         [TestCase("replaced", TestName = "a refusal over a file another copy replaced holds for this session and is told")]
         [TestCase("unwatched", TestName = "a refusal while the dialogs are not watched holds for this session and is told")]
         [TestCase("unsaved", TestName = "a refusal whose save did not land is taken back out, holds for this session and is told")]
+        [TestCase("summary entry", TestName = "a refusal while an entry dialog holds the summary entry holds for this session and is told")]
+        [TestCase("stopped", TestName = "a refusal into a store that stopped holds for this session and is told")]
         public void A_refusal_that_could_not_be_saved_holds_for_this_session_and_is_told(string cause)
         {
             // Each arises once the operator has answered, under the dialog, where the questions
-            // before the dialog cannot have seen it.
+            // before the dialog cannot have seen it. The summary entry is asked about once the
+            // write's plan exists, since every write deletes it, `STORE.md` §626.
             using (var renewal = new RealRenewal(this))
             using (var maintenance = new DatabaseOperationsForm())
             using (var wizard = new TanWizardForm())
+            using (var icons = new System.Windows.Forms.ImageList())
+            using (var entryDialog = new PwEntryForm())
             {
                 var earlier = RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(-1));
-                Assume.That(renewal.Writer.RefuseRenewal(_database.Database, renewal.Key, earlier).Ok, Is.True);
+                Assume.That(renewal.Writer.AnswerRenewal(_database.Database, renewal.Key, earlier, Array.Empty<string>()).Ok, Is.True);
                 Assume.That(_database.Database.Modified, Is.False);
                 _saves = 0;
+                var before = new StoredAdmissions(_database.Database).Standing(renewal.Key).Standing;
 
                 var raised = false;
                 System.Windows.Forms.Form opened = null;
@@ -328,6 +371,17 @@ namespace KeePassGate.Host.Tests
                         case "unsaved":
                             _failSaves = true;
                             break;
+                        case "summary entry":
+                            entryDialog.InitEx(SummaryEntry(), PwEditMode.EditExistingEntry, _database.Database, icons, false, false);
+                            GlobalWindowManager.AddWindow(entryDialog);
+                            opened = entryDialog;
+                            break;
+                        case "stopped":
+                            StopTheStore();
+                            _database.Save();
+                            _database.Database.Modified = false;
+                            before = null;
+                            break;
                     }
                 };
 
@@ -352,8 +406,12 @@ namespace KeePassGate.Host.Tests
                 Assert.That(context.Status, Is.EqualTo(403), context.Json);
                 Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("refused")));
                 Assert.That(_saves, Is.EqualTo(cause == "unsaved" ? 1 : 0));
-                Assert.That(renewal.Standing.Write(), Is.EqualTo(earlier.Write()),
-                    "the answer the database held before is what it holds");
+                if (before != null)
+                {
+                    Assert.That(new StoredAdmissions(_database.Database).Standing(renewal.Key).Standing, Is.EqualTo(before),
+                        "the answer the database held before is what it holds");
+                }
+
                 Assert.That(_database.Database.Modified, Is.False, "and nothing is marked");
                 Assert.That(renewal.Session.Refuses(renewal.Key), Is.True, "the answer holds until KeePass exits");
                 Assert.That(renewal.Told, Has.Count.EqualTo(1), "told once");
@@ -361,6 +419,13 @@ namespace KeePassGate.Host.Tests
                 Assert.That(renewal.Told[0], Does.EndWith("." + Environment.NewLine + "Renewal stays refused until KeePass exits."));
 
                 _failSaves = false;
+                if (cause == "stopped")
+                {
+                    // A store that stopped holds the gate back, `STORE.md` §656, which is what the
+                    // next renewal is told before any answer.
+                    return;
+                }
+
                 var again = renewal.Ask(RenewalApproval.Approved(new[] { "ops" }), null);
 
                 Assert.That(again.Status, Is.EqualTo(409), again.Json);
@@ -368,6 +433,67 @@ namespace KeePassGate.Host.Tests
                 Assert.That(renewal.Asked, Is.EqualTo(1), "answered without the dialog");
                 Assert.That(renewal.Told, Has.Count.EqualTo(1));
             }
+        }
+
+        [Test]
+        public void An_answer_written_after_a_merge_under_the_dialog_leaves_the_merged_refusal_standing()
+        {
+            // A copy merged in while the dialog stood brought a refusal forever. The operator's
+            // answer until a day names what the reading before the dialog held, and not that, so
+            // the merged refusal stands beside it and is the stricter, `STORE.md` §618.
+            using (var renewal = new RealRenewal(this))
+            {
+                var context = renewal.Ask(
+                    RenewalApproval.Refused(RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(3))),
+                    () => new StoredAdmissions(_database.Database).Refuse(renewal.Key, RenewalRefusal.Forever()));
+
+                Assert.That(context.Status, Is.EqualTo(403), context.Json);
+                var standing = new StoredAdmissions(_database.Database).Standing(renewal.Key);
+                Assert.That(standing.Standing, Has.Count.EqualTo(2), "both stand");
+                Assert.That(standing.Answer.IsForever, Is.True, "and the stricter is the answer");
+                Assert.That(renewal.Ask(RenewalApproval.Approved(new[] { "ops" }), null).Json,
+                    Is.EqualTo(HttpResponse.ErrorBody("forever")));
+            }
+        }
+
+        [Test]
+        public void An_approved_renewal_whose_client_the_write_s_reading_refuses_issues_nothing()
+        {
+            // A refusal that lands after the handler last read the store, by a merge, is found by
+            // the write's condition under the writer's lock, as a revocation is, and answered at once.
+            using (var renewal = new RealRenewal(this))
+            {
+                renewal.BeforeTheWrite = () => new StoredAdmissions(_database.Database).Refuse(renewal.Key, RenewalRefusal.Forever());
+
+                var context = renewal.Ask(RenewalApproval.Approved(new[] { "ops" }), null);
+
+                Assert.That(context.Status, Is.EqualTo(409), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("forever")));
+                Assert.That(renewal.Records, Is.EqualTo(1), "nothing was issued");
+                Assert.That(_saves, Is.Zero, "and nothing was saved");
+
+                var again = renewal.Ask(RenewalApproval.Approved(new[] { "ops" }), null);
+                Assert.That(again.Json, Is.EqualTo(HttpResponse.ErrorBody("forever")), "the next renewal is told the answer");
+                Assert.That(renewal.Asked, Is.EqualTo(1));
+            }
+        }
+
+        /// <summary>The store's summary entry, which every write deletes.</summary>
+        private PwEntry SummaryEntry()
+        {
+            return _database.RootGroup.GetEntries(true).Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "head");
+        }
+
+        /// <summary>
+        /// Stops the store, `STORE.md` §623: a record that only the summary entry restates, then
+        /// that entry deleted for good with its deletion record, as another program can.
+        /// </summary>
+        private void StopTheStore()
+        {
+            StoreSeeds.Revoke(new StoredAdmissions(_database.Database).Store, new string('e', 64));
+            var head = SummaryEntry();
+            head.ParentGroup.Entries.Remove(head);
+            _database.Database.DeletedObjects.Add(new PwDeletedObject(head.Uuid, DateTime.UtcNow));
         }
 
         [Test]
@@ -838,7 +964,7 @@ namespace KeePassGate.Host.Tests
 
             public RenewalRefusal Standing
             {
-                get { return new StoredAdmissions(_test._database.Database).Answers.StandingRefusal(_key); }
+                get { return new StoredAdmissions(_test._database.Database).Answer(_key); }
             }
 
             public GateContext Ask(RenewalApproval answer, Action meanwhile)

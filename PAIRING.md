@@ -150,7 +150,9 @@ answer is then given the ordinary budget to be written in, as any other answer i
 keeping the deadline until the answer, which rested on the write's own timeouts bounding it: they
 bound the waits for the writer's lock and turn, and not the save. A pairing whose write finds its
 approval stale saves nothing and puts the dialog up again, and takes the deadline up again for it,
-to the end of the same budget, §311.
+to the end of the same budget, §311. A renewal refused until a date or forever drops it where the
+answer is handed to the writer, for the same reason: that answer is saved as a record is, and the
+client is answered `403 refused` once the save is over, §312.
 
 **A dialog that comes up late has less than two minutes.** Its countdown starts from what is left
 of the budget once the waits after the dialog are set aside, when that is shorter, so everything
@@ -642,9 +644,11 @@ holds a signing key.
 
 **The record is an entry of the plugin's store now, and that dialog holds no copy of it**,
 `STORE.md` §615 and §626, which reverses the record as a key of the dictionary the dialog copies.
-Database Maintenance still copies the database's own custom data, where the standing answers to a
-renewal are kept, so a pairing, whose write can take such an answer away, is still refused while
-it is open. The profile names are records of the store, as the admission is. What can take the
+Nothing of the plugin's is in the custom data that dialog copies, and a pairing is still refused
+while it is open, for a reason of its own: its buttons delete history items and deletion records,
+and a press of one handled inside the pairing's save was never measured. A later pull request
+measures it and then takes the refusal away, or keeps it with the measured reason. The profile
+names are records of the store, as the admission is. What can take the
 admission itself back is KeePass's entry dialog, which puts its copy of an entry back at its OK:
 the write is answered `503 busy`, with the approval held, while that dialog holds an entry the
 write deletes or sets back, the store's summary entry among them. Nothing of the order changed.
@@ -1251,24 +1255,40 @@ session, until a date, or forever, and until a date asks for a day from tomorrow
 certificate it holds now ends, both days where the operator is, so on that day itself the choice is
 grayed out and states why. The answer stands until the chosen day begins where the operator is, its
 first midnight on a day the clocks fall back, and that moment is the `notBefore` a client is sent,
-in UTC. While a standing answer stands, every renewal of that certificate is answered without the
-dialog:
+in UTC. **A standing answer is about the client**, `STORE.md` §618: while one stands, every renewal
+by any certificate of that client is answered without the dialog, a certificate a renewal issued
+at a gate not yet told among them, and pairing again is a new client that no answer names:
 
-- **In this session** is held in the plugin's memory, per certificate, as invitations are held, and
+- **In this session** is held in the plugin's memory, per client, as invitations are held, and
   goes when KeePass exits. Nothing of it is written to the database, since an answer about one
   session kept in the file would outlast it in every copy. It is answered `409 this session`, and a
   renewal asked after KeePass has started again raises the dialog.
-- **Until a date** and **forever** are stored under `KPG.RenewalRefused.` and the certificate's key,
-  `CA.md` §204. They are answered `409 too early` with `notBefore`, the moment from which the
-  operator is asked again, and `409 forever`, for which pairing again is the way out. **Either is
+- **Until a date** and **forever** are versions of the plugin's store, of `renew:` and the client
+  key, `STORE.md` §618, which reverses a key of the database's custom data for each certificate.
+  They are answered `409 too early` with `notBefore`, the moment from which the
+  operator is asked again, and `409 forever`, for which pairing again is the way out. **Two
+  answers made apart give the stricter**, of two moments the later, which reverses "a later
+  answer is the answer that counts": a merge decided the later by the time of a key, which a slow
+  clock or a copy saved without the times turns around. **A version the store lost and a text out
+  of form are answered `409 forever`**, since the lost one may have been a refusal forever, and the
+  log names the cause. The answer is read with the record it renews, in the hold that reads the
+  admission, so a word, a record and an answer are of a single reading. The version the dialog
+  writes names what that reading held, so a refusal a merge brought in while the dialog stood
+  stands beside it, and the stricter refuses. **Either is
   written and saved as Approve's record is**, before the client is answered `403 refused`: in a
   turn of the writer, saved through `MainForm.SaveDatabase`, and believed on the flag and the
   file, `DESIGN.md` §119, so the file holds the answer once the dialog has closed. **Where the
   write cannot be made or its save does not land**, KeePass part way through work of its own,
   Database Maintenance or the TAN wizard open on the database, the file replaced by another copy,
-  the dialogs that would take a write back not watched, the database gone, or a save that left the
-  database with unsaved changes, the change is taken back out as Approve's is, and the answer
-  holds for this session instead, answered `409 this session` until KeePass exits. The operator
+  an entry dialog holding an entry the write's plan touches, the summary entry among them, the
+  store not whole, out of room or of a form the plugin does not write into, the dialogs that would
+  take a write back not watched, the database gone, the plugin's own writer still busy with
+  another change once its wait is over, or a save that left the database with unsaved changes,
+  the change is taken back out as Approve's is, and the answer holds for this session instead,
+  answered `409 this session` until KeePass exits. **Here a refusal and Approve part ways**: an
+  approval that meets a busy KeePass or a busy writer is held and written when the client asks
+  again, while a refusal has no later request to be written on, the client being answered
+  `403 refused` at once, so every cause above holds it for this session alike. The operator
   is told at once, by a message of the plugin's own under its name, shown once the dialog has
   closed and KeePass is not part way through work of its own: "The answer to the renewal was not
   written: " and the writer's reason, then "Renewal stays refused until KeePass exits." **Where
@@ -1287,21 +1307,28 @@ dialog:
   and told, neither question is left.
 
 **The operator can take any of the three back**, which is the operator's ruling on review 3: on the
-clients page the row of a certificate with a standing answer has its name in red, the row's
-tooltip and its description to a screen reader name the answer, and the row's menu, opened by the
-right button, Shift and F10 or the menu key, names the row's certificate on a grayed first line,
-states the answer on a grayed line under it and offers **Allow renewal**, beside **Revoke** on a
-client's first row. Allow renewal waits for the settings dialog's OK, as a revocation does: the
-stored answer is taken away in the dialog's buffer and the session's in what the dialog holds of
-the plugin's memory, so the red goes at once and the gate keeps refusing until OK, and Cancel leaves
-the answer standing. The plugin holds one set of the session's answers, read by the handler and by
-every clients page, so the page shows and lifts exactly what the gate answers from. Once lifted,
-the next renewal raises the dialog again. An answer given on that dialog while the settings dialog
-was still open, possible once an until-date has passed, is the later word and survives the OK.
-Otherwise a standing answer ends as described: the session's with KeePass, the stored answers once
-no admission names the certificate they are about, its client revoked or the certificate given
-up, and every answer with the authority recreated or deleted. A stored answer no longer ends with
-its certificate's expiry, since the admission of an expired certificate stays, `CA.md` §204.
+clients page the client's own row has its name in red while an answer refuses now, the row's
+tooltip and its description to a screen reader name the answer, a lost one and one that does not
+read among them, and the row's menu, opened by the right button, Shift and F10 or the menu key,
+names the row's certificate on a grayed first line, states the answer on a grayed line under it
+and offers **Allow renewal** beside **Revoke**, gray where nothing refuses now. The row of an
+earlier certificate of the client carries neither, and its menu offers **Take certificate away**
+alone. Allow renewal waits for the settings dialog's OK, as a revocation does: the stored answer
+is lifted by an act the dialog's buffer holds, a version `ask` naming each standing and lost
+version the page showed at the press, composed again at OK and written with the buffer's other
+records, marked and kept by the operator's save; the session's is taken away in what the dialog
+holds of the plugin's memory. So the red goes at once, the gate keeps refusing until OK, and
+Cancel leaves the answer standing. The plugin holds one set of the session's answers, read by
+the handler and by every clients page, so the page shows and lifts exactly what the gate answers
+from. Once lifted, the next renewal raises the dialog again. **An answer given on that dialog
+while the settings dialog was still open, possible once an until-date has passed, survives the
+OK**: a lift names what its press was shown and nothing else, and comes to nothing where every
+version it was shown was replaced since, `STORE.md` §627. Otherwise a standing answer ends as
+described: the session's with KeePass, and a stored answer until a moment refuses nothing from
+that moment on. Nothing is removed for a client that is revoked or gone, nor for a certificate
+given up, which leaves its client's answer untouched, `STORE.md` §648; recreating or deleting the
+authority leaves the answer in the store, about a client that no longer gets in. This reverses an
+answer going once no admission named its certificate.
 
 The database's answer is read before the session's. The dialog is raised only while neither
 refuses, and a renewal waiting behind another of the same certificate is answered at once rather
@@ -1326,19 +1353,23 @@ yet, the audit has its line when the write lands, and the renewal asked again be
 written without the dialog, **unless an answer refusing it stands by then**: a merge can bring
 one in, and so can the dialog of a renewal of the same certificate that asked for another
 lifetime. That answer is what the retry is told, as it would be told before any dialog, and the
-approval is let go. A stored answer that will not read is no answer: the approval stays held, and
-the retry is told `503 busy` with `heldUntil` again. What pairing asks again about
+approval is let go. The state of a stored answer that will not read and is no answer is gone: a
+reading that cannot be made is `503 busy` or `503 locked`, and a text that does not read refuses.
+What pairing asks again about
 its invitation a renewal asks about its record: one revoked while the operator was deciding, or left
 behind by an authority recreated or deleted in that time, is answered `401 unpaired` and nothing is
 issued. **And the write asks it once more, under the writer's lock**, in the store as the write's
 own turn reads it: the record still admits its certificate, and it is still the entry the operator
 approved against, so a revocation landing after the handler last read it, or the certificate given
 up by the client on another connection, is found under the lock it was written under rather than
-overtaken. The record is compared by its entry, where it was compared by a digest of its stored
-text: a record of the store is written once, so the same entry is the same content, `STORE.md`
-§627. An authority recreated or deleted after the handler last read it is found there as well,
-by the plan of the write, and answered `401 unpaired` with the approval used up and nothing
-written, held by
+overtaken. **So is a standing answer about the client** that arrived since the handler last read
+the store: the approval is let go, nothing is issued, and the renewal is answered with that answer
+at once, `409 forever` or `409 too early` with `notBefore` as the write's reading gives it, and
+written down as refused without asking, as an answer standing before the dialog is. The record is
+compared by its entry, where it was compared by a digest of its stored text: a record of the store
+is written once, so the same entry is the same content, `STORE.md` §627. An authority recreated or
+deleted after the handler last read it is found there as well, by the plan of the write, and
+answered `401 unpaired` with the approval used up and nothing written, held by
 `RenewalHandlerTests.An_authority_recreated_under_the_write_is_answered_unpaired_and_lets_the_approval_go`
 and
 `RenewalInRealDatabaseTests.A_renewal_whose_authority_is_recreated_before_its_write_is_answered_unpaired_with_nothing_written`.
@@ -1363,11 +1394,11 @@ pairing's dialog would gray it out, and its connection is measured against
 `GateOptions.PairingBudget` from the moment its request is off the wire until its record is handed
 to the writer, since what is left between the two is the same list of waits.
 
-**One renewal per certificate is in flight at a time.** A second renewal of a certificate whose first
-is still being answered is told `503 busy` at once, before anything about it is read, and the first
-stays in flight until its answer has been kept, the standing half included. So the dialog is never
-raised twice for one certificate, and the next renewal after the first is answered meets whatever
-the operator decided.
+**One renewal per client is in flight at a time.** A second renewal of a client whose first is
+still being answered, by the same certificate or another of the client's, is told `503 busy` at
+once, before anything about it is read, and the first stays in flight until its answer has been
+kept, the standing half included. So the dialog is never raised twice for one client, and the
+next renewal after the first is answered meets whatever the operator decided.
 
 **The old record is left valid.** Nothing is revoked by a renewal: the client gives the old
 certificate up itself with `DELETE /gate/certificate` once the new identity is stored, presenting

@@ -24,7 +24,8 @@ namespace KeePassGate.Ui
     /// own row: it carries the client's name and the X. Every further row of the group is indented
     /// under it and reads <see cref="EarlierText"/> where the client's own row reads the name, and
     /// has no X. Profiles, Admitted and Until are each row's own, and a row is still a certificate
-    /// for everything else: its tooltip, its red, and its menu's Allow renewal.
+    /// for its tooltip and its menu's Take certificate away. The red and Allow renewal are the
+    /// client's, on its own row.
     ///
     /// **On the tab rather than in a dialog.** The clients page is a page of its own, so the list
     /// has room to grow without pushing anything else off the tab, and the operator sees who is
@@ -38,7 +39,8 @@ namespace KeePassGate.Ui
     /// `STORE.md` §615, and every row of the group goes at once.
     ///
     /// **Where the store takes no write in the session, no row offers a command on it**: no row
-    /// carries the X, and a row's menu offers Allow renewal alone, `STORE.md` §636.
+    /// carries the X, and a client's own row offers Allow renewal alone, which lifts an answer for
+    /// this session and refuses a stored answer with the reason, `STORE.md` §636.
     ///
     /// **It waits for the dialog's OK, like everything else here.** What settled it is that a tab
     /// cannot carry two models: whichever one an operator assumes on the page they are not looking
@@ -47,15 +49,17 @@ namespace KeePassGate.Ui
     /// A grid rather than a list view, because one column is a thing to press. Nothing else here is
     /// editable: every text column is read only and the grid adds no row of its own.
     ///
-    /// **A standing answer to a certificate's renewals is shown on its row and lifted from it.**
-    /// There is no column for it: the row's name is drawn in the tab's own red while an answer of
-    /// any of the three kinds stands, the row's text cells tell which in their tooltip, and the row
-    /// tells a screen reader the same words as its description. The row's menu, opened by the right
-    /// button, Shift and F10 or the menu key, names the certificate it acts on on a grayed first
-    /// line, states the answer on a grayed line under it, and offers **Take certificate away** and
-    /// **Allow renewal**, and on a client's own row **Revoke** as well. Both wait for the dialog's
-    /// OK as a revocation does: a certificate taken away goes from the page at once, alone, and the
-    /// name stops being red at once as a revoked group goes at once.
+    /// **A standing answer to a client's renewals is shown on the client's own row and lifted
+    /// from it**, `STORE.md` §618 and §648. There is no column for it: the row's name is drawn in
+    /// the tab's own red while an answer refuses now, forever, until a day that has not begun, in
+    /// this session, lost or unreadable, the row's text cells tell which in their tooltip, and the
+    /// row tells a screen reader the same words as its description. The row's menu, opened by the
+    /// right button, Shift and F10 or the menu key, names the certificate it acts on on a grayed
+    /// first line, states the answer on a grayed line under it, and offers **Take certificate
+    /// away**, and on a client's own row **Revoke** and **Allow renewal** as well, the last gray
+    /// where nothing refuses now. Each waits for the dialog's OK as a revocation does: a
+    /// certificate taken away goes from the page at once, alone, and the name stops being red at
+    /// once as a revoked group goes at once.
     ///
     /// **A row whose record does not read offers what the record names**: Revoke where it names a
     /// client key and is its client's own row or stands alone, Take certificate away where it
@@ -234,8 +238,8 @@ namespace KeePassGate.Ui
         public const string MenuLabel = "Client actions";
 
         /// <summary>
-        /// The red a row's name is drawn in while an answer to its certificate's renewals stands:
-        /// the tab's own, the notice over the invite button's, 6.68 to 1 on the window's white.
+        /// The red a client's name is drawn in while an answer to its renewals refuses: the tab's
+        /// own, the notice over the invite button's, 6.68 to 1 on the window's white.
         /// </summary>
         /// <remarks>
         /// The foreground only, so a selected row keeps the grid's own colors, as a dimmed profile
@@ -281,10 +285,10 @@ namespace KeePassGate.Ui
         private ToolStripItem _chosen;
 
         /// <summary>
-        /// Each listed certificate's standing answer, by admission key; absent is none.
+        /// Each listed client's standing answer, by client key; absent is none.
         /// </summary>
-        private readonly Dictionary<string, RenewalRefusal> _standing =
-            new Dictionary<string, RenewalRefusal>(StringComparer.Ordinal);
+        private readonly Dictionary<string, ClientAnswer> _standing =
+            new Dictionary<string, ClientAnswer>(StringComparer.Ordinal);
 
         /// <summary>The profiles the database names, or null when nobody said.</summary>
         private ICollection<string> _named;
@@ -322,9 +326,9 @@ namespace KeePassGate.Ui
         /// did. The list does not write to a database itself: it is a list.
         /// </param>
         /// <param name="allowRenewal">
-        /// Lifts the standing answer to renewing one certificate, by its admission key, and answers
-        /// with why it could not, or null when it did. Like a revocation it waits for the dialog's
-        /// OK, and like one it is the host's to do: the list reads and writes no database.
+        /// Lifts every standing answer that refuses a client's renewals, by its client key, and
+        /// answers with why it could not, or null when it did. Like a revocation it waits for the
+        /// dialog's OK, and like one it is the host's to do: the list reads and writes no database.
         /// </param>
         /// <param name="takeAway">
         /// Takes a certificate away alone, by its admission key, and answers with why it could not,
@@ -402,8 +406,8 @@ namespace KeePassGate.Ui
             {
                 Name = AllowRenewalItemName,
                 ToolTipText = Tooltips.Wrapped(
-                    "Lifts the standing answer to renewing this certificate when OK is pressed. Its "
-                    + "next renewal then raises the dialog again.")
+                    "Lifts the refusal of this client's renewals when OK is pressed. The next renewal "
+                    + "by any of its certificates then raises the dialog again.")
             };
 
             _menu.Items.AddRange(new ToolStripItem[]
@@ -541,8 +545,8 @@ namespace KeePassGate.Ui
         /// <summary>
         /// Whether the database's store takes a write of the operator's in this session, read by
         /// the next fill: where it does not, no row offers a command on the store, no X and no
-        /// command of the row's menu that writes into it, `STORE.md` §636. Allow renewal stays,
-        /// since the standing answers are kept apart from the store.
+        /// Take certificate away, `STORE.md` §636. Allow renewal stays, since it lifts an answer
+        /// for this session, and a stored answer it cannot lift is refused with the reason.
         /// </summary>
         public bool Writable { get; set; } = true;
 
@@ -580,13 +584,22 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// The standing answer to renewing the certificate of a row, by its place in the list, or
-        /// null when none stands or there is no such row.
+        /// The standing answer that refuses the renewals of a row's client, by the row's place in
+        /// the list: on the client's own row, and null on every other row, where none refuses or
+        /// there is no such row.
         /// </summary>
-        public RenewalRefusal StandingAt(int index)
+        public ClientAnswer StandingAt(int index)
         {
-            return index < 0 || index >= _rows.Count || _rows[index].Record == null ? null : Standing(_rows[index].Record);
+            return index < 0 || index >= _rows.Count ? null : Standing(_rows[index]);
         }
+
+        /// <summary>What the line of a lost answer adds in the row's tooltip.</summary>
+        public const string LostDetail =
+            "An answer to renewals was deleted from this database. Allow renewal lifts the refusal.";
+
+        /// <summary>What the line of an answer that does not read adds in the row's tooltip.</summary>
+        public const string UnreadableDetail =
+            "An answer to renewals in this database does not read. Allow renewal lifts the refusal.";
 
         /// <summary>
         /// What the row, its tooltip and its menu say about a standing answer, or null for none.
@@ -596,23 +609,51 @@ namespace KeePassGate.Ui
         /// every other moment on this page is UTC. The dialog asked for a day on a calendar and the
         /// answer ends where that day begins, so the day chosen is the one to give back: the same
         /// moment in UTC would name the evening before for anybody east of Greenwich.
+        ///
+        /// **Of versions made apart the strictest is told**, as the gate answers it: the single act
+        /// is Allow renewal, which lifts every version the page shows.
         /// </remarks>
-        public static string AnswerText(RenewalRefusal standing)
+        public static string AnswerText(ClientAnswer standing)
         {
-            if (standing == null)
+            if (standing == null || standing.Refusal == null)
             {
                 return null;
             }
 
-            if (standing.IsThisSession)
+            if (standing.Lost)
+            {
+                return "Renewal refused: answer lost";
+            }
+
+            if (standing.Unreadable)
+            {
+                return "Renewal refused: answer unreadable";
+            }
+
+            var refusal = standing.Refusal;
+            if (refusal.IsThisSession)
             {
                 return "Renewal refused in this session";
             }
 
-            return standing.IsForever
+            return refusal.IsForever
                 ? "Renewal refused forever"
-                : "Renewal refused until " + standing.NotBefore.Value.ToLocalTime()
+                : "Renewal refused until " + refusal.NotBefore.Value.ToLocalTime()
                     .ToString("yyyy'-'MM'-'dd", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// What the row's tooltip tells under the answer's line, for an answer lost or unreadable,
+        /// or null.
+        /// </summary>
+        public static string AnswerDetail(ClientAnswer standing)
+        {
+            if (standing == null || standing.Refusal == null)
+            {
+                return null;
+            }
+
+            return standing.Lost ? LostDetail : standing.Unreadable ? UnreadableDetail : null;
         }
 
         /// <summary>
@@ -647,40 +688,48 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Lift the standing answer to renewing the certificate of a row, by its place in the list.
+        /// Lift every standing answer that refuses the renewals of a row's client, by the place in
+        /// the list of the client's own row.
         /// </summary>
         /// <remarks>
-        /// Whichever of the three it is. Like a revocation it goes into what the dialog holds and
-        /// reaches the database and the gate when the dialog is accepted, and like a revocation the
-        /// row shows it at once: the name stops being red. Answers with what the line under the
-        /// list now states, which is null when the lift went through, see <see cref="Done"/>.
+        /// Whichever it is. Like a revocation it goes into what the dialog holds and reaches the
+        /// database and the gate when the dialog is accepted, and like a revocation the row shows
+        /// it at once: the name stops being red. Answers with what the line under the list now
+        /// states, which is null when the lift went through, see <see cref="Done"/>; a press that
+        /// is refused leaves the red, and the line reads <see cref="StaysRefusedText"/> and the
+        /// reason.
         ///
         /// Public rather than only wired to the menu, for the reason <see cref="Revoke"/> is.
         /// </remarks>
         public string AllowRenewal(int index)
         {
-            if (index < 0 || index >= _rows.Count || _rows[index].Record == null)
+            if (index < 0 || index >= _rows.Count)
             {
-                return Said("There is no such certificate.");
+                return Said("There is no such client.");
             }
 
             var row = _rows[index];
-            var record = row.Record;
-            var name = Named(row);
-            if (Standing(record) == null)
+            if (!Answerable(row))
             {
-                return Said(name + " has no standing answer: its next renewal raises the dialog.");
+                return Said(row.Record == null
+                    ? "That record does not read."
+                    : "Renewal is allowed on a client's first row.");
             }
 
-            var refused = _allowRenewal(record.AdmissionKey);
+            if (Standing(row) == null)
+            {
+                return Said("No answer refuses renewal: the next renewal raises the dialog.");
+            }
+
+            var refused = _allowRenewal(row.ClientKey);
             if (refused != null)
             {
-                return Said("The answer to renewing that certificate still stands: " + refused);
+                return Said(StaysRefusedText + refused);
             }
 
             // Found again rather than trusting the index, for the reason a revoked group is: a host
             // that redraws the list in answer to the change has already drawn it without the red.
-            _standing.Remove(record.AdmissionKey);
+            _standing.Remove(row.ClientKey);
             var at = _rows.IndexOf(row);
             if (at >= 0 && at < _grid.Rows.Count)
             {
@@ -689,6 +738,9 @@ namespace KeePassGate.Ui
 
             return Done();
         }
+
+        /// <summary>What the line under the list begins with where Allow renewal was refused.</summary>
+        public const string StaysRefusedText = "Renewal stays refused: ";
 
         /// <summary>
         /// Revoke the client of a row, by its place in the list: the client's own row, or a row
@@ -734,11 +786,6 @@ namespace KeePassGate.Ui
                     continue;
                 }
 
-                if (_rows[at].Record != null)
-                {
-                    _standing.Remove(_rows[at].Record.AdmissionKey);
-                }
-
                 _rows.RemoveAt(at);
                 if (at < _grid.Rows.Count)
                 {
@@ -746,6 +793,7 @@ namespace KeePassGate.Ui
                 }
             }
 
+            _standing.Remove(row.ClientKey);
             UpdateEmptiness();
 
             return Done();
@@ -786,7 +834,7 @@ namespace KeePassGate.Ui
             // Drawn again from the listing the list holds, without that certificate, so that the
             // groups are what the listing makes of what is left. A host that refilled the list in
             // answer to the change has already left it out, and this changes nothing more.
-            var standing = new Dictionary<string, RenewalRefusal>(_standing, StringComparer.Ordinal);
+            var standing = new Dictionary<string, ClientAnswer>(_standing, StringComparer.Ordinal);
             Fill(Without(_listing, certificate), _reaches, _named, standing);
 
             return Done();
@@ -857,23 +905,22 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// The same, naming in red each certificate whose renewals stand refused.
+        /// The same, naming in red each client whose renewals stand refused, on its own row.
         /// </summary>
         /// <param name="listing">As above.</param>
         /// <param name="reaches">As above.</param>
         /// <param name="named">As above.</param>
         /// <param name="standing">
-        /// The standing answer to renewing each certificate, by admission key, the database's and
-        /// this session's asked in the order the gate asks them. A certificate with none is absent,
-        /// and so is a certificate whose day has come. Null when nobody answered, which shows none.
-        /// Decided by the caller, for the reason the reaches are: answering it means reading the
-        /// database.
+        /// The standing answer to each client's renewals, by client key, the store's and this
+        /// session's asked in the order the gate asks them. A client with none is absent, and so is
+        /// a client whose day has come. Null when nobody answered, which shows none. Decided by the
+        /// caller, for the reason the reaches are: answering it means reading the database.
         /// </param>
         public void Fill(
             AdmissionListing listing,
             IDictionary<string, ClientReach> reaches,
             ICollection<string> named,
-            IDictionary<string, RenewalRefusal> standing)
+            IDictionary<string, ClientAnswer> standing)
         {
             _filling = true;
 
@@ -903,19 +950,17 @@ namespace KeePassGate.Ui
                 {
                     foreach (var row in Grouped(listing, Writable))
                     {
-                        if (row.Record != null)
+                        ClientAnswer answer;
+                        if (Answerable(row) && standing != null
+                            && standing.TryGetValue(row.ClientKey, out answer) && answer != null)
                         {
-                            RenewalRefusal answer;
-                            if (standing != null && standing.TryGetValue(row.Record.AdmissionKey, out answer) && answer != null)
-                            {
-                                _standing[row.Record.AdmissionKey] = answer;
-                            }
+                            _standing[row.ClientKey] = answer;
                         }
 
                         _rows.Add(row);
                         var at = _grid.Rows.Add(Cells(row, reaches, DateTimeOffset.UtcNow));
                         Shape(_grid.Rows[at], row);
-                        Mark(_grid.Rows[at], row, row.Record == null ? null : Standing(row.Record));
+                        Mark(_grid.Rows[at], row, Standing(row));
                     }
                 }
             }
@@ -1286,14 +1331,27 @@ namespace KeePassGate.Ui
             Revoke(e.RowIndex);
         }
 
-        private RenewalRefusal Standing(AdmissionRecord record)
+        /// <summary>
+        /// The answer that refuses the renewals of a row's client, on the client's own row alone,
+        /// where its admission reads.
+        /// </summary>
+        private ClientAnswer Standing(ClientListRow row)
         {
-            RenewalRefusal standing;
-            return _standing.TryGetValue(record.AdmissionKey, out standing) ? standing : null;
+            ClientAnswer standing;
+            return Answerable(row) && _standing.TryGetValue(row.ClientKey, out standing) ? standing : null;
         }
 
         /// <summary>
-        /// Draws a row's name in red while an answer to its certificate's renewals stands, and
+        /// Whether a row carries its client's answer and Allow renewal: the client's own row, of an
+        /// admission that reads.
+        /// </summary>
+        private static bool Answerable(ClientListRow row)
+        {
+            return row.Own && row.ClientKey != null && row.Record != null;
+        }
+
+        /// <summary>
+        /// Draws a client's name in red on its own row while an answer refuses its renewals, and
         /// tells which in the tooltip of every text cell and in the row's description.
         /// </summary>
         /// <remarks>
@@ -1308,9 +1366,10 @@ namespace KeePassGate.Ui
         /// tells two clients under one name apart, and the audit file names a certificate by its
         /// whole key. The description a screen reader is told stays the answer alone.
         /// </remarks>
-        private void Mark(DataGridViewRow row, ClientListRow listed, RenewalRefusal standing)
+        private void Mark(DataGridViewRow row, ClientListRow listed, ClientAnswer standing)
         {
             var answer = AnswerText(standing);
+            var detail = AnswerDetail(standing);
 
             var described = row as ClientRow;
             if (described != null)
@@ -1318,9 +1377,10 @@ namespace KeePassGate.Ui
                 described.Answer = answer;
             }
 
+            var told = answer == null ? null : detail == null ? answer : answer + Environment.NewLine + detail;
             var tip = Tooltips.Laid(listed.Record == null
-                ? Unidentified(listed.Unread)
-                : Identified(listed.Record, answer, Profiles(listed.Record), listed.Standing));
+                ? Unidentified(listed.Unread, told)
+                : Identified(listed.Record, told, Profiles(listed.Record), listed.Standing));
             foreach (DataGridViewCell cell in row.Cells)
             {
                 if (cell.ColumnIndex == RevokeColumn)
@@ -1391,11 +1451,17 @@ namespace KeePassGate.Ui
             + "the renewal made from it, or that no single admission admits, so it admits nobody.";
 
         /// <summary>
-        /// What a row of a record that does not read shows when the pointer rests on it.
+        /// What a row of a record that does not read shows when the pointer rests on it, with the
+        /// answer about its client's renewals where it is the client's own row and one refuses.
         /// </summary>
-        internal static string Unidentified(UnreadAdmission unread)
+        internal static string Unidentified(UnreadAdmission unread, string answer = null)
         {
             var lines = new List<string> { UnreadReason };
+            if (answer != null)
+            {
+                lines.Add(answer);
+            }
+
             if (unread.ClientKey != null)
             {
                 lines.Add("Client key " + unread.ClientKey);
@@ -1431,7 +1497,10 @@ namespace KeePassGate.Ui
             _answerItem.Available = answer != null;
             _revokeItem.Available = listed.Revocable;
             _takeAwayItem.Available = listed.Certificate != null && listed.Writable;
-            _allowItem.Available = listed.Record != null;
+
+            // On the client's own row alone, as the red is, and gray where nothing refuses now:
+            // the menu of an earlier certificate offers Take certificate away alone.
+            _allowItem.Available = Answerable(listed);
             _allowItem.Enabled = answer != null;
             _commandsSeparator.Available = _revokeItem.Available || _takeAwayItem.Available || _allowItem.Available;
             _menuRow = listed.Id;
@@ -2063,6 +2132,37 @@ namespace KeePassGate.Ui
             _reappeared.Text = _cameBack > 0 ? ReappearedText(_cameBack) : string.Empty;
             _reappeared.Visible = _cameBack > 0;
         }
+    }
+
+    /// <summary>
+    /// What the clients page shows of the standing answer that refuses a client's renewals now.
+    /// </summary>
+    public sealed class ClientAnswer
+    {
+        /// <summary>An answer that refuses now, with whether it is a lost version or a text out of form.</summary>
+        /// <param name="refusal">What refuses: forever, until a moment, or in this session.</param>
+        /// <param name="lost">Whether a version of the stored answer is lost, which refuses forever.</param>
+        /// <param name="unreadable">Whether a stored text does not read, which refuses forever.</param>
+        public ClientAnswer(RenewalRefusal refusal, bool lost, bool unreadable)
+        {
+            if (refusal == null)
+            {
+                throw new ArgumentNullException(nameof(refusal));
+            }
+
+            Refusal = refusal;
+            Lost = lost;
+            Unreadable = unreadable;
+        }
+
+        /// <summary>What refuses the client's renewals.</summary>
+        public RenewalRefusal Refusal { get; private set; }
+
+        /// <summary>Whether a version of the stored answer is lost, `STORE.md` §618.</summary>
+        public bool Lost { get; private set; }
+
+        /// <summary>Whether a stored text does not read, `STORE.md` §618.</summary>
+        public bool Unreadable { get; private set; }
     }
 
     /// <summary>

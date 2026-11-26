@@ -631,11 +631,9 @@ this is what the rest of the design depends on.
 - **Every database is its own certificate authority**, stored inside itself as a record of the
   plugin's store, an entry in a group of the plugin's own, `STORE.md` §614. That is what makes a
   malicious kdbx harmless: it vouches only for itself, and a certificate it issued opens exactly
-  one door, its own. The admissions, the revocations, the profile names and the rules are records
-  of the same store, `STORE.md` §601. What the plugin still keeps under `KPG` keys in the
-  database's own `CustomData` is the standing answers to a renewal, and CA.md §204 has why that
-  dictionary and not a group's; release 0.3.0 moves those into the store as well, which is decided
-  and not built.
+  one door, its own. The admissions, the revocations, the profile names, the rules and the
+  standing answers to a renewal are records of the same store, `STORE.md` §601, and nothing of the
+  plugin's is in the database's own `CustomData`.
 - **The issuer generates the key pair and builds every extension.** It never accepts a signing
   request, because a request can carry extensions and an issuer that copies them lets the client
   choose its own claims.
@@ -1824,14 +1822,14 @@ So the rules here:
   and the database is saved. Afterwards each entry the write added is looked up in the tree with
   the strings it was written with, beside the flag and the file, and a write that did not land is
   taken back out by the undo its application handed back: the entries added, the additions of a
-  name the approval brought among them, the entries deleted with their deletion records, an
-  addition that a removal had defeated among them, and the standing answers the same turn
-  changed. **A write whose plan adds no admission is refused before the approval and the
-  invitation are spent**: looked up by its own entries, a write that added nothing would find
-  nothing missing, and a save of nothing would hand a certificate over with no admission in the
-  file, `AdmissionActs.AddsAdmission`. A plan that leaves the admission out because the
-  authority that issued its certificate is not the authority served alone is told apart, as an
-  authority recreated or deleted since the operator answered: the writer answers it as unserved,
+  name the approval brought among them, the entries deleted with their deletion records, and an
+  addition that a removal had defeated among them. **A write whose plan adds no admission is
+  refused before the approval and the invitation are spent**: looked up by its own entries, a
+  write that added nothing would find nothing missing, and a save of nothing would hand a
+  certificate over with no admission in the file, `AdmissionActs.AddsAdmission`. A plan that
+  leaves the admission out because the authority that issued its certificate is not the
+  authority served alone is told apart, as an authority recreated or deleted since the operator
+  answered: the writer answers it as unserved,
   and a pairing is answered `409 no invitation` and a renewal `401 unpaired`, with the approval
   used up and nothing written, `PAIRING.md` §311. Held by
   `PairingInRealDatabaseTests.A_write_whose_plan_leaves_the_admission_out_is_not_believed_and_spends_nothing`.
@@ -2005,10 +2003,11 @@ So the rules here:
   no longer in the tree. The cost is the rebuild's own, above, an operator's search results. Held
   by `PairingInRealDatabaseTests.A_pairing_that_lands_rebuilds_the_tree_and_the_entry_list` and
   `GiveUpInRealDatabaseTests.A_certificate_given_up_that_lands_rebuilds_the_tree_and_the_entry_list`.
-  A write taken back out redraws the title bar and the menus for the reason a change does. **Not for
-  a standing answer to a renewal**, which goes through the writer as a change does and is kept in
-  the custom data: once it lands it redraws the title bar and the menus, rebuilds neither list,
-  and tells the Clients page, which draws from it.
+  A write taken back out redraws the title bar and the menus for the reason a change does. **And
+  so for a standing answer to a renewal**, a version of the plugin's store that adds and deletes
+  entries of its group, `STORE.md` §618: once it lands it rebuilds both lists and tells the
+  Clients page, which draws from it. This reverses an answer kept in the custom data that rebuilt
+  neither list.
 - **Nothing throws to the transport.** A handler failure becomes `500 internal error` and an
   incident, counted on the plugin's window under Tools and logged at `UNEXPECTED`, because an
   unhandled exception in this process takes KeePass with it. It is not audited, which this bullet
@@ -2180,10 +2179,9 @@ and no `admissionKey` where the copy admitted none, or where the store could not
 was applied. A certificate the OK ended is a certificate this copy admitted before it, so an
 admission under an authority that is not served, a certificate several admissions name and a
 record that does not read get no line. The lines are written once the store's write is taken,
-after the log's own line of what that write came to and ahead of the tab's changes to the
-custom data, so nothing that half comes to loses them, and that half runs in a `finally`
-around them, and so does what the tab does after it, the answers lifted for this session and
-the invitations kept, with the tab's buffer let go last, so a defect in writing the lines
+after the log's own line of what that write came to, and what the tab does after them runs in a
+`finally` around them, the lines of the lifts that landed, the answers lifted for this session
+and the invitations kept, with the tab's buffer let go last, so a defect in writing the lines
 loses nothing else of the OK and reaches the catch-all of the dialog's close afterwards, §141.
 A defect inside the write itself, as out of the writer's redraw of KeePass's window, comes
 before any of that order and leaves no line, `STORE.md` §648. This reverses a
@@ -2526,11 +2524,14 @@ lacks any of them starts no watch, and every write and every pairing is refused.
 - **The TAN wizard** fills its group on OK, so that group is not removed, and adds those entries
   from inside its OK, which can be handled part way through a save of the plugin's own (§119), so
   nothing is saved to its database while it is open.
-- **Database Maintenance** puts its copy of the database's own custom data back as it closes,
-  whatever the operator did, so no standing answer to a renewal is written while it is open, and
-  neither is a pairing, a renewal or a certificate given up, each of which can take such a key
-  away in the turn that writes its record. The records themselves were keys of that dictionary,
-  the profile names and a revocation with them, until they moved into the plugin's store.
+- **Database Maintenance** puts its copy of the database's own custom data back as it closes, and
+  nothing of the plugin's is in that dictionary. **A pairing, a renewal, a certificate given up and
+  a standing answer to a renewal are refused while it is open all the same** (a later decision):
+  each ends in a save of the plugin's own, and a press of one of its buttons, which delete history
+  items and deletion records, handled inside such a save was never measured. A later pull request
+  measures it and then takes the refusal and the watch away, or keeps them with the measured
+  reason. The records themselves were keys of that dictionary, the profile names, a revocation and
+  a standing answer to a renewal with them, until they moved into the plugin's store.
 - **Database Settings** puts its recycle bin choice back on OK, so a removal that would make the
   database's first bin is refused.
 - **KeePass's attachment editor** holds an attachment's name and bytes and nothing of the entry,
@@ -2550,9 +2551,10 @@ refused for it: pressed where a record counts by its history, the removal is the
 §622 describes. Keeping an authority, which writes no custom data and saves nothing, is written
 under it, while the store write of the settings dialog's OK is refused under it and under the TAN
 wizard as a whole; neither window can stand beside that dialog, each being modal. A pairing's and
-a renewal's admission and a certificate given up are writes into the store as well: each is
-answered `503 busy` while an entry dialog holds an entry its plan deletes or sets back, the
-summary entry among them, with a pairing's or a renewal's approval held.
+a renewal's admission, a certificate given up and a standing answer to a renewal are writes into
+the store as well: each is answered `503 busy` while an entry dialog holds an entry its plan
+deletes or sets back, the summary entry among them, with a pairing's or a renewal's approval
+held, and a standing answer held for this session instead, `PAIRING.md` §312.
 
 ### C4. The plugin as its own CA puts the CA key beside the database §125
 
@@ -2781,6 +2783,5 @@ Written down so that it is possible to be wrong about this on purpose rather tha
   a group's, `CA.md` §204, and a record that fails closed absorbs none of that for a rule that
   narrows. So `CustomData` is decided to be the wrong store, and release 0.3.0 keeps the plugin's
   data in entries of a group of its own: `STORE.md` §601 holds what is decided and §604 what it
-  reverses. It is built for the authority, the admissions, the revocations, the profile names and
-  the rules, and this document describes each of those as built; what is still in custom data is
-  the standing answers to a renewal, for which it describes the store that 0.2.0 ships.
+  reverses. It is built for the authority, the admissions, the revocations, the profile names, the
+  rules and the standing answers to a renewal, and this document describes each of those as built.

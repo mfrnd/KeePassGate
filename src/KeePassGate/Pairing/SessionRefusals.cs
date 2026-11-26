@@ -4,13 +4,15 @@ using System.Collections.Generic;
 namespace KeePassGate.Pairing
 {
     /// <summary>
-    /// The certificates whose renewals stand refused until KeePass exits, in plugin memory and
-    /// nowhere else.
+    /// The clients whose renewals stand refused until KeePass exits, in plugin memory and nowhere
+    /// else.
     /// </summary>
     /// <remarks>
-    /// `PAIRING.md` §312. **Per certificate**, by admission key, as the stored answers are, so
-    /// pairing again is a new certificate this says nothing about. **Under one lock**, because the
-    /// handler that adds to it and the handlers that read it run on connection threads.
+    /// `PAIRING.md` §312. **Per client**, by client key, as the stored answers are, `STORE.md`
+    /// §618, so an answer holds for every certificate the client holds, a certificate a renewal
+    /// issued among them, and the clients page and the gate read a single kind of answer. Pairing
+    /// again is a new client this holds nothing about. **Under one lock**, because the handler that
+    /// adds to it and the handlers that read it run on connection threads.
     ///
     /// **Nothing here is written to a database**, as nothing about an invitation is, and that is
     /// the point rather than a limitation: the answer is about this session, and an answer kept in
@@ -22,8 +24,8 @@ namespace KeePassGate.Pairing
     /// at once. Nothing here waits for a save of any database.
     ///
     /// **One for the plugin, shared by the gate and the KPG tab.** The renewal handler adds to it
-    /// and asks it; the clients page shows what it holds beside each client, and takes one out
-    /// when the operator allows renewal there and the settings dialog is accepted. Two of them
+    /// and asks it; the clients page shows what it holds on each client's own row, and takes one
+    /// out when the operator allows renewal there and the settings dialog is accepted. Two of them
     /// would be a page lifting an answer the gate goes on giving.
     /// </remarks>
     public sealed class SessionRefusals
@@ -45,18 +47,18 @@ namespace KeePassGate.Pairing
         /// </remarks>
         public event EventHandler Answered;
 
-        /// <summary>Refuses every later renewal of this certificate until KeePass exits.</summary>
-        public void Refuse(string admissionKey)
+        /// <summary>Refuses every later renewal of this client until KeePass exits.</summary>
+        public void Refuse(string clientKey)
         {
-            if (string.IsNullOrEmpty(admissionKey))
+            if (string.IsNullOrEmpty(clientKey))
             {
-                throw new ArgumentException("An admission key is required.", nameof(admissionKey));
+                throw new ArgumentException("A client key is required.", nameof(clientKey));
             }
 
             bool added;
             lock (_lock)
             {
-                added = _refused.Add(admissionKey);
+                added = _refused.Add(clientKey);
             }
 
             if (added)
@@ -70,33 +72,33 @@ namespace KeePassGate.Pairing
         }
 
         /// <summary>
-        /// Takes back the answer a clients page lifted about renewing this certificate, so that its
+        /// Takes back the answer a clients page lifted about this client's renewals, so that its
         /// next renewal raises the dialog again, and answers whether there was such an answer.
         /// </summary>
-        public bool Lift(string admissionKey)
+        public bool Lift(string clientKey)
         {
-            if (string.IsNullOrEmpty(admissionKey))
+            if (string.IsNullOrEmpty(clientKey))
             {
                 return false;
             }
 
             lock (_lock)
             {
-                return _refused.Remove(admissionKey);
+                return _refused.Remove(clientKey);
             }
         }
 
-        /// <summary>Whether renewals of this certificate are refused until KeePass exits.</summary>
-        public bool Refuses(string admissionKey)
+        /// <summary>Whether renewals of this client are refused until KeePass exits.</summary>
+        public bool Refuses(string clientKey)
         {
-            if (string.IsNullOrEmpty(admissionKey))
+            if (string.IsNullOrEmpty(clientKey))
             {
                 return false;
             }
 
             lock (_lock)
             {
-                return _refused.Contains(admissionKey);
+                return _refused.Contains(clientKey);
             }
         }
     }

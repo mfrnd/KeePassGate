@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using KeePassGate.Acl;
+using KeePassGate.Authority;
 using KeePassGate.Store;
 
 namespace KeePassGate.Ui
@@ -43,7 +44,10 @@ namespace KeePassGate.Ui
     /// own dropping of an authority made and retired in a single write stays as the second line.
     /// **And it holds the operator's last press for each name**, and no earlier press: written as
     /// records, a name added and removed again would leave an item in every later summary entry
-    /// for good.
+    /// for good. **So for Allow renewal, the last press for each client**, naming every version
+    /// each press about the client was shown, `RenewalActs.Folded`: a press made again because a
+    /// refusal arrived under the dialog would otherwise leave standing the version the first
+    /// press lifted.
     ///
     /// **A revocation has no ground**, so OK always writes it; the pages read the client's
     /// admissions as gone while it waits, since the plan deletes what it refuses, `STORE.md` §627.
@@ -307,6 +311,28 @@ namespace KeePassGate.Ui
 
                 buffer.Add(act);
                 return act;
+            }
+
+            // The operator's last press of Allow renewal for a client, naming what every press
+            // about that client was shown.
+            var client = RenewalActs.About(act);
+            if (client != null)
+            {
+                var folded = act;
+                foreach (var earlier in buffer.Where(held => string.Equals(RenewalActs.About(held), client, StringComparison.Ordinal)).ToList())
+                {
+                    buffer.Remove(earlier);
+                    letGo.Add(earlier);
+                    folded = RenewalActs.Folded(earlier, folded);
+                }
+
+                if (!ReferenceEquals(folded, act))
+                {
+                    letGo.Add(act);
+                }
+
+                buffer.Add(folded);
+                return folded;
             }
 
             var retired = new HashSet<string>(

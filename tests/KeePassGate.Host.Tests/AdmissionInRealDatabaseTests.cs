@@ -115,14 +115,15 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_pairing_leaves_the_file_KDBX_4_0_whatever_it_names_and_a_standing_answer_takes_it_to_4_1()
+        public void A_pairing_leaves_the_file_KDBX_4_0_whatever_it_names_and_whatever_is_refused()
         {
             // Measured over the product's own pairing write and KeePass's save, each in a database
             // of its own: a client paired for no profile; a client paired for a profile, which the
             // write adds to the list as an entry of the store; and a client paired for no profile
             // with a standing answer to its renewal written beside it. The store's entries need
-            // nothing above 4.0, `STORE.md` §612, and each key of the database's own custom data
-            // carries a modification time, which is a 4.1 field, `CA.md` §204.
+            // nothing above 4.0, `STORE.md` §612, and the answer is a version of the store, about
+            // the client, `STORE.md` §618, where a key of the database's own custom data carried a
+            // modification time, a 4.1 field.
             var none = VersionAfterPairing(Array.Empty<string>(), false);
             var profile = VersionAfterPairing(new[] { "ops" }, false);
             var answer = VersionAfterPairing(Array.Empty<string>(), true);
@@ -135,7 +136,7 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(none, Is.EqualTo(0x00040000), "a client paired for no profile leaves a 4.0 file");
             Assert.That(profile, Is.EqualTo(0x00040000), "a client paired for a profile the list then names, a 4.0 file");
-            Assert.That(answer, Is.EqualTo(0x00040001), "and a standing answer beside a client paired for none, a 4.1 file");
+            Assert.That(answer, Is.EqualTo(0x00040000), "and a standing answer beside a client paired for none, a 4.0 file");
         }
 
         /// <summary>
@@ -164,7 +165,8 @@ namespace KeePassGate.Host.Tests
 
                 if (withAnswer)
                 {
-                    new StoredAdmissions(database.Database).Answers.RefuseRenewal(admission.AdmissionKey, RenewalRefusal.Forever());
+                    new StoredAdmissions(database.Database).Refuse(admission.ClientKey, RenewalRefusal.Forever());
+                    Assume.That(database.Database.CustomData.Count, Is.Zero, "no custom data of the plugin's");
                     database.Save();
                 }
 

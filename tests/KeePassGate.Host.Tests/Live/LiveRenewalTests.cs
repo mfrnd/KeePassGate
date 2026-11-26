@@ -83,6 +83,7 @@ namespace KeePassGate.Host.Tests.Live
         private bool _oldTakenAwayInTheFile;
         private bool _renewalNamedInTheFile;
         private bool _oldAdmissionInTheFile;
+        private string _seededRefusal;
 
         [OneTimeSetUp]
         public void RunTheWholeSession()
@@ -95,6 +96,7 @@ namespace KeePassGate.Host.Tests.Live
             _takenAway = Admitted(keePass, TakenAway);
             _allowedToRenew = Admitted(keePass, AllowedToRenew);
             keePass.RefuseRenewal(_allowedToRenew, RenewalRefusal.Forever());
+            _seededRefusal = keePass.ReadAnswerVersions(_allowedToRenew).Single().Item1;
 
             using (var old = keePass.IssueClientCertificate("agent-fictitious"))
             {
@@ -121,10 +123,11 @@ namespace KeePassGate.Host.Tests.Live
                     _askedAgain = LiveGateClient.Send(
                         keePass.Port, keePass.NewGateName(), renewed, "POST", RenewalHandler.Path, "{}");
 
-                    // Read while the answer stands: Allow renewal below takes away any standing
-                    // answer for this certificate, so a file read after it holds none whatever
-                    // the refusal had written, and a write of one would have been saved by now.
-                    _standingInTheFile = keePass.ReadStandingRefusal(_newKey);
+                    // Read while the answer stands: Allow renewal below lifts every standing
+                    // answer about this client, so a file read after it holds none whatever the
+                    // refusal had written, and a write of one would have been saved by then. The
+                    // client paired with the old certificate, so the old key is its client key.
+                    _standingInTheFile = keePass.ReadStandingRefusal(_oldKey);
 
                     _menuSaid = AllowRenewalOnTheClientsPage(driver);
                     _afterLifting = RefuseOnce(driver, keePass, renewed);
@@ -234,6 +237,11 @@ namespace KeePassGate.Host.Tests.Live
                 "and its client is not revoked");
             Assert.That(keePass.ReadStandingRefusal(_allowedToRenew), Is.Null,
                 "the answer the file kept is lifted");
+            var versions = keePass.ReadAnswerVersions(_allowedToRenew);
+            Assert.That(versions, Has.Count.EqualTo(1), "a single version of the client's answer stands");
+            Assert.That(versions[0].Item2, Is.EqualTo(RenewalText.Ask), "the lift");
+            Assert.That(versions[0].Item3.Split(' '), Has.Member(_seededRefusal), "which names the refusal it lifts");
+            Assert.That(keePass.ReadPluginKeysInCustomData(), Is.Empty, "and nothing of the plugin's is in the custom data");
 
             var lines = File.ReadAllLines(keePass.AuditPath);
             foreach (var key in new[] { _byTheMark, _fromTheMenu, _takenAway })
@@ -315,7 +323,9 @@ namespace KeePassGate.Host.Tests.Live
             Assert.That(refusals, Has.Length.EqualTo(1), _pluginLog);
             Assert.That(inThisSession, Has.Length.EqualTo(1), _pluginLog);
             Assert.That(once, Has.Length.EqualTo(1), _pluginLog);
-            Assert.That(_pluginLog, Does.Contain("renewals of " + renewed + " are asked about again"),
+            // An answer is about the client, whose key is the old certificate's, which the renewed
+            // record carries on.
+            Assert.That(_pluginLog, Does.Contain("renewals of the client " + old + " are asked about again"),
                 "the settings dialog's OK lifted the answer and said so");
             Assert.That(unexpected, Is.Empty, string.Join(Environment.NewLine, unexpected));
         }

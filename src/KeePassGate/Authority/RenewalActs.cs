@@ -84,6 +84,70 @@ namespace KeePassGate.Authority
             return Composed(reading, LiftName, client, RenewalText.Ask, standing, lost, again => Lift(again, client, standing, lost), out refused);
         }
 
+        /// <summary>The client key a lift is about, or null for every other act.</summary>
+        public static string About(StoreAct act)
+        {
+            if (act == null || !string.Equals(act.Name, LiftName, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            foreach (var record in act.Records.Where(record => record.Kind == StoreKinds.Version))
+            {
+                string client;
+                if (RenewalText.ReadObject(record.Member(StoreKinds.ObjectMember), out client))
+                {
+                    return client;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// A press of a lift about a client that takes the place of an earlier press about the
+        /// same client: composed again under each later reading, it names every version either
+        /// press was shown, so that a version only the earlier press was shown is not left
+        /// standing by the later; the later press as it is where the two are not about a single
+        /// client.
+        /// </summary>
+        /// <remarks>
+        /// **What a press was shown is read off the version it composed**: its `after` holds each
+        /// standing version it was shown that still stood, with what those name, and its `lost`
+        /// each lost version it was shown that was still lost. Composed again, every one of them
+        /// that does not stand or is not lost then names nothing, so naming more of what a press
+        /// was shown than stands changes nothing.
+        /// </remarks>
+        public static StoreAct Folded(StoreAct earlier, StoreAct later)
+        {
+            var client = About(later);
+            if (client == null || !string.Equals(About(earlier), client, StringComparison.Ordinal))
+            {
+                return later;
+            }
+
+            var standing = Shown(earlier, StoreKinds.After).Concat(Shown(later, StoreKinds.After))
+                .Distinct(StringComparer.Ordinal).ToList();
+            var lost = Shown(earlier, StoreKinds.Lost).Concat(Shown(later, StoreKinds.Lost))
+                .Distinct(StringComparer.Ordinal).ToList();
+            var key = later.Key();
+            try
+            {
+                return new StoreAct(later.Name, key, later.Against, later.Records, null, again => Lift(again, client, standing, lost));
+            }
+            finally
+            {
+                Array.Clear(key, 0, key.Length);
+            }
+        }
+
+        /// <summary>The identifiers a member of the version of an act lists.</summary>
+        private static IEnumerable<string> Shown(StoreAct act, string member)
+        {
+            return act.Records.Where(record => record.Kind == StoreKinds.Version)
+                .SelectMany(record => Listed(record.Member(member)));
+        }
+
         private static StoreAct Composed(
             StoreReading reading,
             string name,

@@ -146,8 +146,8 @@ namespace KeePassGate.Tests
             // A row and a log line carry the short digest, and an empty one would show nothing.
             var digest = new string('d', 64);
 
-            Assert.That(AuthorityOption.Unreadable(string.Empty, "unreadable").ShortFingerprint, Is.EqualTo(AuthorityKeys.NoDigest));
-            Assert.That(AuthorityKeys.Shown(digest), Is.EqualTo(CertificateDigest.Shorten(digest)));
+            Assert.That(AuthorityOption.Unreadable(string.Empty, "unreadable").ShortFingerprint, Is.EqualTo(AuthorityShown.NoDigest));
+            Assert.That(AuthorityShown.Of(digest), Is.EqualTo(CertificateDigest.Shorten(digest)));
         }
 
         [Test]

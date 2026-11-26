@@ -61,13 +61,43 @@ none, since it releases both.
   them, as before. A pairing, a renewal or a certificate given up is answered `503 busy` while
   KeePass's entry dialog is open on an entry of the plugin's group that the write would delete or
   put back, and while Database Maintenance is open, as before. Nothing a program is sent changes.
-  **A paired database is a KDBX 4.0 file until a renewal is refused forever or until a day.** A
-  saved database that holds an authority, a profile name and a program paired, and nothing of
-  the plugin's in its custom data, is a 4.0 file, where the first program paired and the first
-  profile named each used to make it a 4.1 file. A renewal refused forever or until a day still
-  takes the file to 4.1, since those answers are kept in the database's custom data, and a
+  **A paired database is a KDBX 4.0 file, whatever is refused.** A saved database that holds an
+  authority, a profile name, a program paired and a renewal refused forever, and nothing of the
+  plugin's in its custom data, is a 4.0 file, where the first program paired, the first profile
+  named and the first renewal refused forever or until a day each used to make it a 4.1 file. A
   database that 0.2 wrote stays a 4.1 file for as long as what 0.2 kept there is in it.
-  `STORE.md` §612, §615, §626, §627 and §648.
+  `STORE.md` §612, §615, §618, §626, §627 and §648.
+- **Breaking: a renewal refused under 0.2, forever or until a day, is refused no more after the
+  move.** The standing answers to a renewal are records in the plugin's store, entries of the
+  group `KeePassGate`, about a program rather than a certificate. 0.2 kept each answer in the
+  database's custom data, under the certificate it was about, and that is reversed rather than
+  migrated: 0.3 reads nothing there and changes nothing there. A program that was refused pairs
+  again like every other, and is asked about at its next renewal. `STORE.md` §618 and §645.
+- **An answer forever or until a day is about a program, every certificate it holds**, a
+  certificate a renewal issued among them, and the red name, the answer and **Allow renewal**
+  are on the program's own row of the clients page. The row of an earlier certificate of the
+  program carries none of them, and its menu offers **Take certificate away** alone. A second
+  renewal of a program is `503 busy` while its first is being answered, also by another
+  certificate. `PAIRING.md` §312.
+- **Of two answers given in two copies of a database, the stricter holds once the copies
+  meet**, forever over a day and of two days the later, and **Allow renewal** in a copy that
+  had not received a refusal does not lift it. An answer given on the renewal dialog while a
+  merge brought another answer in leaves that answer standing beside it. Where the time of the
+  answer decided before, the copy whose answer was later won. `PAIRING.md` §312.
+- **An answer whose entry was deleted, in KeePass or by another program, refuses forever until
+  Allow renewal**, and so does an answer whose text the plugin does not read. The clients page
+  shows "Renewal refused: answer lost" or "Renewal refused: answer unreadable" on the program's
+  row, and the log names the cause at each renewal refused for it. `STORE.md` §618.
+- **Allow renewal is written into the plugin's store at the settings dialog's OK with the tab's
+  other changes, and kept by the next save**, as they are. A lift lost with an unsaved database
+  leaves the refusal of the file standing. An answer the renewal dialog gives while the settings
+  dialog is open stands at OK: Allow renewal lifts what the page showed when it was pressed.
+  Allow renewal, given where the store takes no write in the session, lifts an answer for this
+  session and states why a stored answer stays. `STORE.md` §618 and §627.
+- **An answer that lands rebuilds KeePass's group tree and entry list**, as every write into the
+  plugin's group does, and an approved renewal that a refusal arriving by a merge stops issues
+  nothing and is answered with that refusal at once, `409` as before any dialog, as a revocation
+  landed since is answered `401`. `DESIGN.md` §119.
 - **Breaking: the profile names are records in the plugin's store, and a database is given its
   names again.** Each name is added by an entry of the group `KeePassGate` and taken off the list
   by a further entry. 0.2 kept the whole list as a single value in the database's custom data,
@@ -235,19 +265,20 @@ none, since it releases both.
   stands in bold above the line naming the table, as the pairing dialog shows its notice. What a
   renewal grants, writes and audits is unchanged.
   `PAIRING.md` §312.
-- **A renewal refused forever or until a day saves the database, as Approve does, and a refusal
-  that could not be saved holds for this session only.** "Refuse until a date..." and "Refuse
-  forever" write the answer and save the database before the program is told `403 refused`, and
-  the renewal dialog states which answers save in a line of its own: "Approve, Refuse until a
-  date and Refuse forever save this database." Where KeePass is part way through work of its
-  own, Database Maintenance or the TAN wizard is open on the database, another copy replaced the
-  file, or the save does not land, the answer holds until KeePass exits, answered `409 this
-  session`, and a message under the plugin's name states at once that the answer was not
-  written, and why. A save whose file does not verify leaves the answer in force with the
-  database marked, and the message states that the save could not be confirmed. An answer that
-  could not be written was held in memory and written by the database's next save, whoever made
-  it, with a message at KeePass's exit naming each answer no save had taken; neither is left.
-  `PAIRING.md` §312.
+- **A renewal refused forever or until a day saves the database, as Approve does, and a refusal that
+  could not be saved holds for this session only.** "Refuse until a date..." and "Refuse forever"
+  write the answer and save the database before the program is told `403 refused`, and the renewal
+  dialog states which answers save in a line of its own: "Approve, Refuse until a date and Refuse
+  forever save this database." Where KeePass is part way through work of its own, Database
+  Maintenance or the TAN wizard is open on the database, another copy replaced the file, an entry
+  dialog holds an entry of the plugin's group the answer's write touches, the plugin's store does
+  not take the write, or the save does not land, the answer holds until KeePass exits, answered
+  `409 this session`, and a message under the plugin's name states at once that the answer was not
+  written, and why. A save whose file does not verify leaves the answer in force with the database
+  marked, and the message states that the save could not be confirmed. An answer that could not be
+  written was held in memory and written by the database's next save, whoever made it, with a
+  message at KeePass's exit naming each answer no save had taken; neither is left. `PAIRING.md`
+  §312.
 - **Breaking: the rules are records in the plugin's store, and every rule is entered again.** A
   profile's rule at a group or an entry, and the setting **Refuse any profile not named here**,
   are entries of the group `KeePassGate`, each under the identifier of the group or entry it is

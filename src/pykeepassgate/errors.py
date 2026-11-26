@@ -131,7 +131,7 @@ class RenewalRefused(RenewalError):
 
 
 class RenewalRefusedThisSession(RenewalRefused):
-    """The operator refused every renewal of this certificate until KeePass exits.
+    """The operator refused every renewal by this client until KeePass exits.
 
     The gate holds that answer in memory and not in the database, so asking again after KeePass
     has been restarted raises the dialog again, and so does asking once the operator has allowed
@@ -141,7 +141,7 @@ class RenewalRefusedThisSession(RenewalRefused):
 
 
 class RenewalTooEarly(RenewalRefused):
-    """The operator refused renewing this certificate until `not_before`, which has not come.
+    """The operator refused the renewals of this client until `not_before`, which has not come.
 
     Asking again before then gets this again without a dialog, unless the operator has allowed
     renewal again on the KPG tab's clients page; from then on the operator is asked again, unless a
@@ -163,7 +163,7 @@ class RenewalTooEarly(RenewalRefused):
 
 
 class RenewalRefusedForever(RenewalRefused):
-    """The operator refused every renewal of this certificate.
+    """The operator refused every renewal by this client, by any of its certificates.
 
     Short of the operator allowing renewal again on the KPG tab's clients page, pairing again is
     the way to a new one, with an invitation from the operator, and the sooner the better: the

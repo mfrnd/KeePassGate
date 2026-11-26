@@ -1,5 +1,4 @@
 using System.Windows.Forms;
-using KeePassGate.Authority;
 using KeePassGate.Ui;
 
 namespace KeePassGate.Tests.Fakes
@@ -7,16 +6,8 @@ namespace KeePassGate.Tests.Fakes
     /// <summary>A database for the panel to work on, with no KeePass behind it.</summary>
     internal sealed class FakeGateDatabase : IGateDatabase
     {
-        private readonly InMemoryKeyValueStore _store;
-
         public FakeGateDatabase()
-            : this(new InMemoryKeyValueStore())
         {
-        }
-
-        public FakeGateDatabase(InMemoryKeyValueStore store)
-        {
-            _store = store;
             IsOpen = true;
             Name = "Invented Vault";
         }
@@ -30,12 +21,6 @@ namespace KeePassGate.Tests.Fakes
         /// factory gives it, whose own mark does nothing.
         /// </remarks>
         public int MarkedModifiedCount { get; private set; }
-
-        /// <summary>The custom data the admissions are kept in.</summary>
-        public InMemoryKeyValueStore Values
-        {
-            get { return _store; }
-        }
 
         /// <summary>The plugin's store, in memory.</summary>
         public MemoryStore Records { get; } = new MemoryStore();
@@ -53,27 +38,6 @@ namespace KeePassGate.Tests.Fakes
         /// and the ones that do are about what is counted in it.
         /// </summary>
         public KeePassGate.Acl.IRuledNodes Nodes { get; set; }
-
-        public IKeyValueStore PluginCustomData
-        {
-            get
-            {
-                var refusal = NextReadThrows;
-                if (refusal != null)
-                {
-                    NextReadThrows = null;
-                    throw refusal;
-                }
-
-                return _store;
-            }
-        }
-
-        /// <summary>
-        /// What the next read of the custom data throws, once, or null for reads that work: a
-        /// defect in one step of something that reads it several times.
-        /// </summary>
-        public System.Exception NextReadThrows { get; set; }
 
         /// <summary>
         /// What marking the database as modified throws, or null for a mark that works. For the

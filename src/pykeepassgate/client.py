@@ -1848,7 +1848,7 @@ def _refuse_renewal(reply: transport.Response) -> None:
 
     if reply.status == 409 and reply.error() == "this session":
         raise RenewalRefusedThisSession(
-            "the operator refused every renewal of this certificate until KeePass exits. Ask "
+            "the operator refused every renewal by this client until KeePass exits. Ask "
             "again after KeePass has been restarted or once the operator has allowed renewal "
             "again on the KPG tab's clients page, or pair again, with an invitation from the "
             "operator, before the one this client holds expires"
@@ -1856,7 +1856,7 @@ def _refuse_renewal(reply: transport.Response) -> None:
 
     if reply.status == 409 and reply.error() == "forever":
         raise RenewalRefusedForever(
-            "the operator refused every renewal of this certificate. Ask again once the operator "
+            "the operator refused every renewal by this client. Ask again once the operator "
             "has allowed renewal again on the KPG tab's clients page, or pair again, with an "
             "invitation from the operator, before the one this client holds expires"
         )

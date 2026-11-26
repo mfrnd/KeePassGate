@@ -140,11 +140,11 @@ namespace KeePassGate.Tests
                 Assume.That(list.Clients.Count, Is.EqualTo(1));
                 Assume.That(list.StandingAt(0), Is.Null, "nothing refuses its renewals yet");
 
-                FromAnotherThread(() => refusals.Refuse(record.AdmissionKey));
+                FromAnotherThread(() => refusals.Refuse(record.ClientKey));
                 Escapes.PumpUntil(() => list.StandingAt(0) != null, Patience);
 
                 Assert.That(list.StandingAt(0), Is.Not.Null, "the page was not told of the answer");
-                Assert.That(list.StandingAt(0).IsThisSession, Is.True);
+                Assert.That(list.StandingAt(0).Refusal.IsThisSession, Is.True);
             }
         }
 

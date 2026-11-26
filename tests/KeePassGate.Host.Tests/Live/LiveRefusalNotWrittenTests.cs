@@ -22,9 +22,8 @@ namespace KeePassGate.Host.Tests.Live
     /// **The cause is the database's file replaced underneath the open renewal dialog**, saved
     /// again from outside so that its bytes are not those KeePass read. The questions put
     /// before the dialog have passed by then, and the answer's write, which saves as Approve's
-    /// record does, refuses the save KeePass would stop to ask about. It is the cause of the
-    /// writes this tree keeps in the custom data that a fixture can make at a moment of its own
-    /// choosing, and the same every run.
+    /// record does, refuses the save KeePass would stop to ask about. It is a cause a fixture can
+    /// make at a moment of its own choosing, and the same every run.
     ///
     /// Only the real window shows the message's place: up once the renewal dialog has gone, over
     /// KeePass's main window, under the plugin's name, which is why this is in the end to end tier.

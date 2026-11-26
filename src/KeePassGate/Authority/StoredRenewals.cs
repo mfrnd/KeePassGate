@@ -152,5 +152,29 @@ namespace KeePassGate.Authority
 
             return RenewalStanding.Of(inForce.VersionsOf(objectText), inForce.LostOf(objectText));
         }
+
+        /// <summary>
+        /// What these standing and lost versions of the client's object give, taken from a reading
+        /// before: no answer where the key is out of form.
+        /// </summary>
+        public static RenewalStanding Of(string client, IReadOnlyList<StoreNaming> standing, IReadOnlyList<string> lost)
+        {
+            string key;
+            if (client == null || !RenewalText.ReadObject(RenewalText.ObjectOf(client), out key))
+            {
+                return RenewalStanding.None();
+            }
+
+            return RenewalStanding.Of(standing ?? Array.Empty<StoreNaming>(), lost ?? Array.Empty<string>());
+        }
+
+        /// <summary>
+        /// The strictest stored answer about a client's renewals in this reading, a refusal forever
+        /// for a lost version and a text out of form, or null where none stands.
+        /// </summary>
+        public static RenewalRefusal AnswerOf(StoreInForce inForce, string client)
+        {
+            return Of(inForce, client).Answer;
+        }
     }
 }

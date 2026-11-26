@@ -5,7 +5,8 @@ using NUnit.Framework;
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// The operator's standing answer to renewing a certificate, as it is stored and as it is asked.
+    /// The operator's standing answer to a client's renewals, as it is asked. How a stored answer
+    /// is written and read is `RenewalTextTests`'.
     /// </summary>
     [TestFixture]
     public sealed class RenewalRefusalTests
@@ -21,7 +22,6 @@ namespace KeePassGate.Tests
             Assert.That(forever.IsThisSession, Is.False);
             Assert.That(forever.NotBefore, Is.Null);
             Assert.That(forever.Refuses(DateTimeOffset.MaxValue), Is.True);
-            Assert.That(forever.Write(), Is.EqualTo("forever"));
         }
 
         [Test]
@@ -31,10 +31,9 @@ namespace KeePassGate.Tests
 
             Assert.That(session.IsThisSession, Is.True);
             Assert.That(session.IsForever, Is.False, "it ends when KeePass does");
-            Assert.That(session.IsWritten, Is.False);
             Assert.That(session.NotBefore, Is.Null);
             Assert.That(session.Refuses(DateTimeOffset.MaxValue), Is.True);
-            Assert.That(() => session.Write(), Throws.InvalidOperationException);
+            Assert.That(() => RenewalText.Of(session), Throws.ArgumentException, "no version of the store holds it");
         }
 
         [Test]
@@ -46,7 +45,7 @@ namespace KeePassGate.Tests
             Assert.That(until.IsThisSession, Is.False);
             Assert.That(until.Refuses(Then.AddSeconds(-1)), Is.True);
             Assert.That(until.Refuses(Then), Is.False, "the moment named is the first one asked about again");
-            Assert.That(until.Write(), Is.EqualTo("2026-10-09T22:00:00Z"));
+            Assert.That(until.NotBefore, Is.EqualTo(Then));
         }
 
         [Test]
@@ -54,27 +53,8 @@ namespace KeePassGate.Tests
         {
             var local = new DateTimeOffset(2026, 10, 10, 0, 0, 0, 500, TimeSpan.FromHours(2));
 
-            Assert.That(RenewalRefusal.Until(local).Write(), Is.EqualTo("2026-10-09T22:00:00Z"));
             Assert.That(RenewalRefusal.Until(local).NotBefore, Is.EqualTo(Then));
-        }
-
-        [TestCase("forever")]
-        [TestCase("2026-10-09T22:00:00Z")]
-        public void What_is_written_reads_back_as_itself(string written)
-        {
-            Assert.That(RenewalRefusal.Read(written).Write(), Is.EqualTo(written));
-        }
-
-        [TestCase(null)]
-        [TestCase("")]
-        [TestCase("Forever")]
-        [TestCase("this session")]
-        [TestCase("2026-10-09")]
-        [TestCase("2026-10-09T22:00:00+02:00")]
-        [TestCase("tomorrow")]
-        public void Anything_else_is_not_a_standing_answer(string written)
-        {
-            Assert.That(RenewalRefusal.Read(written), Is.Null);
+            Assert.That(RenewalRefusal.Until(local).NotBefore.Value.Offset, Is.EqualTo(TimeSpan.Zero));
         }
     }
 }

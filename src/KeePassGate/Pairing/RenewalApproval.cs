@@ -142,7 +142,7 @@ namespace KeePassGate.Pairing
 
         /// <summary>The operator's no to this renewal.</summary>
         /// <param name="standing">
-        /// What every later renewal of this certificate is answered with, or null for once only.
+        /// What every later renewal by this client is answered with, or null for once only.
         /// </param>
         public static RenewalApproval Refused(RenewalRefusal standing = null)
         {

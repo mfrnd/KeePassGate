@@ -40,10 +40,11 @@ takes access away is a further entry, never an entry deleted or changed.
 > every press until then, with the write above, by which a change at a node writes anew the
 > versions below it that were following (§617, §629, §657). §614, §615, §616, §617, §620,
 > §626, §627, §628, §629, §633, §636, §643, §648, §656 and §657 state which parts those are,
-> and nothing else below describes what the plugin does today. **Not built**: the standing
-> answers to a renewal as records of this store, of which this build has the reading and the
-> acts of §618 and nothing that serves or writes them, keeping the answers in custom data as
-> 0.2.0 does; the
+> and nothing else below describes what the plugin does today. And the standing answers to a
+> renewal of §618, a version of `renew:` and the client key: read with the admission in the
+> hold a renewal is answered in, written by the renewal dialog's Refuse menu in a turn of the
+> writer and saved, and lifted by **Allow renewal** at the settings dialog's OK. Nothing of the
+> plugin's is in the custom data. **Not built**: the
 > page that seals a store again (§625) and the command that starts it again (§632); the guard
 > over KeePass's own windows, with its switch (§635); the tab's listing of the store (§636);
 > the raising of the format, with `frozen` (§647, §656); and the dialog that keeps a store
@@ -666,17 +667,17 @@ against 2 with it (evaluation 4.1).
   (`measured-source-harness` 5). That is a claim about the store and not about every file that
   holds it: a database that 0.2 wrote keeps its custom data keys, each with a time, and stays a
   4.1 file for as long as they are in it (§645), and so does a file for anything else in it that
-  is 4.1, `CA.md` §204. **Measured in the product for the parts that are built**: a saved database
-  that holds an authority, an admission and a profile name in the store, and nothing of the
-  plugin's in its custom data, is a KDBX 4.0 file (§616). **And through the pairing's own
-  write**, saved by KeePass, with the version read from the file's header: an authority and a
-  client paired for no profile is a 4.0 file; paired for a profile, which the write adds to the
-  list, a 4.0 file; and paired for no profile with a standing answer to its renewal beside it, a
-  4.1 file. So neither an admission nor a name moves the file's version, and what the plugin still
-  keeps in custom data does, until that has moved into the store as well. *Held by*
+  is 4.1, `CA.md` §204. **Measured in the product**: a saved database that holds an authority, an
+  admission and a profile name in the store, and nothing of the plugin's in its custom data, is
+  a KDBX 4.0 file (§616). **And through the pairing's own write**, saved by KeePass, with the
+  version read from the file's header: an authority and a client paired for no profile is a 4.0
+  file; paired for a profile, which the write adds to the list, a 4.0 file; and paired for no
+  profile with a standing answer to its renewal beside it, a 4.0 file. So neither an admission,
+  a name nor an answer moves the file's version, where an answer kept in the custom data took
+  the file to 4.1. *Held by*
   `AdmissionInRealDatabaseTests.An_admission_and_a_profile_name_in_the_store_leave_the_file_KDBX_4_0`
   and
-  `AdmissionInRealDatabaseTests.A_pairing_leaves_the_file_KDBX_4_0_whatever_it_names_and_a_standing_answer_takes_it_to_4_1`.
+  `AdmissionInRealDatabaseTests.A_pairing_leaves_the_file_KDBX_4_0_whatever_it_names_and_whatever_is_refused`.
 
 ---
 
@@ -895,9 +896,8 @@ the store as well (§615), and their removal is part of the act: the write that 
 authority deletes every record of kind `client` whose `issuer` is that authority (§627 step 3),
 an admission that a pairing landed under the dialog among them, since the write is planned
 against the store as it stands at OK. An act refused or left out at OK deletes none, and a
-revocation is taken away by no command. What Recreate and Delete still take out of the custom
-data is the standing answers to a renewal (§618): at the tab's OK the store is written first,
-and an answer then goes where no admission in force names its certificate. *Held by*
+revocation is taken away by no command. A standing answer to a renewal stays where its client
+has no admission left: nothing is removed for a client that is gone (§618). *Held by*
 `StoreAuthoritiesTests`, `AuthorityCommandsInStoreTests`, `AuthorityServiceTests`,
 `StoreAuthorityServedTests` and `PendingRecordsTests`, and in a real KeePass by
 `LiveAuthorityTests` and `LiveAuthorityChooserTests`.
@@ -1071,11 +1071,10 @@ a renewal that does not count (§648); the records that do not read; and how man
 decision refuses while their admissions wait for the next write. A row of the clients page takes
 what its admission comes to from that listing, and reads `not this authority`, `listed twice` or
 `not counted` where the listing has it admit nobody (§648). The standing answers to a renewal
-stay in the custom data (§618), asked by the admission key, and go with a write that is saved
-and with a tab's OK that wrote into the store, once no record of kind `client` in force names
-their certificate. Nothing of this changes what a client is sent, `API.md` §411. *Held by*
+are versions of the store about the client (§618), read from the same reading on the client's
+own row. Nothing of this changes what a client is sent, `API.md` §411. *Held by*
 `AdmissionRecordTests`, `StoreAdmissionsTests`, `StoreAdmissionChainTests`, `AdmissionActsTests`,
-`RenewalAnswersTests`, `ClientListTests`, `AuthorityPanelTests`, `PendingRecordsTests` and
+`StoredRenewalsTests`, `ClientListTests`, `AuthorityPanelTests`, `PendingRecordsTests` and
 `PendingChangesTests`, and over real databases by `AdmissionInRealDatabaseTests`,
 `PairingInRealDatabaseTests`, `RenewalInRealDatabaseTests` and `RevocationInRealDatabaseTests`.
 Among them: an admission is an entry of the plugin's group, its content unprotected, with
@@ -1476,35 +1475,33 @@ under an authority that is not served, a certificate that several admissions nam
 that does not read admitted nobody, and get no line. Which certificates those are is read from
 the store before OK is applied, since the write that revokes deletes the admissions it refuses;
 where the store cannot be read then, the single line with the client key alone is written.
-**The lines are written once the store's write is taken**, before the tab's changes to the
-custom data are replayed, so whatever becomes of that half, a revocation the store holds has
-its lines. That half is made all the same where writing the lines throws: the keys the tab held,
-the merge of the profile list, the standing answers and the database's mark run in a `finally`
-around the lines, and what the lines threw reaches the catch-all of the dialog's close once they
-have, so a defect there loses nothing else of the OK
+**The lines are written once the store's write is taken**, and the database is marked before
+them, so a revocation the store holds has its lines, and what the lines threw reaches the
+catch-all of the dialog's close once the buffer is let go, so a defect there loses nothing else
+of the OK, a name and a lift written in the same write among it
 (`GateWiringTests.A_defect_writing_a_revocation_s_lines_loses_nothing_else_of_the_OK`). **The
 log tells what the write came to before anything that follows it in the tab's OK**: once the
 outcome of the store's write is known, the store's part logs a line of its own that names
-each act written, a client revoked or a certificate taken away by its short key, or a warning
-that names what was not written and why. Then the lines of the audit are written, then the
-custom data half, and the buffer is let go last, with the store key each act holds
-overwritten, whatever the lines and that half throw (§627). So the log holds what landed also
+each act written, a client revoked, a certificate taken away or a lift by its short key, or a
+warning that names what was not written and why. Then the lines of the audit are written, and
+the buffer is let go last, with the store key each act holds overwritten, whatever the lines
+throw (§627). So the log holds what landed also
 where a line of the audit throws. **That holds from the write's outcome on, and not inside the
 write**: the writer redraws KeePass's main window once the write has changed the entries,
 before the tab learns the outcome, and nothing on the writer's path logs an operator's write
 before that redraw. A defect thrown out of the redraw therefore leaves entries written with no
-line telling what landed, no line of the audit and no custom data half: the buffer is let go,
+line telling what landed and no line of the audit: the buffer is let go,
 and the dialog's close records the incident with what was thrown. A failure of the redraw
 that the writer names as the user interface's is caught there and logged, and loses nothing.
 What the tab does after the store's part runs the same way, whatever the lines came to: the
-lines of the standing answers that went, the answers lifted for this session, and the
+lines of the lifts that landed, the answers lifted for this session, and the
 invitations made on the dialog kept, so a defect in the lines leaves no answer standing that
 the operator lifted
 (`GateWiringTests.A_defect_writing_a_revocation_s_lines_keeps_no_answer_lifted_for_the_session_standing`).
 *Held by* `PendingRecordsTests.An_OK_whose_lines_throw_after_the_write_landed_lets_the_buffer_go_last`,
 `GateWiringTests.A_revocation_writes_a_line_for_each_certificate_of_the_client_and_the_client_key_alone_where_the_copy_holds_none`,
 `GateWiringTests.A_revocation_writes_lines_only_for_the_certificates_this_copy_admitted`,
-`GateWiringTests.A_revocation_s_lines_are_written_once_the_store_holds_it_whatever_the_custom_data_half_comes_to`,
+
 `GateWiringTests.A_revocation_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel`,
 `GateWiringTests.A_certificate_taken_away_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel`,
 `GateWiringTests.A_certificate_taken_away_and_its_client_revoked_on_one_OK_is_written_down_once`,
@@ -2570,6 +2567,41 @@ tree is walked (§620).
   version, so a client has a single standing version however often it is answered, and its
   `after` reaches the ceiling at about 7,940 answers about that client.
 
+**Sealing the store again** (§625) writes `refuse:forever` for an answer that refuses for a lost
+version, as it writes an empty rule: stated here, built with the press.
+
+**What is built.**
+
+- **Read with the admission it renews**: the hold that reads a renewal's admission takes the
+  standing and the lost versions of its client's object from the same reading, and their texts
+  are read only where a renewal is answered, so the hold a connection is judged in parses no
+  answer. The stored answer is told before the session's. A lost version and a text out of form
+  are answered `409 forever`, and the log names the cause at each.
+- **A renewal is in flight for a client**, by its client key, so a second renewal of a client
+  whose first is still being answered is told `503 busy`, by the same certificate or another.
+- **Written by the renewal dialog's Refuse menu, saved as an approval's record is**
+  (`PAIRING.md` §312): a single turn of the writer that reads the store with every entry,
+  composes the act over that reading naming what the reading before the dialog held, plans it,
+  asks of every entry the plan touches (§626), applies it and saves, believed on the flag and the
+  file (§627). Refused under Database Maintenance (§626). Where the write is refused or its save
+  does not land, the change is taken back out and the answer holds for this session, and the
+  operator is told; where the file does not verify, the answer stays in force, marked.
+- **The condition of a renewal's write asks the answer once more**, in the write's own reading
+  under the writer's lock: a refusal that arrived after the handler last read the store stops
+  the approved renewal, issues nothing, and the renewal is answered with that answer at once.
+- **Lifted by Allow renewal** on the client's own row of the clients page, an act the settings
+  dialog's buffer holds and composes again at OK (§627), the operator's last press for each
+  client naming every version each press about the client was shown, written at OK with the
+  buffer's other records, marked and saved by the operator's save. An answer for this session
+  is lifted beside it. Where the store takes no write in the session (§636), Allow renewal lifts
+  an answer for this session and refuses a stored answer with the reason.
+
+*Held by* `RenewalHandlerTests`, `ClientListTests`, `ClientListMenuTests`, `PendingChangesTests`,
+`GateWiringTests`, and over real databases by `RenewalInRealDatabaseTests`,
+`TabReplayOverRealDatabaseTests`, `GiveUpInRealDatabaseTests`, `MergeInRealDatabaseTests` and
+`StoreRenewalMergeTests`, a lift written at OK and merged into before the save that keeps it
+among them; and in a real KeePass by `LiveRenewalTests` and `LiveRefusalNotWrittenTests`.
+
 **What the model ran** (`papers/ground/measured-renewal-answers.md` on `spikes/storage-survival`,
 `run.ps1 -Answers` with its record in `recorded-answers\`): the three texts and the object above,
 on a chain of four answers with a clock of three positions, forever beside the later moment,
@@ -3342,18 +3374,21 @@ So a write is refused `503 busy` while KeePass's progress window is open, and wh
 is open on the database where the write ends in a save, as every write is today; and once its plan
 exists, it is refused busy while an entry dialog holds any entry the plan deletes, sets back or
 protects again, the summary entry among them, since every write deletes the summary entry it finds.
-Keeping an authority asks nothing more of the windows: it writes no custom data and saves nothing,
-so it is written under Database Maintenance and while the TAN wizard is open, and a group dialog
-holds no copy of an entry. The store write of the settings dialog's OK is refused under Database
-Maintenance and under the TAN wizard as a whole, every act of it with it, while the tab's changes to
-custom data beside that write are asked nothing; neither window can stand beside the settings
-dialog, each being modal. A pairing's and a renewal's write, and a certificate given up, are
-refused under Database Maintenance for what each still writes into the custom data: the standing
-answers to a renewal that each of them takes away once no admission names their certificate
-(§618). A profile name that a pairing adds is an entry of the store (§616), and so is the
-admission itself, each asked about once the plan exists, as above. *Held by* `StoreWritesUnderDialogsTests`,
-`AuthorityChooserInRealDatabaseTests` and
-`PairingInRealDatabaseTests.A_pairing_while_an_entry_dialog_holds_the_summary_entry_is_busy_and_spends_nothing`.
+Keeping an authority asks nothing more of the windows: it saves nothing, so it is written under
+Database Maintenance and while the TAN wizard is open, and a group dialog holds no copy of an
+entry. The store write of the settings dialog's OK is refused under Database Maintenance and under
+the TAN wizard as a whole, every act of it with it; neither window can stand beside the settings
+dialog, each being modal. **A pairing's and a renewal's write, a certificate given up and a
+standing answer given on the renewal dialog are refused under Database Maintenance** (a later
+decision): each ends in a save of the writer's own, and a press of one of that dialog's buttons
+handled inside such a save was never measured. A later pull request measures it and then takes
+the refusal and the watch of that dialog away, or keeps them with the measured reason. A profile
+name that a pairing adds is an entry of the store (§616), and so are the admission itself and
+the version of a standing answer (§618), each asked about once the plan exists, as above. *Held
+by* `StoreWritesUnderDialogsTests`, `AuthorityChooserInRealDatabaseTests`,
+`PairingInRealDatabaseTests.A_pairing_while_an_entry_dialog_holds_the_summary_entry_is_busy_and_spends_nothing`
+and `RenewalInRealDatabaseTests`, a refusal while an entry dialog holds the summary entry and a
+refusal under Database Maintenance among it.
 
 **The write made as a node's dialog closes is asked the same** (§629; reasoning, and run in
 KeePass's window, §644 item 6). The paragraph above is silent on it. That write is made in the
@@ -3471,7 +3506,10 @@ The settings dialog's OK and the answer to which authority to keep are the opera
 KeePass's own window: their records are added in memory, the database is marked as changed,
 and the operator's save writes them, as the tab's changes and a kept authority are written
 today, `CA.md` §204. They are in force in the gate's copy from that moment, and are lost with
-every other unsaved edit where the database is closed without saving.
+every other unsaved edit where the database is closed without saving. **A lift of a standing
+answer, Allow renewal, is such a record**, written with the buffer's other records at OK; a
+lift lost with an unsaved database leaves the refusal of the file standing, the stricter way
+(§618).
 
 **How a pairing's and a renewal's write is believed** (S4). Beside the flag and the file of
 §626, it is read back after its save by its own entries: each entry the plan added is in the
@@ -3758,17 +3796,15 @@ is refused at the press with nothing held, with "the act no longer applies to th
 stands", and at OK it writes nothing and the log names the press and that nothing was left to
 write. **What follows the write runs in a fixed order.** Once the outcome of the store's write
 is known, the log tells what it came to, each act that landed or what was not written and why;
-then the audit's lines are written (§648); then the tab's changes to the custom data are
-replayed, whatever the lines came to; and the buffer is let go last, the store key each act
-holds overwritten, whatever the write, the lines and the custom data threw. Cancel drops the
+then the audit's lines are written (§648); and the buffer is let go last, the store key each
+act holds overwritten, whatever the write and the lines threw. Cancel drops the
 buffer, and a store key that was made on the dialog goes with it. **What an act refuses reads
 as gone while the act waits** (this document's own): the pages read the store with the acts
 planned over it in memory, and the plan of that write deletes what the acts refuse, so the
 rows of a client revoked on the page, and the admissions of an authority that is being
 recreated or deleted, are gone from the pages before OK and are deleted in the database at OK
-only where the write took the act (§614, §615). Once OK has written into the store, the
-standing answers to a renewal that no admission in force names any more are taken out of the
-custom data (§618). *Held by* `PendingRecordsTests`: a revocation pressed beside a Recreate
+only where the write took the act (§614, §615). *Held by* `PendingRecordsTests`: a revocation
+pressed beside a Recreate
 whose authority was retired underneath the dialog is written, and the Recreate is not; an act
 left out at OK leaves a revocation refusing an admission that a copy brings, and an act written
 at OK deletes every admission of the authority it retires as the store stands then; a Recreate
@@ -3786,7 +3822,7 @@ store near the ceiling of its room reads whole through the buffer, with a single
 entry more and the count of writes that OK leaves
 (`A_store_near_the_ceiling_of_its_room_reads_through_the_buffer_as_the_single_write_OK_makes_of_every_act_held`);
 and an OK whose lines throw after the write landed has its line of what landed in the log,
-its custom data replayed and its buffer let go last
+the database marked and its buffer let go last
 (`An_OK_whose_lines_throw_after_the_write_landed_lets_the_buffer_go_last`). And by
 `StoreWriteTests`: an act composed against another key, or where none stood, is left out; a
 retirement dropped with the authority it retires leaves its hold on the key to the retirements
@@ -3797,8 +3833,8 @@ a certificate that its client gives up while that client's revocation waits on t
 given up, and the revocation is written at OK beside it.
 
 **What is built.** The writes of the authority's commands (§614): Create, Recreate and Delete at the
-settings dialog's OK, buffered by `PendingRecords` beside the keys the tab buffers in custom data
-and written before them, and keeping an authority. Each is planned by `StoreWrite` against the store
+settings dialog's OK, buffered by `PendingRecords`, and keeping an authority. Each is planned by
+`StoreWrite` against the store
 read in the writer's turn, steps 1 to 5 with the room held at the plan as at the reading, so that a
 write the room allows is never refused for a ceiling, and applied to the database's entries by
 `StoreEntries` on KeePass's thread through the writer's guard, which marks the database as changed
@@ -3810,7 +3846,8 @@ KeePass's window, took 18 ms at the median beside ten thousand entries and a sto
 282 entries and gains an entry with each write, and 74 ms where every entry holds ten history items;
 the first write of a run is slower, as warm-up (`StoreReadingCostTests`, `DESIGN.md` §119). A write
 the application cannot finish is taken back out at once. **The writes that save are built**: the
-admission of a pairing and of a renewal (§615) and a certificate that its client gives up (§648).
+admission of a pairing and of a renewal (§615), a certificate that its client gives up (§648),
+and a standing answer to a renewal given on the renewal dialog (§618).
 Each is a single turn of the writer: the store is read afresh with every entry
 (`KdbxStore.ForWrite`) and written into only where it holds nothing back; the act is planned and
 every entry the plan touches asked about (`KdbxStore.Stage`); the caller's condition, which uses
@@ -3819,8 +3856,7 @@ admissions of that same reading; the plan is applied and its undo kept (`StoreEn
 then the save, and the write believed or taken back as this section has it. An admission is read
 back by its own entries, and a certificate given up is believed on the flag and the file. Taken
 back are the entries added, the entries deleted with their deletion records, the deletion records
-added, the records set back and a group made, and with them what the same turn wrote into the
-custom data or took out of it, the standing answers to a renewal. A database
+added, the records set back and a group made. A database
 that closed inside the save is taken nothing back from, and no certificate is handed over. A write
 that stands has KeePass's group tree and entry list rebuilt, since it adds and deletes entries of
 the plugin's group, `DESIGN.md` §119. **What a pairing's write holds KeePass's thread for**
@@ -5092,10 +5128,11 @@ guard as product code, with its setting, was not run (§644).
 - **It offers no command on the store where nothing is written into it in the session**, as
   where the dialogs that would take a write back are not watched (§627), and states that and
   why, as under a word. The clients page then shows no X, and its rows' menus neither
-  **Revoke** nor **Take certificate away**; **Allow renewal** stays, since the standing answers
-  are kept apart from the store. The Profiles page then shows neither the row that adds a name
-  nor an X (§616), and shows neither under a store that cannot be judged either, where the
-  clients page lists nobody. Built, and held by `AuthorityPanelTests`, `OpenDatabaseTests`,
+  **Revoke** nor **Take certificate away**; **Allow renewal** stays on a client's own row, since
+  it lifts an answer for this session, and a stored answer it cannot lift is refused there with
+  the reason, under the list as "Renewal stays refused:" and the reason (§618). The Profiles
+  page then shows neither the row that adds a name nor an X (§616), and shows neither under a
+  store that cannot be judged either, where the clients page lists nobody. Built, and held by `AuthorityPanelTests`, `OpenDatabaseTests`,
   `ClientListTests.Where_the_store_takes_no_write_no_row_carries_the_X`,
   `ClientListMenuTests.Where_the_store_takes_no_write_the_menu_offers_Allow_renewal_alone` and
   `ProfileListTests.A_page_over_a_store_that_takes_no_write_offers_no_Add_and_no_X`.
@@ -6958,7 +6995,8 @@ for the rules**, which was left to the pull request that keeps the rules in the 
   deletion record tells of each, §623. A rule and a switch are records of kind `version`, as
   measured, with an object of a type the core knows, §658. Fixed for the first writes: the
   members of `client` its meaning reads, held by the core as texts where present, §658. What is
-  left is S7, below; S8 is fixed for the rules and S29 for the first writes, in this list.
+  left of S7 is fixed for the answers, in this list; S8 is fixed for the rules and S29 for the
+  first writes, in this list.
 - **S24. Two admissions that name the same certificate.** Fixed for the first writes: a
   certificate that several admissions in force name is admitted by none of them, an admission
   that a decision refuses and a record that does not read counted among none of them, and a
@@ -7011,29 +7049,31 @@ for the rules**, which was left to the pull request that keeps the rules in the 
 - **S35. A store that has no room for its next write.** The gate serves nothing for that
   database, answered `stopped`, until the store is started again, and the answer is looked at
   again once a compaction exists, §643.
+- **S7. The answer to a renewal.** Fixed for the answers, §618: the object, `renew:` and the
+  client key, with any other object of type `renew` the object of nothing; the texts
+  `refuse:forever`, `refuse:until:` and a moment as the wire writes it, and `ask`, each read
+  strictly, with a text out of form refusing forever; the strictest standing version as the
+  answer, the later of two moments the stricter as texts, and a lost version refusing forever;
+  what a deletion record tells of an answer, by the client keys the file knows; a clock read
+  only where a renewal is answered and where the clients page draws a row; and what a version
+  names, which is what its writer was shown, a lift with nothing left to name writing nothing.
+  Measured before it was built, `papers/ground/measured-renewal-answers.md` on
+  `spikes/storage-survival`. Fixed for the answers, §627 and `PAIRING.md` §312: an answer given
+  on the renewal dialog is written in a turn of the writer, saved before the client is answered,
+  as an approved renewal is, and believed on the flag and the file, with an answer whose write
+  is refused or whose save does not land held for this session and told at once, and nothing
+  left for a later save; a lift is an act of the settings dialog's buffer. Built in the pull
+  request that keeps the answers in the store, §618 "What is built". It satisfies: two answers
+  made apart give the stricter; an answer for this session has no record; no merge decides by a
+  time. The answers to the three questions of that pull request, an answer about the client, an
+  answer saved as Approve's record is, and the refusal under Database Maintenance kept, are later
+  decisions (§626).
 
 **What the first pull request that builds the store settles.** Every item of this group is
 fixed, and the list above names where: S1, S12, S13, S16, S20, S23, S26, S31 and S33.
 
 **What a later pull request settles.**
 
-- **S7, in part. The answer to a renewal.** Fixed for the answers, §618: the object, `renew:`
-  and the client key, with any other object of type `renew` the object of nothing; the texts
-  `refuse:forever`, `refuse:until:` and a moment as the wire writes it, and `ask`, each read
-  strictly, with a text out of form refusing forever; the strictest standing version as the
-  answer, the later of two moments the stricter as texts, and a lost version refusing forever;
-  what a deletion record tells of an answer, by the client keys the file knows; and a clock read
-  only where a renewal is answered and where the clients page draws a row; and what a version
-  names, which is what its writer was shown, a lift with nothing left to name writing nothing.
-  Measured before it was
-  built, `papers/ground/measured-renewal-answers.md` on `spikes/storage-survival`. Fixed for the
-  answers, §627 and `PAIRING.md` §312: how an answer given on the renewal dialog is written,
-  saved before the client is answered, as an approved renewal is, and believed on the flag and
-  the file, with an answer
-  whose write is refused or whose save does not land held for this session and told at once,
-  and nothing left for a later save. What is left: the answer as a record of the store, which
-  the custom data holds until it is built. Has to satisfy: two answers made apart give the
-  stricter; an answer for this session has no record; no merge decides by a time.
 - **S9. What the resolver and the editor need for versions made apart** (§617, §657). Decided:
   what all versions allow, and what the operator sees. By reasoning: versions that grant give
   the letters all of them hold; the switch in versions made apart refuses. Fixed as measured:

@@ -72,9 +72,9 @@ merged by whoever does not read it.
 
 Everything above the KeePass boundary is written against small interfaces: `IWindowEventSource`
 announces dialogs, `IFormMatcher` recognizes them, `IFormDecorator` decorates them,
-`IGatePanelFactory` fills them, `IKeyValueStore` stores things, `IGateTargets` says what can be
-served, `IGateContext` is one request, and `IGateLog` records all of it. Two things touch KeePass:
-`KeePassGateExt`, which KeePass itself instantiates, and everything under
+`IGatePanelFactory` fills them, `IGateStore` reads and writes the plugin's store, `IGateTargets`
+answers what can be served, `IGateContext` is a single request, and `IGateLog` records all of it.
+Two things touch KeePass: `KeePassGateExt`, which KeePass itself instantiates, and everything under
 `src/KeePassGate/Bridge`. `grep -rlE '^using (KeePass|KeePassLib)[.;]' src` is the check, and it is
 a check rather than a claim. Anchored, because the plugin's own namespaces begin `KeePassGate` and a
 bare `using KeePass` matches every file that imports one of them. `KeePassContract` also names some
@@ -511,8 +511,11 @@ from the menu of the second, Take certificate away from the menu of the third, a
 renewal on an answer the file keeps, each press waited out until the page shows what it does,
 with no order of the rows relied on; the dialog is accepted and the database saved, and once
 KeePass has gone the file holds a revocation of each of the first two, a record of kind
-`withdrawn` and no revocation for the third, no standing answer, and the audit a line for each
-of the three.
+`withdrawn` and no revocation for the third, no standing answer but the lift, a version `ask`
+that names the refusal the file held, nothing of the plugin's in the custom data, and the audit
+a line for each of the three. The refusal is about the client, so the renewed certificate's
+refusal in this session is read from the file by the client key of the certificate it paired
+with.
 
 **A standing answer whose write is refused**, in `LiveRefusalNotWrittenTests`. The database's file
 is saved again from outside while the renewal dialog stands, so that its bytes are not those

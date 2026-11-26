@@ -203,7 +203,7 @@ namespace KeePassGate.Ui
         /// <summary>The digest as the tab shows it.</summary>
         public string ShortFingerprint
         {
-            get { return AuthorityKeys.Shown(Fingerprint); }
+            get { return AuthorityShown.Of(Fingerprint); }
         }
 
         /// <summary>Whether it reads whole, which is the only way it can be kept.</summary>

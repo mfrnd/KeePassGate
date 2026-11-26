@@ -452,9 +452,8 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void The_maintenance_dialog_open_on_the_database_refuses_the_certificate_given_up()
         {
-            // The write prunes the standing answers to a renewal, which are the database's own
-            // custom data, and that dialog writes its copy of them back whenever the number of
-            // keys differs.
+            // `STORE.md` §626: that dialog's buttons delete history items and deletion records,
+            // and a press of one inside the writer's own save was never measured.
             var key = Admitted();
 
             using (var form = MaintenanceDialog())
@@ -526,31 +525,23 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_certificate_given_up_that_no_save_kept_puts_back_the_standing_answers_its_prune_took()
+        public void A_certificate_given_up_leaves_the_standing_answer_of_its_client_standing()
         {
-            // The write prunes every standing answer about a certificate no admission names once
-            // it lands: the certificate's own, and an answer about a certificate already gone. The
-            // undo puts the answers back with the entries, so the certificate stays admitted with
-            // its operator's forever in memory as it is in the file.
+            // `STORE.md` §648: a certificate taken away leaves the client's answer untouched, and
+            // nothing is removed for a certificate no admission names, `STORE.md` §618. The answer
+            // is about the client, and goes with no certificate of it.
             var key = Admitted();
-            var gone = new string('c', 64);
-            var answers = Admissions().Answers;
-            answers.RefuseRenewal(key, RenewalRefusal.Forever());
-            answers.RefuseRenewal(gone, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(3)));
+            Admissions().Refuse(key, RenewalRefusal.Forever());
+            Assume.That(Admissions().Answer(key).IsForever, Is.True);
             _database.Database.Modified = false;
 
-            var writer = new DatabaseWriter(CurrentThread.Instance, database => { }, null, _dialogs, null);
-            var result = writer.GiveUp(_database.Database, key, _authority);
+            var result = _writer.GiveUp(_database.Database, key, _authority);
 
-            Assert.That(result.IsUnsaved, Is.True, result.Reason);
-
+            Assert.That(result.Ok, Is.True, result.Reason);
             var afterwards = Admissions();
-            Assert.That(afterwards.Find(key), Is.Not.Null);
-            Assert.That(afterwards.Answers.StandingRefusal(key), Is.Not.Null.And.Property("IsForever").True,
-                "the operator's forever is still in force");
-            Assert.That(afterwards.Answers.StandingRefusal(gone), Is.Not.Null,
-                "and so is the answer about the certificate no admission names");
-            Assert.That(_database.Database.Modified, Is.False, "memory agrees with the file");
+            Assert.That(afterwards.Find(key), Is.Null, "the certificate is given up");
+            Assert.That(afterwards.Answer(key), Is.Not.Null.And.Property("IsForever").True,
+                "and the client's answer still refuses its renewals");
         }
 
         [Test]

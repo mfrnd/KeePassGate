@@ -71,7 +71,7 @@ namespace KeePassGate.Ui
         /// <remarks>
         /// For what a merge can bring into a database that is already open: KeePass announces a
         /// synchronize only by the save it finishes with, so this is the first moment the plugin
-        /// hears that the custom data may hold something it did not before.
+        /// hears that the plugin's store may hold something it did not before.
         /// </remarks>
         event EventHandler Saved;
     }

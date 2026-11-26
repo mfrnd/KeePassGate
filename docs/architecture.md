@@ -75,7 +75,7 @@ beside it is a further entry. Each admission record is an entry of that group as
 each revocation of a client and each certificate that a program gave up or the operator took
 away. A profile name is added by an entry of that group and taken off the list by a further
 entry. Each version of a rule is an entry of that group too, under the identifier of the group or
-entry it is about. The standing answers to a renewal live in the database's own custom data. All
+entry it is about, and so is each standing answer to a renewal, under the program it is about. All
 of it is inside the database, covered by the database's own encryption, and none of it is
 anywhere else on the machine.
 

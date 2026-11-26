@@ -26,10 +26,10 @@ namespace KeePassGate.Ui
     ///   the client's record holds, in the pairing dialog's table: a profile the database still
     ///   names checked, and a profile it no longer names with a red X in place of a box and its
     ///   name in gray, the tooltip of both stating that the new certificate omits the profile.
-    /// - **Refuse is a split button**, because a refusal can answer every later renewal of the same
-    ///   certificate as well, which is the operator's ruling. Pressing it refuses once, which keeps
-    ///   nothing. Its arrow, or Alt and Down while it has the focus, opens a menu of what else
-    ///   refusing can mean: once, in this session, until a date, or forever.
+    /// - **Refuse is a split button**, because a refusal can answer every later renewal by the same
+    ///   client as well, whichever certificate of the client asks. Pressing it refuses once, which
+    ///   keeps nothing. Its arrow, or Alt and Down while it has the focus, opens a menu of what
+    ///   else refusing can mean: once, in this session, until a date, or forever.
     /// - **A standing answer only ever comes from that menu.** Enter, Escape, the close box, Alt
     ///   and F4, the window menu and the taskbar all refuse once: each is somebody making the window
     ///   go away, and none of them is a choice about later renewals.
@@ -560,14 +560,14 @@ namespace KeePassGate.Ui
             return unanswered;
         }
 
-        /// <summary>Refuses it and every later renewal of this certificate until KeePass exits.</summary>
+        /// <summary>Refuses it and every later renewal by this client until KeePass exits.</summary>
         public void RefuseThisSession()
         {
             Finish(PairingDecision.Refused, RenewalRefusal.ThisSession());
         }
 
         /// <summary>
-        /// Refuses it and every later renewal of this certificate until a day begins where the
+        /// Refuses it and every later renewal by this client until a day begins where the
         /// operator is, as the dialog asking for a day does once the day is chosen.
         /// </summary>
         public void RefuseUntil(DateTime day)
@@ -587,7 +587,7 @@ namespace KeePassGate.Ui
             Finish(PairingDecision.Refused, RenewalRefusal.Until(StartOf(day, TimeZoneInfo.Local)));
         }
 
-        /// <summary>Refuses it and every later renewal of this certificate.</summary>
+        /// <summary>Refuses it and every later renewal by this client.</summary>
         public void RefuseForever()
         {
             Finish(PairingDecision.Refused, RenewalRefusal.Forever());

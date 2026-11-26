@@ -160,6 +160,51 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        [Test]
+        public void A_lift_never_saved_stays_in_force_beside_a_merge_from_the_other_copy_s_file_and_the_save_after_writes_it()
+        {
+            // A lift is written at the settings dialog's OK into the open database and marked, and
+            // the operator's save keeps it, `STORE.md` §627. Merged into from the other copy's
+            // file before that save, the open database keeps the lift in force: the refusal the
+            // merge brings is the version the lift names. The save after the merge writes it.
+            foreach (var method in Methods)
+            {
+                using (var world = new World())
+                {
+                    world.Refuse(0, RenewalRefusal.Forever());
+                    world.Merge(1, 0, PwMergeMethod.Synchronize);
+                    world.LiftUnsaved(1);
+                    Assume.That(world.Answer(1), Is.EqualTo("ask"));
+
+                    world.MergeOpen(1, 0, method);
+                    Assert.That(world.Answer(1), Is.EqualTo("ask"), method + ": the merge leaves the lift in force");
+
+                    world.SaveAndReopen(1);
+                    Assert.That(world.Answer(1), Is.EqualTo("ask"), method + ": and the save after it writes the lift");
+                }
+            }
+        }
+
+        [Test]
+        public void A_lift_discarded_with_a_close_without_saving_leaves_the_file_refusing_and_a_merge_of_it_brings_no_lift()
+        {
+            // A database closed with its changes discarded loses the lift, and the refusal its file
+            // held stands, the stricter way, `STORE.md` §627.
+            using (var world = new World())
+            {
+                world.Refuse(0, RenewalRefusal.Forever());
+                world.Merge(1, 0, PwMergeMethod.Synchronize);
+                world.LiftUnsaved(1);
+                Assume.That(world.Answer(1), Is.EqualTo("ask"));
+
+                world.Discard(1);
+                Assert.That(world.Answer(1), Is.EqualTo("forever"), "the file is the file from before");
+
+                world.Merge(0, 1, PwMergeMethod.Synchronize);
+                Assert.That(world.Answer(0), Is.EqualTo("forever"), "and a merge of it brings no lift");
+            }
+        }
+
         /// <summary>The copies of a database a sequence is played over, with a client admitted in the first before the second is copied.</summary>
         private sealed class World : IDisposable
         {
@@ -193,6 +238,33 @@ namespace KeePassGate.Host.Tests
             {
                 StoreSeeds.Lift(Store(_copies[copy]), Client);
                 _copies[copy].Save();
+            }
+
+            /// <summary>A lift written into the open database of a copy, as the settings dialog's OK writes it, and not saved.</summary>
+            public void LiftUnsaved(int copy)
+            {
+                StoreSeeds.Lift(Store(_copies[copy]), Client);
+            }
+
+            /// <summary>Copy <paramref name="from"/>'s file merged into copy <paramref name="into"/>'s open database, saving neither first.</summary>
+            public void MergeOpen(int into, int from, PwMergeMethod method)
+            {
+                using (var source = Opened(_copies[from]))
+                {
+                    _copies[into].Database.MergeIn(source.Database, method, null);
+                }
+            }
+
+            /// <summary>A copy saved, closed and opened again from its file.</summary>
+            public void SaveAndReopen(int copy)
+            {
+                _copies[copy].SaveCloseAndReopen();
+            }
+
+            /// <summary>A copy closed with its changes discarded and opened again from its file.</summary>
+            public void Discard(int copy)
+            {
+                _copies[copy].CloseAndReopenWithoutSaving();
             }
 
             /// <summary>The answer of a copy about the client, as the clients page and the gate read it: `ask`, `forever`, or `until:` and the moment.</summary>

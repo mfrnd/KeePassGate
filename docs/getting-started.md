@@ -208,13 +208,11 @@ for a hundred years, so there is nothing to count down to: see [`clients.md`](cl
 Anything wrong or about to be wrong appears as a sentence under the table: a client in the last
 third of its certificate's life, which is thirty days at most, and anything unreadable.
 
-**Once a renewal is refused forever or until a day, the saved file is KDBX 4.1.** What the plugin
-keeps in the database's own custom data, a standing answer to a renewal, carries the time it was
-written, and that is a 4.1 field. The authority, the programs let in and the profile names are
-entries of the plugin's group, which need nothing above 4.0, so a database with an authority, a
-profile named and a program paired is still a 4.0 file. KeePass 2.48 or later keeps that time.
-Other programs open the file all the same, and [Revoking](clients.md#revoking) states what saving
-or merging in them costs and what to check afterwards.
+**A paired database is a KDBX 4.0 file.** The authority, the programs let in, the profile names,
+the rules and the standing answers to a renewal are entries of the plugin's group, which need
+nothing above 4.0. Other programs open the file all the same, and
+[Revoking](clients.md#revoking) states what saving or merging in them costs and what to check
+afterwards.
 
 ## OK, then save
 
@@ -361,12 +359,11 @@ later at most. Windows has locked the screen by then, so this happens behind it.
 **Delete each database's authority first, while the plugin is still there.** Taking the plugin out
 takes nothing out of a database, so a database whose authority stays keeps the authority's private
 key, the host's and the gate key inside it, in an entry of the plugin's group, which an XML export
-writes out in the clear. **Delete authority**, followed by OK and a save, takes them out, with
-every admission record that authority issued and each standing answer to a renewal about a
-certificate it issued. A copy of the authority's entry that an import with Create new IDs
-brought in is an entry like any other, which the plugin neither reads nor deletes: delete it in
-KeePass. Then close KeePass and delete
-`plugins\KeePassGate`.
+writes out in the clear. **Delete authority**, followed by OK and a save, takes them out, with every
+admission record that authority issued. A standing answer to a renewal stays, about a program that
+is no longer let in. A copy of the authority's entry that an import with Create new IDs brought in
+is an entry like any other, which the plugin neither reads nor deletes: delete it in KeePass. Then
+close KeePass and delete `plugins\KeePassGate`.
 
 **What stays in the database grants nothing and holds no private key**, and KeePass's own dialogs
 remove it once the plugin is gone:

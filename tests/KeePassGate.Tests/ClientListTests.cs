@@ -865,22 +865,36 @@ namespace KeePassGate.Tests
             }
         }
 
-        /// <summary>The three standing answers, by what the row says about each.</summary>
+        /// <summary>
+        /// The standing answers, by what the row shows of each, and what its tooltip adds under
+        /// that line.
+        /// </summary>
         private static IEnumerable<TestCaseData> Answers()
         {
-            yield return new TestCaseData(RenewalRefusal.Forever(), "Renewal refused forever").SetName("forever");
-            yield return new TestCaseData(RenewalRefusal.ThisSession(), "Renewal refused in this session")
+            yield return new TestCaseData(new ClientAnswer(RenewalRefusal.Forever(), false, false), "Renewal refused forever", null)
+                .SetName("forever");
+            yield return new TestCaseData(new ClientAnswer(RenewalRefusal.ThisSession(), false, false), "Renewal refused in this session", null)
                 .SetName("in this session");
 
             // A day the operator chose, which begins at midnight where they are.
             var day = new DateTime(2031, 12, 28, 0, 0, 0, DateTimeKind.Local);
-            yield return new TestCaseData(RenewalRefusal.Until(new DateTimeOffset(day)), "Renewal refused until 2031-12-28")
+            yield return new TestCaseData(
+                    new ClientAnswer(RenewalRefusal.Until(new DateTimeOffset(day)), false, false), "Renewal refused until 2031-12-28", null)
                 .SetName("until a date");
+
+            // `STORE.md` §618: a lost version and a text that does not read refuse forever, and
+            // the row tells which, with what lifts it.
+            yield return new TestCaseData(
+                    new ClientAnswer(RenewalRefusal.Forever(), true, false), "Renewal refused: answer lost", ClientList.LostDetail)
+                .SetName("lost");
+            yield return new TestCaseData(
+                    new ClientAnswer(RenewalRefusal.Forever(), false, true), "Renewal refused: answer unreadable", ClientList.UnreadableDetail)
+                .SetName("unreadable");
         }
 
         [TestCaseSource(nameof(Answers))]
         public void A_client_with_a_standing_answer_has_its_name_in_red_and_the_answer_on_its_row(
-            RenewalRefusal standing, string said)
+            ClientAnswer standing, string said, string detail)
         {
             // M001, as the operator decided it on real screenshots: no column, the name in the
             // tab's own red, the answer in the tooltip of every text cell and in the row's
@@ -894,10 +908,11 @@ namespace KeePassGate.Tests
                     new AdmissionListing(new[] { refused, asked }, true),
                     null,
                     null,
-                    new Dictionary<string, RenewalRefusal> { { refused.AdmissionKey, standing } });
+                    new Dictionary<string, ClientAnswer> { { refused.ClientKey, standing } });
 
                 var row = Grid(list).Rows[0];
                 Assert.That(ClientList.AnswerText(standing), Is.EqualTo(said));
+                Assert.That(ClientList.AnswerDetail(standing), Is.EqualTo(detail));
                 Assert.That(list.StandingAt(0), Is.SameAs(standing));
                 Assert.That(row.Cells[0].InheritedStyle.ForeColor, Is.EqualTo(ClientList.StandingColor));
                 Assert.That(ClientList.StandingColor, Is.EqualTo(Color.Firebrick));
@@ -908,9 +923,10 @@ namespace KeePassGate.Tests
                     Assert.That(row.Cells[column].Style.ForeColor, Is.EqualTo(Color.Empty), "only the name is red");
                 }
 
+                var told = detail == null ? said : said + Environment.NewLine + detail;
                 for (var column = 0; column < 4; column++)
                 {
-                    Assert.That(Plain(row.Cells[column].ToolTipText), Is.EqualTo(Keys(said, refused)),
+                    Assert.That(Plain(row.Cells[column].ToolTipText), Is.EqualTo(Keys(told, refused)),
                         "every text cell names it, above the keys");
                 }
 
@@ -926,9 +942,35 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void The_answer_is_on_the_client_s_own_row_and_an_earlier_certificate_carries_none()
+        {
+            // `STORE.md` §648: an answer is about the client, so its red and its line are on the
+            // client's own row, and an indented row of an earlier certificate carries neither.
+            var first = Record("agent-fictitious", "ops");
+            var renewed = Renewal(first);
+
+            using (var list = new ClientList(Allows, Allows, Allows))
+            {
+                list.Fill(
+                    new AdmissionListing(new[] { renewed, first }, true),
+                    null,
+                    null,
+                    new Dictionary<string, ClientAnswer> { { first.ClientKey, new ClientAnswer(RenewalRefusal.Forever(), false, false) } });
+
+                Assume.That(list.Rows[0].Own && !list.Rows[1].Own, Is.True, "a group of two rows");
+                Assert.That(list.StandingAt(0), Is.Not.Null);
+                Assert.That(Grid(list).Rows[0].Cells[0].InheritedStyle.ForeColor, Is.EqualTo(ClientList.StandingColor));
+                Assert.That(list.StandingAt(1), Is.Null, "the earlier certificate's row carries no answer");
+                Assert.That(Grid(list).Rows[1].Cells[0].Style.ForeColor, Is.EqualTo(Color.Empty));
+                Assert.That(Plain(Grid(list).Rows[1].Cells[0].ToolTipText), Does.Not.Contain("Renewal refused"));
+                Assert.That(list.AllowRenewal(1), Does.Contain("first row"), "nor lifts one");
+            }
+        }
+
         [TestCaseSource(nameof(Answers))]
         public void Allowing_renewal_lifts_the_answer_through_the_host_and_the_red_goes_at_once(
-            RenewalRefusal standing, string said)
+            ClientAnswer standing, string said, string detail)
         {
             var record = Record("agent-fictitious", "ops");
             var lifted = new List<string>();
@@ -943,11 +985,11 @@ namespace KeePassGate.Tests
                     new AdmissionListing(new[] { record }, true),
                     null,
                     null,
-                    new Dictionary<string, RenewalRefusal> { { record.AdmissionKey, standing } });
+                    new Dictionary<string, ClientAnswer> { { record.ClientKey, standing } });
 
                 var line = list.AllowRenewal(0);
 
-                Assert.That(lifted, Is.EqualTo(new[] { record.AdmissionKey }), "by the certificate's key");
+                Assert.That(lifted, Is.EqualTo(new[] { record.ClientKey }), "by the client's key");
                 Assert.That(line, Is.Null, "the name stops being red, which is what shows it");
                 Assert.That(list.StandingAt(0), Is.Null);
                 Assert.That(Grid(list).Rows[0].Cells[0].Style.ForeColor, Is.EqualTo(Color.Empty));
@@ -969,8 +1011,8 @@ namespace KeePassGate.Tests
             {
                 list.Fill(new AdmissionListing(new[] { Record("agent-fictitious", "ops") }, true), null, null, null);
 
-                Assert.That(list.AllowRenewal(0), Does.Contain("no standing answer"));
-                Assert.That(list.AllowRenewal(3), Does.Contain("no such certificate"));
+                Assert.That(list.AllowRenewal(0), Does.Contain("No answer refuses renewal"));
+                Assert.That(list.AllowRenewal(3), Does.Contain("no such client"));
                 Assert.That(asked, Is.Zero);
             }
         }
@@ -986,12 +1028,12 @@ namespace KeePassGate.Tests
                     new AdmissionListing(new[] { record }, true),
                     null,
                     null,
-                    new Dictionary<string, RenewalRefusal> { { record.AdmissionKey, RenewalRefusal.Forever() } });
+                    new Dictionary<string, ClientAnswer> { { record.ClientKey, new ClientAnswer(RenewalRefusal.Forever(), false, false) } });
 
                 var line = list.AllowRenewal(0);
 
-                Assert.That(line, Does.Contain("still stands").And.Contain("the database is not open"));
-                Assert.That(list.StandingAt(0).IsForever, Is.True);
+                Assert.That(line, Is.EqualTo(ClientList.StaysRefusedText + "the database is not open"));
+                Assert.That(list.StandingAt(0).Refusal.IsForever, Is.True);
                 Assert.That(Grid(list).Rows[0].Cells[0].Style.ForeColor, Is.EqualTo(ClientList.StandingColor));
             }
         }
@@ -1005,7 +1047,7 @@ namespace KeePassGate.Tests
             var start = new DateTime(2031, 3, 1, 0, 0, 0, DateTimeKind.Local);
 
             Assert.That(
-                ClientList.AnswerText(RenewalRefusal.Until(new DateTimeOffset(start))),
+                ClientList.AnswerText(new ClientAnswer(RenewalRefusal.Until(new DateTimeOffset(start)), false, false)),
                 Is.EqualTo("Renewal refused until 2031-03-01"));
             Assert.That(ClientList.AnswerText(null), Is.Null);
         }

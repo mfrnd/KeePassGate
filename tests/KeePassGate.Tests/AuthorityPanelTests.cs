@@ -629,7 +629,7 @@ namespace KeePassGate.Tests
                 _database.IsOpen = false;
                 panel.Describe();
 
-                Assert.That(pending.PluginCustomData, Is.Not.Null,
+                Assert.That(pending.Store, Is.Not.Null,
                     "the store never goes, which is why the question cannot be asked of it");
                 Assert.That(Label(panel, GateTab.StatusLabelName).Text,
                     Is.EqualTo(AuthorityDescription.NoDatabaseHeadline));
@@ -827,8 +827,7 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>
-        /// A database whose custom data and store cannot even be asked for, which stops a tab being
-        /// built.
+        /// A database whose store cannot even be asked for, which stops a tab being built.
         /// </summary>
         private sealed class UnreadableDatabase : IGateDatabase
         {
@@ -840,11 +839,6 @@ namespace KeePassGate.Tests
             public string Name
             {
                 get { return "Invented Vault"; }
-            }
-
-            public IKeyValueStore PluginCustomData
-            {
-                get { throw new InvalidOperationException("invented for the test"); }
             }
 
             public KeePassGate.Store.IGateStore Store

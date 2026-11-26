@@ -4,8 +4,8 @@ namespace KeePassGate.Authority
 {
     /// <summary>
     /// What an admission's write is held to in its own turn on KeePass's thread: the admissions,
-    /// the profile names, their removals and the clients holding them that the database's store
-    /// holds, read from that store in that turn.
+    /// the profile names, their removals and the clients holding them, and the standing answers
+    /// to a client's renewals that the database's store holds, read from that store in that turn.
     /// </summary>
     /// <remarks>
     /// Asked by the condition a pairing or a renewal hands the writer, last of the questions and
@@ -48,5 +48,13 @@ namespace KeePassGate.Authority
         /// walks of every admission.
         /// </remarks>
         IReadOnlyDictionary<string, IReadOnlyCollection<string>> Regaining(IReadOnlyCollection<string> profiles);
+
+        /// <summary>
+        /// The strictest standing answer about this client's renewals, read from the store in the
+        /// write's own turn, a refusal forever for a lost version and a text out of form, or null
+        /// where none stands, `STORE.md` §618: what an approved renewal is held to, so that a
+        /// refusal arriving after the handler last read the store stops it there.
+        /// </summary>
+        RenewalRefusal Renewal(string clientKey);
     }
 }

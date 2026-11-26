@@ -100,10 +100,11 @@ designing around them.
   put one authority on the host with a registry beside it, and that registry had to name databases,
   which an attacker-supplied file could forge. **Do not re-propose a host-level authority or
   registry.**
-- **The database's own `CustomData`, never the root group's**, for what the plugin still keeps in
-  custom data, the standing answers to a renewal. It was the root group's
-  until a merge was measured: KeePass merges `PwDatabase.CustomData` key by key and a group's
-  dictionary whole, CA.md §204. Records shaped one-per-client to survive a merge did not.
+- **Nothing of the plugin's is in any custom data**, the database's own or a node's. The
+  standing answers to a renewal were the last of it, kept in the database's own `CustomData`,
+  never the root group's: it was the root group's until a merge was measured, since KeePass
+  merges `PwDatabase.CustomData` key by key and a group's dictionary whole, CA.md §204. They are
+  versions of the plugin's store now, STORE.md §618.
 - **An admission and a revocation are records of the plugin's store**, STORE.md §615. An admission
   is a record for each certificate, naming its client by the client key and the authority that
   issued it. A revocation names the client's key, refuses every certificate under that key
@@ -143,23 +144,18 @@ designing around them.
   away or put a retired authority back. An authority 0.2 made is neither read nor migrated, so a
   database 0.2 paired is given an authority again and every client paired again. See CA.md §204
   and STORE.md §614.
-- **What the plugin keeps in custom data takes the file to KDBX 4.1**, because a per-key
-  modification time is a 4.1 field. **This reverses "the authority takes the file to KDBX 4.1"**,
-  and after it "an admission record takes the file to 4.1", and then "a profile name takes it to
-  4.1": the authority, the admissions and the profile names are entries now, which need nothing
-  above 4.0, so a saved database with an authority, an admission and a profile name in the store,
-  and nothing of the plugin's in its custom data, is a 4.0 file, measured, and a standing answer
-  to a renewal beside them takes it to 4.1, measured too, and keeps it there,
-  `AdmissionInRealDatabaseTests`. Measured through the pairing's own write as well: a client
-  paired for no profile and a client paired for a name the list did not hold each leave a 4.0
-  file. That is a format and not a gate: other programs open it, and what saving and merging in
-  them does to it is measured and stated in CA.md §204. A revocation and a profile name are no
-  keys of that dictionary any more, STORE.md §615 and §616, so what a KeePassXC merge can still
-  undo there is a standing answer to a renewal.
-- **That store is decided to be replaced in 0.3.0, and is what 0.2.0 ships until then.** The entries
-  above about `CustomData` and KDBX 4.1 describe the plugin as released, but for the authority, the
-  admissions, the revocations, the profile names and the rules. What replaces them is decided and
-  built in part: the plugin's data as entries in a group of its own, each written once under a check
+- **A paired database is a KDBX 4.0 file, whatever is refused**, because the plugin keeps nothing
+  in custom data, whose per-key modification time is a 4.1 field. **This reverses "the authority
+  takes the file to KDBX 4.1"**, and after it "an admission record takes the file to 4.1", then
+  "a profile name takes it to 4.1", and last "a standing answer to a renewal takes it to 4.1":
+  the authority, the admissions, the profile names and the standing answers are entries now,
+  which need nothing above 4.0, so a saved database with an authority, an admission, a profile
+  name and a standing answer in the store is a 4.0 file, measured, `AdmissionInRealDatabaseTests`,
+  through the pairing's own write as well. That is a format and not a gate: other programs open
+  it, and what saving and merging in them does to it is measured and stated in CA.md §204 and
+  STORE.md §637. A database that 0.2 wrote keeps its keys and stays 4.1 while they are in it.
+- **That store is replaced in 0.3.0, where 0.2.0 kept custom data.** The plugin's data is
+  decided and built in part: entries in a group of its own, each written once under a check
   keyed by a secret the database holds, with no custom data anywhere and nothing on the operator's
   own entries or groups. [`STORE.md`](STORE.md) §601 is the contract, §604 what it reverses and on
   which measurements, and `spikes/storage-survival` holds those measurements with the evaluation
@@ -185,8 +181,11 @@ designing around them.
   dialog's OK, `ProfileActs`. And the rules, §617, a version of a profile's rule and of a node's
   switch as records: read by the walk from the reading of the hold a rule is asked in,
   `StoredRules`, and written as a group's or an entry's dialog closes with OK, `RuleActs`, §629,
-  with the versions below a node that a change above writes anew in the same write, §617. The
-  standing answers to a renewal are still where CA.md §204 keeps them.
+  with the versions below a node that a change above writes anew in the same write, §617. And the
+  standing answers to a renewal, §618, a version of `renew:` and the client key: read with the
+  admission a renewal renews, from the same reading, written by the renewal dialog's Refuse menu
+  in a turn of the writer and saved, falling back to this session with a message where it cannot
+  be, and lifted by **Allow renewal** on the client's own row at the settings dialog's OK.
 - **The admission record is load bearing.** A certificate that chains, passes its EKU check and has
   no record in the database is refused, and so is a certificate whose client is revoked, that was
   itself taken away, or that more than a single record admits, STORE.md §615. The
@@ -294,7 +293,7 @@ designing around them.
   written down, and a change it never received is taken back out.
 - **Everything on the KPG settings tab waits for that dialog's OK**, and this reverses an
   earlier decision rather than refining it. The tab used to write the moment a button was pressed,
-  which was safe, because KeePass's database settings dialog holds no copy of the custom data this
+  which was safe, because KeePass's database settings dialog holds no copy of anything this
   plugin writes and so never undid any of it. It was still wrong: a dialog offering OK and Cancel
   says nothing has happened yet, and a tab inside one that has already happened is a tab lying about
   the buttons around it. `PendingDatabase` wraps `IGateDatabase` for the tab and nothing above it
@@ -306,13 +305,13 @@ designing around them.
   it once the save has returned, so the writer's guard against a write inside a save does not
   refuse the tab's OK there. The measured fact is below, and `STORE.md` §627.
 
-  **Replayed key by key, never wholesale**, because a snapshot written back would be this plugin
-  doing to itself exactly what `GroupForm` does to it: a renewal dialog that answers while the
-  settings dialog is open can write a standing answer to the live database, and only touching the
-  keys the operator changed leaves it alone. **What the tab holds for the plugin's store is acts
-  and not keys**, `PendingRecords`: each composed at its press and all composed again and planned
-  at OK against the store as it stands then, so an admission that landed meanwhile, or a
-  certificate a client gave up, is in what they are planned against.
+  **Composed again at OK, never written back wholesale**, because a snapshot written back would be
+  this plugin doing to itself exactly what `GroupForm` does to it: a renewal dialog that answers
+  while the settings dialog is open writes a standing answer to the live database. **What the
+  tab holds for the plugin's store is acts**, `PendingRecords`: each composed at its press and
+  all composed again and planned at OK against the store as it stands then, so an admission that
+  landed meanwhile, a certificate a client gave up, or an answer the renewal dialog gave, is in
+  what they are planned against.
 
   **A profile name is an act of the store as well**, an addition or a removal, `STORE.md` §616,
   and the buffer holds only the last press for each name, so a name added and removed on a single
@@ -328,13 +327,17 @@ designing around them.
   with what a pairing wrote into it, which also left out at OK a name past the list's ceiling; the
   list keeps no ceiling now.
 
-  **A standing answer to a renewal is the other key with a second writer that matters.** The
-  clients page's **Allow renewal** takes one away in the buffer, and the renewal dialog writes one
-  live once an until-date passes while the settings dialog is open. That answer is the later word
-  on the certificate, so `PendingDatabase` registers a merge for every `KPG.RenewalRefused.` key,
-  through `PendingStore.Reconcile` by kind, that keeps whatever changed under the dialog. An answer
-  for this session has no key: `PendingSessionRefusals` holds the lift beside the buffer, and the
-  factory applies it to the plugin's one `SessionRefusals` on OK and drops it otherwise.
+  **A lift of a standing answer to a renewal is an act of the store as well**, Allow renewal on
+  the client's own row, STORE.md §618: a version `ask` naming each standing and lost version the
+  page showed at the press, `RenewalActs.Lift`, and the buffer holds the last press for each
+  client, naming what every press about the client was shown, `RenewalActs.Folded`. The renewal
+  dialog can write an answer live once an until-date passes while the settings dialog is open, and
+  composing again at OK keeps it: the lift names nothing it was not shown, so a refusal it was not
+  shown stands at OK, and a lift whose versions were all replaced since writes nothing, which the
+  log names. **This reverses a merge registered for every `KPG.RenewalRefused.` key**, through
+  `PendingStore`, which went with the custom data. An answer for this session has no record:
+  `PendingSessionRefusals` holds the lift beside the buffer, by client key, and the factory
+  applies it to the plugin's one `SessionRefusals` on OK and drops it otherwise.
 
   **What a Recreate or a Delete takes away is deleted by the write that takes the act.** Every
   admission the retired authority issued names it as its issuer, and the write that retires the
@@ -342,8 +345,8 @@ designing around them.
   while the dialog was open goes with them. An act refused or left out at OK deletes nothing.
   **No revocation goes with any act**, which reverses taking every revocation out of the custom
   data with the records: a revocation names a client key and no authority. While such an act
-  waits, the page reads those admissions as gone, and once OK has written the store the standing
-  answers to a renewal about them go from the custom data. `STORE.md` §614 and §627.
+  waits, the page reads those admissions as gone. A standing answer to a renewal stays, since
+  nothing is removed for a client that is gone. `STORE.md` §614, §618 and §627.
 
   **Revocation waits too, and that is a cost that was argued and accepted.** Immediacy is something
   a revocation would rather have, and an operator who revokes and leaves the dialog open has revoked
@@ -365,8 +368,9 @@ designing around them.
   still admits, as after a revocation of its client or a record deleted by hand, is refused at
   the press with nothing held, and at OK writes nothing, which the log names. The log tells
   what the store's write came to as soon as that is known, then the audit's lines are written,
-  then the custom data, and the buffer is let go last. **Where the store takes no write in the
-  session**, no row carries the X and a row's menu offers Allow renewal alone, STORE.md §636.
+  and the buffer is let go last. **Where the store takes no write in the session**, no row
+  carries the X and a client's own row offers Allow renewal alone, which lifts an answer for this
+  session and refuses a stored answer with the reason, STORE.md §636.
   **A revocation or a certificate taken away that waits leaves inviting as it was**: only an
   act of the authority's waiting, a Create, a Recreate or a Delete, turns the invite button
   off, `IPendingChanges.AuthorityWaiting`, since a code made then pairs against an authority the
@@ -1298,15 +1302,17 @@ writes into no copy. The hazard stays a fact about KeePass, kept measured by
 `SnapshotHazardTests`, and it is the reason for that.
 
 **`DatabaseOperationsForm`, under Tools then Database Maintenance, does the same to
-`PwDatabase.CustomData`**, which is where this plugin's own keys live: the standing answers to a
-renewal, now that the authority, the admissions, the revocations and the profile names are
-entries. Worse in two ways than the group dialog. Its write-back is conditional on the key count
-differing rather than on anything the operator did, so a key landing while it is open, as a
-standing answer the renewal dialog writes would, is destroyed with the Plugin Data tab never
+`PwDatabase.CustomData`**, where this plugin's own keys lived until every one of them became an
+entry of its store, the standing answers to a renewal last. Worse in two ways than the group
+dialog. Its write-back is conditional on the key count differing rather than on anything the
+operator did, so a key landing while it is open is destroyed with the Plugin Data tab never
 opened. And the copy is written back as the dialog closes, whichever way it is closed: its single
 button, which is both the accept and the cancel button, Enter, Escape, the close box and Alt+F4
-alike, so there is no way to decline it. `GroupDialogs` watches for it and `DatabaseWriter`
-refuses while it is open.
+alike, so there is no way to decline it. Nothing of the plugin's is in that dictionary, and a
+pairing, a renewal, a certificate given up and a standing answer to a renewal are still refused
+while the dialog is open, for a reason of their own: its buttons delete history items and
+deletion records, and a press of one inside a save of the plugin's own was never measured.
+`GroupDialogs` watches for it and `DatabaseWriter` refuses while it is open, STORE.md §626.
 
 **A dialog that is adding something is about a group it does not hold**, which a watch keyed on the
 node a dialog holds cannot see. Add Entry and the TAN wizard put what they made into their group

@@ -132,7 +132,7 @@ namespace KeePassGate.Tests
                     new AdmissionListing(new[] { _refused, _asked }, true),
                     null,
                     null,
-                    new Dictionary<string, RenewalRefusal> { { _refused.AdmissionKey, RenewalRefusal.Forever() } });
+                    new Dictionary<string, ClientAnswer> { { _refused.ClientKey, new ClientAnswer(RenewalRefusal.Forever(), false, false) } });
                 Pump();
                 Select(grid, 0);
 
@@ -176,6 +176,48 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void The_menu_of_an_earlier_certificate_offers_Take_certificate_away_alone()
+        {
+            // `STORE.md` §648: the answer and Allow renewal are the client's, on its own row, so an
+            // indented row of an earlier certificate states no answer and lifts none.
+            AdmissionRecord renewed;
+            using (var certificate = Minted.Named("CN=agent-fictitious")
+                       .Lasting(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(30))
+                       .SelfSigned()
+                       .Read())
+            {
+                renewed = AdmissionRecord.For(
+                    certificate, _refused.Admitted.AddSeconds(1), new[] { "ops" }, InventedIssuer.Id, _refused.ClientKey, _refused.AdmissionKey);
+            }
+
+            Using((list, grid) =>
+            {
+                list.Fill(
+                    new AdmissionListing(new[] { renewed, _refused }, true),
+                    null,
+                    null,
+                    new Dictionary<string, ClientAnswer> { { _refused.ClientKey, new ClientAnswer(RenewalRefusal.Forever(), false, false) } });
+                Pump();
+                Assume.That(list.Rows[1].Own, Is.False, "the earlier certificate is indented under its client");
+
+                Select(grid, 1);
+                AskFromTheKeyboard(grid);
+
+                Assert.That(Shown(list.Menu), Is.EqualTo(new[] { FirstLine(list.Rows[1]), "-", ClientList.TakeAwayText }));
+                Key(grid, Keys.Escape);
+                Pump();
+
+                Select(grid, 0);
+                AskFromTheKeyboard(grid);
+
+                Assert.That(Shown(list.Menu), Is.EqualTo(new[]
+                {
+                    FirstLine(list.Rows[0]), "Renewal refused forever", "-", ClientList.RevokeText, ClientList.TakeAwayText, ClientList.AllowRenewalText
+                }), "the client's own row states the answer and lifts it");
+            });
+        }
+
+        [Test]
         public void Where_the_store_takes_no_write_the_menu_offers_no_Revoke_and_sets_Allow_renewal_apart()
         {
             // `STORE.md` §636: no command on the store where nothing is written into it in the
@@ -187,7 +229,7 @@ namespace KeePassGate.Tests
                     new AdmissionListing(new[] { _refused, _asked }, true),
                     null,
                     null,
-                    new Dictionary<string, RenewalRefusal> { { _refused.AdmissionKey, RenewalRefusal.Forever() } });
+                    new Dictionary<string, ClientAnswer> { { _refused.ClientKey, new ClientAnswer(RenewalRefusal.Forever(), false, false) } });
                 Pump();
                 Select(grid, 1);
 
@@ -210,7 +252,7 @@ namespace KeePassGate.Tests
                 Key(grid, Keys.Enter);
 
                 Assert.That(list.Menu.Visible, Is.False);
-                Assert.That(_lifted, Is.EqualTo(new[] { _refused.AdmissionKey }));
+                Assert.That(_lifted, Is.EqualTo(new[] { _refused.ClientKey }), "by the client's key");
                 Assert.That(_revoked, Is.Empty);
                 Assert.That(list.StandingAt(0), Is.Null, "the name stops being red at once");
                 Assert.That(grid.Rows[0].Cells[0].Style.ForeColor, Is.EqualTo(Color.Empty));
@@ -282,8 +324,8 @@ namespace KeePassGate.Tests
 
                 Assert.That(Shown(list.Menu), Is.EqualTo(new[]
                 {
-                    FirstLine(list.Rows[1]), "-", ClientList.TakeAwayText, ClientList.AllowRenewalText
-                }));
+                    FirstLine(list.Rows[1]), "-", ClientList.TakeAwayText
+                }), "Allow renewal is the client's, on its own row");
                 Assert.That(Item(list.Menu, ClientList.TakeAwayItemName).Selected, Is.True,
                     "the first choice that can be made is highlighted");
             });
@@ -403,7 +445,7 @@ namespace KeePassGate.Tests
                 Assert.That(list.Menu.Visible, Is.False);
                 Assert.That(_lifted, Is.Empty);
                 Assert.That(_revoked, Is.Empty);
-                Assert.That(list.StandingAt(0).IsForever, Is.True);
+                Assert.That(list.StandingAt(0).Refusal.IsForever, Is.True);
             });
         }
 
@@ -439,7 +481,7 @@ namespace KeePassGate.Tests
                     new AdmissionListing(new[] { _refused, _asked }, true),
                     null,
                     null,
-                    new Dictionary<string, RenewalRefusal> { { _refused.AdmissionKey, RenewalRefusal.Forever() } });
+                    new Dictionary<string, ClientAnswer> { { _refused.ClientKey, new ClientAnswer(RenewalRefusal.Forever(), false, false) } });
                 Pump();
 
                 var grid = ControlTree.FindByName<DataGridView>(list, ClientList.ListName);

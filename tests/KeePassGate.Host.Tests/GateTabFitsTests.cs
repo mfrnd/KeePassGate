@@ -646,9 +646,10 @@ namespace KeePassGate.Host.Tests
         {
             // M001: the operator chose a red name, a tooltip and the row's menu over a column and a
             // button, because neither fitted. What has to stay true is that four clients, each
-            // with one of the answers and two of them the same, leave every column whole and the
-            // list a list, in every state of the tab and at every scaling, with the two lines a
-            // merge adds under the list and without them.
+            // with one of the answers, the longest texts of an answer lost and one that does not
+            // read among them, leave every column whole and the list a list, in every state of the
+            // tab and at every scaling, with the two lines a merge adds under the list and without
+            // them.
             //
             // **And a fifth whose name and first profile are as long as a name may be**, which no
             // column on the page holds. What has to stay true of its row is that it has a line for
@@ -665,15 +666,15 @@ namespace KeePassGate.Host.Tests
             var day = new DateTime(2026, 12, 28, 0, 0, 0, DateTimeKind.Local);
             var clients = new[]
             {
-                Tuple.Create("nightly-sync", new[] { "ops" }, RenewalRefusal.ThisSession()),
-                Tuple.Create("agent-fictitious", new[] { "reader" }, RenewalRefusal.Until(new DateTimeOffset(day))),
-                Tuple.Create("ci-runner", new[] { "reader", "ops" }, RenewalRefusal.Forever()),
-                Tuple.Create("backup-agent", new[] { "reader" }, RenewalRefusal.Forever()),
-                Tuple.Create(longestClient, new[] { longestProfile, "ops" }, RenewalRefusal.ThisSession())
+                Tuple.Create("nightly-sync", new[] { "ops" }, new ClientAnswer(RenewalRefusal.ThisSession(), false, false)),
+                Tuple.Create("agent-fictitious", new[] { "reader" }, new ClientAnswer(RenewalRefusal.Until(new DateTimeOffset(day)), false, false)),
+                Tuple.Create("ci-runner", new[] { "reader", "ops" }, new ClientAnswer(RenewalRefusal.Forever(), true, false)),
+                Tuple.Create("backup-agent", new[] { "reader" }, new ClientAnswer(RenewalRefusal.Forever(), false, false)),
+                Tuple.Create(longestClient, new[] { longestProfile, "ops" }, new ClientAnswer(RenewalRefusal.Forever(), false, true))
             };
 
             var records = new List<AdmissionRecord>();
-            var standing = new Dictionary<string, RenewalRefusal>(StringComparer.Ordinal);
+            var standing = new Dictionary<string, ClientAnswer>(StringComparer.Ordinal);
             var admitted = new DateTimeOffset(2026, 10, 11, 18, 42, 7, TimeSpan.Zero);
             foreach (var client in clients)
             {
@@ -681,7 +682,7 @@ namespace KeePassGate.Host.Tests
                 {
                     var record = AdmissionRecord.For(certificate, admitted, client.Item2, StoredAdmissions.AnyIssuer);
                     records.Add(record);
-                    standing[record.AdmissionKey] = client.Item3;
+                    standing[record.ClientKey] = client.Item3;
                 }
 
                 admitted = admitted.AddMinutes(-3);
@@ -695,7 +696,6 @@ namespace KeePassGate.Host.Tests
                 var renewal = AdmissionRecord.For(
                     renewed, first.Admitted.AddMinutes(1), first.Profiles, StoredAdmissions.AnyIssuer, first.ClientKey, first.AdmissionKey);
                 records.Add(renewal);
-                standing[renewal.AdmissionKey] = RenewalRefusal.ThisSession();
             }
 
             using (var scaled = scaling > 1.00f ? ScaledDialog(scaling) : null)
@@ -770,7 +770,8 @@ namespace KeePassGate.Host.Tests
 
                                 // The row's menu, on every row that holds an admission and so on
                                 // the row whose menu holds the longest lines, an answer naming its
-                                // date among them: each command the row offers is available, and
+                                // date among them: each command the row offers is available, Allow
+                                // renewal on the client's own row alone, and
                                 // the menu comes up no wider than the page it is opened over. A
                                 // menu is a window of its own and takes no room on the page, so the
                                 // page's width is no room it needs: it is the bound a line that
@@ -782,7 +783,7 @@ namespace KeePassGate.Host.Tests
                                     {
                                         Tuple.Create(ClientList.RevokeItemName, listed.Revocable),
                                         Tuple.Create(ClientList.TakeAwayItemName, true),
-                                        Tuple.Create(ClientList.AllowRenewalItemName, true),
+                                        Tuple.Create(ClientList.AllowRenewalItemName, listed.Own),
                                     };
                                     foreach (var command in offered.Where(command => list.Menu.Items[command.Item1].Available != command.Item2))
                                     {

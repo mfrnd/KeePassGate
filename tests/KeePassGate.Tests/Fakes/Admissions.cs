@@ -10,7 +10,8 @@ namespace KeePassGate.Tests.Fakes
     /// <summary>
     /// The admissions of a database a page is given, as a test arranges and reads them: written
     /// into its store as a key holder can write them, under the authority the store serves, and
-    /// read as the gate reads them; the standing answers in its custom data.
+    /// read as the gate reads them; and the standing answers to its clients' renewals, in its store
+    /// too.
     /// </summary>
     /// <remarks>
     /// Over the database the test hands the page, or over the buffer the page writes into, in
@@ -63,10 +64,19 @@ namespace KeePassGate.Tests.Fakes
             return true;
         }
 
-        /// <summary>The standing answers to a renewal, in the database's custom data.</summary>
-        public RenewalAnswers Answers
+        /// <summary>A standing refusal of a client's renewals, as the renewal dialog writes it.</summary>
+        public void Refuse(string clientKey, RenewalRefusal refusal)
         {
-            get { return new RenewalAnswers(_database.PluginCustomData, null); }
+            StoreSeeds.Refuse(_database.Store, clientKey, refusal);
+        }
+
+        /// <summary>The strictest stored answer about a client's renewals, or null.</summary>
+        public RenewalRefusal Answer(string clientKey)
+        {
+            using (var reading = _database.Store.Read())
+            {
+                return StoredRenewals.AnswerOf(reading.InForce, clientKey);
+            }
         }
     }
 }

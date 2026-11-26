@@ -14,7 +14,7 @@ namespace KeePassGate.Host.Tests
     /// <summary>
     /// The admissions of a real database as a test arranges and reads them: written into its
     /// store by the product's own acts and read as the gate reads them, the entries of the
-    /// plugin's group as KeePass holds them, and the standing answers in its custom data.
+    /// plugin's group as KeePass holds them, and the standing answers to its clients' renewals.
     /// </summary>
     /// <remarks>
     /// An admission is written with the authority the store serves as its issuer where the store
@@ -43,10 +43,37 @@ namespace KeePassGate.Host.Tests
             get { return new KdbxStore(_database, GateVersion.Current, null); }
         }
 
-        /// <summary>The standing answers to a renewal, in the database's custom data.</summary>
-        public RenewalAnswers Answers
+        /// <summary>
+        /// A standing refusal of a client's renewals, as the renewal dialog writes it, naming the
+        /// versions of the client's answer that stand as it is read here.
+        /// </summary>
+        public void Refuse(string clientKey, RenewalRefusal refusal)
         {
-            get { return new RenewalAnswers(new CustomDataStore(_database), null); }
+            StoreSeeds.Refuse(Store, clientKey, refusal);
+        }
+
+        /// <summary>A lift of every version of a client's answer, as Allow renewal writes it at OK.</summary>
+        public void Lift(string clientKey)
+        {
+            StoreSeeds.Lift(Store, clientKey);
+        }
+
+        /// <summary>The strictest stored answer about a client's renewals, as the gate reads it, or null.</summary>
+        public RenewalRefusal Answer(string clientKey)
+        {
+            using (var reading = Store.Read())
+            {
+                return StoredRenewals.AnswerOf(reading.InForce, clientKey);
+            }
+        }
+
+        /// <summary>What a reading holds of a client's answer, as the gate and the clients page read it.</summary>
+        internal RenewalStanding Standing(string clientKey)
+        {
+            using (var reading = Store.Read())
+            {
+                return StoredRenewals.Of(reading.InForce, clientKey);
+            }
         }
 
         /// <summary>The admission, under the authority served where the store serves any.</summary>

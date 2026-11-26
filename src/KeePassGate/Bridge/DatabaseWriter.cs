@@ -248,11 +248,12 @@ namespace KeePassGate.Bridge
 
             if (_dialogs != null)
             {
-                // One dialog for the custom data: the standing answers to a renewal a write prunes
-                // go into the database's own custom data, which only the maintenance dialog copies.
-                // The admission and the profile names a pairing adds are entries of the plugin's
-                // group, asked about once the write's plan exists, `STORE.md` §626. No
-                // group dialog is asked: a group dialog's OK puts back no entry. The TAN wizard is
+                // Database Maintenance, whose buttons delete history items and deletion records,
+                // and a press of which could be handled inside a save of this writer's own, which
+                // was never measured: refused while it is open, `STORE.md` §626. The admission and
+                // the profile names a pairing adds are entries of the plugin's group, asked about
+                // once the write's plan exists, `STORE.md` §626. No group dialog is asked: a group
+                // dialog's OK puts back no entry. The TAN wizard is
                 // asked about the save rather than the write, since its OK adds entries inside a
                 // save of its database, and this write ends in a save.
                 var open = _dialogs.BlockingRecords(database) ?? _dialogs.BlockingSaves(database);
@@ -788,7 +789,7 @@ namespace KeePassGate.Bridge
         /// </param>
         public VaultWrite Change(PwDatabase database, Func<VaultChange> change)
         {
-            return Change(database, change, true, null);
+            return Change(database, change, null);
         }
 
         /// <summary>
@@ -810,12 +811,12 @@ namespace KeePassGate.Bridge
         /// working, and so does the certificate a renewal issued, since the record names it.
         ///
         /// **And refused while Database Maintenance is open on the database**, which `Change` does
-        /// not ask on its own: the write prunes the standing answers to a renewal no admission
-        /// names any more, which are the database's own custom data, and that dialog writes its
-        /// copy back whenever the number of keys differs.
+        /// not ask on its own, as a pairing and a renewal are: that dialog's buttons delete history
+        /// items and deletion records, and a press of one inside this writer's save was never
+        /// measured, `STORE.md` §626.
         ///
         /// **What is taken back out is everything it touched**: the entries and their deletion
-        /// records, and the standing answers the prune took away.
+        /// records.
         ///
         /// A certificate given up that lands is written to the audit, tells the Clients page, and
         /// has KeePass's group tree and entry list rebuilt, as every change that adds an entry
@@ -836,7 +837,7 @@ namespace KeePassGate.Bridge
                 return VaultWrite.Missing();
             }
 
-            return Change(database, () => GiveUpOnTheUiThread(database, admissionKey, authority), true, () => Landed(audit));
+            return Change(database, () => GiveUpOnTheUiThread(database, admissionKey, authority), () => Landed(audit));
         }
 
         private VaultChange GiveUpOnTheUiThread(PwDatabase database, string admissionKey, string authority)
@@ -891,21 +892,7 @@ namespace KeePassGate.Bridge
                         return VaultWrite.Busy(staged.Held);
                     }
 
-                    var store = new CustomDataStore(database);
-
-                    // The mark is `Change`'s to decide, from what the database held before and
-                    // from the file, as for every change: the application raises it, and it is
-                    // put back here so that a write taken back out over an unchanged file leaves
-                    // nothing to save.
-                    var modified = database.Modified;
-                    var undo = staged.Apply();
-                    database.Modified = modified;
-                    var pruned = new RenewalAnswers(store, _log).Prune(StoreAdmissions.Named(reading, staged.Write));
-                    return new VaultChange(VaultWrite.Done(), () =>
-                    {
-                        PutBackAnswers(store, pruned);
-                        undo();
-                    });
+                    return Applied(database, staged);
                 }
                 finally
                 {
@@ -915,43 +902,77 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// Writes the operator's standing answer to a client renewing one certificate, saved and
-        /// verified as an approval's record is, `PAIRING.md` §312.
+        /// A staged write applied as a change of <see cref="Change(PwDatabase, Func{VaultChange})"/>,
+        /// with the way back its application handed back.
+        /// </summary>
+        /// <remarks>
+        /// The mark is `Change`'s to decide, from what the database held before and from the file,
+        /// as for every change: the application raises it, and it is put back here so that a write
+        /// taken back out over an unchanged file leaves nothing to save.
+        /// </remarks>
+        private static VaultChange Applied(PwDatabase database, StagedWrite staged)
+        {
+            var modified = database.Modified;
+            var undo = staged.Apply();
+            database.Modified = modified;
+            return new VaultChange(VaultWrite.Done(), undo);
+        }
+
+        /// <summary>
+        /// Writes the operator's standing answer to a client's renewals into the plugin's store,
+        /// saved and verified as an approval's record is, `STORE.md` §618 and `PAIRING.md` §312:
+        /// the act of `RenewalActs.Refuse`, a version of `renew:` and the client key.
         /// </summary>
         /// <remarks>
         /// **Saved at once, and never left for a later save.** Through
         /// <see cref="Change(PwDatabase, Func{VaultChange})"/>, so it waits its turn, is refused
         /// inside an operation KeePass is running, under the TAN wizard and before a save that
         /// would ask, and is believed on the flag and the file. Refused while Database Maintenance
-        /// is open on the database as well: the key is in the database's own custom data, which
-        /// that dialog writes back whenever the number of keys differs. Taken back out, and the
-        /// answer that was there before put back, when the save does not land; left where it is,
-        /// with the database marked, when the file does not hold what KeePass wrote. The caller
-        /// tells the operator of either, and holds an answer that was not written for this session.
+        /// is open on the database as well, as a pairing, a renewal and a certificate given up
+        /// are. Taken back out when the save does not land; left where it is, with the database
+        /// marked, when the file does not hold what KeePass wrote. The caller tells the operator of
+        /// either, and holds an answer that was not written for this session.
         ///
-        /// The Clients page draws the row's name red from it, so the page is told when it lands,
-        /// as it is when an admission does; the tree and the entry list show none of it, so they
-        /// are not rebuilt.
+        /// **In the turn**: the store read with every entry, the act composed over that very
+        /// reading, naming in `after` the versions in <paramref name="shown"/> that still stand,
+        /// and its plan, which adds the version, deletes the versions it replaces with their
+        /// deletion records and restates what is in force by a summary entry. Refused while an
+        /// entry dialog holds an entry the plan touches, `STORE.md` §626, and where the store is
+        /// not one the plugin writes into, or holds no room for the version, `STORE.md` §627.
+        ///
+        /// The Clients page draws the client's name red from it, so the page is told when it
+        /// lands, as it is when an admission does, and the group tree and the entry list are
+        /// rebuilt, since entries of the plugin's group changed.
         /// </remarks>
-        public VaultWrite RefuseRenewal(PwDatabase database, string admissionKey, RenewalRefusal refusal)
+        /// <param name="clientKey">The client whose renewals are refused.</param>
+        /// <param name="shown">
+        /// The identifiers of the standing versions of the client's answer the reading before the
+        /// dialog held: a version that arrived while the dialog stood is named by nothing.
+        /// </param>
+        public VaultWrite AnswerRenewal(
+            PwDatabase database, string clientKey, RenewalRefusal refusal, IReadOnlyCollection<string> shown)
         {
-            if (string.IsNullOrEmpty(admissionKey) || refusal == null)
+            if (!CertificateDigest.IsDigest(clientKey) || refusal == null)
             {
                 return VaultWrite.Failed("there is no standing answer to write");
             }
 
-            if (!refusal.IsWritten)
+            if (refusal.IsThisSession)
             {
                 // A caller's mistake, refused here by name rather than thrown inside the change,
-                // where the store's argument exception read as a write that failed.
+                // where the act's argument exception read as a write that failed.
                 _log.Error("a standing answer for this session alone was handed to the database writer", null);
                 return VaultWrite.Failed("a standing answer for this session is never written to the database");
             }
 
-            return Change(database, () => RefuseRenewalOnTheUiThread(database, admissionKey, refusal), false, Admitted);
+            return Change(
+                database,
+                () => AnswerRenewalOnTheUiThread(database, clientKey, refusal, shown ?? Array.Empty<string>()),
+                Admitted);
         }
 
-        private VaultChange RefuseRenewalOnTheUiThread(PwDatabase database, string admissionKey, RenewalRefusal refusal)
+        private VaultChange AnswerRenewalOnTheUiThread(
+            PwDatabase database, string clientKey, RenewalRefusal refusal, IReadOnlyCollection<string> shown)
         {
             if (_dialogs != null)
             {
@@ -962,44 +983,40 @@ namespace KeePassGate.Bridge
                 }
             }
 
-            var store = new CustomDataStore(database);
-            var key = AuthorityKeys.RenewalRefusalKey(admissionKey);
-            var before = store.Get(key);
-
-            new RenewalAnswers(store, _log).RefuseRenewal(admissionKey, refusal);
-
-            return new VaultChange(VaultWrite.Done(), () =>
+            var kdbx = new KdbxStore(database, GateVersion.Current, _log, Holding);
+            using (var reading = kdbx.ForWrite())
             {
-                if (before == null)
+                // A store that is not whole, not of the plugin's own format or holding a kind the
+                // plugin does not know is refused by the plan, and a store with no key composes
+                // nothing, `STORE.md` §627 step 1.
+                string refused;
+                var act = RenewalActs.Refuse(reading, clientKey, refusal, shown, out refused);
+                if (act == null)
                 {
-                    store.Remove(key);
+                    _log.Warn("a standing answer to a renewal was not written into the plugin's store: " + refused);
+                    return VaultWrite.Failed(refused);
                 }
-                else
+
+                try
                 {
-                    store.Set(key, before);
+                    var staged = kdbx.Stage(reading, new[] { act });
+                    if (staged.Refused != null)
+                    {
+                        _log.Warn("a standing answer to a renewal was not written into the plugin's store: " + staged.Refused);
+                        return VaultWrite.Failed(staged.Refused);
+                    }
+
+                    if (staged.Held != null)
+                    {
+                        return VaultWrite.Busy(staged.Held);
+                    }
+
+                    return Applied(database, staged);
                 }
-            });
-        }
-
-        /// <summary>
-        /// Puts back the standing answers to a renewal a write's prune took away, where nothing
-        /// holds the key again since.
-        /// </summary>
-        /// <remarks>
-        /// Each comes back with a modification time of now rather than the one it had, which
-        /// nothing public sets; harmless, since each is about a certificate no admission names, and
-        /// the next write that lands prunes it again.
-        /// </remarks>
-        private static void PutBackAnswers(IKeyValueStore store, IEnumerable<KeyValuePair<string, string>> pruned)
-        {
-            if (pruned == null)
-            {
-                return;
-            }
-
-            foreach (var pair in pruned.Where(pair => store.Get(pair.Key) == null))
-            {
-                store.Set(pair.Key, pair.Value);
+                finally
+                {
+                    act.Forget();
+                }
             }
         }
 
@@ -1007,12 +1024,6 @@ namespace KeePassGate.Bridge
         /// The change <see cref="Change(PwDatabase, Func{VaultChange})"/> makes, with something to
         /// run once it stands.
         /// </summary>
-        /// <param name="lists">
-        /// Whether a change that lands puts the group tree and the entry list out of date, which
-        /// <see cref="Redraw"/> rebuilds for the database in front. False for a change to the
-        /// database's own custom data alone, which neither shows: the rebuild replaces the
-        /// operator's search results with the selected group's entries.
-        /// </param>
         /// <param name="landed">
         /// Run on the user interface thread once the change stands: saved and verified, or saved
         /// and left in place because the file could not be verified, which undoes nothing, and so
@@ -1021,7 +1032,7 @@ namespace KeePassGate.Bridge
         /// its save before KeePass reported a save of it that landed. Null when nothing is drawn
         /// from what the change wrote.
         /// </param>
-        private VaultWrite Change(PwDatabase database, Func<VaultChange> change, bool lists, Action landed)
+        private VaultWrite Change(PwDatabase database, Func<VaultChange> change, Action landed)
         {
             if (change == null)
             {
@@ -1052,7 +1063,7 @@ namespace KeePassGate.Bridge
                 bool ran;
                 try
                 {
-                    ran = _ui.Run(() => outcome = ChangeOnTheUiThread(database, change, lists, landed), WriteTimeout);
+                    ran = _ui.Run(() => outcome = ChangeOnTheUiThread(database, change, landed), WriteTimeout);
                 }
                 catch (Exception error) when (Expected.OfUserInterface(error) || Expected.OfCustomData(error))
                 {
@@ -1093,8 +1104,8 @@ namespace KeePassGate.Bridge
         /// from a connection.** It still goes through the same lock as every other write, and is
         /// refused while an entry dialog holds an entry the write deletes, sets back or protects,
         /// the summary entry among them, and while KeePass is part way through something of its
-        /// own, and the operator is told why. It writes no custom data and saves nothing, so
-        /// Database Maintenance and the TAN wizard refuse it nothing, `STORE.md` §626.
+        /// own, and the operator is told why. It saves nothing, so Database Maintenance and the
+        /// TAN wizard refuse it nothing, `STORE.md` §626.
         ///
         /// **Not saved, which is operator answer 5**: the database is marked, the window says so,
         /// and the operator saves as they would any other change. Serving starts at once all the
@@ -1157,9 +1168,9 @@ namespace KeePassGate.Bridge
                 return AuthorityChange.Refused(interrupting);
             }
 
-            // No window is asked about the database as a whole: a keep writes no custom data, so
-            // Database Maintenance's copy of it takes nothing back, and it saves nothing, so a
-            // save the TAN wizard is inside is not met. What a window can take back is an entry
+            // No window is asked about the database as a whole: a keep saves nothing, so neither a
+            // press of Database Maintenance inside a save of this writer's nor a save the TAN
+            // wizard is inside is met. What a window can take back is an entry
             // the keep deletes, sets back or protects, asked of each once the plan exists,
             // `STORE.md` §626.
             var kept = new AuthorityService(
@@ -1254,7 +1265,7 @@ namespace KeePassGate.Bridge
         }
 
         private VaultWrite ChangeOnTheUiThread(
-            PwDatabase database, Func<VaultChange> change, bool lists, Action landed)
+            PwDatabase database, Func<VaultChange> change, Action landed)
         {
             if (!database.IsOpen)
             {
@@ -1375,11 +1386,11 @@ namespace KeePassGate.Bridge
                     // catch-all and is counted there.
                     _log.Error("the save ended in an exception nothing here expects, so the change " +
                                "is settled as the database leaves it, and the exception goes on", null);
-                    Concluded(database, decided, wasModified, lists, landed, null);
+                    Concluded(database, decided, wasModified, landed, null);
                 }
             }
 
-            return Concluded(database, decided, wasModified, lists, landed, failed);
+            return Concluded(database, decided, wasModified, landed, failed);
         }
 
         /// <summary>
@@ -1396,7 +1407,6 @@ namespace KeePassGate.Bridge
             PwDatabase database,
             VaultChange decided,
             bool wasModified,
-            bool lists,
             Action landed,
             Exception failed)
         {
@@ -1510,7 +1520,7 @@ namespace KeePassGate.Bridge
             // between the change and the undo, since nothing on this thread reads a `PwGroup` again
             // until something asks it to. What a put back does leave wrong is the mark that there
             // is something to save, which `PutBack` redraws on its own, from the flag it leaves.
-            Redraw(database, lists);
+            Redraw(database, true);
 
             return decided.Outcome;
         }
@@ -1678,22 +1688,12 @@ namespace KeePassGate.Bridge
             {
                 return AskedProfiles.Regaining(_reading, profiles, DateTimeOffset.UtcNow);
             }
-        }
 
-        /// <summary>
-        /// The certificates the admissions in force name once this write lands, against which the
-        /// standing answers to a renewal are pruned, `RenewalAnswers.Prune`.
-        /// </summary>
-        /// <remarks>
-        /// **Here, inside the guarded write, and never at open**: opening a database must not mark
-        /// it modified, and a prune made while Database Maintenance is open is undone by that
-        /// dialog's write-back. Nothing depends on it, since no standing answer admits anybody, so
-        /// one that fails is a warning and the write goes on.
-        /// </remarks>
-        private IReadOnlyList<KeyValuePair<string, string>> PruneAnswers(
-            CustomDataStore store, StoreReading reading, StoreWrite write)
-        {
-            return new RenewalAnswers(store, _log).Prune(StoreAdmissions.Named(reading, write));
+            /// <summary>The strictest standing answer about the client's renewals in this turn's reading.</summary>
+            public RenewalRefusal Renewal(string clientKey)
+            {
+                return StoredRenewals.AnswerOf(_reading.InForce, clientKey);
+            }
         }
 
         /// <summary>
@@ -1726,7 +1726,6 @@ namespace KeePassGate.Bridge
                 return AdmissionWrite.Busy(blocked);
             }
 
-            var store = new CustomDataStore(database);
             var kdbx = new KdbxStore(database, GateVersion.Current, _log, Holding);
 
             // The store read afresh with every entry, held for the whole turn and let go at its
@@ -1801,30 +1800,18 @@ namespace KeePassGate.Bridge
 
                 var wasModified = database.Modified;
 
-                // What the application and the prune took, so a write that does not land puts it
-                // back and the database in memory goes on agreeing with the file: the admission and
-                // the profile names it adds are entries of the plan, and its undo takes them back
-                // out. The entries first: an application that throws has taken itself back, so the
-                // standing answers are pruned only beside entries that are there.
+                // What the application took, so a write that does not land puts it back and the
+                // database in memory goes on agreeing with the file: the admission and the profile
+                // names it adds are entries of the plan, and its undo takes them back out. An
+                // application that throws has taken itself back.
                 var undone = staged.Apply();
-                IReadOnlyList<KeyValuePair<string, string>> pruned = null;
-
-                try
-                {
-                    pruned = PruneAnswers(store, reading, staged.Write);
-                    database.Modified = true;
-                }
-                catch (Exception error) when (Expected.OfCustomData(error))
-                {
-                    _log.Error("an admission could not be put in the database", error);
-                    return Undo(store, database, undone, pruned, wasModified, error.Message);
-                }
+                database.Modified = true;
 
                 // Everything this write touched, put back as it was, for every ending below that
                 // leaves the admission out of the database. `raised` keeps the flag up whatever the
                 // file then reads as, for the one path that raises it on purpose.
                 Func<string, bool, AdmissionWrite> undo = (reason, raised) => Undo(
-                    store, database, undone, pruned, wasModified || raised, reason);
+                    database, undone, wasModified || raised, reason);
                 var added = staged.Write.Add;
 
                 // True until the save ends in a way this method expects, as in
@@ -2044,11 +2031,10 @@ namespace KeePassGate.Bridge
         /// existed, admitted by a certificate nobody holds, written to disk by whatever they save
         /// next.
         ///
-        /// **Everything the write applied goes, in this order**: the entries, by the undo the
-        /// application handed back, which removes what it added with no deletion record, the
-        /// admission and the profile names it adds among them, puts back what it deleted and
-        /// removes those deletion records, and removes the deletion records it added and a group
-        /// it made; and the standing answers the prune took away.
+        /// **Everything the write applied goes**, by the undo the application handed back, which
+        /// removes what it added with no deletion record, the admission and the profile names it
+        /// adds among them, puts back what it deleted and removes those deletion records, and
+        /// removes the deletion records it added and a group it made.
         ///
         /// The modified flag goes back only if this write is what set it. Clearing one that was
         /// already there would tell KeePass it has nothing to save while somebody else's change is
@@ -2058,13 +2044,7 @@ namespace KeePassGate.Bridge
         /// `PutBack` asks it. A file that does not hold what was written is undone with the flag
         /// kept up whatever it was, for the reason `RecordConcluded` gives there.
         /// </remarks>
-        private AdmissionWrite Undo(
-            CustomDataStore store,
-            PwDatabase database,
-            Action undone,
-            IReadOnlyList<KeyValuePair<string, string>> pruned,
-            bool wasModified,
-            string reason)
+        private AdmissionWrite Undo(PwDatabase database, Action undone, bool wasModified, string reason)
         {
             try
             {
@@ -2072,8 +2052,6 @@ namespace KeePassGate.Bridge
                 {
                     undone();
                 }
-
-                PutBackAnswers(store, pruned);
 
                 if (!wasModified)
                 {
