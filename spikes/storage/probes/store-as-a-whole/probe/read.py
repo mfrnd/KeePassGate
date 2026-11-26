@@ -115,6 +115,64 @@ ANSWER_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 # refuse once the seal has deleted it; and `seal`, the versions granting nothing the seal writes,
 # each with its object, its text, `after` and `lost`, composed from this reading alone.
 SEAL = False
+# ADDED (started again): the keys of STORE.md 649, the version record of 650 and the room of 643,
+# read here as the product reads them and by nothing of the model. With STARTS, a keep record (kind
+# `kept`, naming a key by its name, store.keyname) counts as a record, as an item of a summary entry
+# present and as a deletion record under the tag of `kept` and the subject hash of `key:` and a name,
+# under a key found and naming another; which keys stand is marked as the product marks them
+# (`mark_keys`); a single standing key is the store key and only what passes under it counts, damage
+# under its tags alone; several standing keys are a split store; a version record or a summary entry's
+# item `format` above 1 makes the store outdated; a keep record or a version record no summary entry
+# restates stops it. With ROOM, a store whose next summary entry does not fit the product's ceilings
+# (StoreFormat.MaxWritten for its content, MaxItems for its items) is stopped, after every other check.
+STARTS = False
+ROOM = False
+MAX_WRITTEN, MAX_ITEMS = 262144, 9999
+
+
+def mark_keys(keys, rels):
+    """ADDED (started again): the keys that stand and the keys set aside, as the product marks them:
+    a relation another names in `after` counts for nothing; a key no counting relation names, or only
+    relations under keys set aside, stands; a key a counting relation under a standing key names is
+    set aside; unmarked keys on a circle of counting relations stand; again until a round marks
+    nothing. `rels` is (source, target or None, identifier, after)."""
+    named = set()
+    for r in rels:
+        named |= r[3]
+    edges = set((r[0], r[1]) for r in rels if r[1] is not None and r[2] not in named)
+    mark = {k: None for k in keys}
+    while True:
+        changed = True
+        while changed:
+            changed = False
+            for k in keys:
+                if mark[k] is not None:
+                    continue
+                into = [s for (s, t) in edges if t == k]
+                if any(mark[s] == 'standing' for s in into):
+                    mark[k], changed = 'aside', True
+                elif all(mark[s] == 'aside' for s in into):
+                    mark[k], changed = 'standing', True
+        loose = [k for k in keys if mark[k] is None]
+
+        def back(k):
+            reached, todo = set(), [k]
+            while todo:
+                x = todo.pop()
+                for (s, t) in edges:
+                    if s == x and mark[t] is None:
+                        if t == k:
+                            return True
+                        if t not in reached:
+                            reached.add(t)
+                            todo.append(t)
+            return False
+        circled = [k for k in loose if back(k)]
+        if not circled:
+            break
+        for k in circled:
+            mark[k] = 'standing'
+    return [k for k in keys if mark[k] != 'aside'], [k for k in keys if mark[k] == 'aside']
 
 
 def answer_text(text):
@@ -383,6 +441,33 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
                             e.get('title', e['strings'].get('Title', ''))))
         else:
             passed += 1             # passed over and shown (change 3)
+    # ADDED (started again): which keys stand; only what passes under the store key counts
+    found, aside, kept_read, split, store_rels = list(held), [], [], False, []
+    if STARTS:
+        byname = {S.keyname(k): k for k in held}
+        rels = []
+        for c in els:
+            if c.kind == 'kept' and c.d is not None:
+                rels.append((c.key, byname.get(c.d.get('key')), c.u, frozenset(c.d.get('after', '').split()), 'record'))
+            elif c.kind == 'head':
+                for it in heads_items(c):
+                    if it.get('kind') == 'kept':
+                        rels.append((c.key, byname.get(it.get('key')), it.get('id'), frozenset(it.get('after', '').split()),
+                                     'item'))
+        for u in sorted(dels):
+            for k in held:
+                if u[:6] == S.tag(k, 'kept'):
+                    for t in held:
+                        if t != k and u[6:16] == S.subject_hash(k, 'key:' + S.keyname(t)):
+                            rels.append((k, t, u, frozenset(), 'deletion'))
+        standing, aside = mark_keys(held, [r[:4] for r in rels])
+        kept_read = sorted(set(r[2] for r in rels))
+        split = len(standing) > 1
+        store_rels = [r for r in rels if r[0] in standing]
+        els = [c for c in els if c.key in standing]
+        damage = sum(1 for c in cands if c.key is None and any(
+            c.u[:6] == S.tag(k, kind) for k in standing for kind in S.KINDS))
+        held = standing
     # ADDED (two readings): a record that can only take access away, counted from a copy under
     # another identifier, as the record under the identifier its content gives
     fromcopy = {}
@@ -742,6 +827,41 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
             for o, ids in limited.items():
                 if any(i not in c_regs and i not in acknowledged for i in ids):
                     status = 'incomplete'
+    # ADDED (started again): a keep record and a version record a summary entry restates; the room;
+    # then a split store, and an outdated store, ahead of every other state (STORE.md 656)
+    room = None
+    if STARTS:
+        items_kept = set(it.get('id') for h in heads for it in heads_items(h) if it.get('kind') == 'kept')
+        items_fmt = [int(it['number']) for h in heads for it in heads_items(h) if it.get('kind') == 'format']
+        fmts = [int(c.d['number']) for c in by.get('format', [])]
+        if status == 'ok' and (any(c.u not in items_kept for c in by.get('kept', []))
+                               or any(n > max(items_fmt + [0]) for n in fmts)):
+            status = 'incomplete'
+        if ROOM and not split:
+            told = set(u for u in dels if tagged(u, 'head'))
+            nxt = set(told)
+            for h in heads:
+                nxt.add(h.u)
+                nxt |= set(h.d['after'].split())
+            height = max([int(h.d['height']) for h in heads] + [0]) + 1
+            standing_vers = 0
+            for V in vers.values():
+                dd = set()
+                for after, f in V.values():
+                    dd |= after
+                standing_vers += sum(1 for i in V if i not in dd)
+            carried = set(r[2] for r in store_rels)
+            n_items = 1 + len(refusals) + len(prem) + standing_vers + len(carried)
+            content = (len(nxt) * 33 - 1 if nxt else 0) + len(S.dumps({'after': '', 'height': str(height),
+                                                                        'nonce': '0' * 32, 'v': '2'}))
+            room = dict(named=len(nxt), content=content, items=n_items,
+                        has=content <= MAX_WRITTEN and n_items < MAX_ITEMS)
+            if status == 'ok' and not room['has']:
+                status = 'incomplete'
+        if split:
+            status = 'split'
+        elif held and max(fmts + items_fmt + [0]) > 1:
+            status = 'outdated'
     # the authority served (two standing: 503 undecided)
     auths = sorted(c.d['id'] for c in by.get('authority', []) if c.u not in named and ('retired', c.d['id']) not in refusals)
     served = auths[0] if len(auths) == 1 and status == 'ok' else None
@@ -965,6 +1085,11 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
             'notRestated': not_restated, 'byDeletion': by_deletion,
             'lost': {o: sorted(ids) for o, ids in sorted(lost.items())},
             'refusesAfter': sorted(after_damage - set(lost)), 'seal': seal}
+    if STARTS:      # ADDED (started again): the keys by the model's labels, and the room
+        def label(k):
+            return S.KEYLABEL.get(k, k.hex()[:8])
+        extra['keys'] = dict(found=sorted(label(k) for k in found), standing=sorted(label(k) for k in held),
+                             aside=sorted(label(k) for k in aside), kept_read=kept_read, room=room)
     return dict(**extra,status=status, served=served, auths=auths, adm=adm if serve else {}, valid=valid,
                 names=sorted(on), words={n: (w if serve else frozenset()) for n, w in raw.items()},
                 words_raw=raw, renew=renew, refusals=refusals, counts=counts,

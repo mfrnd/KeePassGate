@@ -174,6 +174,18 @@ def seal():
     PREFIX = 'se-'
 
 
+def starts():
+    """ADDED (started again): the configuration of answers() with the keys of STORE.md 649 and the
+    command of 632 that starts the store again (crdt_model.STARTS, read.STARTS), the keep record and
+    the version record among the kinds the file holds, and the room of 643 read on files."""
+    global PREFIX
+    answers()
+    M.STARTS = RD.STARTS = RD.ROOM = True
+    if 'kept' not in S.KINDS:
+        S.KINDS = S.KINDS + S.STARTED
+    PREFIX = 'sa-'
+
+
 def use(form):
     """ADDED (rules per profile): 'rows', the configuration's form, or 'whole', a version of a node's
     whole rule as every configuration before, with the words per profile kept on, so that a part
@@ -374,6 +386,9 @@ class Bridge:
             why = dict((c, x['cause']) for c, x in r.get('renew_detail', {}).items())
             mine = mine[:4] + (sorted((c, a, v['renew_why'].get(c)) for c, a in v['renew'].items() if a != 'ask'),) + mine[5:]
             theirs = theirs[:4] + (sorted((c, a, why.get(c)) for c, a in r['renew'].items() if a != 'ask'),) + theirs[5:]
+        if M.STARTS:    # ADDED (started again): the keys that stand and the keys set aside
+            mine += (sorted(v['held']), sorted(v['aside']))
+            theirs += (r['keys']['standing'], r['keys']['aside'])
         if mine != theirs:
             self.readdiff.append((step, i, 'model %r; read.py %r' % (mine, theirs)))
         return r

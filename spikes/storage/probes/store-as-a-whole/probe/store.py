@@ -20,7 +20,22 @@ KINDS = ('authority', 'retired', 'revoked', 'client', 'profile', 'removed', 'ver
 
 
 def keybytes(label):
-    return hashlib.sha256(('kpg-store-as-a-whole/store-key/' + label).encode()).digest()
+    k = hashlib.sha256(('kpg-store-as-a-whole/store-key/' + label).encode()).digest()
+    KEYLABEL[k] = label     # ADDED (started again): each key written, to the model's label
+    return k
+
+
+# ADDED (started again): the keep record and the version record of STORE.md 649 and 650, as kinds of
+# their own, read only where the configuration adds them to KINDS (STARTED). A key's name is the
+# HMAC-SHA256 under that key over the three characters `key`, as 64 lowercase hexadecimal characters;
+# a keep record is about `key:` and the name of the key it names; a version record is about `format`.
+KEYLABEL = {}
+STARTED = ('kept', 'format')
+
+
+def keyname(key):
+    """ADDED (started again): the name of a store key."""
+    return hm(key, 'key').hex()
 
 
 def hm(key, text):
@@ -83,6 +98,10 @@ def subject_of(kind, d):
         return d['object']
     if kind == 'head':
         return 'store'
+    if kind == 'kept':      # ADDED (started again)
+        return 'key:' + d['key']
+    if kind == 'format':    # ADDED (started again)
+        return 'format'
     raise ValueError(kind)
 
 
@@ -296,8 +315,19 @@ class Encoder:
             # each copy's content gives
             for cid in sorted(e.data.get('ack', ())):
                 items.append({'kind': 'copy', 'id': cid})
+            # ADDED (started again): the keep records restated, each with its `after`, and the format
+            for x, a in sorted(e.data.get('kept', ()), key=lambda p: p[0]):
+                items.append({'kind': 'kept', 'id': self.u(x), 'key': keyname(keybytes(W.EL[x].obj)),
+                              'after': ' '.join(sorted(self.u(y) for y in a))})
+            if 'fmt' in e.data:
+                items.append({'kind': 'format', 'number': str(e.data['fmt'])})
             for k, it in enumerate(sorted(items, key=dumps)):
                 extra['KPG.S.%04d' % (k + 1)] = dumps(it)
+        elif e.kind == 'kept':      # ADDED (started again): a keep record, naming a key by its name
+            kind, d = 'kept', {'v': '2', 'key': keyname(keybytes(e.obj)),
+                               'after': ' '.join(sorted(self.u(x) for x in e.after)), 'nonce': nonce}
+        elif e.kind == 'fmt':       # ADDED (started again): a version record
+            kind, d = 'format', {'v': '2', 'number': str(e.data), 'nonce': nonce}
         else:
             raise ValueError(e.kind)
         data = dumps(d)

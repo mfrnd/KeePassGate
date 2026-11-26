@@ -401,6 +401,78 @@ def grants_nothing(obj, f):
     return all(not app(f, x) for x in (frozenset(), frozenset('r'), frozenset('w'), ALL))
 
 
+# ADDED (started again): the keys of STORE.md 649 and the command of 632 that starts the store again.
+# STARTS False: every store key a file holds is read at once, as every configuration before. With it on:
+#   - a key is found in an authority's entry, or a retirement that carries it, that passes under that
+#     very key, whatever lineage the key is of (a foreign file's key among them); the oracle finds every
+#     key of the lineage, as before;
+#   - a keep record is an element of kind `kept` under a key, its object the key it names, its `after`
+#     the keep records its writer had read; it counts as a record, as an item of a summary entry present
+#     (`kept` in the head's data, each with its `after`) and as a deletion record that tells of it, the
+#     last naming nothing in `after`, under a key found and naming a key found;
+#   - which keys stand is worked out as the product works it out (`marked`): a keep record another names
+#     in `after` counts for nothing, under whichever key either is; a key no counting record names, or
+#     only records under keys set aside, stands; a key a counting record under a standing key names is
+#     set aside; keys left that lead back to themselves stand, a circle, and the two rules run again;
+#   - a single standing key is the store key, and only what passes under it counts; several standing keys
+#     are a split store, which serves nothing (status `split`); the oracle reads under every standing key;
+#   - a version record is an element of kind `fmt` whose data is the format number, restated by a summary
+#     entry's `fmt`; a store whose number is above 1 is outdated (status `outdated`), not in the oracle;
+#   - `restart` starts the store again: a new key, an authority under it, a keep record under it for every
+#     other key found naming in `after` every keep record read under any key found, a version record of
+#     format 1 and a summary entry of height 1 with an empty `after`; it deletes nothing. `newer` is a
+#     plugin of a later format, holding the store key, raising the format to 2. A pairing and a renewal
+#     are written under the key that stands, and a write of the plugin's own looks at nothing under any
+#     other key.
+STARTS = False
+
+
+def marked(keys, rels):
+    """ADDED (started again): the keys that stand and the keys set aside, as the product's reading marks
+    them (`StoreReading.Judgment.Standing`). `rels` is (source, target, identifier, after) for every keep
+    record, item and deletion record read; a relation whose target is no key found marks nothing."""
+    keys = sorted(keys)
+    named = set()
+    for r in rels:
+        named |= set(r[3])
+    names = set((r[0], r[1]) for r in rels if r[1] in keys and r[0] in keys and r[2] not in named)
+    mark = dict((k, None) for k in keys)
+    while True:
+        changed = True
+        while changed:
+            changed = False
+            for k in keys:
+                if mark[k] is not None:
+                    continue
+                srcs = [s for (s, t) in names if t == k]
+                if any(mark[s] == 'standing' for s in srcs):
+                    mark[k], changed = 'aside', True
+                elif all(mark[s] == 'aside' for s in srcs):
+                    mark[k], changed = 'standing', True
+        left = [k for k in keys if mark[k] is None]
+        if not left:
+            break
+        circled = []
+        for k in left:
+            seen, todo = set(), [k]
+            while todo:
+                x = todo.pop()
+                for (s, t) in names:
+                    if s == x and mark[t] is None:
+                        if t == k:
+                            circled.append(k)
+                            todo = []
+                            break
+                        if t not in seen:
+                            seen.add(t)
+                            todo.append(t)
+        if not circled:
+            break
+        for k in circled:
+            mark[k] = 'standing'
+    return [k for k in keys if mark[k] != 'aside'], [k for k in keys if mark[k] == 'aside']
+
+
 def answer_read(text):
     """ADDED (renewal answers): a text read strictly: ('forever',), ('until', moment), ('ask',), or None
     for a text out of form."""
@@ -618,7 +690,8 @@ GATE_ACTS = ('pair', 'revoke', 'recreate', 'padd', 'prem', 'rule', 'renew', 'ado
              'lift',                             # ADDED (S34 forms): with DEP only
              'settle', 'plain',                  # ADDED (lost settled)
              'see', 'clock',                     # ADDED (renewal answers): with ANSWERS only
-             'sealsee', 'reseal+')               # ADDED (seal again): with SEAL only
+             'sealsee', 'reseal+',               # ADDED (seal again): with SEAL only
+             'restart', 'newer')                 # ADDED (started again): with STARTS only
 
 
 class World:
@@ -722,6 +795,10 @@ class World:
             held = set(e.key for e in raw if e.kind == 'auth' and own(e.key))
             if fl.keyretire:
                 held |= set(e.carry for e in raw if e.kind == 'ref' and e.carry and own(e.key))
+        keys = None     # ADDED (started again)
+        if STARTS:      # ADDED (started again): the keys that stand, STORE.md 649
+            keys = self.keys_of(rep, raw, fl)
+            held = set(keys['standing'])
         keyknown = bool(held)
         ents = {e.id: e for e in raw if e.key in held}
         named = set(rep.dels) if fl.recrule else set()
@@ -813,6 +890,8 @@ class World:
                 lost.update(self.judge_dels(rep, ents, vers, supers, held, known, rown, exact,
                                             known_keys))     # ADDED (renewal answers): known_keys
         store = bool(ents) or any(u[0] in 'HT' for u in rep.dels)
+        if STARTS:      # ADDED (started again): with no key found nothing is the store's, STORE.md 632
+            store = bool(ents) or any(u[0] == 'H' and u in EL and EL[u].key in held for u in rep.dels)
         status = 'ok'
         if not heads_live:
             status = 'incomplete' if store else 'nostore'
@@ -827,7 +906,9 @@ class World:
                 status = 'incomplete'
         if status == 'ok' and fl.cover:
             # an entry of the store that does not verify: damage is never passed over
-            if any(not ok for u, (eid, mt, ok) in rep.entries.items() if u == eid):
+            # ADDED (started again): under STARTS, only damage under the key that stands
+            if any(not ok and (not STARTS or EL[eid].key in held)
+                   for u, (eid, mt, ok) in rep.entries.items() if u == eid):
                 status = 'incomplete'
         if status == 'ok' and fl.cover:
             # a decision that no head here accounts for: its head is missing
@@ -849,9 +930,19 @@ class World:
                         (e.kind in ('ver', 'pin') and e.id not in named and e.id not in deadall
                          and e.id not in c_regs):
                     status = 'incomplete'
+                # ADDED (started again): a keep record and a version record no summary entry restates
+                if STARTS and ((e.kind == 'kept' and e.id not in set(x for h in heads for (x, a) in h.data.get('kept', ())))
+                               or (e.kind == 'fmt' and e.data > max([h.data.get('fmt', 0) for h in heads] + [0]))):
+                    status = 'incomplete'
+        if STARTS and not fl.idealkeys:     # ADDED (started again): split, then outdated, STORE.md 656
+            if len(held) > 1:
+                status = 'split'
+            elif held and max([e.data for e in ents.values() if e.kind == 'fmt']
+                              + [h.data.get('fmt', 0) for h in heads] + [0]) > 1:
+                status = 'outdated'
         # authorities: a foreign authority that arrived intact counts toward "undecided"
-        auths = [e.obj for e in raw if e.kind == 'auth' and e.id not in named
-                 and ('retired', e.obj) not in refusals]
+        auths = [e.obj for e in (list(ents.values()) if STARTS else raw)    # ADDED (started again): ents
+                 if e.kind == 'auth' and e.id not in named and ('retired', e.obj) not in refusals]
         # ADDED (store-as-a-whole): `in held` for `== 'K'`
         served = auths[0] if len(auths) == 1 and status == 'ok' and EL['auth:' + auths[0]].key in held else None
         # the profile list: an addition counts when it has seen every removal of its name
@@ -998,7 +1089,39 @@ class World:
             out.update(parent_of=parent_of, walk_above=walk_above, standing_ids=standing_ids)
         if ANSWERS:     # ADDED (renewal answers)
             out['renew_why'] = renew_why
+        if STARTS:      # ADDED (started again)
+            out.update(keys)
         return out
+
+    def keys_of(self, rep, raw, fl):
+        """ADDED (started again): the keys found, the keep records read, and which keys stand. A key is
+        found in an authority, or a retirement that carries it, passing under that very key; the oracle
+        finds every key of the lineage. The relations are read under every key found: each keep record,
+        each item of a summary entry present, and each deletion record of a keep record under a key found
+        naming another key found, which names nothing in `after`."""
+        EL = self.EL
+        if fl.idealkeys:
+            found = set(e.key for e in raw if own(e.key))
+        else:
+            found = set(e.key for e in raw if e.kind == 'auth')
+            if fl.keyretire:
+                found |= set(e.carry for e in raw if e.kind == 'ref' and e.carry and e.carry == e.key)
+        rels = []
+        for e in sorted(raw, key=lambda x: x.id):
+            if e.key not in found:
+                continue
+            if e.kind == 'kept':
+                rels.append((e.key, e.obj, e.id, e.after, 'record'))
+            elif e.kind == 'head':
+                for (x, a) in sorted(e.data.get('kept', ())):
+                    rels.append((e.key, EL[x].obj, x, a, 'item'))
+        for u in sorted(rep.dels):
+            e = EL.get(u)
+            if e is not None and e.kind == 'kept' and e.key in found and e.obj in found and e.obj != e.key:
+                rels.append((e.key, e.obj, u, frozenset(), 'deletion'))
+        standing, aside = marked(found, [r[:4] for r in rels])
+        return dict(found=frozenset(found), standing=frozenset(standing), aside=frozenset(aside),
+                    keptread=frozenset(r[2] for r in rels), rels=tuple(rels))
 
     def judge_dels(self, rep, ents, vers, supers, held, known, rown, exact, known_keys=None):     # ADDED (renewal answers): known_keys
         """ADDED (lost settled): the objects each deletion record of a version is lost to, under
@@ -1096,12 +1219,16 @@ class World:
                 dead.add(e.id)
         old_heads = [h for h in v['heads']]
         anc = set(u for u in rep.dels if u[0] == 'H')   # every head known to have been deleted here
+        if STARTS:      # ADDED (started again): only under the key that stands
+            anc = set(u for u in anc if self.EL[u].key in v['held'])
         for h in old_heads:
             anc.add(h.id)
             anc |= h.after
         dead |= anc
         for u, (eid, mt, ok) in list(rep.entries.items()):
             if u == eid and not ok:      # damage goes with the write that seals over it
+                if STARTS and self.EL[eid].key not in v['held']:    # ADDED (started again)
+                    continue
                 del rep.entries[u]
                 rep.dels[u] = t
                 # ADDED (seal again): a damaged summary entry deleted here is named by the new one
@@ -1114,7 +1241,8 @@ class World:
         if self.flags.witness:      # ADDED (store-as-a-whole): the witness can be left out
             for (rk, subj) in v['refusals']:
                 rep.dels['T|%s|%s' % (rk, subj)] = t
-        hs = [h.height for h in old_heads] + [int(u[1:4]) for u in rep.dels if u[0] == 'H']
+        hs = [h.height for h in old_heads] + [int(u[1:4]) for u in rep.dels if u[0] == 'H'
+                                              and (not STARTS or self.EL[u].key in v['held'])]     # ADDED (started again)
         regs = set()
         for obj, V in v['vers'].items():
             dd = set()
@@ -1129,6 +1257,20 @@ class World:
         ack = frozenset(x for o in old_heads for x in o.data.get('ack', ()))
         if ack:
             h.data['ack'] = ack
+        if STARTS and len(v['held']) == 1:
+            # ADDED (started again): every keep record under the key that stands, from an item, else
+            # from its record, else from a deletion record that tells of it with nothing in `after`;
+            # and the format, the highest a version record or a summary entry states
+            kept = {}
+            for how in ('item', 'record', 'deletion'):
+                for (s, tk, x, a, w) in v['rels']:
+                    if w == how and s in v['held'] and x not in kept:
+                        kept[x] = frozenset(a)
+            if kept:
+                h.data['kept'] = frozenset(kept.items())
+            fmt = max([e.data for e in ents.values() if e.kind == 'fmt'] + [o.data.get('fmt', 0) for o in old_heads] + [0])
+            if fmt:
+                h.data['fmt'] = fmt
         rep.entries[h.id] = [h.id, t, True]
         return h.id
 
@@ -1246,12 +1388,31 @@ class World:
             # ADDED (seal again): refused on a stopped store while a store key stands (STORE.md 624)
             if SEAL and v['status'] == 'incomplete' and v['held']:
                 return False
+            if STARTS and v['status'] in ('split', 'outdated'):    # ADDED (started again)
+                return False
             key = sorted(v['held'])[0] if v['held'] else 'K%d' % (self.n + 1)
             self.n += 1
             a = 'a%d' % self.n
             e = El('auth:' + a, 'auth', a, key=key)
             self.EL[e.id] = e
             new.append(e)
+        # ADDED (started again): the store started again, wherever a key is found and Create has nothing
+        # to do (a whole store with no authority, or with several, is Create's or the chooser's)
+        elif kind == 'restart':
+            if not STARTS or not v['found'] or (v['status'] == 'ok' and not v['served']):
+                return False
+            self.n += 1
+            key, a = 'K%d' % self.n, 'a%d' % self.n
+            e = El('auth:' + a, 'auth', a, key=key)
+            self.EL[e.id] = e
+            new.append(e)
+            new += [self.mk('kept', k, after=v['keptread'], key=key) for k in sorted(v['found'])]
+            new.append(self.mk('fmt', 'format', data=1, key=key))
+        # ADDED (started again): a plugin of a later format, holding the store key, raises the format
+        elif kind == 'newer':
+            if not STARTS or v['status'] != 'ok' or len(v['held']) != 1:
+                return False
+            new.append(self.mk('fmt', 'format', data=2))
         elif v['status'] != 'ok':
             return False
         # ADDED (store-as-a-whole): a rule waits in memory for the next save (change 4)
@@ -1265,7 +1426,7 @@ class World:
             rep.disk = rep.clone()
             self.Kdisk[i] = set(self.K[i])
             just = True
-        if kind == 'create':
+        if kind in ('create', 'restart', 'newer'):     # ADDED (started again): restart, newer
             pass
         elif kind == 'pair':
             # ADDED (store-as-a-whole): `maxclients`, 3 unless the growth probe raises it
@@ -1273,7 +1434,8 @@ class World:
                 return False
             c = 'c%d' % len(self.clients)
             self.clients.append(c)
-            e = El('rec:' + c, 'rec', c, data=(v['served'], frozenset(['pf', 'pg'])))
+            e = El('rec:' + c, 'rec', c, data=(v['served'], frozenset(['pf', 'pg'])),
+                   key=self.wkey if STARTS else 'K')    # ADDED (started again): the key that stands
             self.EL[e.id] = e
             new.append(e)
         elif kind == 'revoke':
@@ -1305,7 +1467,8 @@ class World:
             self.ncert += 1
             c = '%s.%d' % (op[2], self.ncert)
             profs = [e.data[1] for e in v['ents'].values() if e.kind == 'rec' and e.obj == certs[-1]][0]
-            e = El('rec:' + c, 'rec', c, data=(v['served'], profs))
+            e = El('rec:' + c, 'rec', c, data=(v['served'], profs),
+                   key=self.wkey if STARTS else 'K')    # ADDED (started again): the key that stands
             self.EL[e.id] = e
             new.append(e)
         # ADDED (store-as-a-whole): Delete of the authority with none after it; with change 6 the
@@ -1897,6 +2060,8 @@ class World:
             c = [e for e in V if (e.id not in dead) == (sel[2] == 'new')]
         else:
             c = [e for e in present if e.kind == k]
+            if k == 'auth' and len(sel) > 1:    # ADDED (started again): an authority by its name
+                c = [e for e in c if e.obj == sel[1]]
         c.sort(key=lambda e: e.id)
         return c[-1].id if c else None
 
@@ -2370,6 +2535,13 @@ def run(ops, nrep, flags=FULL, check_conv=True, world=None):
                 fails.append(('sealed-after-a-loss' if sealed else 'safety', k, 'file %d: %s' % (i, w)))
             elif narrower(A, W.ideal(i, True), W.reps[i].nodes):
                 fails.append(('rollback-by-overwrite', k, 'file %d' % i))
+            # ADDED (started again): nothing under a key set aside counts again in a copy the keep record
+            # reached: a copy that serves does so under no key its ideal sets aside
+            if STARTS and A['status'] == 'ok' and A['served']:
+                gone = A['held'] & W.ideal(i)['aside']
+                if gone:
+                    fails.append(('aside-counts', k, 'file %d: served under %s, which its ideal sets aside'
+                                  % (i, ', '.join(sorted(gone)))))
             for m, o in W.copies.items():       # a copy never gets more than its original's rule allows
                 if m in A['words'] and o in A['funcs'] and A['status'] == 'ok':
                     own = W.reps[i].nodes[m][0] == m
@@ -2462,13 +2634,17 @@ def alphabet(nrep, cfg, flags=None):     # ADDED (store-as-a-whole): `flags`
             acts += [('renewcert', r, 'c0'), ('renewcert', r, 'c1'), ('delauth', r), ('create', r)]
         if flags is not None and flags.pending:
             acts += [('quit', r)]
-    progs = ['kp_sync', 'k2a'] if 'synconly' in cfg else ['kp_sync', 'kp_other', 'xc', 'k2a', 'dx']
+        if STARTS:      # ADDED (started again): the store started again, and a plugin of a later format
+            acts += [('restart', r), ('newer', r)]
+    progs =['kp_sync', 'k2a'] if 'synconly' in cfg else ['kp_sync', 'kp_other', 'xc', 'k2a', 'dx']
     merges = [('merge', p, d, s) for p in progs for d in R for s in R if d != s]
     sels = [('head', 'new'), ('head', 'old'), ('ref', 'revoked'), ('ref', 'retired'),
             ('ver', 'rule:N', 'new'), ('ver', 'rule:N', 'old'), ('ver', 'rule:root', 'new'),
             ('ver', 'renew:c0', 'new'), ('rec',), ('auth',), ('padd',), ('prem',)]
     if ANSWERS:     # ADDED (renewal answers): an answer replaced, and the other client's answer
         sels += [('ver', 'renew:c0', 'old'), ('ver', 'renew:c1', 'new')]
+    if STARTS:      # ADDED (started again): a keep record, and the first authority by its name
+        sels += [('kept',), ('auth', 'a0')]
     if ANSWERS and 'foreign' in cfg:     # ADDED (renewal answers): a text out of form, by a key holder
         faults += [('unreadable', r, c) for r in R for c in ('c0', 'c1')]
     if 'rec' in cfg:
