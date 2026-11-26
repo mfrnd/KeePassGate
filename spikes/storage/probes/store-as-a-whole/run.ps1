@@ -162,6 +162,29 @@
       bridge               seal_runs.py bridge: every file of 2,000 histories read by read.py, and
                            the seal read.py plans held to the seal the model writes
 
+    With -Starts (ADDED, started again), the store started again of STORE.md 632 and the keys of
+    649: the configuration of -Answers with crdt_model.STARTS on, the keep record and the version
+    record on files and the room of 643 read there. Output in `out\starts\`; databases in
+    `work\sa-*`:
+
+      cells, random, room  restart.py: T1 to T10 on real files, every merge both ways; 300 random
+                           histories of a store started again on files; the two stores at the
+                           ceilings, started again
+      model-hand, laws     restart_runs.py hand and laws: T1 to T10 in the model; the marking of
+                           649 step 4 held to its laws and to read.py's
+      exhaustive-4, exhaustive-4-noauth, exhaustive-5
+                           restart_runs.py: every sequence of 4 steps of a small alphabet with the
+                           deletions by hand, of 4 with a keep record's alone, and of 5 without
+      starts-two, starts-three, starts-hand, starts-hand-noauth, starts-long
+                           restart_runs.py starts: 200,000 random histories of the acts of a store
+                           started again each
+      search-2, search-3, search-noauth-2, search-noauth-3
+                           restart_runs.py search: the design's twelve configurations over 2 and 3
+                           files, 20,000 histories each, restart in the alphabet; again with no
+                           entry that can carry a store key deleted or edited by hand
+      bridge-two, bridge-hand
+                           restart_runs.py bridge: every file of 2,000 histories read by read.py
+
 .PARAMETER Parts
     Which parts to run; every part by default.
 
@@ -193,9 +216,10 @@ param([string[]] $Parts = @(), [int] $Parallel = 6, [switch] $Decided, [switch] 
     [switch] $Owed,     # ADDED (owed forms)
     [switch] $S34,      # ADDED (S34 forms)
     [switch] $Answers,  # ADDED (renewal answers)
-    [switch] $Seal)     # ADDED (seal again)
-if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent, ($Reading -ne ''), $Rows.IsPresent, $Owed.IsPresent, $S34.IsPresent, $Answers.IsPresent, $Seal.IsPresent | Where-Object { $_ }).Count -gt 1) {
-    throw 'One of -Decided, -Rewrite, -Copies, -Reading, -Rows, -Owed, -S34, -Answers, -Seal.'     # ADDED (two readings); -Reading (copies extended); -Rows (rules per profile); -Owed (owed forms); -S34 (S34 forms); -Answers (renewal answers)
+    [switch] $Seal,     # ADDED (seal again)
+    [switch] $Starts)   # ADDED (started again)
+if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent, ($Reading -ne ''), $Rows.IsPresent, $Owed.IsPresent, $S34.IsPresent, $Answers.IsPresent, $Seal.IsPresent, $Starts.IsPresent | Where-Object { $_ }).Count -gt 1) {
+    throw 'One of -Decided, -Rewrite, -Copies, -Reading, -Rows, -Owed, -S34, -Answers, -Seal, -Starts.'     # ADDED (two readings); -Reading (copies extended); -Rows (rules per profile); -Owed (owed forms); -S34 (S34 forms); -Answers (renewal answers); -Seal (seal again); -Starts (started again)
 }
 
 $ErrorActionPreference = 'Stop'
@@ -396,6 +420,32 @@ if ($Seal) {
         'hand'         = @("$model\seal_runs.py", 'hand')
     }
 }
+# ADDED (started again): the store started again, the longest parts first; each model part draws on
+# four processes of its own
+if ($Starts) {
+    $config = 'starts'
+    $all = [ordered]@{
+        'exhaustive-5' = @("$model\restart_runs.py", 'exhaustive', '5', 'none', '4')
+        'cells'        = @("$probe\restart.py", 'cells')
+        'random'       = @("$probe\restart.py", 'random', '300', '81')
+        'room'         = @("$probe\restart.py", 'room')
+        'exhaustive-4' = @("$model\restart_runs.py", 'exhaustive', '4', 'faults', '4')
+        'exhaustive-4-noauth' = @("$model\restart_runs.py", 'exhaustive', '4', 'noauth', '4')
+        'search-3'     = @("$model\restart_runs.py", 'search', '3', '20000', '4')
+        'search-2'     = @("$model\restart_runs.py", 'search', '2', '20000', '4')
+        'search-noauth-3' = @("$model\restart_runs.py", 'search-noauth', '3', '20000', '4')
+        'search-noauth-2' = @("$model\restart_runs.py", 'search-noauth', '2', '20000', '4')
+        'starts-long'  = @("$model\restart_runs.py", 'starts', 'two', '200000', '64', '8', '16', '4')
+        'starts-three' = @("$model\restart_runs.py", 'starts', 'three', '200000', '62', '4', '12', '4')
+        'starts-hand'  = @("$model\restart_runs.py", 'starts', 'hand', '200000', '63', '4', '12', '4')
+        'starts-hand-noauth' = @("$model\restart_runs.py", 'starts', 'hand-noauth', '200000', '65', '4', '12', '4')
+        'starts-two'   = @("$model\restart_runs.py", 'starts', 'two', '200000', '61', '4', '12', '4')
+        'bridge-two'   = @("$model\restart_runs.py", 'bridge', 'two', '2000', '71', '4')
+        'bridge-hand'  = @("$model\restart_runs.py", 'bridge', 'hand', '2000', '72', '4')
+        'model-hand'   = @("$model\restart_runs.py", 'hand')
+        'laws'         = @("$model\restart_runs.py", 'laws', '20000', '7')
+    }
+}
 # Through -File a list arrives as one string, so commas are split here.
 $Parts = @($Parts | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 if ($Parts.Count -eq 0) { $Parts = @($all.Keys) }
@@ -409,7 +459,7 @@ if ($Parts.Count -eq $all.Count) {
     if ($config) {
         # ADDED (two readings): the configuration's own output and databases only
         if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
-        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } elseif ($Rows) { 'pe-*', 'po-*' } elseif ($Owed) { 'qo-*' } elseif ($S34) { 'qss-*', 'qsa-*' } elseif ($Answers) { 'an-*' } elseif ($Seal) { 'se-*' } else {     # ADDED (owed forms): qo-*; (S34 forms): qss-* and qsa-*; (renewal answers): an-*; (seal again): se-*
+        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } elseif ($Rows) { 'pe-*', 'po-*' } elseif ($Owed) { 'qo-*' } elseif ($S34) { 'qss-*', 'qsa-*' } elseif ($Answers) { 'an-*' } elseif ($Seal) { 'se-*' } elseif ($Starts) { 'sa-*' } else {     # ADDED (owed forms): qo-*; (S34 forms): qss-* and qsa-*; (renewal answers): an-*; (seal again): se-*; (started again): sa-*
             $letter = if ($Reading -eq 'cap-items') { 'i' } else { $Reading[0] }     # ADDED (copies extended)
             "x${letter}h-*", "x${letter}e-*"
         }

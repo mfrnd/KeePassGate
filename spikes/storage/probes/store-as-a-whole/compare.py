@@ -18,6 +18,7 @@ ADDED (owed forms): with --owed, `out/owed` to `recorded-owed`.
 ADDED (renewal answers): with --answers, `out/answers` to `recorded-answers`, and the three files of
 `out/answers/vectors` to those of `recorded-answers/vectors` byte for byte but the line ends.
 ADDED (seal again): with --seal, `out/seal` to `recorded-seal`, the vectors as for --answers.
+ADDED (started again): with --starts, `out/starts` to `recorded-starts`.
 """
 import os
 import re
@@ -107,7 +108,7 @@ def main():
     if sys.argv[1:] in (['--decided'], ['--rewrite'], ['--copies']) or sys.argv[1:2] in (
             ['--reading-nothing'], ['--reading-profile'], ['--reading-verb'], ['--reading-cap'],
             ['--reading-cap-items'], ['--rows'], ['--owed'], ['--s34'],
-            ['--answers'], ['--seal']):     # ADDED (rules per profile): --rows; (owed forms): --owed; (S34 forms): --s34; (renewal answers): --answers; (seal again): --seal
+            ['--answers'], ['--seal'], ['--starts']):     # ADDED (rules per profile): --rows; (owed forms): --owed; (S34 forms): --s34; (renewal answers): --answers; (seal again): --seal; (started again): --starts
         name = sys.argv[1][2:]
         OUT, REC = os.path.join(OUT, name), os.path.join(FAMILY, 'recorded-' + name)
     bad = 0
