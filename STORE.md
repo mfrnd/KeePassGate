@@ -41,15 +41,16 @@ takes access away is a further entry, never an entry deleted or changed.
 > versions below it that were following (§617, §629, §657). §614, §615, §616, §617, §620,
 > §626, §627, §628, §629, §633, §636, §643, §648, §656 and §657 state which parts those are,
 > and nothing else below describes what the plugin does today. **Not built**: the standing
-> answers to a renewal as records of this store, which this build keeps in custom data as
-> 0.2.0 does; the page that seals a store again (§625) and the command that starts it again
-> (§632); the guard over KeePass's own windows, with its switch (§635);
-> the tab's listing of the store (§636); the raising of the format, with `frozen` (§647,
-> §656); and the dialog that keeps a store among several (§649). §644 lists what is not
-> measured, with what each pull request ran of it. Each pull request that builds a part of
-> this store brings `CA.md`, `DESIGN.md`, `PAIRING.md`, `API.md` and `docs/` into line with
-> the code it adds. Until then those documents hold for 0.2.0 where they describe a part not
-> built, and this document holds for what replaces its store.
+> answers to a renewal as records of this store, of which this build has the reading of §618
+> and nothing that serves or writes it, keeping the answers in custom data as 0.2.0 does; the
+> page that seals a store again (§625) and the command that starts it again (§632); the guard
+> over KeePass's own windows, with its switch (§635); the tab's listing of the store (§636);
+> the raising of the format, with `frozen` (§647, §656); and the dialog that keeps a store
+> among several (§649). §644 lists what is not measured, with what each pull request ran of it.
+> Each pull request that builds a part of this store brings `CA.md`, `DESIGN.md`, `PAIRING.md`,
+> `API.md` and `docs/` into line with the code it adds. Until then those documents hold for
+> 0.2.0 where they describe a part not built, and this document holds for what replaces its
+> store.
 
 **How to read it.**
 
@@ -460,7 +461,7 @@ bytes 11 to 16   the first 6 bytes of the check
 | `retired` | `authority:` and the retired authority's `id` |
 | `client`, `revoked` | `client:` and the client key |
 | `profile`, `removed` | `profile:` and the name |
-| `version` | the object it is a version of. As measured: `rule:` and the node's identifier as 32 hexadecimal characters, or `renew:` and the client key. A rule's object is now a node and a profile, and the switch's a node (§617): for a profile's rule the subject is the object's text before its first `/`, which is `rule:` and the node, and for a switch the whole object (S8, below) |
+| `version` | the object it is a version of. As measured: `rule:` and the node's identifier as 32 hexadecimal characters, or `renew:` and the client key. A rule's object is now a node and a profile, and the switch's a node (§617): for a profile's rule the subject is the object's text before its first `/`, which is `rule:` and the node, and for a switch and an answer to a renewal the whole object (S8, below, and §618) |
 | `head` | `store` |
 | `withdrawn` | `certificate:` and the admission key of the certificate taken away (S23) |
 | `kept` | `key:` and the name of the store key not kept, §649 (S23) |
@@ -700,7 +701,7 @@ is left to the pull request that brings its meaning, under the item the last col
 | `withdrawn` | `certificate:` and `certificate` | `certificate`, and `renewed` and `from` where it holds them | counts | an item `withdrawn` whose `id` is the record's identifier, with the same `certificate`, `renewed` and `from` | nothing: §648 |
 | `profile` | `profile:` and `name` | `name`, `after` | out of force | nothing | nothing: §616 |
 | `removed` | `profile:` and `name` | `name` | counts | an item `removed` with the same `name`, whose `id` is the record's identifier | nothing |
-| `version` | the `object`; for an object of type `rule`, its text before the first `/`, with the tag of the text after it in bytes 9 and 10 (§609) | `object`, `after`, `doc`, and `lost` where it holds it | out of force | an item `version` whose `id` is the record's identifier, with `lost` where the record holds it, where no version in force names the record in `after` | S7; nothing for a rule and a switch: §617 |
+| `version` | the `object`; for an object of type `rule`, its text before the first `/`, with the tag of the text after it in bytes 9 and 10 (§609) | `object`, `after`, `doc`, and `lost` where it holds it | out of force | an item `version` whose `id` is the record's identifier, with `lost` where the record holds it, where no version in force names the record in `after` | nothing: §617 for a rule and a switch, §618 for an answer to a renewal |
 | `kept` | `key:` and `key` | `key`, `after` | counts | an item `kept` whose `id` is the record's identifier | nothing |
 | `format` | `format:` and `format` | `format`, `plugin` | counts | the item `format` of a summary entry that states a format number at least the record's | nothing |
 | `head` | `store` | `height`, `after`, and every item | out of force | nothing | nothing |
@@ -761,7 +762,7 @@ format number was lost.
 **The versions of an object are worked out by the object's text, whatever its type** (this
 document's own): which versions of it stand, and whether a version of it is present beside a
 deletion record while none stands (§623 step 3). What a deletion record tells of a version
-whose content is nowhere is stated with each type: in §617 for a rule and a switch, and under S7
+whose content is nowhere is stated with each type: in §617 for a rule and a switch, and in §618
 for an answer to a renewal. **An object of a type the core knows, in a text that type's meaning
 does not read, is the object of nothing**: its versions are records, restated, counted by the
 room and deleted as any are, and no rule is read from them (§617). It rules out a store stopped
@@ -2475,15 +2476,87 @@ gate and from the file.
 
 ### Renewal answers §618
 
-A standing answer to a renewal is a version, as a rule is, of an object of its own. As measured
-the object is `renew:` and the client key, and the answer is refused forever when the standing
-versions together allow nothing, and asked of the operator otherwise. Two answers made apart give
-the stricter, so a lift made without having seen a refusal loses to it. An answer for this
-session has no record and stays in the plugin's memory, as today, `PAIRING.md` §312.
+A standing answer to a renewal is a version, as a rule is, of an object of its own. Two answers
+made apart give the stricter, so a lift made without having seen a refusal loses to it. An
+answer for this session has no record and stays in the plugin's memory, `PAIRING.md` §312.
 
-The measured code ran forever and allowed, with stand-in documents. Today's answer is about a
-certificate and can hold a date, and the design paper names the certificate as well. The object,
-the text of each answer and the answer until a date are S7.
+**The object is `renew:` and the client key**, 64 lowercase hexadecimal characters, as measured
+(fixed for the answers, S7). The key is the client's and stays across renewals, so an answer
+holds for every certificate of the client, a certificate that a renewal issued at a gate not
+yet told of the refusal among them. The subject of the identifier is the whole object, with 0
+in bytes 9 and 10, as for a switch (§609). **An object of type `renew` in any other text is the
+object of nothing** (§658): its versions are records, restated and counted by the room, and no
+answer is read from them. It rules out an answer by certificate, which ends with the renewal
+that issues the next certificate, as a revocation by certificate ended wider in the runs of
+§615, and an object that grows with every certificate a client gave up.
+
+**The text of a version** is one of three, composed and read in a single place, strictly and
+totally, as a rule's text is (fixed for the answers, S7):
+
+| Answer | Text |
+| --- | --- |
+| Refused forever | `refuse:forever` |
+| Refused until a moment | `refuse:until:` and the moment as the wire writes it, RFC 3339 in UTC to the second, 20 characters |
+| A lift, **Allow renewal** | `ask` |
+
+A text is in form only where composing what was read gives the same bytes: a moment that is no
+date, a fraction of a second, an offset, a letter in lower case, a space or anything after the
+text is out of form. The moment is the operator's choice, the first midnight of the chosen day
+where the operator is, written in UTC: content, and no time of a write. `ask` states what the
+lift gives, the operator asked again; the design paper's "allowed" would read as a renewal
+approved without a dialog, which no answer gives.
+
+**What the standing versions give together** (fixed for the answers, S7):
+
+- **The strictest standing version is the answer**: `refuse:forever`, then the later moment,
+  then the earlier, then `ask`. Two moments are compared as the texts the operators chose, the
+  later the stricter. No standing version and nothing lost: the operator is asked, as for a
+  client never answered.
+- **A lost version refuses forever**, as a lost rule refuses (§617), whatever stands. A version
+  is lost as §617 has it for a switch: a deletion record tells of a version of the object that
+  no version in force names in `after` or in `lost` and no item of a summary entry in force
+  carries, or a version is present beside its own deletion record and nothing in force names or
+  restates it. A version deleted while a summary entry in force restates it is not lost: its
+  item holds the text, and it stands. The lost version may have been a refusal forever, and
+  asking again puts before the operator a dialog the operator asked not to see, which §639 row 5
+  counts among the fail-open outcomes; refusing costs a client `409 forever` where the lost
+  version was a lift, which is narrower.
+- **A text out of form refuses forever**, whatever else stands, and stops nothing. A record of
+  an answer that fails its check is damage, as every record is (§621).
+- **Whether an answer until a moment refuses is a reading against the gate's clock**: it refuses
+  while the clock is before the moment. The clock is read where a renewal is answered and where
+  the clients page draws a row, and nowhere else: not by the store's core, not by what stands
+  and what is lost, not by what a write names, deletes or restates. A clock behind refuses for
+  longer; a clock ahead ends an answer until a moment early, and the renewal dialog is raised,
+  which issues nothing without the operator's Approve.
+- **An answer until a moment that has passed stays**: it stands and refuses nothing. Nothing
+  deletes it for the moment having passed, since nothing is removed by a clock (§643), and
+  nothing is removed for a client that is revoked or gone: a revocation refuses every
+  certificate of the client already, and a certificate taken away leaves the client's answer
+  untouched (§648).
+
+**What a deletion record tells of an answer** (fixed for the answers, S7). A deletion record
+tells of a version of `renew:` and a client key where its identifier begins with the tag of
+`version` under the store key, holds the subject hash of `renew:` and a client key the file
+knows, and holds 0 in bytes 9 and 10. The file knows a client key from the `client` of every
+record of kind `client` present, in force or not, of every record and every item `revoked`, and
+from the object of type `renew` of a version present or of an item of a summary entry in force;
+a text that is no client key adds none. Knowing a key only lets a deletion record refuse, and a
+key known again later tells from then on. A deletion record at the place of a version present
+of the object is that object's with no subject hashed; any other that holds 0 is tried against
+`renew:` and each client key the file knows after the nodes the objects name and before the
+tree is walked (§620).
+
+**What the model ran** (`papers/ground/measured-renewal-answers.md` on `spikes/storage-survival`,
+`run.ps1 -Answers` with its record in `recorded-answers\`): the three texts and the object above,
+on a chain of four answers with a clock of three positions, forever beside the later moment,
+two moments made apart, a lift naming what it was shown and what it settles, lost versions in
+six ways, a renewal under the clock, and a client revoked and renewed apart, over two and three
+copies, each merge by every method of KeePassLib and by four KeePassXC releases on real files.
+No history ended below its ideal outside the classes §639 accepts. The vectors it printed are
+`tests/Shared/StoreRecordVectors.json`, `renewalTexts` among them, and the stores whose names
+begin `renewals:` in `tests/Shared/StoreMeaningVectors.json`; `RenewalTextTests`,
+`StoredRenewalsTests` and `StoreInForceTests` hold the product to them.
 
 ### The recycle bin §619
 
@@ -2696,7 +2769,8 @@ deletion record refuses is judged at its place, by `after` for every object ther
 for each object alone (§617). For a deletion record at no such place:
 `rule:` and each node that
 the file's objects name, and `switch:` with it where a deletion record left holds 0 in bytes 9 and
-10; then, only where a deletion record is still not told of, the same for each group and entry of
+10; then, where such a deletion record holds 0, `renew:` and each client key the file knows
+(§618); then, only where a deletion record is still not told of, the same for each group and entry of
 the tree not yet tried, the recycle bin and the plugin's own group among them, walked once and only
 while the reading is made; and a tag for each name the file knows once a deletion record meets a
 node's rows. Each hash and each tag is kept with the key. **Every `after` and every `lost` is
@@ -3089,8 +3163,8 @@ taken away, a keep record and a version record they are proposed.
 3. **The versions of an object** are the records of kind `version` in force and the versions
    that the summary entries in force restate. Those that no version names stand, and the
    object's value is what all standing versions allow (§617). An object refuses as §617 states,
-   which has what a deletion record tells of a version of a rule and of a switch (S8); what it
-   tells of an answer to a renewal is S7.
+   which has what a deletion record tells of a version of a rule and of a switch (S8); §618 has
+   what it tells of an answer to a renewal, and what the versions of an answer give.
 4. **A summary entry is in force** when it is a record and no deletion record names it.
 5. **The authority served, the names on the list, the certificates admitted, each node's rule and
    each answer to a renewal** follow as §614 to §618 and §648 state.
@@ -6637,6 +6711,14 @@ that finds a measurement against a decision reports it and does not design aroun
     new key (§632) leaves them as well, and a hold passes over them by their tags alone. Owed by
     the pull request that designs the compaction, before the store reaches the line's five
     seconds.
+34. **The standing answers to a renewal** (§618). Run in the model and on real files before
+    anything of them was built, `papers/ground/measured-renewal-answers.md` on
+    `spikes/storage-survival`: the object, the texts, the meet over the chain of answers at
+    every position of a clock, lost versions in six ways, and the sequences A1 to A14, with no
+    history below its ideal outside the classes §639 accepts. The reading is held to the vectors
+    it printed (`RenewalTextTests`, `StoredRenewalsTests`, `StoreInForceTests`). Not run: a
+    window, a phone and the slow key derivation; KeePassXC releases other than 2.8.0 in the
+    random part on files. *Could overturn*: nothing of the reading, which the vectors hold.
 
 ---
 
@@ -6887,12 +6969,16 @@ fixed, and the list above names where: S1, S12, S13, S16, S20, S23, S26, S31 and
 
 **What a later pull request settles.**
 
-- **S7. The answer to a renewal.** Measured: an object `renew:` and the client key, with stand-in
-  texts for forever and for allowed. Today the answer is about a certificate and can hold a date,
-  `PAIRING.md` §312, and the design paper names the certificate and the three answers forever,
-  until a moment, and allowed, of which the strictest standing answer wins. Not fixed: the
-  object, the text of each answer, and how until a date is written and compared. Not fixed
-  either: an answer that could not be written when it was given is written today by the next
+- **S7, in part. The answer to a renewal.** Fixed for the answers, §618: the object, `renew:`
+  and the client key, with any other object of type `renew` the object of nothing; the texts
+  `refuse:forever`, `refuse:until:` and a moment as the wire writes it, and `ask`, each read
+  strictly, with a text out of form refusing forever; the strictest standing version as the
+  answer, the later of two moments the stricter as texts, and a lost version refusing forever;
+  what a deletion record tells of an answer, by the client keys the file knows; and a clock read
+  only where a renewal is answered and where the clients page draws a row. Measured before it was
+  built, `papers/ground/measured-renewal-answers.md` on `spikes/storage-survival`. What is
+  left: what a version of an answer names, and how an answer is written; an answer that could
+  not be written when it was given is written today by the next
   save of the database, whoever starts it, §312, and evaluation 4.6 does not list that write.
   Has to satisfy: two answers made apart give the stricter; an answer for this session has no
   record; no merge decides by a time.
