@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using KeePassGate.Acl;
 using KeePassGate.Audit;
 using KeePassGate.Authority;
@@ -25,7 +26,8 @@ namespace KeePassGate.Host.Tests
     /// vault, `STORE.md` §620 and §644, with the admission of a connection read by meaning,
     /// §615 and §648, and the names read beside it, §616, and what a write of the operator's and
     /// a pairing's write into it hold the thread for, §627, recorded in `FINDINGS.md` section 22,
-    /// an OK above versions that follow among them, §617 and §643.
+    /// an OK above versions that follow among them, §617 and §643, and what the standing answers
+    /// to a renewal cost a connection's hold, their write and the store, §618 and §643.
     /// </summary>
     /// <remarks>
     /// **A measurement to read, and not a gate to pass**, since a time on a shared machine is no
@@ -61,6 +63,12 @@ namespace KeePassGate.Host.Tests
 
         /// <summary>The writes timed after a first in the measurement of a store after many renewals.</summary>
         private const int RenewedRuns = 5;
+
+        /// <summary>The answers each client was given in the measurement of clients answered again.</summary>
+        private const int AnswersAgain = 10;
+
+        /// <summary>The moment a refusal until a moment names in the measurements of the answers.</summary>
+        private static readonly DateTimeOffset Moment = new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
 #if DEBUG
         private const string Built = "Debug";
@@ -627,6 +635,219 @@ namespace KeePassGate.Host.Tests
                 Print(what + ", an OK above them, the plan", plans);
                 Assert.That(
                     database.Database.DeletedObjects.UCount, Is.GreaterThanOrEqualTo((uint)(renewals + standing)), "the OK applied renewed every version");
+            }
+        }
+
+        [TestCase(0, 1)]
+        [TestCase(100, 1)]
+        [TestCase(1000, 1)]
+        [TestCase(100, AnswersAgain)]
+        [TestCase(1000, AnswersAgain)]
+        public void What_a_connection_s_hold_costs_beside_standing_answers(int clients, int answers)
+        {
+            // The hold a connection is judged in, the product's own target asked for the
+            // admission of the certificate on the connection, beside 10,000 entries, the store the
+            // growth run left and as many clients that each hold a standing answer to a renewal,
+            // `STORE.md` §618 and §643: each answer a version of `renew:` and the client key,
+            // refusing forever or until a moment in turn, given once or given again as often, each
+            // answer given again naming the versions before it, which left a deletion record each,
+            // in the order the writes leave them. The connection's own client is among them, so
+            // the hold takes the versions of its answer from the reading; it parses no text.
+            using (var database = TemporaryDatabase.New())
+            {
+                Fill(database.Database, 0);
+                var served = new StoredAdmissions(database.Database);
+                var authority = StoreSeeds.Authority(served.Store);
+                var key = served.KeyInForce();
+                var revoked = new PwGroup(true, true, "Revoked", PwIcon.Folder);
+                database.RootGroup.AddGroup(revoked, true);
+                served.Restated(Revocations(revoked, key));
+                var admitted = Admit(database.Database, key, authority, null, null);
+
+                var answered = Enumerable.Range(0, clients)
+                    .Select(index => index == 0 ? admitted : "e" + index.ToString("x63", CultureInfo.InvariantCulture))
+                    .ToList();
+                var named = answered.Select(client => AnsweredBefore(key, client, answers - 1)).ToList();
+                for (var round = 0; round < answers - 1; round++)
+                {
+                    foreach (var identifiers in named)
+                    {
+                        database.Database.DeletedObjects.Add(new PwDeletedObject(new PwUuid(identifiers[round]), DateTime.UtcNow));
+                    }
+                }
+
+                if (clients > 0)
+                {
+                    var versions = answered
+                        .Select((client, at) => AnswerOf(key, client, at % 2 == 0 ? RenewalRefusal.Forever() : RenewalRefusal.Until(Moment), named[at]))
+                        .ToList();
+                    var written = served.Store.Write(new[] { new StoreAct("versions", key, StoreFormat.KeyName(key), versions, null) });
+                    Assert.That(written.Taken, Is.True, written.Reason);
+                }
+
+                using (var reading = served.Store.Read())
+                {
+                    Assert.That(reading.Room.HasRoom, Is.True, "the store has room");
+                    Assert.That(
+                        answered.Count(client => StoredRenewals.Of(reading.InForce, client).Standing.Count == 1), Is.EqualTo(clients),
+                        "a version stands for every client answered");
+                    Assert.That(answered.Count(client => StoredRenewals.Of(reading.InForce, client).Lost.Count > 0), Is.EqualTo(0), "no answer is lost");
+                }
+
+                var hold = new Timed();
+                using (var targets = new OpenDatabaseTargets(delegate { return new[] { database.Database }; }, null, hold, null))
+                using (var target = targets.Current().Single())
+                {
+                    var found = target.Admission(admitted);
+                    Assert.That(found, Is.Not.Null, "the admission counts");
+                    Assert.That(found.Record.ClientKey, Is.EqualTo(admitted), "the client is the connection's");
+                    Assert.That(found.Renewal.Refuses(DateTimeOffset.UtcNow), Is.EqualTo(clients > 0), "the answer read from that hold");
+                    Report(
+                        "the hold a connection is judged in, beside "
+                        + clients.ToString(CultureInfo.InvariantCulture) + " clients each holding a standing answer"
+                        + (answers == 1 ? " given once" : " given " + answers.ToString(CultureInfo.InvariantCulture) + " times"),
+                        hold,
+                        () => target.Admission(admitted),
+                        false);
+                }
+            }
+        }
+
+        [TestCase(0)]
+        [TestCase(10)]
+        public void What_an_answer_s_write_holds_the_thread_for(int history)
+        {
+            // A refusal forever written once the operator chose it on the renewal dialog, in a
+            // turn of the writer on KeePass's thread, `STORE.md` §618 and §627 and `PAIRING.md`
+            // §312, each series on a database of its own beside 10,000 entries, each answer about
+            // a client of its own: the store's own part, which is the reading with every entry,
+            // the act, the plan, the entries asked about and the application, with a save that
+            // writes nothing and the file hashed back; and the whole turn with KeePass's own save,
+            // which the answer's write makes.
+            Print(
+                "an answer's write, the store's own part with the file hashed back, history " + history,
+                Answers(history, saved => saved.Modified = false));
+            Print("an answer's write with KeePass's save, history " + history, Answers(history, saved => saved.Save(null)));
+        }
+
+        [Test]
+        public void What_an_answer_adds_to_the_store()
+        {
+            // The bytes a version of each of the three texts takes, as the product writes it,
+            // `STORE.md` §618 and §643: each naming a single identifier in `after`, the version
+            // before it, read off the entry KeePass holds and the item of the summary entry that
+            // restates it.
+            using (var database = TemporaryDatabase.New())
+            {
+                var store = new KdbxStore(database.Database, GateVersion.Current, null);
+                StoreSeeds.Authority(store);
+                var texts = new (string What, string Client, Action<string> Write)[]
+                {
+                    ("refuse:forever", new string('1', 64), client => StoreSeeds.Refuse(store, client, RenewalRefusal.Forever())),
+                    ("refuse:until:", new string('2', 64), client => StoreSeeds.Refuse(store, client, RenewalRefusal.Until(Moment))),
+                    ("ask", new string('3', 64), client => StoreSeeds.Lift(store, client)),
+                };
+
+                foreach (var text in texts)
+                {
+                    StoreSeeds.Refuse(store, text.Client, RenewalRefusal.Until(Moment.AddYears(-10)));
+                    text.Write(text.Client);
+
+                    using (var reading = store.Read())
+                    {
+                        var standing = StoredRenewals.Of(reading.InForce, text.Client).Standing;
+                        Assert.That(standing, Has.Count.EqualTo(1), "a single version stands");
+                        var version = reading.InForce.VersionsOf(RenewalText.ObjectOf(text.Client)).Single();
+                        Assert.That(StoreFormat.Identifiers(version.After), Has.Count.EqualTo(1), "naming a single identifier");
+                        Assert.That(version.Members[StoreKinds.Doc], Does.StartWith(text.What));
+
+                        var entry = database.RootGroup.FindEntry(new PwUuid(StoreComposer.BytesOf(version.Id)), true);
+                        Assert.That(entry, Is.Not.Null, "the version's entry");
+                        var stored = entry.Strings.Where(pair => StoreFormat.IsField(pair.Key)).Sum(pair => Bytes(pair.Key, pair.Value));
+                        var whole = entry.Strings.Sum(pair => Bytes(pair.Key, pair.Value));
+                        var items = database.RootGroup.GetEntries(true)
+                            .SelectMany(holder => holder.Strings)
+                            .Where(pair => pair.Key.StartsWith(StoreFormat.ItemPrefix, StringComparison.Ordinal)
+                                           && pair.Value.ReadString().Contains("\"" + version.Id + "\""))
+                            .ToList();
+                        Assert.That(items, Has.Count.EqualTo(1), "a single item restates it");
+
+                        TestContext.Out.WriteLine(string.Format(
+                            CultureInfo.InvariantCulture,
+                            "[{0}] a version of {1} naming a single identifier: {2} bytes of the store's strings, names and values, {3} with the entry's other strings; its item {4} bytes",
+                            Built,
+                            text.What,
+                            stored,
+                            whole,
+                            Encoding.UTF8.GetByteCount(items[0].Value.ReadString())));
+                    }
+                }
+            }
+        }
+
+        /// <summary>The bytes of a string's name and value.</summary>
+        private static int Bytes(string name, ProtectedString value)
+        {
+            return Encoding.UTF8.GetByteCount(name) + Encoding.UTF8.GetByteCount(value.ReadString());
+        }
+
+        /// <summary>
+        /// The identifiers of as many versions of the answer about this client that answers given
+        /// again replaced, each at the object's own place.
+        /// </summary>
+        private static List<byte[]> AnsweredBefore(byte[] key, string client, int count)
+        {
+            var place = StoreComposer.IdentifierOf(key, StoreKinds.Version, RenewalText.ObjectOf(client), 0, new string('0', 64));
+            var replaced = new List<byte[]>(count);
+            for (var index = 0; index < count; index++)
+            {
+                var identifier = (byte[])place.Clone();
+                identifier[12] = (byte)(index >> 24);
+                identifier[13] = (byte)(index >> 16);
+                identifier[14] = (byte)(index >> 8);
+                identifier[15] = (byte)index;
+                replaced.Add(identifier);
+            }
+
+            return replaced;
+        }
+
+        /// <summary>A version of the answer about this client holding this refusal, naming these identifiers as replaced.</summary>
+        private static StoreRecord AnswerOf(byte[] key, string client, RenewalRefusal refusal, IEnumerable<byte[]> replaced)
+        {
+            return StoreRecord.Compose(key, StoreKinds.Version, new Dictionary<string, string>
+            {
+                { StoreKinds.After, string.Join(" ", replaced.Select(Hex.Of).OrderBy(hex => hex, StringComparer.Ordinal)) },
+                { StoreKinds.Doc, RenewalText.Of(refusal) },
+                { StoreKinds.ObjectMember, RenewalText.ObjectOf(client) },
+            });
+        }
+
+        /// <summary>
+        /// Refusals forever written in turn through the real writer on a database of their own
+        /// beside the entries given, each about a client of its own, each timed from its call to
+        /// its answer.
+        /// </summary>
+        private static List<double> Answers(int history, Action<PwDatabase> save)
+        {
+            using (var database = TemporaryDatabase.New())
+            {
+                Fill(database.Database, history);
+                StoreSeeds.Authority(new KdbxStore(database.Database, GateVersion.Current, null));
+                database.Save();
+
+                var writer = new DatabaseWriter(CurrentThread.Instance, save, null, null, null);
+                var times = new List<double>();
+                for (var run = 0; run <= Runs; run++)
+                {
+                    var client = "c" + run.ToString("x63", CultureInfo.InvariantCulture);
+                    var clock = Stopwatch.StartNew();
+                    var written = writer.AnswerRenewal(database.Database, client, RenewalRefusal.Forever(), Array.Empty<string>());
+                    times.Add(clock.Elapsed.TotalMilliseconds);
+                    Assert.That(written.Ok, Is.True, written.Reason);
+                }
+
+                return times;
             }
         }
 

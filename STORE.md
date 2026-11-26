@@ -2758,7 +2758,11 @@ and 32 names on the list, the hold measured 2.78 ms at the median and 3.95 at wo
 fit the addition's content, each removal an item of the summary entry and the addition naming
 all those removals, it measured 8.85 ms, 14.7 at worst, and 64.3 ms with the history: the names
 cost about 6 ms at that bound and nothing a run can tell at 32 names (`StoreReadingCostTests`,
-explicit, in Release, the median of 21 after a first). So the estimate holds in its shape, the
+explicit, in Release, the median of 21 after a first). **Beside the standing answers to a
+renewal** (§618), with the admission's client among those answered, the hold measured 2.75 ms
+beside no answer, 3.40 ms beside 100 clients each holding a standing answer and 9.53 ms beside
+1,000, and 3.74 and 12.5 ms where each of those clients was answered ten times: about 7
+microseconds a standing answer, with no text parsed in the hold (§643). So the estimate holds in its shape, the
 walk somewhat dearer in the product, and reading every entry at every request stays well within
 the five seconds a hold is let run, with a full history on every entry the case that shows. That
 is a store before writes above have renewed much: every renewal ever made costs every later hold
@@ -6274,6 +6278,38 @@ about 4.4 microseconds a renewal. So an OK passes a second after about 110 write
 versions and five seconds after about 750, and above 9,000 versions it is past a second at its
 first write and passes five seconds after about 90. What would take the line away is owed (§644
 item 33).
+
+**What a standing answer to a renewal adds, for good** (§618; measured by
+`StoreReadingCostTests`, explicit, in Release, on a developer's machine, the median of 21 after a
+first). For each client that was ever given a standing answer, a standing version and its item
+in every later summary entry. As the product writes them, each naming a single identifier in
+`after`, a version of `refuse:forever` holds 286 bytes in the store's strings, names and values,
+a version of `refuse:until:` and a moment 305 and a version of `ask` 275, or 427, 446 and 416
+with the entry's other strings, and the items that restate them 206, 225 and 195 bytes
+(`What_an_answer_adds_to_the_store`). Each further answer about the client adds 33 characters to
+the `after` of the version and of its item and leaves a deletion record for the version it
+replaces (computed from those texts), so `after` reaches the plugin's ceiling at about 7,940
+answers about a single client. Nothing of it is pruned. **What it adds to a hold**
+(`What_a_connection_s_hold_costs_beside_standing_answers`): beside 10,000 entries without
+history, the store the growth run left and a single admission, whose client is among those
+answered, the hold a connection is judged in took 2.75 ms beside no answer, 3.40 ms beside 100
+clients each holding a standing answer given once and 9.53 ms beside 1,000, the worst 4.22 and
+14.1 ms; each of those answers given ten times, each naming the versions before it, which left
+a deletion record each, 3.74 and 12.5 ms, the worst 28.2 and 41.2 ms. So a standing answer
+costs every hold about 7 microseconds, and each answer it replaced about 0.3 to 0.4, the line
+renewals above follow; the hold parses no text. **What its write holds KeePass's thread for**
+(`What_an_answer_s_write_holds_the_thread_for`): the turn of the writer in which the renewal
+dialog's refusal forever is written and saved (§618), each refusal about a client of its own
+beside 10,000 entries and an authority, took 52.8 ms at the median and 66.5 at worst for the
+store's own part, which is the reading with every entry, the act, the plan, the entries asked
+about and the application, with a save that writes nothing and the file hashed back; and 173 ms
+at the median and 184 at worst with KeePass's own save of the database, which the answer's
+write makes. With ten history items on every entry, 108 and 122 ms for the store's own part,
+and 4.6 seconds at the median and 8.8 at worst with the save. In a second run beside a
+pairing's write on the same build, the store's own part took 45.4 ms against the pairing's 47.5,
+and with the save 164 against 166 ms, 4.5 against 4.6 seconds with the histories: the answer's
+write costs what a pairing's does, and its save is what grows, which no sum of the plugin's
+timeouts bounds (`DESIGN.md` §119).
 
 **How many ruled nodes the 9,999 item names of a summary entry hold** (S13; the same
 computation). With a record for each node and profile, 1,999 nodes of four rows each with the
