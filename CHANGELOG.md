@@ -228,12 +228,25 @@ none, since it releases both.
   its name and that sentence, once, and the table scrolls by the keys with no box in it. A long
   name is cut with an ellipsis and shown
   whole in its tooltip rather than widening the dialog. The dialog's words are shorter:
-  "KeePassGate: a client is asking to renew a certificate", "Approve issues a new certificate and
-  saves this database. The current certificate keeps every profile until the client gives that
-  certificate up.", "Profiles the client holds:" and "Certificate expires (UTC)". Where the
+  "KeePassGate: a client is asking to renew a certificate", "Approve issues a new certificate.
+  The current certificate keeps every profile until the client gives that certificate up.",
+  "Profiles the client holds:" and "Certificate expires (UTC)". Where the
   record holds no profile the database still names, "The new certificate reaches no profile."
   stands in bold above the line naming the table, as the pairing dialog shows its notice. What a
   renewal grants, writes and audits is unchanged.
+  `PAIRING.md` §312.
+- **A renewal refused forever or until a day saves the database, as Approve does, and a refusal
+  that could not be saved holds for this session only.** "Refuse until a date..." and "Refuse
+  forever" write the answer and save the database before the program is told `403 refused`, and
+  the renewal dialog states which answers save in a line of its own: "Approve, Refuse until a
+  date and Refuse forever save this database." Where KeePass is part way through work of its
+  own, Database Maintenance or the TAN wizard is open on the database, another copy replaced the
+  file, or the save does not land, the answer holds until KeePass exits, answered `409 this
+  session`, and a message under the plugin's name states at once that the answer was not
+  written, and why. A save whose file does not verify leaves the answer in force with the
+  database marked, and the message states that the save could not be confirmed. An answer that
+  could not be written was held in memory and written by the database's next save, whoever made
+  it, with a message at KeePass's exit naming each answer no save had taken; neither is left.
   `PAIRING.md` §312.
 - **Breaking: the rules are records in the plugin's store, and every rule is entered again.** A
   profile's rule at a group or an entry, and the setting **Refuse any profile not named here**,

@@ -239,6 +239,17 @@ designing around them.
   approval to the list, the removals and the clients the dialog last showed; the request then
   shows the dialog again where a row differs, and writes the approval over the new reading where
   none does.
+- **A refusal that stands is saved as an approval's record is.** "Refuse until a date..." and
+  "Refuse forever" on the renewal dialog are written in a turn of the writer and saved, before the
+  client is answered `403 refused`, and the dialog states which answers save in a line of its
+  own. A write refused, or a save that did not land, is taken back out and the answer holds for
+  this session in `SessionRefusals`, with the operator told at once by a message the renewal
+  handler asks for through `IRenewalApproval.Tell`, shown by `FreeMessage` once KeePass is free;
+  a save the file does not verify leaves the answer in force and marked, and the operator is told
+  of that the same way. **Nothing waits for a later save**: no answer is held in memory for a
+  database, nothing of the plugin's listens to `FileSavingPre`, and nothing is told at exit. This
+  reverses answers owed to a database and written by its next save, `PAIRING.md` §312,
+  `DESIGN.md` §119.
 - **The proofs need nothing from the transport.** `tls-server-end-point` is a hash of the
   certificate in use, so each side computes it from bytes it already holds. Do not re-propose
   `TransportContext.GetChannelBinding`: it was necessary while `SslStream` terminated the TLS and

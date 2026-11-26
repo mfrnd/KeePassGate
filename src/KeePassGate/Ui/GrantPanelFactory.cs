@@ -264,75 +264,13 @@ namespace KeePassGate.Ui
             return changes.IsEmpty ? null : rules.Write(changes);
         }
 
-        /// <summary>Tells the operator, once the dialog has closed, that rules changed on the tab were not kept.</summary>
+        /// <summary>
+        /// Tells the operator, once the dialog has closed and KeePass is not part way through work
+        /// of its own, that rules changed on the tab were not kept, `FreeMessage`.
+        /// </summary>
         private void Tell(string news)
         {
-            if (_window == null)
-            {
-                _log.Warn("the operator could not be told of rules the " + GateName.OnATab + " tab did not keep: KeePass names no main window");
-                return;
-            }
-
-            try
-            {
-                Unattended.Post(_window, () => WhenFree(news), error => _incidents.Record(Untold, error));
-            }
-            catch (Exception error) when (Expected.OfUserInterface(error))
-            {
-                // A window that has gone, which is KeePass going: the log has the refusal already.
-                _log.Warn(Untold + ": " + error.Message);
-            }
-        }
-
-        /// <summary>
-        /// Tells now where KeePass is not part way through work of its own, and otherwise at the
-        /// first `Application.Idle` at which KeePass is not.
-        /// </summary>
-        /// <remarks>
-        /// **A message shown inside KeePass's own save stands inside that save.** The post runs at
-        /// the first pump after the close, and KeePass saves right after an entry's dialog where
-        /// it saves after every edit, pumping as it saves. So KeePass is asked, as the writer asks
-        /// it before a write, and while it is busy the message waits for an Idle: WinForms raises
-        /// none inside `DoEvents`, where KeePass's own operations pump, and work posted again from
-        /// posted work would run again in the same delivery. The handler lets go of Idle before it
-        /// asks anything, so a failure records once rather than at every Idle after.
-        /// </remarks>
-        private void WhenFree(string news)
-        {
-            if (Asked() == null)
-            {
-                _prompt.Tell(GrantTab.NotKeptTitle, news);
-                return;
-            }
-
-            EventHandler idle = null;
-            idle = (sender, e) =>
-            {
-                Application.Idle -= idle;
-                WindowHandlers.Run(Untold, () => WhenFree(news));
-            };
-            Application.Idle += idle;
-        }
-
-        /// <summary>Why KeePass is busy, or null where it is not or nobody can be asked.</summary>
-        private string Asked()
-        {
-            var busy = Busy;
-            if (busy == null)
-            {
-                return null;
-            }
-
-            try
-            {
-                return busy();
-            }
-            catch (Exception error) when (Expected.OfUserInterface(error))
-            {
-                // Unanswered is busy, as the writer takes it: the message waits for an answer.
-                _log.Error("KeePass could not be asked whether it is busy", error);
-                return error.Message;
-            }
+            new FreeMessage(_window, _prompt, Busy, _incidents, _log).Tell(GrantTab.NotKeptTitle, news, Untold);
         }
 
         private const string Untold = "the operator could not be told of rules the " + GateName.OnATab + " tab did not keep";

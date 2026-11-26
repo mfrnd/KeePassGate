@@ -44,15 +44,26 @@ namespace KeePassGate.Ui
         /// <summary>The line at the top of the dialog.</summary>
         public const string Title = "A client is asking to renew a certificate.";
 
-        /// <summary>What approving costs and what it leaves, stated once.</summary>
+        /// <summary>What approving gives and what it leaves, stated once.</summary>
         /// <remarks>
-        /// The save and what happens to the certificate the client holds now, which is what the
-        /// operator acts on: unchecking a profile narrows the new certificate and nothing else.
-        /// How the save is ordered against the answer is `PAIRING.md`'s.
+        /// What happens to the client's current certificate, which is what the operator acts
+        /// on: unchecking a profile narrows the new certificate and nothing else.
         /// </remarks>
         public const string Consequence =
-            "Approve issues a new certificate and saves this database. The current certificate keeps " +
-            "every profile until the client gives that certificate up.";
+            "Approve issues a new certificate. The current certificate keeps every profile until the " +
+            "client gives that certificate up.";
+
+        /// <summary>Which answers save this database, stated under <see cref="Consequence"/>.</summary>
+        /// <remarks>
+        /// Visible rather than in a tooltip, since a save is what decides whether the operator's
+        /// answer outlasts KeePass: Approve's record and a refusal that stands are written and
+        /// saved before the client is answered, and the two other ways to refuse keep nothing in
+        /// the database. How the save is ordered against the answer is `PAIRING.md`'s.
+        /// </remarks>
+        public const string Saves = "Approve, Refuse until a date and Refuse forever save this database.";
+
+        /// <summary>The control that shows <see cref="Saves"/>.</summary>
+        public const string SavesName = "KpgRenewalSaves";
 
         /// <summary>
         /// What the table underneath is: every profile the client's record holds, a profile the new
@@ -254,6 +265,7 @@ namespace KeePassGate.Ui
 
             layout.Controls.Add(details);
             layout.Controls.Add(Line("KpgRenewalConsequence", Consequence, Font));
+            layout.Controls.Add(Line(SavesName, Saves, Font));
 
             // Where the record holds no profile this database still names, a notice above the
             // line naming the table, in bold, as the pairing dialog shows its notice: the line

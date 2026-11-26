@@ -62,8 +62,9 @@ namespace KeePassGate.Tests
                 Assert.That(dialog.Text, Is.EqualTo("KeePassGate: a client is asking to renew a certificate"));
                 Assert.That(Texts(dialog), Does.Contain("A client is asking to renew a certificate."));
                 Assert.That(Texts(dialog), Does.Contain(
-                    "Approve issues a new certificate and saves this database. The current certificate keeps every profile "
+                    "Approve issues a new certificate. The current certificate keeps every profile "
                     + "until the client gives that certificate up."));
+                Assert.That(Texts(dialog), Does.Contain("Approve, Refuse until a date and Refuse forever save this database."));
                 Assert.That(Texts(dialog), Does.Contain("Profiles the client holds:"));
                 Assert.That(Profiles(dialog).AccessibleName, Is.EqualTo("Profiles the client holds"), "the line above the table, without its colon");
                 Assert.That(RenewalApprovalForm.NoProfilesHeld, Is.EqualTo("The new certificate reaches no profile."));
@@ -74,6 +75,30 @@ namespace KeePassGate.Tests
             using (var dialog = New(Request(Array.Empty<string>(), 40)))
             {
                 Assert.That(Texts(dialog), Does.Contain("The new certificate reaches no profile."));
+            }
+        }
+
+        [Test]
+        public void Which_answers_save_is_a_line_of_its_own_under_what_Approve_gives()
+        {
+            // Visible, and not in a tooltip of the Refuse menu: a standing answer is saved as
+            // Approve's record is, and the operator reads that before choosing.
+            using (var dialog = New(Request(new[] { "reader" }, 40)))
+            {
+                Show(dialog);
+                var consequence = ControlTree.FindByName<Label>(dialog, "KpgRenewalConsequence");
+                var saves = ControlTree.FindByName<Label>(dialog, RenewalApprovalForm.SavesName);
+
+                Assert.That(saves, Is.Not.Null, "no line of which answers save");
+                Assert.That(saves.Visible, Is.True);
+                Assert.That(saves.Text, Is.EqualTo(RenewalApprovalForm.Saves));
+                Assert.That(saves.Parent, Is.SameAs(consequence.Parent), "a line of the dialog, beside the other");
+                Assert.That(saves.Top, Is.EqualTo(consequence.Bottom + consequence.Margin.Bottom), "straight under it");
+                Assert.That(consequence.Text, Does.Not.Contain("save"), "the first line names no save");
+
+                var refuse = ControlTree.FindByName<SplitButton>(dialog, GateTab.RefuseButtonName);
+                var tips = refuse.Menu.Items.Cast<ToolStripItem>().Select(item => item.ToolTipText).Where(tip => !string.IsNullOrEmpty(tip));
+                Assert.That(tips, Has.None.Contains("save"), "no item of the Refuse menu carries it");
             }
         }
 
@@ -1152,8 +1177,8 @@ namespace KeePassGate.Tests
 
                 foreach (var name in new[]
                          {
-                             GateTab.RenewalProfilesListName, GateTab.ApprovalLifetimeName, GateTab.RenewalCountdownName,
-                             GateTab.ApproveButtonName, GateTab.RefuseButtonName
+                             RenewalApprovalForm.SavesName, GateTab.RenewalProfilesListName, GateTab.ApprovalLifetimeName,
+                             GateTab.RenewalCountdownName, GateTab.ApproveButtonName, GateTab.RefuseButtonName
                          })
                 {
                     var control = ControlTree.FindByName<Control>(dialog, name);
@@ -1178,8 +1203,8 @@ namespace KeePassGate.Tests
         [TestCase(2.0f)]
         public void A_line_the_dialog_does_not_show_takes_no_room(float scaling)
         {
-            // The notice of a renewal reaching no profile stands between the sentence of what
-            // Approve costs and the line naming the table only where shown, otherwise the ordinary
+            // The notice of a renewal reaching no profile stands between the line of which
+            // answers save and the line naming the table only where shown, otherwise the ordinary
             // gap, with no band kept for a line not shown; and under a table that scrolls and a
             // table that does not alike, the lifetime stands the ordinary gap below the table.
             var many = Enumerable.Range(1, PairingApprovalForm.MostRows + 4).Select(at => "profile-" + at).ToArray();
@@ -1190,11 +1215,11 @@ namespace KeePassGate.Tests
                     using (var dialog = new RenewalApprovalForm(Renewing(held, "retired"), Timeout, larger, Today, null))
                     {
                         Show(dialog);
-                        var consequence = InDialog(ControlTree.FindByName<Label>(dialog, "KpgRenewalConsequence"), dialog);
+                        var saves = InDialog(ControlTree.FindByName<Label>(dialog, RenewalApprovalForm.SavesName), dialog);
                         var naming = ControlTree.FindByName<Label>(dialog, "KpgRenewalProfilesLine");
                         var notice = ControlTree.FindByName<Label>(dialog, RenewalApprovalForm.NoticeName);
                         var gap = naming.Margin.Bottom;
-                        Assert.That(InDialog(naming, dialog).Top - consequence.Bottom,
+                        Assert.That(InDialog(naming, dialog).Top - saves.Bottom,
                             Is.EqualTo(held.Length == 0 ? gap + notice.Height + gap : gap), "the room above the line naming the table at " + scaling);
 
                         var list = InDialog(Profiles(dialog), dialog);

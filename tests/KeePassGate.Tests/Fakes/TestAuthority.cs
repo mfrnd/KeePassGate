@@ -479,6 +479,12 @@ namespace KeePassGate.Tests.Fakes
         /// </summary>
         public Action WhileRefusing { get; set; }
 
+        /// <summary>
+        /// Set to write a standing answer and answer its write with this all the same, as a save
+        /// whose file did not verify leaves the answer in the database.
+        /// </summary>
+        public KeePassGate.Vault.VaultWrite RefuseRenewalLeaves { get; set; }
+
         /// <summary>A standing answer, written in this fake's own records.</summary>
         public KeePassGate.Vault.VaultWrite RefuseRenewal(string admissionKey, RenewalRefusal refusal)
         {
@@ -493,7 +499,7 @@ namespace KeePassGate.Tests.Fakes
             }
 
             _renewals.RefuseRenewal(admissionKey, refusal);
-            return KeePassGate.Vault.VaultWrite.Done();
+            return RefuseRenewalLeaves ?? KeePassGate.Vault.VaultWrite.Done();
         }
 
         /// <summary>Takes a standing answer away, as the clients page's Allow renewal does at OK.</summary>

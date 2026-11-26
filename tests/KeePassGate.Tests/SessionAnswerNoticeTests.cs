@@ -16,11 +16,11 @@ namespace KeePassGate.Tests
     /// </summary>
     /// <remarks>
     /// S028: a standing answer the database keeps is told to the clients page by the writer, which
-    /// draws the client's name red from it. An answer for this session is never written, and an
-    /// answer owed is written only later, so a renewal refused that way while the settings dialog
-    /// showed the page left the name black. Driven against a real window on a real message queue,
-    /// with the answer given from another thread, because that is where the renewal handler gives
-    /// it.
+    /// draws the client's name red from it. An answer held for this session is never written, an
+    /// answer forever or until a day that the database did not take among them, so a renewal
+    /// refused that way while the settings dialog showed the page left the name black. Driven
+    /// against a real window on a real message queue, with the answer given from another thread,
+    /// because that is where the renewal handler gives it.
     /// </remarks>
     [TestFixture]
     [Apartment(ApartmentState.STA)]
@@ -54,25 +54,6 @@ namespace KeePassGate.Tests
                         "told on the window's thread, where every page listening draws");
                     Assert.That(escapes.Unhandled, Is.Null);
                     Assert.That(escapes.Loose, Is.Null);
-                }
-            }
-        }
-
-        [Test]
-        public void An_answer_the_database_could_not_take_is_told_as_well()
-        {
-            using (var form = new Form())
-            {
-                Handle(form);
-                var refusals = new SessionRefusals();
-                var told = 0;
-
-                using (new SessionAnswerNotice(refusals, form, () => told++, null, null))
-                {
-                    FromAnotherThread(() => refusals.Owe("database", Key, RenewalRefusal.Forever(), null));
-                    Escapes.PumpUntil(() => told > 0, Patience);
-
-                    Assert.That(told, Is.EqualTo(1));
                 }
             }
         }

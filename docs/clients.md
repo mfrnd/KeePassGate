@@ -303,16 +303,20 @@ click anywhere else puts it away, and a click on **Approve** that puts it away a
 - **Refuse forever** answers every renewal of it without asking at all, so the program has to pair
   again for a new certificate before this one runs out, unless the answer is taken back.
 
-The last two are kept in the database. If KeePass is busy when either is given, saving or with
-Database Maintenance open, it holds at once all the same, from KeePass's memory, and is written to
-the database with its next save, the operator's or the plugin's, once Database Maintenance is closed
-on it. An answer still unwritten when KeePass exits is lost, and KeePass tells the operator so as it
-closes, naming the certificate, so that nobody is surprised when the dialog comes back for that
-program. At a Windows logoff or shutdown that goes to the plugin's log alone, since a message then
-would hold the logoff up with nobody there to read it. **A later answer about the same certificate
-is the answer that counts**: an answer given on a later dialog, or an answer a synchronize brought
-in from another copy, is kept, and the answer still waiting is let go, as an answer until a date
-whose day has begun is.
+The last two are kept in the database, and **choosing either saves the database**, as **Approve**
+does, which the dialog states in its second line: the answer is in the file before the program
+is told it was refused, and nothing is left for a later save. If the answer cannot be written
+then, because KeePass is part way through work of its own, Database Maintenance or the TAN wizard
+is open on that database, or another copy has replaced the file, it holds until KeePass exits
+instead, as **Refuse in this session** does, and a message under the plugin's name comes up once
+the renewal dialog has gone: "The answer to the renewal was not written:" and the reason, then
+"Renewal stays refused until KeePass exits." The next renewal after KeePass starts again raises
+the dialog, where the answer can be given again. If the save ran and the file then does not hold
+what KeePass wrote, the answer stays in force, KeePass shows the database as changed, and the
+message states that the save of the answer could not be confirmed; a save of the database that
+goes through keeps the answer. **A later answer about the same certificate is the answer that
+counts**: an answer given on a later dialog, or an answer a synchronize brought in from another
+copy, is kept.
 
 The plugin's log states what was answered and when, and the audit file records every renewal the
 operator answered or left unanswered, one refused without asking included. An approval is written

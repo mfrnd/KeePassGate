@@ -222,7 +222,9 @@ the test composes, each rule of `STORE.md` §615 on its own, and `AdmissionActsT
 an admission, a revocation and a certificate taken away are composed of. In this tier
 `AdmissionInRealDatabaseTests` holds the entry an admission is in a real database, saved and
 opened again, `PairingInRealDatabaseTests` and `RenewalInRealDatabaseTests` the write that is
-saved before a certificate is handed over, and `MergeInRealDatabaseTests` copies brought together
+saved before a certificate is handed over, the second also a standing answer's write, saved the
+same way, with each cause of a refused write holding the answer for this session and telling the
+operator, and `MergeInRealDatabaseTests` copies brought together
 by `PwDatabase.MergeIn`: clients paired apart both admitted, a revoked client refused in both,
 and an expired admission that stays and admits nobody. `StoreAdmissionMergeTests` runs a
 certificate taken away over such copies, `STORE.md` §648: two copies written apart by the
@@ -512,11 +514,15 @@ KeePass has gone the file holds a revocation of each of the first two, a record 
 `withdrawn` and no revocation for the third, no standing answer, and the audit a line for each
 of the three.
 
-**A standing answer lost at exit**, in `LiveOwedAnswerAtExitTests`. A renewal is refused forever
-while the database's file has been saved again from outside, so the answer holds from memory, and
-KeePass is then closed by File, Exit. The box naming the lost answer comes up with KeePass's main
-window already off the screen, which only the real window can show: an exit closes the databases
-without redrawing it, so the window behind the box would still list the closed database.
+**A standing answer whose write is refused**, in `LiveRefusalNotWrittenTests`. The database's file
+is saved again from outside while the renewal dialog stands, so that its bytes are not those
+KeePass read, and the renewal is refused forever from the Refuse button's menu: the questions put
+before the dialog have passed, and the answer's write, which saves as Approve's record does,
+refuses the save KeePass would stop to ask about. The client is answered `403`, the plugin's
+message comes up under its name once the renewal dialog has gone, with the writer's reason, and
+is acknowledged; the next renewal is answered `409 this session` with nobody asked, KeePass's
+title shows nothing to save, and File, Exit closes KeePass with no question and no message,
+leaving a file that holds no answer. Only the real window shows where the message stands.
 
 **The authority chooser**, in `LiveAuthorityChooserTests`: two copies of one database each replace
 the authority they share and admit a client of their own, the copy KeePass opens is merged with the

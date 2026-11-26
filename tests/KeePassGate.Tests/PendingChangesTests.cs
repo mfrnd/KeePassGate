@@ -430,7 +430,7 @@ namespace KeePassGate.Tests
 
             var canceled = new PendingSessionRefusals(session);
             Assert.That(canceled.Lift("one"), Is.True);
-            Assert.That(canceled.Holds("one"), Is.False, "the page reads it as lifted at once");
+            Assert.That(canceled.Answer("one"), Is.Null, "the page reads it as lifted at once");
             Assert.That(session.Refuses("one"), Is.True, "and the gate still refuses");
             canceled.Discard();
             Assert.That(session.Refuses("one"), Is.True, "Cancel leaves it standing");
@@ -440,116 +440,6 @@ namespace KeePassGate.Tests
             Assert.That(accepted.Lift("one"), Is.True);
             Assert.That(accepted.Apply(), Is.EqualTo(new[] { "one" }));
             Assert.That(session.Refuses("one"), Is.False, "OK lifts it");
-        }
-
-        [Test]
-        public void An_answer_owed_to_the_database_is_shown_and_lifted_as_the_session_one_is()
-        {
-            // Refused forever while KeePass was busy: the answer holds from memory until the
-            // plugin's next write takes it into the database, and the page shows and lifts it as
-            // it does one for this session, since the gate answers from the same memory.
-            var session = new KeePassGate.Pairing.SessionRefusals();
-            session.Owe("db", "one", RenewalRefusal.Forever(), null);
-
-            var pending = new PendingSessionRefusals(session);
-            var now = DateTimeOffset.UtcNow;
-            Assert.That(pending.Answer("one", now).IsForever, Is.True);
-
-            Assert.That(pending.Lift("one"), Is.True);
-            Assert.That(pending.Answer("one", now), Is.Null, "the page reads it as lifted at once");
-            Assert.That(session.Answer("one", now), Is.Not.Null, "and the gate still refuses");
-
-            pending.Apply();
-            Assert.That(session.Answer("one", now), Is.Null, "OK lifts it");
-            Assert.That(session.Owed(), Is.Empty, "and nothing is owed to the database any more");
-        }
-
-        [Test]
-        public void An_owed_answer_lifted_on_the_page_is_held_back_from_writes_until_OK_or_Cancel()
-        {
-            var now = DateTimeOffset.UtcNow;
-            var session = new KeePassGate.Pairing.SessionRefusals();
-            session.Owe("db", "one", RenewalRefusal.Forever(), null);
-
-            var canceled = new PendingSessionRefusals(session);
-            Assert.That(canceled.Lift("one"), Is.True);
-            Assert.That(session.Owed(), Is.Empty, "no write takes it while the lift waits for OK");
-            Assert.That(session.Answer("one", now).IsForever, Is.True, "and the gate still refuses");
-            canceled.Discard();
-            Assert.That(session.Owed(), Has.Count.EqualTo(1), "Cancel gives it back to the next write");
-
-            var accepted = new PendingSessionRefusals(session);
-            Assert.That(accepted.Lift("one"), Is.True);
-            session.Owe("db", "one", RenewalRefusal.Until(now.AddDays(3)), null);
-            accepted.Apply();
-
-            Assert.That(session.Owed(), Has.Count.EqualTo(1),
-                "an answer given on a renewal dialog since the press is newer than the lift, and stands");
-            Assert.That(session.Owed()[0].Refusal.IsForever, Is.False);
-        }
-
-        [Test]
-        public void A_refusal_for_this_session_given_since_the_press_survives_OK()
-        {
-            // Allow renewal pressed on an owed answer until a date: once the day begins the gate
-            // raises the renewal dialog again, and the operator refuses for this session there.
-            // That answer is newer than the press, which never saw it, so OK leaves it standing
-            // and the page shows it meanwhile.
-            var now = DateTimeOffset.UtcNow;
-            var session = new KeePassGate.Pairing.SessionRefusals();
-            session.Owe("db", "one", RenewalRefusal.Until(now.AddDays(-1)), null);
-
-            var pending = new PendingSessionRefusals(session);
-            Assert.That(pending.Lift("one"), Is.True);
-
-            session.Refuse("one");
-            Assert.That(pending.Answer("one", now).IsThisSession, Is.True, "the page shows the newer answer");
-
-            pending.Apply();
-
-            Assert.That(session.Refuses("one"), Is.True, "OK lifts what was pressed and nothing given since");
-            Assert.That(session.Owed(), Is.Empty, "while the owed answer the press lifted goes");
-        }
-
-        [Test]
-        public void An_owed_answer_given_since_the_press_is_shown_and_lifted_by_a_second_press()
-        {
-            // The day of the owed answer the press lifted begins, the renewal dialog is raised
-            // again, and the operator refuses forever while KeePass is busy.
-            var now = DateTimeOffset.UtcNow;
-            var session = new KeePassGate.Pairing.SessionRefusals();
-            session.Owe("db", "one", RenewalRefusal.Until(now.AddDays(-1)), null);
-
-            var pending = new PendingSessionRefusals(session);
-            Assert.That(pending.Lift("one"), Is.True);
-            Assert.That(pending.Answer("one", now), Is.Null);
-
-            session.Owe("db", "one", RenewalRefusal.Forever(), null);
-            Assert.That(pending.Answer("one", now).IsForever, Is.True, "the page shows the newer answer");
-            Assert.That(session.Owed(), Has.Count.EqualTo(1), "and nothing holds it back from a write");
-
-            Assert.That(pending.Lift("one"), Is.True, "so there is something to press again");
-            Assert.That(session.Owed(), Is.Empty);
-            pending.Apply();
-
-            Assert.That(session.Answer("one", now), Is.Null, "both presses land at OK");
-        }
-
-        [Test]
-        public void An_owed_answer_whose_day_has_begun_leaves_this_sessions_answer_showing()
-        {
-            // Answered whether or not it still refused, the owed answer stood in front of this
-            // session's, and the page let the passed date go and showed the client refused by
-            // nothing. It is still there to lift, since memory still holds it.
-            var now = DateTimeOffset.UtcNow;
-            var session = new KeePassGate.Pairing.SessionRefusals();
-            session.Owe("db", "one", RenewalRefusal.Until(now.AddDays(-1)), null);
-            session.Refuse("one");
-
-            var pending = new PendingSessionRefusals(session);
-
-            Assert.That(pending.Answer("one", now).IsThisSession, Is.True);
-            Assert.That(pending.Lift("one"), Is.True);
         }
     }
 }

@@ -319,6 +319,39 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
+        /// What puts a message of the plugin's own in front of the operator once KeePass is free,
+        /// or null where nothing does, which leaves the log alone to tell.
+        /// </summary>
+        /// <remarks>
+        /// Settable rather than a constructor argument, as the writer's question about a merge is:
+        /// the plugin builds a single prompt, and a test of the screen has nothing to tell.
+        /// </remarks>
+        internal FreeMessage Messages { get; set; }
+
+        /// <summary>
+        /// Tells the operator that a standing answer given on a renewal dialog was not kept as
+        /// given, under the plugin's name, once the dialog has closed and KeePass is free.
+        /// </summary>
+        /// <remarks>
+        /// Posted and not waited for: the connection thread asking goes on to answer its client,
+        /// and the message stands on its own once the dialog it is about has gone.
+        /// </remarks>
+        public void Tell(string news)
+        {
+            var messages = Messages;
+            if (messages == null)
+            {
+                _log.Warn(Untold + ": nothing here shows messages");
+                return;
+            }
+
+            messages.Tell(GateName.Full, news, Untold);
+        }
+
+        /// <summary>What the log and the incident state of an answer that could not be told.</summary>
+        internal const string Untold = "the operator could not be told of an answer to a renewal that was not kept as given";
+
+        /// <summary>
         /// KeePass is locking: the dialog on the screen, if any, closes as unanswered.
         /// </summary>
         /// <remarks>

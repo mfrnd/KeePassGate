@@ -12,10 +12,10 @@ namespace KeePassGate.Ui
     /// <remarks>
     /// **The clients page draws a client's name red from both**: the standing answers the database
     /// keeps, and those `SessionRefusals` holds, an answer for this session and an answer the
-    /// database could not take when it was given. A standing answer that lands is told to the page
-    /// by the writer, through the admission notice. Nothing writes an answer for this session, and
-    /// an owed answer is written only later, so a renewal refused that way while the settings
-    /// dialog showed the page left the client's name black until something else drew the page.
+    /// database did not take when it was given. A standing answer that lands is told to the page
+    /// by the writer, through the admission notice. Nothing writes an answer held in memory, so a
+    /// renewal refused that way while the settings dialog showed the page left the client's name
+    /// black until something else drew the page.
     ///
     /// **Posted, and waited for by nobody.** The renewal handler gives the answer on a connection
     /// thread, and the notice is raised on KeePass's, where every page listening to it draws. The

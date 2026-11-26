@@ -624,94 +624,125 @@ namespace KeePassGate.Tests
             }
         }
 
-        [Test]
-        public void A_standing_answer_that_could_not_be_written_holds_from_memory_at_once()
+        [TestCase("busy", "forever", TestName = "an answer forever that KeePass was too busy to take holds for this session and is told")]
+        [TestCase("failed", "forever", TestName = "an answer forever whose write could not be made holds for this session and is told")]
+        [TestCase("unsaved", "forever", TestName = "an answer forever whose save did not land holds for this session and is told")]
+        [TestCase("thrown", "forever", TestName = "an answer forever whose write threw holds for this session and is told")]
+        [TestCase("busy", "until", TestName = "an answer until a day that KeePass was too busy to take holds for this session and is told")]
+        public void A_standing_answer_that_was_not_written_holds_for_this_session_and_is_told(string how, string given)
         {
-            // The operator's ruling of 2026-10-14: it takes effect at once, like one for this
-            // session, and is owed to the database until the plugin's next write lands with it.
-            var operatorAt = new FakeRenewalApproval(RenewalApproval.Refused(RenewalRefusal.Forever()));
-            _authority.RefuseRenewalAnswers = VaultWrite.Busy("a dialog is open");
+            // An answer forever or until a day is saved as an approval's record is, and where the
+            // write is refused or its save does not land, the answer holds until KeePass exits and
+            // the operator is told at once with the writer's reason. Nothing waits for a save.
+            var standing = given == "forever" ? RenewalRefusal.Forever() : RenewalRefusal.Until(_now.AddDays(30));
+            var operatorAt = new FakeRenewalApproval(RenewalApproval.Refused(standing));
+            string reason;
+            switch (how)
+            {
+                case "busy":
+                    reason = "a dialog is open on the database";
+                    _authority.RefuseRenewalAnswers = VaultWrite.Busy(reason);
+                    break;
+                case "failed":
+                    reason = "the database closed before the change could be made";
+                    _authority.RefuseRenewalAnswers = VaultWrite.Failed(reason);
+                    break;
+                case "unsaved":
+                    reason = "the database still has unsaved changes, so nothing is on disk";
+                    _authority.RefuseRenewalAnswers = VaultWrite.Unsaved(reason);
+                    break;
+                default:
+                    reason = "the custom data would not take the answer";
+                    _authority.WhileRefusing = () => { throw new InvalidOperationException(reason); };
+                    break;
+            }
 
             using (var old = _authority.IssueAdmittedClient("reader"))
             {
+                var key = CertificateDigest.Of(old);
                 var context = Renew(operatorAt, old, "{}");
 
                 Assert.That(context.Status, Is.EqualTo(403), "the refusal stands");
-                Assert.That(_log.Warnings.Select(entry => entry.Message), Has.Some.Contains("holds from memory"));
-                Assert.That(_session.Owed().Single().Refusal.IsForever, Is.True);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("refused")));
+                _authority.WhileRefusing = null;
+                Assert.That(_authority.StandingRefusal(key), Is.Null, "nothing is in the database");
+                Assert.That(_session.Refuses(key), Is.True, "the answer holds until KeePass exits");
+                Assert.That(operatorAt.Told, Is.EqualTo(new[]
+                {
+                    "The answer to the renewal was not written: " + reason + "." + Environment.NewLine +
+                    "Renewal stays refused until KeePass exits.",
+                }));
 
                 var again = Renew(operatorAt, old, "{}");
 
-                Assert.That(again.Status, Is.EqualTo(409));
-                Assert.That(again.Json, Is.EqualTo(HttpResponse.ErrorBody("forever")));
+                Assert.That(again.Status, Is.EqualTo(409), again.Json);
+                Assert.That(again.Json, Is.EqualTo(HttpResponse.ErrorBody("this session")));
                 Assert.That(operatorAt.Asked, Is.EqualTo(1), "answered without the dialog");
+                Assert.That(operatorAt.Told, Has.Count.EqualTo(1), "and told once");
+                Assert.That(_audit.Entries[0].Reason,
+                    Is.EqualTo(given == "forever" ? AdmissionAudit.RefusedForeverReason : AdmissionAudit.RefusedUntilReason),
+                    "the audit holds the answer the operator gave");
             }
         }
 
         [Test]
-        public void An_owed_answer_is_given_over_what_the_database_holds_when_the_dialog_returns()
+        public void A_standing_answer_whose_save_did_not_verify_stays_in_force_and_is_told()
         {
-            // A stored answer until a date whose day has begun raises the dialog, and Allow
-            // renewal accepted while it stands takes the key away. The operator's answer is
-            // given after that, so the key as it is then is what the answer was given over:
-            // with the key as it was before the dialog, the next save found the key changed
-            // since and let the operator's answer go unwritten.
+            // The save ran and the file does not hold what KeePass wrote: the answer stays in the
+            // open database, which stays marked, as a change of the API's stays, and the operator
+            // is told that the save could not be confirmed. Nothing is held for this session.
             var operatorAt = new FakeRenewalApproval(RenewalApproval.Refused(RenewalRefusal.Forever()));
+            _authority.RefuseRenewalLeaves = VaultWrite.Unverified("the file on disk does not hold what KeePass wrote to it");
 
             using (var old = _authority.IssueAdmittedClient("reader"))
             {
                 var key = CertificateDigest.Of(old);
-                _authority.RefuseRenewal(key, RenewalRefusal.Until(_now.AddDays(-1)));
-                _authority.RefuseRenewalAnswers = VaultWrite.Busy("a dialog is open");
-                operatorAt.Meanwhile = () => _authority.LiftRenewalRefusal(key);
-
-                Assert.That(Renew(operatorAt, old, "{}").Status, Is.EqualTo(403));
-
-                Assert.That(_session.Owed().Single().Baseline, Is.Null,
-                    "the key held nothing once the operator answered");
-            }
-        }
-
-        [Test]
-        public void A_refusal_in_this_session_is_not_hidden_by_an_owed_answer_whose_day_has_begun()
-        {
-            // The plugin's memory gave the owed answer before this session's whether or not it
-            // still refused, and the handler let the passed date go and asked again on every
-            // renewal, as though nothing stood.
-            var operatorAt = FakeRenewalApproval.Approving();
-
-            using (var old = _authority.IssueAdmittedClient("reader"))
-            {
-                var key = CertificateDigest.Of(old);
-                _session.Owe("db", key, RenewalRefusal.Until(_now.AddDays(-1)), null);
-                _session.Refuse(key);
-
                 var context = Renew(operatorAt, old, "{}");
 
-                Assert.That(context.Status, Is.EqualTo(409), context.Json);
-                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("this session")));
-                Assert.That(operatorAt.Asked, Is.Zero, "nobody was asked");
+                Assert.That(context.Status, Is.EqualTo(403), context.Json);
+                Assert.That(_authority.StandingRefusal(key).IsForever, Is.True, "the answer is in the database");
+                Assert.That(_session.Refuses(key), Is.False, "and nothing beside it in memory");
+                Assert.That(operatorAt.Told, Is.EqualTo(new[]
+                {
+                    "The save of the answer to the renewal could not be confirmed: the file on disk does not " +
+                    "hold what KeePass wrote to it.",
+                }));
+
+                var again = Renew(operatorAt, old, "{}");
+
+                Assert.That(again.Json, Is.EqualTo(HttpResponse.ErrorBody("forever")));
+                Assert.That(operatorAt.Asked, Is.EqualTo(1));
             }
         }
 
-        [Test]
-        public void An_owed_answer_until_a_date_stops_refusing_once_its_day_begins()
+        [TestCase("once")]
+        [TestCase("this session")]
+        [TestCase("until")]
+        [TestCase("forever")]
+        public void An_answer_kept_as_given_tells_the_operator_nothing(string given)
         {
-            var until = _now.AddDays(2);
-            var operatorAt = new FakeRenewalApproval(RenewalApproval.Refused(RenewalRefusal.Until(until)));
-            _authority.RefuseRenewalAnswers = VaultWrite.Busy("a dialog is open");
+            RenewalRefusal standing = null;
+            if (given == "this session")
+            {
+                standing = RenewalRefusal.ThisSession();
+            }
+            else if (given == "until")
+            {
+                standing = RenewalRefusal.Until(_now.AddDays(3));
+            }
+            else if (given == "forever")
+            {
+                standing = RenewalRefusal.Forever();
+            }
+
+            var operatorAt = new FakeRenewalApproval(RenewalApproval.Refused(standing));
 
             using (var old = _authority.IssueAdmittedClient("reader"))
             {
-                Assume.That(Renew(operatorAt, old, "{}").Status, Is.EqualTo(403));
-
-                var early = Renew(operatorAt, old, "{}");
-                Assert.That(early.Status, Is.EqualTo(409));
-                Assert.That(JsonBody.Read(early.Json).Text("notBefore"), Is.EqualTo(Moments.Wire(until)));
-
-                _now = until;
-                operatorAt = FakeRenewalApproval.Approving();
-                Assert.That(Renew(operatorAt, old, "{}").Status, Is.EqualTo(200));
+                Assert.That(Renew(operatorAt, old, "{}").Status, Is.EqualTo(403));
+                Assert.That(operatorAt.Told, Is.Empty);
+                Assert.That(_session.Refuses(CertificateDigest.Of(old)), Is.EqualTo(given == "this session"),
+                    "the plugin's memory holds an answer for this session alone");
             }
         }
 

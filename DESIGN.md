@@ -1799,6 +1799,18 @@ So the rules here:
   before the certificate is handed over, because a certificate must not leave here until its record
   is on disk. [`PAIRING.md`](PAIRING.md) phase 5 is the sequence, and §312 keeps it for a renewal.
 
+  **A refusal that stands is saved the same way.** "Refuse until a date..." and "Refuse forever"
+  on the renewal dialog are written in a turn of the writer, through the writer's change, saved
+  through `MainForm.SaveDatabase` and believed on the flag and the file, before the client is
+  answered `403 refused`, as the dialog's second line states. A write that is refused, or whose
+  save does not land, is taken back out, and the answer holds for this session instead, with the
+  operator told at once by a message of the plugin's own; a save over a file that does not hold
+  what KeePass wrote leaves the answer in force with the database marked, and the operator is
+  told of that the same way. **No answer waits for a later save**, which reverses an answer held
+  in memory and written by whichever save of its database came next, with a listener on
+  KeePass's `FileSavingPre` and a message at exit: whether an answer was kept turned on a save
+  nothing promised. `PAIRING.md` §312.
+
   **Built as `MainForm.SaveDatabase(db, null)` rather than `UIFileSave`**, which is a correction
   to the sentence above rather than a departure from it: `UIFileSave` saves whichever document is
   active, and pairing has to save the database the connection resolved to. Both are the same save
@@ -2105,6 +2117,14 @@ comes once the save has returned: the writer's guard against a write inside a sa
 meet the tab's OK there, `STORE.md` §627, and no place has to catch a refusal of it. Held by
 `ModalDialogCloseTests` and `TabOkBesideOwnSaveTests`, and for the close of a group's dialog by
 `NodeDialogOkBesideSaveTests`.
+
+**The message of a standing answer to a renewal that was not kept as given adds no place
+either.** The renewal handler asks for it on the connection thread, a kind already listed, once
+the answer's write has returned, and `FreeMessage` posts it through `Unattended.Post` and shows
+it from a handler of `Application.Idle` run through `WindowHandlers` where KeePass is busy, as
+the message of rules an OK did not keep. **Of KeePass's save events, `FileSaved` alone is
+listened to**, for whether a save of the writer's own landed, `SaveReports`, a handler of
+KeePass's own events; nothing of the plugin's writes into a save it did not start.
 
 CodeQL reports each of these places but the places that throw again from inside the catch and
 `WindowHandlers`, which catches through a filter: its query accepts both. Each place it reports

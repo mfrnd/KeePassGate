@@ -9,9 +9,9 @@ namespace KeePassGate.Ui
     /// An interface so that a test can answer without a human, and so that the one place a dialog
     /// is raised stays visible. These prompts are never reached from an API request; the two
     /// requests that do put a window up, pairing and renewal, go through `PairingApprovalPrompt`,
-    /// `DESIGN.md` §119. These are reached from something the operator has just done, once at
-    /// startup when the gate could not take its port, or once on the way out about standing
-    /// answers no database took.
+    /// `DESIGN.md` §119. These are reached from something the operator has just done, a standing
+    /// answer given on the renewal dialog that was not kept as given among it, or once at startup
+    /// when the gate could not take its port.
     /// </remarks>
     public interface IOperatorPrompt
     {
@@ -24,12 +24,11 @@ namespace KeePassGate.Ui
         /// <remarks>
         /// Asked for a gate that could not take its port, a port the operator has just changed on
         /// the window under Tools, an authority the operator chose that could not be kept, rules
-        /// an OK on a group or entry dialog did not keep, and standing answers to renewals no
-        /// database took before KeePass exits. None is a question, because nothing the operator
-        /// can say here would change the outcome, and none is a log line either, because the
-        /// consequence lasts and the person it affects is the person in front of the screen. The
-        /// standing answers are the log line alone at a Windows logoff or shutdown, when there is
-        /// nobody in front of the screen, which `OwedAnswersAtExit` gives the reason for.
+        /// an OK on a group or entry dialog did not keep, and a standing answer to a renewal that
+        /// the database did not take, or whose save was not confirmed, once the renewal dialog has
+        /// closed. None is a question, because nothing the operator can answer here would change
+        /// the outcome, and none is a log line either, because the consequence lasts and the
+        /// person it affects is the person in front of the screen.
         /// </remarks>
         void Tell(string title, string news);
     }

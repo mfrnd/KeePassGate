@@ -207,7 +207,9 @@ state nothing.
 5. Only then is the certificate handed to the program.
 
 The dialog states so before anything is pressed, because this and the renewal dialog,
-[`clients.md`](clients.md#expiry), are the two screens in the plugin whose button writes the file.
+[`clients.md`](clients.md#expiry), are the two screens in the plugin whose answers write the file:
+**Approve** here, and on the renewal dialog **Approve**, **Refuse until a date...** and **Refuse
+forever**, which that dialog states in a line of its own.
 
 The save comes before the certificate, and the order is why: a program holding a certificate for a
 record that was never written would be a program that is refused forever and cannot state why. A

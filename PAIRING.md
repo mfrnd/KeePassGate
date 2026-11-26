@@ -1217,9 +1217,10 @@ holds:", which names the table to UI automation without its colon, and under **G
 **Profile**. A profile the database still names has a box, checked: the operator may uncheck any
 of them and can add none, so the new certificate is never wider than the record. Unchecking narrows
 the new certificate alone, since the old record is left valid with everything it held until the
-client gives that certificate up, which the dialog states: "Approve issues a new certificate and
-saves this database. The current certificate keeps every profile until the client gives that
-certificate up." A profile the database no longer names has, under **Grant** in place of a box, a
+client gives that certificate up, which the dialog states: "Approve issues a new certificate. The
+current certificate keeps every profile until the client gives that certificate up." A second
+line under it states which answers save: "Approve, Refuse until a date and Refuse forever save
+this database." A profile the database no longer names has, under **Grant** in place of a box, a
 red X, and its name in the system's gray, so that the row reads as not to be granted, since a
 renewed record is written from the names on the list: the tooltip of the X and of the name reads
 "This database no longer names the profile, so the new certificate omits the profile. Approve
@@ -1259,24 +1260,31 @@ dialog:
   renewal asked after KeePass has started again raises the dialog.
 - **Until a date** and **forever** are stored under `KPG.RenewalRefused.` and the certificate's key,
   `CA.md` §204. They are answered `409 too early` with `notBefore`, the moment from which the
-  operator is asked again, and `409 forever`, for which pairing again is the way out. **If either
-  cannot be written now**, KeePass busy or Database Maintenance open, it takes effect at once all
-  the same, held in the plugin's memory as an answer about this session is, and the next save of
-  that database that lands writes it, whoever asks for it, which is the operator's ruling of
-  2026-10-14 as the operator extended it on 2026-11-04 from the plugin's own writes to every save.
-  An answer that no save has taken when KeePass exits goes with it, and the operator is told so on
-  the way out rather than only in the log, except at a Windows logoff or shutdown, where a message
-  would hold the session's end up with nobody there to answer it and the log is all there is, which
-  is the operator's ruling of 2026-11-08. KeePass's main window is hidden before that message goes
-  up, because an exit closes the databases without redrawing it, and the window would otherwise go
-  on listing the closed database's groups and entries for as long as the message waits. It is
-  written only while the key still holds what it held when the answer was given, and while the
-  answer still refuses, so an answer written there since, on a later dialog or by a synchronize, is
-  the later word. It is written wherever a record in force still names its certificate, whether or
-  not that certificate is admitted at that moment, as in a store that has stopped or beside
-  several authorities, and it is let go unwritten only where no such record names the
-  certificate, which is where a written answer goes as well. Held by
-  `RenewalInRealDatabaseTests.An_owed_answer_is_written_while_a_record_in_force_names_its_certificate`.
+  operator is asked again, and `409 forever`, for which pairing again is the way out. **Either is
+  written and saved as Approve's record is**, before the client is answered `403 refused`: in a
+  turn of the writer, saved through `MainForm.SaveDatabase`, and believed on the flag and the
+  file, `DESIGN.md` §119, so the file holds the answer once the dialog has closed. **Where the
+  write cannot be made or its save does not land**, KeePass part way through work of its own,
+  Database Maintenance or the TAN wizard open on the database, the file replaced by another copy,
+  the dialogs that would take a write back not watched, the database gone, or a save that left the
+  database with unsaved changes, the change is taken back out as Approve's is, and the answer
+  holds for this session instead, answered `409 this session` until KeePass exits. The operator
+  is told at once, by a message of the plugin's own under its name, shown once the dialog has
+  closed and KeePass is not part way through work of its own: "The answer to the renewal was not
+  written: " and the writer's reason, then "Renewal stays refused until KeePass exits." **Where
+  the save ran and the file does not hold what KeePass wrote**, the answer is not taken back out:
+  it stays in the open database, in force, with the database marked, as a change made through the
+  API stays, and the message reads "The save of the answer to the renewal could not be
+  confirmed: " and the reason. The client is answered `403 refused` whatever came of the write,
+  and nothing waits for a later save: no listener on KeePass's saves writes an answer, and nothing
+  is told at exit. Held by `RenewalHandlerTests` and
+  `RenewalInRealDatabaseTests.A_refusal_that_could_not_be_saved_holds_for_this_session_and_is_told`.
+  **This reverses holding an answer the database could not take in the plugin's memory for the
+  next save of its database**, the plugin's own writes from 2026-10-14 and every save from
+  2026-11-04, with a message at exit, from 2026-11-08, naming each answer no save had taken. Whether
+  an answer outlasted KeePass then turned on a save that might never come, and on a baseline kept
+  in memory to tell a later answer from an earlier answer; saved at once, or held for this session
+  and told, neither question is left.
 
 **The operator can take any of the three back**, which is the operator's ruling on review 3: on the
 clients page the row of a certificate with a standing answer has its name in red, the row's

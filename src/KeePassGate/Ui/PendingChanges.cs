@@ -917,10 +917,8 @@ namespace KeePassGate.Ui
     {
         private readonly SessionRefusals _session;
 
-        /// <summary>
-        /// Every certificate lifted on the page, with what the lift takes back at OK.
-        /// </summary>
-        private readonly Dictionary<string, Lifted> _lifted = new Dictionary<string, Lifted>(StringComparer.Ordinal);
+        /// <summary>Every certificate whose answer was lifted on the page.</summary>
+        private readonly HashSet<string> _lifted = new HashSet<string>(StringComparer.Ordinal);
 
         public PendingSessionRefusals(SessionRefusals session)
         {
@@ -933,42 +931,18 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Whether the plugin's memory holds an answer about renewing this certificate, as OK would
-        /// leave it.
+        /// The answer the plugin's memory holds about renewing this certificate, as OK would leave
+        /// it: an answer for this session, or null.
         /// </summary>
-        public bool Holds(string admissionKey)
+        public RenewalRefusal Answer(string admissionKey)
         {
-            var lifted = Find(admissionKey);
-            return _session.Holds(admissionKey, lifted.Owed, lifted.Session);
-        }
-
-        /// <summary>
-        /// The answer the plugin's memory holds about renewing this certificate that refuses at this
-        /// moment, as OK would leave it: this session's answer, or an answer for longer still owed
-        /// to the database, or null.
-        /// </summary>
-        /// <remarks>
-        /// **An answer given since the press shows**, because OK leaves it standing: once the day
-        /// of an owed answer the press lifted begins, the renewal dialog is raised again while the
-        /// lift waits, and what the operator answers there is newer than the press.
-        /// </remarks>
-        public RenewalRefusal Answer(string admissionKey, DateTimeOffset now)
-        {
-            var lifted = Find(admissionKey);
-            return _session.Answer(admissionKey, now, lifted.Owed, lifted.Session);
+            return Holds(admissionKey) ? RenewalRefusal.ThisSession() : null;
         }
 
         /// <summary>
         /// Lifts the plugin's memory of an answer about one certificate when the dialog is
         /// accepted, answering with whether there was an answer.
         /// </summary>
-        /// <remarks>
-        /// **What stands at the press, and nothing given after it.** An owed answer is held back
-        /// from every write at once, through <see cref="SessionRefusals.Withhold"/>, because
-        /// nothing in the database's buffer stands for it, and given back by
-        /// <see cref="Discard"/>. A second press on the same certificate adds what was given since
-        /// the first.
-        /// </remarks>
         public bool Lift(string admissionKey)
         {
             if (!Holds(admissionKey))
@@ -976,14 +950,7 @@ namespace KeePassGate.Ui
                 return false;
             }
 
-            var before = Find(admissionKey);
-            var owed = _session.Withhold(admissionKey);
-            if (before.Owed != null && !ReferenceEquals(before.Owed, owed))
-            {
-                _session.Release(before.Owed);
-            }
-
-            _lifted[admissionKey] = new Lifted(owed, before.Session || _session.Refuses(admissionKey));
+            _lifted.Add(admissionKey);
             return true;
         }
 
@@ -993,53 +960,29 @@ namespace KeePassGate.Ui
         /// </summary>
         public IReadOnlyList<string> Apply()
         {
-            var lifted = new List<string>(_lifted.Keys);
-            foreach (var pair in _lifted)
+            var lifted = new List<string>(_lifted);
+            foreach (var admissionKey in lifted)
             {
-                _session.Lift(pair.Key, pair.Value.Owed, pair.Value.Session);
+                _session.Lift(admissionKey);
             }
 
             _lifted.Clear();
             return lifted;
         }
 
-        /// <summary>
-        /// Forgets what was lifted on the page, which is what Cancel means, and gives every owed
-        /// answer it held back to the next write.
-        /// </summary>
+        /// <summary>Forgets what was lifted on the page, which is what Cancel means.</summary>
         public void Discard()
         {
-            foreach (var lifted in _lifted.Values)
-            {
-                _session.Release(lifted.Owed);
-            }
-
             _lifted.Clear();
         }
 
-        /// <summary>What was lifted on the page about this certificate, or nothing.</summary>
-        private Lifted Find(string admissionKey)
+        /// <summary>
+        /// Whether the plugin's memory holds an answer about renewing this certificate, as OK would
+        /// leave it.
+        /// </summary>
+        private bool Holds(string admissionKey)
         {
-            Lifted lifted;
-            return _lifted.TryGetValue(admissionKey ?? string.Empty, out lifted) ? lifted : Lifted.Nothing;
-        }
-
-        /// <summary>What one lift takes back at OK.</summary>
-        private sealed class Lifted
-        {
-            public static readonly Lifted Nothing = new Lifted(null, false);
-
-            public Lifted(OwedAnswer owed, bool session)
-            {
-                Owed = owed;
-                Session = session;
-            }
-
-            /// <summary>The owed answer held back from every write, or null for none.</summary>
-            public OwedAnswer Owed { get; private set; }
-
-            /// <summary>Whether this session's answer stood at the press.</summary>
-            public bool Session { get; private set; }
+            return !string.IsNullOrEmpty(admissionKey) && !_lifted.Contains(admissionKey) && _session.Refuses(admissionKey);
         }
     }
 }

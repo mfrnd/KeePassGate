@@ -53,11 +53,9 @@ namespace KeePassGate.Host.Tests
             _dialogs.Start();
             _saves = 0;
             _failSaves = false;
-
             _restoreAfterSave = null;
 
             _writer = new DatabaseWriter(CurrentThread.Instance, Save, null, _dialogs, null);
-            _savingWriter = _writer;
             _database.Save();
         }
 
@@ -257,26 +255,86 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void KeePass_busy_when_a_standing_answer_is_written_holds_it_from_memory_until_the_next_write()
+        public void A_refusal_on_the_dialog_is_saved_as_an_approval_is_and_leaves_the_database_unmarked()
         {
-            // The operator's ruling of 2026-10-14: the answer takes effect at once, like one for
-            // this session, and the plugin's next write to the database that lands writes it.
+            // An answer forever or until a day is written, saved and hashed back as an approval's
+            // record is, so the file holds it before the client is answered and nothing is left
+            // for a later save to keep.
             using (var renewal = new RealRenewal(this))
             {
+                var context = renewal.Ask(RenewalApproval.Refused(RenewalRefusal.Forever()), null);
+
+                Assert.That(context.Status, Is.EqualTo(403), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("refused")));
+                Assert.That(_saves, Is.EqualTo(1), "saved with the answer");
+                Assert.That(_database.Database.Modified, Is.False, "and nothing is left to save");
+                Assert.That(renewal.Told, Is.Empty, "and nothing is told");
+                Assert.That(renewal.Session.Refuses(renewal.Key), Is.False, "nothing is held in memory");
+
+                var key = renewal.Key;
+                _database.Reopen();
+
+                var standing = new StoredAdmissions(_database.Database).Answers.StandingRefusal(key);
+                Assert.That(standing, Is.Not.Null, "the file opened afresh holds the answer");
+                Assert.That(standing.IsForever, Is.True);
+            }
+        }
+
+        [TestCase("busy", TestName = "a refusal KeePass is too busy to save holds for this session and is told")]
+        [TestCase("maintenance", TestName = "a refusal Database Maintenance keeps from the database holds for this session and is told")]
+        [TestCase("tan wizard", TestName = "a refusal the TAN wizard keeps from a save holds for this session and is told")]
+        [TestCase("replaced", TestName = "a refusal over a file another copy replaced holds for this session and is told")]
+        [TestCase("unwatched", TestName = "a refusal while the dialogs are not watched holds for this session and is told")]
+        [TestCase("unsaved", TestName = "a refusal whose save did not land is taken back out, holds for this session and is told")]
+        public void A_refusal_that_could_not_be_saved_holds_for_this_session_and_is_told(string cause)
+        {
+            // Each arises once the operator has answered, under the dialog, where the questions
+            // before the dialog cannot have seen it.
+            using (var renewal = new RealRenewal(this))
+            using (var maintenance = new DatabaseOperationsForm())
+            using (var wizard = new TanWizardForm())
+            {
+                var earlier = RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(-1));
+                Assume.That(renewal.Writer.RefuseRenewal(_database.Database, renewal.Key, earlier).Ok, Is.True);
+                Assume.That(_database.Database.Modified, Is.False);
+                _saves = 0;
+
                 var raised = false;
-                try
+                System.Windows.Forms.Form opened = null;
+                Action meanwhile = () =>
                 {
-                    var context = renewal.Ask(
-                        RenewalApproval.Refused(RenewalRefusal.Forever()),
-                        () =>
-                        {
+                    switch (cause)
+                    {
+                        case "busy":
                             MessageService.ExternalIncrementMessageCount();
                             raised = true;
-                        });
+                            break;
+                        case "maintenance":
+                            maintenance.InitEx(_database.Database);
+                            GlobalWindowManager.AddWindow(maintenance);
+                            opened = maintenance;
+                            break;
+                        case "tan wizard":
+                            wizard.InitEx(_database.Database, _database.RootGroup);
+                            GlobalWindowManager.AddWindow(wizard);
+                            opened = wizard;
+                            break;
+                        case "replaced":
+                            RewriteTheFileUnderneath();
+                            break;
+                        case "unwatched":
+                            _dialogs.Dispose();
+                            break;
+                        case "unsaved":
+                            _failSaves = true;
+                            break;
+                    }
+                };
 
-                    Assert.That(context.Status, Is.EqualTo(403), "the refusal stands");
-                    Assert.That(renewal.Standing, Is.Null, "the database could not take the answer");
-                    Assert.That(_saves, Is.Zero);
+                GateContext context;
+                try
+                {
+                    context = renewal.Ask(RenewalApproval.Refused(RenewalRefusal.Forever()), meanwhile);
                 }
                 finally
                 {
@@ -284,103 +342,91 @@ namespace KeePassGate.Host.Tests
                     {
                         MessageService.ExternalDecrementMessageCount();
                     }
+
+                    if (opened != null)
+                    {
+                        GlobalWindowManager.RemoveWindow(opened);
+                    }
                 }
 
+                Assert.That(context.Status, Is.EqualTo(403), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("refused")));
+                Assert.That(_saves, Is.EqualTo(cause == "unsaved" ? 1 : 0));
+                Assert.That(renewal.Standing.Write(), Is.EqualTo(earlier.Write()),
+                    "the answer the database held before is what it holds");
+                Assert.That(_database.Database.Modified, Is.False, "and nothing is marked");
+                Assert.That(renewal.Session.Refuses(renewal.Key), Is.True, "the answer holds until KeePass exits");
+                Assert.That(renewal.Told, Has.Count.EqualTo(1), "told once");
+                Assert.That(renewal.Told[0], Does.StartWith("The answer to the renewal was not written: "));
+                Assert.That(renewal.Told[0], Does.EndWith("." + Environment.NewLine + "Renewal stays refused until KeePass exits."));
+
+                _failSaves = false;
                 var again = renewal.Ask(RenewalApproval.Approved(new[] { "ops" }), null);
+
                 Assert.That(again.Status, Is.EqualTo(409), again.Json);
-                Assert.That(again.Json, Does.Contain("forever"), "answered from memory, without the dialog");
-                Assert.That(renewal.Asked, Is.EqualTo(1));
-
-                var written = renewal.Writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
-                Assume.That(written.Ok, Is.True, written.Reason);
-
-                Assert.That(renewal.Standing, Is.Not.Null, "written with the plugin's next write");
-                Assert.That(renewal.Standing.IsForever, Is.True);
-                Assert.That(renewal.Session.Owed(), Is.Empty, "and the database's copy answers from here");
-
-                _database.SaveCloseAndReopen();
-                Assert.That(
-                    new StoredAdmissions(_database.Database).Answers.StandingRefusal(renewal.Key),
-                    Is.Not.Null, "and it is in the file");
+                Assert.That(again.Json, Is.EqualTo(HttpResponse.ErrorBody("this session")));
+                Assert.That(renewal.Asked, Is.EqualTo(1), "answered without the dialog");
+                Assert.That(renewal.Told, Has.Count.EqualTo(1));
             }
         }
 
         [Test]
-        public void An_owed_answer_rides_on_a_write_that_did_not_land_and_stays_owed()
+        public void A_refusal_whose_database_closed_under_the_dialog_holds_for_this_session_and_is_told()
         {
             using (var renewal = new RealRenewal(this))
             {
-                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
-                _failSaves = true;
+                var context = renewal.Ask(
+                    RenewalApproval.Refused(RenewalRefusal.Forever()), () => _database.Database.Close());
 
-                var written = renewal.Writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
-
-                Assert.That(written.Ok, Is.False);
-                Assert.That(renewal.Standing, Is.Null, "taken back out with the change");
-                Assert.That(renewal.Session.Owed(), Has.Count.EqualTo(1), "and still owed");
+                Assert.That(context.Status, Is.EqualTo(403), context.Json);
+                Assert.That(_saves, Is.Zero);
+                Assert.That(renewal.Session.Refuses(renewal.Key), Is.True);
+                Assert.That(renewal.Told, Has.Count.EqualTo(1));
+                Assert.That(renewal.Told[0], Does.StartWith("The answer to the renewal was not written: "));
             }
         }
 
-        [TestCase(true, TestName = "an owed answer whose authority was recreated is settled by the next write")]
-        [TestCase(false, TestName = "an owed answer whose authority was deleted is settled by the next write")]
-        public void An_owed_answer_whose_authority_was_retired_is_settled_by_the_next_write(bool recreate)
+        [Test]
+        public void A_refusal_whose_file_did_not_verify_stays_in_force_and_marked_and_is_told()
         {
-            // A recreate or a delete retires the authority and takes every record with it, so
-            // nothing is left for the answer to refuse and no renewal can ask about it again.
-            // Skipped rather than settled, it stayed owed for the session, and the exit counted it
-            // as an answer whose client would be asked about again.
+            // The save ran and the file does not hold what KeePass wrote, which tells nothing of
+            // which of the two the file holds: the answer stays in the open database, in force,
+            // with the database marked, and the operator is told the save was not confirmed.
             using (var renewal = new RealRenewal(this))
             {
-                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
-                var authority = DatabaseAuthority.Of(_database.Database, null);
-                var retired = recreate ? authority.Recreate() : authority.Delete();
-                Assume.That(retired.Succeeded, Is.True, retired.Message);
+                _database.Save();
+                _restoreAfterSave = System.IO.File.ReadAllBytes(_database.Path);
 
-                var written = renewal.Writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
-                Assume.That(written.Ok, Is.True, written.Reason);
+                var context = renewal.Ask(RenewalApproval.Refused(RenewalRefusal.Forever()), null);
+                _restoreAfterSave = null;
 
-                Assert.That(renewal.Session.Owed(), Is.Empty);
-                Assert.That(renewal.Standing, Is.Null, "and nothing was written for a record that has gone");
+                Assert.That(context.Status, Is.EqualTo(403), context.Json);
+                Assert.That(renewal.Standing, Is.Not.Null, "the answer stays in the open database");
+                Assert.That(renewal.Standing.IsForever, Is.True);
+                Assert.That(_database.Database.Modified, Is.True, "marked, so KeePass asks before it is thrown away");
+                Assert.That(renewal.Session.Refuses(renewal.Key), Is.False, "nothing is held beside it");
+                Assert.That(renewal.Told, Is.EqualTo(new[]
+                {
+                    "The save of the answer to the renewal could not be confirmed: the file on disk does not hold " +
+                    "what KeePass wrote to it.",
+                }));
+
+                var again = renewal.Ask(RenewalApproval.Approved(new[] { "ops" }), null);
+
+                Assert.That(again.Json, Is.EqualTo(HttpResponse.ErrorBody("forever")));
+                Assert.That(renewal.Asked, Is.EqualTo(1));
             }
         }
 
-        [TestCase(StoreState.Stopped, TestName = "an owed answer is written into a stopped store holding the admission of its certificate")]
-        [TestCase(StoreState.Whole, TestName = "an owed answer is written where several authorities stand beside the admission of its certificate")]
-        public void An_owed_answer_is_written_while_a_record_in_force_names_its_certificate(StoreState state)
+        /// <summary>
+        /// Changes the bytes of the database's file from outside KeePass, as another copy saved
+        /// over it would, so that the file is not the file KeePass read.
+        /// </summary>
+        private void RewriteTheFileUnderneath()
         {
-            // Let go unwritten only where no record of kind `client` in force names its
-            // certificate, as the prune takes an answer away: an admission that admits nobody for
-            // now, in a store held back or under several authorities, is still the record the
-            // answer is about.
-            using (var renewal = new RealRenewal(this))
-            {
-                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
-                var store = new StoredAdmissions(_database.Database).Store;
-                if (state == StoreState.Stopped)
-                {
-                    StoreSeeds.Revoke(store, new string('e', 64));
-                    var head = _database.RootGroup.GetEntries(true).Single(entry => entry.Strings.ReadSafe("KPG.Kind") == "head");
-                    head.ParentGroup.Entries.Remove(head);
-                    _database.Database.DeletedObjects.Add(new PwDeletedObject(head.Uuid, DateTime.UtcNow));
-                }
-                else
-                {
-                    StoreSeeds.Beside(store);
-                }
-
-                using (var reading = store.Read())
-                {
-                    Assume.That(reading.State, Is.EqualTo(state), reading.Reason);
-                    Assume.That(StoreAuthorities.Served(reading), Is.Null, "nothing is admitted for now");
-                }
-
-                var written = renewal.Writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
-                Assume.That(written.Ok, Is.True, written.Reason);
-
-                Assert.That(renewal.Standing, Is.Not.Null, "in the custom data after the save");
-                Assert.That(renewal.Standing.Refuses(DateTimeOffset.UtcNow), Is.True);
-                Assert.That(renewal.Session.Owed(), Is.Empty);
-            }
+            var bytes = System.IO.File.ReadAllBytes(_database.Path);
+            bytes[bytes.Length - 1] ^= 0xFF;
+            System.IO.File.WriteAllBytes(_database.Path, bytes);
         }
 
         [Test]
@@ -643,206 +689,23 @@ namespace KeePassGate.Host.Tests
             }
         }
 
-        [Test]
-        public void An_owed_answer_gives_way_to_an_answer_written_since_it_was_given()
-        {
-            // Refused forever while KeePass was busy, then until a date on a later dialog, which
-            // landed. That write took the owed answer as well, after its own change, and wrote the
-            // older forever over the date it had just written.
-            using (var renewal = new RealRenewal(this))
-            {
-                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
-                var until = RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(30));
-
-                var written = renewal.Writer.RefuseRenewal(_database.Database, renewal.Key, until);
-                Assume.That(written.Ok, Is.True, written.Reason);
-
-                Assert.That(RenewalRefusal.Same(renewal.Standing, until), Is.True, "the later answer stands");
-                Assert.That(renewal.Session.Owed(), Is.Empty, "and the earlier answer is let go");
-            }
-        }
-
-        [Test]
-        public void An_owed_answer_gives_way_to_an_answer_a_synchronize_brought_in()
-        {
-            // A merge writes the key without asking anybody, which is how another copy's answer
-            // arrives, and the owed answer was given over what the key held before it.
-            using (var renewal = new RealRenewal(this))
-            {
-                renewal.Session.Owe(
-                    renewal.DatabaseId, renewal.Key, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(30)), null);
-                _database.Database.CustomData.Set(AuthorityKeys.RenewalRefusalKey(renewal.Key), RenewalRefusal.ForeverValue);
-
-                var written = renewal.Writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
-                Assume.That(written.Ok, Is.True, written.Reason);
-
-                Assert.That(renewal.Standing.IsForever, Is.True, "the answer the merge brought stands");
-                Assert.That(renewal.Session.Owed(), Is.Empty);
-            }
-        }
-
-        [Test]
-        public void An_owed_answer_whose_day_has_begun_is_let_go_unwritten()
-        {
-            using (var renewal = new RealRenewal(this))
-            {
-                renewal.Session.Owe(
-                    renewal.DatabaseId, renewal.Key, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(-1)), null);
-
-                var written = renewal.Writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
-                Assume.That(written.Ok, Is.True, written.Reason);
-
-                Assert.That(renewal.Standing, Is.Null, "nothing is written that refuses nothing");
-                Assert.That(renewal.Session.Owed(), Is.Empty);
-            }
-        }
-
-        [Test]
-        public void An_owed_answer_lifted_on_the_clients_page_is_written_by_no_write_before_OK()
-        {
-            // Allow renewal on an answer that is only owed buffers nothing in the database, since
-            // no key holds it yet, and a write landing before OK wrote the answer and let it go
-            // from memory: OK then found nothing to lift, and the client stayed refused.
-            using (var renewal = new RealRenewal(this))
-            {
-                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
-                var pending = new PendingSessionRefusals(renewal.Session);
-                Assume.That(pending.Lift(renewal.Key), Is.True);
-
-                var written = renewal.Writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
-                Assume.That(written.Ok, Is.True, written.Reason);
-
-                Assert.That(renewal.Standing, Is.Null, "not written while the lift waits for OK");
-                Assert.That(renewal.Session.Answer(renewal.Key, DateTimeOffset.UtcNow), Is.Not.Null,
-                    "and the gate still refuses until then");
-
-                pending.Apply();
-
-                Assert.That(renewal.Session.Answer(renewal.Key, DateTimeOffset.UtcNow), Is.Null, "OK lifts it");
-                Assert.That(renewal.Session.Owed(), Is.Empty);
-            }
-        }
-
-        [Test]
-        public void An_owed_answer_is_written_by_a_save_the_plugin_did_not_make()
-        {
-            // The operator keeps an authority, or presses the KPG tab's OK, and saves: neither is a
-            // write of the plugin's own, and the answers rode on those alone, so the file went
-            // without them and the exit told the operator nothing had been written since.
-            using (var renewal = new RealRenewal(this))
-            {
-                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
-
-                SaveAsKeePass(renewal.Writer, _database.Database, true);
-
-                Assert.That(renewal.Standing, Is.Not.Null, "the operator's save carried it");
-                Assert.That(renewal.Standing.IsForever, Is.True);
-                Assert.That(renewal.Session.Owed(), Is.Empty, "and the database's copy answers from here");
-            }
-        }
-
-        [Test]
-        public void An_owed_answer_waits_through_a_copy_and_a_save_that_failed()
-        {
-            using (var renewal = new RealRenewal(this))
-            {
-                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
-
-                renewal.Writer.BeforeSave(_database.Database, true);
-                Assert.That(renewal.Standing, Is.Null, "a copy leaves the database's own file as it was");
-
-                SaveAsKeePass(renewal.Writer, _database.Database, false);
-                Assert.That(renewal.Standing, Is.Null, "taken back out with the save that did not land");
-                Assert.That(renewal.Session.Owed(), Has.Count.EqualTo(1), "and still owed");
-            }
-        }
-
-        [Test]
-        public void An_owed_answer_is_not_written_under_an_open_maintenance_dialog()
-        {
-            // The dialog writes its copy of the custom data back when it closes whenever the number
-            // of keys differs, so an answer written underneath it went with that, after memory had
-            // already let it go.
-            using (var renewal = new RealRenewal(this))
-            using (var maintenance = new DatabaseOperationsForm())
-            {
-                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
-                maintenance.InitEx(_database.Database);
-                GlobalWindowManager.AddWindow(maintenance);
-
-                try
-                {
-                    SaveAsKeePass(renewal.Writer, _database.Database, true);
-                }
-                finally
-                {
-                    GlobalWindowManager.RemoveWindow(maintenance);
-                }
-
-                Assert.That(renewal.Standing, Is.Null, "nothing written under the dialog");
-                Assert.That(renewal.Session.Owed(), Has.Count.EqualTo(1), "and still owed for the next save");
-            }
-        }
-
-        [Test]
-        public void An_owed_answer_stays_owed_after_a_write_whose_file_did_not_read_back()
-        {
-            // Settled there, an answer whose place in the file nobody knew left memory, and a file
-            // that lacked it lost it, with no word at exit.
-            using (var renewal = new RealRenewal(this))
-            {
-                _database.Save();
-                _restoreAfterSave = System.IO.File.ReadAllBytes(_database.Path);
-                renewal.Session.Owe(renewal.DatabaseId, renewal.Key, RenewalRefusal.Forever(), null);
-
-                var written = renewal.Writer.Change(_database.Database, () => VaultWrite.Created("abcd"));
-
-                Assert.That(written.IsUnverified, Is.True, written.Reason);
-                Assert.That(renewal.Session.Owed(), Has.Count.EqualTo(1), "still owed");
-            }
-        }
-
         private bool _failSaves;
 
         /// <summary>The file as it was, put back after a save, which the writer then cannot read back.</summary>
         private byte[] _restoreAfterSave;
 
-        /// <summary>
-        /// The writer whose saves raise what `MainForm.SaveDatabase` raises either side of a save,
-        /// as KeePass's own events reach the plugin: the fixture's, or a renewal's.
-        /// </summary>
-        private DatabaseWriter _savingWriter;
-
+        /// <summary>A save as the writer is handed it: a save that does not land writes nothing.</summary>
         private void Save(PwDatabase database)
         {
             _saves++;
-            SaveAsKeePass(_savingWriter, database, !_failSaves);
-
-            if (_restoreAfterSave != null)
-            {
-                System.IO.File.WriteAllBytes(_database.Path, _restoreAfterSave);
-            }
-        }
-
-        /// <summary>
-        /// A save as `MainForm.SaveDatabase` makes it, with `FileSavingPre` before it and `FileSaved`
-        /// after it, saying whether it landed; a save that does not land writes nothing.
-        /// </summary>
-        private static void SaveAsKeePass(DatabaseWriter writer, PwDatabase database, bool lands)
-        {
-            if (writer != null)
-            {
-                writer.BeforeSave(database, false);
-            }
-
-            if (lands)
+            if (!_failSaves)
             {
                 database.Save(null);
             }
 
-            if (writer != null)
+            if (_restoreAfterSave != null)
             {
-                writer.AfterSave(database, lands);
+                System.IO.File.WriteAllBytes(_database.Path, _restoreAfterSave);
             }
         }
 
@@ -925,9 +788,7 @@ namespace KeePassGate.Host.Tests
                     null);
 
                 var databases = new List<PwDatabase> { database };
-                writer.Owed = _session;
                 Writer = writer;
-                test._savingWriter = writer;
                 _targets = new OpenDatabaseTargets(delegate { return databases; }, writer, hold, null);
                 _target = _targets.Current().Single();
 
@@ -953,6 +814,9 @@ namespace KeePassGate.Host.Tests
 
             /// <summary>What the operator was last shown.</summary>
             public RenewalRequest LastRequest { get; private set; }
+
+            /// <summary>What the operator was told of answers not kept as given, in order.</summary>
+            public List<string> Told { get; } = new List<string>();
 
             /// <summary>Run once, on the next write's turn, before the write itself.</summary>
             public Action BeforeTheWrite { get; set; }
@@ -1055,6 +919,11 @@ namespace KeePassGate.Host.Tests
                     }
 
                     return _answer;
+                }
+
+                public void Tell(string news)
+                {
+                    _renewal.Told.Add(news);
                 }
             }
         }

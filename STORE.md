@@ -3372,7 +3372,8 @@ and `GrantEditorInRealDialogsTests`, and in a real KeePass by `LiveGrantEditorTe
 ### A write of the plugin's own §627
 
 **When.** After an OK on the KPG settings tab; at a pairing or a renewal that the operator
-approved; at an answer to a renewal that the operator gave to stand (S7); when a certificate is
+approved; at an answer to a renewal that the operator gave to stand, saved as the renewal that
+the operator approved is (below); when a certificate is
 taken away (§648); when the operator keeps a store (§649); and when the operator raises the
 store (§652). A rule set in a node's dialog is added at that dialog's OK, in memory, and the
 operator's next save writes it (§629). The plugin writes at no other moment.
@@ -3458,8 +3459,15 @@ it differs from all of theirs, and is asked until the write that deletes that ad
 
 **Which writes save** (this document's own, from what each act does today). A pairing, a
 renewal and a certificate that its client gives up answer a client, so each is saved through
-`MainForm.SaveDatabase`, read back and verified before it is answered, `DESIGN.md` §119. The
-settings dialog's OK and the answer to which authority to keep are the operator's, at
+`MainForm.SaveDatabase`, read back and verified before it is answered, `DESIGN.md` §119. **So is
+an answer to a renewal that the operator gave to stand** on the renewal dialog, forever or until
+a moment, before the client is answered (fixed for the answers, S7, `PAIRING.md` §312): it is
+written in a turn of the writer, saved, and believed as a certificate given up is, on the flag
+and the file. Where the write is refused or its save does not land, it is taken back out and the
+answer holds for this session instead, with the operator told at once; where the save ran over a
+file that does not hold what KeePass wrote, it stays in the open database, in force and marked,
+and the operator is told that the save was not confirmed. Nothing of it waits for a later save.
+The settings dialog's OK and the answer to which authority to keep are the operator's, at
 KeePass's own window: their records are added in memory, the database is marked as changed,
 and the operator's save writes them, as the tab's changes and a kept authority are written
 today, `CA.md` §204. They are in force in the gate's copy from that moment, and are lost with
@@ -7018,12 +7026,14 @@ fixed, and the list above names where: S1, S12, S13, S16, S20, S23, S26, S31 and
   only where a renewal is answered and where the clients page draws a row; and what a version
   names, which is what its writer was shown, a lift with nothing left to name writing nothing.
   Measured before it was
-  built, `papers/ground/measured-renewal-answers.md` on `spikes/storage-survival`. What is
-  left: how an answer is written; an answer that could not be written when it was given is
-  written today by the next
-  save of the database, whoever starts it, §312, and evaluation 4.6 does not list that write.
-  Has to satisfy: two answers made apart give the stricter; an answer for this session has no
-  record; no merge decides by a time.
+  built, `papers/ground/measured-renewal-answers.md` on `spikes/storage-survival`. Fixed for the
+  answers, §627 and `PAIRING.md` §312: how an answer given on the renewal dialog is written,
+  saved before the client is answered, as an approved renewal is, and believed on the flag and
+  the file, with an answer
+  whose write is refused or whose save does not land held for this session and told at once,
+  and nothing left for a later save. What is left: the answer as a record of the store, which
+  the custom data holds until it is built. Has to satisfy: two answers made apart give the
+  stricter; an answer for this session has no record; no merge decides by a time.
 - **S9. What the resolver and the editor need for versions made apart** (§617, §657). Decided:
   what all versions allow, and what the operator sees. By reasoning: versions that grant give
   the letters all of them hold; the switch in versions made apart refuses. Fixed as measured:

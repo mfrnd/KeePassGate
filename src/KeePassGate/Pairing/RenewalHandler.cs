@@ -252,8 +252,7 @@ namespace KeePassGate.Pairing
                 // can bring one in, and so can the dialog of a renewal that asked for another
                 // lifetime, which is a request of its own. The approval is let go, so the next
                 // renewal after the answer is lifted asks the operator rather than using it.
-                RenewalRefusal stored;
-                var standing = Standing(context, target, key, record, out stored);
+                var standing = Standing(context, target, key, record);
                 if (standing == StandingAnswer.Unreadable)
                 {
                     // Not an answer, so the approval stays held and the client is told until when:
@@ -353,8 +352,7 @@ namespace KeePassGate.Pairing
             var mark = _held.Mark();
 
             var record = admitted.Record;
-            RenewalRefusal stored;
-            var standing = Standing(context, target, key, record, out stored);
+            var standing = Standing(context, target, key, record);
             if (standing == StandingAnswer.Unreadable)
             {
                 // A dialog is the one thing a standing answer exists to stop, so a read that fails
@@ -432,10 +430,11 @@ namespace KeePassGate.Pairing
                     return null;
 
                 case PairingDecision.Refused:
-                    Refused(target, key, decision.Standing, stored);
+                    Refused(target, key, decision.Standing);
 
                     // Which of the four answers the operator gave, whether or not the standing
-                    // half of it could be kept: what is written down is what they decided.
+                    // half of it was written: what is written down is what they decided, and the
+                    // client is answered the same refusal either way.
                     _audit.RenewalRefused(target.DatabaseId, key, record.ClientKey, decision.Standing);
                     context.Respond(403, HttpResponse.ErrorBody("refused"));
                     return null;
@@ -507,8 +506,7 @@ namespace KeePassGate.Pairing
         /// as an answer, so a read that failed once let go of an approval the operator had given.
         /// </remarks>
         /// <param name="record">The record being renewed, whose client key the audit line names.</param>
-        private StandingAnswer Standing(
-            IGateContext context, IGateTarget target, string key, AdmissionRecord record, out RenewalRefusal stored)
+        private StandingAnswer Standing(IGateContext context, IGateTarget target, string key, AdmissionRecord record)
         {
             RenewalRefusal standing;
             try
@@ -518,21 +516,14 @@ namespace KeePassGate.Pairing
             catch (Exception error) when (Expected.OfCustomData(error))
             {
                 _log.Error("a standing answer to a renewal could not be read", error);
-                stored = null;
                 return StandingAnswer.Unreadable;
             }
 
-            // What the database holds, whether or not it still refuses, for `OwedAnswer.Baseline`
-            // when the read made once the operator answers fails.
-            stored = standing;
-
-            var now = _clock.Now;
-            if (standing == null || !standing.Refuses(now))
+            if (standing == null || !standing.Refuses(_clock.Now))
             {
-                // The plugin's memory after the database: this session's answer, or one for longer
-                // the database could not take when it was given and is owed it still, whichever
-                // refuses now.
-                standing = _session.Answer(key, now);
+                // The plugin's memory after the database: this session's answer, an answer for
+                // longer that the database did not take when it was given among them.
+                standing = _session.Refuses(key) ? RenewalRefusal.ThisSession() : null;
             }
 
             if (standing == null)
@@ -574,70 +565,72 @@ namespace KeePassGate.Pairing
         }
 
         /// <summary>
-        /// Keeps the operator's standing answer, when they gave one, and says in the log what came
-        /// of it. The refusal stands either way.
+        /// Keeps the operator's standing answer, when they gave such an answer, tells the operator
+        /// where it was not kept as given, and writes to the log what came of it. The refusal
+        /// stands either way.
         /// </summary>
         /// <remarks>
-        /// An answer for this session is kept in memory and cannot fail to be. The other two are
-        /// written to the database, which can, and **one the database cannot take now is kept in
-        /// memory as well**, the operator's ruling of 2026-10-14: it refuses from this moment, as
-        /// an answer about this session does, and the plugin's next write to the database that
-        /// lands writes it, after which the database's own copy answers.
+        /// An answer for this session is kept in memory and cannot fail to be. **The other two are
+        /// written and saved as an approval's record is**: in a turn of the writer, through
+        /// `MainForm.SaveDatabase`, and believed on the flag and the file, `DESIGN.md` §119, so the
+        /// file holds the answer before the client is answered and nothing waits for a later save.
+        ///
+        /// **Where the write is refused or its save does not land**, the writer has taken the
+        /// change back out, and the answer holds for this session instead, answered
+        /// `409 this session` until KeePass exits; the operator is told at once, with the writer's
+        /// reason, once the dialog has closed. **Where the save ran and the file does not hold what
+        /// KeePass wrote**, the answer stays in the open database, in force and marked, as a
+        /// change of the API's stays, and the operator is told that the save was not confirmed.
+        /// `PAIRING.md` §312.
         /// </remarks>
-        private void Refused(IGateTarget target, string key, RenewalRefusal standing, RenewalRefusal stored)
+        private void Refused(IGateTarget target, string key, RenewalRefusal standing)
         {
+            var what = "a renewal by " + CertificateDigest.Shorten(key);
             if (standing == null)
             {
-                _log.Warn("a renewal by " + CertificateDigest.Shorten(key) + " was refused once");
+                _log.Warn(what + " was refused once");
                 return;
             }
 
             if (standing.IsThisSession)
             {
                 _session.Refuse(key);
-                _log.Warn("a renewal by " + CertificateDigest.Shorten(key) + " was refused in this session, " +
-                          "which holds until KeePass exits");
+                _log.Warn(what + " was refused in this session, which holds until KeePass exits");
                 return;
             }
 
-            // What the database holds as the answer is given, for `OwedAnswer.Baseline`, rather
-            // than what it held when the dialog was raised: a key changed while the dialog stood,
-            // by Allow renewal accepted or a synchronize, is older than this answer, and compared
-            // with the earlier read it made the next save let this answer go unwritten.
-            try
-            {
-                stored = target.StandingRefusal(key);
-            }
-            catch (Exception error) when (Expected.OfCustomData(error))
-            {
-                _log.Warn("a standing answer to a renewal could not be read again once the operator " +
-                          "answered, so the answer read before the dialog stands for it: " + error.Message);
-            }
+            var given = standing.IsForever ? "forever" : "until " + Moments.Wire(standing.NotBefore.Value);
 
             Vault.VaultWrite written;
             try
             {
-                written = target.RefuseRenewal(key, standing);
+                written = target.RefuseRenewal(key, standing)
+                          ?? Vault.VaultWrite.Failed("nothing was reported");
             }
             catch (Exception error) when (Expected.OfCustomData(error) || Expected.OfUserInterface(error))
             {
                 _log.Error("a standing answer to a renewal could not be written", error);
-                written = null;
+                written = Vault.VaultWrite.Failed(error.Message);
             }
 
-            if (written != null && written.Ok)
+            if (written.Ok)
             {
-                _log.Warn("a renewal by " + CertificateDigest.Shorten(key) + " was refused " +
-                          (standing.IsForever ? "forever" : "until " + Moments.Wire(standing.NotBefore.Value)));
+                _log.Warn(what + " was refused " + given);
                 return;
             }
 
-            _session.Owe(target.DatabaseId, key, standing, stored);
-            _log.Warn("a renewal by " + CertificateDigest.Shorten(key) + " was refused " +
-                      (standing.IsForever ? "forever" : "until " + Moments.Wire(standing.NotBefore.Value)) +
-                      ", and the database could not take the answer now, so it holds from memory until " +
-                      "the plugin's next write to the database lands with it" +
-                      (written == null ? string.Empty : ": " + written.Reason));
+            if (written.IsUnverified)
+            {
+                _log.Warn(what + " was refused " + given + ", and the answer is in the database without the " +
+                          "file confirmed to hold it: " + written.Reason);
+                _approval.Tell(RenewalAnswerNotice.NotConfirmed(written.Reason));
+                return;
+            }
+
+            _session.Refuse(key);
+            _log.Warn(what + " was refused " + given + ", and the answer was not written, so it holds until " +
+                      "KeePass exits: " + written.Reason);
+            _approval.Tell(RenewalAnswerNotice.NotWritten(written.Reason));
         }
 
         /// <summary>
