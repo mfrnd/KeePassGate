@@ -41,8 +41,9 @@ takes access away is a further entry, never an entry deleted or changed.
 > versions below it that were following (§617, §629, §657). §614, §615, §616, §617, §620,
 > §626, §627, §628, §629, §633, §636, §643, §648, §656 and §657 state which parts those are,
 > and nothing else below describes what the plugin does today. **Not built**: the standing
-> answers to a renewal as records of this store, of which this build has the reading of §618
-> and nothing that serves or writes it, keeping the answers in custom data as 0.2.0 does; the
+> answers to a renewal as records of this store, of which this build has the reading and the
+> acts of §618 and nothing that serves or writes them, keeping the answers in custom data as
+> 0.2.0 does; the
 > page that seals a store again (§625) and the command that starts it again (§632); the guard
 > over KeePass's own windows, with its switch (§635); the tab's listing of the store (§636);
 > the raising of the format, with `frozen` (§647, §656); and the dialog that keeps a store
@@ -2547,6 +2548,28 @@ of the object is that object's with no subject hashed; any other that holds 0 is
 `renew:` and each client key the file knows after the nodes the objects name and before the
 tree is walked (§620).
 
+**What a version names is what its writer was shown** (fixed for the answers, S7):
+
+- **A version names in `after`** each standing version of the client's answer that its writer
+  was shown and that still stands, with everything those name in `after`, as a rule's version
+  does (§617). A refusal given on the renewal dialog names what the reading before the dialog
+  held, and a lift what the clients page showed at the press. A version that arrived by a merge
+  while the dialog stood is named by nothing, stands beside the new version, and the stricter
+  of the two is the answer, so a lift made without having seen a refusal loses to it.
+- **A lift names in `lost`** each lost version it was shown that is still lost, with everything
+  the versions it replaces name in `lost`, none of them in `after`. **`lost` replaces
+  nothing**: a version settled there that turns up again with its content stands beside the
+  lift and refuses.
+- **A refusal is given only where the reading asks**, so it never settles a lost version and
+  holds no `lost`. A refusal given after a moment passed names the passed answer, which stands,
+  and replaces it.
+- **A lift with nothing left to name comes to nothing**, as a certificate taken away with nothing
+  left to end does: every version its press was shown was replaced since. It writes nothing.
+- **A version is composed only where its content and its item fit** the plugin's ceiling of a
+  string (§627). By the client key each further answer about a client replaces the earlier
+  version, so a client has a single standing version however often it is answered, and its
+  `after` reaches the ceiling at about 7,940 answers about that client.
+
 **What the model ran** (`papers/ground/measured-renewal-answers.md` on `spikes/storage-survival`,
 `run.ps1 -Answers` with its record in `recorded-answers\`): the three texts and the object above,
 on a chain of four answers with a clock of three positions, forever beside the later moment,
@@ -2555,8 +2578,11 @@ six ways, a renewal under the clock, and a client revoked and renewed apart, ove
 copies, each merge by every method of KeePassLib and by four KeePassXC releases on real files.
 No history ended below its ideal outside the classes §639 accepts. The vectors it printed are
 `tests/Shared/StoreRecordVectors.json`, `renewalTexts` among them, and the stores whose names
-begin `renewals:` in `tests/Shared/StoreMeaningVectors.json`; `RenewalTextTests`,
-`StoredRenewalsTests` and `StoreInForceTests` hold the product to them.
+begin `renewals:` in `tests/Shared/StoreMeaningVectors.json`, and A1 to A14 in
+`tests/Shared/StoreWriteVectors.json`; `RenewalTextTests`, `StoredRenewalsTests`,
+`StoreInForceTests`, `RenewalActsTests` and `StoreWriteShapeTests` hold the product to them, and
+`StoreRenewalMergeTests` holds answers given apart in real databases merged by every method of
+KeePass's. A7 holds Seal again, which is not built (§625), and is played up to it.
 
 ### The recycle bin §619
 
@@ -5526,7 +5552,8 @@ witness, held the revocation's case and is left out (decision 15): a deletion by
 the confirmation is the person's own act, the witness did not travel through a KeePassXC merge
 from another database, and Database Maintenance removes it with every other deletion record
 (`measured-desktop-windows` 3.3, 5.2). *Measured:* in the model (`measured-store-as-a-whole` 2.3,
-2.4).
+2.4), and for an answer to a renewal in the model and on real files
+(`measured-renewal-answers` 5, 7).
 
 **A file is merged in that was made to grant, by somebody who holds the store key** (row 7).
 *Who:* the store key is a string in an entry of the database and is never renewed. So whoever can
@@ -5944,6 +5971,15 @@ operator chooses, as today. *What covers it:* the chooser, `CA.md` §204. *Measu
 saving, after a rule was set in a node's dialog. *What happens:* the rule is gone, as any unsaved
 edit is. *What covers it:* saving. Accepted (decision 11). *Measured:* in the model
 (`measured-store-as-a-whole` 2.5, 5).
+
+**An answer to a renewal is lost by a deletion** (§618). *Who:* a version of an answer and every
+summary entry restating it deleted for good with their deletion records, or a deletion record of
+an answer whose content no file holds arriving by a merge. *What happens:* the client is refused
+forever, `409 forever`, where the lost version may have been a lift or an answer whose day had
+begun. Narrower. A version settled by a lift's `lost` that a merge brings back with its content
+stands beside the lift and refuses again: narrower as well. *What covers it:* a lift, which
+names the loss in `lost` (§618). *Measured:* in
+the model and on real files (`measured-renewal-answers` 4, 5).
 
 **Two gates change the same profile's rule at a node apart** (row 22). *What happens:* after any
 merge the profile gets what all versions allow, until the operator has removed versions in the
@@ -6715,10 +6751,14 @@ that finds a measurement against a decision reports it and does not design aroun
     anything of them was built, `papers/ground/measured-renewal-answers.md` on
     `spikes/storage-survival`: the object, the texts, the meet over the chain of answers at
     every position of a clock, lost versions in six ways, and the sequences A1 to A14, with no
-    history below its ideal outside the classes §639 accepts. The reading is held to the vectors
-    it printed (`RenewalTextTests`, `StoredRenewalsTests`, `StoreInForceTests`). Not run: a
-    window, a phone and the slow key derivation; KeePassXC releases other than 2.8.0 in the
-    random part on files. *Could overturn*: nothing of the reading, which the vectors hold.
+    history below its ideal outside the classes §639 accepts. The reading and the acts are held to
+    the vectors it printed (`RenewalTextTests`, `StoredRenewalsTests`, `StoreInForceTests`,
+    `RenewalActsTests`, `StoreWriteShapeTests`), and answers given apart in real databases to
+    every method of KeePass's merge (`StoreRenewalMergeTests`). Not run: a window, a phone and
+    the slow key derivation; KeePassXC releases other than 2.8.0 in the random part on files;
+    the sequence A7 past Seal again, which is not built; and the write vectors' sequences over two
+    real databases, which the unit tier plays over the store in memory. *Could overturn*:
+    nothing of the reading, which the vectors hold.
 
 ---
 
@@ -6975,10 +7015,12 @@ fixed, and the list above names where: S1, S12, S13, S16, S20, S23, S26, S31 and
   strictly, with a text out of form refusing forever; the strictest standing version as the
   answer, the later of two moments the stricter as texts, and a lost version refusing forever;
   what a deletion record tells of an answer, by the client keys the file knows; and a clock read
-  only where a renewal is answered and where the clients page draws a row. Measured before it was
+  only where a renewal is answered and where the clients page draws a row; and what a version
+  names, which is what its writer was shown, a lift with nothing left to name writing nothing.
+  Measured before it was
   built, `papers/ground/measured-renewal-answers.md` on `spikes/storage-survival`. What is
-  left: what a version of an answer names, and how an answer is written; an answer that could
-  not be written when it was given is written today by the next
+  left: how an answer is written; an answer that could not be written when it was given is
+  written today by the next
   save of the database, whoever starts it, §312, and evaluation 4.6 does not list that write.
   Has to satisfy: two answers made apart give the stricter; an answer for this session has no
   record; no merge decides by a time.

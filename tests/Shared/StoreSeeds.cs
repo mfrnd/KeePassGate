@@ -115,6 +115,34 @@ namespace KeePassGate.Testing
             Act(store, "a revocation", reading => AdmissionActs.Revoke(reading, clientKey));
         }
 
+        /// <summary>
+        /// A standing refusal of a client's renewals, as the renewal dialog writes it: naming the
+        /// versions of the client's answer the store holds standing as it is read here, which is
+        /// what a dialog raised now would show.
+        /// </summary>
+        public static void Refuse(IGateStore store, string clientKey, RenewalRefusal refusal)
+        {
+            Act(store, "a refusal of renewals", reading =>
+            {
+                string refused;
+                var shown = StoredRenewals.Of(reading.InForce, clientKey).Standing;
+                return RenewalActs.Refuse(reading, clientKey, refusal, shown, out refused);
+            });
+        }
+
+        /// <summary>
+        /// A lift of a client's standing answer, as the clients page writes it at the dialog's OK:
+        /// naming every version of the answer the store holds standing and lost as it is read here.
+        /// </summary>
+        public static void Lift(IGateStore store, string clientKey)
+        {
+            Act(store, "a lift of renewals", reading =>
+            {
+                var standing = StoredRenewals.Of(reading.InForce, clientKey);
+                return RenewalActs.Lift(reading, clientKey, standing.Standing, standing.Lost);
+            });
+        }
+
         /// <summary>A profile name added, as the Profiles page writes it at the dialog's OK.</summary>
         public static void Name(IGateStore store, string name)
         {

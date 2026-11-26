@@ -244,6 +244,38 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_standing_answer_to_a_renewal_counts_an_item_and_an_answer_it_replaces_none()
+        {
+            // `STORE.md` §618 and §643: a standing answer is restated by the summary entry for good,
+            // an item for each client ever answered; an answer replaced by the next answer about
+            // the client is no standing version and counts nothing, and an answer of an object of
+            // nothing is a record, restated and counted as any.
+            var client = new string('3', 64);
+            var store = new ComposedStore(One);
+            var first = StoreComposer.RuleVersion(One, "renew:" + client, "refuse:forever");
+            var lift = store.Add(StoreComposer.RuleVersion(One, "renew:" + client, "ask", first.Hex));
+            var other = store.Add(StoreComposer.RuleVersion(One, "renew:" + new string('4', 64), "refuse:until:2026-12-14T23:00:00Z"));
+            var nothing = store.Add(StoreComposer.RuleVersion(One, "renew:" + new string('C', 64), "refuse:forever"));
+            store.RestateAll(new[] { lift, other, nothing }.Select(version =>
+            {
+                var content = Newtonsoft.Json.Linq.JObject.Parse(version.Strings[StoreComposer.Data]);
+                var after = (string)content["after"];
+                return StoreComposer.RuleVersionItem(
+                    version, (string)content["object"], (string)content["doc"], string.IsNullOrEmpty(after) ? System.Array.Empty<string>() : after.Split(' '));
+            }));
+            store.Add(first);
+            store.Delete(first);
+
+            var reading = store.Read();
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(reading.InForce.Room.Items, Is.EqualTo(4), "the item format and the three standing answers");
+            Assert.That(
+                reading.InForce.Restated().Where(item => item.Kind == "version").Select(item => item.Member("id")),
+                Is.EquivalentTo(new[] { lift.Hex, other.Hex, nothing.Hex }));
+        }
+
+        [Test]
         public void The_next_height_stops_at_its_ceiling_and_a_fifth_digit_takes_a_character()
         {
             Assert.That(Heading(StoreFormat.MaxNumber).Room.Height, Is.EqualTo(StoreFormat.MaxNumber));
