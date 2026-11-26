@@ -621,6 +621,11 @@ namespace KeePassGate.Tests
                 Listings++;
                 return AskedProfiles.Regaining(_reading, profiles, DateTimeOffset.UtcNow);
             }
+
+            public RenewalRefusal Renewal(string clientKey)
+            {
+                return StoredRenewals.AnswerOf(_reading.InForce, clientKey);
+            }
         }
 
         private HeldApproval Hold(string key, string databaseId = "db")

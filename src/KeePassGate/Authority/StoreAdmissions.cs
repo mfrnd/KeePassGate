@@ -186,34 +186,6 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// The certificates the records of kind `client` in force name, by the texts the core
-        /// keeps, with what a write deletes taken out and what it adds put in: what the standing
-        /// answers to a renewal are kept for once the write lands, `STORE.md` §618.
-        /// </summary>
-        public static ISet<string> Named(StoreReading reading, StoreWrite write)
-        {
-            var named = new HashSet<string>(StringComparer.Ordinal);
-            if (reading != null && reading.InForce != null)
-            {
-                var deleted = new HashSet<string>(write == null ? Enumerable.Empty<string>() : write.Delete, StringComparer.Ordinal);
-                named.UnionWith(reading.InForce.Admissions
-                    .Where(record => record.InForce && !deleted.Contains(record.Hex))
-                    .Select(record => record.Form.Member(StoreKinds.Certificate))
-                    .Where(certificate => certificate != null));
-            }
-
-            if (write != null)
-            {
-                named.UnionWith(write.Add
-                    .Where(record => record.Kind == StoreKinds.Client)
-                    .Select(record => record.Member(StoreKinds.Certificate))
-                    .Where(certificate => certificate != null));
-            }
-
-            return named;
-        }
-
-        /// <summary>
         /// Whether a decision refuses an admission: a revocation of its client key, its certificate
         /// taken away, or a retirement of its issuer, by record, item or deletion record.
         /// </summary>

@@ -241,6 +241,308 @@ namespace KeePassGate.Tests
             }
         }
 
+        [TestCaseSource(nameof(AnswerSequences))]
+        public void A_sequence_of_answers_to_renewals_writes_and_reads_what_the_model_did(string name)
+        {
+            // `STORE.md` §618: each step's answer about each client the model answers for, by its
+            // value, its cause, how many versions stand and are lost and whether it refuses at
+            // each moment of the clock; how many versions of answers are present; and whether a
+            // step the model played only where its copy's reading allowed it was played here. The
+            // acts are the product's own, each naming what its copy was shown: a dialog's reading
+            // where the sequence shows an answer, and the reading at the write otherwise. Seal
+            // again is not built, so a sequence is played up to it.
+            var sequence = (JObject)VectorsAsText()["sequences"][name];
+            var moments = ((JArray)sequence["clock"]).Select(moment => (string)moment).ToList();
+            using (var clients = new Clients())
+            {
+                var first = new MemoryStore();
+                StoreSeeds.Authority(first);
+                Started(first, clients);
+                var copies = new[] { first, first.Copy() };
+                var clocks = new[] { 0, 0 };
+                var shown = new[] { new Dictionary<string, RenewalStanding>(StringComparer.Ordinal), new Dictionary<string, RenewalStanding>(StringComparer.Ordinal) };
+                var keys = new Dictionary<string, string>(StringComparer.Ordinal) { { (string)sequence["clients"]["c0"], clients.Admission("c0").ClientKey } };
+
+                foreach (var step in (JArray)sequence["steps"])
+                {
+                    var command = (string)step["command"];
+                    var copy = (int)step["copy"];
+                    var store = copies[copy];
+                    var act = (JArray)step["act"];
+                    var where = name.Substring(0, name.IndexOf(':')) + ", step " + ((JArray)sequence["steps"]).IndexOf(step) + ", " + command;
+                    if (command == "Seal again")
+                    {
+                        Assert.Pass(where + ": Seal again is not built, and the sequence is played up to it");
+                    }
+
+                    var played = PlayedAnswer(store, copies, act, command, clients, moments[clocks[copy]], shown[copy], where);
+                    if (command == "Set clock")
+                    {
+                        // A clock set where it stands moves nothing, and the model plays nothing.
+                        played = clocks[copy] != (int)act[2];
+                        clocks[copy] = (int)act[2];
+                    }
+                    else if (command == "Pair")
+                    {
+                        keys[(string)sequence["clients"]["c1"]] = clients.Admission("c1").ClientKey;
+                    }
+
+                    Assert.That(played, Is.EqualTo((bool)step["played"]), where + ": played where the model's copy played it");
+                    AssertAnswers(step, store, keys, moments, where);
+                }
+            }
+        }
+
+        /// <summary>The sequences of the standing answers to a renewal, A1 to A14, by name.</summary>
+        private static IEnumerable<TestCaseData> AnswerSequences()
+        {
+            return ((JObject)Vectors()["sequences"]).Properties()
+                .Select(sequence => sequence.Name)
+                .Where(name => name.StartsWith("answers, ", StringComparison.Ordinal))
+                .Select(name => new TestCaseData(name).SetArgDisplayNames(name.Substring(0, name.IndexOf(':'))));
+        }
+
+        /// <summary>
+        /// A step of a sequence of answers, played in this copy by the product's acts; whether it
+        /// was played, which an answer and a renewal are only where the copy's reading allows them
+        /// at its clock, and a lift only where it names something.
+        /// </summary>
+        private static bool PlayedAnswer(
+            MemoryStore store, MemoryStore[] copies, JArray act, string command, Clients clients, string clock, Dictionary<string, RenewalStanding> shown, string where)
+        {
+            var now = DateTimeOffset.Parse(clock, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal);
+            switch (command)
+            {
+                case "Synchronize":
+                    store.Synchronize(copies[(int)act[3]]);
+                    return true;
+                case "Set clock":
+                    return true;
+                case "Pair":
+                    StoreSeeds.Admit(store, clients.Paired(StoreSeeds.Served(store)));
+                    return true;
+                case "Revoke":
+                    StoreSeeds.Revoke(store, clients.Admission((string)act[2]).ClientKey);
+                    return true;
+                case "Show answer":
+                    using (var reading = store.Read())
+                    {
+                        var client = clients.Admission((string)act[2]).ClientKey;
+                        shown[client] = StoredRenewals.Of(reading.InForce, client);
+                    }
+
+                    return true;
+                case "Refuse forever":
+                case "Refuse until a date":
+                case "Allow renewal":
+                    return Answered(store, act, command, clients, now, shown, where);
+                case "Renew":
+                    using (var reading = store.Read())
+                    {
+                        if (StoredRenewals.Of(reading.InForce, clients.Admission((string)act[2]).ClientKey).Refuses(now))
+                        {
+                            return false;
+                        }
+                    }
+
+                    StoreSeeds.Admit(store, clients.Renewed((string)act[2], StoreSeeds.Served(store)));
+                    return true;
+                case "Lose version":
+                    using (var reading = store.Read())
+                    {
+                        var key = (byte[])reading.InForce.Key.Bytes.Clone();
+                        try
+                        {
+                            var client = clients.Admission(((string)act[2]).Substring("renew:".Length)).ClientKey;
+                            store.Delete(StoreComposer.IdentifierOf(key, "version", RenewalText.ObjectOf(client), 0, Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N")));
+                        }
+                        finally
+                        {
+                            Array.Clear(key, 0, key.Length);
+                        }
+                    }
+
+                    return true;
+                case "Write text out of form":
+                    OutOfForm(store, clients.Admission((string)act[2]).ClientKey, where);
+                    return true;
+                case "Delete by hand":
+                    DeletedNewest(store, (JArray)act[2], (int)act[3] == 1, clients, where);
+                    return true;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(command), command, "a command this test does not play");
+            }
+        }
+
+        /// <summary>
+        /// A refusal or a lift, given only where the copy's reading asks or refuses at its clock,
+        /// naming what a dialog showed where one was shown and what the reading holds otherwise.
+        /// </summary>
+        private static bool Answered(MemoryStore store, JArray act, string command, Clients clients, DateTimeOffset now, Dictionary<string, RenewalStanding> shown, string where)
+        {
+            var client = clients.Admission((string)act[2]).ClientKey;
+            StoreAct answer;
+            using (var reading = store.Read())
+            {
+                var standing = StoredRenewals.Of(reading.InForce, client);
+                RenewalStanding seen;
+                if (!shown.TryGetValue(client, out seen))
+                {
+                    seen = standing;
+                }
+
+                // Given only where what the dialog showed asks, and lifted only where what the
+                // page showed refuses, at the copy's clock.
+                shown.Remove(client);
+                var lift = command == "Allow renewal";
+                if (seen.Refuses(now) != lift)
+                {
+                    return false;
+                }
+
+                if (lift)
+                {
+                    answer = RenewalActs.Lift(reading, client, seen.Standing, seen.Lost);
+                }
+                else
+                {
+                    var text = (string)act[3];
+                    var refusal = text == "forever" ? RenewalRefusal.Forever() : RenewalRefusal.Until(Until(text));
+                    string refused;
+                    answer = RenewalActs.Refuse(reading, client, refusal, seen.Standing, out refused);
+                    Assert.That(answer, Is.Not.Null, where + ": " + refused);
+                }
+            }
+
+            if (answer == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                var done = store.Write(new[] { answer });
+                Assert.That(done.Taken, Is.True, where + ": " + done.Reason);
+            }
+            finally
+            {
+                answer.Forget();
+            }
+
+            return true;
+        }
+
+        /// <summary>The moment of the model's `until1` and `until2`: the earlier and the later.</summary>
+        private static DateTimeOffset Until(string text)
+        {
+            return DateTimeOffset.Parse(
+                text == "until1" ? "2026-12-14T23:00:00Z" : "2027-03-31T22:00:00Z",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AdjustToUniversal);
+        }
+
+        /// <summary>
+        /// A version of the client's answer whose text is out of form, written as somebody holding
+        /// the store key writes it, with a summary entry restating it.
+        /// </summary>
+        private static void OutOfForm(MemoryStore store, string client, string where)
+        {
+            StoreAct act;
+            using (var reading = store.Read())
+            {
+                var key = (byte[])reading.InForce.Key.Bytes.Clone();
+                try
+                {
+                    var members = new Dictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        { StoreKinds.ObjectMember, RenewalText.ObjectOf(client) },
+                        { StoreKinds.After, string.Empty },
+                        { StoreKinds.Doc, RenewalText.UntilStart + "2026-12-15" },
+                    };
+                    act = new StoreAct("a text out of form", key, reading.InForce.Key.Name, new[] { StoreRecord.Compose(key, StoreKinds.Version, members) }, null);
+                }
+                finally
+                {
+                    Array.Clear(key, 0, key.Length);
+                }
+            }
+
+            try
+            {
+                var done = store.Write(new[] { act });
+                Assert.That(done.Taken, Is.True, where + ": " + done.Reason);
+            }
+            finally
+            {
+                act.Forget();
+            }
+        }
+
+        /// <summary>
+        /// The newest summary entry, or the newest version of a client's answer, deleted for good,
+        /// with a deletion record or with none.
+        /// </summary>
+        private static void DeletedNewest(MemoryStore store, JArray what, bool recorded, Clients clients, string where)
+        {
+            string hex;
+            using (var reading = store.Read())
+            {
+                if ((string)what[0] == "head")
+                {
+                    var top = reading.InForce.Heads.Max(head => head.Form.Number);
+                    var newest = reading.InForce.Heads.Where(head => head.Form.Number == top).ToList();
+                    Assert.That(newest, Has.Count.EqualTo(1), where + ": a single newest summary entry");
+                    hex = newest[0].Hex;
+                }
+                else
+                {
+                    var client = clients.Admission(((string)what[1]).Substring("renew:".Length)).ClientKey;
+                    var versions = StoredRenewals.Of(reading.InForce, client).Standing;
+                    Assert.That(versions, Has.Count.EqualTo(1), where + ": a single standing version, which is the newest");
+                    hex = versions[0];
+                }
+            }
+
+            store.Drop(hex);
+            if (recorded)
+            {
+                store.Delete(StoreComposer.BytesOf(hex));
+            }
+        }
+
+        /// <summary>The answer about each client the model answers for after a step, and the versions of answers present.</summary>
+        private static void AssertAnswers(JToken step, MemoryStore store, Dictionary<string, string> keys, List<string> moments, string where)
+        {
+            using (var reading = store.Read())
+            {
+                var status = (string)step["answer"]["status"];
+                Assert.That(reading.State, Is.EqualTo(status == "ok" ? StoreState.Whole : StoreState.Stopped), where + ": " + reading.Reason);
+                foreach (var answered in (JObject)step["answer"]["renewals"])
+                {
+                    var expected = (JObject)answered.Value;
+                    var standing = StoredRenewals.Of(reading.InForce, keys[answered.Key]);
+                    var value = standing.Answer == null ? "ask" : standing.Answer.NotBefore.HasValue ? "until:" + Moments.Wire(standing.Answer.NotBefore.Value) : "forever";
+                    Assert.That(value, Is.EqualTo((string)expected["value"]), where + ": the answer");
+                    Assert.That(standing.Cause.ToString().ToLowerInvariant(), Is.EqualTo((string)expected["cause"]), where + ": the cause");
+                    Assert.That(standing.Standing.Count, Is.EqualTo(((JArray)expected["standing"]).Count), where + ": the versions that stand");
+                    Assert.That(standing.Lost.Count, Is.EqualTo(((JArray)expected["lost"]).Count), where + ": the versions lost");
+                    foreach (var moment in moments)
+                    {
+                        Assert.That(
+                            standing.Refuses(DateTimeOffset.Parse(moment, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal)),
+                            Is.EqualTo((bool)expected["refuses"][moment]),
+                            where + ": refused at " + moment);
+                    }
+                }
+
+                var present = reading.InForce.Records.Count(record => record.Is(StoreKinds.Version)
+                                                                   && record.Form.Member(StoreKinds.ObjectMember).StartsWith("renew:", StringComparison.Ordinal));
+                var modelPresent = ((JArray)step["present"]).Count(item => (string)item["kind"] == "version"
+                                                                         && ((string)item["object"]).StartsWith("renew:", StringComparison.Ordinal));
+                Assert.That(present, Is.EqualTo(modelPresent), where + ": the versions of answers present");
+            }
+        }
+
         /// <summary>
         /// The sequences of rules, the writes above among them, and those of the lost versions a
         /// version settles, by name.
@@ -1274,6 +1576,24 @@ namespace KeePassGate.Tests
                 if (File.Exists(path))
                 {
                     return JObject.Parse(File.ReadAllText(path));
+                }
+            }
+
+            throw new FileNotFoundException("tests/Shared/StoreWriteVectors.json is not above the test's directory");
+        }
+
+        /// <summary>The vectors read with every member that looks like a date kept as the text it is.</summary>
+        private static JObject VectorsAsText()
+        {
+            for (var at = new DirectoryInfo(TestContext.CurrentContext.TestDirectory); at != null; at = at.Parent)
+            {
+                var path = Paths.Join(at.FullName, "tests", "Shared", "StoreWriteVectors.json");
+                if (File.Exists(path))
+                {
+                    using (var reader = new Newtonsoft.Json.JsonTextReader(new StringReader(File.ReadAllText(path))) { DateParseHandling = Newtonsoft.Json.DateParseHandling.None })
+                    {
+                        return JObject.Load(reader);
+                    }
                 }
             }
 

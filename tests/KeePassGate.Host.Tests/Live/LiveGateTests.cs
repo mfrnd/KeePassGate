@@ -21,7 +21,7 @@ namespace KeePassGate.Host.Tests.Live
     /// exactly as the design says: possession of the file is possession of the authority.
     ///
     /// What it proves that the loopback tests cannot: that the plugin starts a listener inside
-    /// KeePass, finds the open database, reads its authority out of custom data, and serves with a
+    /// KeePass, finds the open database, reads its authority out of its store, and serves with a
     /// certificate whose private key came back out of a KDBX file.
     /// </remarks>
     [TestFixture]

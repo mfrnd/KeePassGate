@@ -149,14 +149,12 @@ namespace KeePassGate.Tests
             {
                 panel.CreateAuthority();
                 var before = _database.MarkedModifiedCount;
-                var keys = System.Linq.Enumerable.Count(_database.Values.Keys);
                 var writes = _database.Records.Writes;
 
                 panel.InviteClient();
 
                 Assert.That(_database.MarkedModifiedCount, Is.EqualTo(before),
                     "an invitation is not a change to the file");
-                Assert.That(System.Linq.Enumerable.Count(_database.Values.Keys), Is.EqualTo(keys));
                 Assert.That(_database.Records.Writes, Is.EqualTo(writes), "nor to the plugin's store");
             }
         }

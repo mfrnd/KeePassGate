@@ -392,7 +392,7 @@ namespace KeePassGate.Host.Tests
 
             Assert.That(tries, Is.Zero, "an answer no later try can make right is not tried again");
             Assert.That(log.Lines, Has.None.Contains("could not be kept"), "nor logged as an error");
-            Assert.That(_prompt.Told, Does.Contain(AuthorityKeys.Shown(_candidates[1])),
+            Assert.That(_prompt.Told, Does.Contain(AuthorityShown.Of(_candidates[1])),
                 "the operator is told which authority is served");
             Assert.That(_prompt.Told, Does.Not.Contain("Nothing is served"));
 

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Authority;
+using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Ui;
@@ -13,165 +14,38 @@ namespace KeePassGate.Tests
     /// What the KPG tab holds until the dialog it is on is accepted.
     /// </summary>
     /// <remarks>
-    /// **This reverses a decision.** Every button on that tab used to write at once, which was safe,
-    /// because KeePass's database settings dialog keeps no copy of this plugin's custom data and
-    /// therefore never undid any of it. It was still wrong: a dialog with OK and Cancel on it says
-    /// nothing has happened yet. What these settle is that Cancel now means Cancel, that OK writes
-    /// exactly what was waiting, and that neither one disturbs a key nobody touched.
+    /// **This reverses a decision.** Every button on that tab wrote at once, and that was wrong:
+    /// a dialog with OK and Cancel on it tells that nothing has happened yet. What these settle is that
+    /// Cancel means Cancel, that OK writes exactly what was waiting into the plugin's store, and
+    /// that neither one disturbs what landed under the dialog.
     /// </remarks>
     [TestFixture]
     public sealed class PendingChangesTests
     {
         [Test]
-        public void An_OK_holding_a_name_and_a_lifted_standing_answer_writes_both_and_the_log_names_the_name()
+        public void An_OK_holding_a_name_and_a_lift_writes_both_and_the_log_names_each()
         {
-            // The names are the plugin's store's and the standing answers the custom data's: a
-            // single OK writes each where it is kept, and the log names an act about a name by the
-            // name, `STORE.md` §616, where the audit holds no line for it.
+            // The names and the standing answers are both the plugin's store's: a single OK writes
+            // them in a single write, and the log names an act about a name by the name and a lift
+            // by its client, `STORE.md` §616 and §618, where the audit holds no line for either.
             var live = new FakeGateDatabase();
             StoreSeeds.Authority(live.Store);
-            live.Values.Set("KPG.RenewalRefused.aaa", "forever");
+            var client = new string('a', 64);
+            StoreSeeds.Refuse(live.Store, client, RenewalRefusal.Forever());
             var log = new RecordingGateLog();
             var pending = new PendingDatabase(live, log);
 
             Assert.That(new DatabaseProfiles(pending, null).Add("ops"), Is.Null);
-            pending.PluginCustomData.Remove("KPG.RenewalRefused.aaa");
+            Assert.That(Lift(pending, client), Is.Null);
             Assert.That(pending.ProfilesWaiting, Is.True);
 
             Assert.That(pending.Apply(), Is.True);
 
-            using (var reading = live.Records.Read())
-            {
-                Assert.That(ProfileNames.Of(reading).Names, Is.EqualTo(new[] { "ops" }));
-            }
-
-            Assert.That(live.Values.Get("KPG.RenewalRefused.aaa"), Is.Null);
+            Assert.That(NamesOf(live), Is.EqualTo(new[] { "ops" }));
+            Assert.That(AnswerOf(live, client), Is.Null, "the lift landed");
             Assert.That(log.Entries.Any(entry => entry.Message.Contains(ProfileActs.AddName + " ops")), Is.True);
+            Assert.That(log.Entries.Any(entry => entry.Message.Contains(RenewalActs.LiftName + " " + CertificateDigest.Shorten(client))), Is.True);
             Assert.That(pending.ProfilesWaiting, Is.False);
-        }
-
-        [Test]
-        public void Nothing_written_reaches_the_store_until_it_is_applied()
-        {
-            var live = new InMemoryKeyValueStore();
-            var pending = new PendingStore(live);
-
-            pending.Set("KPG.Thing", "a value");
-
-            Assert.That(live.Get("KPG.Thing"), Is.Null, "the store was told");
-            Assert.That(pending.Get("KPG.Thing"), Is.EqualTo("a value"),
-                "and the page cannot see what it just did");
-            Assert.That(pending.Waiting, Is.True);
-
-            Assert.That(pending.Apply(), Is.True);
-
-            Assert.That(live.Get("KPG.Thing"), Is.EqualTo("a value"));
-            Assert.That(pending.Waiting, Is.False);
-        }
-
-        [Test]
-        public void What_is_discarded_never_happened()
-        {
-            var live = new InMemoryKeyValueStore();
-            live.Set("KPG.Thing", "as it was");
-
-            var pending = new PendingStore(live);
-            pending.Set("KPG.Thing", "as it would have been");
-            pending.Remove("KPG.Other");
-            pending.Discard();
-
-            Assert.That(live.Get("KPG.Thing"), Is.EqualTo("as it was"));
-            Assert.That(pending.Get("KPG.Thing"), Is.EqualTo("as it was"));
-            Assert.That(pending.Waiting, Is.False);
-        }
-
-        [Test]
-        public void A_key_removed_here_is_gone_from_what_the_page_reads()
-        {
-            var live = new InMemoryKeyValueStore();
-            live.Set("KPG.Test.aaaa", "a record");
-            live.Set("KPG.Test.bbbb", "another");
-
-            var pending = new PendingStore(live);
-            pending.Remove("KPG.Test.aaaa");
-
-            Assert.That(pending.Get("KPG.Test.aaaa"), Is.Null);
-            Assert.That(pending.Keys, Is.EqualTo(new[] { "KPG.Test.bbbb" }));
-            Assert.That(live.Get("KPG.Test.aaaa"), Is.Not.Null, "and still there until OK");
-
-            pending.Apply();
-
-            Assert.That(live.Get("KPG.Test.aaaa"), Is.Null);
-        }
-
-        [Test]
-        public void Writing_a_value_that_is_already_there_changes_nothing()
-        {
-            // `StringDictionaryEx.Set` stamps a fresh modification time even when the text is
-            // identical, which is how looking at a tab comes to leave a database wanting to be
-            // saved. The comparison happens at the end, against whatever the store holds then.
-            var live = new InMemoryKeyValueStore();
-            live.Set("KPG.Thing", "a value");
-
-            var pending = new PendingStore(live);
-            pending.Set("KPG.Thing", "a value");
-
-            Assert.That(pending.Apply(), Is.False);
-        }
-
-        [Test]
-        public void Removing_a_key_that_is_not_there_changes_nothing()
-        {
-            var live = new InMemoryKeyValueStore();
-            var pending = new PendingStore(live);
-
-            pending.Remove("KPG.Thing");
-
-            Assert.That(pending.Apply(), Is.False);
-        }
-
-        [Test]
-        public void A_key_nobody_touched_is_left_exactly_as_it_is()
-        {
-            // The one that keeps a pairing alive. A record written to the live database while the
-            // settings dialog was open belongs to a client that was admitted, and writing a whole
-            // snapshot back over it would be this plugin doing to itself what KeePass's group
-            // dialog does to it.
-            var live = new InMemoryKeyValueStore();
-            live.Set("KPG.Test.aaaa", "a record");
-
-            var pending = new PendingStore(live);
-            pending.Set("KPG.Test.cccc", "an edit on the dialog");
-
-            // A pairing lands while the operator is still reading the dialog.
-            live.Set("KPG.Test.bbbb", "a record written meanwhile");
-
-            pending.Apply();
-
-            Assert.That(live.Get("KPG.Test.bbbb"), Is.EqualTo("a record written meanwhile"));
-            Assert.That(live.Get("KPG.Test.aaaa"), Is.EqualTo("a record"));
-            Assert.That(live.Get("KPG.Test.cccc"), Is.EqualTo("an edit on the dialog"));
-        }
-
-        [Test]
-        public void What_OK_took_away_is_listed_and_a_cancel_lists_nothing()
-        {
-            // So that what a lift landed can be logged as it lands, rather than at the press.
-            var live = new InMemoryKeyValueStore();
-            live.Set("KPG.RenewalRefused.aaa", "forever");
-            live.Set("KPG.RenewalRefused.bbb", "forever");
-            var pending = new PendingDatabase(new FakeGateDatabase(live), null);
-
-            pending.PluginCustomData.Remove("KPG.RenewalRefused.aaa");
-            pending.PluginCustomData.Remove("KPG.Nothing.There");
-            pending.PluginCustomData.Set("KPG.Written", "x");
-
-            Assert.That(pending.Apply(), Is.True);
-
-            Assert.That(pending.Taken, Is.EqualTo(new[] { "KPG.RenewalRefused.aaa" }), "a removal of nothing took nothing");
-
-            pending.Discard();
-            Assert.That(pending.Taken, Is.Empty);
         }
 
         [TestCase(false)]
@@ -190,8 +64,8 @@ namespace KeePassGate.Tests
             using (var other = authority.IssueClient("agent-invented", "ops"))
             {
                 var store = new Admissions(live);
-                store.Write(AdmissionRecord.For(leaving, System.DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
-                store.Write(AdmissionRecord.For(other, System.DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
+                store.Write(AdmissionRecord.For(leaving, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
+                store.Write(AdmissionRecord.For(other, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
 
                 var pending = new PendingDatabase(live, null);
                 var page = new Admissions(pending);
@@ -215,30 +89,29 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_standing_answer_that_lands_after_the_press_goes_with_the_revocation_at_OK()
+        public void A_standing_answer_that_lands_after_a_revocation_is_pressed_stays_at_OK()
         {
             // A renewal the operator refuses forever writes its answer live while the dialog is
-            // open. OK asks again over what it wrote, so the file is left with no answer about a
-            // certificate no admission names, whichever came first, `STORE.md` §618.
+            // open. Nothing is removed for a client that is revoked, `STORE.md` §618: the answer
+            // stays in the store beside the revocation, refusing what the revocation refuses too.
             var live = new FakeGateDatabase();
             StoreSeeds.Authority(live.Store);
             using (var authority = TestAuthority.New())
             using (var client = authority.IssueClient("agent-fictitious", "ops"))
             {
                 var store = new Admissions(live);
-                store.Write(AdmissionRecord.For(client, System.DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
+                store.Write(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
                 var key = CertificateDigest.Of(client);
 
                 var pending = new PendingDatabase(live, null);
                 Assume.That(new Admissions(pending).Remove(key), Is.True);
 
-                store.Answers.RefuseRenewal(key, RenewalRefusal.Forever());
-                Assume.That(live.Values.Get(AuthorityKeys.RenewalRefusalKey(key)), Is.Not.Null);
+                store.Refuse(key, RenewalRefusal.Forever());
 
                 pending.Apply();
 
                 Assert.That(store.Find(key), Is.Null, "the revocation landed");
-                Assert.That(live.Values.Get(AuthorityKeys.RenewalRefusalKey(key)), Is.Null, "and the answer went with it");
+                Assert.That(store.Answer(key).IsForever, Is.True, "and the answer stays");
             }
         }
 
@@ -251,7 +124,7 @@ namespace KeePassGate.Tests
             using (var authority = TestAuthority.New())
             using (var other = authority.IssueClient("agent-invented", "ops"))
             {
-                new Admissions(live).Write(AdmissionRecord.For(other, System.DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
+                new Admissions(live).Write(AdmissionRecord.For(other, DateTimeOffset.UtcNow, new[] { "ops" }, InventedIssuer.Id));
                 var client = CertificateDigest.Of(other);
 
                 var dropped = new PendingDatabase(live, null);
@@ -273,44 +146,12 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_key_with_no_second_writer_is_replayed_rather_than_merged()
-        {
-            // Reconciling is per key, because every other key on this tab has one writer and a
-            // merge there could only ever invent a conflict.
-            var live = new InMemoryKeyValueStore();
-            live.Set("KPG.Thing", "as it was");
-
-            var pending = new PendingStore(live);
-            pending.Set("KPG.Thing", "as the operator left it");
-
-            live.Set("KPG.Thing", "as somebody else left it");
-
-            pending.Apply();
-
-            Assert.That(live.Get("KPG.Thing"), Is.EqualTo("as the operator left it"));
-        }
-
-        [Test]
-        public void Setting_a_key_after_removing_it_puts_it_back()
-        {
-            var live = new InMemoryKeyValueStore();
-            live.Set("KPG.Thing", "as it was");
-
-            var pending = new PendingStore(live);
-            pending.Remove("KPG.Thing");
-            pending.Set("KPG.Thing", "as it is now");
-            pending.Apply();
-
-            Assert.That(live.Get("KPG.Thing"), Is.EqualTo("as it is now"));
-        }
-
-        [Test]
         public void A_database_is_marked_when_something_lands_and_not_before()
         {
-            var inner = new FakeGateDatabase { Nodes = new TestRuledNodes() };
+            var inner = Keyed();
             var pending = new PendingDatabase(inner, null);
 
-            pending.PluginCustomData.Set("KPG.Thing", "a value");
+            Assert.That(new DatabaseProfiles(pending, null).Add("ops"), Is.Null);
             pending.MarkModified();
 
             Assert.That(inner.MarkedModifiedCount, Is.Zero, "marked for a change that has not landed");
@@ -319,7 +160,7 @@ namespace KeePassGate.Tests
             Assert.That(pending.Apply(), Is.True);
 
             Assert.That(inner.MarkedModifiedCount, Is.EqualTo(1));
-            Assert.That(inner.Values.Get("KPG.Thing"), Is.EqualTo("a value"));
+            Assert.That(NamesOf(inner), Is.EqualTo(new[] { "ops" }));
         }
 
         [Test]
@@ -338,15 +179,15 @@ namespace KeePassGate.Tests
         [Test]
         public void Canceling_leaves_the_database_untouched_and_unmarked()
         {
-            var inner = new FakeGateDatabase { Nodes = new TestRuledNodes() };
+            var inner = Keyed();
             var pending = new PendingDatabase(inner, null);
 
-            pending.PluginCustomData.Set("KPG.Thing", "a value");
+            Assert.That(new DatabaseProfiles(pending, null).Add("ops"), Is.Null);
             pending.MarkModified();
 
             pending.Discard();
 
-            Assert.That(inner.Values.Get("KPG.Thing"), Is.Null);
+            Assert.That(NamesOf(inner), Is.Empty);
             Assert.That(inner.MarkedModifiedCount, Is.Zero);
             Assert.That(pending.Waiting, Is.False);
 
@@ -358,14 +199,15 @@ namespace KeePassGate.Tests
         {
             // A KeePass that locked or closed while the dialog was open. There is nothing to write
             // to and nothing to be done about it.
-            var inner = new FakeGateDatabase { Nodes = new TestRuledNodes() };
+            var inner = Keyed();
             var pending = new PendingDatabase(inner, null);
 
-            pending.PluginCustomData.Set("KPG.Thing", "a value");
+            Assert.That(new DatabaseProfiles(pending, null).Add("ops"), Is.Null);
             inner.IsOpen = false;
 
             Assert.That(pending.Apply(), Is.False);
-            Assert.That(inner.Values.Get("KPG.Thing"), Is.Null);
+            inner.IsOpen = true;
+            Assert.That(NamesOf(inner), Is.Empty);
             Assert.That(inner.MarkedModifiedCount, Is.Zero);
         }
 
@@ -374,182 +216,153 @@ namespace KeePassGate.Tests
         public void A_standing_answer_lifted_on_the_tab_goes_at_OK_and_stays_on_Cancel(bool accepted)
         {
             // M001: Allow renewal waits for the dialog's OK, as a revocation does.
-            var live = new InMemoryKeyValueStore();
+            var live = Keyed();
             var key = new string('a', 64);
-            new RenewalAnswers(live, null).RefuseRenewal(key, RenewalRefusal.Forever());
+            StoreSeeds.Refuse(live.Store, key, RenewalRefusal.Forever());
 
-            var pending = new PendingDatabase(new FakeGateDatabase(live), null);
-            Assert.That(new RenewalAnswers(pending.PluginCustomData, null).LiftRenewalRefusal(key), Is.True);
-            Assert.That(new RenewalAnswers(pending.PluginCustomData, null).StandingRefusal(key), Is.Null,
-                "the page reads it as gone at once");
-            Assert.That(live.Get(AuthorityKeys.RenewalRefusalKey(key)), Is.Not.Null, "and the gate still refuses");
+            var pending = new PendingDatabase(live, null);
+            Assert.That(Lift(pending, key), Is.Null);
+            Assert.That(AnswerOf(pending, key), Is.Null, "the page reads it as lifted at once");
+            Assert.That(AnswerOf(live, key).IsForever, Is.True, "and the gate still refuses");
 
             if (accepted)
             {
                 Assert.That(pending.Apply(), Is.True);
-                Assert.That(live.Get(AuthorityKeys.RenewalRefusalKey(key)), Is.Null);
+                Assert.That(AnswerOf(live, key), Is.Null);
             }
             else
             {
                 pending.Discard();
-                Assert.That(live.Get(AuthorityKeys.RenewalRefusalKey(key)), Is.EqualTo(RenewalRefusal.ForeverValue));
+                Assert.That(AnswerOf(live, key).IsForever, Is.True);
             }
         }
 
-        [Test]
-        public void An_answer_given_again_while_the_dialog_is_open_outlasts_the_lift_at_OK()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void An_answer_given_under_the_dialog_that_the_press_was_not_shown_outlasts_the_lift_at_OK(bool passed)
         {
             // The until-date passed while the settings dialog was open, the next renewal raised its
-            // dialog, and the operator refused it forever there. That is the later word on the
-            // certificate, and replaying the tab's removal over it would throw it away.
-            var live = new InMemoryKeyValueStore();
+            // dialog, and a copy merged in brought a refusal made apart, forever or until a moment
+            // that has passed. The lift names what the page showed at the press and nothing else,
+            // so the refusal stands beside it, `STORE.md` §627, and OK warns of it, whatever the
+            // clock reads.
+            var live = Keyed();
             var key = new string('b', 64);
-            var store = new RenewalAnswers(live, null);
-            store.RefuseRenewal(key, RenewalRefusal.Until(System.DateTimeOffset.UtcNow.AddDays(1)));
+            StoreSeeds.Refuse(live.Store, key, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(1)));
 
-            var pending = new PendingDatabase(new FakeGateDatabase(live), null);
-            Assume.That(new RenewalAnswers(pending.PluginCustomData, null).LiftRenewalRefusal(key), Is.True);
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            Assume.That(Lift(pending, key), Is.Null);
 
-            store.RefuseRenewal(key, RenewalRefusal.Forever());
+            // Made apart, as a copy merged in brings it: it names nothing the press was shown.
+            var given = passed ? RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(-1)) : RenewalRefusal.Forever();
+            using (var reading = live.Store.Read())
+            {
+                string refused;
+                var apart = RenewalActs.Refuse(reading, key, given, Array.Empty<string>(), out refused);
+                Assume.That(live.Store.Write(new[] { apart }).Taken, Is.True, refused);
+                apart.Forget();
+            }
 
-            Assert.That(new RenewalAnswers(pending.PluginCustomData, null).StandingRefusal(key).IsForever, Is.True,
-                "the page shows the newer answer while the dialog is still open");
+            Assert.That(AnswerOf(pending, key).IsForever, Is.EqualTo(!passed),
+                "the page shows the answer given since while the dialog is still open");
 
             pending.Apply();
 
-            Assert.That(live.Get(AuthorityKeys.RenewalRefusalKey(key)), Is.EqualTo(RenewalRefusal.ForeverValue));
+            Assert.That(AnswerOf(live, key), Is.Not.Null, "the answer made apart stands");
+            Assert.That(log.Warnings.Select(entry => entry.Message),
+                Has.Some.Contains("an answer the press was not shown still stands"));
+        }
+
+        [Test]
+        public void A_lift_whose_answer_was_replaced_under_the_dialog_writes_nothing_and_the_log_names_the_press()
+        {
+            // The renewal dialog answered the client again, naming the very version the press was
+            // shown: the lift has nothing left to name, comes to nothing, and the refusal stands.
+            var live = Keyed();
+            var key = new string('c', 64);
+            StoreSeeds.Refuse(live.Store, key, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(1)));
+
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            Assume.That(Lift(pending, key), Is.Null);
+
+            StoreSeeds.Refuse(live.Store, key, RenewalRefusal.Forever());
+
+            Assert.That(pending.Apply(), Is.False, "nothing was written");
+            Assert.That(AnswerOf(live, key).IsForever, Is.True);
+            Assert.That(log.Warnings.Select(entry => entry.Message),
+                Has.Some.Contains("every answer to the client's renewals that the press was shown was replaced since"));
         }
 
         [Test]
         public void A_session_answer_lifted_on_the_tab_is_lifted_at_OK_and_kept_on_Cancel()
         {
-            // An answer for this session is the plugin's memory and no key in the database, so
-            // what holds the lift back until OK is a buffer of its own beside the database's.
+            // An answer for this session is the plugin's memory and no record in the database, so
+            // what holds the lift back until OK is a buffer of its own beside the store's.
+            var one = new string('1', 64);
+            var two = new string('2', 64);
             var session = new KeePassGate.Pairing.SessionRefusals();
-            session.Refuse("one");
+            session.Refuse(one);
 
             var canceled = new PendingSessionRefusals(session);
-            Assert.That(canceled.Lift("one"), Is.True);
-            Assert.That(canceled.Holds("one"), Is.False, "the page reads it as lifted at once");
-            Assert.That(session.Refuses("one"), Is.True, "and the gate still refuses");
+            Assert.That(canceled.Lift(one), Is.True);
+            Assert.That(canceled.Answer(one), Is.Null, "the page reads it as lifted at once");
+            Assert.That(session.Refuses(one), Is.True, "and the gate still refuses");
             canceled.Discard();
-            Assert.That(session.Refuses("one"), Is.True, "Cancel leaves it standing");
+            Assert.That(session.Refuses(one), Is.True, "Cancel leaves it standing");
 
             var accepted = new PendingSessionRefusals(session);
-            Assert.That(accepted.Lift("two"), Is.False, "nothing stands for that certificate");
-            Assert.That(accepted.Lift("one"), Is.True);
-            Assert.That(accepted.Apply(), Is.EqualTo(new[] { "one" }));
-            Assert.That(session.Refuses("one"), Is.False, "OK lifts it");
+            Assert.That(accepted.Lift(two), Is.False, "nothing stands for that client");
+            Assert.That(accepted.Lift(one), Is.True);
+            Assert.That(accepted.Apply(), Is.EqualTo(new[] { one }));
+            Assert.That(session.Refuses(one), Is.False, "OK lifts it");
         }
 
-        [Test]
-        public void An_answer_owed_to_the_database_is_shown_and_lifted_as_the_session_one_is()
+        /// <summary>A database whose store holds an authority, and so a key to write under.</summary>
+        private static FakeGateDatabase Keyed()
         {
-            // Refused forever while KeePass was busy: the answer holds from memory until the
-            // plugin's next write takes it into the database, and the page shows and lifts it as
-            // it does one for this session, since the gate answers from the same memory.
-            var session = new KeePassGate.Pairing.SessionRefusals();
-            session.Owe("db", "one", RenewalRefusal.Forever(), null);
-
-            var pending = new PendingSessionRefusals(session);
-            var now = DateTimeOffset.UtcNow;
-            Assert.That(pending.Answer("one", now).IsForever, Is.True);
-
-            Assert.That(pending.Lift("one"), Is.True);
-            Assert.That(pending.Answer("one", now), Is.Null, "the page reads it as lifted at once");
-            Assert.That(session.Answer("one", now), Is.Not.Null, "and the gate still refuses");
-
-            pending.Apply();
-            Assert.That(session.Answer("one", now), Is.Null, "OK lifts it");
-            Assert.That(session.Owed(), Is.Empty, "and nothing is owed to the database any more");
+            var live = new FakeGateDatabase { Nodes = new TestRuledNodes() };
+            StoreSeeds.Authority(live.Store);
+            return live;
         }
 
-        [Test]
-        public void An_owed_answer_lifted_on_the_page_is_held_back_from_writes_until_OK_or_Cancel()
+        /// <summary>
+        /// Allow renewal pressed for a client, as the clients page presses it: a lift naming what
+        /// the store read through the buffer shows, held for OK; answers why not, or null.
+        /// </summary>
+        private static string Lift(PendingDatabase pending, string client)
         {
-            var now = DateTimeOffset.UtcNow;
-            var session = new KeePassGate.Pairing.SessionRefusals();
-            session.Owe("db", "one", RenewalRefusal.Forever(), null);
+            StoreAct act;
+            using (var reading = pending.Store.Read())
+            {
+                var standing = StoredRenewals.Of(reading.InForce, client);
+                act = RenewalActs.Lift(reading, client, standing.Standing, standing.Lost);
+            }
 
-            var canceled = new PendingSessionRefusals(session);
-            Assert.That(canceled.Lift("one"), Is.True);
-            Assert.That(session.Owed(), Is.Empty, "no write takes it while the lift waits for OK");
-            Assert.That(session.Answer("one", now).IsForever, Is.True, "and the gate still refuses");
-            canceled.Discard();
-            Assert.That(session.Owed(), Has.Count.EqualTo(1), "Cancel gives it back to the next write");
+            if (act == null)
+            {
+                return "nothing to lift";
+            }
 
-            var accepted = new PendingSessionRefusals(session);
-            Assert.That(accepted.Lift("one"), Is.True);
-            session.Owe("db", "one", RenewalRefusal.Until(now.AddDays(3)), null);
-            accepted.Apply();
-
-            Assert.That(session.Owed(), Has.Count.EqualTo(1),
-                "an answer given on a renewal dialog since the press is newer than the lift, and stands");
-            Assert.That(session.Owed()[0].Refusal.IsForever, Is.False);
+            var written = pending.Store.Write(new[] { act });
+            return written.Taken ? null : written.Reason;
         }
 
-        [Test]
-        public void A_refusal_for_this_session_given_since_the_press_survives_OK()
+        private static RenewalRefusal AnswerOf(IGateDatabase database, string client)
         {
-            // Allow renewal pressed on an owed answer until a date: once the day begins the gate
-            // raises the renewal dialog again, and the operator refuses for this session there.
-            // That answer is newer than the press, which never saw it, so OK leaves it standing
-            // and the page shows it meanwhile.
-            var now = DateTimeOffset.UtcNow;
-            var session = new KeePassGate.Pairing.SessionRefusals();
-            session.Owe("db", "one", RenewalRefusal.Until(now.AddDays(-1)), null);
-
-            var pending = new PendingSessionRefusals(session);
-            Assert.That(pending.Lift("one"), Is.True);
-
-            session.Refuse("one");
-            Assert.That(pending.Answer("one", now).IsThisSession, Is.True, "the page shows the newer answer");
-
-            pending.Apply();
-
-            Assert.That(session.Refuses("one"), Is.True, "OK lifts what was pressed and nothing given since");
-            Assert.That(session.Owed(), Is.Empty, "while the owed answer the press lifted goes");
+            using (var reading = database.Store.Read())
+            {
+                return StoredRenewals.AnswerOf(reading.InForce, client);
+            }
         }
 
-        [Test]
-        public void An_owed_answer_given_since_the_press_is_shown_and_lifted_by_a_second_press()
+        private static string[] NamesOf(FakeGateDatabase live)
         {
-            // The day of the owed answer the press lifted begins, the renewal dialog is raised
-            // again, and the operator refuses forever while KeePass is busy.
-            var now = DateTimeOffset.UtcNow;
-            var session = new KeePassGate.Pairing.SessionRefusals();
-            session.Owe("db", "one", RenewalRefusal.Until(now.AddDays(-1)), null);
-
-            var pending = new PendingSessionRefusals(session);
-            Assert.That(pending.Lift("one"), Is.True);
-            Assert.That(pending.Answer("one", now), Is.Null);
-
-            session.Owe("db", "one", RenewalRefusal.Forever(), null);
-            Assert.That(pending.Answer("one", now).IsForever, Is.True, "the page shows the newer answer");
-            Assert.That(session.Owed(), Has.Count.EqualTo(1), "and nothing holds it back from a write");
-
-            Assert.That(pending.Lift("one"), Is.True, "so there is something to press again");
-            Assert.That(session.Owed(), Is.Empty);
-            pending.Apply();
-
-            Assert.That(session.Answer("one", now), Is.Null, "both presses land at OK");
-        }
-
-        [Test]
-        public void An_owed_answer_whose_day_has_begun_leaves_this_sessions_answer_showing()
-        {
-            // Answered whether or not it still refused, the owed answer stood in front of this
-            // session's, and the page let the passed date go and showed the client refused by
-            // nothing. It is still there to lift, since memory still holds it.
-            var now = DateTimeOffset.UtcNow;
-            var session = new KeePassGate.Pairing.SessionRefusals();
-            session.Owe("db", "one", RenewalRefusal.Until(now.AddDays(-1)), null);
-            session.Refuse("one");
-
-            var pending = new PendingSessionRefusals(session);
-
-            Assert.That(pending.Answer("one", now).IsThisSession, Is.True);
-            Assert.That(pending.Lift("one"), Is.True);
+            using (var reading = live.Records.Read())
+            {
+                return ProfileNames.Of(reading).Names.ToArray();
+            }
         }
     }
 }

@@ -1,5 +1,4 @@
 using System.Windows.Forms;
-using KeePassGate.Authority;
 
 namespace KeePassGate.Ui
 {
@@ -12,14 +11,8 @@ namespace KeePassGate.Ui
         bool IsOpen { get; }
 
         /// <summary>
-        /// The database's own custom data, where everything this plugin owns that belongs to the
-        /// database lives. A node's access rule is the exception, and lives on that node.
-        /// </summary>
-        IKeyValueStore PluginCustomData { get; }
-
-        /// <summary>
-        /// The plugin's store in the database, `STORE.md` §601: where its authority is kept, read
-        /// as it stands and written through the writer.
+        /// The plugin's store in the database, `STORE.md` §601: where everything the plugin keeps
+        /// in the database is kept, read as it stands and written through the writer.
         /// </summary>
         Store.IGateStore Store { get; }
 

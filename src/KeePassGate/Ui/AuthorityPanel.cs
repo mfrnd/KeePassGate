@@ -50,8 +50,8 @@ namespace KeePassGate.Ui
         /// saved. `GateTabFitsTests` is what fails when it grows back.
         ///
         /// **This sentence used to say the opposite**, and the reversal is the point. The tab wrote
-        /// at once, which was safe, because KeePass's settings dialog copies none of this plugin's
-        /// custom data and so never undid any of it. It was still wrong: a dialog with OK and
+        /// at once, which was safe, because KeePass's settings dialog copies nothing this plugin
+        /// writes and so never undid any of it. It was still wrong: a dialog with OK and
         /// Cancel on it says nothing has happened yet, and a tab inside one that has already
         /// happened is a tab lying about the buttons around it.
         ///
@@ -774,7 +774,7 @@ namespace KeePassGate.Ui
                 var reaches = Reaches(admitted, reading, DateTimeOffset.UtcNow);
 
                 DescribeAuthority(reading, stored, admitted, reaches);
-                DescribeClients(admitted, reaches, NamedProfiles(stored, reading != null));
+                DescribeClients(admitted, reaches, NamedProfiles(stored, reading != null), stored);
             }
         }
 
@@ -861,7 +861,9 @@ namespace KeePassGate.Ui
         /// <param name="named">
         /// The profiles the database names, from that reading: see <see cref="NamedProfiles"/>.
         /// </param>
-        private void DescribeClients(AdmissionListing admitted, IDictionary<string, ClientReach> reaches, ICollection<string> named)
+        /// <param name="stored">The redraw's reading of the store, which the answers are read from, or null.</param>
+        private void DescribeClients(
+            AdmissionListing admitted, IDictionary<string, ClientReach> reaches, ICollection<string> named, StoreReading stored)
         {
             // Apart from the first page's catch, because a tab that failed to describe its
             // authority and went on showing the clients it listed a minute ago would be lying about
@@ -884,7 +886,7 @@ namespace KeePassGate.Ui
                 var writable = _database == null || !_database.IsOpen || _database.Store.Unwritable == null;
                 _clients.Writable = writable;
                 _profiles.Writable = writable && admitted.Complete;
-                _clients.Fill(admitted, reaches, named, StandingAnswers(admitted, DateTimeOffset.UtcNow));
+                _clients.Fill(admitted, reaches, named, StandingAnswers(admitted, stored, DateTimeOffset.UtcNow));
 
                 // The profiles page only while it is the page in front. It counts every rule in the
                 // tree and every record, which on a large database is the slowest thing on the tab,
@@ -1899,12 +1901,12 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// What the list lifts a standing answer through: the answer is taken away in what the
-        /// dialog holds, and the tab is read again so the row shows what OK would leave.
+        /// What the list lifts a standing answer through: the lift is held in what the dialog
+        /// holds, and the tab is read again so the row shows what OK would leave.
         /// </summary>
-        private string AllowRenewalAndDescribe(string admissionKey)
+        private string AllowRenewalAndDescribe(string clientKey)
         {
-            var refused = AllowRenewal(admissionKey);
+            var refused = AllowRenewal(clientKey);
             if (refused == null)
             {
                 Describe();
@@ -1914,49 +1916,70 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Each listed client's standing answer to a renewal, asked as the gate asks it: the
-        /// database's first, then this session's. A client with none is absent, and so is one
-        /// whose day has come.
+        /// Each listed client's standing answer to its renewals, by client key, asked as the gate
+        /// asks it: the store's first, then this session's. A client with none is absent, and so
+        /// is one whose day has come.
         /// </summary>
         /// <remarks>
         /// **Read through what the dialog holds**, so an answer lifted on the page and waiting for
-        /// OK is already gone from it, and one the renewal dialog gave again meanwhile is back.
+        /// OK is already gone from it, and an answer the renewal dialog gave meanwhile that the
+        /// press was not shown is back, `STORE.md` §627.
         ///
-        /// **Nothing is logged here about a value that will not read.** It is answered as forever,
-        /// as the gate answers it, and the gate says so in the log every time it answers; this
-        /// runs on every redraw, and saying it again on each would bury the line that matters.
+        /// **Nothing is logged here about an answer that is lost or does not read.** Each refuses
+        /// forever, as the gate answers it, and the gate names the cause in the log every time it
+        /// answers; this runs on every redraw, and telling it again on each would bury the line
+        /// that matters.
         ///
-        /// Public, and given the moment, like `Reaches`: what the page shows beside each client is
-        /// a decision worth testing without a control tree to walk.
+        /// Public, and given the moment, like `Reaches`: what the page shows on each client's row
+        /// is a decision worth testing without a control tree to walk.
         /// </remarks>
-        public IDictionary<string, RenewalRefusal> StandingAnswers(AdmissionListing admitted, DateTimeOffset now)
+        public IDictionary<string, ClientAnswer> StandingAnswers(AdmissionListing admitted, DateTimeOffset now)
         {
-            var answers = new Dictionary<string, RenewalRefusal>(StringComparer.Ordinal);
+            return StandingAnswers(admitted, null, now);
+        }
+
+        /// <summary>The same, from a reading of the store the caller holds, or from a reading of its own where it holds none.</summary>
+        private IDictionary<string, ClientAnswer> StandingAnswers(AdmissionListing admitted, StoreReading stored, DateTimeOffset now)
+        {
+            var answers = new Dictionary<string, ClientAnswer>(StringComparer.Ordinal);
             if (_database == null || !_database.IsOpen || admitted == null)
+            {
+                return answers;
+            }
+
+            var clients = admitted.Records.Select(record => record.ClientKey).Where(CertificateDigest.IsDigest)
+                .Distinct(StringComparer.Ordinal).ToList();
+            if (clients.Count == 0)
             {
                 return answers;
             }
 
             try
             {
-                var store = new RenewalAnswers(_database.PluginCustomData, NullGateLog.Instance);
-                foreach (var record in admitted.Records)
+                using (var own = stored == null ? _database.Store.Read() : null)
                 {
-                    var standing = store.StandingRefusal(record.AdmissionKey);
-                    if (standing == null || !standing.Refuses(now))
+                    var reading = stored ?? own;
+                    foreach (var client in clients)
                     {
-                        standing = _sessionRefusals == null ? null : _sessionRefusals.Answer(record.AdmissionKey, now);
-                    }
+                        var answer = StoredRenewals.Of(reading.InForce, client);
+                        if (answer.Refuses(now))
+                        {
+                            answers[client] = new ClientAnswer(
+                                answer.Answer, answer.Cause == RenewalCause.Lost, answer.Cause == RenewalCause.Unreadable);
+                            continue;
+                        }
 
-                    if (standing != null)
-                    {
-                        answers[record.AdmissionKey] = standing;
+                        var session = _sessionRefusals == null ? null : _sessionRefusals.Answer(client);
+                        if (session != null)
+                        {
+                            answers[client] = new ClientAnswer(session, false, false);
+                        }
                     }
                 }
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
-                // Shown as none rather than guessed at: the gate reads the same key when it is
+                // Shown as none rather than guessed at: the gate reads the same store when it is
                 // asked, and answers from what it finds there, which this page cannot change.
                 _log.Warn("the standing answers to renewals could not be read: " + error.Message);
             }
@@ -1965,25 +1988,30 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Lift the standing answer to renewing one certificate, whichever it is, so that its next
-        /// renewal raises the dialog again. Answers with why it could not, or null when it did.
+        /// Lift every standing answer that refuses a client's renewals, so that its next renewal
+        /// raises the dialog again. Answers with why it could not, or null when it did.
         /// </summary>
         /// <remarks>
-        /// **It waits for the dialog's OK, like a revocation.** A stored answer, forever or until a
-        /// date, is taken away in the dialog's buffer; this session's is taken away in what the
-        /// dialog holds of the plugin's memory. Both land when the dialog is accepted, and Cancel
-        /// leaves the gate refusing as it did.
+        /// **It waits for the dialog's OK, like a revocation.** A stored answer, forever, until a
+        /// date, lost or unreadable, is lifted by an act the dialog's buffer holds, a version `ask`
+        /// naming each standing and lost version of the client's answer the page shows now,
+        /// `RenewalActs.Lift`, and composed again at OK: an answer that arrived under the dialog
+        /// and that the press was not shown stands at OK, and refuses. This session's is taken
+        /// away in what the dialog holds of the plugin's memory. Both land when the dialog is
+        /// accepted, and Cancel leaves the gate refusing as it did.
         ///
         /// **Both, where both stand**, which only a merge bringing in another copy's answer does:
-        /// the gate asks the database's first and the session's after it, so lifting one alone
-        /// would leave the client refused by the other and the row red after the press.
+        /// the gate asks the store's first and the session's after it, so lifting one alone would
+        /// leave the client refused by the other and the row red after the press. **A stored
+        /// answer that cannot be lifted lifts nothing**, where the store takes no write in the
+        /// session among it, `STORE.md` §636, and the reason is the answer.
         ///
-        /// By admission key, as a revocation is, because an answer is about one certificate and a
-        /// client that renewed is two rows with one client key.
+        /// By client key, as a revocation is, because an answer is about the client, every
+        /// certificate it holds.
         /// </remarks>
-        public string AllowRenewal(string admissionKey)
+        public string AllowRenewal(string clientKey)
         {
-            if (string.IsNullOrEmpty(admissionKey))
+            if (!CertificateDigest.IsDigest(clientKey))
             {
                 return "there is no client to allow";
             }
@@ -1996,25 +2024,42 @@ namespace KeePassGate.Ui
             bool stored;
             try
             {
-                stored = new RenewalAnswers(_database.PluginCustomData, _log).LiftRenewalRefusal(admissionKey);
+                using (var reading = _database.Store.Read())
+                {
+                    stored = StoredRenewals.Of(reading.InForce, clientKey).Refuses(DateTimeOffset.UtcNow);
+                }
             }
             catch (Exception error) when (Expected.OfCustomData(error))
             {
-                _log.Error("a standing answer to a renewal could not be lifted", error);
+                _log.Error("a standing answer to a renewal could not be read", error);
                 return error.Message;
             }
 
-            var session = _sessionRefusals != null && _sessionRefusals.Lift(admissionKey);
+            var session = _sessionRefusals != null && _sessionRefusals.Answer(clientKey) != null;
             if (!stored && !session)
             {
                 return "no answer to its renewals stands";
             }
 
-            // Nothing logged here: the lift waits for the dialog's OK, which logs what it lands, and
-            // a line at the press stayed in the log after a Cancel that lifted nothing.
             if (stored)
             {
-                _database.MarkModified();
+                // Nothing logged here: the lift waits for the dialog's OK, which logs what it
+                // lands, and a line at the press stayed in the log after a Cancel that lifted
+                // nothing.
+                var refused = Hold("a lift of a standing answer", reading =>
+                {
+                    var standing = StoredRenewals.Of(reading.InForce, clientKey);
+                    return RenewalActs.Lift(reading, clientKey, standing.Standing, standing.Lost);
+                });
+                if (refused != null)
+                {
+                    return refused;
+                }
+            }
+
+            if (session)
+            {
+                _sessionRefusals.Lift(clientKey);
             }
 
             return null;

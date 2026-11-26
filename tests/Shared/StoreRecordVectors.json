@@ -1,5 +1,5 @@
 {
-  "about": "Records in the forms STORE.md 614, 615 and 648 fix, and summary entries in the form of 611, composed by dumps, mac and ident of probe/store.py of spikes/storage/probes/store-as-a-whole on spikes/storage-survival, as rec of vectors.py beside the probe composes them, and never from this side. Each record holds the store key, its kind, the members it was composed from, its content text, its check, the subject and the number in bytes 9 and 10 its identifier was made of, its identifier, and every string of its entry. A summary entry also holds its items in the order they were given; its strings number them in ordinal order of their text, as the probe's Encoder numbers them. The store key is keybytes('one') of store.py. The values are invented. In an authority, ca and host are 96 invented bytes each in base64 and no PKCS#12, sniKey is 32 invented bytes in base64, and id is 32 invented bytes in hexadecimal and the digest of nothing in ca: the core reads such a record as an authority, and the reading of STORE.md 614 finds the authority not whole. Every der is a certificate in DER made here that decodes, with the base point of P-256 as its key and a signature nobody checks, and every admission key is the SHA-256 of a der, so an admission reads as STORE.md 615 has it. The client paired with the first certificate, renewed it to the second, and renewed the second to the third and the fourth. Every list, in profiles, renewed and after, is sorted, as the probe writes every list. No record holds v, as STORE.md 607 has it. An item withdrawn is in the form that S29 settles for STORE.md 611, 648 and 658: it restates a single withdrawn record of this file, holding that record's identifier as id and its certificate, renewed and from text for text, and no from where the record holds none. The second summary entry of height 2 restates both withdrawn records of this file. An addition and a removal of a profile name are in the form STORE.md 616 fixes, each naming reader: the addition holds name and after, and the removal name alone. The second addition names the removal of this file in after, and the summary entry that restates a removal holds the item removed of STORE.md 611, with the removal's name and its identifier as id. A version of a profile's row at a node and a version of a node's switch are records of kind version, with the store's rows switched on and the identifier in the form split of store.py, in the form by what arrived (the form seen of S34-DESIGN.md) with a removed row taken off for real. The object of a row is rule:, the node's identifier in 32 lowercase hexadecimal characters, a slash and the profile's name; the object of a switch is switch: and the node's identifier. Each text is store.py's doc over the model's value, configured for the full mask, with the model's letters written as the product writes them: row: and the letters granted, row: alone for an empty rule; off: and the letters that arrived for the profile when the rule was taken off, off: alone where nothing arrived; off:deny for a rule taken off while the node's own switch refused; sw:deny; and sw:inherit followed, for each profile at least a letter arrived for, by a space, the name, = and its letters, sw:inherit alone where nothing arrived for any profile. The model writes every mask in lower case and in alphabetical order (off:alr, sw:inherit pf=alr); the texts here write it in capitals in the order of CRUSDLAP (off:RLA, sw:inherit pf=RLA), each letter at most once. Both write a switch's items with the names in ascending ordinal order, which puts Zeta before p-b and p-b before pa. The identifier of a row's version holds the subject hash over the object before the slash and, in bytes 9 and 10, the profile's tag, the first two bytes of HMAC-SHA256 under the store key over name, a line feed and the profile's name; its subject and its number are those, the number the tag read as a big-endian number, and profileTags holds each tag. The label name is that of no kind and of nothing else keyed under a store key: the check is keyed under the kind's name, a kind's tag under tag, a subject's hash under subject and a key's name under key. The identifier of a switch's version holds the subject hash over its object and zero. The node is bb repeated 16 times and the rows are of the model's pf and pg. The versions of a row and of the switch here are composed apart and name nothing, but for three: the rule taken off renewed by a write above names the version taken off with RLA and records CRUDLA, what arrives after that write; the switch renewed by a write above names the switch inheriting with a mask for each profile and changes the letters of pf alone; and a version of pf that grants R names in after the version that grants RU and the version taken off with RLA, which it replaces. The summary entry of height 1 that restates rules holds the item format and an item version for each of those versions, each with the version's identifier as id and its object, after and text. texts holds texts of a row and of a switch, each with the model's own text where the script's reader takes it and null where it refuses it: a mask in capitals of the letters of CRUSDLAP in that order, each at most once; off:deny exactly; sw:deny exactly; sw:inherit and items, each a single space, a name of 1 to 64 ASCII letters, digits, - and _ other than default, = and a mask of at least a letter, the names in ascending ordinal order and so each once, and nothing after the last item. That reader is the script's own, before store.py's undoc, which takes some of the texts refused here; read.py raises on every text the reader refuses, so no store of these vectors holds such a text and no reading answers for it. The model holds a switch under an object of its own name, sw: and the node, which store.py writes as switch: and the node's identifier, and its acts compose a version at the write, with no buffer between a press and the write; the records here are composed by rec and by no act. The records whose names hold settle, lost or carrying it on are in the form of the refinement of measured-lost-settled: a version of a row or of a switch holds, beside after, a member lost, the identifiers of the lost versions at its place that the write settles for its own object and every identifier the versions it replaces hold in lost, sorted and separated by a single space as after is, and absent where there is none, so every other record of this file is as it was. after names only the versions of its own object it replaces and what those name in after. The three versions named lost are composed here so that their identifiers are of the place of the row of pf at N, of the same row, and of N's switch; no store of the meanings or the writes holds their content, which is what makes them lost. The summary entry that restates versions that settle lost versions holds an item for each, the item holding lost as the version does, and no lost where the version holds none.",
+  "about": "Records in the forms STORE.md 614, 615 and 648 fix, and summary entries in the form of 611, composed by dumps, mac and ident of probe/store.py of spikes/storage/probes/store-as-a-whole on spikes/storage-survival, as rec of vectors.py beside the probe composes them, and never from this side. Each record holds the store key, its kind, the members it was composed from, its content text, its check, the subject and the number in bytes 9 and 10 its identifier was made of, its identifier, and every string of its entry. A summary entry also holds its items in the order they were given; its strings number them in ordinal order of their text, as the probe's Encoder numbers them. The store key is keybytes('one') of store.py. The values are invented. In an authority, ca and host are 96 invented bytes each in base64 and no PKCS#12, sniKey is 32 invented bytes in base64, and id is 32 invented bytes in hexadecimal and the digest of nothing in ca: the core reads such a record as an authority, and the reading of STORE.md 614 finds the authority not whole. Every der is a certificate in DER made here that decodes, with the base point of P-256 as its key and a signature nobody checks, and every admission key is the SHA-256 of a der, so an admission reads as STORE.md 615 has it. The client paired with the first certificate, renewed it to the second, and renewed the second to the third and the fourth. Every list, in profiles, renewed and after, is sorted, as the probe writes every list. No record holds v, as STORE.md 607 has it. An item withdrawn is in the form that S29 settles for STORE.md 611, 648 and 658: it restates a single withdrawn record of this file, holding that record's identifier as id and its certificate, renewed and from text for text, and no from where the record holds none. The second summary entry of height 2 restates both withdrawn records of this file. An addition and a removal of a profile name are in the form STORE.md 616 fixes, each naming reader: the addition holds name and after, and the removal name alone. The second addition names the removal of this file in after, and the summary entry that restates a removal holds the item removed of STORE.md 611, with the removal's name and its identifier as id. A version of a profile's row at a node and a version of a node's switch are records of kind version, with the store's rows switched on and the identifier in the form split of store.py, in the form by what arrived (the form seen of S34-DESIGN.md) with a removed row taken off for real. The object of a row is rule:, the node's identifier in 32 lowercase hexadecimal characters, a slash and the profile's name; the object of a switch is switch: and the node's identifier. Each text is store.py's doc over the model's value, configured for the full mask, with the model's letters written as the product writes them: row: and the letters granted, row: alone for an empty rule; off: and the letters that arrived for the profile when the rule was taken off, off: alone where nothing arrived; off:deny for a rule taken off while the node's own switch refused; sw:deny; and sw:inherit followed, for each profile at least a letter arrived for, by a space, the name, = and its letters, sw:inherit alone where nothing arrived for any profile. The model writes every mask in lower case and in alphabetical order (off:alr, sw:inherit pf=alr); the texts here write it in capitals in the order of CRUSDLAP (off:RLA, sw:inherit pf=RLA), each letter at most once. Both write a switch's items with the names in ascending ordinal order, which puts Zeta before p-b and p-b before pa. The identifier of a row's version holds the subject hash over the object before the slash and, in bytes 9 and 10, the profile's tag, the first two bytes of HMAC-SHA256 under the store key over name, a line feed and the profile's name; its subject and its number are those, the number the tag read as a big-endian number, and profileTags holds each tag. The label name is that of no kind and of nothing else keyed under a store key: the check is keyed under the kind's name, a kind's tag under tag, a subject's hash under subject and a key's name under key. The identifier of a switch's version holds the subject hash over its object and zero. The node is bb repeated 16 times and the rows are of the model's pf and pg. The versions of a row and of the switch here are composed apart and name nothing, but for three: the rule taken off renewed by a write above names the version taken off with RLA and records CRUDLA, what arrives after that write; the switch renewed by a write above names the switch inheriting with a mask for each profile and changes the letters of pf alone; and a version of pf that grants R names in after the version that grants RU and the version taken off with RLA, which it replaces. The summary entry of height 1 that restates rules holds the item format and an item version for each of those versions, each with the version's identifier as id and its object, after and text. texts holds texts of a row and of a switch, each with the model's own text where the script's reader takes it and null where it refuses it: a mask in capitals of the letters of CRUSDLAP in that order, each at most once; off:deny exactly; sw:deny exactly; sw:inherit and items, each a single space, a name of 1 to 64 ASCII letters, digits, - and _ other than default, = and a mask of at least a letter, the names in ascending ordinal order and so each once, and nothing after the last item. That reader is the script's own, before store.py's undoc, which takes some of the texts refused here; read.py raises on every text the reader refuses, so no store of these vectors holds such a text and no reading answers for it. The model holds a switch under an object of its own name, sw: and the node, which store.py writes as switch: and the node's identifier, and its acts compose a version at the write, with no buffer between a press and the write; the records here are composed by rec and by no act. The records whose names hold settle, lost or carrying it on are in the form of the refinement of measured-lost-settled: a version of a row or of a switch holds, beside after, a member lost, the identifiers of the lost versions at its place that the write settles for its own object and every identifier the versions it replaces hold in lost, sorted and separated by a single space as after is, and absent where there is none, so every other record of this file is as it was. after names only the versions of its own object it replaces and what those name in after. The three versions named lost are composed here so that their identifiers are of the place of the row of pf at N, of the same row, and of N's switch; no store of the meanings or the writes holds their content, which is what makes them lost. The summary entry that restates versions that settle lost versions holds an item for each, the item holding lost as the version does, and no lost where the version holds none. The records whose names hold an answer, a lift or a refusal are the standing answers to a renewal of measured-renewal-answers: a version of the object renew: and the client key of this file's admissions, the key of the client's first certificate in 64 lowercase hexadecimal characters, its subject that object and its number 0. Its doc is refuse:forever, refuse:until: and a moment, RFC 3339 in UTC to the second in 20 characters, or ask, the lift. The moments are 2026-12-14T23:00:00Z and 2027-03-31T22:00:00Z, the first midnight of two days where the operator is, written in UTC; the clock the meanings and the writes read them at is 2026-11-22T12:00:00Z, before both, 2027-01-15T12:00:00Z, between them, and 2027-06-01T12:00:00Z, after both. A refusal names nothing or the versions it replaces; a lift names in after the versions it replaces and in lost the lost versions it settles, and carries on what the versions it replaces name in lost. The version refusing forever whose content no store holds is composed so that its identifier is lost wherever a store holds its deletion record and nothing names it. The answer whose text is out of form holds a day with no time. The summary entry restating answers holds an item for four of them, the item holding lost as the version does. renewalTexts holds texts of an answer, each with what read.py's reader makes of it, the answer and, for until, the moment, and null for a text out of form: a text is in form only where composing what was read gives the same bytes, so a fraction of a second, an offset, lower case, a space, a day with no time, a moment that is no date and anything after the text are out of form. The texts of rules are under texts, as before.",
   "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
   "profileTags": {
     "pf": "bf7f",
@@ -162,6 +162,66 @@
         "KPG.Mac": "38b1edb1f975299b399bc8de0373b37622a8153c46a067872699e3c0d0f3a809",
         "KPG.S.0001": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}",
         "KPG.S.0002": "{\"id\":\"3f3cb0f2b5a1afa0000077b5cbd11779\",\"kind\":\"removed\",\"name\":\"reader\"}"
+      },
+      "subject": "store"
+    },
+    "head of height 1, restating answers": {
+      "check": "6a07d2eef60ec9b18a4b67533ef3179bd280f3a76d239698bf582b77566f655e",
+      "content": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+      "id": "e34b4d9d4d36de7800016a07d2eef60e",
+      "items": [
+        {
+          "format": "1",
+          "kind": "format",
+          "plugin": "0.3.0"
+        },
+        {
+          "after": "",
+          "doc": "refuse:until:2026-12-14T23:00:00Z",
+          "id": "d19b3466bee95a1600001562e03c089e",
+          "kind": "version",
+          "object": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+        },
+        {
+          "after": "",
+          "doc": "refuse:until:2027-03-31T22:00:00Z",
+          "id": "d19b3466bee95a1600004a0c0fc533fb",
+          "kind": "version",
+          "object": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+        },
+        {
+          "after": "",
+          "doc": "ask",
+          "id": "d19b3466bee95a160000f0bbcdae2e75",
+          "kind": "version",
+          "lost": "d19b3466bee95a16000018e8a052f3b3",
+          "object": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+        },
+        {
+          "after": "d19b3466bee95a160000e445ac4e0427 d19b3466bee95a160000f623fd7aca9c",
+          "doc": "refuse:until:2027-03-31T22:00:00Z",
+          "id": "d19b3466bee95a1600005dc67464cbd8",
+          "kind": "version",
+          "object": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+        }
+      ],
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "head",
+      "members": {
+        "after": "",
+        "height": "1",
+        "nonce": "00112233445566778899aabbccddeeff"
+      },
+      "number": 1,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"height\":\"1\",\"nonce\":\"00112233445566778899aabbccddeeff\"}",
+        "KPG.Kind": "head",
+        "KPG.Mac": "6a07d2eef60ec9b18a4b67533ef3179bd280f3a76d239698bf582b77566f655e",
+        "KPG.S.0001": "{\"after\":\"\",\"doc\":\"ask\",\"id\":\"d19b3466bee95a160000f0bbcdae2e75\",\"kind\":\"version\",\"lost\":\"d19b3466bee95a16000018e8a052f3b3\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+        "KPG.S.0002": "{\"after\":\"\",\"doc\":\"refuse:until:2026-12-14T23:00:00Z\",\"id\":\"d19b3466bee95a1600001562e03c089e\",\"kind\":\"version\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+        "KPG.S.0003": "{\"after\":\"\",\"doc\":\"refuse:until:2027-03-31T22:00:00Z\",\"id\":\"d19b3466bee95a1600004a0c0fc533fb\",\"kind\":\"version\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+        "KPG.S.0004": "{\"after\":\"d19b3466bee95a160000e445ac4e0427 d19b3466bee95a160000f623fd7aca9c\",\"doc\":\"refuse:until:2027-03-31T22:00:00Z\",\"id\":\"d19b3466bee95a1600005dc67464cbd8\",\"kind\":\"version\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+        "KPG.S.0005": "{\"format\":\"1\",\"kind\":\"format\",\"plugin\":\"0.3.0\"}"
       },
       "subject": "store"
     },
@@ -532,6 +592,108 @@
       },
       "subject": "client:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
     },
+    "version, a lift naming the refusal it replaces": {
+      "check": "f623fd7aca9c3a20d74273b0e7ed36472e3ae58cf9660d72e1b2f240f0586d84",
+      "content": "{\"after\":\"d19b3466bee95a160000e445ac4e0427\",\"doc\":\"ask\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+      "id": "d19b3466bee95a160000f623fd7aca9c",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "d19b3466bee95a160000e445ac4e0427",
+        "doc": "ask",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"after\":\"d19b3466bee95a160000e445ac4e0427\",\"doc\":\"ask\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "f623fd7aca9c3a20d74273b0e7ed36472e3ae58cf9660d72e1b2f240f0586d84"
+      },
+      "subject": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+    },
+    "version, a lift naming two refusals made apart": {
+      "check": "cdc8f2ac59085a55892398777c9964fb2d38f07ba1c0050a420ac9c747def35b",
+      "content": "{\"after\":\"d19b3466bee95a1600004a0c0fc533fb d19b3466bee95a160000e445ac4e0427\",\"doc\":\"ask\",\"nonce\":\"ffeeddccbbaa99887766554433221100\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+      "id": "d19b3466bee95a160000cdc8f2ac5908",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "d19b3466bee95a1600004a0c0fc533fb d19b3466bee95a160000e445ac4e0427",
+        "doc": "ask",
+        "nonce": "ffeeddccbbaa99887766554433221100",
+        "object": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"after\":\"d19b3466bee95a1600004a0c0fc533fb d19b3466bee95a160000e445ac4e0427\",\"doc\":\"ask\",\"nonce\":\"ffeeddccbbaa99887766554433221100\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "cdc8f2ac59085a55892398777c9964fb2d38f07ba1c0050a420ac9c747def35b"
+      },
+      "subject": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+    },
+    "version, a lift replacing a refusal and settling a lost answer": {
+      "check": "ad62dc65b1d38f1e73a62bc9a6ede73e4d4d8b3d50aabc9d6ec4c70b080efd47",
+      "content": "{\"after\":\"d19b3466bee95a1600004a0c0fc533fb\",\"doc\":\"ask\",\"lost\":\"d19b3466bee95a16000018e8a052f3b3\",\"nonce\":\"e7ddb7cd9fbba37b87ae4080293ae8e3\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+      "id": "d19b3466bee95a160000ad62dc65b1d3",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "d19b3466bee95a1600004a0c0fc533fb",
+        "doc": "ask",
+        "lost": "d19b3466bee95a16000018e8a052f3b3",
+        "nonce": "e7ddb7cd9fbba37b87ae4080293ae8e3",
+        "object": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"after\":\"d19b3466bee95a1600004a0c0fc533fb\",\"doc\":\"ask\",\"lost\":\"d19b3466bee95a16000018e8a052f3b3\",\"nonce\":\"e7ddb7cd9fbba37b87ae4080293ae8e3\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "ad62dc65b1d38f1e73a62bc9a6ede73e4d4d8b3d50aabc9d6ec4c70b080efd47"
+      },
+      "subject": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+    },
+    "version, a lift settling a lost answer": {
+      "check": "f0bbcdae2e75c408d71f8e6d98bd338d0c6c54f874a7b4e92e97b65db2f61a1a",
+      "content": "{\"after\":\"\",\"doc\":\"ask\",\"lost\":\"d19b3466bee95a16000018e8a052f3b3\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+      "id": "d19b3466bee95a160000f0bbcdae2e75",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "",
+        "doc": "ask",
+        "lost": "d19b3466bee95a16000018e8a052f3b3",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"doc\":\"ask\",\"lost\":\"d19b3466bee95a16000018e8a052f3b3\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "f0bbcdae2e75c408d71f8e6d98bd338d0c6c54f874a7b4e92e97b65db2f61a1a"
+      },
+      "subject": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+    },
+    "version, a refusal naming the lift it replaces and what the lift replaced": {
+      "check": "5dc67464cbd8a6bfcfe7881fd54fd4d843eec1bb1e6e8ccbd38f4bf13f21ce4f",
+      "content": "{\"after\":\"d19b3466bee95a160000e445ac4e0427 d19b3466bee95a160000f623fd7aca9c\",\"doc\":\"refuse:until:2027-03-31T22:00:00Z\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+      "id": "d19b3466bee95a1600005dc67464cbd8",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "d19b3466bee95a160000e445ac4e0427 d19b3466bee95a160000f623fd7aca9c",
+        "doc": "refuse:until:2027-03-31T22:00:00Z",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"after\":\"d19b3466bee95a160000e445ac4e0427 d19b3466bee95a160000f623fd7aca9c\",\"doc\":\"refuse:until:2027-03-31T22:00:00Z\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "5dc67464cbd8a6bfcfe7881fd54fd4d843eec1bb1e6e8ccbd38f4bf13f21ce4f"
+      },
+      "subject": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+    },
     "version, a row naming the versions it replaces": {
       "check": "bb981776e184d95f588808e88b6af7977e9d3a1e68aabfbd9e0d4f960e2df669",
       "content": "{\"after\":\"d19b349eecd02b8ebf7f9349081d494a d19b349eecd02b8ebf7ffb4f223af7c6\",\"doc\":\"row:R\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pf\"}",
@@ -755,6 +917,106 @@
       },
       "subject": "rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     },
+    "version, an answer refusing forever whose content no store holds, lost": {
+      "check": "18e8a052f3b3dfd6513470aedd31ec09c7b5bc4e78ea019ec153b7f4151b2c0a",
+      "content": "{\"after\":\"\",\"doc\":\"refuse:forever\",\"nonce\":\"37a08c8ca811f57bfee164541246d3c4\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+      "id": "d19b3466bee95a16000018e8a052f3b3",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "",
+        "doc": "refuse:forever",
+        "nonce": "37a08c8ca811f57bfee164541246d3c4",
+        "object": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"doc\":\"refuse:forever\",\"nonce\":\"37a08c8ca811f57bfee164541246d3c4\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "18e8a052f3b3dfd6513470aedd31ec09c7b5bc4e78ea019ec153b7f4151b2c0a"
+      },
+      "subject": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+    },
+    "version, an answer refusing renewals forever": {
+      "check": "e445ac4e04276c6df1cab62377ddc2a77f1a22f1108a47173ac5f6878ef99818",
+      "content": "{\"after\":\"\",\"doc\":\"refuse:forever\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+      "id": "d19b3466bee95a160000e445ac4e0427",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "",
+        "doc": "refuse:forever",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"doc\":\"refuse:forever\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "e445ac4e04276c6df1cab62377ddc2a77f1a22f1108a47173ac5f6878ef99818"
+      },
+      "subject": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+    },
+    "version, an answer refusing renewals until a moment": {
+      "check": "1562e03c089e3d6c7c4cebf03c708d81d3272a50eff2d0180fde602ea129de5d",
+      "content": "{\"after\":\"\",\"doc\":\"refuse:until:2026-12-14T23:00:00Z\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+      "id": "d19b3466bee95a1600001562e03c089e",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "",
+        "doc": "refuse:until:2026-12-14T23:00:00Z",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"doc\":\"refuse:until:2026-12-14T23:00:00Z\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "1562e03c089e3d6c7c4cebf03c708d81d3272a50eff2d0180fde602ea129de5d"
+      },
+      "subject": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+    },
+    "version, an answer refusing renewals until the later moment, made apart": {
+      "check": "4a0c0fc533fbd6a298d524238d11bc26f18d9bcc6a6e9192ff06682760c91c04",
+      "content": "{\"after\":\"\",\"doc\":\"refuse:until:2027-03-31T22:00:00Z\",\"nonce\":\"ffeeddccbbaa99887766554433221100\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+      "id": "d19b3466bee95a1600004a0c0fc533fb",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "",
+        "doc": "refuse:until:2027-03-31T22:00:00Z",
+        "nonce": "ffeeddccbbaa99887766554433221100",
+        "object": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"doc\":\"refuse:until:2027-03-31T22:00:00Z\",\"nonce\":\"ffeeddccbbaa99887766554433221100\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "4a0c0fc533fbd6a298d524238d11bc26f18d9bcc6a6e9192ff06682760c91c04"
+      },
+      "subject": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+    },
+    "version, an answer whose text is out of form": {
+      "check": "d3f65b9fa8606e0d4728d5d307d27e6471ed60b6e6f75a60b87e5b6216915433",
+      "content": "{\"after\":\"\",\"doc\":\"refuse:until:2026-12-15\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+      "id": "d19b3466bee95a160000d3f65b9fa860",
+      "key": "849b00c169130b902e318a8e483f0a4c4f1ad84821891f7f6d836b863bb9c6a8",
+      "kind": "version",
+      "members": {
+        "after": "",
+        "doc": "refuse:until:2026-12-15",
+        "nonce": "00112233445566778899aabbccddeeff",
+        "object": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+      },
+      "number": 0,
+      "strings": {
+        "KPG.Data": "{\"after\":\"\",\"doc\":\"refuse:until:2026-12-15\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840\"}",
+        "KPG.Kind": "version",
+        "KPG.Mac": "d3f65b9fa8606e0d4728d5d307d27e6471ed60b6e6f75a60b87e5b6216915433"
+      },
+      "subject": "renew:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+    },
     "version, an empty rule": {
       "check": "421c65a4fc6b09e34f7419921817b7d8844e88a8a627c79646c643ff177677ca",
       "content": "{\"after\":\"\",\"doc\":\"row:\",\"nonce\":\"00112233445566778899aabbccddeeff\",\"object\":\"rule:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/pg\"}",
@@ -934,6 +1196,60 @@
         "KPG.Mac": "1b33c924d87424b34e20dd953fd6cdc530331cc785cf051809db51015eebb85a"
       },
       "subject": "certificate:1a9bd859c58e662a169cfafcbc5b4d0bdb6eaeb54802d57f609cf055fb627840"
+    }
+  },
+  "renewalTexts": {
+    "": null,
+    " refuse:forever": null,
+    "ASK": null,
+    "Ask": null,
+    "REFUSE:FOREVER": null,
+    "Refuse:forever": null,
+    "allowed": null,
+    "ask": {
+      "answer": "ask"
+    },
+    "ask ": null,
+    "const:": null,
+    "const:rw": null,
+    "refuse:": null,
+    "refuse:Forever": null,
+    "refuse:forever": {
+      "answer": "forever"
+    },
+    "refuse:forever ": null,
+    "refuse:forever:": null,
+    "refuse:until": null,
+    "refuse:until:": null,
+    "refuse:until:+2026-12-14T23:00:00Z": null,
+    "refuse:until:2026-02-30T00:00:00Z": null,
+    "refuse:until:2026-1-5T23:00:00Z": null,
+    "refuse:until:2026-12-14 23:00:00Z": null,
+    "refuse:until:2026-12-14T23:00:00+00:00": null,
+    "refuse:until:2026-12-14T23:00:00.000Z": null,
+    "refuse:until:2026-12-14T23:00:00.5Z": null,
+    "refuse:until:2026-12-14T23:00:00Z": {
+      "answer": "until",
+      "moment": "2026-12-14T23:00:00Z"
+    },
+    "refuse:until:2026-12-14T23:00:00Z ": null,
+    "refuse:until:2026-12-14T23:00:00Zx": null,
+    "refuse:until:2026-12-14T23:00Z": null,
+    "refuse:until:2026-12-14T24:00:00Z": null,
+    "refuse:until:2026-12-14t23:00:00z": null,
+    "refuse:until:2026-12-15": null,
+    "refuse:until:2026-12-15T00:00:00+01:00": null,
+    "refuse:until:2026-12-31T23:00:00Z": {
+      "answer": "until",
+      "moment": "2026-12-31T23:00:00Z"
+    },
+    "refuse:until:2027-03-31T22:00:00Z": {
+      "answer": "until",
+      "moment": "2027-03-31T22:00:00Z"
+    },
+    "refuse:until:9999-12-31T23:59:59Z": {
+      "answer": "until",
+      "moment": "9999-12-31T23:59:59Z"
     }
   },
   "texts": {

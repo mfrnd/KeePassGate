@@ -207,7 +207,9 @@ state nothing.
 5. Only then is the certificate handed to the program.
 
 The dialog states so before anything is pressed, because this and the renewal dialog,
-[`clients.md`](clients.md#expiry), are the two screens in the plugin whose button writes the file.
+[`clients.md`](clients.md#expiry), are the two screens in the plugin whose answers write the file:
+**Approve** here, and on the renewal dialog **Approve**, **Refuse until a date...** and **Refuse
+forever**, which that dialog states in a line of its own.
 
 The save comes before the certificate, and the order is why: a program holding a certificate for a
 record that was never written would be a program that is refused forever and cannot state why. A
@@ -274,12 +276,11 @@ profiles moved, gets the same dialog back in the same way, opening with the prof
 lifetime the kept approval carries. Every other request's first dialog carries no such line, opens
 with every profile checked and takes a press on Approve at once.
 
-**The Database Maintenance dialog refuses the whole thing before anybody is disturbed.** That
-dialog takes a copy of the database's plugin data when it opens and writes the copy back when it
-closes, which would silently undo what a pairing changed there while it was open: a pairing's
-write clears away a [standing answer](clients.md#taking-a-standing-answer-back) to a renewal that
-no admitted certificate is left for. If a pairing is reported refused for that reason, close the
-dialog and let the program ask again. **So does KeePass's TAN wizard**, under Tools, open on the
+**The Database Maintenance dialog refuses the whole thing before anybody is disturbed.** Its
+buttons delete history items and deletion records, which the plugin's group counts by, and a
+press of one while a pairing saves was never measured, so a pairing waits until it is closed. If
+a pairing is reported refused for that reason, close the dialog and let the program ask
+again. **So does KeePass's TAN wizard**, under Tools, open on the
 same database: it adds its entries from inside its own OK, which can land part way through the
 save a pairing ends in and stop it, so nothing is saved to that database until the wizard is
 closed.

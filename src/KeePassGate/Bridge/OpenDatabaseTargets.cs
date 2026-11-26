@@ -1073,7 +1073,7 @@ namespace KeePassGate.Bridge
                 foreach (var record in standing)
                 {
                     var id = record.Form.Member(StoreKinds.Id);
-                    shorts.Add(AuthorityKeys.Shown(id));
+                    shorts.Add(AuthorityShown.Of(id));
                     using (var material = StoreAuthorities.Material(record, new List<string>()))
                     {
                         if (material == null)
@@ -1754,40 +1754,14 @@ namespace KeePassGate.Bridge
                 return written;
             }
 
-            /// <summary>
-            /// The operator's standing answer to renewing this certificate, read now. None when the
-            /// database has gone, which a renewal then finds again when it asks whether a record
-            /// can be written.
-            /// </summary>
-            /// <remarks>
-            /// **A read that fails is not answered here.** None would raise the dialog, which is the
-            /// one thing a standing answer exists to stop and the direction the store refuses for a
-            /// value it cannot read; the handler answers the failure `503 busy`, which raises
-            /// nothing and lets the client ask again.
-            /// </remarks>
-            public RenewalRefusal StandingRefusal(string admissionKey)
-            {
-                return _hold.Hold(() =>
-                {
-                    // Into a local first, for the reason `Asked` gives.
-                    var database = _database;
-                    if (database == null || database.RootGroup == null)
-                    {
-                        return null;
-                    }
-
-                    return new RenewalAnswers(new CustomDataStore(database), _log).StandingRefusal(admissionKey);
-                });
-            }
-
-            public VaultWrite RefuseRenewal(string admissionKey, RenewalRefusal refusal)
+            public VaultWrite AnswerRenewal(string clientKey, RenewalRefusal refusal, IReadOnlyCollection<string> shown)
             {
                 if (_writer == null)
                 {
                     return VaultWrite.Failed("this database is served without a way to write to it");
                 }
 
-                return _writer.RefuseRenewal(_database, admissionKey, refusal);
+                return _writer.AnswerRenewal(_database, clientKey, refusal, shown);
             }
 
             public AdmissionWrite Admit(AdmissionRecord record, Func<IWriteGround, string> condition, Action audit)
@@ -1852,8 +1826,9 @@ namespace KeePassGate.Bridge
 
             /// <summary>
             /// The admission of this certificate where it counts, read now from the store the
-            /// database holds now, `STORE.md` §615, with the profiles the database names in the
-            /// same hold.
+            /// database holds now, `STORE.md` §615, with the profiles the database names and the
+            /// versions of the standing answers about its client's renewals in the same hold,
+            /// `STORE.md` §618.
             /// </summary>
             /// <remarks>
             /// **Read from the reading of this hold**, the very reading every other question of the
@@ -1899,7 +1874,7 @@ namespace KeePassGate.Bridge
 
                 var reading = _store.Now(database, database.RootGroup);
                 var record = Served(reading) ? StoreAdmissions.Admitted(reading, admissionKey) : null;
-                return record == null ? null : new Admitted(record, ProfileNames.Of(reading).Names);
+                return record == null ? null : new Admitted(record, ProfileNames.Of(reading).Names, reading.InForce);
             }
 
             /// <summary>

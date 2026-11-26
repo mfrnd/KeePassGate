@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using KeePassGate.Pairing;
 
@@ -39,6 +40,14 @@ namespace KeePassGate.Tests.Fakes
         public static FakeRenewalApproval Approving()
         {
             return new FakeRenewalApproval(request => RenewalApproval.Approved(request.Profiles, request.Lifetime));
+        }
+
+        /// <summary>What the operator was told of answers not kept as given, in order.</summary>
+        public List<string> Told { get; } = new List<string>();
+
+        public void Tell(string news)
+        {
+            Told.Add(news);
         }
 
         public RenewalApproval Ask(RenewalRequest request, TimeSpan timeout, TimeSpan left)

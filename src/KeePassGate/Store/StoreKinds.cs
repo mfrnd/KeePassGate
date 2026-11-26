@@ -270,11 +270,14 @@ namespace KeePassGate.Store
         /// <summary>The type of the object of a node's switch, `STORE.md` §617.</summary>
         public const string SwitchType = "switch";
 
+        /// <summary>The type of the object of the standing answers to a client's renewals, `STORE.md` §618.</summary>
+        public const string RenewType = "renew";
+
         /// <summary>
         /// The types of object a version is of: a profile's rule at a node, a node's switch, and
         /// an answer to a renewal. A version of another type is of a kind the plugin does not know.
         /// </summary>
-        public static readonly IReadOnlyList<string> ObjectTypes = Array.AsReadOnly(new[] { RuleType, SwitchType, "renew" });
+        public static readonly IReadOnlyList<string> ObjectTypes = Array.AsReadOnly(new[] { RuleType, SwitchType, RenewType });
 
         /// <summary>The rows of `STORE.md` §658, in its order.</summary>
         public static readonly IReadOnlyList<StoreKind> All = Array.AsReadOnly(new[]

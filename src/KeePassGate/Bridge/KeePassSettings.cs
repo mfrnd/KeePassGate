@@ -16,8 +16,8 @@ namespace KeePassGate.Bridge
     /// travel to whatever machine that file was copied to.
     ///
     /// KeePass keeps a dictionary for exactly this, namespaced by whatever key a plugin uses. The
-    /// key here begins `KPG` for the same reason the custom data keys do: it is this plugin's
-    /// namespace and touches nothing another plugin owns.
+    /// key here begins `KPG` for the same reason the entries of the plugin's store do: it is this
+    /// plugin's namespace and touches nothing another plugin owns.
     ///
     /// **Written to the file as it is saved, and not only when KeePass exits.** The dictionary is
     /// memory until KeePass writes its configuration, which it does at an ordinary exit and when

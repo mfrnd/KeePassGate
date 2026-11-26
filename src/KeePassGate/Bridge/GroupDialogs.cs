@@ -441,11 +441,12 @@ namespace KeePassGate.Bridge
         /// Why no admission record may be written to this database right now, or null when one may.
         /// </summary>
         /// <remarks>
-        /// The maintenance dialog is to the database's own custom data what the group dialog is to
-        /// a group's: it copies the dictionary when it opens and puts the copy back when it closes.
-        /// Records live in that dictionary, so a pairing that lands while one is open is a
-        /// certificate issued against a record the dialog then destroys, which is the state this
-        /// whole class exists to prevent.
+        /// The maintenance dialog copies the database's own custom data when it opens and puts the
+        /// copy back when it closes, and its buttons delete history items and deletion records,
+        /// which the plugin's store counts by. Nothing of the plugin's is in that dictionary, and
+        /// a press of one of those buttons inside a save of the writer's own was never measured, so
+        /// a pairing, a renewal, a certificate given up and a standing answer to a renewal are
+        /// refused while it is open, `STORE.md` §626.
         /// </remarks>
         public string BlockingRecords(PwDatabase database)
         {

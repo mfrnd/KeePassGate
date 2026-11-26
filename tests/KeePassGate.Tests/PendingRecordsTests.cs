@@ -553,13 +553,12 @@ namespace KeePassGate.Tests
         public void An_OK_whose_lines_throw_after_the_write_landed_lets_the_buffer_go_last()
         {
             // The line telling what landed comes as soon as the write's outcome is known, the
-            // lines of what landed and the custom data half after it, and the buffer, with the
-            // store key each act holds, is let go after all of them, whatever they throw.
+            // lines of what landed after it, and the buffer, with the store key each act holds, is
+            // let go after both, whatever they throw.
             var live = new FakeGateDatabase();
             var log = new RecordingGateLog();
             var pending = new PendingDatabase(live, log);
             Assert.That(Service(pending).Create().Succeeded, Is.True);
-            pending.PluginCustomData.Set("KPG.Fictitious", "held for OK");
             var held = ((PendingRecords)pending.Store).Acts.Single();
             var heldAtTheLines = false;
 
@@ -575,7 +574,7 @@ namespace KeePassGate.Tests
             Assert.That(
                 log.Entries.Where(entry => entry.Level == GateLogFormat.InfoLevel).Select(entry => entry.Message),
                 Has.Some.StartsWith("the plugin's store holds what the " + GateName.Product + " tab held: Create"));
-            Assert.That(live.Values.Get("KPG.Fictitious"), Is.EqualTo("held for OK"), "the custom data half ran");
+            Assert.That(live.MarkedModifiedCount, Is.EqualTo(1), "the database is marked for what landed");
             Assert.That(held.Key(), Is.All.EqualTo((byte)0), "and the buffer is let go whatever the lines threw");
             Assert.That(pending.AuthorityWaiting, Is.False);
         }

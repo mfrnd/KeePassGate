@@ -299,7 +299,7 @@ namespace KeePassGate.Gate
             catch (Exception error)
             {
                 // One of the places that catches everything, and this is why: it runs on KeePass's
-                // own thread from KeePass's own event. The work below it reads custom data, parses
+                // own thread from KeePass's own event. The work below it reads the store, parses
                 // two PKCS#12 blobs, asks the anchor pin whether the authority signed the host and
                 // mints a certificate, and a null reference or a `TypeLoadException` after a
                 // KeePass upgrade matches no named filter; escaping here would stop KeePass's open

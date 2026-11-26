@@ -889,19 +889,105 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void A_standing_answer_is_saved_by_its_own_write_and_believed_on_the_flag_and_the_file()
+        {
+            // Saved as an approval's record is, before the client is answered, so that nothing is
+            // left for a later save to keep.
+            Keyed();
+            var saves = 0;
+            var writer = Writer(new RunsUiThread(), db => { saves++; db.Save(null); });
+
+            var outcome = writer.AnswerRenewal(_database.Database, new string('a', 64), RenewalRefusal.Forever(), Array.Empty<string>());
+
+            Assert.That(outcome.Ok, Is.True, outcome.Reason);
+            Assert.That(saves, Is.EqualTo(1), "saved by the write itself");
+            Assert.That(_database.Database.Modified, Is.False, "with nothing left to save");
+
+            _database.Reopen();
+            Assert.That(new StoredAdmissions(_database.Database).Answer(new string('a', 64)).IsForever,
+                Is.True, "and the file opened afresh holds it");
+        }
+
+        [Test]
+        public void A_standing_answer_whose_file_did_not_keep_it_stays_in_force_with_the_database_marked()
+        {
+            // The save ran and the file is not what KeePass wrote, which tells nothing of which
+            // of the two the file holds: the answer is left in the open database, in force, and
+            // the flag stays up so that KeePass asks before the copy that holds it is thrown away.
+            Keyed();
+            var theCopyAsItWas = System.IO.File.ReadAllBytes(_database.Path);
+            var writer = Writer(
+                new RunsUiThread(),
+                db =>
+                {
+                    db.Save(null);
+                    System.IO.File.WriteAllBytes(_database.Path, theCopyAsItWas);
+                });
+
+            var outcome = writer.AnswerRenewal(_database.Database, new string('a', 64), RenewalRefusal.Forever(), Array.Empty<string>());
+
+            Assert.That(outcome.IsUnverified, Is.True, outcome.Reason);
+            Assert.That(new StoredAdmissions(_database.Database).Answer(new string('a', 64)),
+                Is.Not.Null, "left in the open database");
+            Assert.That(_database.Database.Modified, Is.True, "and marked");
+        }
+
+        [Test]
+        public void A_standing_answer_under_a_dialog_of_Windows_own_is_refused_before_anything_is_queued()
+        {
+            var saves = 0;
+            var ui = new StalledUiThread();
+            var writer = Writer(ui, db => saves++);
+
+            var outcome = writer.AnswerRenewal(_database.Database, new string('a', 64), RenewalRefusal.Forever(), Array.Empty<string>());
+
+            Assert.That(outcome.IsBusy, Is.True, outcome.Reason);
+            Assert.That(outcome.Reason, Is.EqualTo(StalledUiThread.Why));
+            Assert.That(ui.Asked, Is.Zero, "nothing was queued");
+            Assert.That(saves, Is.Zero);
+            Assert.That(new StoredAdmissions(_database.Database).Answer(new string('a', 64)),
+                Is.Null, "nor written");
+        }
+
+        [Test]
+        public void A_standing_answer_whose_turn_never_came_writes_nothing_and_is_answered_as_not_made()
+        {
+            // KeePass's thread did not take the turn inside the wait, and `IUiThread.Run` withdrew
+            // it: nothing was written, and the caller holds the answer for this session.
+            Keyed();
+            var saves = 0;
+            var writer = Writer(new NeverRunsUiThread(), db => saves++);
+
+            var outcome = writer.AnswerRenewal(_database.Database, new string('a', 64), RenewalRefusal.Forever(), Array.Empty<string>());
+
+            Assert.That(outcome.Ok, Is.False);
+            Assert.That(outcome.IsBusy, Is.True, outcome.Reason);
+            Assert.That(saves, Is.Zero);
+            Assert.That(new StoredAdmissions(_database.Database).Answer(new string('a', 64)), Is.Null);
+            Assert.That(_database.Database.Modified, Is.False);
+        }
+
+        [Test]
         public void A_standing_answer_for_this_session_is_refused_before_anything_is_touched()
         {
             var saves = 0;
             var writer = Writer(new RunsUiThread(), db => saves++);
 
-            var outcome = writer.RefuseRenewal(
-                _database.Database, new string('a', 64), RenewalRefusal.ThisSession());
+            var outcome = writer.AnswerRenewal(
+                _database.Database, new string('a', 64), RenewalRefusal.ThisSession(), Array.Empty<string>());
 
             Assert.That(outcome.IsFailed, Is.True);
             Assert.That(outcome.Reason, Does.Contain("this session"));
             Assert.That(saves, Is.EqualTo(0), "nothing was saved");
-            Assert.That(new StoredAdmissions(_database.Database).Answers
-                .StandingRefusal(new string('a', 64)), Is.Null, "nor written");
+            Assert.That(new StoredAdmissions(_database.Database).Answer(new string('a', 64)), Is.Null, "nor written");
+        }
+
+        /// <summary>The database's store started, with an authority, so a store key stands to write under.</summary>
+        private void Keyed()
+        {
+            StoreSeeds.Authority(new StoredAdmissions(_database.Database).Store);
+            _database.Save();
+            _database.Database.Modified = false;
         }
 
         private DatabaseWriter Writer(IUiThread ui, Action<PwDatabase> save)
@@ -930,6 +1016,20 @@ namespace KeePassGate.Host.Tests
             public bool Run(Action work, TimeSpan timeout)
             {
                 work();
+                return false;
+            }
+        }
+
+        /// <summary>A thread that never takes the turn inside the wait, which withdraws the work before it starts.</summary>
+        private sealed class NeverRunsUiThread : IUiThread
+        {
+            public string Stalled
+            {
+                get { return null; }
+            }
+
+            public bool Run(Action work, TimeSpan timeout)
+            {
                 return false;
             }
         }

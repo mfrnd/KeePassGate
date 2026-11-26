@@ -223,9 +223,9 @@ namespace KeePassGate.Ui
                         {
                             try
                             {
-                                // The lines as soon as the store holds what they are about, before
-                                // the custom data half, so that a defect there cannot lose the line
-                                // of a revocation or a certificate taken away that stands.
+                                // The lines as soon as the store holds what they are about, so that
+                                // a defect after them cannot lose the line of a revocation or a
+                                // certificate taken away that stands.
                                 if (database.Apply(() => Ended(live, database, before)))
                                 {
                                     Log().Info("what the " + GateName.Product + " tab held was put into "
@@ -234,16 +234,16 @@ namespace KeePassGate.Ui
                             }
                             finally
                             {
-                                // The steps after the buffer, whatever its lines came to, as its
-                                // custom data half runs: the standing answers that half took out of
-                                // the database told in the log, the answers lifted for this session
-                                // and their lines, and the invitations kept. What was thrown above
-                                // reaches the catch-all below once these have run; where a step
-                                // here throws as well, its exception is the incident recorded.
+                                // The steps after the buffer, whatever its lines came to: the lifts
+                                // of standing answers the store's write landed told in the log, the
+                                // answers lifted for this session and their lines, and the
+                                // invitations kept. What was thrown above reaches the catch-all
+                                // below once these have run; where a step here throws as well, its
+                                // exception is the incident recorded.
                                 Lifted(database);
                                 foreach (var key in session.Apply())
                                 {
-                                    Log().Info("renewals of " + CertificateDigest.Shorten(key)
+                                    Log().Info("renewals of the client " + CertificateDigest.Shorten(key)
                                         + " are asked about again: the operator lifted the answer for this session");
                                 }
 
@@ -411,7 +411,8 @@ namespace KeePassGate.Ui
         }
 
         /// <summary>
-        /// Writes down each standing answer to a renewal the dialog's OK took out of the database.
+        /// Writes down each lift of a standing answer to a renewal the dialog's OK wrote into the
+        /// plugin's store, from the acts that landed.
         /// </summary>
         /// <remarks>
         /// Here rather than at the press on the clients page, which logged a lift that a Cancel
@@ -419,9 +420,9 @@ namespace KeePassGate.Ui
         /// </remarks>
         private void Lifted(PendingDatabase database)
         {
-            foreach (var key in database.Taken.Where(AuthorityKeys.IsRenewalRefusal))
+            foreach (var client in database.Landed.Select(RenewalActs.About).Where(client => client != null).Distinct(StringComparer.Ordinal))
             {
-                Log().Info("renewals of " + CertificateDigest.Shorten(AuthorityKeys.AdmissionKeyInRenewalRefusal(key))
+                Log().Info("renewals of the client " + CertificateDigest.Shorten(client)
                     + " are asked about again: the operator lifted the standing answer");
             }
         }

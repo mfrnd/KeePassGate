@@ -631,11 +631,9 @@ this is what the rest of the design depends on.
 - **Every database is its own certificate authority**, stored inside itself as a record of the
   plugin's store, an entry in a group of the plugin's own, `STORE.md` §614. That is what makes a
   malicious kdbx harmless: it vouches only for itself, and a certificate it issued opens exactly
-  one door, its own. The admissions, the revocations, the profile names and the rules are records
-  of the same store, `STORE.md` §601. What the plugin still keeps under `KPG` keys in the
-  database's own `CustomData` is the standing answers to a renewal, and CA.md §204 has why that
-  dictionary and not a group's; release 0.3.0 moves those into the store as well, which is decided
-  and not built.
+  one door, its own. The admissions, the revocations, the profile names, the rules and the
+  standing answers to a renewal are records of the same store, `STORE.md` §601, and nothing of the
+  plugin's is in the database's own `CustomData`.
 - **The issuer generates the key pair and builds every extension.** It never accepts a signing
   request, because a request can carry extensions and an issuer that copies them lets the client
   choose its own claims.
@@ -1799,6 +1797,18 @@ So the rules here:
   before the certificate is handed over, because a certificate must not leave here until its record
   is on disk. [`PAIRING.md`](PAIRING.md) phase 5 is the sequence, and §312 keeps it for a renewal.
 
+  **A refusal that stands is saved the same way.** "Refuse until a date..." and "Refuse forever"
+  on the renewal dialog are written in a turn of the writer, through the writer's change, saved
+  through `MainForm.SaveDatabase` and believed on the flag and the file, before the client is
+  answered `403 refused`, as the dialog's second line states. A write that is refused, or whose
+  save does not land, is taken back out, and the answer holds for this session instead, with the
+  operator told at once by a message of the plugin's own; a save over a file that does not hold
+  what KeePass wrote leaves the answer in force with the database marked, and the operator is
+  told of that the same way. **No answer waits for a later save**, which reverses an answer held
+  in memory and written by whichever save of its database came next, with a listener on
+  KeePass's `FileSavingPre` and a message at exit: whether an answer was kept turned on a save
+  nothing promised. `PAIRING.md` §312.
+
   **Built as `MainForm.SaveDatabase(db, null)` rather than `UIFileSave`**, which is a correction
   to the sentence above rather than a departure from it: `UIFileSave` saves whichever document is
   active, and pairing has to save the database the connection resolved to. Both are the same save
@@ -1812,14 +1822,14 @@ So the rules here:
   and the database is saved. Afterwards each entry the write added is looked up in the tree with
   the strings it was written with, beside the flag and the file, and a write that did not land is
   taken back out by the undo its application handed back: the entries added, the additions of a
-  name the approval brought among them, the entries deleted with their deletion records, an
-  addition that a removal had defeated among them, and the standing answers the same turn
-  changed. **A write whose plan adds no admission is refused before the approval and the
-  invitation are spent**: looked up by its own entries, a write that added nothing would find
-  nothing missing, and a save of nothing would hand a certificate over with no admission in the
-  file, `AdmissionActs.AddsAdmission`. A plan that leaves the admission out because the
-  authority that issued its certificate is not the authority served alone is told apart, as an
-  authority recreated or deleted since the operator answered: the writer answers it as unserved,
+  name the approval brought among them, the entries deleted with their deletion records, and an
+  addition that a removal had defeated among them. **A write whose plan adds no admission is
+  refused before the approval and the invitation are spent**: looked up by its own entries, a
+  write that added nothing would find nothing missing, and a save of nothing would hand a
+  certificate over with no admission in the file, `AdmissionActs.AddsAdmission`. A plan that
+  leaves the admission out because the authority that issued its certificate is not the
+  authority served alone is told apart, as an authority recreated or deleted since the operator
+  answered: the writer answers it as unserved,
   and a pairing is answered `409 no invitation` and a renewal `401 unpaired`, with the approval
   used up and nothing written, `PAIRING.md` §311. Held by
   `PairingInRealDatabaseTests.A_write_whose_plan_leaves_the_admission_out_is_not_believed_and_spends_nothing`.
@@ -1993,10 +2003,11 @@ So the rules here:
   no longer in the tree. The cost is the rebuild's own, above, an operator's search results. Held
   by `PairingInRealDatabaseTests.A_pairing_that_lands_rebuilds_the_tree_and_the_entry_list` and
   `GiveUpInRealDatabaseTests.A_certificate_given_up_that_lands_rebuilds_the_tree_and_the_entry_list`.
-  A write taken back out redraws the title bar and the menus for the reason a change does. **Not for
-  a standing answer to a renewal**, which goes through the writer as a change does and is kept in
-  the custom data: once it lands it redraws the title bar and the menus, rebuilds neither list,
-  and tells the Clients page, which draws from it.
+  A write taken back out redraws the title bar and the menus for the reason a change does. **And
+  so for a standing answer to a renewal**, a version of the plugin's store that adds and deletes
+  entries of its group, `STORE.md` §618: once it lands it rebuilds both lists and tells the
+  Clients page, which draws from it. This reverses an answer kept in the custom data that rebuilt
+  neither list.
 - **Nothing throws to the transport.** A handler failure becomes `500 internal error` and an
   incident, counted on the plugin's window under Tools and logged at `UNEXPECTED`, because an
   unhandled exception in this process takes KeePass with it. It is not audited, which this bullet
@@ -2106,6 +2117,14 @@ meet the tab's OK there, `STORE.md` §627, and no place has to catch a refusal o
 `ModalDialogCloseTests` and `TabOkBesideOwnSaveTests`, and for the close of a group's dialog by
 `NodeDialogOkBesideSaveTests`.
 
+**The message of a standing answer to a renewal that was not kept as given adds no place
+either.** The renewal handler asks for it on the connection thread, a kind already listed, once
+the answer's write has returned, and `FreeMessage` posts it through `Unattended.Post` and shows
+it from a handler of `Application.Idle` run through `WindowHandlers` where KeePass is busy, as
+the message of rules an OK did not keep. **Of KeePass's save events, `FileSaved` alone is
+listened to**, for whether a save of the writer's own landed, `SaveReports`, a handler of
+KeePass's own events; nothing of the plugin's writes into a save it did not start.
+
 CodeQL reports each of these places but the places that throw again from inside the catch and
 `WindowHandlers`, which catches through a filter: its query accepts both. Each place it reports
 carries a suppression naming where it stands in this account.
@@ -2160,10 +2179,9 @@ and no `admissionKey` where the copy admitted none, or where the store could not
 was applied. A certificate the OK ended is a certificate this copy admitted before it, so an
 admission under an authority that is not served, a certificate several admissions name and a
 record that does not read get no line. The lines are written once the store's write is taken,
-after the log's own line of what that write came to and ahead of the tab's changes to the
-custom data, so nothing that half comes to loses them, and that half runs in a `finally`
-around them, and so does what the tab does after it, the answers lifted for this session and
-the invitations kept, with the tab's buffer let go last, so a defect in writing the lines
+after the log's own line of what that write came to, and what the tab does after them runs in a
+`finally` around them, the lines of the lifts that landed, the answers lifted for this session
+and the invitations kept, with the tab's buffer let go last, so a defect in writing the lines
 loses nothing else of the OK and reaches the catch-all of the dialog's close afterwards, §141.
 A defect inside the write itself, as out of the writer's redraw of KeePass's window, comes
 before any of that order and leaves no line, `STORE.md` §648. This reverses a
@@ -2506,11 +2524,14 @@ lacks any of them starts no watch, and every write and every pairing is refused.
 - **The TAN wizard** fills its group on OK, so that group is not removed, and adds those entries
   from inside its OK, which can be handled part way through a save of the plugin's own (§119), so
   nothing is saved to its database while it is open.
-- **Database Maintenance** puts its copy of the database's own custom data back as it closes,
-  whatever the operator did, so no standing answer to a renewal is written while it is open, and
-  neither is a pairing, a renewal or a certificate given up, each of which can take such a key
-  away in the turn that writes its record. The records themselves were keys of that dictionary,
-  the profile names and a revocation with them, until they moved into the plugin's store.
+- **Database Maintenance** puts its copy of the database's own custom data back as it closes, and
+  nothing of the plugin's is in that dictionary. **A pairing, a renewal, a certificate given up and
+  a standing answer to a renewal are refused while it is open all the same** (a later decision):
+  each ends in a save of the plugin's own, and a press of one of its buttons, which delete history
+  items and deletion records, handled inside such a save was never measured. A later pull request
+  measures it and then takes the refusal and the watch away, or keeps them with the measured
+  reason. The records themselves were keys of that dictionary, the profile names, a revocation and
+  a standing answer to a renewal with them, until they moved into the plugin's store.
 - **Database Settings** puts its recycle bin choice back on OK, so a removal that would make the
   database's first bin is refused.
 - **KeePass's attachment editor** holds an attachment's name and bytes and nothing of the entry,
@@ -2530,9 +2551,10 @@ refused for it: pressed where a record counts by its history, the removal is the
 §622 describes. Keeping an authority, which writes no custom data and saves nothing, is written
 under it, while the store write of the settings dialog's OK is refused under it and under the TAN
 wizard as a whole; neither window can stand beside that dialog, each being modal. A pairing's and
-a renewal's admission and a certificate given up are writes into the store as well: each is
-answered `503 busy` while an entry dialog holds an entry its plan deletes or sets back, the
-summary entry among them, with a pairing's or a renewal's approval held.
+a renewal's admission, a certificate given up and a standing answer to a renewal are writes into
+the store as well: each is answered `503 busy` while an entry dialog holds an entry its plan
+deletes or sets back, the summary entry among them, with a pairing's or a renewal's approval
+held, and a standing answer held for this session instead, `PAIRING.md` §312.
 
 ### C4. The plugin as its own CA puts the CA key beside the database §125
 
@@ -2761,6 +2783,5 @@ Written down so that it is possible to be wrong about this on purpose rather tha
   a group's, `CA.md` §204, and a record that fails closed absorbs none of that for a rule that
   narrows. So `CustomData` is decided to be the wrong store, and release 0.3.0 keeps the plugin's
   data in entries of a group of its own: `STORE.md` §601 holds what is decided and §604 what it
-  reverses. It is built for the authority, the admissions, the revocations, the profile names and
-  the rules, and this document describes each of those as built; what is still in custom data is
-  the standing answers to a renewal, for which it describes the store that 0.2.0 ships.
+  reverses. It is built for the authority, the admissions, the revocations, the profile names, the
+  rules and the standing answers to a renewal, and this document describes each of those as built.

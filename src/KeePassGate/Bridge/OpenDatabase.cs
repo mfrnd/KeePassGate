@@ -58,8 +58,8 @@ namespace KeePassGate.Bridge
         /// questions, `STORE.md` §627, and refused where this was given no writer.
         /// </summary>
         /// <remarks>
-        /// Built on each read rather than remembered, as the custom data store is, so a database
-        /// locked and opened again is read as it is now.
+        /// Built on each read rather than remembered, so a database locked and opened again is read
+        /// as it is now.
         /// </remarks>
         public IGateStore Store
         {
@@ -104,16 +104,6 @@ namespace KeePassGate.Bridge
         public Acl.IRuledNodes Nodes
         {
             get { return new DatabaseNodes(_database); }
-        }
-
-        /// <summary>The database's own custom data, as a store over `PwDatabase.CustomData`.</summary>
-        /// <remarks>
-        /// Built on each read rather than remembered, which costs nothing and keeps this honest
-        /// about a database that is locked and opened again.
-        /// </remarks>
-        public IKeyValueStore PluginCustomData
-        {
-            get { return new CustomDataStore(_database); }
         }
 
         /// <summary>

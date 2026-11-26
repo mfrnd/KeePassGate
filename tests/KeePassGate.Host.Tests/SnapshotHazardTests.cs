@@ -35,13 +35,11 @@ namespace KeePassGate.Host.Tests
     public sealed class SnapshotHazardTests
     {
         private TemporaryDatabase _database;
-        private CustomDataStore _store;
 
         [SetUp]
         public void SetUp()
         {
             _database = TemporaryDatabase.New();
-            _store = new CustomDataStore(_database.Database);
         }
 
         [TearDown]
@@ -140,21 +138,6 @@ namespace KeePassGate.Host.Tests
             dialog.PressOk();
 
             Assert.That(_database.RootGroup.CustomData.Exists("KPG"), Is.False);
-        }
-
-        [Test]
-        public void A_write_through_the_store_is_out_of_that_dialogs_reach_entirely()
-        {
-            // What the move bought. The store writes to the database's own custom data, which no
-            // group dialog copies, so neither OK nor Cancel can reach it.
-            var dialog = DialogOpensOn(_database.RootGroup);
-
-            _store.Set("KPG.Test.WrittenWhileOpen", "value");
-            dialog.PressOk();
-
-            Assert.That(_store.Get("KPG.Test.WrittenWhileOpen"), Is.EqualTo("value"));
-            Assert.That(_database.RootGroup.CustomData.Exists("KPG.Test.WrittenWhileOpen"), Is.False,
-                "nothing of this plugin's is on the group for that dialog to take back");
         }
 
         [Test]

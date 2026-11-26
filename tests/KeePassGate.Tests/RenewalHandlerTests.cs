@@ -9,6 +9,7 @@ using KeePassGate.Gate;
 using KeePassGate.Pairing;
 using KeePassGate.Pipeline;
 using KeePassGate.Spec;
+using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
 using KeePassGate.Transport;
@@ -390,7 +391,7 @@ namespace KeePassGate.Tests
                 Assert.That(operatorAt.Asked, Is.EqualTo(1), "nobody was disturbed the second time");
 
                 Renew(operatorAt, other, "{}");
-                Assert.That(operatorAt.Asked, Is.EqualTo(2), "an answer about one certificate and no other");
+                Assert.That(operatorAt.Asked, Is.EqualTo(2), "an answer about one client and no other");
             }
         }
 
@@ -437,7 +438,7 @@ namespace KeePassGate.Tests
                 {
                     var list = KeePassGate.Ui.ControlTree.FindByName<KeePassGate.Ui.ClientList>(
                         panel, KeePassGate.Ui.ClientList.ControlName);
-                    Assert.That(list.StandingAt(0).IsThisSession, Is.True, "the page shows the gate's answer");
+                    Assert.That(list.StandingAt(0).Refusal.IsThisSession, Is.True, "the page shows the gate's answer");
 
                     Assert.That(list.AllowRenewal(0), Is.Null);
                     Assert.That(list.StandingAt(0), Is.Null, "the name stops being red at once");
@@ -466,7 +467,7 @@ namespace KeePassGate.Tests
             using (var old = _authority.IssueAdmittedClient("reader"))
             {
                 Assume.That(Renew(operatorAt, old, "{}").Status, Is.EqualTo(403));
-                Assume.That(_authority.RefuseRenewal(CertificateDigest.Of(old), RenewalRefusal.Forever()).Ok, Is.True);
+                StoreSeeds.Refuse(_authority.Store, CertificateDigest.Of(old), RenewalRefusal.Forever());
 
                 var again = Renew(operatorAt, old, "{}");
 
@@ -543,7 +544,173 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_renewal_of_another_certificate_is_not_held_up_by_one_in_flight()
+        public void A_renewal_by_another_certificate_of_a_client_whose_renewal_is_answered_is_busy()
+        {
+            // `STORE.md` §618: an answer is about the client, so a renewal is in flight for the
+            // client. A renewal by the client's second certificate read no answer, waited its turn
+            // for the screen and raised the dialog the operator had just answered.
+            var operatorAt = FakeRenewalApproval.Approving();
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var first = Renew(operatorAt, old, "{}");
+                Assume.That(first.Status, Is.EqualTo(200), first.Json);
+
+                using (var renewed = Identity(first.Json))
+                {
+                    var refusing = new FakeRenewalApproval(RenewalApproval.Refused(RenewalRefusal.Forever()));
+                    var refusingRouter = Router(Handler(refusing));
+                    GateContext second = null;
+                    refusing.Meanwhile = () =>
+                    {
+                        refusing.Meanwhile = null;
+                        second = Context(old, "{}");
+                        refusingRouter.Handle(second);
+                    };
+
+                    var asking = Context(renewed, "{}");
+                    refusingRouter.Handle(asking);
+
+                    Assert.That(asking.Status, Is.EqualTo(403));
+                    Assert.That(second.Status, Is.EqualTo(503), "the client's earlier certificate is held off as well");
+                    Assert.That(second.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
+                    Assert.That(refusing.Asked, Is.EqualTo(1));
+                }
+            }
+        }
+
+        [Test]
+        public void Two_certificates_of_a_client_share_its_standing_answer()
+        {
+            // The renewed certificate's renewal is refused by the answer the operator gave to the
+            // earlier certificate's, and the other way round: the answer is about the client.
+            var operatorAt = FakeRenewalApproval.Approving();
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var first = Renew(operatorAt, old, "{}");
+                Assume.That(first.Status, Is.EqualTo(200), first.Json);
+
+                using (var renewed = Identity(first.Json))
+                {
+                    var refusing = new FakeRenewalApproval(RenewalApproval.Refused(RenewalRefusal.Forever()));
+                    Assert.That(Renew(refusing, old, "{}").Status, Is.EqualTo(403));
+
+                    var byTheOther = Renew(refusing, renewed, "{}");
+
+                    Assert.That(byTheOther.Status, Is.EqualTo(409), byTheOther.Json);
+                    Assert.That(byTheOther.Json, Is.EqualTo(HttpResponse.ErrorBody("forever")));
+                    Assert.That(refusing.Asked, Is.EqualTo(1), "nobody was asked about the second certificate");
+                    Assert.That(_authority.StandingRefusal(CertificateDigest.Of(old)).IsForever, Is.True, "by the client key");
+                }
+            }
+        }
+
+        [Test]
+        public void A_refusal_names_what_the_reading_before_the_dialog_held_and_nothing_that_arrived_while_it_stood()
+        {
+            // `STORE.md` §618: an answer the dialog gives names in `after` the standing versions the
+            // reading before the dialog held. One a merge brought in while it stood is named by
+            // nothing, stands beside the new version, and the stricter is the answer.
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var key = CertificateDigest.Of(old);
+                var day = _now.AddDays(3);
+                StoreSeeds.Refuse(_authority.Store, key, RenewalRefusal.Until(_now.AddDays(1)));
+                _now = _now.AddDays(2);
+
+                string before;
+                using (var reading = _authority.Store.Read())
+                {
+                    before = StoredRenewals.Of(reading.InForce, key).Standing.Single();
+                }
+
+                var operatorAt = new FakeRenewalApproval(RenewalApproval.Refused(RenewalRefusal.Until(day)));
+                operatorAt.Meanwhile = () =>
+                {
+                    operatorAt.Meanwhile = null;
+                    StoreSeeds.Refuse(_authority.Store, key, RenewalRefusal.Forever());
+                };
+
+                Assert.That(Renew(operatorAt, old, "{}").Status, Is.EqualTo(403));
+
+                Assert.That(_authority.RefusedShown, Is.EqualTo(new[] { before }), "the version the dialog was raised over");
+                Assert.That(_authority.StandingRefusal(key).IsForever, Is.True, "the answer that arrived meanwhile stands, and is the stricter");
+                Assert.That(Renew(operatorAt, old, "{}").Json, Is.EqualTo(HttpResponse.ErrorBody("forever")));
+            }
+        }
+
+        [TestCase("lost")]
+        [TestCase("unreadable")]
+        public void A_lost_answer_and_a_text_out_of_form_are_answered_forever_without_asking(string how)
+        {
+            // `STORE.md` §618: a lost version may have been a refusal forever, and a text out of
+            // form is no answer the plugin gave, so either refuses forever, and the log names it.
+            var operatorAt = FakeRenewalApproval.Approving();
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var key = CertificateDigest.Of(old);
+                if (how == "lost")
+                {
+                    Lose(key);
+                }
+                else
+                {
+                    Garble(key);
+                }
+
+                var context = Renew(operatorAt, old, "{}");
+
+                Assert.That(context.Status, Is.EqualTo(409), context.Json);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("forever")));
+                Assert.That(operatorAt.Asked, Is.Zero);
+                Assert.That(_audit.Entries.Single().Reason, Is.EqualTo(AdmissionAudit.StandingForeverReason));
+                Assert.That(_log.Warnings.Select(entry => entry.Message),
+                    Has.Some.Contains(how == "lost" ? "was deleted from the database" : "does not read"));
+            }
+        }
+
+        [TestCase("forever")]
+        [TestCase("until")]
+        public void An_answer_that_refuses_in_the_write_s_own_reading_stops_an_approved_renewal_and_is_answered_at_once(string how)
+        {
+            // A merge brings a refusal in after the handler last read the store: the write's
+            // condition asks the answer once more, under the writer's lock, and issues nothing. The
+            // renewal is answered with that answer at once, as a revocation landed since is.
+            var operatorAt = FakeRenewalApproval.Approving();
+            var refusal = how == "forever" ? RenewalRefusal.Forever() : RenewalRefusal.Until(_now.AddDays(3));
+            var expected = how == "forever"
+                ? HttpResponse.ErrorBody("forever")
+                : "{\"error\":\"too early\",\"notBefore\":\"" + Moments.Wire(refusal.NotBefore.Value) + "\"}";
+
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var key = CertificateDigest.Of(old);
+                _authority.BeforeWrite = () =>
+                {
+                    _authority.BeforeWrite = null;
+                    StoreSeeds.Refuse(_authority.Store, key, refusal);
+                };
+
+                var context = Renew(operatorAt, old, "{}");
+
+                Assert.That(context.Status, Is.EqualTo(409), context.Json);
+                Assert.That(context.Json, Is.EqualTo(expected));
+                Assert.That(_authority.Admitted, Is.Null, "nothing was issued");
+                Assert.That(_held.Count, Is.Zero, "the approval is let go");
+                Assert.That(_audit.Entries.Single().Reason, Is.EqualTo(
+                    how == "forever" ? AdmissionAudit.StandingForeverReason : AdmissionAudit.StandingUntilReason),
+                    "written down as refused without asking");
+
+                var retry = Renew(operatorAt, old, "{}");
+                Assert.That(retry.Json, Is.EqualTo(expected), "and so is the next renewal");
+                Assert.That(operatorAt.Asked, Is.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void A_renewal_of_another_client_is_not_held_up_by_one_in_flight()
         {
             var operatorAt = FakeRenewalApproval.Approving();
             var router = Router(Handler(operatorAt));
@@ -605,113 +772,126 @@ namespace KeePassGate.Tests
             }
         }
 
-        [Test]
-        public void A_standing_answer_that_cannot_be_read_is_busy_rather_than_a_dialog()
+
+        [TestCase("busy", "forever", TestName = "an answer forever that KeePass was too busy to take holds for this session and is told")]
+        [TestCase("failed", "forever", TestName = "an answer forever whose write could not be made holds for this session and is told")]
+        [TestCase("unsaved", "forever", TestName = "an answer forever whose save did not land holds for this session and is told")]
+        [TestCase("thrown", "forever", TestName = "an answer forever whose write threw holds for this session and is told")]
+        [TestCase("busy", "until", TestName = "an answer until a day that KeePass was too busy to take holds for this session and is told")]
+        public void A_standing_answer_that_was_not_written_holds_for_this_session_and_is_told(string how, string given)
         {
-            // A dialog is the one thing a standing answer exists to stop, so a read that fails
-            // raises none: the client is told to ask again, as the store refuses for a value it
-            // cannot read.
-            var operatorAt = FakeRenewalApproval.Approving();
-            _authority.StandingRefusalThrows = new InvalidOperationException("the custom data would not read");
-
-            using (var old = _authority.IssueAdmittedClient("reader"))
+            // An answer forever or until a day is saved as an approval's record is, and where the
+            // write is refused or its save does not land, the answer holds until KeePass exits and
+            // the operator is told at once with the writer's reason. Nothing waits for a save.
+            var standing = given == "forever" ? RenewalRefusal.Forever() : RenewalRefusal.Until(_now.AddDays(30));
+            var operatorAt = new FakeRenewalApproval(RenewalApproval.Refused(standing));
+            string reason;
+            switch (how)
             {
-                var context = Renew(operatorAt, old, "{}");
-
-                Assert.That(context.Status, Is.EqualTo(503));
-                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("busy")));
-                Assert.That(operatorAt.Asked, Is.Zero);
+                case "busy":
+                    reason = "a dialog is open on the database";
+                    _authority.RefuseRenewalAnswers = VaultWrite.Busy(reason);
+                    break;
+                case "failed":
+                    reason = "the database closed before the change could be made";
+                    _authority.RefuseRenewalAnswers = VaultWrite.Failed(reason);
+                    break;
+                case "unsaved":
+                    reason = "the database still has unsaved changes, so nothing is on disk";
+                    _authority.RefuseRenewalAnswers = VaultWrite.Unsaved(reason);
+                    break;
+                default:
+                    reason = "the store would not take the answer";
+                    _authority.WhileRefusing = () => { throw new InvalidOperationException(reason); };
+                    break;
             }
-        }
-
-        [Test]
-        public void A_standing_answer_that_could_not_be_written_holds_from_memory_at_once()
-        {
-            // The operator's ruling of 2026-10-14: it takes effect at once, like one for this
-            // session, and is owed to the database until the plugin's next write lands with it.
-            var operatorAt = new FakeRenewalApproval(RenewalApproval.Refused(RenewalRefusal.Forever()));
-            _authority.RefuseRenewalAnswers = VaultWrite.Busy("a dialog is open");
 
             using (var old = _authority.IssueAdmittedClient("reader"))
             {
+                var key = CertificateDigest.Of(old);
                 var context = Renew(operatorAt, old, "{}");
 
                 Assert.That(context.Status, Is.EqualTo(403), "the refusal stands");
-                Assert.That(_log.Warnings.Select(entry => entry.Message), Has.Some.Contains("holds from memory"));
-                Assert.That(_session.Owed().Single().Refusal.IsForever, Is.True);
+                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("refused")));
+                _authority.WhileRefusing = null;
+                Assert.That(_authority.StandingRefusal(key), Is.Null, "nothing is in the database");
+                Assert.That(_session.Refuses(key), Is.True, "the answer holds until KeePass exits");
+                Assert.That(operatorAt.Told, Is.EqualTo(new[]
+                {
+                    "The answer to the renewal was not written: " + reason + "." + Environment.NewLine +
+                    "Renewal stays refused until KeePass exits.",
+                }));
 
                 var again = Renew(operatorAt, old, "{}");
 
-                Assert.That(again.Status, Is.EqualTo(409));
-                Assert.That(again.Json, Is.EqualTo(HttpResponse.ErrorBody("forever")));
+                Assert.That(again.Status, Is.EqualTo(409), again.Json);
+                Assert.That(again.Json, Is.EqualTo(HttpResponse.ErrorBody("this session")));
                 Assert.That(operatorAt.Asked, Is.EqualTo(1), "answered without the dialog");
+                Assert.That(operatorAt.Told, Has.Count.EqualTo(1), "and told once");
+                Assert.That(_audit.Entries[0].Reason,
+                    Is.EqualTo(given == "forever" ? AdmissionAudit.RefusedForeverReason : AdmissionAudit.RefusedUntilReason),
+                    "the audit holds the answer the operator gave");
             }
         }
 
         [Test]
-        public void An_owed_answer_is_given_over_what_the_database_holds_when_the_dialog_returns()
+        public void A_standing_answer_whose_save_did_not_verify_stays_in_force_and_is_told()
         {
-            // A stored answer until a date whose day has begun raises the dialog, and Allow
-            // renewal accepted while it stands takes the key away. The operator's answer is
-            // given after that, so the key as it is then is what the answer was given over:
-            // with the key as it was before the dialog, the next save found the key changed
-            // since and let the operator's answer go unwritten.
+            // The save ran and the file does not hold what KeePass wrote: the answer stays in the
+            // open database, which stays marked, as a change of the API's stays, and the operator
+            // is told that the save could not be confirmed. Nothing is held for this session.
             var operatorAt = new FakeRenewalApproval(RenewalApproval.Refused(RenewalRefusal.Forever()));
+            _authority.RefuseRenewalLeaves = VaultWrite.Unverified("the file on disk does not hold what KeePass wrote to it");
 
             using (var old = _authority.IssueAdmittedClient("reader"))
             {
                 var key = CertificateDigest.Of(old);
-                _authority.RefuseRenewal(key, RenewalRefusal.Until(_now.AddDays(-1)));
-                _authority.RefuseRenewalAnswers = VaultWrite.Busy("a dialog is open");
-                operatorAt.Meanwhile = () => _authority.LiftRenewalRefusal(key);
-
-                Assert.That(Renew(operatorAt, old, "{}").Status, Is.EqualTo(403));
-
-                Assert.That(_session.Owed().Single().Baseline, Is.Null,
-                    "the key held nothing once the operator answered");
-            }
-        }
-
-        [Test]
-        public void A_refusal_in_this_session_is_not_hidden_by_an_owed_answer_whose_day_has_begun()
-        {
-            // The plugin's memory gave the owed answer before this session's whether or not it
-            // still refused, and the handler let the passed date go and asked again on every
-            // renewal, as though nothing stood.
-            var operatorAt = FakeRenewalApproval.Approving();
-
-            using (var old = _authority.IssueAdmittedClient("reader"))
-            {
-                var key = CertificateDigest.Of(old);
-                _session.Owe("db", key, RenewalRefusal.Until(_now.AddDays(-1)), null);
-                _session.Refuse(key);
-
                 var context = Renew(operatorAt, old, "{}");
 
-                Assert.That(context.Status, Is.EqualTo(409), context.Json);
-                Assert.That(context.Json, Is.EqualTo(HttpResponse.ErrorBody("this session")));
-                Assert.That(operatorAt.Asked, Is.Zero, "nobody was asked");
+                Assert.That(context.Status, Is.EqualTo(403), context.Json);
+                Assert.That(_authority.StandingRefusal(key).IsForever, Is.True, "the answer is in the database");
+                Assert.That(_session.Refuses(key), Is.False, "and nothing beside it in memory");
+                Assert.That(operatorAt.Told, Is.EqualTo(new[]
+                {
+                    "The save of the answer to the renewal could not be confirmed: the file on disk does not " +
+                    "hold what KeePass wrote to it.",
+                }));
+
+                var again = Renew(operatorAt, old, "{}");
+
+                Assert.That(again.Json, Is.EqualTo(HttpResponse.ErrorBody("forever")));
+                Assert.That(operatorAt.Asked, Is.EqualTo(1));
             }
         }
 
-        [Test]
-        public void An_owed_answer_until_a_date_stops_refusing_once_its_day_begins()
+        [TestCase("once")]
+        [TestCase("this session")]
+        [TestCase("until")]
+        [TestCase("forever")]
+        public void An_answer_kept_as_given_tells_the_operator_nothing(string given)
         {
-            var until = _now.AddDays(2);
-            var operatorAt = new FakeRenewalApproval(RenewalApproval.Refused(RenewalRefusal.Until(until)));
-            _authority.RefuseRenewalAnswers = VaultWrite.Busy("a dialog is open");
+            RenewalRefusal standing = null;
+            if (given == "this session")
+            {
+                standing = RenewalRefusal.ThisSession();
+            }
+            else if (given == "until")
+            {
+                standing = RenewalRefusal.Until(_now.AddDays(3));
+            }
+            else if (given == "forever")
+            {
+                standing = RenewalRefusal.Forever();
+            }
+
+            var operatorAt = new FakeRenewalApproval(RenewalApproval.Refused(standing));
 
             using (var old = _authority.IssueAdmittedClient("reader"))
             {
-                Assume.That(Renew(operatorAt, old, "{}").Status, Is.EqualTo(403));
-
-                var early = Renew(operatorAt, old, "{}");
-                Assert.That(early.Status, Is.EqualTo(409));
-                Assert.That(JsonBody.Read(early.Json).Text("notBefore"), Is.EqualTo(Moments.Wire(until)));
-
-                _now = until;
-                operatorAt = FakeRenewalApproval.Approving();
-                Assert.That(Renew(operatorAt, old, "{}").Status, Is.EqualTo(200));
+                Assert.That(Renew(operatorAt, old, "{}").Status, Is.EqualTo(403));
+                Assert.That(operatorAt.Told, Is.Empty);
+                Assert.That(_session.Refuses(CertificateDigest.Of(old)), Is.EqualTo(given == "this session"),
+                    "the plugin's memory holds an answer for this session alone");
             }
         }
 
@@ -1012,7 +1192,7 @@ namespace KeePassGate.Tests
 
                 if (given == "forever")
                 {
-                    Assume.That(_authority.RefuseRenewal(key, RenewalRefusal.Forever()).Ok, Is.True);
+                    StoreSeeds.Refuse(_authority.Store, key, RenewalRefusal.Forever());
                 }
                 else
                 {
@@ -1029,36 +1209,6 @@ namespace KeePassGate.Tests
             }
         }
 
-        [Test]
-        public void A_standing_answer_that_cannot_be_read_on_the_retry_keeps_the_held_approval()
-        {
-            // S022. A read that failed once was taken for a standing answer, so the approval the
-            // operator gave was let go, and the next retry put the same dialog in front of them.
-            var operatorAt = FakeRenewalApproval.Approving();
-
-            using (var old = _authority.IssueAdmittedClient("reader"))
-            {
-                _authority.AdmitAnswers = AdmissionWrite.Busy("KeePass is saving");
-                Assume.That(Renew(operatorAt, old, "{}").Status, Is.EqualTo(503));
-                _authority.AdmitAnswers = null;
-
-                _authority.StandingRefusalThrows = new InvalidOperationException("the custom data would not read");
-                var unread = Renew(operatorAt, old, "{}");
-
-                Assert.That(unread.Status, Is.EqualTo(503), unread.Json);
-                Assert.That(JsonBody.Read(unread.Json).Text("heldUntil"),
-                    Is.EqualTo(Moments.Wire(_now + GateOptions.DefaultPairingBudget)),
-                    "still held, and the client is told until when");
-                Assert.That(_held.Count, Is.EqualTo(1));
-                Assert.That(_authority.Admitted, Is.Null, "nothing is written past an answer that would not read");
-
-                _authority.StandingRefusalThrows = null;
-                var retry = Renew(operatorAt, old, "{}");
-
-                Assert.That(retry.Status, Is.EqualTo(200), retry.Json);
-                Assert.That(operatorAt.Asked, Is.EqualTo(1), "the operator answered once");
-            }
-        }
 
         [Test]
         public void A_held_approval_runs_out_with_the_pairing_budget_and_the_dialog_comes_up_again()
@@ -1674,9 +1824,72 @@ namespace KeePassGate.Tests
             return GateOperations.Router("9.9.9", null, handler, new AccessCheck(NullGateAudit.Instance));
         }
 
+        /// <summary>
+        /// A connection's identity as the router gives it: the certificate, and the client key its
+        /// admission carries, so a renewed certificate is the client that paired.
+        /// </summary>
         private ClientIdentity Paired(X509Certificate2 certificate)
         {
-            return ClientIdentity.Paired(_authority.DatabaseId, certificate, new[] { "reader" });
+            AdmissionRecord admitted;
+            using (var reading = _authority.Store.Read())
+            {
+                admitted = StoreAdmissions.Admitted(reading, CertificateDigest.Of(certificate));
+            }
+
+            return ClientIdentity.Paired(
+                _authority.DatabaseId, certificate, new[] { "reader" }, null, admitted == null ? null : admitted.ClientKey);
+        }
+
+        /// <summary>
+        /// A deletion record of a version of the client's answer that no version and no item names:
+        /// a version deleted for good, which is lost, `STORE.md` §617.
+        /// </summary>
+        private void Lose(string client)
+        {
+            var key = StoreKey();
+            try
+            {
+                _authority.Store.Delete(StoreComposer.RuleVersion(key, RenewalText.ObjectOf(client), RenewalText.Forever).Identifier);
+            }
+            finally
+            {
+                Array.Clear(key, 0, key.Length);
+            }
+        }
+
+        /// <summary>A version of the client's answer whose text is none the plugin composes, written as a write writes it.</summary>
+        private void Garble(string client)
+        {
+            var key = StoreKey();
+            try
+            {
+                string name;
+                using (var reading = _authority.Store.Read())
+                {
+                    name = reading.InForce.Key.Name;
+                }
+
+                var record = StoreRecord.Compose(key, StoreKinds.Version, new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    { StoreKinds.ObjectMember, RenewalText.ObjectOf(client) },
+                    { StoreKinds.After, string.Empty },
+                    { StoreKinds.Doc, "allowed" },
+                });
+                var act = new StoreAct("a text out of form", key, name, new[] { record }, null, null);
+                Assume.That(_authority.Store.Write(new[] { act }).Taken, Is.True);
+            }
+            finally
+            {
+                Array.Clear(key, 0, key.Length);
+            }
+        }
+
+        private byte[] StoreKey()
+        {
+            using (var reading = _authority.Store.Read())
+            {
+                return (byte[])reading.InForce.Key.Bytes.Clone();
+            }
         }
 
         private static X509Certificate2 Identity(string bundle)

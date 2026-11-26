@@ -31,8 +31,6 @@ namespace KeePassGate.Tests.Fakes
         private readonly byte[] _gateKey;
         private readonly List<X509Certificate2> _issued = new List<X509Certificate2>();
         private readonly MemoryStore _store = new MemoryStore();
-        private readonly InMemoryKeyValueStore _answers = new InMemoryKeyValueStore();
-        private readonly RenewalAnswers _renewals;
 
         private TestAuthority(
             CertifiedKey authority, CertifiedKey host, byte[] gateKey)
@@ -42,7 +40,6 @@ namespace KeePassGate.Tests.Fakes
             _host = host.Read();
             _hostKey = host;
             _gateKey = gateKey;
-            _renewals = new RenewalAnswers(_answers, NullGateLog.Instance);
             using (var material = new AuthorityMaterial(authority, host, gateKey))
             {
                 StoreSeeds.AuthorityOf(_store, material);
@@ -176,7 +173,7 @@ namespace KeePassGate.Tests.Fakes
             using (var reading = _store.Read())
             {
                 var record = StoreAdmissions.Admitted(reading, admissionKey);
-                return record == null ? null : new Admitted(record, ProfileNames.Of(reading).Names);
+                return record == null ? null : new Admitted(record, ProfileNames.Of(reading).Names, reading.InForce);
             }
         }
 
@@ -323,6 +320,11 @@ namespace KeePassGate.Tests.Fakes
             {
                 return AskedProfiles.Regaining(_reading, profiles, DateTimeOffset.UtcNow);
             }
+
+            public RenewalRefusal Renewal(string clientKey)
+            {
+                return StoredRenewals.AnswerOf(_reading.InForce, clientKey);
+            }
         }
 
         /// <summary>
@@ -456,22 +458,23 @@ namespace KeePassGate.Tests.Fakes
         /// </summary>
         public KeePassGate.Vault.VaultWrite GiveUpAnswers { get; set; }
 
-        /// <summary>Set to make reading a standing answer fail, as a database that will not read does.</summary>
-        public Exception StandingRefusalThrows { get; set; }
-
-        /// <summary>The operator's standing answers to renewals, as the gate reads them.</summary>
-        public RenewalRefusal StandingRefusal(string admissionKey)
+        /// <summary>
+        /// The strictest standing answer about a client's renewals this fake's store holds, as the
+        /// gate reads it, or null.
+        /// </summary>
+        public RenewalRefusal StandingRefusal(string clientKey)
         {
-            if (StandingRefusalThrows != null)
+            using (var reading = _store.Read())
             {
-                throw StandingRefusalThrows;
+                return StoredRenewals.AnswerOf(reading.InForce, clientKey);
             }
-
-            return _renewals.StandingRefusal(admissionKey);
         }
 
         /// <summary>Set to answer a standing refusal's write with something other than doing it.</summary>
         public KeePassGate.Vault.VaultWrite RefuseRenewalAnswers { get; set; }
+
+        /// <summary>The versions the last standing answer's write was told the dialog was shown.</summary>
+        public IReadOnlyCollection<string> RefusedShown { get; private set; }
 
         /// <summary>
         /// Run while a standing answer is on its way to the database, before it lands, which is how
@@ -479,9 +482,19 @@ namespace KeePassGate.Tests.Fakes
         /// </summary>
         public Action WhileRefusing { get; set; }
 
-        /// <summary>A standing answer, written in this fake's own records.</summary>
-        public KeePassGate.Vault.VaultWrite RefuseRenewal(string admissionKey, RenewalRefusal refusal)
+        /// <summary>
+        /// Set to write a standing answer and answer its write with this all the same, as a save
+        /// whose file did not verify leaves the answer in the database.
+        /// </summary>
+        public KeePassGate.Vault.VaultWrite RefuseRenewalLeaves { get; set; }
+
+        /// <summary>
+        /// A standing answer, written into this fake's store by the product's own act, naming the
+        /// versions the handler gives as what the dialog was shown.
+        /// </summary>
+        public KeePassGate.Vault.VaultWrite AnswerRenewal(string clientKey, RenewalRefusal refusal, IReadOnlyCollection<string> shown)
         {
+            RefusedShown = shown;
             if (WhileRefusing != null)
             {
                 WhileRefusing();
@@ -492,14 +505,35 @@ namespace KeePassGate.Tests.Fakes
                 return RefuseRenewalAnswers;
             }
 
-            _renewals.RefuseRenewal(admissionKey, refusal);
-            return KeePassGate.Vault.VaultWrite.Done();
+            string refused;
+            using (var reading = _store.Read())
+            {
+                var written = Write(RenewalActs.Refuse(reading, clientKey, refusal, shown, out refused));
+                if (written != null)
+                {
+                    return KeePassGate.Vault.VaultWrite.Failed(refused ?? written);
+                }
+            }
+
+            return RefuseRenewalLeaves ?? KeePassGate.Vault.VaultWrite.Done();
         }
 
-        /// <summary>Takes a standing answer away, as the clients page's Allow renewal does at OK.</summary>
-        public bool LiftRenewalRefusal(string admissionKey)
+        /// <summary>
+        /// Lifts every standing answer about a client's renewals, as the clients page's Allow
+        /// renewal does at OK, answering whether one stood.
+        /// </summary>
+        public bool LiftRenewalRefusal(string clientKey)
         {
-            return _renewals.LiftRenewalRefusal(admissionKey);
+            using (var reading = _store.Read())
+            {
+                var standing = StoredRenewals.Of(reading.InForce, clientKey);
+                if (standing.Standing.Count == 0 && standing.Lost.Count == 0)
+                {
+                    return false;
+                }
+
+                return Write(RenewalActs.Lift(reading, clientKey, standing.Standing, standing.Lost)) == null;
+            }
         }
 
         /// <summary>

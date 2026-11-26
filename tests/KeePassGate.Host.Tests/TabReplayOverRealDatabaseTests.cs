@@ -19,18 +19,16 @@ namespace KeePassGate.Host.Tests
 {
     /// <summary>
     /// The KPG tab's OK replayed over the real store while the plugin's own writer lands changes
-    /// underneath the dialog, the three that `PendingDatabase` merges rather than overwrites.
+    /// underneath the dialog, each composed again at OK against the store as it stands then.
     /// </summary>
     /// <remarks>
-    /// **The cases `PendingChangesTests` settles over a dictionary, run over KeePass's.** A pairing
-    /// naming a profile while the Profiles page holds an edit, a client giving its certificate up
-    /// while its row's X waits, and a renewal answered again while Allow renewal waits: each is a
-    /// second writer on what the tab holds, and what the operator's OK keeps of each is decided by
-    /// the merge `PendingStore.Reconcile` registers. The unit tier lands the second write straight
-    /// into its store. Here it lands through `DatabaseWriter`, by the target a connection would
-    /// use, saved and read back, onto `CustomDataStore` over a real `PwDatabase`, whose own rules
-    /// are what is under test: a write that changes nothing skipped, and every key stamped by
-    /// KeePass.
+    /// **The cases `PendingChangesTests` settles over a store in memory, run over KeePass's.** A
+    /// pairing naming a profile while the Profiles page holds an edit, a client giving its
+    /// certificate up while its row's X waits, and a renewal answered again while Allow renewal
+    /// waits: each is a second writer on what the tab holds, and what the operator's OK keeps of
+    /// each is decided by what each act names, `STORE.md` §627. Here the second write lands through
+    /// `DatabaseWriter`, by the target a connection would use, saved and read back, into the
+    /// plugin's store over a real `PwDatabase`.
     ///
     /// `Apply` stands for OK, as it does in `OpenDatabaseTests`; `AuthorityPanelFactory` calls it
     /// for that answer and for no other.
@@ -121,13 +119,16 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void A_renewal_answered_again_under_a_waiting_Allow_renewal_keeps_the_later_answer()
+        public void A_renewal_answered_again_under_a_waiting_Allow_renewal_leaves_the_refusal_standing_at_OK()
         {
+            // The renewal dialog answered the client again while Allow renewal waited, naming the
+            // version the press was shown: the lift has nothing left to name and writes nothing,
+            // and the refusal stands, `STORE.md` §627.
             using (var client = Client("agent-invented", "ops"))
             {
                 var key = CertificateDigest.Of(client);
                 Assume.That(_target.Admit(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }, Served()), null, null).Ok, Is.True);
-                Assume.That(_target.RefuseRenewal(key, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(1))).Ok, Is.True);
+                Assume.That(_target.AnswerRenewal(key, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(1)), Shown(key)).Ok, Is.True);
 
                 var pending = Pending();
                 using (var panel = new AuthorityPanel(pending, new NeverAsked(), NullGateLog.Instance))
@@ -136,15 +137,49 @@ namespace KeePassGate.Host.Tests
                 }
 
                 var later = RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(2));
-                Assert.That(_target.RefuseRenewal(key, later).Ok, Is.True, "the renewal's answer did not land");
-                var landed = Snapshot();
+                Assert.That(_target.AnswerRenewal(key, later, Shown(key)).Ok, Is.True, "the renewal's answer did not land");
+                var landed = new StoredAdmissions(_database.Database).Snapshot();
 
                 pending.Apply();
 
-                Assert.That(Snapshot(), Is.EqualTo(landed), "OK took away an answer given after Allow renewal was pressed");
-                Assert.That(_target.StandingRefusal(key).Write(), Is.EqualTo(later.Write()),
+                Assert.That(new StoredAdmissions(_database.Database).Snapshot(), Is.EqualTo(landed),
+                    "OK wrote a lift over an answer given after Allow renewal was pressed");
+                Assert.That(new StoredAdmissions(_database.Database).Answer(key).NotBefore, Is.EqualTo(later.NotBefore),
                     "the gate answers with the later answer");
             }
+        }
+
+        [Test]
+        public void A_lift_at_OK_marks_the_database_and_saves_nothing_with_the_other_records_of_the_buffer()
+        {
+            using (var client = Client("agent-invented", "ops"))
+            {
+                var key = CertificateDigest.Of(client);
+                Assume.That(_target.Admit(AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }, Served()), null, null).Ok, Is.True);
+                Assume.That(_target.AnswerRenewal(key, RenewalRefusal.Forever(), Shown(key)).Ok, Is.True);
+                Assume.That(_database.Database.Modified, Is.False);
+                var file = System.IO.File.ReadAllBytes(_database.Path);
+
+                var pending = Pending();
+                using (var panel = new AuthorityPanel(pending, new NeverAsked(), NullGateLog.Instance))
+                {
+                    Assert.That(panel.AllowRenewal(key), Is.Null, "Allow renewal was not taken");
+                    Assert.That(new DatabaseProfiles(pending, NullGateLog.Instance).Add("audit"), Is.Null);
+                }
+
+                Assert.That(pending.Apply(), Is.True);
+
+                Assert.That(new StoredAdmissions(_database.Database).Answer(key), Is.Null, "the lift is in the open database");
+                Assert.That(Names(), Does.Contain("audit"), "beside the other records of the buffer");
+                Assert.That(_database.Database.Modified, Is.True, "marked");
+                Assert.That(System.IO.File.ReadAllBytes(_database.Path), Is.EqualTo(file), "and nothing saved");
+            }
+        }
+
+        /// <summary>The standing versions of a client's answer, as a dialog raised now is shown them.</summary>
+        private IReadOnlyCollection<string> Shown(string clientKey)
+        {
+            return new StoredAdmissions(_database.Database).Standing(clientKey).Standing;
         }
 
         [Test]
@@ -211,24 +246,6 @@ namespace KeePassGate.Host.Tests
         {
             return new StoredAdmissions(_database.Database)
                 .All().Records.Select(record => record.AdmissionKey);
-        }
-
-        /// <summary>
-        /// Every key of this plugin's in the database's own custom data, with its value and the
-        /// time KeePass stamped it with, which is what a merge of the file decides by.
-        /// </summary>
-        private List<string> Snapshot()
-        {
-            var stamp = typeof(StringDictionaryEx).GetMethod(
-                "GetLastModificationTime", BindingFlags.Instance | BindingFlags.NonPublic);
-            Assert.That(stamp, Is.Not.Null, "KeePass no longer records when a key was written");
-
-            return _database.Database.CustomData
-                .Where(pair => pair.Key.StartsWith("KPG", StringComparison.Ordinal))
-                .Select(pair => pair.Key + " = " + pair.Value + " @ " +
-                                (DateTime?)stamp.Invoke(_database.Database.CustomData, new object[] { pair.Key }))
-                .OrderBy(line => line, StringComparer.Ordinal)
-                .ToList();
         }
 
         /// <summary>The warnings logged, every other line dropped.</summary>

@@ -554,47 +554,28 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
-        public void Of_two_standing_answers_made_apart_the_later_is_the_one_kept()
+        public void A_standing_answer_a_merge_brings_beside_a_revoked_client_stays_and_refuses_nothing_more()
         {
-            // `CA.md` §204: a standing answer is changed rather than only added, so a merge decides
-            // between two by their times, and the later stands. Written a moment apart, so the
-            // times differ by more than the second they are kept to.
+            // `STORE.md` §618: an answer about a client that is revoked stays in the store, since
+            // nothing is deleted to take something away and nothing is removed for a client that
+            // is gone. The revocation refuses every certificate of the client, so the answer
+            // refuses nothing more, and the next write of the plugin's own leaves it as it is.
             var admissionKey = CertificateDigest.Of(_first);
             Records(_here).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
             Share();
-
-            Records(_here).Answers.RefuseRenewal(admissionKey, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(3)));
-            System.Threading.Thread.Sleep(1100);
-            Records(_elsewhere).Answers.RefuseRenewal(admissionKey, RenewalRefusal.Forever());
-
-            Synchronize();
-
-            Assert.That(Records(_here).Answers.StandingRefusal(admissionKey).IsForever, Is.True);
-        }
-
-        [Test]
-        public void A_standing_answer_a_merge_brings_beside_a_revoked_client_goes_with_the_next_write()
-        {
-            // A copy that still holds an answer about a certificate whose client was revoked
-            // brings it, since a merge never removes a key. It refuses a renewal nothing could
-            // ask for, and the next write of the plugin's own prunes it against the admissions
-            // that write leaves, here a pairing of another client.
-            var admissionKey = CertificateDigest.Of(_first);
-            Records(_here).Write(AdmissionRecord.For(_first, DateTimeOffset.UtcNow, new[] { "ops" }, StoredAdmissions.AnyIssuer));
-            Share();
-            Records(_elsewhere).Answers.RefuseRenewal(admissionKey, RenewalRefusal.Forever());
+            Records(_elsewhere).Refuse(admissionKey, RenewalRefusal.Forever());
 
             Assume.That(Records(_here).Remove(admissionKey), Is.True);
 
             Synchronize();
-            Assume.That(Records(_here).Answers.StandingRefusal(admissionKey), Is.Not.Null, "the merge brought it");
+            Assume.That(Records(_here).Answer(admissionKey), Is.Not.Null, "the merge brought it");
 
             var writer = new DatabaseWriter(CurrentThread.Instance, database => database.Save(null), null, null, null);
             var paired = writer.WriteAdmission(
                 _here.Database, AdmissionRecord.For(_second, DateTimeOffset.UtcNow, new[] { "reader" }, StoreSeeds.Served(Records(_here).Store)));
             Assume.That(paired.Ok, Is.True, paired.Reason);
 
-            Assert.That(Records(_here).Answers.StandingRefusal(admissionKey), Is.Null);
+            Assert.That(Records(_here).Answer(admissionKey).IsForever, Is.True, "the answer stays");
             Assert.That(Records(_here).Find(admissionKey), Is.Null, "and the client is still refused");
         }
 

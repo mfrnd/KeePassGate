@@ -187,14 +187,8 @@ namespace KeePassGate.Gate
             return KeePassGate.Vault.VaultWrite.Busy(Reason);
         }
 
-        /// <summary>None, while there is nothing to read one from.</summary>
-        public RenewalRefusal StandingRefusal(string admissionKey)
-        {
-            return null;
-        }
-
         /// <summary>Busy, for the same reason: what is held back is read anew.</summary>
-        public KeePassGate.Vault.VaultWrite RefuseRenewal(string admissionKey, RenewalRefusal refusal)
+        public KeePassGate.Vault.VaultWrite AnswerRenewal(string clientKey, RenewalRefusal refusal, IReadOnlyCollection<string> shown)
         {
             return KeePassGate.Vault.VaultWrite.Busy(Reason);
         }

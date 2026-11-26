@@ -142,7 +142,7 @@ namespace KeePassGate.Pairing
 
         /// <summary>The operator's no to this renewal.</summary>
         /// <param name="standing">
-        /// What every later renewal of this certificate is answered with, or null for once only.
+        /// What every later renewal by this client is answered with, or null for once only.
         /// </param>
         public static RenewalApproval Refused(RenewalRefusal standing = null)
         {
@@ -208,6 +208,16 @@ namespace KeePassGate.Pairing
         /// <see cref="PairingOptions.DialogLeft"/>.
         /// </param>
         RenewalApproval Ask(RenewalRequest request, TimeSpan timeout, TimeSpan left);
+
+        /// <summary>
+        /// Tells the operator that a standing answer given on the dialog was not kept as given,
+        /// once the dialog has closed, without waiting for the operator to read it.
+        /// </summary>
+        /// <remarks>
+        /// Asked from a connection thread, after the answer's write, and shown when KeePass is
+        /// not part way through work of its own: `RenewalAnswerNotice` has the words.
+        /// </remarks>
+        void Tell(string news);
     }
 
     /// <summary>What a plugin with no screen answers: nothing is renewed and nothing is stored.</summary>
@@ -218,6 +228,11 @@ namespace KeePassGate.Pairing
         public RenewalApproval Ask(RenewalRequest request, TimeSpan timeout, TimeSpan left)
         {
             return RenewalApproval.Unavailable("there is no screen to ask");
+        }
+
+        /// <summary>Nobody was asked, so no answer was given and nothing is told.</summary>
+        public void Tell(string news)
+        {
         }
     }
 }

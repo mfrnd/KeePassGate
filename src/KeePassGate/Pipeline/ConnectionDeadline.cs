@@ -3,8 +3,9 @@ using System;
 namespace KeePassGate.Pipeline
 {
     /// <summary>
-    /// What a pairing or a renewal tells the transport once a write of its record is about to
-    /// begin, so the connection's deadline is dropped there, and what a pairing tells it before a
+    /// What a pairing or a renewal tells the transport once a write of its record, or of a
+    /// renewal's standing answer, is about to begin, so the connection's deadline is dropped
+    /// there, and what a pairing tells it before a
     /// dialog it puts to the operator again, so the deadline is taken up again.
     /// </summary>
     /// <remarks>
@@ -13,7 +14,7 @@ namespace KeePassGate.Pipeline
     /// dialog, the grace on it and the settling of a busy KeePass. The write is not among them.
     /// It is a whole-database save that no number bounds, and the invitation is spent inside it,
     /// so a deadline still running there could only throw away the certificate of a record that
-    /// lands anyway. Dropped here, the rest is measured as every other write is: no deadline while
+    /// lands anyway, or the `403` of a refusal that does. Dropped here, the rest is measured as every other write is: no deadline while
     /// the plugin's own work runs, and the ordinary budget again once the answer is being written.
     ///
     /// **A pairing whose write finds its approval stale waits on a person again**: the write saves

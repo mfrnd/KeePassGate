@@ -485,22 +485,26 @@ paths:
         "403":
           description: |
             The operator refused. Asking again raises the dialog again, unless the operator said
-            more than once, which every later renewal of this certificate is answered `409` for.
+            more than once, which every later renewal by any certificate of this client is answered
+            `409` for.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
         "409":
           description: |
-            The operator has already answered every renewal of this certificate, so this one was
-            refused without asking anybody. `this session` holds until KeePass exits: the answer
-            is kept in the plugin's memory rather than in the database, so a renewal asked for
-            after KeePass next starts raises the dialog. `too early` is until `notBefore`, a moment
-            in UTC to the second, from which the dialog is raised again. `forever` is what it says:
-            pairing again is the way to a new certificate. Each of the three also ends when the
-            operator lifts it with **Allow renewal** on the clients page and accepts the settings
-            dialog, and the next renewal then raises the dialog again. Nothing tells the client
-            that it has: it learns by asking.
+            The operator has already answered every renewal of this client, by whichever of its
+            certificates, so this renewal was refused without asking anybody, or an answer that
+            arrived while the operator decided stopped an approval before anything was issued.
+            `this session` holds until KeePass exits: the answer is kept in the plugin's memory
+            rather than in the database, so a renewal asked for after KeePass next starts raises
+            the dialog. `too early` is until `notBefore`, a moment in UTC to the second, from which
+            the dialog is raised again. `forever` has no end of its own: pairing again is the way
+            to a new certificate; an answer the database lost or holds in a form the plugin does
+            not read is answered `forever` too. Each of the three also ends when the operator lifts
+            it with **Allow renewal** on the clients page and accepts the settings dialog, and the
+            next renewal then raises the dialog again. Nothing tells the client that it has: it
+            learns by asking.
           content:
             application/json:
               schema:

@@ -79,6 +79,13 @@ namespace KeePassGate.Store
     /// rules at any hold, and a name with no row record has its tag hashed once. Each hash is kept
     /// with the key, so a later hold under the same key hashes only what is new, and walks the tree
     /// again only while a deletion record placed nowhere is left.
+    ///
+    /// **What the answers to renewals cost in hashes**, `STORE.md` §618 and §620. An answer's
+    /// subject is its whole object, `renew:` and the client key, with 0 in bytes 9 and 10, so a
+    /// deletion record at the place of an answer present is that answer's, with nothing hashed. A
+    /// deletion record placed nowhere that holds 0 costs, after the nodes the objects name and
+    /// before the tree, a subject hash of `renew:` and each client key the file knows; a client
+    /// key the file does not know tells of nothing, until the file knows it.
     /// </remarks>
     internal sealed class StoreInForce
     {
@@ -1157,6 +1164,7 @@ namespace KeePassGate.Store
         {
             private static readonly string Rules = StoreKinds.RuleType + StoreKinds.ObjectTypeEnd;
             private static readonly string Switches = StoreKinds.SwitchType + StoreKinds.ObjectTypeEnd;
+            private static readonly string Renewals = StoreKinds.RenewType + StoreKinds.ObjectTypeEnd;
             private static readonly IReadOnlyList<StoreNames> NoLists = Array.Empty<StoreNames>();
 
             private readonly StoreInForce _inForce;
@@ -1253,8 +1261,9 @@ namespace KeePassGate.Store
 
             /// <summary>
             /// The deletion records no version present places: each told of at the node of an
-            /// object the file names whose subject hash it holds, and only where a deletion record
-            /// is still not told of, at each node of the tree.
+            /// object the file names whose subject hash it holds, then as an answer about a client
+            /// key the file knows, and only where a deletion record is still not told of, at each
+            /// node of the tree.
             /// </summary>
             private void TellUnplaced(IReadOnlyList<StoreId> unplaced, Func<IEnumerable<byte[]>> nodes)
             {
@@ -1317,6 +1326,28 @@ namespace KeePassGate.Store
                     }
                 }
 
+                // The answers to renewals about each client key the file knows, before the tree:
+                // only a deletion record that holds 0 tells of one, `STORE.md` §618.
+                if (zero && unmatched.Count > 0)
+                {
+                    foreach (var client in _inForce.KnownClients())
+                    {
+                        List<StoreId> telling;
+                        var answered = Renewals + client;
+                        var hash = _key.SubjectHash(answered);
+                        if (bySubject.TryGetValue(hash, out telling))
+                        {
+                            var told = new[] { Of(answered) };
+                            foreach (var identifier in telling.Where(identifier => identifier.Number == 0))
+                            {
+                                TellAt(told, identifier);
+                            }
+
+                            unmatched.Remove(hash);
+                        }
+                    }
+                }
+
                 // The whole tree, once, where a deletion record's subject meets no node the
                 // objects name: the nodes already tried are hashed no further.
                 if (unmatched.Count > 0 && nodes != null)
@@ -1331,8 +1362,8 @@ namespace KeePassGate.Store
 
             /// <summary>
             /// What a deletion record at the place of a version of this object tells of: at a
-            /// rule's place the rows of its node, at a switch's that switch, and at the place of an
-            /// object of another type nothing, what it tells of being that type's.
+            /// rule's place the rows of its node, and at a switch's or an answer's that object,
+            /// whose subject is the whole object.
             /// </summary>
             private IReadOnlyList<ObjectTold> ToldAt(string objectText, int number)
             {
@@ -1341,7 +1372,9 @@ namespace KeePassGate.Store
                     return AtRows(NodeOf(objectText, Rules), number);
                 }
 
-                return objectText.StartsWith(Switches, StringComparison.Ordinal) ? new[] { Of(objectText) } : Array.Empty<ObjectTold>();
+                return objectText.StartsWith(Switches, StringComparison.Ordinal) || objectText.StartsWith(Renewals, StringComparison.Ordinal)
+                    ? new[] { Of(objectText) }
+                    : Array.Empty<ObjectTold>();
             }
 
             /// <summary>
@@ -1504,6 +1537,27 @@ namespace KeePassGate.Store
             }
 
             return names;
+        }
+
+        /// <summary>
+        /// The client keys the file knows, `STORE.md` §618, each once and in the order first met:
+        /// the `client` of every record of kind `client` present, in force or not, of every record
+        /// and every item `revoked`, and the key in the object of type `renew` of every version
+        /// present as a record or carried by an item of a summary entry in force. A text that is
+        /// no client key, 64 lowercase hexadecimal characters, adds none.
+        /// </summary>
+        private IEnumerable<string> KnownClients()
+        {
+            var answers = StoreKinds.RenewType + StoreKinds.ObjectTypeEnd;
+            var named = Admissions.Select(admission => admission.Form.Member(StoreKinds.ClientMember))
+                .Concat(Records.Where(record => record.Is(StoreKinds.Revoked)).Select(record => record.Form.Member(StoreKinds.ClientMember)))
+                .Concat(Items.Where(item => item.Kind == StoreKinds.Revoked).Select(item => item.Member(StoreKinds.ClientMember)))
+                .Concat(Versions.Values
+                    .Where(version => (version.Record || version.ItemInForce)
+                                      && version.Object != null
+                                      && version.Object.StartsWith(answers, StringComparison.Ordinal))
+                    .Select(version => version.Object.Substring(answers.Length)));
+            return named.Where(client => client != null && StoreChecked.InForm(client, StoreForm.Hex)).Distinct(StringComparer.Ordinal);
         }
 
         /// <summary>

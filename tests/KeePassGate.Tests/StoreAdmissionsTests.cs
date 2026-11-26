@@ -361,22 +361,6 @@ namespace KeePassGate.Tests
             Assert.That(StoreAdmissions.Listing(empty).Records, Is.Empty);
         }
 
-        [Test]
-        public void The_certificates_named_are_those_of_every_record_of_kind_client_in_force_less_a_write_s_deletions_and_with_its_additions()
-        {
-            var store = new ComposedStore(One);
-            var gone = store.Add(Admission(_first));
-            store.Add(Admission(_second, change: ("der", "not base64")));
-            Revoke(store, Key(_first), "a record");
-
-            var reading = store.Read();
-            Assert.That(StoreAdmissions.Named(reading, null), Is.EquivalentTo(new[] { Key(_first), Key(_second) }));
-
-            var write = StoreWrite.Plan(reading, new[] { Neutral() }, "0.3.0");
-            Assume.That(write.Delete, Does.Contain(gone.Hex));
-            Assert.That(StoreAdmissions.Named(reading, write), Is.EquivalentTo(new[] { Key(_second) }));
-        }
-
         /// <summary>
         /// A record of kind `client` holding an admission of this certificate, as the product
         /// writes it.

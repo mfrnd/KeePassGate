@@ -147,6 +147,31 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_refusal_whose_save_outlasts_the_pairing_budget_is_still_answered()
+        {
+            // A standing answer is saved as Approve's record is, so the deadline ends where the
+            // answer is handed to the writer, for the same reason: a deadline still running there
+            // would lose the client its `403` to a save that lands anyway. The numbers are those of
+            // the test above, for the reasons it gives.
+            _authority.WhileRefusing = () => Thread.Sleep(TimeSpan.FromSeconds(6));
+            var options = new GateOptions
+            {
+                Port = 0,
+                Budget = TimeSpan.FromSeconds(5),
+                PairingBudget = TimeSpan.FromSeconds(4)
+            };
+
+            using (var listener = Listening(new FakeRenewalApproval(RenewalApproval.Refused(RenewalRefusal.Forever())), options))
+            using (var old = _authority.IssueAdmittedClient("reader"))
+            {
+                var reply = Renew(listener, old);
+
+                Assert.That(reply.Status, Is.EqualTo(403), reply.ToString());
+                Assert.That(reply.Body, Does.Contain("\"refused\""));
+            }
+        }
+
+        [Test]
         public void A_lock_under_the_dialog_leaves_its_connection_to_say_the_database_is_locked()
         {
             // `PAIRING.md` §308. The lock closes every other connection and takes the question

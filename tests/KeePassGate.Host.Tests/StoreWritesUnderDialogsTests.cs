@@ -235,12 +235,10 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void A_keep_is_written_under_Database_Maintenance_and_the_tab_s_OK_is_not()
         {
-            // `STORE.md` §626: Database Maintenance puts back its copy of the custom data and puts
-            // no copy of an entry back, so a keep, which writes no custom data and saves nothing,
-            // is written under it. The store write of the settings dialog's OK is refused under it
-            // as a whole, as under the TAN wizard, and the tab's custom data changes beside that
-            // write are asked nothing. Neither window can stand beside the settings dialog, each
-            // being modal, so the writer is asked directly here.
+            // `STORE.md` §626: Database Maintenance puts no copy of an entry back, so a keep, which
+            // saves nothing, is written under it. The store write of the settings dialog's OK is
+            // refused under it as a whole, as under the TAN wizard. Neither window can stand
+            // beside the settings dialog, each being modal, so the writer is asked directly here.
             var both = StoreSeeds.Undecided(Store());
 
             using (var form = new DatabaseOperationsForm())

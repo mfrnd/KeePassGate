@@ -398,14 +398,14 @@ namespace KeePassGate.Bridge
 
             _log.Warn("the authority the operator chose was not kept, because the database was decided " +
                       "while the question stood: " +
-                      (served == null ? "it serves nothing" : "it serves authority " + AuthorityKeys.Shown(served)));
+                      (served == null ? "it serves nothing" : "it serves authority " + AuthorityShown.Of(served)));
             _prompt.Tell(
                 GateName.Full,
                 "The authority was not kept: a synchronize changed which authorities this database holds " +
                 "while the question was open." + Environment.NewLine + Environment.NewLine +
                 (served == null
                     ? "Nothing is served for this database. "
-                    : "The database now serves authority " + AuthorityKeys.Shown(served) + ". ") +
+                    : "The database now serves authority " + AuthorityShown.Of(served) + ". ") +
                 "The " + GateName.OnATab + " tab of the database settings shows what it holds.");
         }
 

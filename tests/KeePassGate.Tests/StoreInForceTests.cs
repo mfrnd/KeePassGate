@@ -1527,6 +1527,142 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void A_deletion_record_of_an_answer_tells_of_its_object_by_each_way_the_file_knows_the_client_key()
+        {
+            // `STORE.md` §618: a deletion record under the tag of `version` with the subject hash
+            // of `renew:` and a client key and 0 tells of that client's answer where the file
+            // knows the key: from the `client` of a record of kind `client` present, in force or
+            // not, of a record `revoked` and of an item `revoked`. A key the file does not know
+            // tells of nothing, and the same deletion record refuses from the hold in which the
+            // file knows the key again.
+            var ways = new Dictionary<string, System.Action<ComposedStore>>
+            {
+                { "nothing", store => { } },
+                { "an admission", store => store.Add(AdmissionOf(Hex('e'))) },
+                { "an admission out of force", store => store.Delete(store.Add(AdmissionOf(Hex('e')))) },
+                { "a revocation", store => store.Revoked('e') },
+                { "an item of a revocation", store => store.Restate(StoreComposer.Item(("client", Hex('e')), ("kind", "revoked"))) },
+                { "an admission of a key in upper case", store => store.Add(AdmissionOf(Hex('E'))) },
+            };
+
+            foreach (var way in ways)
+            {
+                var store = new ComposedStore(One);
+                var told = ToldOf(AnswerOf(Hex('e')));
+                store.Deleted.Add(told);
+                way.Value(store);
+
+                using (var reading = store.Read())
+                {
+                    Assert.That(reading.State, Is.EqualTo(StoreState.Whole), way.Key + ": " + reading.Reason);
+                    var known = way.Key != "nothing" && !way.Key.Contains("upper case");
+                    Assert.That(
+                        reading.InForce.LostOf(AnswerOf(Hex('e'))),
+                        Is.EqualTo(known ? new[] { KeePassGate.Hex.Of(told) } : System.Array.Empty<string>()),
+                        way.Key);
+                    Assert.That(RenewHashes(reading), Is.EqualTo(known ? new[] { AnswerOf(Hex('e')) } : System.Array.Empty<string>()), way.Key + ": each key known, once");
+                    Assert.That(
+                        store.Walks, Is.EqualTo(known ? 0 : 1),
+                        way.Key + (known ? ": the tree is not asked for" : ": the tree is asked for, as for a deletion record nothing explains"));
+                }
+            }
+        }
+
+        [Test]
+        public void A_deletion_record_at_the_place_of_an_answer_present_is_that_answer_s_and_costs_no_hash()
+        {
+            // `STORE.md` §618 and §620: an answer's subject is its whole object, so a version of it
+            // present places every deletion record of its object with nothing hashed.
+            var store = new ComposedStore(One);
+            var standing = store.Add(StoreComposer.RuleVersion(One, AnswerOf(Hex('e')), "refuse:forever"));
+            store.RestateAll(new[] { ItemOf(standing) });
+            var told = ToldOf(AnswerOf(Hex('e')));
+            store.Deleted.Add(told);
+            store.Tree.AddRange(new[] { Root, Node }.Select(StoreComposer.BytesOf));
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(reading.InForce.LostOf(AnswerOf(Hex('e'))), Is.EqualTo(new[] { KeePassGate.Hex.Of(told) }));
+                Assert.That(Ids(reading.InForce.VersionsOf(AnswerOf(Hex('e')))), Is.EqualTo(new[] { standing.Hex }), "the version beside it still stands");
+                Assert.That(RenewHashes(reading), Is.Empty, "nothing hashed");
+                Assert.That(store.Walks, Is.EqualTo(0), "the tree is not asked for");
+            }
+        }
+
+        [Test]
+        public void A_store_whose_answers_the_plugin_s_own_writes_replaced_hashes_nothing_and_walks_no_tree()
+        {
+            // `STORE.md` §620 and §627 step 3: the version an answer replaces is deleted with a
+            // deletion record that the version replacing it names, at its place.
+            var store = new ComposedStore(One);
+            store.Add(AdmissionOf(Hex('e')));
+            var first = StoreComposer.RuleVersion(One, AnswerOf(Hex('e')), "refuse:forever");
+            var lift = store.Add(StoreComposer.RuleVersion(One, AnswerOf(Hex('e')), "ask", first.Hex));
+            var again = store.Add(StoreComposer.RuleVersion(One, AnswerOf(Hex('f')), "refuse:until:2026-12-14T23:00:00Z"));
+            store.RestateAll(new[] { ItemOf(lift), ItemOf(again) });
+            store.Delete(first);
+            store.Tree.AddRange(new[] { Root, Node }.Select(StoreComposer.BytesOf));
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(Lost(reading.InForce), Is.Empty);
+                Assert.That(Ids(reading.InForce.VersionsOf(AnswerOf(Hex('e')))), Is.EqualTo(new[] { lift.Hex }));
+                Assert.That(RenewHashes(reading), Is.Empty, "nothing hashed");
+                Assert.That(store.Walks, Is.EqualTo(0), "the tree is not asked for");
+            }
+        }
+
+        [Test]
+        public void A_lost_answer_is_told_before_the_tree_is_walked_and_a_row_lost_below_still_walks_it()
+        {
+            // `STORE.md` §620: the client keys are tried after the nodes the objects name and
+            // before the tree.
+            var answer = Ruled(out _);
+            answer.Add(AdmissionOf(Hex('e')));
+            var told = ToldOf(AnswerOf(Hex('e')));
+            answer.Deleted.Add(told);
+            using (var reading = answer.Read())
+            {
+                Assert.That(reading.InForce.LostOf(AnswerOf(Hex('e'))), Is.EqualTo(new[] { KeePassGate.Hex.Of(told) }));
+                Assert.That(answer.Walks, Is.EqualTo(0), "told by a client key the file knows");
+                Assert.That(RenewHashes(reading), Is.EqualTo(new[] { AnswerOf(Hex('e')) }));
+            }
+
+            var both = Ruled(out _);
+            both.Add(AdmissionOf(Hex('e')));
+            both.Deleted.Add(told);
+            var below = ToldOf(RowAt(Below, "pf"));
+            both.Deleted.Add(below);
+            using (var reading = both.Read())
+            {
+                Assert.That(reading.InForce.LostOf(AnswerOf(Hex('e'))), Is.EqualTo(new[] { KeePassGate.Hex.Of(told) }));
+                Assert.That(reading.InForce.LostOf(RowAt(Below, "pf")), Is.EqualTo(new[] { KeePassGate.Hex.Of(below) }));
+                Assert.That(both.Walks, Is.EqualTo(1), "walked once, for the row");
+            }
+        }
+
+        /// <summary>The object of the answers about a client.</summary>
+        private static string AnswerOf(string client)
+        {
+            return "renew:" + client;
+        }
+
+        /// <summary>A record of kind `client` of this client key, admitting a certificate of the same key.</summary>
+        private static StoreComposer.Composed AdmissionOf(string client)
+        {
+            return StoreComposer.Record(
+                One, "client", "client:" + client, StoreComposer.Content(("certificate", client), ("client", client)));
+        }
+
+        /// <summary>What was hashed under the reading's key for the answers to renewals and kept with it.</summary>
+        private static IEnumerable<string> RenewHashes(StoreReading reading)
+        {
+            return Subjects(reading.InForce.Key).Where(subject => subject.StartsWith("renew:", System.StringComparison.Ordinal)).ToList();
+        }
+
         /// <summary>The node most rules here are at, its identifier as 32 hexadecimal characters.</summary>
         private static readonly string Node = new string('1', 32);
 

@@ -40,8 +40,7 @@ namespace KeePassGate
         private MainWindowDatabases _databases;
         private LockWatch _locks;
         private AuthorityChooser _chooser;
-        private OwedAnswerSaves _owedAnswerSaves;
-        private OwedAnswersAtExit _owedAtExit;
+        private SaveReports _saveReports;
         private SessionAnswerNotice _sessionAnswers;
         private DroppedLocks _droppedLocks;
         private InvitationBook _invitations;
@@ -689,23 +688,12 @@ namespace KeePassGate
             // An exit takes every held approval with it, as a lock does.
             Attempt("failed to let go of the held approvals", _approvals.Clear);
 
-            Attempt("failed to tell what is still owed", () =>
+            Attempt("failed to release the save event", () =>
             {
-                // Kept rather than let go, so that a second run meets the notice that has told
-                // already and stays silent: `OwedAnswersAtExit` tells once.
-                if (_owedAtExit != null)
+                if (_saveReports != null)
                 {
-                    _owedAtExit.Tell(_log);
-                    _owedAtExit.Dispose();
-                }
-            });
-
-            Attempt("failed to release the save events", () =>
-            {
-                if (_owedAnswerSaves != null)
-                {
-                    _owedAnswerSaves.Dispose();
-                    _owedAnswerSaves = null;
+                    _saveReports.Dispose();
+                    _saveReports = null;
                 }
             });
 
@@ -942,20 +930,14 @@ namespace KeePassGate
 
             _writer = writer;
 
-            // The standing answers the operator gave while a database could not take them, which
-            // every save of that database writes as well, whoever asks for it.
-            writer.Owed = _sessionRefusals;
-
             // The look for a merge that the queue takes before a turn, for the write that takes
             // no turn: the answer to which authority to keep, and the question that waits on it.
             writer.Merging = merging;
-            _owedAnswerSaves = new OwedAnswerSaves(mainWindow, writer, _incidents);
-            _owedAnswerSaves.Start();
 
-            // And what is still owed when KeePass exits, which is told then, and watched for here
-            // because whether the operator is there to read it is a question about this window.
-            _owedAtExit = new OwedAnswersAtExit(_sessionRefusals.Owed, new MessageBoxPrompt());
-            _owedAtExit.Watch(mainWindow);
+            // KeePass's word about each save, which the writer keeps for its own save alone, for a
+            // database closed inside it.
+            _saveReports = new SaveReports(mainWindow, writer, _incidents);
+            _saveReports.Start();
 
             // And every answer held in memory told to the KPG tab, as the writer tells it of a
             // standing answer that lands: the clients page draws both, and nothing writes these.
@@ -987,8 +969,20 @@ namespace KeePassGate
             // refuses inside KeePass's, as the writer does. The admissions' audit as well, since a
             // dialog a lock or a close takes away is written down by the prompt as it goes. And
             // KeePass's own picture for Synchronize, which Refresh on the pairing dialog shows.
+            // And the message of a standing answer to a renewal that was not kept as given, shown
+            // over the main window once the dialog has closed and KeePass is not part way through
+            // work of its own, asked as the writer asks it before a write.
+            var watch = _groupDialogs;
             var prompt = new PairingApprovalPrompt(
-                ui, _targets.Serving, writer, access.Admissions, mainWindow, KeePassPictures.Refresh, _log);
+                ui, _targets.Serving, writer, access.Admissions, mainWindow, KeePassPictures.Refresh, _log)
+            {
+                Messages = new FreeMessage(
+                    mainWindow,
+                    new MessageBoxPrompt(),
+                    () => Interrupting(mainWindow) ?? (watch == null ? null : watch.Working()),
+                    _incidents,
+                    _log),
+            };
             var router = GateOperations.Router(
                 GateVersion.Current,
                 GateVersion.Revision,

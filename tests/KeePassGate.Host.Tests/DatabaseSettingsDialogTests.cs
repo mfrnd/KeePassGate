@@ -105,8 +105,8 @@ namespace KeePassGate.Host.Tests
         [Test]
         public void Canceling_the_dialog_leaves_the_database_as_it_was()
         {
-            // What the whole waiting arrangement is for. This dialog keeps no copy of this plugin's
-            // custom data, so before it, Cancel undid nothing the tab had done.
+            // What the whole waiting arrangement is for. This dialog keeps no copy of anything this
+            // plugin writes, so before it, Cancel undid nothing the tab had done.
             _injector.Attach(_form);
 
             // Cleared rather than assumed, for the reason the test below says: a fresh database

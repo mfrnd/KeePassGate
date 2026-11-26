@@ -329,43 +329,11 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void A_revocation_s_lines_are_written_once_the_store_holds_it_whatever_the_custom_data_half_comes_to()
-        {
-            // The store's write lands the revocation first, and the custom data half of the OK runs
-            // after it, where a defect reaches the dialog close's catch-all. The lines are written
-            // in between, so a revocation that stands is never left without them.
-            var audit = new RecordingAudit();
-            Assume.That(new AuthorityService(_database.Store, _log).Create().Succeeded, Is.True);
-
-            using (var issuer = TestAuthority.New())
-            using (var certificate = issuer.IssueClient("agent-fictitious", "reader"))
-            {
-                var key = Admit(certificate);
-                var factory = new AuthorityPanelFactory(
-                    new FakeDatabaseSource(_database), new FakePrompt(true), _log, null, null, null, new AdmissionAudit(audit), new SessionRefusals());
-
-                using (var form = Dialogs.WithNestedTabControl("General"))
-                using (var panel = (AuthorityPanel)factory.CreatePanel(form))
-                {
-                    Assert.That(panel.Revoke(key), Is.Null);
-                    _database.NextReadThrows = new NullReferenceException("a defect in the custom data half");
-
-                    form.DialogResult = DialogResult.OK;
-                    form.RaiseClosed();
-                }
-
-                Assume.That(_database.NextReadThrows, Is.Null, "the custom data half was reached, and threw");
-                Assert.That(Admitted(key), Is.Null, "the revocation is in the store");
-                Assert.That(audit.Entries.Select(line => (line.AdmissionKey, line.ClientKey)), Is.EqualTo(new[] { (key, key) }));
-            }
-        }
-
-        [Test]
         public void A_defect_writing_a_revocation_s_lines_loses_nothing_else_of_the_OK()
         {
-            // The lines are written once the store holds the revocation and before the custom data
-            // half, and a defect in writing them reaches the dialog close's catch-all once that
-            // half has run: a profile added on the same OK is on the list all the same.
+            // The lines are written once the store holds the revocation, and a defect in writing
+            // them reaches the dialog close's catch-all once the buffer is let go: a profile added
+            // on the same OK, in the same write, is on the list all the same.
             var incidents = new GateIncidents(_log);
             Assume.That(new AuthorityService(_database.Store, _log).Create().Succeeded, Is.True);
 
@@ -436,7 +404,7 @@ namespace KeePassGate.Tests
                 Assert.That(session.Refuses(other), Is.False, "the answer for this session is lifted");
                 Assert.That(
                     _log.Entries.Select(entry => entry.Message),
-                    Has.Some.Contains("renewals of " + CertificateDigest.Shorten(other)).And.Contains("for this session"));
+                    Has.Some.Contains("renewals of the client " + CertificateDigest.Shorten(other)).And.Contains("for this session"));
                 Assert.That(incidents.Recent, Has.Exactly(1).Contains(nameof(NullReferenceException)), "the defect reached the catch-all");
             }
         }
@@ -754,24 +722,24 @@ namespace KeePassGate.Tests
         public void Allow_renewal_lifts_each_kind_of_answer_on_OK_and_leaves_it_on_Cancel(string kind)
         {
             // M001: Allow renewal on the clients page lifts whichever answer stands, and waits for
-            // the dialog's OK as a revocation does. The stored two are the database's, this
-            // session's is the plugin's memory, and the gate reads both.
+            // the dialog's OK as a revocation does. The stored two are versions of the plugin's
+            // store, `STORE.md` §618, this session's is the plugin's memory, and the gate reads
+            // both, by the client.
             var session = new SessionRefusals();
             Assume.That(new AuthorityService(_database.Store, _log).Create().Succeeded, Is.True);
 
             using (var issuer = TestAuthority.New())
             using (var client = issuer.IssueClient("agent-fictitious", "reader"))
             {
-                var store = new RenewalAnswers(_database.PluginCustomData, _log);
                 var key = Admit(client);
 
                 switch (kind)
                 {
                     case "forever":
-                        store.RefuseRenewal(key, RenewalRefusal.Forever());
+                        StoreSeeds.Refuse(_database.Store, key, RenewalRefusal.Forever());
                         break;
                     case "until":
-                        store.RefuseRenewal(key, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(7)));
+                        StoreSeeds.Refuse(_database.Store, key, RenewalRefusal.Until(DateTimeOffset.UtcNow.AddDays(7)));
                         break;
                     default:
                         session.Refuse(key);
@@ -783,11 +751,50 @@ namespace KeePassGate.Tests
                     new AdmissionAudit(NullGateAudit.Instance), session);
 
                 AllowAndClose(factory, key, DialogResult.Cancel);
-                Assert.That(Stands(store, session, key), Is.True, "Cancel took the press away");
+                Assert.That(Stands(session, key), Is.True, "Cancel took the press away");
 
                 AllowAndClose(factory, key, DialogResult.OK);
-                Assert.That(Stands(store, session, key), Is.False, "OK lifted it");
+                Assert.That(Stands(session, key), Is.False, "OK lifted it");
                 Assert.That(Admitted(key), Is.Not.Null, "and the client is still admitted");
+                Assert.That(
+                    _log.Entries.Where(entry => entry.Level == GateLogFormat.InfoLevel).Select(entry => entry.Message),
+                    Has.Some.StartsWith("renewals of the client " + CertificateDigest.Shorten(key) + " are asked about again"),
+                    "and the log tells the lift at OK");
+            }
+        }
+
+        [Test]
+        public void An_answer_the_store_takes_no_write_for_is_not_lifted_and_the_page_says_why()
+        {
+            // `STORE.md` §636: where the store takes no write in the session, Allow renewal is
+            // still offered, lifts nothing of the store and states why under the list.
+            Assume.That(new AuthorityService(_database.Store, _log).Create().Succeeded, Is.True);
+
+            using (var issuer = TestAuthority.New())
+            using (var client = issuer.IssueClient("agent-fictitious", "reader"))
+            {
+                var key = Admit(client);
+                StoreSeeds.Refuse(_database.Store, key, RenewalRefusal.Forever());
+                _database.Records.Unwritable = "the dialogs were not watched";
+
+                var factory = new AuthorityPanelFactory(
+                    new FakeDatabaseSource(_database), new FakePrompt(true), _log, null, null, null,
+                    new AdmissionAudit(NullGateAudit.Instance), new SessionRefusals());
+
+                using (var form = Dialogs.WithNestedTabControl("General"))
+                using (var panel = (AuthorityPanel)factory.CreatePanel(form))
+                {
+                    var list = ControlTree.FindByName<ClientList>(panel, ClientList.ControlName);
+                    Assert.That(list.StandingAt(0), Is.Not.Null, "the page shows the answer");
+
+                    Assert.That(list.AllowRenewal(0), Does.StartWith(ClientList.StaysRefusedText + "the dialogs were not watched"));
+                    Assert.That(list.StandingAt(0), Is.Not.Null, "and the red stays");
+
+                    form.DialogResult = DialogResult.OK;
+                    form.RaiseClosed();
+                }
+
+                Assert.That(Stands(new SessionRefusals(), key), Is.True, "nothing was lifted");
             }
         }
 
@@ -809,9 +816,12 @@ namespace KeePassGate.Tests
             }
         }
 
-        private static bool Stands(RenewalAnswers store, SessionRefusals session, string key)
+        private bool Stands(SessionRefusals session, string key)
         {
-            return store.StandingRefusal(key) != null || session.Refuses(key);
+            using (var reading = _database.Store.Read())
+            {
+                return StoredRenewals.AnswerOf(reading.InForce, key) != null || session.Refuses(key);
+            }
         }
 
         /// <summary>An audit with a defect: every line it is given throws.</summary>

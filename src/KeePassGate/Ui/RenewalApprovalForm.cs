@@ -26,10 +26,10 @@ namespace KeePassGate.Ui
     ///   the client's record holds, in the pairing dialog's table: a profile the database still
     ///   names checked, and a profile it no longer names with a red X in place of a box and its
     ///   name in gray, the tooltip of both stating that the new certificate omits the profile.
-    /// - **Refuse is a split button**, because a refusal can answer every later renewal of the same
-    ///   certificate as well, which is the operator's ruling. Pressing it refuses once, which keeps
-    ///   nothing. Its arrow, or Alt and Down while it has the focus, opens a menu of what else
-    ///   refusing can mean: once, in this session, until a date, or forever.
+    /// - **Refuse is a split button**, because a refusal can answer every later renewal by the same
+    ///   client as well, whichever certificate of the client asks. Pressing it refuses once, which
+    ///   keeps nothing. Its arrow, or Alt and Down while it has the focus, opens a menu of what
+    ///   else refusing can mean: once, in this session, until a date, or forever.
     /// - **A standing answer only ever comes from that menu.** Enter, Escape, the close box, Alt
     ///   and F4, the window menu and the taskbar all refuse once: each is somebody making the window
     ///   go away, and none of them is a choice about later renewals.
@@ -44,15 +44,26 @@ namespace KeePassGate.Ui
         /// <summary>The line at the top of the dialog.</summary>
         public const string Title = "A client is asking to renew a certificate.";
 
-        /// <summary>What approving costs and what it leaves, stated once.</summary>
+        /// <summary>What approving gives and what it leaves, stated once.</summary>
         /// <remarks>
-        /// The save and what happens to the certificate the client holds now, which is what the
-        /// operator acts on: unchecking a profile narrows the new certificate and nothing else.
-        /// How the save is ordered against the answer is `PAIRING.md`'s.
+        /// What happens to the client's current certificate, which is what the operator acts
+        /// on: unchecking a profile narrows the new certificate and nothing else.
         /// </remarks>
         public const string Consequence =
-            "Approve issues a new certificate and saves this database. The current certificate keeps " +
-            "every profile until the client gives that certificate up.";
+            "Approve issues a new certificate. The current certificate keeps every profile until the " +
+            "client gives that certificate up.";
+
+        /// <summary>Which answers save this database, stated under <see cref="Consequence"/>.</summary>
+        /// <remarks>
+        /// Visible rather than in a tooltip, since a save is what decides whether the operator's
+        /// answer outlasts KeePass: Approve's record and a refusal that stands are written and
+        /// saved before the client is answered, and the two other ways to refuse keep nothing in
+        /// the database. How the save is ordered against the answer is `PAIRING.md`'s.
+        /// </remarks>
+        public const string Saves = "Approve, Refuse until a date and Refuse forever save this database.";
+
+        /// <summary>The control that shows <see cref="Saves"/>.</summary>
+        public const string SavesName = "KpgRenewalSaves";
 
         /// <summary>
         /// What the table underneath is: every profile the client's record holds, a profile the new
@@ -254,6 +265,7 @@ namespace KeePassGate.Ui
 
             layout.Controls.Add(details);
             layout.Controls.Add(Line("KpgRenewalConsequence", Consequence, Font));
+            layout.Controls.Add(Line(SavesName, Saves, Font));
 
             // Where the record holds no profile this database still names, a notice above the
             // line naming the table, in bold, as the pairing dialog shows its notice: the line
@@ -548,14 +560,14 @@ namespace KeePassGate.Ui
             return unanswered;
         }
 
-        /// <summary>Refuses it and every later renewal of this certificate until KeePass exits.</summary>
+        /// <summary>Refuses it and every later renewal by this client until KeePass exits.</summary>
         public void RefuseThisSession()
         {
             Finish(PairingDecision.Refused, RenewalRefusal.ThisSession());
         }
 
         /// <summary>
-        /// Refuses it and every later renewal of this certificate until a day begins where the
+        /// Refuses it and every later renewal by this client until a day begins where the
         /// operator is, as the dialog asking for a day does once the day is chosen.
         /// </summary>
         public void RefuseUntil(DateTime day)
@@ -575,7 +587,7 @@ namespace KeePassGate.Ui
             Finish(PairingDecision.Refused, RenewalRefusal.Until(StartOf(day, TimeZoneInfo.Local)));
         }
 
-        /// <summary>Refuses it and every later renewal of this certificate.</summary>
+        /// <summary>Refuses it and every later renewal by this client.</summary>
         public void RefuseForever()
         {
             Finish(PairingDecision.Refused, RenewalRefusal.Forever());

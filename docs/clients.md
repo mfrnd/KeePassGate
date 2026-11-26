@@ -35,12 +35,14 @@ sentence naming two clients that share a name adds the start of each client key,
 (3f2a9c1e)". The key is in the tooltip rather than in a column because the page has no room for one
 beside the names, and it does not scroll.
 
-**A row whose first cell is red** is a certificate whose renewals stand refused, by one of the
-[standing answers](#taking-a-standing-answer-back) the renewal dialog can give. Resting the pointer
-on any of the row's text states which one, above the keys: refused forever, until a day, or in this
-session. A screen
-reader is told the same words as the row's description. A selected row keeps the list's own
-colors, so the red shows only while the row is not selected.
+**A client whose first cell is red** has its renewals refused, by one of the
+[standing answers](#taking-a-standing-answer-back) the renewal dialog can give. An answer is about
+the client, every certificate it holds, so the red is on the client's own row, and a row of an
+earlier certificate carries none. Resting the pointer on any of the row's text states which one,
+above the keys: refused forever, until a day, in this session, or refused because an answer was
+deleted from the database or does not read. A screen reader is told the same words as the row's
+description. A selected row keeps the list's own colors, so the red shows only while the row is
+not selected.
 
 **Each row has a menu**, opened with the right button on the row, or with Shift and F10 or the menu
 key on the selected row. Its first line names the certificate the menu is about, grayed out: the
@@ -48,10 +50,12 @@ start of the certificate's fingerprint and the day it was admitted. For a certif
 standing answer, a second grayed line states the answer. Under them are **Revoke**, on a client's
 first row only, which does what the **X** does, **Take certificate away**, which
 [takes that row's certificate away](#taking-a-single-certificate-away) and leaves the client
-every other certificate it holds, and **Allow renewal**, which takes a standing answer back and
-is grayed out where none stands. Where the Certificate Authority page states that nothing is
-written into the store of this database in this session, no row carries the **X** and the menu
-offers **Allow renewal** alone.
+every other certificate it holds, and **Allow renewal**, on a client's first row only, which takes
+a standing answer back and is grayed out where none stands. Where the Certificate Authority page
+states that nothing is written into the store of this database in this session, no row carries
+the **X** and the menu of a client's first row offers **Allow renewal** alone, which takes back
+an answer for this session; an answer kept in the database stays, and the line under the list
+states why.
 
 A certificate that has expired is refused like any other, and **Until (UTC)** states `expired`
 instead of a date, by this computer's clock. The row stays: nothing takes a row away for its age,
@@ -186,14 +190,8 @@ and nothing on this page is managed by editing that group.
 
 **All of that was measured in KeePass with the plugin in it, which is 2.62 or later.** Other
 programs can open the database, KeePassXC, KeePass before 2.48 and programs on Android among
-them, and what follows is what was measured of them for what the plugin keeps outside its own
-group: the standing answers to a renewal. **Merging an older copy into the
-database in KeePassXC quietly brings back every standing answer** the older copy still had.
-Saving in KeePassXC, from 2.4.1 to 2.8.0, or in KeePass 2.47 keeps
-what the plugin wrote there but usually drops the times it was written at, and a later
-synchronize in KeePass can then put an older standing answer back over a later answer about the
-same certificate. Releases not named here were not measured. [`CA.md`](../CA.md) §204 has what
-was measured.
+them, and the plugin keeps nothing outside its own group: what they do to the entries of that
+group is in [`STORE.md`](../STORE.md) §603 and §637. Releases not named there were not measured.
 
 So save and merge a paired database only in KeePass with the plugin in it, and after any change
 made anywhere else, look at this list, the Profiles page and the Certificate Authority page, and
@@ -202,12 +200,9 @@ groups and entries that hold rules: the **Rules** column on the Profiles page co
 profile, the groups and entries with a rule for it.
 
 **Nor is anything here managed from KeePass's own Database Maintenance dialog.** Its **Plugin Data**
-tab lists the standing answers to a renewal, which the plugin keeps outside its own group, and
-deletes a row on request. Deleting a standing answer there puts that certificate's next renewal to
-the operator again. The dialog also writes its own copy of those rows back as it closes, over
-whatever was written while it was open, which is why a pairing, a renewal and a program giving a
-certificate up are refused until it is closed. Manage clients on this page, and leave that tab
-alone.
+tab lists nothing of the plugin's, which keeps everything in its own group. A pairing, a renewal,
+a program giving a certificate up and an answer given on the renewal dialog are refused while the
+dialog is open, and can be asked for again once it is closed. Manage clients on this page.
 
 ## Getting a client back
 
@@ -292,35 +287,44 @@ and Down while the button has the focus, opens a menu of what else refusing can 
 click anywhere else puts it away, and a click on **Approve** that puts it away approves nothing:
 
 - **Refuse once** is what pressing the button does.
-- **Refuse in this session** answers every renewal of that certificate without asking until KeePass
-  exits. It is kept in the plugin's memory and not in the database, so it goes when KeePass closes,
-  and the next renewal after that raises the dialog again.
+- **Refuse in this session** answers every renewal by that program without asking until KeePass
+  exits, by any of its certificates. It is kept in the plugin's memory and not in the database, so
+  it goes when KeePass closes, and the next renewal after that raises the dialog again.
 - **Refuse until a date...** asks for a day, from tomorrow to the day the certificate ends, both
   where the operator is rather than in UTC, with a week from today already chosen, and answers every
-  renewal of that certificate without asking until that day begins there. **Cancel** there goes
+  renewal by that program without asking until that day begins there. **Cancel** there goes
   back to the renewal dialog with nothing decided. On the certificate's last day there is no day
   left to name, so the choice is grayed out and states that the certificate ends today.
-- **Refuse forever** answers every renewal of it without asking at all, so the program has to pair
-  again for a new certificate before this one runs out, unless the answer is taken back.
+- **Refuse forever** answers every renewal by that program without asking at all, so the program
+  has to pair again for a new certificate before this one runs out, unless the answer is taken
+  back.
 
-The last two are kept in the database. If KeePass is busy when either is given, saving or with
-Database Maintenance open, it holds at once all the same, from KeePass's memory, and is written to
-the database with its next save, the operator's or the plugin's, once Database Maintenance is closed
-on it. An answer still unwritten when KeePass exits is lost, and KeePass tells the operator so as it
-closes, naming the certificate, so that nobody is surprised when the dialog comes back for that
-program. At a Windows logoff or shutdown that goes to the plugin's log alone, since a message then
-would hold the logoff up with nobody there to read it. **A later answer about the same certificate
-is the answer that counts**: an answer given on a later dialog, or an answer a synchronize brought
-in from another copy, is kept, and the answer still waiting is let go, as an answer until a date
-whose day has begun is.
+The last two are kept in the database, and **choosing either saves the database**, as **Approve**
+does, which the dialog states in its second line: the answer is in the file before the program
+is told it was refused, and nothing is left for a later save. If the answer cannot be written
+then, because KeePass is part way through work of its own, Database Maintenance or the TAN wizard
+is open on that database, an entry of the plugin's own group the answer would change is open in
+KeePass's entry dialog, the plugin is still writing another change, or another copy has replaced
+the file, it holds until KeePass exits instead, as **Refuse in this session** does, and a message
+under the plugin's name comes up once the renewal dialog has gone: "The answer to the renewal was
+not written:" and the reason, then "Renewal stays refused until KeePass exits." **This is where a
+refusal differs from Approve**: an approval KeePass or the plugin was too busy to write is kept
+and written when the program asks again, while a refusal is answered at once and has nothing to
+wait for. The next renewal after KeePass starts again raises
+the dialog, where the answer can be given again. If the save ran and the file then does not hold
+what KeePass wrote, the answer stays in force, KeePass shows the database as changed, and the
+message states that the save of the answer could not be confirmed; a save of the database that
+goes through keeps the answer. **Of two answers about the same program, the stricter counts**:
+forever over a day, and of two days the later, so an answer a synchronize brought in from another
+copy that refuses for longer stands beside the answer given here.
 
 The plugin's log states what was answered and when, and the audit file records every renewal the
 operator answered or left unanswered, one refused without asking included. An approval is written
 there when its record lands, which may be on the program's next try, below; one that issued
 nothing, because the new record did not reach the disk, has no line there, and the log states why.
-An answer until a date or forever goes once the certificate it was about is no longer on the list:
-its client revoked, the certificate given up or taken away, or the authority recreated or
-deleted. It stays past the certificate's end, as the expired row does.
+An answer until a date or forever stays until it is taken back, below, or its day begins: a
+client revoked, a certificate given up or taken away and the authority recreated or deleted
+take none away, and a client revoked is refused anyway.
 
 Approving writes a new record beside the old record rather than replacing it, so the client has
 two rows, the new certificate under the client's name and the old certificate indented under it
@@ -354,10 +358,11 @@ answered by recreating the authority, as above, however long it has left.
 
 ### Taking a standing answer back
 
-A certificate whose renewals stand refused has the first cell of its row in red on the list. Open
-that row's menu and choose **Allow renewal**: it takes back whichever answer stands, forever, until
-a day or in this session, and the menu states which answer that is, on the grayed line under the
-certificate's, before anything is chosen.
+A client whose renewals stand refused has the first cell of its own row in red on the list. Open
+that row's menu and choose **Allow renewal**: it takes back whatever answer stands, forever, until
+a day, in this session, or one deleted from the database or that does not read, and the menu
+states which answer that is, on the grayed line under the certificate's, before anything is
+chosen.
 
 ![The clients page with two refused clients and one row's menu open](images/clients-standing-answers.png)
 
@@ -365,11 +370,14 @@ certificate's, before anything is chosen.
 changed yet: until **OK** is pressed on the settings dialog the program's renewals are still
 refused without asking, and **Cancel** leaves the answer standing. After OK the next renewal raises
 the dialog again, to be answered afresh. An answer given on a renewal dialog before OK, which a
-day that has passed makes possible, is newer than the choice: its client's name is red again, and
-OK leaves that answer standing. An answer forever or until a day is kept in the database,
-so taking it back is a change to save; one in this session is kept only in KeePass's memory, so
-there is nothing to save. A copy of the database from before the answer was taken back brings it
-back when merged in, and its client's name is red again.
+day that has passed makes possible, was not shown when **Allow renewal** was chosen: its client's
+name is red again, and OK leaves that answer standing. An answer forever or until a day is kept in
+the database, so taking it back is a change to save, kept by the next save of the database, and
+closing the database without saving leaves the answer standing; one in this session is kept only
+in KeePass's memory, so there is nothing to save. A copy of the database from before the answer
+was taken back brings no answer back: the answer it held is the one taken back. A copy that
+refused the program while this copy did not know of it does bring that refusal, and its client's
+name is red again.
 
 This is also the way out of an answer given by mistake, **Refuse forever** chosen in place of
 **Refuse until a date...**, or too late a day: there is no need to revoke the program and pair it

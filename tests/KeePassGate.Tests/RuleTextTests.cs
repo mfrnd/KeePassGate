@@ -46,8 +46,11 @@ namespace KeePassGate.Tests
 
         private static IEnumerable<TestCaseData> Versions()
         {
+            // The versions of rules and switches: an answer to a renewal is a version as well, of
+            // an object of its own, held by `RenewalTextTests`.
             return ((JObject)RuleVectors.Records["records"]).Properties()
-                .Where(record => (string)record.Value["kind"] == "version")
+                .Where(record => (string)record.Value["kind"] == "version"
+                                 && !((string)record.Value["members"]["object"]).StartsWith("renew:", StringComparison.Ordinal))
                 .Select(record => new TestCaseData(record.Name).SetArgDisplayNames(record.Name));
         }
 
