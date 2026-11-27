@@ -1,0 +1,50 @@
+﻿== StoreRecordVectors.json
+   members at the top: about, key, profileTags, records, renewalTexts, texts
+   key: the same
+   profileTags: the same
+   records: 51 held today, 56 printed; added 5, removed 0, changed 0
+      added: format, the version record a start writes under the new key
+      added: head of height 1 under the new key, restating the keep record of the start
+      added: kept, the keep record Seal again writes over a store a start stopped, naming the new key and the stop in after
+      added: kept, the keep record a start writes under the new key, naming the earlier key and the stop in after
+      added: kept, the stop a start writes under the key it sets aside, naming the new key
+   renewalTexts: the same
+   texts: the same
+   about: the text held today, and 764 characters added after it
+   lines: 111 added; 1 held today replaced or removed: "about": "Records in the forms STORE.md 614, 615 and 648 fix
+== StoreMeaningVectors.json
+   members at the top: about, key, meanings
+   key: the same
+   meanings: 130 held today, 139 printed; added 9, removed 0, changed 0
+      added: keys: a circle, each key naming the other
+      added: keys: started again, the earlier key set aside and its store stopped by the start
+      added: keys: started again, then the new key lost, the earlier store stopped
+      added: keys: the circle settled by a later keep record naming both
+      added: keys: the earlier store sealed again after the new key was lost
+      added: keys: the earlier store sealed again, then the new key back, both standing
+      added: keys: the start's keep record deleted, restated by the summary entry
+      added: keys: the start's keep record known by its deletion record alone
+      added: keys: two keys and no keep record, split
+   about: the text held today, and 863 characters added after it
+   lines: 1237 added; 1 held today replaced or removed: "about": "What probe/read.py of spikes/storage/probes/store-
+== StoreWriteVectors.json
+   members at the top: about, sequences
+   sequences: 85 held today, 101 printed; added 16, removed 0, changed 0
+      added: starts, T10: copy 0 starts the store again and pairs; at copy 1 the earlier authority's entry, which carries the earlier key, edited 11 times, past KeePass's history limit
+      added: starts, T11: copy 0 starts the store again and pairs; the new authority's entry, which carries the new key, deleted at copy 0 for good with a deletion record
+      added: starts, T12: copy 0 starts the store again and pairs; the new authority's entry edited 11 times at copy 0, past KeePass's history limit
+      added: starts, T13: T11, then Seal again at copy 0, which keeps the earlier store
+      added: starts, T14: copy 0 starts the store again and pairs, synchronized into copy 1; at copy 0 the new authority's entry deleted with a deletion record, then Seal again; copy 1 holds the store started again
+      added: starts, T15: the newest summary entry deleted at copy 0 with a deletion record, so the store stops there; copy 0 starts it again and pairs; the new authority's entry edited 11 times, then Seal again
+      added: starts, T16: T11, then the stop under the earlier key deleted at copy 0 for good with a deletion record
+      added: starts, T1: copy 0 starts the store again on a whole store, then a name, a pairing and a rule under the new key; copy 1 holds the store from before
+      added: starts, T2: the newest summary entry deleted at copy 0 with a deletion record, so the store stops there; copy 0 starts it again, adds a name and pairs
+      added: starts, T3: two first authorities made apart: at copy 1 the authority's entry deleted with no deletion record and Create, synchronized both ways, so both copies are split; copy 0 starts the store again, adds a name and pairs
+      added: starts, T4: copy 0 starts the store again and pairs c1; copy 1, stale, still serves the earlier store and pairs c2
+      added: starts, T5: copy 0 starts the store again and pairs; the earlier authority's entry deleted at copy 0 with a deletion record; copy 1 still holds it
+      added: starts, T6: both copies start the store again apart; then, in the copy merged into, a start again of the merged file, a name and a pairing
+      added: starts, T7: copy 0 starts the store again and pairs, synchronized into copy 1; copy 0 starts it again and pairs again
+      added: starts, T8: a plugin of a later format raises the store's format at copy 0, synchronized into copy 1, so both are outdated; copy 0 starts the store again, adds a name and pairs
+      added: starts, T9: copy 0 starts the store again, then deletes the new authority with none after it, so the retirement carries the new key, then Create, a name and a pairing
+   about: the text held today, and 1268 characters added after it
+   lines: 57742 added; 1 held today replaced or removed: "about": "The file after each act of fixed sequences that th

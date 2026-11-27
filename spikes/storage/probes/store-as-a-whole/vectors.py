@@ -177,6 +177,16 @@ ARGS = sys.argv[1:]
 # stores of a stopped store with read.py's listing of what it lost, and the sequences R1 to R21 of
 # measured-seal, each made with crdt_model.SEAL and read.SEAL on while it is made, and off for
 # everything else, so that every other vector is as `--answers` prints it.
+# ADDED (started again): `--starts` is `--seal` with a store started again added: the keep records a
+# start and Seal again write and the stop a start writes under the key it sets aside, the stores of the
+# family keys: with read.py's keys, and the sequences T1 to T16 of measured-started-again, each made with
+# crdt_model.STARTS and read.STARTS on while it is made, and off for everything else, so that every
+# other vector is as `--seal` prints it.
+STARTING = '--starts' in ARGS
+if STARTING:
+    ARGS.remove('--starts')
+    if '--seal' not in ARGS:
+        ARGS.append('--seal')
 SEALING = '--seal' in ARGS
 if SEALING:
     ARGS.remove('--seal')
@@ -1446,6 +1456,8 @@ def state(W, enc, i, tree):
                           'items': [json.loads(s[k]) for k in sorted(s)
                                     if k.startswith('KPG.S.')]})
     more = {}
+    if M.STARTS:    # ADDED (started again): the keys read.py finds, that stand and that it sets aside
+        more['keysRead'] = {k: r['keys'][k] for k in ('found', 'standing', 'aside')}
     if M.SEAL:      # ADDED (seal again): the entries edited past the limit, and read.py's listing
         more['damaged'] = sorted((described(enc, eid) for u, (eid, mt, ok) in rep.entries.items()
                                   if u == eid and not ok), key=by_record)
@@ -2083,6 +2095,150 @@ if SEALING:
         'revocation was lost with no deletion record before the seal, and a test holds it as accepted, never '
         'as decided. A7 of the answers is played past the seal already above, and with Seal again on it '
         'gives the same.')
+
+
+def starts_vectors():
+    """ADDED (started again): the records of a store started again, the stores of the family keys:,
+    and T1 to T16 of measured-started-again played by the model, with STARTS on while they are made."""
+    import restart as RS    # noqa: E402
+    M.ANSWERS = R.ANSWERS = S.HEX = M.SEAL = R.SEAL = M.STARTS = R.STARTS = True
+    kinds = S.KINDS
+    if 'kept' not in S.KINDS:
+        S.KINDS = S.KINDS + S.STARTED
+    n1, n2 = S.keyname(ONE), S.keyname(TWO)
+
+    def under(key, kind, d, items=(), height=0, subject=None, number=None):
+        """A record as `record` composes it, under either key."""
+        subject = subject if subject is not None else S.subject_of(kind, d)
+        number = number if number is not None else height
+        u, s = rec(key, kind, d, numbered(items), height, subject, number)
+        made = {'key': key.hex(), 'kind': kind, 'members': dict(sorted(d.items())), 'content': s['KPG.Data'],
+                'check': s['KPG.Mac'], 'subject': subject, 'number': number, 'id': u, 'strings': dict(sorted(s.items()))}
+        if items:
+            made['items'] = list(items)
+        return made
+
+    def kept(key, named, after, nonce=NONCE):
+        return under(key, 'kept', {'after': after, 'key': named, 'nonce': nonce}, subject='key:' + named)
+
+    def item(r):
+        return {'after': r['members']['after'], 'id': r['id'], 'key': r['members']['key'], 'kind': 'kept'}
+
+    def as_entry(r):
+        return (r['id'], r['strings'], [])
+
+    stop = kept(ONE, n2, '')
+    start = kept(TWO, n1, stop['id'])
+    sealed = kept(ONE, n2, stop['id'], NONCE2)
+    fmt2 = under(TWO, 'format', {'format': '1', 'nonce': NONCE, 'plugin': '0.3.0'}, subject='format:1', number=1)
+    head2 = under(TWO, 'head', {'after': '', 'height': '1', 'nonce': NONCE}, [FORMAT, item(start)], 1)
+    out['records']['records'].update({
+        'kept, the stop a start writes under the key it sets aside, naming the new key': stop,
+        'kept, the keep record a start writes under the new key, naming the earlier key and the stop in after': start,
+        'kept, the keep record Seal again writes over a store a start stopped, naming the new key and the stop in '
+        'after': sealed,
+        'format, the version record a start writes under the new key': fmt2,
+        'head of height 1 under the new key, restating the keep record of the start': head2})
+    out['records']['about'] += (
+        ' The records whose names begin with kept and format are the records of a store started again, measured '
+        'in measured-started-again: the stop a start writes under the key one, which it sets aside, naming the '
+        'key two, the new key, with an empty after, which no summary entry under one restates; the keep record '
+        'it writes under two naming one, which names the stop in after so that the stop counts for nothing while '
+        'two is found; the keep record Seal again writes under one over a store the start stopped, once two is '
+        'found no more, naming two and the stop in after; the version record under two; and the summary entry '
+        'under two restating the start\'s keep record and the format. A key is named by the HMAC-SHA256 under '
+        'that key over key, the key-names of the full file.')
+
+    a2 = rec(TWO, 'authority', dict(authority(A2), storeKey=TWO.hex()))
+    root_items = [restates(ROOT_PF), restates(ROOT_PG)]
+    base = [AUTH1, PROFILE, ADMITTED, ROOT_PF, ROOT_PG]
+
+    def head_one(*more, nonce=NONCE):
+        return rec(ONE, 'head', {'after': '', 'height': '1', 'nonce': nonce},
+                   numbered([FORMAT] + root_items + list(more)), 1) + ([],)
+
+    def head_two(*more):
+        return rec(TWO, 'head', {'after': '', 'height': '1', 'nonce': NONCE}, numbered([FORMAT] + list(more)), 1) + ([],)
+
+    def store(entries, dels=()):
+        d = dump(list(entries), dels)
+        d['groups'] = {g: {'parent': q} for g, q in TREE.items()}
+        return d
+
+    circle_one = kept(ONE, n2, '', NONCE3)
+    circle_two = kept(TWO, n1, '', NONCE3)
+    settled = kept(ONE, n2, ' '.join(sorted([circle_one['id'], circle_two['id']])), NONCE2)
+    started = base + [head_one(), as_entry(stop), a2 + ([],), as_entry(start), as_entry(fmt2), head_two(item(start))]
+    stores = {
+        'keys: two keys and no keep record, split': store(base + [head_one(), a2 + ([],), head_two()]),
+        'keys: started again, the earlier key set aside and its store stopped by the start': store(started),
+        'keys: started again, then the new key lost, the earlier store stopped': store(
+            base + [head_one(), as_entry(stop), as_entry(start), as_entry(fmt2), head_two(item(start))]),
+        'keys: the earlier store sealed again after the new key was lost': store(
+            base + [head_one(item(stop), item(sealed), nonce=NONCE2), as_entry(stop), as_entry(sealed)]),
+        'keys: the earlier store sealed again, then the new key back, both standing': store(
+            base + [head_one(item(stop), item(sealed), nonce=NONCE2), as_entry(stop), as_entry(sealed), a2 + ([],),
+                    as_entry(start), as_entry(fmt2), head_two(item(start))]),
+        'keys: a circle, each key naming the other': store(
+            base + [head_one(item(circle_one)), as_entry(circle_one), a2 + ([],), as_entry(circle_two),
+                    head_two(item(circle_two))]),
+        'keys: the circle settled by a later keep record naming both': store(
+            base + [head_one(item(circle_one), item(settled)), as_entry(circle_one), as_entry(settled), a2 + ([],),
+                    as_entry(circle_two), head_two(item(circle_two))]),
+        'keys: the start\'s keep record deleted, restated by the summary entry': store(
+            base + [head_one(), as_entry(stop), a2 + ([],), as_entry(fmt2), head_two(item(start))], [start['id']]),
+        'keys: the start\'s keep record known by its deletion record alone': store(
+            base + [head_one(), as_entry(stop), a2 + ([],), as_entry(fmt2), head_two()], [start['id']]),
+    }
+    for name, d in sorted(stores.items()):
+        r = R.read(d, history=True)
+        out['meanings']['meanings'][name] = dict(files(d), **answer(r), keys={k: r['keys'][k] for k in (
+            'found', 'standing', 'aside', 'kept_read')}, losses=r['losses'])
+    out['meanings']['about'] += (
+        ' The stores whose names begin with keys: hold records under the keys one and two, read by read.py with '
+        'its reading of the keys of STORE.md 649 on (read.STARTS) and its listing of what a stopped store lost: '
+        'the first authority under one, the profile record, the admission and the root\'s rows, a summary entry '
+        'under one restating the rows and what the name gives, and under two the second authority holding two, '
+        'its records and a summary entry restating them, as the name gives; the records are those of the '
+        'records file whose names begin with kept. keys holds found, the keys found, by their names one and '
+        'two; standing, the keys that stand; aside, the keys set aside; and kept_read, every keep record read '
+        'under any key found, by identifier, as a record, an item or a deletion record. A store with two keys '
+        'standing is split, its status split, and serves nothing.')
+
+    def command(op):
+        named = {'restart': 'Start again', 'newer': 'Raise the format', 'edit11': 'Edit past the limit',
+                 'del': 'Delete by hand', 'reseal': 'Seal again', 'create': 'Create', 'delauth': 'Delete',
+                 'padd': 'Add name', 'pair': 'Pair', 'renewcert': 'Renew', 'rule': 'Set rows'}
+        if op[0] == 'merge':
+            return 'Synchronize'
+        return named[op[0]]
+    for label, what, ops, then in RS.histories():
+        steps = [RS.model_op(op) for op in ops + [INTO_0, INTO_1] + RS.bound(then, 0)]
+        made_seq = play(2, [(command(op), m) for op, m in zip(ops + [INTO_0, INTO_1] + RS.bound(then, 0), steps)])
+        made_seq['clients'] = {c: S.cert_hex(c) for c in ('c0', 'c1', 'c2', 'c3')}
+        made_seq['keys'] = {x: S.keybytes(x).hex() for x in sorted(set(
+            M_key for s_ in made_seq['steps'] + [made_seq['start']] for M_key in s_['keysRead']['found']))}
+        out['writes']['sequences']['starts, %s: %s' % (label, what)] = made_seq
+    out['writes']['about'] += (
+        ' The sequences whose names begin with starts and a comma are T1 to T16 of measured-started-again, a '
+        'store started again, played by the model with its answers, Seal again and the keys of STORE.md 649 on '
+        '(crdt_model.ANSWERS, SEAL and STARTS) and read by read.py with the same readings on: each sequence\'s '
+        'acts, then a Synchronize of copy 1 into copy 0 and of copy 0 into copy 1, then the acts that follow in '
+        'copy 0. Every step adds keysRead, the keys read.py finds, that stand and that it sets aside, each by '
+        'the model\'s label, and keys gives the store key of each label. Start again is the model\'s restart: a '
+        'new key, an authority holding it, under each key found a stop naming the new key that no summary entry '
+        'restates, under the new key a keep record naming each key found and, in after, every keep record read '
+        'and every stop, a version record of format 1 and a summary entry of height 1 restating them; it deletes '
+        'nothing. Seal again over a store a start stopped writes a keep record under its key naming the key the '
+        'stop names and the stop in after. Edit past the limit is the model\'s edit, which the files of these '
+        'sequences write as the content followed by a space with no history; Raise the format is its newer, a '
+        'version record of format 2 under the store key.')
+    M.ANSWERS = R.ANSWERS = S.HEX = M.SEAL = R.SEAL = M.STARTS = R.STARTS = False
+    S.KINDS = kinds
+
+
+if STARTING:
+    starts_vectors()
 
 
 def product(readings):
