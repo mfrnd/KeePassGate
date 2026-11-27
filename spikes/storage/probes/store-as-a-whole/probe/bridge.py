@@ -175,11 +175,11 @@ def seal():
 
 
 def starts():
-    """ADDED (started again): the configuration of answers() with the keys of STORE.md 649 and the
+    """ADDED (started again): the configuration of seal() with the keys of STORE.md 649 and the
     command of 632 that starts the store again (crdt_model.STARTS, read.STARTS), the keep record and
     the version record among the kinds the file holds, and the room of 643 read on files."""
     global PREFIX
-    answers()
+    seal()      # Seal again as designed beside it: the seal lifts a store a start stopped
     M.STARTS = RD.STARTS = RD.ROOM = True
     if 'kept' not in S.KINDS:
         S.KINDS = S.KINDS + S.STARTED

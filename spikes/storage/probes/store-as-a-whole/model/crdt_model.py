@@ -425,6 +425,14 @@ def grants_nothing(obj, f):
 #     are written under the key that stands, and a write of the plugin's own looks at nothing under any
 #     other key.
 STARTS = False
+# ADDED (started again): ruling 5 of 2026-11-27, a start stops the store it sets aside. With it on, `restart`
+# also writes, under each key it sets aside, a keep record naming the new key that no summary entry under
+# that key restates, so that the earlier store, should its key stand alone again, is stopped (STORE.md 624,
+# a record no summary entry restates); the keep records under the new key name it in `after`, so that it
+# counts for nothing while the new key is found. Seal again over such a store keeps the earlier store: a
+# keep record under its key naming the key the stop named, naming the stop in `after`. Off, the control:
+# the start as first measured.
+START_STOPS = True
 
 
 def marked(keys, rels):
@@ -1373,6 +1381,16 @@ class World:
                     e = self.mk('ver', 'rule:' + n, data=REFUSE)
                     rep.entries[e.id] = [e.id, t, True]
                     self.K[i].add(e.id)
+            if STARTS and START_STOPS:
+                # ADDED (started again): a stop a start wrote, a keep record no summary entry restates that
+                # names a key not found: the seal keeps the earlier store, with a keep record naming that
+                # key and, in `after`, the stop
+                restated = set(x for h in v['heads'] for (x, a) in h.data.get('kept', ()))
+                for x in sorted(x for x, e in v['ents'].items() if e.kind == 'kept' and x not in restated
+                                and e.obj not in v['found']):
+                    e = self.mk('kept', self.EL[x].obj, after={x})
+                    rep.entries[e.id] = [e.id, t, True]
+                    self.K[i].add(e.id)
             self.K[i].add(self.write_head(rep, set()))
             self.Kever[i] |= self.K[i]
 
@@ -1406,7 +1424,13 @@ class World:
             e = El('auth:' + a, 'auth', a, key=key)
             self.EL[e.id] = e
             new.append(e)
-            new += [self.mk('kept', k, after=v['keptread'], key=key) for k in sorted(v['found'])]
+            # ADDED (started again): with START_STOPS, under each key set aside a keep record naming the
+            # new key, which no summary entry under that key restates: written first, so that the keep
+            # records under the new key name it in `after`
+            stops = [self.mk('kept', key, key=k) for k in sorted(v['found'])] if START_STOPS else []
+            new += stops
+            new += [self.mk('kept', k, after=set(v['keptread']) | set(s.id for s in stops), key=key)
+                    for k in sorted(v['found'])]
             new.append(self.mk('fmt', 'format', data=1, key=key))
         # ADDED (started again): a plugin of a later format, holding the store key, raises the format
         elif kind == 'newer':

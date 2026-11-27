@@ -28,9 +28,12 @@ def keybytes(label):
 # ADDED (started again): the keep record and the version record of STORE.md 649 and 650, as kinds of
 # their own, read only where the configuration adds them to KINDS (STARTED). A key's name is the
 # HMAC-SHA256 under that key over the three characters `key`, as 64 lowercase hexadecimal characters;
-# a keep record is about `key:` and the name of the key it names; a version record is about `format`.
+# a keep record is about `key:` and the name of the key it names; a version record, in the product's
+# form, holds `format` and `plugin`, is about `format:` and its number, and carries the number in its
+# identifier where a summary entry carries its height.
 KEYLABEL = {}
 STARTED = ('kept', 'format')
+PLUGIN = {1: '0.3.0', 2: '0.4.0'}     # the plugin that writes each format
 
 
 def keyname(key):
@@ -101,7 +104,7 @@ def subject_of(kind, d):
     if kind == 'kept':      # ADDED (started again)
         return 'key:' + d['key']
     if kind == 'format':    # ADDED (started again)
-        return 'format'
+        return 'format:' + d['format']
     raise ValueError(kind)
 
 
@@ -320,14 +323,15 @@ class Encoder:
                 items.append({'kind': 'kept', 'id': self.u(x), 'key': keyname(keybytes(W.EL[x].obj)),
                               'after': ' '.join(sorted(self.u(y) for y in a))})
             if 'fmt' in e.data:
-                items.append({'kind': 'format', 'number': str(e.data['fmt'])})
+                items.append({'format': str(e.data['fmt']), 'kind': 'format', 'plugin': PLUGIN[e.data['fmt']]})
             for k, it in enumerate(sorted(items, key=dumps)):
                 extra['KPG.S.%04d' % (k + 1)] = dumps(it)
         elif e.kind == 'kept':      # ADDED (started again): a keep record, naming a key by its name
             kind, d = 'kept', {'v': '2', 'key': keyname(keybytes(e.obj)),
                                'after': ' '.join(sorted(self.u(x) for x in e.after)), 'nonce': nonce}
         elif e.kind == 'fmt':       # ADDED (started again): a version record
-            kind, d = 'format', {'v': '2', 'number': str(e.data), 'nonce': nonce}
+            kind, d = 'format', {'v': '2', 'format': str(e.data), 'plugin': PLUGIN[e.data], 'nonce': nonce}
+            height = e.data
         else:
             raise ValueError(e.kind)
         data = dumps(d)

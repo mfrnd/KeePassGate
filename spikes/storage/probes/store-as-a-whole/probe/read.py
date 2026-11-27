@@ -371,6 +371,8 @@ def verifies(c, key):
     try:
         m = S.mac(key, c.kind, c.data, c.extra)
         height = int(c.d['height']) if c.kind == 'head' else 0
+        if STARTS and c.kind == 'format':     # ADDED (started again): the number in the identifier
+            height = int(c.d['format'])
         return m == c.mac and c.u == S.ident(key, c.kind, S.subject_of(c.kind, c.d), height, m)
     except (KeyError, ValueError):
         return False
@@ -832,8 +834,8 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
     room = None
     if STARTS:
         items_kept = set(it.get('id') for h in heads for it in heads_items(h) if it.get('kind') == 'kept')
-        items_fmt = [int(it['number']) for h in heads for it in heads_items(h) if it.get('kind') == 'format']
-        fmts = [int(c.d['number']) for c in by.get('format', [])]
+        items_fmt = [int(it['format']) for h in heads for it in heads_items(h) if it.get('kind') == 'format']
+        fmts = [int(c.d['format']) for c in by.get('format', [])]
         if status == 'ok' and (any(c.u not in items_kept for c in by.get('kept', []))
                                or any(n > max(items_fmt + [0]) for n in fmts)):
             status = 'incomplete'
@@ -1090,6 +1092,21 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
             return S.KEYLABEL.get(k, k.hex()[:8])
         extra['keys'] = dict(found=sorted(label(k) for k in found), standing=sorted(label(k) for k in held),
                              aside=sorted(label(k) for k in aside), kept_read=kept_read, room=room)
+        if SEAL and 'losses' in extra:
+            # a stop a start wrote: a keep record no summary entry restates that names a key not found,
+            # which the seal's dialog shows as the store set aside by a start, and the keep record the
+            # seal writes for it, keeping this store, naming that key and, in `after`, the stop
+            ik = set(it.get('id') for h in heads for it in heads_items(h) if it.get('kind') == 'kept')
+            by_start = sorted((c for c in by.get('kept', []) if c.u not in ik and c.d.get('key') not in byname),
+                              key=lambda c: c.u)
+            L = extra['losses']
+            L['setAsideBy'] = [{'id': c.u, 'key': c.d.get('key')} for c in by_start]
+            if by_start:
+                L['notRestated'] = sorted(set(L['notRestated']) | set(c.u for c in by_start))
+                if 'a record no summary entry restates' not in L['reasons']:
+                    L['reasons'].append('a record no summary entry restates')
+                if status == 'incomplete' and held:
+                    L['seal'] = L['seal'] + [{'kind': 'kept', 'key': c.d.get('key'), 'after': [c.u]} for c in by_start]
     return dict(**extra,status=status, served=served, auths=auths, adm=adm if serve else {}, valid=valid,
                 names=sorted(on), words={n: (w if serve else frozenset()) for n, w in raw.items()},
                 words_raw=raw, renew=renew, refusals=refusals, counts=counts,
