@@ -32,19 +32,19 @@ namespace KeePassGate.Bridge
     {
         /// <summary>The candidates under this root, and the identifiers this database's deletion records name.</summary>
         /// <param name="everyEntry">
-        /// Whether the walk keeps the identifier of every entry it passes as well, which a write
-        /// plans against, `STORE.md` §627, and the gate's readings never ask for.
+        /// Whether the walk keeps every entry it passes as well, which a write plans against and
+        /// finds its entries in, `STORE.md` §627, and the gate's readings never ask for.
         /// </param>
         public static Walk Of(PwDatabase database, PwGroup root, bool everyEntry = false)
         {
             var candidates = new List<StoreCandidate>();
-            var present = everyEntry ? new List<byte[]>() : null;
+            var passed = everyEntry ? new List<PwEntry>() : null;
 
             foreach (var entry in root.GetEntries(true))
             {
-                if (present != null)
+                if (passed != null)
                 {
-                    present.Add(entry.Uuid.UuidBytes);
+                    passed.Add(entry);
                 }
 
                 var history = entry.History;
@@ -65,7 +65,7 @@ namespace KeePassGate.Bridge
             }
 
             return new Walk(
-                candidates, present, database.DeletedObjects.Select(deleted => deleted.Uuid.UuidBytes).ToList(), () => Nodes(root));
+                candidates, passed, database.DeletedObjects.Select(deleted => deleted.Uuid.UuidBytes).ToList(), () => Nodes(root));
         }
 
         /// <summary>The identifier of the root and of every group and entry under it, walked as it is enumerated.</summary>
@@ -103,27 +103,36 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>
-        /// The candidates of a walk, the identifier of every entry it passed, the identifiers the
-        /// deletion records name, and the tree's nodes, walked when asked for.
+        /// The candidates of a walk, every entry it passed, the identifiers the deletion records
+        /// name, and the tree's nodes, walked when asked for.
         /// </summary>
         internal sealed class Walk
         {
             public Walk(
                 IReadOnlyList<StoreCandidate> candidates,
-                IReadOnlyList<byte[]> present,
+                IReadOnlyList<PwEntry> entries,
                 IReadOnlyList<byte[]> deletions,
                 Func<IEnumerable<byte[]>> nodes)
             {
                 Candidates = candidates;
-                Present = present;
+                Entries = entries;
                 Deletions = deletions;
                 Nodes = nodes;
             }
 
             public IReadOnlyList<StoreCandidate> Candidates { get; private set; }
 
-            /// <summary>The identifier of every entry under the root, a record or not, or null where the walk was not asked for them.</summary>
-            public IReadOnlyList<byte[]> Present { get; private set; }
+            /// <summary>
+            /// Every entry under the root, a record or not, in the order walked, or null where the
+            /// walk was not asked for them.
+            /// </summary>
+            public IReadOnlyList<PwEntry> Entries { get; private set; }
+
+            /// <summary>The identifier of every entry under the root, or null where the walk was not asked for them.</summary>
+            public IEnumerable<byte[]> Present
+            {
+                get { return Entries == null ? null : Entries.Select(entry => entry.Uuid.UuidBytes); }
+            }
 
             public IReadOnlyList<byte[]> Deletions { get; private set; }
 
