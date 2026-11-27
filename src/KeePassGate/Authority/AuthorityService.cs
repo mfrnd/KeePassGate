@@ -9,7 +9,8 @@ namespace KeePassGate.Authority
 {
     /// <summary>
     /// What an operator can do to a database's authority: create it, recreate it, delete it, and
-    /// keep an authority where several stand, each a write into the plugin's store, `STORE.md` §614.
+    /// keep an authority where several stand, each a write into the plugin's store, `STORE.md` §614;
+    /// and seal the store again where it stopped, §625.
     /// </summary>
     /// <remarks>
     /// Nothing is destroyed implicitly: creating where an authority stands is refused rather than
@@ -277,6 +278,66 @@ namespace KeePassGate.Authority
             if (!waits)
             {
                 _log.Info("authority " + CertificateDigest.Shorten(fingerprint) + " kept, others retired: " + others.Count);
+            }
+
+            return AuthorityChange.Done();
+        }
+
+        /// <summary>
+        /// Seals a stopped store again, `STORE.md` §625: a version granting nothing for every
+        /// object a lost version makes refuse, every entry that is damage deleted with a deletion
+        /// record, and a summary entry over what passes and is in force, in a single write. The
+        /// only command a stopped store takes, and refused on a store in any other state and on
+        /// a store with no room, which the seal does not lift.
+        /// </summary>
+        /// <remarks>
+        /// **Composed over the store as it stands at the write**, `SealActs`: on the KPG tab the
+        /// act is composed again over the store at OK, so what the dialog showed decides nothing
+        /// of what is written.
+        /// </remarks>
+        public AuthorityChange Seal()
+        {
+            var waits = false;
+            using (var reading = _store.Read())
+            {
+                if (reading.State != StoreState.Stopped)
+                {
+                    return HeldBack(reading)
+                           ?? AuthorityChange.Refused("The store of this database is not stopped, so there is nothing to seal again.");
+                }
+
+                string refused;
+                var act = SealActs.Seal(reading, out refused);
+                if (act == null)
+                {
+                    return AuthorityChange.Refused("The store of this database cannot be sealed again, since " + refused + ".");
+                }
+
+                // Asked of the store as the seal's write would leave it, before the act is written
+                // or held: a seal whose own write stops the store again is refused with nothing
+                // waiting for OK. The write plans the same act over the same store in the same
+                // turn, so nothing is read back after it.
+                var unsealed = SealActs.Unsealed(reading, act);
+                if (unsealed != null)
+                {
+                    act.Forget();
+                    _log.Warn("the store was not sealed again: " + unsealed);
+                    return AuthorityChange.Refused("The store of this database cannot be sealed again, since " + unsealed + ".");
+                }
+
+                var written = Write(act, out waits);
+                if (written != null)
+                {
+                    _log.Warn("the store could not be sealed again: " + written);
+                    return AuthorityChange.Refused("The store could not be sealed again: " + written);
+                }
+            }
+
+            // A press on the tab only waits for the dialog's OK, which a Cancel drops, so nothing
+            // is logged as done there.
+            if (!waits)
+            {
+                _log.Info("the store was sealed again");
             }
 
             return AuthorityChange.Done();

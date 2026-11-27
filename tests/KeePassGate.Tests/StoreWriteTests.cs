@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using KeePassGate.Authority;
 using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
@@ -354,6 +355,102 @@ namespace KeePassGate.Tests
                 Statement(record.Hex, Hex('d'), Hex('e'), null),
                 Statement(KeePassGate.Hex.Of(lost), Hex('e'), string.Empty, null),
             }));
+        }
+
+        [Test]
+        public void A_decision_a_deletion_record_alone_tells_of_whose_subject_the_file_names_nowhere_is_restated_by_an_item_with_no_subject()
+        {
+            // `STORE.md` §611, as measured in `measured-seal-restates`: a revocation and a
+            // retirement by the keyed tag and subject hash of their deletion records, a single
+            // item however many deletion records tell of it, and a removal by its identifier;
+            // each an item the room counts.
+            var store = new ComposedStore(One);
+            var revocation = StoreComposer.IdentifierOf(One, "revoked", "client:" + Hex('c'), 0, new string('5', 64));
+            var again = StoreComposer.IdentifierOf(One, "revoked", "client:" + Hex('c'), 0, new string('6', 64));
+            var retirement = StoreComposer.IdentifierOf(One, "retired", "authority:" + Hex('9'), 0, new string('5', 64));
+            var removal = StoreComposer.IdentifierOf(One, "removed", "profile:reader", 0, new string('5', 64));
+            store.Deleted.AddRange(new[] { revocation, again, retirement, removal });
+            var reading = store.Read();
+            Assume.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+
+            var items = Items(SummaryOf(StoreWrite.Plan(reading, new[] { Neutral() }, Plugin)));
+
+            var unnamed = new[]
+            {
+                StoreComposer.Item(("hash", KeePassGate.Hex.Of(revocation).Substring(0, 16)), ("kind", "revoked")),
+                StoreComposer.Item(("hash", KeePassGate.Hex.Of(retirement).Substring(0, 16)), ("kind", "retired")),
+                StoreComposer.Item(("id", KeePassGate.Hex.Of(removal)), ("kind", "removed")),
+            };
+            Assert.That(items.Where(item => item.Contains("\"revoked\"") || item.Contains("\"removed\"") || item.Contains("\"hash\"")), Is.EquivalentTo(unnamed));
+            Assert.That(items, Has.Count.EqualTo(reading.InForce.Room.Items + 1), "the room's items, and the retirement the write adds");
+        }
+
+        [Test]
+        public void An_item_with_no_subject_is_carried_while_nothing_names_its_subject_and_restated_by_its_subject_once_something_does()
+        {
+            // `STORE.md` §611: carried by every write while the file names the subject nowhere;
+            // once a record names it, restated by the subject, the item carried no further, and
+            // what it refuses deleted in the same write.
+            var revocation = StoreComposer.IdentifierOf(One, "revoked", "client:" + Hex('c'), 0, new string('5', 64));
+            var removal = KeePassGate.Hex.Of(StoreComposer.IdentifierOf(One, "removed", "profile:reader", 0, new string('5', 64)));
+            var hash = StoreComposer.Item(("hash", KeePassGate.Hex.Of(revocation).Substring(0, 16)), ("kind", "revoked"));
+            var byId = StoreComposer.Item(("id", removal), ("kind", "removed"));
+
+            var carried = new ComposedStore(One);
+            carried.RestateAll(new[] { hash, byId });
+            var items = Items(SummaryOf(StoreWrite.Plan(carried.Read(), new[] { Neutral() }, Plugin)));
+            Assert.That(items, Does.Contain(hash).And.Contain(byId), "carried as it is");
+
+            var named = new ComposedStore(One);
+            var admission = named.Add(Admission('c', ("certificate", Hex('d')), ("issuer", Hex('a'))));
+            var addition = named.Add(Addition("reader", string.Empty));
+            named.RestateAll(new[] { hash, byId });
+            var write = StoreWrite.Plan(named.Read(), new[] { Neutral() }, Plugin);
+            var restated = Items(SummaryOf(write));
+            Assert.That(restated, Does.Contain(StoreComposer.Item(("client", Hex('c')), ("kind", "revoked"))));
+            Assert.That(restated, Does.Contain(RemovalItem(removal, "reader")));
+            Assert.That(restated, Does.Not.Contain(hash).And.Not.Contain(byId), "carried no further");
+            Assert.That(write.Delete, Does.Contain(admission.Hex).And.Contain(addition.Hex), "the admission revoked and the addition defeated");
+        }
+
+        [Test]
+        public void A_record_a_write_adds_that_names_the_subject_of_an_item_with_no_subject_leaves_the_item_to_the_next_write_s_reading()
+        {
+            // `STORE.md` §611 and §616: an addition of a name names, in `after`, the removal an
+            // item with no subject tells of once the name is known. The write that adds it was
+            // planned over a reading that names the subject nowhere, and carries each item with no
+            // subject as it is, as the measured form has it: an item tells its decision of every
+            // subject whose hash it holds, and restated by a single subject in that write it would
+            // stop telling of any other. The write after it reads the subject named, and restates
+            // the decision by the subject, the revocation once.
+            var revocation = StoreComposer.IdentifierOf(One, "revoked", "client:" + Hex('c'), 0, new string('5', 64));
+            var removal = KeePassGate.Hex.Of(StoreComposer.IdentifierOf(One, "removed", "profile:reader", 0, new string('5', 64)));
+            var hash = StoreComposer.Item(("hash", KeePassGate.Hex.Of(revocation).Substring(0, 16)), ("kind", "revoked"));
+            var byId = StoreComposer.Item(("id", removal), ("kind", "removed"));
+            var store = new ComposedStore(One);
+            store.RestateAll(new[] { hash, byId });
+            var reading = store.Read();
+            Assume.That(reading.InForce.RemovalsOnceKnown("reader"), Is.EqualTo(new[] { removal }));
+            var addition = StoreRecord.Compose(One, "profile", new Dictionary<string, string> { { "after", removal }, { "name", "reader" } });
+            var revoked = StoreRecord.Compose(One, "revoked", new Dictionary<string, string> { { "client", Hex('c') } });
+
+            var act = new StoreAct("an act of the test's", One, StoreFormat.KeyName(One), new[] { addition, revoked }, null);
+
+            var write = StoreWrite.Plan(reading, new[] { act }, Plugin);
+            var items = Items(SummaryOf(write));
+
+            Assert.That(items, Does.Contain(hash).And.Contain(byId), "carried as it is by the write that names the subject");
+            Assert.That(items, Has.Count.EqualTo(reading.InForce.Room.Items + 1), "the room's items, and the revocation the write adds");
+
+            var applied = write.Applied(reading.Candidates, reading.Deletions);
+            using (var after = StoreReading.Afresh(applied.Key, applied.Value))
+            {
+                Assume.That(after.State, Is.EqualTo(StoreState.Whole), after.Reason);
+                var next = Items(SummaryOf(StoreWrite.Plan(after, new[] { Neutral() }, Plugin)));
+                Assert.That(next, Does.Contain(RemovalItem(removal, "reader")));
+                Assert.That(next.Count(item => item == StoreComposer.Item(("client", Hex('c')), ("kind", "revoked"))), Is.EqualTo(1));
+                Assert.That(next, Does.Not.Contain(hash).And.Not.Contain(byId), "restated by the subject the write after it reads");
+            }
         }
 
         private static string Statement(string id, string certificate, string renewed, string from)
@@ -1360,6 +1457,172 @@ namespace KeePassGate.Tests
             Assert.That(reading.Answering.Select(record => record.Form.Member("id")), Is.EqualTo(new[] { Hex('b') }));
             Assert.That(reading.InForce.Taken("retired"), Is.EqualTo(new[] { Hex('a') }));
             Assert.That(reading.InForce.Records.Count(record => record.Is("authority")), Is.EqualTo(1), "the retired authority's entry is deleted");
+        }
+
+        // Sealing the store again, `STORE.md` §625.
+
+        [Test]
+        public void A_seal_deletes_every_entry_that_is_damage_with_a_deletion_record_whatever_its_tag()
+        {
+            var store = new MemoryStore();
+            store.Put(StoreRecords.Authority(One, 'a'));
+            var revoked = StoreComposer.Record(One, "revoked", "client:" + Hex('c'), StoreComposer.Content(("client", Hex('c'))));
+            store.Put(Head(One, 1, string.Empty, StoreComposer.Item(("client", Hex('c')), ("kind", "revoked"))));
+            store.Put(revoked.Identifier, StoreVersions.With(revoked.Strings, StoreComposer.Data, "{\"client\":\"edited\"}"));
+            var admission = Admission('e');
+            store.Put(admission.Identifier, StoreVersions.With(admission.Strings, StoreComposer.Data, "{\"client\":\"edited\"}"));
+            var reading = store.Read();
+            Assume.That(reading.Damage, Is.EqualTo(2));
+
+            var write = StoreWrite.Plan(reading, new[] { Sealing(reading) }, Plugin);
+
+            Assert.That(write.Refused, Is.Null);
+            Assert.That(write.Delete, Is.SupersetOf(new[] { revoked.Hex, admission.Hex }));
+            var applied = write.Applied(reading.Candidates, reading.Deletions);
+            Assert.That(applied.Value.Select(KeePassGate.Hex.Of), Is.SupersetOf(new[] { revoked.Hex, admission.Hex }), "each with a deletion record");
+            using (var after = StoreReading.Afresh(applied.Key, applied.Value))
+            {
+                Assert.That(after.State, Is.EqualTo(StoreState.Whole), after.Reason);
+                Assert.That(after.InForce.Taken("revoked"), Is.EquivalentTo(new[] { Hex('c') }), "the revocation stands by the item that restated it");
+            }
+        }
+
+        [Test]
+        public void A_seal_names_in_its_summary_entry_s_after_every_damaged_summary_entry_it_deletes()
+        {
+            // Unnamed, the deletion record the seal leaves for it would tell of a summary entry
+            // nothing in force names, and the store would stop again at once.
+            var store = new MemoryStore();
+            store.Put(StoreRecords.Authority(One, 'a'));
+            var head = Head(One, 3, string.Empty);
+            store.Put(head.Identifier, StoreVersions.With(head.Strings, StoreComposer.Data, "{\"edited\":\"\"}"));
+            var reading = store.Read();
+            Assume.That(reading.Damaged.Single().Kind, Is.EqualTo("head"));
+
+            var write = StoreWrite.Plan(reading, new[] { Sealing(reading) }, Plugin);
+
+            var summary = SummaryOf(write);
+            Assert.That(summary.Member("after").Split(' '), Does.Contain(head.Hex));
+            Assert.That(int.Parse(summary.Member("height"), CultureInfo.InvariantCulture), Is.GreaterThan(3), "above the summary entry it deletes");
+            var applied = write.Applied(reading.Candidates, reading.Deletions);
+            using (var after = StoreReading.Afresh(applied.Key, applied.Value))
+            {
+                Assert.That(after.State, Is.EqualTo(StoreState.Whole), after.Reason);
+            }
+        }
+
+        [Test]
+        public void A_seal_is_refused_where_the_store_has_no_room_which_the_seal_does_not_lift()
+        {
+            var room = Holding(StoreFormat.MaxItems - 1);
+            room.Delete(StoreComposer.IdentifierOf(One, "head", "store", 9, new string('5', 64)));
+            StoreAct seal;
+            using (var reading = room.Read())
+            {
+                Assume.That(reading.State, Is.EqualTo(StoreState.Stopped));
+                Assume.That(reading.Room.HasRoom, Is.True);
+                seal = Sealing(reading);
+            }
+
+            var full = Holding(StoreFormat.MaxItems);
+            full.Delete(StoreComposer.IdentifierOf(One, "head", "store", 9, new string('5', 64)));
+            using (var reading = full.Read())
+            {
+                Assume.That(reading.Room.HasRoom, Is.False);
+                string refused;
+                Assert.That(SealActs.Seal(reading, out refused), Is.Null);
+                Assert.That(refused, Does.Contain("no room"));
+
+                var write = StoreWrite.Plan(reading, new[] { seal }, Plugin);
+                Assert.That(write.Refused, Does.Contain("no room"));
+                Assert.That(write.NoRoom, Is.True);
+            }
+        }
+
+        [Test]
+        public void A_seal_is_written_first_over_a_stopped_store_and_nowhere_else()
+        {
+            var stopped = Stopping();
+            var seal = Sealing(stopped.Read());
+
+            var behind = StoreWrite.Plan(stopped.Read(), new[] { Retire(One, 'a'), seal }, Plugin);
+            Assert.That(behind.Refused, Does.StartWith("the store is stopped"), "nothing is written over a stopped store but behind its seal");
+
+            var whole = new MemoryStore();
+            whole.Put(StoreRecords.Authority(One, 'a'));
+            whole.Put(Head(One, 1, string.Empty));
+            var alone = StoreWrite.Plan(whole.Read(), new[] { seal }, Plugin);
+            Assert.That(alone.Refused, Does.Contain("nothing to seal"));
+
+            var after = StoreWrite.Plan(whole.Read(), new[] { Retire(One, 'a'), seal }, Plugin);
+            Assert.That(after.Refused, Is.Null);
+            Assert.That(after.Taken, Has.Count.EqualTo(1), "the retirement alone");
+            Assert.That(after.LeftOut.Single(), Does.Contain("a seal is written first"));
+        }
+
+        [Test]
+        public void Create_is_planned_over_a_seal_in_a_single_write_and_refused_without_it()
+        {
+            // A store stopped with its key held in a retirement and no authority standing.
+            var stopped = new MemoryStore();
+            stopped.Put(StoreRecords.Authority(One, 'a'));
+            var retired = StoreComposer.Record(
+                One, "retired", "authority:" + Hex('a'), StoreComposer.Content(("authority", Hex('a')), ("storeKey", StoreComposer.HexOf(One))));
+            stopped.Put(retired);
+            stopped.Delete(StoreComposer.IdentifierOf(One, "head", "store", 2, new string('5', 64)));
+            var reading = stopped.Read();
+            Assume.That(reading.State, Is.EqualTo(StoreState.Stopped));
+            Assume.That(reading.InForce.Authorities, Is.Empty);
+
+            Assert.That(StoreWrite.Plan(reading, new[] { Made(One, 'b') }, Plugin).Refused, Does.StartWith("the store is stopped"));
+
+            var both = stopped.Write(new[] { Sealing(reading), Made(One, 'b') });
+            Assert.That(both.Taken, Is.True, both.Reason);
+            Assert.That(both.Acts, Has.Count.EqualTo(2));
+            using (var after = stopped.Read())
+            {
+                Assert.That(after.State, Is.EqualTo(StoreState.Whole), after.Reason);
+                Assert.That(after.Answering.Select(record => record.Form.Member("id")), Is.EqualTo(new[] { Hex('b') }));
+                Assert.That(after.InForce.HeadsInForce, Has.Count.EqualTo(1), "a single summary entry over both");
+            }
+        }
+
+        [Test]
+        public void A_seal_whose_write_would_leave_no_entry_holding_the_store_key_is_refused()
+        {
+            // The retirement that holds the key is damaged, and the authority it retired, which
+            // the write deletes as retired, holds it until then.
+            var store = new MemoryStore();
+            store.Put(StoreRecords.Authority(One, 'a'));
+            var retired = StoreComposer.Record(
+                One, "retired", "authority:" + Hex('a'), StoreComposer.Content(("authority", Hex('a')), ("storeKey", StoreComposer.HexOf(One))));
+            store.Put(retired.Identifier, StoreVersions.With(retired.Strings, StoreComposer.Data, "{\"edited\":\"\"}"));
+            store.Put(Head(One, 1, string.Empty, StoreComposer.Item(("authority", Hex('a')), ("kind", "retired"))));
+            var reading = store.Read();
+            Assume.That(reading.State, Is.EqualTo(StoreState.Stopped));
+
+            var write = StoreWrite.Plan(reading, new[] { Sealing(reading) }, Plugin);
+
+            Assert.That(write.Refused, Does.Contain("no entry holding the store key"));
+        }
+
+        /// <summary>A store stopped by a summary entry deleted that nothing replaces, its authority standing.</summary>
+        private static MemoryStore Stopping()
+        {
+            var store = new MemoryStore();
+            store.Put(StoreRecords.Authority(One, 'a'));
+            store.Put(Head(One, 1, string.Empty));
+            store.Delete(StoreComposer.IdentifierOf(One, "head", "store", 9, new string('5', 64)));
+            return store;
+        }
+
+        /// <summary>The seal composed over a reading of a stopped store.</summary>
+        private static StoreAct Sealing(StoreReading reading)
+        {
+            string refused;
+            var seal = SealActs.Seal(reading, out refused);
+            Assert.That(seal, Is.Not.Null, refused);
+            return seal;
         }
 
         private static void AssertRefused(StoreReading reading, StoreAct act, string word)

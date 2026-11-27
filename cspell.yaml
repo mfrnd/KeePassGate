@@ -107,6 +107,7 @@ words:
   - renewcert
   - padd
   - undoc
+  - sealsee
 
   # the letters of rules in the vectors the measured code printed: its own alphabet of them, and
   # masks that are out of form and held as such

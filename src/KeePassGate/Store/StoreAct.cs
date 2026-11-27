@@ -39,20 +39,28 @@ namespace KeePassGate.Store
         /// The act composed again against a reading that holds a store key, or null where nothing
         /// is left of it to write there; null for an act composed once, at its press.
         /// </param>
+        /// <param name="seals">
+        /// Whether the act seals a stopped store again, `STORE.md` §625: written first in its
+        /// write, which deletes every entry that is damage, and the only act that may hold no
+        /// record, since its write's summary entry is what it writes.
+        /// </param>
+        /// <param name="leftOut">What the act left out as it was composed, each with why, for the log; none for null.</param>
         internal StoreAct(
             string name,
             byte[] key,
             string against,
             IReadOnlyList<StoreRecord> records,
             Func<StoreGround, string> ground,
-            Func<StoreReading, StoreAct> again = null)
+            Func<StoreReading, StoreAct> again = null,
+            bool seals = false,
+            IReadOnlyList<string> leftOut = null)
         {
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
             }
 
-            if (records == null || records.Count == 0)
+            if (records == null || (records.Count == 0 && !seals))
             {
                 throw new ArgumentException("An act writes a record at least.", nameof(records));
             }
@@ -69,7 +77,18 @@ namespace KeePassGate.Store
             Records = records.ToList();
             _ground = ground;
             Again = again;
+            Seals = seals;
+            LeftOut = (leftOut ?? Array.Empty<string>()).ToList();
         }
+
+        /// <summary>
+        /// Whether the act seals a stopped store again, `STORE.md` §625: the only act a write takes
+        /// over a stopped store, and only as its first.
+        /// </summary>
+        internal bool Seals { get; private set; }
+
+        /// <summary>What the act left out as it was composed, each with why: what the log names.</summary>
+        internal IReadOnlyList<string> LeftOut { get; private set; }
 
         /// <summary>What the log calls the act.</summary>
         internal string Name { get; private set; }

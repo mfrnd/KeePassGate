@@ -237,9 +237,9 @@ namespace KeePassGate.Tests
             Assert.That(reading.Answering, Is.Empty, "the authority retired stands no more");
             Assert.That(reading.InForce.RemovalsOf("reader"), Is.EqualTo(new[] { removal }));
             Assert.That(reading.InForce.ByDeletion("revoked"), Is.Empty, "an item carries it, and no deletion record alone");
-            Assert.That(reading.InForce.Unnamed("revoked"), Is.Empty, "restated by its subject, which the file names");
-            Assert.That(reading.InForce.Unnamed("retired"), Is.Empty);
-            Assert.That(reading.InForce.Unnamed("removed"), Is.Empty);
+            Assert.That(Unnamed(reading, "revoked"), Is.Empty, "restated by its subject, which the file names");
+            Assert.That(Unnamed(reading, "retired"), Is.Empty);
+            Assert.That(Unnamed(reading, "removed"), Is.Empty);
         }
 
         [Test]
@@ -297,9 +297,9 @@ namespace KeePassGate.Tests
             Assert.That(reading.InForce.Taken("revoked"), Is.Empty);
             Assert.That(reading.InForce.Taken("retired"), Is.Empty);
             Assert.That(reading.InForce.Taken("removed"), Is.Empty);
-            Assert.That(reading.InForce.Unnamed("revoked"), Is.EqualTo(new[] { StoreComposer.HexOf(revocation).Substring(0, 16) }));
-            Assert.That(reading.InForce.Unnamed("retired"), Is.EqualTo(new[] { StoreComposer.HexOf(retirement).Substring(0, 16) }));
-            Assert.That(reading.InForce.Unnamed("removed"), Is.EqualTo(new[] { StoreComposer.HexOf(removal) }));
+            Assert.That(Unnamed(reading, "revoked"), Is.EqualTo(new[] { StoreComposer.HexOf(revocation).Substring(0, 16) }));
+            Assert.That(Unnamed(reading, "retired"), Is.EqualTo(new[] { StoreComposer.HexOf(retirement).Substring(0, 16) }));
+            Assert.That(Unnamed(reading, "removed"), Is.EqualTo(new[] { StoreComposer.HexOf(removal) }));
             Assert.That(
                 reading.InForce.UnnamedByDeletion.Select(decision => decision.Kind + " " + string.Join(" ", decision.Told)),
                 Is.EquivalentTo(new[]
@@ -316,9 +316,9 @@ namespace KeePassGate.Tests
             Assert.That(named.InForce.Taken("revoked"), Is.EqualTo(new[] { Hex('c') }), "once the file names the client");
             Assert.That(named.InForce.Taken("retired"), Is.EqualTo(new[] { Hex('9') }), "once the file names the authority");
             Assert.That(named.InForce.RemovalsOf("reader"), Is.EqualTo(new[] { StoreComposer.HexOf(removal) }), "once the file names the name");
-            Assert.That(named.InForce.Unnamed("revoked"), Is.Empty);
-            Assert.That(named.InForce.Unnamed("retired"), Is.Empty);
-            Assert.That(named.InForce.Unnamed("removed"), Is.Empty);
+            Assert.That(Unnamed(named, "revoked"), Is.Empty);
+            Assert.That(Unnamed(named, "retired"), Is.Empty);
+            Assert.That(Unnamed(named, "removed"), Is.Empty);
         }
 
         [Test]
@@ -356,6 +356,19 @@ namespace KeePassGate.Tests
                 store.Restate(item);
                 Assert.That(store.Read().State, Is.Not.EqualTo(StoreState.Whole), item + ": the summary entry does not read as its kind");
             }
+        }
+
+        /// <summary>
+        /// What a summary entry written over this reading restates with no subject for a kind: of a
+        /// revocation and a retirement each keyed tag and subject hash, and of a removal each
+        /// identifier, whose subject the file names nowhere.
+        /// </summary>
+        private static IEnumerable<string> Unnamed(StoreReading reading, string kind)
+        {
+            return reading.InForce.Restated()
+                .Where(item => item.Kind == kind && item.Member(StoreKinds.Find(kind).RestatedBy) == null)
+                .Select(item => item.Member(kind == StoreKinds.Removed ? StoreKinds.Id : StoreKinds.Hash))
+                .OrderBy(carried => carried, System.StringComparer.Ordinal);
         }
 
         /// <summary>An item with no subject restating the decision a deletion record of this identifier tells of.</summary>

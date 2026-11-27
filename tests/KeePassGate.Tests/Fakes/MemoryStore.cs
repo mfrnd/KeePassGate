@@ -119,6 +119,15 @@ namespace KeePassGate.Tests.Fakes
         /// Another copy brought into this store as KeePass's Synchronize brings it: every entry of
         /// both and every deletion record of both, less every entry a deletion record names.
         /// </summary>
+        /// <remarks>
+        /// **Not KeePass's where both copies hold an entry apart**: this copy's entry is taken,
+        /// where KeePass takes the entry modified last, since the store holds no times; a sequence
+        /// that edits an entry in the other copy puts that copy's entry in its place itself. Every
+        /// entry a deletion record names goes, as KeePass's does. No sequence played through it
+        /// passes an entry changed apart in both copies at a merge where the real merge would end
+        /// wider; the real merges are run on files by the host tier's merge tests, `STORE.md` §625
+        /// and §632.
+        /// </remarks>
         public void Synchronize(MemoryStore other)
         {
             var deletions = _deletions.Concat(other._deletions).GroupBy(KeePassGate.Hex.Of).Select(group => group.First()).ToList();
@@ -141,6 +150,31 @@ namespace KeePassGate.Tests.Fakes
                 .GroupBy(candidate => candidate.Hex)
                 .Select(group => group.First())
                 .ToList();
+        }
+
+        /// <summary>
+        /// Another copy brought into this store as KeePass's Overwrite if newer brings it: every
+        /// entry of both, and the deletion records this copy held. An entry both copies hold is
+        /// taken as this copy holds it, which is the newer only where the two are the same entry:
+        /// the store holds no times, so an entry the two copies changed apart is refused.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">An entry the two copies hold apart under a single identifier.</exception>
+        public void OverwriteIfNewer(MemoryStore other)
+        {
+            var held = _candidates.ToDictionary(candidate => candidate.Hex, StringComparer.Ordinal);
+            StoreCandidate mine;
+            if (other._candidates.Any(candidate => held.TryGetValue(candidate.Hex, out mine) && !ReferenceEquals(mine, candidate)))
+            {
+                throw new InvalidOperationException("Both copies changed an entry apart, and the test's store holds no times to tell the newer by.");
+            }
+
+            MergeWithoutDeletions(other);
+        }
+
+        /// <summary>Every deletion record taken out, as KeePass's Database Maintenance takes them out.</summary>
+        public void ClearDeletions()
+        {
+            _deletions = new List<byte[]>();
         }
 
         public StoreReading Read()

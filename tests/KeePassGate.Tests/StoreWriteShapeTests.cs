@@ -52,7 +52,7 @@ namespace KeePassGate.Tests
     /// renewed below the node acted on among them.
     /// </remarks>
     [TestFixture]
-    public sealed class StoreWriteShapeTests
+    public sealed partial class StoreWriteShapeTests
     {
         /// <summary>The kinds compared: every kind this build writes or the sequences add.</summary>
         private static readonly string[] Compared = { "authority", "client", "head", "retired", "revoked" };
@@ -249,8 +249,8 @@ namespace KeePassGate.Tests
             // each moment of the clock; how many versions of answers are present; and whether a
             // step the model played only where its copy's reading allowed it was played here. The
             // acts are the product's own, each naming what its copy was shown: a dialog's reading
-            // where the sequence shows an answer, and the reading at the write otherwise. Seal
-            // again is not built, so a sequence is played up to it.
+            // where the sequence shows an answer, and the reading at the write otherwise; Seal
+            // again is the seal's act alone, composed over the store at its write.
             var sequence = (JObject)VectorsAsText()["sequences"][name];
             var moments = ((JArray)sequence["clock"]).Select(moment => (string)moment).ToList();
             using (var clients = new Clients())
@@ -270,11 +270,6 @@ namespace KeePassGate.Tests
                     var store = copies[copy];
                     var act = (JArray)step["act"];
                     var where = name.Substring(0, name.IndexOf(':')) + ", step " + ((JArray)sequence["steps"]).IndexOf(step) + ", " + command;
-                    if (command == "Seal again")
-                    {
-                        Assert.Pass(where + ": Seal again is not built, and the sequence is played up to it");
-                    }
-
                     var played = PlayedAnswer(store, copies, act, command, clients, moments[clocks[copy]], shown[copy], where);
                     if (command == "Set clock")
                     {
@@ -369,6 +364,8 @@ namespace KeePassGate.Tests
                 case "Delete by hand":
                     DeletedNewest(store, (JArray)act[2], (int)act[3] == 1, clients, where);
                     return true;
+                case "Seal again":
+                    return Sealed(store, where);
                 default:
                     throw new ArgumentOutOfRangeException(nameof(command), command, "a command this test does not play");
             }
@@ -899,7 +896,7 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>A command of a sequence of rules, played as an OK on the node's dialog in this copy.</summary>
-        private static void PlayedRules(MemoryStore store, JObject sequence, JToken step, JObject gives, string where)
+        private static void PlayedRules(IGateStore store, JObject sequence, JToken step, JObject gives, string where)
         {
             var command = (string)step["command"];
             var act = (JArray)step["act"];
@@ -925,7 +922,7 @@ namespace KeePassGate.Tests
                         changes = Pressed(Change(KeePassGate.Acl.RowChangeKind.Set, (string)act[3], ModelLetters((string)act[4]), shown, below));
                         break;
                     case "Set rows":
-                        var spec = (string)act[3];
+                        var spec = (string)act[3] == "none" ? string.Empty : (string)act[3];
                         var rows = spec.Contains("=")
                             ? spec.Split(',').Select(pair => (pair.Split('=')[0], pair.Split('=')[1]))
                             : profiles.Select(profile => (profile, spec));
@@ -963,14 +960,20 @@ namespace KeePassGate.Tests
             }
 
             Assert.That(written, Is.Not.Null, where + ": the model wrote");
+            var waits = false;
             try
             {
                 var done = store.Write(new[] { written });
                 Assert.That(done.Taken, Is.True, where + ": " + done.Reason);
+                waits = done.Waits;
             }
             finally
             {
-                written.Forget();
+                // An act held for a dialog's OK is the buffer's to let go.
+                if (!waits)
+                {
+                    written.Forget();
+                }
             }
         }
 
@@ -1630,8 +1633,12 @@ namespace KeePassGate.Tests
             public AdmissionRecord Paired(string issuer)
             {
                 var name = "c" + _admitted.Keys.Count(known => known.IndexOf('.') < 0).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                Last = name;
                 return Admit(name, AdmissionRecord.For(Issue(name), Then, new[] { "pf", "pg" }, issuer));
             }
+
+            /// <summary>The name of the client the last pairing admitted.</summary>
+            public string Last { get; private set; }
 
             /// <summary>
             /// A renewal's admission of the client of this name, from its admission and with its

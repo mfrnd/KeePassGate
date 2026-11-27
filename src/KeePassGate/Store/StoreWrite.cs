@@ -90,11 +90,19 @@ namespace KeePassGate.Store
                 return Refusal("this plugin cannot state its version, and writes nothing into a store");
             }
 
-            // Step 1, the state, `STORE.md` §627: a store started where no key stands, and a
-            // whole store; every other state is refused with its word, Create among them.
+            // Step 1, the state, `STORE.md` §627: a store started where no key stands, a whole
+            // store, and a stopped store whose write is sealed again, the seal first; every other
+            // state is refused with its word, Create among them. A store with no room is stopped
+            // and the seal does not lift it, §643.
             var inForce = reading.InForce;
             var starts = reading.State == StoreState.None;
-            if (!starts && (reading.State != StoreState.Whole || inForce == null))
+            var seals = acts[0].Seals && reading.State == StoreState.Stopped && inForce != null;
+            if (seals && !inForce.Room.HasRoom)
+            {
+                return Full("the store has no room for the seal's write: " + inForce.Room.Reason, null);
+            }
+
+            if (!starts && !seals && (reading.State != StoreState.Whole || inForce == null))
             {
                 var word = StoreWords.Of(reading.State) ?? StoreWords.Stopped;
                 return Refusal("the store is " + word + ": " + reading.Reason);
@@ -108,10 +116,17 @@ namespace KeePassGate.Store
             var leftOut = new List<string>();
             foreach (var act in acts)
             {
+                // A seal is written first, over a stopped store, and nowhere else: over a store
+                // that is whole it has nothing to seal, and after another act it would be planned
+                // over a store that act was composed for, `STORE.md` §625.
+                var why = !act.Seals ? act.Why(ground)
+                    : !ReferenceEquals(act, acts[0]) ? "a seal is written first, before every other act"
+                    : !seals ? "the store is not stopped, so there is nothing to seal"
+                    : null;
+
                 // The key the act was composed against, held to the key that stands in both
                 // directions: a Create composed under a key that went since would start the store
                 // again under it, with every record still in the file under that key.
-                var why = act.Why(ground);
                 if (why == null && !string.Equals(act.Against, ground.KeyName, StringComparison.Ordinal))
                 {
                     why = act.Against == null
@@ -139,10 +154,16 @@ namespace KeePassGate.Store
                 return Refusal(acts.Count == 1 ? leftOut[0] : "no act applies to the store as it stands", leftOut);
             }
 
+            // Over a stopped store nothing is written but behind its seal.
+            if (seals && !taken[0].Seals)
+            {
+                return Refusal(leftOut[0], leftOut);
+            }
+
             var key = starts ? taken[0].Key() : (byte[])inForce.Key.Bytes.Clone();
             try
             {
-                return Planned(reading, inForce, starts, key, taken, leftOut, plugin);
+                return Planned(reading, inForce, starts, seals, key, taken, leftOut, plugin);
             }
             finally
             {
@@ -200,10 +221,12 @@ namespace KeePassGate.Store
         }
 
         /// <summary>Steps 3 to 8 of `STORE.md` §627, once the acts taken are known.</summary>
+        /// <param name="seals">Whether the write seals a stopped store again, its first act the seal.</param>
         private static StoreWrite Planned(
             StoreReading reading,
             StoreInForce inForce,
             bool starts,
+            bool seals,
             byte[] key,
             IReadOnlyList<StoreAct> taken,
             IReadOnlyList<string> leftOut,
@@ -254,11 +277,16 @@ namespace KeePassGate.Store
                 return StoreId.TryParse(record.Hex, out identifier)
                     && (present.Contains(identifier) || held.Contains(identifier) || !once.Add(identifier));
             });
-            if (added.Count == 0)
+
+            // A seal writes its summary entry and its deletions whatever records its acts hold.
+            if (added.Count == 0 && !seals)
             {
                 return new StoreWrite { Empty = true, Taken = taken, LeftOut = leftOut };
             }
 
+            // A decision the store holds with no subject is carried as it is, a record of this
+            // write naming its subject among them, `STORE.md` §611: the write after it reads the
+            // subject named and restates the decision by it.
             // What the retirements, the revocations and the certificates taken away of the store
             // and of this write take away, `STORE.md` §614, §615 and §648: a write deletes in the
             // same write what it refuses.
@@ -314,6 +342,16 @@ namespace KeePassGate.Store
                                         || withdrawn.Contains(admission.Form.Member(StoreKinds.Certificate)))
                     .Select(admission => admission.Hex));
                 delete.AddRange(Defeated(inForce, added));
+            }
+
+            // A seal deletes every entry that is damage, whatever its tag, each with a deletion
+            // record, `STORE.md` §625: what a damaged entry held stands where a summary entry
+            // carries it, and refuses where nothing does, which is narrower.
+            var damagedHeads = new List<string>();
+            if (seals)
+            {
+                delete.AddRange(reading.Damaged.Select(damaged => damaged.Hex));
+                damagedHeads.AddRange(reading.Damaged.Where(damaged => damaged.Kind == StoreKinds.Head).Select(damaged => damaged.Hex));
             }
 
             // A write never takes the store key out of the file: an entry holding it stays, or the
@@ -375,8 +413,12 @@ namespace KeePassGate.Store
                     StoreFormat.MaxItems), leftOut);
             }
 
-            var height = starts ? 1 : inForce.Room.Height;
-            var after = starts ? string.Empty : string.Join(" ", inForce.After.OrderBy(identifier => identifier, StringComparer.Ordinal));
+            // A damaged summary entry the seal deletes is named as well: its deletion record would
+            // otherwise tell of a summary entry nothing in force names, and stop the store again.
+            var height = starts ? 1 : Math.Min(StoreFormat.MaxNumber, damagedHeads.Select(hex => NumberOf(hex) + 1).Concat(new[] { inForce.Room.Height }).Max());
+            var after = starts
+                ? string.Empty
+                : string.Join(" ", inForce.After.Concat(damagedHeads).Distinct(StringComparer.Ordinal).OrderBy(identifier => identifier, StringComparer.Ordinal));
             // A summary entry that does not read back holds more than the reader takes, which a
             // store with room never reaches, and is refused here; anything else Compose raises is
             // a defect, and travels to the catch-all above the write, which counts it.
@@ -565,6 +607,15 @@ namespace KeePassGate.Store
             var refused = Refusal(reason, leftOut);
             refused.NoRoom = true;
             return refused;
+        }
+
+        /// <summary>Bytes 9 and 10 of an identifier written as text, a summary entry's height.</summary>
+        private static int NumberOf(string hex)
+        {
+            return int.Parse(
+                hex.Substring((StoreFormat.TagLength + StoreFormat.SubjectLength) * 2, StoreFormat.HeightLength * 2),
+                NumberStyles.HexNumber,
+                CultureInfo.InvariantCulture);
         }
 
         private static byte[] Bytes(string hex)

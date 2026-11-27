@@ -334,18 +334,6 @@ namespace KeePassGate.Store
         public IReadOnlyList<StoreUnnamed> UnnamedByDeletion { get; private set; } = Array.Empty<StoreUnnamed>();
 
         /// <summary>
-        /// What a summary entry written over this reading restates with no subject for a kind,
-        /// ascending, `STORE.md` §611: of a revocation and a retirement each keyed tag and subject
-        /// hash, and of a removal each identifier, whose subject the file names nowhere. None for
-        /// any other kind.
-        /// </summary>
-        public IReadOnlyCollection<string> Unnamed(string kind)
-        {
-            SortedSet<string> carried;
-            return kind != null && _unnamed.TryGetValue(kind, out carried) ? carried : Nothing;
-        }
-
-        /// <summary>
         /// The certificates taken away by a deletion record alone, each the deletion record's
         /// identifier and the admission key it tells of, `STORE.md` §648: statements of their own
         /// whose content is nowhere.
@@ -1888,8 +1876,9 @@ namespace KeePassGate.Store
         /// The room the store has: the summary entry a write that adds nothing would write,
         /// `STORE.md` §611 and §627. It names every summary entry present, everything those name
         /// and every summary entry a deletion record tells of; it is higher by a step than any of
-        /// them; and it holds the item `format`, an item for each value taken away, and an item
-        /// for each version and each keep record that a summary entry carries.
+        /// them; and it holds the item `format`, an item for each value taken away, an item with no
+        /// subject for each decision whose subject the file names nowhere, and an item for each
+        /// version and each keep record that a summary entry carries.
         /// </summary>
         /// <remarks>
         /// A version is carried by the summary entries in force, and by its record where it
@@ -1927,6 +1916,7 @@ namespace KeePassGate.Store
             }
 
             items += _removals.Count;
+            items += _unnamed.Values.Sum(carried => carried.Count);
             items += _statements.Count;
 
             // A version and a keep record are carried whole, each by its identifier, with the
@@ -1963,7 +1953,8 @@ namespace KeePassGate.Store
         /// <summary>
         /// The items a summary entry written now restates, `STORE.md` §611: the item `format`
         /// with the highest format number and plugin version the store states, an item for each
-        /// value taken away, and an item for each version and each keep record carried. The very
+        /// value taken away, an item with no subject for each decision whose subject the file
+        /// names nowhere, and an item for each version and each keep record carried. The very
         /// sets <see cref="Room"/> counts, so what a write restates and the room it was judged to
         /// have cannot disagree.
         /// </summary>
@@ -1998,6 +1989,13 @@ namespace KeePassGate.Store
                     { StoreKinds.NameMember, removal.Name },
                     { StoreKinds.Id, removal.Id },
                 }));
+            }
+
+            // A decision whose subject the file names nowhere, by an item with no subject.
+            foreach (var pair in _unnamed)
+            {
+                var member = pair.Key == StoreKinds.Removed ? StoreKinds.Id : StoreKinds.Hash;
+                items.AddRange(pair.Value.Select(carried => Item(pair.Key, new Dictionary<string, string>(StringComparer.Ordinal) { { member, carried } })));
             }
 
             // A statement with every member it holds and none it lacks, `STORE.md` §648.

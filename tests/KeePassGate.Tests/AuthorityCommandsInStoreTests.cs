@@ -144,6 +144,81 @@ namespace KeePassGate.Tests
             Assert.That(store.Writes, Is.EqualTo(before));
         }
 
+        [Test]
+        public void Seal_again_lifts_a_stopped_store_and_Create_is_taken_after_it_under_the_key_held()
+        {
+            // `STORE.md` §624 and §625: Create stays refused on the stopped store alone, and the
+            // seal is the way out.
+            var store = new MemoryStore();
+            StoreSeeds.Authority(store);
+            Assert.That(Service(store).Delete().Succeeded, Is.True);
+            var key = store.Read().InForce.Key.Name;
+            store.Drop(store.Read().InForce.Heads.Single().Hex);
+            Assume.That(store.Read().State, Is.EqualTo(StoreState.Stopped));
+            Assume.That(Service(store).Create().Succeeded, Is.False);
+
+            var sealedAgain = Service(store).Seal();
+
+            Assert.That(sealedAgain.Succeeded, Is.True, sealedAgain.Message);
+            Assert.That(store.Read().State, Is.EqualTo(StoreState.Whole), store.Read().Reason);
+            var created = Service(store).Create();
+            Assert.That(created.Succeeded, Is.True, created.Message);
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.InForce.Key.Name, Is.EqualTo(key), "under the key the retirement held");
+                Assert.That(reading.InForce.Authorities, Has.Count.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void Seal_again_is_refused_on_a_store_that_is_not_stopped_and_writes_nothing()
+        {
+            var store = new MemoryStore();
+            StoreSeeds.Authority(store);
+            var before = store.Writes;
+
+            var whole = Service(store).Seal();
+            Assert.That(whole.Succeeded, Is.False);
+            Assert.That(whole.Message, Does.Contain("not stopped"));
+
+            var none = Service(new MemoryStore()).Seal();
+            Assert.That(none.Succeeded, Is.False);
+            Assert.That(store.Writes, Is.EqualTo(before));
+        }
+
+        [Test]
+        public void Seal_again_whose_own_write_would_stop_the_store_again_is_refused_and_writes_nothing()
+        {
+            // `STORE.md` §625 and §643: no summary entry, and deletion records of as many summary
+            // entries as the seal's summary entry can name. The seal's write fits, and leaves no
+            // room for the write after it, which stops the store again.
+            var store = new MemoryStore();
+            StoreSeeds.Authority(store);
+            using (var reading = store.Read())
+            {
+                var key = reading.InForce.Key.Bytes;
+                store.Drop(reading.InForce.Heads.Single().Hex);
+                for (var at = 0; at < 7941; at++)
+                {
+                    store.Delete(StoreComposer.IdentifierOf(key, "head", "store", 2, at.ToString("x12", System.Globalization.CultureInfo.InvariantCulture) + new string('0', 52)));
+                }
+            }
+
+            using (var reading = store.Read())
+            {
+                Assume.That(reading.State, Is.EqualTo(StoreState.Stopped));
+                Assume.That(reading.InForce.Room.HasRoom, Is.True, reading.InForce.Room.Reason);
+            }
+
+            var before = store.Writes;
+
+            var refused = Service(store).Seal();
+
+            Assert.That(refused.Succeeded, Is.False);
+            Assert.That(refused.Message, Does.Contain("the sealed store would still be stopped: the store has no room for its next write"));
+            Assert.That(store.Writes, Is.EqualTo(before), "nothing was written");
+        }
+
         [TestCase("Recreate")]
         [TestCase("Delete")]
         public void A_command_that_retires_the_authority_deletes_the_records_of_kind_client_it_issued_and_no_other(string command)

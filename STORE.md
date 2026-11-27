@@ -638,21 +638,27 @@ access away, and the reading unites them (§623).
 
 **An item with no subject** (built; as measured in `papers/ground/measured-seal-restates.md` on
 `spikes/storage-survival`, the form named `hashes` there, before anything of it was built). A
-revocation, a retirement or a removal of a name that a deletion record under the store key tells
-of, and whose subject no record and no item of the file names, cannot be restated by its
-subject: the subject is a keyed hash in the deletion record's identifier, and nothing in the file
-gives it back. A summary entry restates such a decision by an item that names no subject: a
-revocation or a retirement by `hash`, the deletion record's keyed tag and subject hash, the first
-16 lowercase hexadecimal characters of its identifier (§609); and a removal by `id`, the deletion
-record's identifier, since an addition of the name has to name each removal of it in `after`
-(§616). Several deletion records of a single decision are a single item. Such an item tells its
-decision of every subject the file names whose keyed tag and subject hash it holds, as a deletion
-record does, so a subject named again later, an admission a merge brings back among them, is
-refused by its hash; it restates every record of its kind whose identifier begins with its
-`hash`, or the removal whose identifier it holds; and it counts as a carrier of the decision
-wherever a deletion record counts, an addition of the name naming such a removal in `after`
-among them. *Held by* `StoreInForceTests`, the reading of each item, and `StoreKindsTests`, the
-form.
+revocation, a retirement or a removal of a name that a deletion record under the store key tells of,
+and whose subject no record and no item of the file names, cannot be restated by its subject: the
+subject is a keyed hash in the deletion record's identifier, and nothing in the file gives it back.
+A summary entry restates such a decision by an item that names no subject: a revocation or a
+retirement by `hash`, the deletion record's keyed tag and subject hash, the first 16 lowercase
+hexadecimal characters of its identifier (§609); and a removal by `id`, the deletion record's
+identifier, 32 lowercase hexadecimal characters, an item holding anything else in `id` not reading
+as its kind, since an addition of the name has to name each removal of it in `after` (§616). Several
+deletion records of a single decision are a single item. Such an item tells its decision of every
+subject the file names whose keyed tag and subject hash it holds, as a deletion record does, so a
+subject named again later, an admission a merge brings back among them, is refused by its hash; it
+restates every record of its kind whose identifier begins with its `hash`, or the removal whose
+identifier it holds; and it counts as a carrier of the decision wherever a deletion record counts,
+an addition of the name naming such a removal in `after` among them. Every write carries it while
+the reading the write is planned over names the subject nowhere, a write that adds a record naming
+the subject among them, as the measured form has it: restated by that subject in the same write, the
+item would stop telling of any other subject whose hash it holds, which the reading side never does.
+Once a record or an item of the file names the subject, the write restates the decision by its
+subject and carries the item no further. *Held by* `StoreInForceTests`, the reading of each item,
+`StoreWriteTests`, what a write carries and when it restates by the subject, and `StoreKindsTests`,
+the form.
 
 **What the kinds that were not measured add to it** (proposed; the items are those of the table,
 S23). Each of them takes something away or holds a plugin back, so each is restated: a
@@ -2381,7 +2387,8 @@ renewal by the write above names in `after` the version it renews and that versi
 and in `lost` that version's `lost`; removing versions where several stand writes each version
 left naming in `after` the versions removed, the version left and what each names in `after`,
 and in `lost` what each names in `lost` and the lost versions the X removed; and sealing the
-store again (§625) writes the same for each object that refuses for a lost version. The item
+store again (§625) writes the same for each object that refuses for a lost version, built by
+`SealActs`, and a rule set over the seal's version names it and carries its `lost` on. The item
 `version` of a summary entry restates `lost` as the version holds it, and holds none where the
 version holds none.
 
@@ -2628,7 +2635,8 @@ deletion record; it is a class of its own beside those of §639, and nothing is 
   `after` reaches the ceiling at about 7,940 answers about that client.
 
 **Sealing the store again** (§625) writes `refuse:forever` for an answer that refuses for a lost
-version, as it writes an empty rule: stated here, built with the press.
+version, as it writes an empty rule (built, `SealActs`, `RenewalText.Forever`). A lift of it, Allow
+renewal, names it in `after` and carries what it settled in `lost` on, as every lift does.
 
 **What is built.**
 
@@ -2674,7 +2682,8 @@ begin `renewals:` in `tests/Shared/StoreMeaningVectors.json`, and A1 to A14 in
 `tests/Shared/StoreWriteVectors.json`; `RenewalTextTests`, `StoredRenewalsTests`,
 `StoreInForceTests`, `RenewalActsTests` and `StoreWriteShapeTests` hold the product to them, and
 `StoreRenewalMergeTests` holds answers given apart in real databases merged by every method of
-KeePass's. A7 holds Seal again, which is not built (§625), and is played up to it.
+KeePass's. A7 holds Seal again, and is played whole past it, the seal's act composed over the
+store at its write (§625).
 
 ### The recycle bin §619
 
@@ -3354,7 +3363,10 @@ standing it deletes what is damage and writes a summary entry over the rest. Tha
 sealed again without the page of §625, and without the versions granting nothing that the press
 writes for what was lost. So Create is refused on a stopped store while a store key stands, and
 the operator seals the store again first. Where no key stands there is no stop, and Create
-starts a store (§632). This rule was not run (§644).
+starts a store (§632). Run in the model with the seal on (`papers/ground/measured-seal.md`, R15
+and R17): Create refused before the seal, and taken after it, alone or in the seal's own write.
+Built: Create alone is refused on a stopped store at `AuthorityService` and in the plan's first
+step, and planned over the seal where the seal is the first act of the write.
 
 **Other states serve nothing and are not this stop**, and the press does not apply to them: no
 store key found (§632), several store keys (§649), and a plugin that is held back, by a store
@@ -3439,12 +3451,66 @@ beside; and the certificates taken away, which neither the model nor `probe/read
 was deleted or deduplicated (`measured-store-as-a-whole` 3.4, 3.6). With a record for each
 node and profile, the press wrote an empty rule for the row whose version was lost and for no
 other row, and the switch refusing for a lost version of the switch
-(`measured-rules-per-profile` 8). It was not run after a stop by an edited entry, and nothing
-of it was run as a page (§644). Pressed after a loss that left no trace, it ends wider (§639).
+(`measured-rules-per-profile` 8). Nothing of it was run as a page (§644). Pressed after a loss
+that left no trace, it ends wider (§639). **Run before it was built**
+(`papers/ground/measured-seal.md` on `spikes/storage-survival`), in the model and on real files,
+as the design below has it: after a stop by each kind of entry edited past the history limit or
+with no history kept, the seal applied wherever the key was held and left the store whole, what
+the damaged entry held standing where a summary entry carried its text and refusing where none
+did; R1 to R21 and R3s, each kind of loss, the seal beside an act in a single write and the seal
+composed after a merge under its dialog, merged by every method both ways, with no file beyond
+its own ideal outside the classes §639 accepts; and random and exhaustive histories of the seal's
+acts, in which no seal left its store stopped and no object that refused for a lost version
+granted after it.
 
 **Where it does not apply.** Where the file holds no store key there is no stop to lift (§632).
 It lifts neither several store keys (§649) nor a plugin that is held back (§652). Sealing is a
-write, so a plugin that is held back, or that waits for the store to be raised, cannot seal.
+write, so a plugin that is held back, or that waits for the store to be raised, cannot seal. **Nor
+where its write would leave no entry holding the store key** (as measured, `measured-seal` 8 item
+2): where the entry that holds the key is damage and only an entry the write prunes holds it, as
+a retired authority's entry does after Delete with the retirement edited, or after Recreate with
+the new authority edited, the plan refuses the seal as it refuses every such write, and the press
+is not offered. The way out there is the command that starts the store again (§632).
+
+**What is built.** The seal is an act of the store, `SealActs`, the only act a stopped store
+takes, and only as the first act of its write (`StoreAct.Seals`); it is refused where the store
+has no room, which the seal does not lift, wherever the plan refuses it, and where its own write
+would leave the store stopped, as a summary entry naming as many as a string holds leaves no room
+for the write after it (§643): asked of the store as the write would leave it, before the act is
+written or held, so that a press refused holds nothing for OK. **Its versions** are
+those of the listing above, each composed by its type's own text, an empty rule for a profile's
+row, the switch refusing for a switch and `refuse:forever` for an answer, naming in `after` every
+version of its object in force and what those name there and in `lost` what was lost and what
+those name there, no identifier in both; a version whose content or item does not fit the ceiling
+of a string is left out and named, and its object goes on refusing; an object of no type the
+plugin writes gets none. Nothing is written for what a deletion record alone keeps in force: the
+write's summary entry restates it. **Its write** deletes every entry that is damage, whatever its
+tag, each with a deletion record, and names in its summary entry's `after` every damaged summary
+entry it deletes, beside everything a summary entry names (§611), above whose heights it stands;
+without that name its own deletion record would stop the store again at once (as measured,
+`measured-seal` 8 item 1). The acts after it in the same write are planned over the sealed store,
+Create among them. **It is composed at the write**: an act that holds what is to be done, composed
+again wherever the KPG tab's buffer is read and at OK over the store as it stands then
+(`StoreAct.Again`), so a merge under its dialog that brought a lost version's text back leaves
+that object out, a further loss has its version, and over a store that became whole the act comes
+to nothing. **A decision whose subject the file names nowhere** (as measured,
+`measured-seal-restates`): where a revocation, a retirement or a removal is deleted with its
+deletion record and with every summary entry, and no record or item left names its subject, the
+seal's summary entry restates it by an item with no subject (§611), and every write after it
+carries that item until the subject is named. A copy from before the decision that brings the
+subject back, by any merge into either copy and with the sealed copy's deletion records kept or
+cleared, finds the client refused, the name off the list and the authority retired, as the
+measured model's seal leaves them; restated by the subject alone, as the seal first did, the
+deletion record was the decision's single carrier (§639). *Held by* `SealActsTests`, against the
+seal's records of `tests/Shared/StoreRecordVectors.json` and the `seal` of every store of the
+`stopped:` family; `StoreWriteTests`, `StoreRoomTests` and `AuthorityCommandsInStoreTests`; and
+`StoreWriteShapeTests`, R1 to R21 and R3s of `tests/Shared/StoreWriteVectors.json`, each played
+through the product's acts with the seal pressed where its dialog is shown and written at the
+step that seals through the KPG tab's buffer, held after every step by shape and by answer, and
+R21 as the accepted class of §639 row 5; and R5 to R7 and F5 to F7r of what the seal restates,
+each followed by a merge by Overwrite if newer and by KeePassXC into the other copy as
+sealed, and by those and by Synchronize with the sealed copy's deletion records cleared, each
+summary entry's items with no subject held to the model's by the subject each is about.
 
 ---
 
@@ -3937,7 +4003,10 @@ a certificate that its client gives up while that client's revocation waits on t
 given up, and the revocation is written at OK beside it.
 
 **What is built.** The writes of the authority's commands (§614): Create, Recreate and Delete at the
-settings dialog's OK, buffered by `PendingRecords`, and keeping an authority. Each is planned by
+settings dialog's OK, buffered by `PendingRecords`, and keeping an authority; and the seal of
+§625, the only write taken over a stopped store, its act first and every act after it planned
+over the sealed store, which deletes every entry that is damage with a deletion record and names
+each damaged summary entry it deletes in its summary entry's `after`. Each is planned by
 `StoreWrite` against the store
 read in the writer's turn, steps 1 to 5 with the room held at the plan as at the reading, so that a
 write the room allows is never refused for a ceiling, and applied to the database's entries by
@@ -5709,6 +5778,24 @@ from another database, and Database Maintenance removes it with every other dele
 2.4), and for an answer to a renewal in the model and on real files
 (`measured-renewal-answers` 5, 7).
 
+**The store is sealed again after a decision was deleted in both carriers, each with a deletion
+record, whose subject nothing left names** (no row of its own; closed, §611). *Who:* a revocation,
+a retirement or a removal of a name is made in a copy, and its record and the summary entry are
+deleted with a deletion record each, past the guard or with it off, so that the client's record,
+the authority's or the addition goes with the decision and nothing left names the subject; the
+store stops; the operator seals it. *What happens, where the seal restates the decision by its
+subject alone:* the seal's summary entry restates nothing of it, the deletion record is its only
+carrier, and a copy from before the decision then brings the subject back: by Overwrite if newer,
+Overwrite existing, Keep existing or KeePassXC into the copy from before, or by any method but
+Create new IDs once Database Maintenance has removed the sealed copy's deletion records. The
+revoked client is admitted, or the removed name back on the list; the retired authority stands
+beside the new one, and nothing is served until it is kept. *What covers it:* the seal's item with
+no subject, carried by every write until the subject is named, which refuses the subject when it
+comes back (§611). *Measured:* in the model and on real files: restated by its subject alone,
+46 of 972 cells on files ended wider than their own ideal and 23 granted less, and the form built
+never differs from the model's control in any part (`measured-seal-restates` 4 to 6). *Pinned*
+by `StoreWriteShapeTests`, R5 to R7 and F5 to F7r of what the seal restates.
+
 **A lost answer whose client key the file no longer knows** (no row of its own; §618). *Who:* a
 person who deletes a client's admission by hand in a copy whose store holds the deletion record of
 a lost answer of that client, and no other record or item names the client key. *What happens:*
@@ -6537,8 +6624,14 @@ that finds a measurement against a decision reports it and does not design aroun
    request that builds the reading runs, over real databases, an edit, the content removed, ten
    edits and the eleventh, a quick edit and a move, a database that keeps no history, the
    authority's entry edited past the limit, and Synchronize carrying a deleted summary entry
-   (`StoreStatesInRealDatabaseTests`); the rest of this item stays owed. *Could overturn*: the
-   history rule as worded, and what §632 states of a store started again.
+   (`StoreStatesInRealDatabaseTests`). Sealing the store again after a stop by an edited entry
+   was run in the model and on real files before the seal was built (`measured-seal` 5): each
+   kind of entry edited past the limit, by the dialog and by quick edits, and with no history
+   kept, then the seal, then each merge of KeePassLib and KeePassXC 2.8.0 both ways; the seal
+   applied wherever the key was held and left the store whole, and no file granted beyond its
+   ideal. The product's seal is held to its sequences (`StoreWriteShapeTests`, R8 to R12). The
+   rest of this item stays owed. *Could overturn*: the history rule as worded, and what §632
+   states of a store started again.
 3. **The record written again, beyond the run that was made** (`measured-two-readings` 5): in
    KeePass's window and by the plugin itself; beside a second KeePass with the plugin; on a
    phone or an emulator; with KeePassXC releases other than 2.8.0; with the slow key derivation;
@@ -6951,8 +7044,9 @@ that finds a measurement against a decision reports it and does not design aroun
     `RenewalActsTests`, `StoreWriteShapeTests`), and answers given apart in real databases to
     every method of KeePass's merge (`StoreRenewalMergeTests`). Not run: a window, a phone and
     the slow key derivation; KeePassXC releases other than 2.8.0 in the random part on files;
-    the sequence A7 past Seal again, which is not built; and the write vectors' sequences over two
-    real databases, which the unit tier plays over the store in memory. *Could overturn*:
+    and the write vectors' sequences over two real databases, which the unit tier plays over the
+    store in memory. The sequence A7 is played past Seal again, which is built (§625), and the
+    model played it past the seal to the sequence already in the vectors. *Could overturn*:
     nothing of the reading, which the vectors hold.
 
 ---

@@ -306,6 +306,43 @@ namespace KeePassGate.Tests
             Assert.That(room.Named, Is.EqualTo(2), "the summary entry present and the summary entry told of");
         }
 
+        [Test]
+        public void The_seal_s_write_is_held_to_the_room_as_every_write_is()
+        {
+            // `STORE.md` §625 and §643: a store stopped by a summary entry deleted that nothing
+            // replaces, whose next summary entry names as many as a string holds, is sealed; a
+            // summary entry more, and it has no room, which the seal does not lift.
+            var fits = Stopped(7941);
+            Assert.That(fits.State, Is.EqualTo(StoreState.Stopped));
+            Assert.That(fits.Room.Named, Is.EqualTo(7941));
+            string refused;
+            var seal = KeePassGate.Authority.SealActs.Seal(fits, out refused);
+            Assert.That(seal, Is.Not.Null, refused);
+            var write = StoreWrite.Plan(fits, new[] { seal }, "0.3.0");
+            Assert.That(write.Refused, Is.Null);
+            Assert.That(write.Add[write.Add.Count - 1].Content.Length, Is.LessThanOrEqualTo(StoreFormat.MaxWritten));
+
+            var over = Stopped(7942);
+            Assert.That(over.Room.HasRoom, Is.False);
+            Assert.That(KeePassGate.Authority.SealActs.Seal(over, out refused), Is.Null);
+            Assert.That(refused, Does.Contain("no room"));
+            Assert.That(StoreWrite.Plan(over, new[] { seal }, "0.3.0").NoRoom, Is.True);
+            seal.Forget();
+        }
+
+        /// <summary>
+        /// A store stopped by a summary entry deleted that nothing replaces, whose next summary
+        /// entry names this many summary entries.
+        /// </summary>
+        private static StoreReading Stopped(int named)
+        {
+            var store = new ComposedStore(One);
+            store.Drop(store.Head);
+            store.Add(Head(One, 1, Identifiers(0, named - 2)));
+            store.Deleted.Add(StoreComposer.IdentifierOf(One, "head", "store", 2, new string('5', 64)));
+            return store.Read();
+        }
+
         /// <summary>A whole store whose summary entry carries this many items of a kind, beside the item format.</summary>
         private static StoreReading Carrying(string kind, int count)
         {
