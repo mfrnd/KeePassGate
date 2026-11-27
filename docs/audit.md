@@ -232,6 +232,19 @@ writer, which on storage that answers is far more than it needs, so the lines wr
 closes reach the file; on storage that does not answer, KeePass closes after those two seconds and
 the lines still waiting are lost.
 
+## Sealing the store again
+
+**The store of this database sealed again is written down too**, when the settings dialog's **OK**
+puts the seal into the database, and never on **Cancel**: it changes what every client reaches, so
+an operator reading this file sees why every client's refusals changed. The line has `decision`
+`sealed`, `reason` `store sealed again`, and `admissionKey`, `clientKey`, `operation`, `node` and
+`decidedAt` as `null`; its `database` is the authority the sealed store serves, or `null` where it
+serves none. Three members of its own follow: `stopped`, why the store was stopped, as the
+Certificate Authority page stated it; `written`, the identifiers of the records the seal wrote,
+each a version granting nothing for a rule, a switch or an answer to a renewal whose version was
+lost; and `deleted`, the identifiers of the entries the seal deleted because no version of them
+passed. Each is a list, empty where the seal wrote or deleted none.
+
 **Not everything that changes who is admitted is here yet.** Recreating or deleting the authority
 takes every record away and is not written down, and neither is a change to the rules or to the
 profiles. Those wait for a design of audit levels.

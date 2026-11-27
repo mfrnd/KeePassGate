@@ -70,6 +70,12 @@ namespace KeePassGate.Store
         /// <summary>Each act left out, by its name and why its ground went.</summary>
         public IReadOnlyList<string> LeftOut { get; private set; }
 
+        /// <summary>
+        /// What the write lifts where it seals a stopped store again, from the store it is planned
+        /// over, or null for any other write, `STORE.md` §625.
+        /// </summary>
+        public StoreSealed Sealed { get; private set; }
+
         /// <summary>The plan of writing these acts into the store as this reading found it.</summary>
         /// <param name="plugin">The plugin's own version, three whole numbers joined by periods.</param>
         public static StoreWrite Plan(StoreReading reading, IReadOnlyList<StoreAct> acts, string plugin)
@@ -462,6 +468,9 @@ namespace KeePassGate.Store
                 SetBack = setBack,
                 Taken = taken,
                 LeftOut = leftOut,
+                Sealed = seals
+                    ? new StoreSealed(reading.Reason, reading.Damaged.Select(damaged => damaged.Hex).ToList(), inForce.RefusesAfter)
+                    : null,
             };
         }
 

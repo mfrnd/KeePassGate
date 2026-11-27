@@ -54,6 +54,12 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>What a write throws, or null for writes that answer.</summary>
         public Exception ThrowOnWrite { get; set; }
 
+        /// <summary>
+        /// What changes the store as a write begins, before it reads the store it plans over, or
+        /// null: a merge landing between a caller's last reading and its write.
+        /// </summary>
+        public Action BeforeWrite { get; set; }
+
         /// <summary>The acts of every write made, in order.</summary>
         public List<IReadOnlyList<StoreAct>> Written { get; } = new List<IReadOnlyList<StoreAct>>();
 
@@ -214,6 +220,7 @@ namespace KeePassGate.Tests.Fakes
         public StoreWritten Write(IReadOnlyList<StoreAct> acts)
         {
             Offered.AddRange(acts);
+            BeforeWrite?.Invoke();
             if (ThrowOnWrite != null)
             {
                 throw ThrowOnWrite;
@@ -241,7 +248,7 @@ namespace KeePassGate.Tests.Fakes
             _candidates = applied.Key.ToList();
             _deletions = applied.Value.ToList();
 
-            return StoreWritten.Done(plan.Taken, plan.LeftOut, !plan.Empty);
+            return StoreWritten.Done(plan.Taken, plan.LeftOut, !plan.Empty, plan.Sealed);
         }
     }
 }

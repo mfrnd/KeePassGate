@@ -876,6 +876,218 @@ namespace KeePassGate.Tests
             }
         }
 
+        // Sealing the store again on the tab, `STORE.md` §625.
+
+        [Test]
+        public void A_seal_and_a_revocation_and_a_Create_pressed_after_it_are_written_in_a_single_write_at_OK()
+        {
+            // Delete, then the summary entry dropped: stopped with the key in the retirement and
+            // no authority standing. The seal is pressed first, and the pages read the sealed
+            // store, so Create and a revocation are pressed over it and written with it.
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            Assume.That(new AuthorityService(live.Store, NullGateLog.Instance).Delete().Succeeded, Is.True);
+            live.Records.Drop(live.Store.Read().InForce.Heads.Single().Hex);
+            Assume.That(live.Store.Read().State, Is.EqualTo(StoreState.Stopped));
+
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            Assert.That(Service(pending).Create().Succeeded, Is.False, "Create alone is refused on the stopped store");
+            Assert.That(Service(pending).Seal().Succeeded, Is.True);
+            Assert.That(Service(pending).Create().Succeeded, Is.True, "and taken over the sealed store");
+            StoreSeeds.Revoke(pending.Store, new string('c', 64));
+            Assert.That(Held(pending), Is.EqualTo(new[] { SealActs.Name, "Create", AdmissionActs.RevokeName }));
+
+            var writes = live.Records.Writes;
+            Assert.That(pending.Apply(), Is.True);
+
+            Assert.That(live.Records.Writes, Is.EqualTo(writes + 1), "a single write");
+            using (var reading = live.Store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(StoreAuthorities.Served(reading), Is.Not.Null);
+                Assert.That(reading.InForce.Taken(StoreKinds.Revoked), Has.Member(new string('c', 64)));
+                Assert.That(reading.InForce.HeadsInForce, Has.Count.EqualTo(1));
+            }
+
+            Assert.That(pending.Sealed, Is.Not.Null, "what the seal came to, for the audit's line");
+        }
+
+        [Test]
+        public void A_seal_over_a_store_that_became_whole_under_the_dialog_writes_nothing_and_the_log_names_the_press()
+        {
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            var head = live.Store.Read().InForce.Heads.Single();
+            var dropped = live.Records.Candidates.Single(candidate => candidate.Hex == head.Hex);
+            live.Records.Drop(head.Hex);
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            Assert.That(Service(pending).Seal().Succeeded, Is.True);
+
+            // A merge brings the summary entry back while the dialog stands.
+            live.Records.Put(dropped.Identifier, dropped.Versions.Select(version => (IReadOnlyDictionary<string, string>)version.Names
+                .Select((name, at) => new KeyValuePair<string, string>(name, version.Strings.Read(version.Values[at])))
+                .ToDictionary(pair => pair.Key, pair => pair.Value)).ToArray());
+            Assume.That(live.Store.Read().State, Is.EqualTo(StoreState.Whole));
+            var writes = live.Records.Writes;
+
+            Assert.That(pending.Apply(), Is.False);
+
+            Assert.That(live.Records.Writes, Is.EqualTo(writes), "nothing was written");
+            Assert.That(log.Entries.Select(entry => entry.Message), Has.Some.EqualTo("Seal again: nothing was left to seal at OK, the store being whole"));
+            Assert.That(pending.Sealed, Is.Null);
+        }
+
+        [Test]
+        public void What_the_seal_deleted_and_the_stop_it_lifted_are_told_from_its_write()
+        {
+            // An entry edited so that no version passes stops the store, and the seal is pressed;
+            // a second is merged in as OK writes. The log and the audit name what the write
+            // deleted, both entries, and the stop as the write found it.
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            byte[] key;
+            using (var reading = live.Store.Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+
+            var first = Damaged(live, key, '8');
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            Assert.That(Service(pending).Seal().Succeeded, Is.True);
+            string second = null;
+            live.Records.BeforeWrite = () =>
+            {
+                live.Records.BeforeWrite = null;
+                second = Damaged(live, key, '9');
+            };
+
+            Assert.That(pending.Apply(), Is.True);
+
+            using (var reading = live.Store.Read())
+            {
+                Assume.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assume.That(reading.Candidates.Select(candidate => candidate.Hex), Has.None.EqualTo(first).And.None.EqualTo(second), "the write deleted both");
+            }
+
+            Assert.That(pending.Sealed.Deleted, Is.EquivalentTo(new[] { first, second }));
+            Assert.That(pending.Sealed.Stopped, Does.StartWith("2 entries of the store have no version that passes"));
+            Assert.That(
+                log.Entries.Select(entry => entry.Message),
+                Has.Some.Contains(CertificateDigest.Shorten(first)).And.Contains(CertificateDigest.Shorten(second)));
+        }
+
+        /// <summary>A retirement put into the store under this key edited so that no version passes: its identifier.</summary>
+        private static string Damaged(FakeGateDatabase live, byte[] key, char authority)
+        {
+            var edited = StoreComposer.Record(key, "retired", "authority:" + StoreRecords.Hex(authority), StoreComposer.Content(("authority", StoreRecords.Hex(authority))));
+            live.Records.Put(edited.Identifier, StoreVersions.With(edited.Strings, StoreComposer.Data, "{\"edited\":\"\"}"));
+            return edited.Hex;
+        }
+
+        [Test]
+        public void A_seal_whose_store_would_still_be_stopped_is_refused_at_the_press_with_nothing_held()
+        {
+            // No summary entry, and deletion records of as many summary entries as the seal's
+            // summary entry can name: the seal fits, and leaves no room for the write after it,
+            // which stops the store again, `STORE.md` §643.
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            using (var reading = live.Store.Read())
+            {
+                var key = reading.InForce.Key.Bytes;
+                live.Records.Drop(reading.InForce.Heads.Single().Hex);
+                for (var at = 0; at < 7941; at++)
+                {
+                    live.Records.Delete(StoreComposer.IdentifierOf(key, "head", "store", 2, at.ToString("x12", CultureInfo.InvariantCulture) + new string('0', 52)));
+                }
+            }
+
+            using (var reading = live.Store.Read())
+            {
+                Assume.That(reading.State, Is.EqualTo(StoreState.Stopped));
+                Assume.That(reading.InForce.Room.HasRoom, Is.True, reading.InForce.Room.Reason);
+                string refused;
+                var seal = SealActs.Seal(reading, out refused);
+                Assume.That(seal, Is.Not.Null, refused);
+                var write = StoreWrite.Plan(reading, new[] { seal }, GateVersion.Current);
+                Assume.That(write.Refused, Is.Null, "the seal's own write fits");
+                var applied = write.Applied(reading.Candidates, reading.Deletions);
+                using (var sealedStore = StoreReading.Afresh(applied.Key, applied.Value))
+                {
+                    Assume.That(sealedStore.State, Is.EqualTo(StoreState.Stopped), "and leaves no room");
+                }
+
+                seal.Forget();
+            }
+
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            var pressed = Service(pending).Seal();
+
+            Assert.That(pressed.Succeeded, Is.False);
+            Assert.That(Held(pending), Is.Empty, "nothing waits for OK");
+            using (var reading = live.Store.Read())
+            {
+                Assert.That(SealActs.Unsealable(reading), Does.StartWith("the sealed store would still be stopped: "), "the page offers no seal");
+            }
+        }
+
+        [Test]
+        public void A_seal_over_a_store_left_with_no_room_under_the_dialog_writes_nothing_and_the_log_names_the_state()
+        {
+            // The summary entry dropped, and the seal pressed; then a merge brings in deletion
+            // records of so many summary entries that the store has no room, which no seal lifts,
+            // `STORE.md` §643: still stopped, and the line names that.
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            byte[] key;
+            using (var reading = live.Store.Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+                live.Records.Drop(reading.InForce.Heads.Single().Hex);
+            }
+
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            Assert.That(Service(pending).Seal().Succeeded, Is.True);
+
+            for (var height = 2; height < 8000; height++)
+            {
+                live.Records.Delete(StoreComposer.IdentifierOf(key, "head", "store", height, new string('5', 64)));
+            }
+
+            using (var reading = live.Store.Read())
+            {
+                Assume.That(reading.State, Is.EqualTo(StoreState.Stopped));
+                Assume.That(reading.InForce.Room.HasRoom, Is.False);
+            }
+
+            var writes = live.Records.Writes;
+
+            Assert.That(pending.Apply(), Is.False);
+
+            Assert.That(live.Records.Writes, Is.EqualTo(writes), "nothing was written");
+            Assert.That(
+                log.Entries.Select(entry => entry.Message),
+                Has.Some.StartsWith("Seal again: not written at OK, the store being stopped: the store has no room for its next write: "));
+            Assert.That(log.Entries.Select(entry => entry.Message), Has.None.Contains("the store being whole"));
+            Assert.That(pending.Sealed, Is.Null);
+        }
+
+        [Test]
+        public void A_seal_the_store_no_longer_takes_is_refused_at_the_press_with_nothing_held()
+        {
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+
+            var whole = Service(pending).Seal();
+
+            Assert.That(whole.Succeeded, Is.False);
+            Assert.That(Held(pending), Is.Empty);
+        }
+
         private static AuthorityService Service(PendingDatabase pending)
         {
             return new AuthorityService(pending.Store, NullGateLog.Instance);

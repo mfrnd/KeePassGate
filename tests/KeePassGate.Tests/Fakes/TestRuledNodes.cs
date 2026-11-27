@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using KeePassGate.Acl;
 using KeePassGate.Store;
 using KeePassGate.Testing;
@@ -18,6 +19,7 @@ namespace KeePassGate.Tests.Fakes
     public sealed class TestRuledNodes : IRuledNodes
     {
         private readonly List<TestRuledNode> _nodes;
+        private readonly List<TestRuledNode> _binned = new List<TestRuledNode>();
 
         public TestRuledNodes(params TestRuledNode[] nodes)
         {
@@ -35,6 +37,19 @@ namespace KeePassGate.Tests.Fakes
             {
                 yield return node;
             }
+        }
+
+        /// <summary>The nodes, and every node put in the recycle bin with <see cref="Binned"/>.</summary>
+        public IEnumerable<IRuledNode> Held(StoreReading reading)
+        {
+            return _nodes.Concat(_binned);
+        }
+
+        /// <summary>A node in the recycle bin: held by the tree, and no node a rule is in force at.</summary>
+        public TestRuledNodes Binned(TestRuledNode node)
+        {
+            _binned.Add(node);
+            return this;
         }
 
         /// <summary>
@@ -90,11 +105,14 @@ namespace KeePassGate.Tests.Fakes
     public sealed class TestRuledNode : IRuledNode
     {
         /// <summary>A node known by these 32 lowercase hexadecimal characters, as a rule names it.</summary>
-        public TestRuledNode(string id)
+        public TestRuledNode(string id, string title = null)
         {
             Id = id;
+            Title = title ?? string.Empty;
         }
 
         public string Id { get; private set; }
+
+        public string Title { get; private set; }
     }
 }

@@ -146,6 +146,18 @@ namespace KeePassGate.Ui
         public bool CanChoose { get; private set; }
 
         /// <summary>
+        /// Whether the store is stopped and its seal would be written at OK, which is the one
+        /// state the page offers Seal store again in, in the place Recreate has, `STORE.md` §625.
+        /// </summary>
+        public bool CanSeal { get; private set; }
+
+        /// <summary>The line under a stopped store whose seal the page offers.</summary>
+        public const string SealLine = "Seal store again lifts the stop. What was lost is shown first.";
+
+        /// <summary>What the line under a stopped store the seal cannot lift begins with, its reason following.</summary>
+        public const string UnsealableStart = "It cannot be sealed again: ";
+
+        /// <summary>
         /// Whether a code minted now could ever be redeemed, which is a narrower question than
         /// any of the three buttons on the first page answer.
         /// </summary>
@@ -186,9 +198,27 @@ namespace KeePassGate.Ui
         /// Why the write of a Create or a Recreate over the store would not be taken or would leave
         /// the store held back, or null where it would be taken and leave the store whole.
         /// </param>
-        internal AuthorityDescription Under(StoreReading store, string unwritable, string issueRefusal)
+        /// <param name="unsealable">
+        /// Why a stopped store cannot be sealed again, the seal composed and planned over it, or
+        /// null where it can, `STORE.md` §625: a stopped store whose seal OK would write is the one
+        /// store held back that the page offers a command on.
+        /// </param>
+        internal AuthorityDescription Under(StoreReading store, string unwritable, string issueRefusal, string unsealable)
         {
             var word = store == null ? null : StoreWords.Of(store.State);
+            if (word == StoreWords.Stopped)
+            {
+                var sealable = unwritable == null && unsealable == null;
+                var remedy = unwritable != null
+                    ? Clipped.Message(unwritable)
+                    : sealable ? SealLine : UnsealableStart + Clipped.Message(unsealable);
+                return new AuthorityDescription(
+                    HeldBackHeadline(word), null, new[] { HeldBackLine(word), Clipped.Message(store.Reason), remedy }, false, false, false)
+                {
+                    CanSeal = sealable,
+                };
+            }
+
             if (word != null)
             {
                 return new AuthorityDescription(
@@ -236,9 +266,9 @@ namespace KeePassGate.Ui
 
         /// <summary>What a store that holds the gate back is, and what it costs, `STORE.md` §656.</summary>
         /// <remarks>
-        /// **Only what is so, and no remedy**: what ends each state is a command of the tab's that
-        /// the build bringing it names here, and a page naming a command it does not hold sends
-        /// the operator looking for a button that is not there.
+        /// **Only what is so, and no remedy**: what ends a state is a command of the tab's, and a
+        /// page naming a command it does not hold sends the operator looking for a button that is
+        /// not there. The seal's line is added where the page offers the seal, <see cref="Under"/>.
         /// </remarks>
         internal static string HeldBackLine(string word)
         {
@@ -550,7 +580,8 @@ namespace KeePassGate.Ui
                 new AuthorityDescription(DamagedHeadline, null, damage, false, true, true),
                 new AuthorityDescription(PresentHeadline, facts, present, false, true, true),
                 new AuthorityDescription(HeldBackHeadline(StoreWords.Outdated), null, new[] { HeldBackLine(StoreWords.Outdated), Clipped.Message(Thrown) }, false, false, false),
-                new AuthorityDescription(HeldBackHeadline(StoreWords.Stopped), null, new[] { HeldBackLine(StoreWords.Stopped), Clipped.Message(Thrown) }, false, false, false),
+                new AuthorityDescription(HeldBackHeadline(StoreWords.Stopped), null, new[] { HeldBackLine(StoreWords.Stopped), Clipped.Message(Thrown), SealLine }, false, false, false) { CanSeal = true },
+                new AuthorityDescription(HeldBackHeadline(StoreWords.Stopped), null, new[] { HeldBackLine(StoreWords.Stopped), Clipped.Message(Thrown), UnsealableStart + Clipped.Message(Thrown) }, false, false, false),
                 new AuthorityDescription(HeldBackHeadline(StoreWords.Split), null, new[] { HeldBackLine(StoreWords.Split), Clipped.Message(Thrown) }, false, false, false),
                 new AuthorityDescription(UnwritableHeadline, null, new[] { Clipped.Message(Thrown) }, false, false, false),
                 new AuthorityDescription(UndecidedHeadline, null, new[] { Longest(UndecidedLine), recreateRoom }, false, true, true)

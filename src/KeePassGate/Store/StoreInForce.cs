@@ -106,6 +106,10 @@ namespace KeePassGate.Store
         /// <summary>What a deletion record alone takes away, by kind, <see cref="ByDeletion"/>.</summary>
         private readonly Dictionary<string, HashSet<string>> _byDeletion = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
 
+        /// <summary>The deletion records behind <see cref="_byDeletion"/>, by kind and value, <see cref="DeletionsOf"/>.</summary>
+        private readonly Dictionary<string, Dictionary<string, SortedSet<string>>> _byDeletionRecords =
+            new Dictionary<string, Dictionary<string, SortedSet<string>>>(StringComparer.Ordinal);
+
         /// <summary>
         /// The removals of names, each by its name and the identifier of its record, its item's
         /// `id` or its deletion record: a summary entry restates each apart, `STORE.md` §611.
@@ -317,6 +321,19 @@ namespace KeePassGate.Store
         {
             HashSet<string> values;
             return kind != null && _byDeletion.TryGetValue(kind, out values) ? values : Nothing;
+        }
+
+        /// <summary>
+        /// The identifiers of the deletion records that take this value away for a kind restated by
+        /// a member, ascending, where <see cref="ByDeletion"/> holds it; none otherwise.
+        /// </summary>
+        public IReadOnlyList<string> DeletionsOf(string kind, string value)
+        {
+            Dictionary<string, SortedSet<string>> of;
+            SortedSet<string> told;
+            return kind != null && value != null && _byDeletionRecords.TryGetValue(kind, out of) && of.TryGetValue(value, out told)
+                ? told.ToList()
+                : (IReadOnlyList<string>)Array.Empty<string>();
         }
 
         /// <summary>
@@ -834,6 +851,7 @@ namespace KeePassGate.Store
                 // and an item carry as well, and any other kind by its value; and of a subject the
                 // file names nowhere, what an item with no subject is to hold.
                 var byDeletion = new HashSet<string>(StringComparer.Ordinal);
+                var records = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
                 var removalsByDeletion = new List<KeyValuePair<string, string>>();
                 var carriedByItem = new HashSet<string>(unnamed, StringComparer.Ordinal);
                 var unnamedByDeletion = new SortedDictionary<string, SortedSet<string>>(StringComparer.Ordinal);
@@ -874,12 +892,21 @@ namespace KeePassGate.Store
                         else if (!held.Contains(value))
                         {
                             byDeletion.Add(value);
+                            SortedSet<string> of;
+                            if (!records.TryGetValue(value, out of))
+                            {
+                                of = new SortedSet<string>(StringComparer.Ordinal);
+                                records[value] = of;
+                            }
+
+                            of.Add(text);
                         }
                     }
                 }
 
                 _taken[row.Name] = values;
                 _byDeletion[row.Name] = byDeletion;
+                _byDeletionRecords[row.Name] = records;
                 _unnamed[row.Name] = unnamed;
                 unnamedDecisions.AddRange(unnamedByDeletion.Select(pair => new StoreUnnamed(row.Name, pair.Value.ToList())));
                 if (removal)

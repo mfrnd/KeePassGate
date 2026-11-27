@@ -108,6 +108,30 @@ namespace KeePassGate.Authority
             }
         }
 
+        /// <summary>
+        /// Why the store this reading holds cannot be sealed again, or null where the seal's write
+        /// would be taken and lift the stop: the seal composed and planned over the reading as OK
+        /// plans it, so that the page offers no press OK could not write, `STORE.md` §625.
+        /// </summary>
+        public static string Unsealable(StoreReading reading)
+        {
+            string refused;
+            var act = Seal(reading, out refused);
+            if (act == null)
+            {
+                return refused;
+            }
+
+            try
+            {
+                return Unsealed(reading, act);
+            }
+            finally
+            {
+                act.Forget();
+            }
+        }
+
         /// <summary>The act composed again over a later reading, or null where nothing is left to seal there.</summary>
         private static StoreAct Again(StoreReading reading)
         {
@@ -128,17 +152,39 @@ namespace KeePassGate.Authority
         /// </remarks>
         public static string Unsealed(StoreReading reading, StoreAct act)
         {
+            string unsealed;
+            using (Sealed(reading, act, out unsealed))
+            {
+                return unsealed;
+            }
+        }
+
+        /// <summary>
+        /// The store as this seal's write would leave it, read in memory, for the caller to let
+        /// go; or null with why in <paramref name="unsealed"/> where the write would not be taken
+        /// or would not leave the store whole: what the seal's dialog counts as kept, asked before
+        /// the dialog opens, so that no dialog is shown over a seal OK could not write.
+        /// </summary>
+        public static StoreReading Sealed(StoreReading reading, StoreAct act, out string unsealed)
+        {
+            unsealed = null;
             var write = StoreWrite.Plan(reading, new[] { act }, GateVersion.Current);
             if (write.Refused != null)
             {
-                return write.Refused;
+                unsealed = write.Refused;
+                return null;
             }
 
             var applied = write.Applied(reading.Candidates, reading.Deletions);
-            using (var sealedStore = StoreReading.Afresh(applied.Key, applied.Value))
+            var sealedStore = StoreReading.Afresh(applied.Key, applied.Value);
+            if (sealedStore.State == StoreState.Whole)
             {
-                return sealedStore.State == StoreState.Whole ? null : "the sealed store would still be " + (StoreWords.Of(sealedStore.State) ?? "without a store key") + ": " + sealedStore.Reason;
+                return sealedStore;
             }
+
+            unsealed = "the sealed store would still be " + (StoreWords.Of(sealedStore.State) ?? "without a store key") + ": " + sealedStore.Reason;
+            sealedStore.Dispose();
+            return null;
         }
 
         /// <summary>

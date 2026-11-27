@@ -204,6 +204,27 @@ the store's own key that do there what the model's searched names do under its k
 tags meet or a name whose tag is 0, and over the sequence's tree, which the model reads a
 deletion record at.
 
+**The seal's vectors are those of `papers/ground/measured-seal.md`**, printed by the same script
+with `--seal` into its record `recorded-seal`, every member the files held before unchanged: the
+seal's versions among the records, the stores whose names begin `stopped:` with what
+`probe/read.py` listed of what each lost, and the sequences R1 to R21 and R3s. `StoreLossesTests`
+holds the listing to the stores, `SealActsTests` the seal's versions to the records and to what
+the listing planned, and `StoreWriteShapeTests` plays the sequences through the product's acts,
+the seal pressed where the model's dialog is shown and written at the step that seals through the
+KPG tab's buffer, composed again there over the store as it stands. **The sequences of what the
+seal restates are those of `papers/ground/measured-seal-restates.md`**, printed with `--restates`
+into its record `recorded-restates`, every member the files held before unchanged: R5 to R7 and F5
+to F7r, a decision a deletion record alone tells of whose subject nothing names, each followed by a
+merge by Overwrite if newer and by KeePassXC into the other copy and by those and by
+Synchronize with the sealed copy's deletion records cleared, under names beginning `restates` and
+a comma. `StoreWriteShapeTests` plays them as it plays R1 to R21, and holds each summary entry's
+items with no subject to the model's by the subject each is about, read off the model's deletion
+records; where R1 to R21, printed with the model's form that restates such a decision by its
+subject, hold an item by the subject the product's file names nowhere, the product holds an item
+with no subject for it instead, `STORE.md` §611.
+`SealFormTests` holds every string of the seal's window and its room at each scaling, a hundred
+rows of the longest texts among them, with nothing scrolling sideways.
+
 **Where the product is stricter than the measured code on purpose, no vector is changed to
 agree.** A write above renews, where nothing arrived, only a version that recorded nothing; the
 remark at the place states the difference, `STORE.md` §644 records it as owed to the model, and

@@ -49,6 +49,43 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Under_a_stopped_store_the_seal_s_line_and_press_are_offered_where_its_write_would_be_taken_and_nothing_else()
+        {
+            // `STORE.md` §625: a stopped store takes the seal and no other command.
+            var store = HeldBack.Database(StoreWords.Stopped);
+            using (var authority = new AuthorityService(store.Store, null).Read())
+            using (var reading = store.Store.Read())
+            {
+                var page = AuthorityDescription.Of(authority, null, null, Now);
+
+                var sealable = page.Under(reading, null, null, null);
+                Assert.That(sealable.Headline, Is.EqualTo(AuthorityDescription.HeldBackHeadline(StoreWords.Stopped)));
+                Assert.That(sealable.Details, Is.EqualTo(new[]
+                {
+                    AuthorityDescription.HeldBackLine(StoreWords.Stopped), reading.Reason,
+                    "Seal store again lifts the stop. What was lost is shown first.",
+                }));
+                Assert.That(sealable.CanSeal, Is.True);
+                Assert.That(new[] { sealable.CanCreate, sealable.CanRecreate, sealable.CanDelete, sealable.CanInvite }, Is.All.False);
+
+                var unsealable = page.Under(reading, null, null, "the write would leave no entry holding the store key");
+                Assert.That(unsealable.CanSeal, Is.False, "no press OK could not write");
+                Assert.That(unsealable.Details[unsealable.Details.Count - 1], Is.EqualTo("It cannot be sealed again: the write would leave no entry holding the store key"));
+                Assert.That(unsealable.DetailText, Does.Not.Contain("Start"), "the page names no command it does not hold");
+
+                var unwritable = page.Under(reading, "the dialogs that would take a write back could not be watched", null, null);
+                Assert.That(unwritable.CanSeal, Is.False);
+                Assert.That(unwritable.Details[unwritable.Details.Count - 1], Does.Contain("could not be watched"));
+            }
+
+            using (var outdated = HeldBack.Database(StoreWords.Outdated).Store.Read())
+            using (var authority = new AuthorityService(new MemoryStore(), null).Read())
+            {
+                Assert.That(AuthorityDescription.Of(authority, null, null, Now).Under(outdated, null, null, null).CanSeal, Is.False, "only a stopped store is sealed");
+            }
+        }
+
+        [Test]
         public void An_empty_database_offers_creation_and_nothing_else()
         {
             using (var reading = _service.Read())
@@ -635,6 +672,7 @@ namespace KeePassGate.Tests
                 AuthorityDescription.AbsentHeadline,
                 AuthorityDescription.RetiredHeadline,
                 AuthorityDescription.HeldBackHeadline(StoreWords.Outdated),
+                AuthorityDescription.HeldBackHeadline(StoreWords.Stopped),
                 AuthorityDescription.HeldBackHeadline(StoreWords.Stopped),
                 AuthorityDescription.HeldBackHeadline(StoreWords.Split),
                 AuthorityDescription.UnwritableHeadline

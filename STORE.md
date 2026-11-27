@@ -3512,6 +3512,21 @@ each followed by a merge by Overwrite if newer and by KeePassXC into the other c
 sealed, and by those and by Synchronize with the sealed copy's deletion records cleared, each
 summary entry's items with no subject held to the model's by the subject each is about.
 
+**What the page and its dialog are.** Over a stopped store the Certificate Authority page states
+why, and where the seal could be written and lift the stop offers **Seal store again** in
+Recreate's place; where it could not, for want of room, because its write would leave no entry
+holding the store key, or because its write would leave no room for the write after it, it offers
+nothing and states why. The press opens a dialog of the plugin's own, sized as the
+authority chooser is: the stop's reason, a row for every item of the listing with its kind, what
+it was about, a node by its title and a client by its name where the database holds them, a
+decision whose subject the database names nowhere by its kind alone, and what the seal makes of
+it, every deletion record that tells of it in the row's tooltip, the two sentences on what cannot
+be shown, and a count of what the seal keeps. Confirming holds the act in
+the tab's buffer, and OK writes it, logs what it wrote and deleted, and writes the audit's line.
+*Held by*
+`SealFormTests`, `AuthorityDescriptionTests`, `AuthorityPanelTests`, `PendingRecordsTests`,
+`GateWiringTests` and `GateTabFitsTests`.
+
 ---
 
 ## 5. Writing §626
@@ -6703,7 +6718,8 @@ that finds a measurement against a decision reports it and does not design aroun
     10,000.
 13. **The page that seals the store again**: what it shows after each kind of loss. What it can
     show, the listing of §625, is held to what `probe/read.py` listed for each kind of loss
-    (`StoreLossesTests`). Nothing of it was run as a page.
+    (`StoreLossesTests`). Built as the dialog Seal store again opens (§625), which lists every
+    item of the listing; a press in a real KeePass stays owed by the end to end tier.
 14. **Which of KeePass's windows takes back or takes away an entry of the plugin's group** while
     the plugin writes (§626). This item is this document's own, read from `DESIGN.md` §124 and
     from no report. Run by the pull request that keeps the authority in the store, in the host

@@ -81,6 +81,144 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Over_a_stopped_store_Seal_store_again_takes_Recreate_s_place_and_its_press_holds_the_seal_for_OK()
+        {
+            // `STORE.md` §625: the press opens the seal's dialog, and Seal again there holds the
+            // seal in the dialog's buffer; the pages read the store as the seal leaves it, the
+            // invitation is off while it waits, and OK writes it.
+            _database = HeldBack.Database(StoreWords.Stopped);
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, new InvitationBook(_log), null))
+            {
+                Assert.That(Shown(panel, Button(panel, GateTab.SealButtonName)), Is.True);
+                Assert.That(Shown(panel, Button(panel, GateTab.RecreateButtonName)), Is.False, "in Recreate's place");
+                Assert.That(Button(panel, GateTab.CreateButtonName).Enabled, Is.False);
+                Assert.That(Button(panel, GateTab.DeleteButtonName).Enabled, Is.False);
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.EndWith(AuthorityDescription.SealLine));
+
+                string shown = null;
+                IReadOnlyList<SealRow> rows = null;
+                string keeps = null;
+                panel.AskToSeal = (reason, listed, kept) =>
+                {
+                    shown = reason;
+                    rows = listed;
+                    keeps = kept;
+                    return false;
+                };
+                panel.SealAgain();
+                Assert.That(shown, Is.EqualTo(_database.Store.Read().Reason), "the dialog shows why the store stopped");
+                Assert.That(rows, Is.Empty, "a summary entry dropped with no record shows no loss");
+                Assert.That(
+                    keeps,
+                    Is.EqualTo("Kept: 1 authority, 0 clients, 0 profile names, 0 ruled nodes, 0 standing answers."),
+                    "what the seal keeps, counted over the store as its write leaves it");
+                Assert.That(pending.Waiting, Is.False, "Cancel on the dialog holds nothing");
+
+                panel.AskToSeal = (reason, listed, kept) => true;
+                panel.SealAgain();
+
+                Assert.That(pending.Waiting, Is.True, "Seal again holds the seal");
+                Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.PresentHeadline), "the page reads the sealed store");
+                Assert.That(Button(panel, GateTab.RecreateButtonName).Enabled, Is.True);
+                Assert.That(Shown(panel, Button(panel, GateTab.SealButtonName)), Is.False);
+                Assert.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.False, "no code while the seal waits");
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Text, Is.EqualTo(GateTab.PendingSealNotice), "the notice names the seal");
+                Assert.That(_database.Store.Read().State, Is.EqualTo(StoreState.Stopped), "nothing lands before OK");
+            }
+
+            pending.Apply();
+            Assert.That(_database.Store.Read().State, Is.EqualTo(StoreState.Whole), "OK writes the seal");
+        }
+
+        [Test]
+        public void The_seal_s_dialog_names_a_lost_rule_s_node_in_the_recycle_bin_by_its_title()
+        {
+            // The rules of a node in the bin are in force for nobody, so no count walks it, and
+            // the database still holds it: a rule the store lost there is named by its title.
+            var binned = new string('b', 32);
+            _database.Nodes = new TestRuledNodes().Binned(new TestRuledNode(binned, "Old banking"));
+            StoreSeeds.Authority(_database.Store);
+            TestRuledNodes.Rule(_database.Records, binned, "ops", "row:R");
+            TestRuledNodes.Lost(_database.Records, binned, "ops");
+            _database.Records.Drop(_database.Store.Read().InForce.Heads.Single().Hex);
+            Assume.That(_database.Store.Read().State, Is.EqualTo(StoreState.Stopped));
+
+            using (var panel = new AuthorityPanel(new PendingDatabase(_database, _log), new FakePrompt(true), _log))
+            {
+                IReadOnlyList<SealRow> rows = null;
+                panel.AskToSeal = (reason, listed, kept) =>
+                {
+                    rows = listed;
+                    return false;
+                };
+                panel.SealAgain();
+
+                Assert.That(rows, Is.Not.Null, "the dialog opened");
+                Assert.That(rows.Single(row => row.Kind == SealRows.RuleOfAProfile).Of, Is.EqualTo("Old banking, ops"));
+            }
+        }
+
+        [Test]
+        public void Under_a_held_seal_of_a_store_with_no_authority_the_notice_names_the_seal_and_no_deletion()
+        {
+            // A Delete, and then the summary entry gone: the retirement holds the key, and the
+            // seal is held over a store with no authority.
+            StoreSeeds.Authority(_database.Store);
+            Assume.That(new AuthorityService(_database.Store, null).Delete().Succeeded, Is.True);
+            _database.Records.Drop(_database.Store.Read().InForce.Heads.Single().Hex);
+            Assume.That(_database.Store.Read().State, Is.EqualTo(StoreState.Stopped));
+
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, new InvitationBook(_log), null))
+            {
+                panel.AskToSeal = (reason, listed, kept) => true;
+                panel.SealAgain();
+
+                Assert.That(pending.Waiting, Is.True);
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Text, Is.EqualTo(GateTab.PendingSealNoAuthorityNotice));
+                Assert.That(GateTab.PendingSealNoAuthorityNotice, Does.Not.Contain("pair"), "nothing to pair with once OK lands it");
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Text, Is.Not.EqualTo(GateTab.PendingDeleteNotice));
+            }
+        }
+
+        [Test]
+        public void Over_a_stopped_store_the_seal_would_leave_without_the_store_key_no_seal_is_offered()
+        {
+            // The retirement holding the key damaged, and the authority it retired the only other
+            // entry holding it, which the seal's write deletes, `STORE.md` §625.
+            var store = _database.Records;
+            store.Put(StoreRecords.Authority(StoreRecords.One, 'a'));
+            var retired = StoreComposer.Record(
+                StoreRecords.One, "retired", "authority:" + StoreRecords.Hex('a'),
+                StoreComposer.Content(("authority", StoreRecords.Hex('a')), ("storeKey", StoreComposer.HexOf(StoreRecords.One))));
+            store.Put(retired.Identifier, StoreVersions.With(retired.Strings, StoreComposer.Data, "{\"edited\":\"\"}"));
+            store.Put(StoreRecords.Head(StoreRecords.One, 1, string.Empty, StoreComposer.Item(("authority", StoreRecords.Hex('a')), ("kind", "retired"))));
+            Assume.That(store.Read().State, Is.EqualTo(StoreState.Stopped));
+
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                Assert.That(Shown(panel, Button(panel, GateTab.SealButtonName)), Is.False);
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Contain(AuthorityDescription.UnsealableStart + "the write would leave no entry holding the store key"));
+
+                // A press that reaches it all the same, as a merge between the redraw and the
+                // press can make it: refused before the dialog opens, with nothing held.
+                var asked = 0;
+                panel.AskToSeal = (reason, listed, kept) =>
+                {
+                    asked++;
+                    return true;
+                };
+                panel.SealAgain();
+
+                Assert.That(asked, Is.Zero, "no dialog over a seal OK could not write");
+                Assert.That(Label(panel, GateTab.ResultLabelName).Text, Does.Contain("cannot be sealed again, since the write would leave no entry holding the store key"));
+                Assert.That(pending.Waiting, Is.False);
+            }
+        }
+
+        [Test]
         public void Where_nothing_can_be_written_the_page_states_why_and_every_command_on_the_store_is_off()
         {
             // As where the dialogs that would take a write back are not watched: the log at load

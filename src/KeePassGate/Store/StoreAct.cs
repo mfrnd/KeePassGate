@@ -174,10 +174,34 @@ namespace KeePassGate.Store
         }
     }
 
+    /// <summary>
+    /// What a write that sealed a stopped store again lifted, `STORE.md` §625, as the store it was
+    /// planned over held it: why the store was stopped, the damaged entries the write deleted, and
+    /// the objects their deletion records leave refusing.
+    /// </summary>
+    public sealed class StoreSealed
+    {
+        internal StoreSealed(string stopped, IReadOnlyList<string> deleted, IReadOnlyList<string> refusing)
+        {
+            Stopped = stopped;
+            Deleted = deleted;
+            Refusing = refusing;
+        }
+
+        /// <summary>Why the store the write was planned over was stopped.</summary>
+        public string Stopped { get; private set; }
+
+        /// <summary>The identifiers of the damaged entries the write deleted, each with a deletion record.</summary>
+        public IReadOnlyList<string> Deleted { get; private set; }
+
+        /// <summary>The objects a damaged version's deletion record leaves refusing until set again.</summary>
+        public IReadOnlyList<string> Refusing { get; private set; }
+    }
+
     /// <summary>What a write into the store came to: taken, or refused and why, and the acts left out.</summary>
     public sealed class StoreWritten
     {
-        private StoreWritten(bool taken, string reason, IReadOnlyList<StoreAct> acts, IReadOnlyList<string> leftOut, bool wrote, bool waits)
+        private StoreWritten(bool taken, string reason, IReadOnlyList<StoreAct> acts, IReadOnlyList<string> leftOut, bool wrote, bool waits, StoreSealed sealedAgain = null)
         {
             Taken = taken;
             Reason = reason;
@@ -185,7 +209,14 @@ namespace KeePassGate.Store
             LeftOut = leftOut ?? Array.Empty<string>();
             Wrote = wrote;
             Waits = waits;
+            Sealed = sealedAgain;
         }
+
+        /// <summary>
+        /// What the write lifted where it sealed a stopped store again and was made, or null: told
+        /// from the write itself, not from a reading before it.
+        /// </summary>
+        public StoreSealed Sealed { get; private set; }
 
         /// <summary>Whether the write was made, with every act it took.</summary>
         public bool Taken { get; private set; }
@@ -214,9 +245,9 @@ namespace KeePassGate.Store
         /// </summary>
         public bool Waits { get; private set; }
 
-        internal static StoreWritten Done(IReadOnlyList<StoreAct> taken, IReadOnlyList<string> leftOut, bool wrote)
+        internal static StoreWritten Done(IReadOnlyList<StoreAct> taken, IReadOnlyList<string> leftOut, bool wrote, StoreSealed sealedAgain = null)
         {
-            return new StoreWritten(true, null, taken, leftOut, wrote, false);
+            return new StoreWritten(true, null, taken, leftOut, wrote, false, sealedAgain);
         }
 
         internal static StoreWritten Waiting(IReadOnlyList<StoreAct> taken, IReadOnlyList<string> leftOut)

@@ -345,6 +345,44 @@ has held as retired, and nothing undoes that. Create a new authority, and pair e
 **So answer on one copy**, save it, and synchronize it into every other copy before answering there:
 a copy that already holds the answer does not ask.
 
+## When the store is stopped
+
+**A store that is not whole serves nothing.** The Certificate Authority page then reads **The store
+of this database is stopped.**, with why under it: no summary entry of the plugin's group in force,
+a summary entry deleted that nothing replaces, an entry of the group edited until no version of it
+passes, a record no summary entry restates, or no room left for the store's next write. Every
+client is answered `503 stopped` until the stop is lifted, in this copy and in every copy
+the deletion or the edit reaches.
+
+**Seal store again**, in the place of **Recreate authority**, lifts the stop. It opens a window
+listing what the deletion records show as deleted, a row for each: what kind of thing it was, what
+it was about, and what sealing makes of it. A rule, a switch or an answer to a renewal whose version
+was lost is written again as granting nothing, so that nothing arrives that the lost version held
+back; a revocation, a retirement, a removal of a name or a certificate taken away known by its
+deletion record alone stays in force and is restated; an entry that no longer passes is deleted;
+and a summary entry deleted is named as replaced. A revocation, a retirement or a removal whose
+client, authority or name the database names nowhere any more reads **a client named nowhere**,
+**an authority named nowhere** or **a name held nowhere**, with its deletion records in the row's
+tooltip, and is restated all the same: a copy from before the decision that brings the client,
+the authority or the name back finds it refused. A rule or an answer that refuses until set again
+is set again in the grant editor or lifted on the Clients page. The window counts what the seal
+keeps: the authorities, the clients, the profile names, the ruled nodes and the standing answers.
+
+**What was deleted with no deletion record cannot be shown**, and the window states it: sealing
+makes the state shown the state, in this copy and in every copy that takes the file in. So the
+Clients and Profiles pages, which read the store as the seal leaves it from the press on, and the
+grant editor are worth reading before **OK**: a client back on the list that was revoked, or a name
+back that was removed, is a decision that was lost with no record, and can be taken away again on
+the same dialog. **Seal again** in the window holds the seal, like every other press on the tab, and
+the settings dialog's **OK** writes it, with whatever else the dialog holds, in a single write;
+**Cancel** on either takes it away. The gate answers `stopped` until **OK**. The audit records the
+seal, [Sealing the store again](audit.md#sealing-the-store-again).
+
+**Where the seal could not be written or would not lift the stop, it is not offered**, and the page
+states why: a store with no room for its next write, which the seal does not lift, a store whose
+only entry left holding the store key would be deleted by the seal's own write, and a store the
+seal's own write would leave with no room for the write after it.
+
 ## Locking while a program writes
 
 KeePass can lock itself when nobody has used it for a while, and it has two timeouts for that under

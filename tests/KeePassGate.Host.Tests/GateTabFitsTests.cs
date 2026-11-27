@@ -48,6 +48,7 @@ namespace KeePassGate.Host.Tests
         private TemporaryDatabase _database;
         private TemporaryDatabase _several;
         private TemporaryDatabase _damaged;
+        private TemporaryDatabase _stopped;
         private Form _dialog;
         private TabPage _page;
         private ImageList _icons;
@@ -101,6 +102,12 @@ namespace KeePassGate.Host.Tests
             {
                 _damaged.Dispose();
                 _damaged = null;
+            }
+
+            if (_stopped != null)
+            {
+                _stopped.Dispose();
+                _stopped = null;
             }
         }
 
@@ -1031,6 +1038,7 @@ namespace KeePassGate.Host.Tests
 
             states.Add(new PanelState("A tab holding several authorities", Undecided()));
             states.Add(new PanelState("A tab holding an authority that cannot be used", Damaged()));
+            states.Add(new PanelState("A tab over a stopped store, Seal store again on its row", Stopped()));
 
             return states.ToArray();
         }
@@ -1054,6 +1062,33 @@ namespace KeePassGate.Host.Tests
             Assert.That(ControlTree.FindByName<Label>(panel, GateTab.StatusLabelName).Text,
                 Is.EqualTo(AuthorityDescription.DamagedHeadline), "the state is not the one it is named for");
 
+            Set(panel, GateTab.ResultLabelName, AuthorityPanel.LongestResult());
+            return panel;
+        }
+
+        /// <summary>
+        /// A database whose store is stopped with the summary entry deleted for good, which the
+        /// seal lifts, on a database of its own for the reason <see cref="Undecided"/> gives.
+        /// </summary>
+        /// <remarks>
+        /// **Drawn by the panel**, as <see cref="Damaged"/> is: the row of buttons a stopped store
+        /// really offers, Seal store again in the place of Recreate, which no state measured before,
+        /// under the longest detail a stopped store the seal lifts comes with.
+        /// </remarks>
+        private AuthorityPanel Stopped()
+        {
+            _stopped?.Dispose();
+            _stopped = TemporaryDatabase.New();
+            StoreSeeds.Authority(new KdbxStore(_stopped.Database, GateVersion.Current, null));
+            var head = _stopped.RootGroup.GetEntries(true).Single(entry => entry.Strings.ReadSafe(StoreComposer.Kind) == "head");
+            head.ParentGroup.Entries.Remove(head);
+            _stopped.Database.DeletedObjects.Add(new KeePassLib.PwDeletedObject(head.Uuid, DateTime.UtcNow));
+
+            var panel = new AuthorityPanel(Opened(_stopped), null, NullGateLog.Instance);
+            Assert.That(ControlTree.FindByName<Button>(panel, GateTab.SealButtonName).Enabled, Is.True, "the state is not the state it is named for");
+
+            var longest = AuthorityDescription.LongestDescriptions().Single(description => description.CanSeal);
+            Set(panel, GateTab.DetailLabelName, longest.DetailText);
             Set(panel, GateTab.ResultLabelName, AuthorityPanel.LongestResult());
             return panel;
         }

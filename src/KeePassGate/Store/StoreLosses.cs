@@ -170,6 +170,12 @@ namespace KeePassGate.Store
         /// <summary>The authorities retired by a deletion record alone, by `id`, ascending.</summary>
         public IReadOnlyList<string> Retired { get; private set; }
 
+        /// <summary>The deletion records that revoke each client of <see cref="Revoked"/>, by client key, each ascending.</summary>
+        public IReadOnlyDictionary<string, IReadOnlyList<string>> RevokedBy { get; private set; }
+
+        /// <summary>The deletion records that retire each authority of <see cref="Retired"/>, by `id`, each ascending.</summary>
+        public IReadOnlyDictionary<string, IReadOnlyList<string>> RetiredBy { get; private set; }
+
         /// <summary>The removals of names known by a deletion record alone, each its name and identifier, by name.</summary>
         public IReadOnlyList<KeyValuePair<string, string>> Removed { get; private set; }
 
@@ -217,6 +223,8 @@ namespace KeePassGate.Store
                 NotRestated = inForce.NotRestated().Select(record => record.Hex).OrderBy(hex => hex, StringComparer.Ordinal).ToList(),
                 Revoked = Ascending(inForce.ByDeletion(StoreKinds.Revoked)),
                 Retired = Ascending(inForce.ByDeletion(StoreKinds.Retired)),
+                RevokedBy = Telling(inForce, StoreKinds.Revoked),
+                RetiredBy = Telling(inForce, StoreKinds.Retired),
                 Removed = inForce.RemovalsByDeletion
                     .OrderBy(removal => removal.Key, StringComparer.Ordinal)
                     .ThenBy(removal => removal.Value, StringComparer.Ordinal)
@@ -299,6 +307,12 @@ namespace KeePassGate.Store
         {
             StoreId identifier;
             return StoreId.TryParse(hex, out identifier) ? identifier.Number : 0;
+        }
+
+        /// <summary>The deletion records that take each value of a kind away by themselves alone.</summary>
+        private static IReadOnlyDictionary<string, IReadOnlyList<string>> Telling(StoreInForce inForce, string kind)
+        {
+            return inForce.ByDeletion(kind).ToDictionary(value => value, value => inForce.DeletionsOf(kind, value), StringComparer.Ordinal);
         }
 
         private static IReadOnlyList<string> Ascending(IEnumerable<string> values)

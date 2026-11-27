@@ -30,6 +30,19 @@ none, since it releases both.
   store, and a title or notes changed on such an entry are not put back. **Keep this authority** is
   refused while KeePass's entry dialog is open on an entry the choice would delete or put back,
   since that dialog's OK writes its own copy over it. `STORE.md` §614, §626, §627, §628 and §645.
+- **Seal store again lifts a stopped store.** On the Certificate Authority page, in the place of
+  **Recreate authority**, wherever the store is stopped and the seal's write can be made. It opens a
+  window listing what the deletion records show as deleted, what each was about and what sealing
+  makes of it, states that what was deleted with no deletion record cannot be shown, and counts what
+  the seal keeps; **Seal again** there holds the seal for the settings dialog's **OK**, with every
+  other press of the dialog in a single write, and the pages read the store as the seal leaves it
+  from the press on. The seal writes a version granting nothing for each rule, switch and answer to
+  a renewal whose version was lost, deletes every entry of the store that no longer passes, and
+  writes a summary entry over what is in force; composed again at **OK** over the store as it stands
+  then. A revocation, a retirement or a removal of a name whose subject the database names nowhere
+  is listed by its kind, and the summary entry restates it by the keyed hash its deletion record
+  holds, so that a copy from before the decision that brings the subject back finds it refused. The
+  audit holds a `sealed` line for it. `STORE.md` §625 and §611.
 - **The X on the clients page revokes the client, with every certificate it holds.** The page
   lists a client's certificates as a group of rows: the certificate admitted last carries the
   client's name and the X, and each earlier certificate is indented under it as `earlier
