@@ -66,6 +66,14 @@ it, and on real files made by KeePassLib and merged by KeePassLib and `keepassxc
 `recorded-seal\`, with the vectors it prints in `recorded-seal\vectors\`. The section "Seal again"
 at the end holds it.
 
+**A further configuration, a store started again**, was added on 2026-11-26 and 2026-11-27 for the
+report `measured-started-again.md`: `run.ps1 -Starts`, the command that starts the store again under
+a new key, sets every other key aside and stops the store it sets aside, with the keys of `STORE.md`
+§649, over the configuration of Seal again: in the model, over the files `store.py` writes of it,
+and on real files made by KeePassLib and merged by KeePassLib and `keepassxc-cli`. Its record is
+`recorded-starts\`, with the vectors it prints in `recorded-starts\vectors\`. The section "A store
+started again" at the end holds it.
+
 | Path | What it is |
 | --- | --- |
 | `model\crdt_model.py` | a copy of `spikes\storage\model\crdt_model.py` with the switches of section "What was added" below; every new switch at its default is the design's model |
@@ -96,6 +104,7 @@ at the end holds it.
 | `model\answer_runs.py`, `probe\answers.py`, `compare_answers.py` | the parts of the standing answers to a renewal in the model and on real files (section "The standing answers to a renewal"), and the comparisons of the vectors |
 | `recorded-answers\` | the output of those parts, which `measured-renewal-answers.md` quotes; `recorded-answers\vectors\` the three files of vectors `vectors.py --answers` prints |
 | `model\seal_runs.py`, `probe\seal.py`, `compare_seal.py` | the parts of Seal again in the model and on real files (section "Seal again"), and the comparisons of the vectors |
+| `model\restart_runs.py`, `probe\restart.py`, `compare_starts.py` | the parts of a store started again in the model and on real files (section "A store started again"), and the comparisons of the vectors |
 | `recorded-seal\` | the output of those parts, which `measured-seal.md` quotes; `recorded-seal\vectors\` the three files of vectors `vectors.py --seal` prints |
 
 **Everything ran twice**, on 2026-11-16, on a machine other measurements were sharing. Every
@@ -2346,7 +2355,7 @@ Reported, not fixed.
   run; the refusal for the store key is the product's guard of `StoreWrite.Plan`, played here.
 - **The cells of `edits` label an import into the unedited copy that stays stale as wider** than
   every decision, within its own ideal, where `cells` labels it accepted (§640).
-- **Development trials** of every part were run in the elevated session before the recorded runs;
+- **Development trials** of every part were run under an elevated token before the recorded runs;
   every figure here is of the two runs under an ordinary user token.
 
 ### Not run in this configuration
@@ -2354,3 +2363,156 @@ Reported, not fixed.
 - Start again (`PLAN.md` 4.2), a later configuration; the page, the dialog and the press in a
   window (4.3); a store with no room or at a ceiling; a certificate taken away; three copies on
   files; the slow key derivation; the product.
+
+## A store started again
+
+Added on 2026-11-26 and 2026-11-27 for `papers\ground\measured-started-again.md`. Start store again
+(`STORE.md` §632 and §641) makes a store under a new key and sets every other key the reading finds
+aside by the keep records of §649; it also stops the store it sets aside, by a keep record under the
+earlier key naming the new key that no summary entry restates, so that the earlier store, should the
+new key be lost, serves nothing until Seal again keeps it. `run.ps1 -Starts` runs it; its record is
+`recorded-starts\`, with the vectors it prints in `recorded-starts\vectors\`.
+
+### What it runs
+
+`run.ps1 -Starts` runs these parts, each into `out\starts\<part>.txt`, held to `recorded-starts\` by
+`compare.py --starts`; after them `compare_starts.py print` writes the three files of vectors
+`vectors.py --starts` prints into `out\starts\vectors\`, with `vectors-print.txt`, and
+`compare_starts.py vectors` holds them to `recorded-seal\vectors\`, the files as they stand, in
+`vectors-compare.txt`.
+
+| Part | What it is |
+| --- | --- |
+| `cells` | `probe\restart.py cells`: T1 to T16 on real files, every merge both ways by KeePassLib's five methods and four `keepassxc-cli` releases, the merged file held to both copies just before the merge, to its own ideal, to the keys its ideal sets aside and to every decision any gate made, then the acts that follow |
+| `dialog` | `probe\restart.py dialog`: what read.py's listing of a stopped store holds of a store a start stopped once the new key is lost, by deletion, by eleven edits, over a store already stopped and over a split store, and Seal again pressed over it, its keep record held to the listing's plan |
+| `room` | `probe\restart.py room`: a store at the ceiling of a summary entry's items and a store at the ceiling of its content, read, started again and read again |
+| `random` | `probe\restart.py random 300 81`: random histories of the acts of a store started again, deletions by hand and Seal again on files, by Synchronize, Overwrite if newer and KeePassXC 2.8.0 |
+| `model-hand` | `model\restart_runs.py hand`: T1 to T16 in the model, Create new IDs among the merges |
+| `laws` | `model\restart_runs.py laws 20000 7`: the marking of §649 step 4 over hand-made and random sets of relations, held to its laws and to read.py's marking |
+| `exhaustive-4`, `exhaustive-4-noauth`, `exhaustive-5` | `model\restart_runs.py exhaustive`: every sequence of a small alphabet over two copies, to 4 steps with the first and the newest authority deleted, Seal again and a keep record deleted, to 4 with a keep record's deletions alone, to 5 with none |
+| `starts-two`, `-three`, `-hand`, `-hand-noauth`, `-long` | `model\restart_runs.py starts`: 200,000 random histories of the acts of a store started again each |
+| `search-2`, `search-3`, `search-noauth-2`, `search-noauth-3` | `model\restart_runs.py search` and `search-noauth`: the design's twelve configurations over two and three files, 20,000 histories each with the design's seeds, restart and a later format in the alphabet; again with no entry that can carry a store key deleted or edited by hand |
+| `bridge-two`, `bridge-hand` | `model\restart_runs.py bridge`: 2,000 random histories each, every file the Encoder writes, an edited entry with its content changed, read by read.py and held to the model's state, authority served, key that stands, keys set aside and clients admitted |
+
+**The store.** The configuration of Seal again (`crdt_model.STORE` with no repair, the answers on,
+the reading of lost versions, `SEAL` on), with `crdt_model.STARTS` and `START_STOPS` on, and on
+files `read.STARTS` and `read.ROOM`. The parts on files write every act at once. The vectors play
+the sequences with rows per profile in the form `seen`, as every sequence of `--writes` plays.
+
+**What a history is held to.** `crdt_model.run`, with `aside-counts` beside its properties: a copy
+that serves under a key its own ideal sets aside ends a history. A failing history is shrunk and
+classed by what it holds: the classes of answer_runs.py, a store key lost before a start or a Create
+(decision 9), a store raised to a later format or split by starts made apart (configuration A's
+convergence on the ideal, neither wider), Seal again keeping the earlier store, the start's keep
+record and its summary entry deleted beside the stop (§639 rows 2 and 3), and `NEW`: the stop and
+the new authority's entry both deleted or edited by hand, which no class accepts, and the loss of
+the new authority's entry alone, which the first form of the start fell into and the stop closes.
+
+### The command
+
+From the branch root, in Windows PowerShell 5.1, under an ordinary user token, with `PSModulePath`
+removed when started from PowerShell 7:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1 -Starts -Parallel 4
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\compare.py --starts
+```
+
+A run of every part empties `out\starts\` and the databases `work\sa-*` and nothing of the other
+configurations'. Each model part draws on four processes of its own. Nothing shows a window.
+
+**How long**, in seconds, four parts at once on twelve logical processors, each model part on four
+processes of its own; for the five parts run again in run 1, the time of that run:
+
+| Part | Run 1 | Run 2 |
+| --- | --- | --- |
+| `exhaustive-5` | 1,704 | 1,705 |
+| `exhaustive-4`, `exhaustive-4-noauth` | 306, 175 | 336, 186 |
+| `search-3`, `search-2`, `search-noauth-3`, `search-noauth-2` | 221, 175, 241, 180 | 256, 150, 211, 165 |
+| `starts-three`, `starts-long`, `starts-hand`, `starts-two`, `starts-hand-noauth` | 246, 261, 185, 146, 100 | 276, 271, 216, 151, 146 |
+| `random`, `cells`, `room`, `dialog` | 126, 116, 15, 5 | 131, 121, 15, 5 |
+| `bridge-two`, `bridge-hand`, `model-hand`, `laws` | 5 each | 5 each |
+
+**How the runs were made.** Two runs of an earlier form of the command, with no stop under the
+earlier key, were not kept: they found that the loss of the new authority's entry serves the earlier
+store whole (`measured-started-again` section 9). The stop was added, the branch put over the
+commits of Seal again, and run 1 and run 2 were then `run.ps1 -Starts -Parallel 4`, in turn. In run
+1, once every part had run, the classes of a shrunk history were told apart further (Seal again
+keeping the earlier store, and the start's keep record deleted with its summary entry beside the
+stop, both of which had read as a keep record deleted by hand), and the five parts that class
+histories with a deletion of a keep record, `exhaustive-4`, `search-2`, `search-3`, `starts-hand`
+and `starts-hand-noauth`, were run again with `-Parts`; their outputs replace those of the first
+pass. Run 1's outputs are `recorded-starts\`, but the empty `.err` files and `times.txt`. With
+`STARTS` off, `model\store_runs.py scenarios` and `section6`, `answer_runs.py` `hand`, `losses`,
+`laws` and `bridge two`, `answers.py cells`, and `seal_runs.py` `hand`, `bridge` and `search 2`, and
+`seal.py cells` printed their records line for line, and `vectors.py --seal` the three files of
+`recorded-seal\vectors\` byte for byte but the line ends.
+
+**Compared.** Every output of run 2 is the same as `recorded-starts\` line for line, with the masks
+of "Running it": 22 files, the two listings of the vectors among them; and the three files of
+vectors printed into `out\starts\vectors\` are the same bytes as those of `recorded-starts\vectors\`
+but the line ends.
+
+| Figure | Recorded | Second run | Reproduced |
+| --- | --- | --- | --- |
+| `cells`, 288 cells: wider than the own ideal and serving under a key it sets aside, each of T16; beyond both copies; steps where file and model disagree | 17; 0; 2, entries of T10 by Overwrite existing and Keep existing, the read the same | the same | yes |
+| `cells`: T11 and T12 served nothing in every cell; T13 and T15 `a0` under `K` in every cell; T14 split by every merge that carries no deletion record into copy 1, and by every KeePassXC release into copy 0 | as stated | the same | yes |
+| `dialog`: stores; the seal's keep record the listing's plan; a split store not sealed | 4; 3 of 3; 1 | the same | yes |
+| `room`: stores stopped for no room, started again with room | 2 of 2 | the same | yes |
+| `random`: histories, steps; disagreements; steps wider than the own ideal; merges held, giving what neither copy gave (none with a start) | 300, 1,767; 0; 0; 970, 5 | the same | yes |
+| `model-hand`: cells; flagged, each of T16 | 128; 7 | the same | yes |
+| `laws`: hand cases as stated; random sets, laws violated, read.py differing, order changing; sets with circles marked in a single round | 15 of 15; 20,000, 0, 0, 0; 255 | the same | yes |
+| `exhaustive-4`: histories; the stop deleted beside the new key's carrier, `aside-counts`, `safety`, `one-loss`; with a Create as well (decision 9) | 810,000; 812, 804, 404; 64, 64, 32 | the same | yes |
+| `exhaustive-4-noauth`, `exhaustive-5`: histories; failures | 331,776, 3,200,000; none | the same | yes |
+| `starts-two`, `-three`, `-long`: failing a property that ends a history | none | the same | yes |
+| `starts-hand`: the stop deleted beside the new key's carrier (`safety`, `aside-counts`, `one-loss`, `sealed-after-a-loss`); Seal again keeping the earlier store; the start's keep record and its summary entry deleted beside the stop; decision 9; §639 rows 2 and 3; row 4 | 218, 223, 89, 1; 1; 1; 76 and 3; 16 and 6; 3 and 3 | the same | yes |
+| `starts-hand-noauth`: the start's keep record and its summary entry deleted beside the stop | 3 | the same | yes |
+| `search-2`, `search-3`: the stop deleted beside the new key's carrier, `safety`; decision 9; row 1; outdated; split by starts made apart | 7 and 7; 6 and 3; 85 and 151; 1,323 and 1,277; 12 and 30 | the same | yes |
+| `search-noauth-2`, `search-noauth-3`: rows 2 and 3; row 1 | 1 and 2; 103 and 162 | the same | yes |
+| `bridge-two`, `bridge-hand`: steps compared; differing | 11,196 and 11,021; 0 | the same | yes |
+| vectors: records, stores, sequences added; members changed or removed; `--seal` against `recorded-seal\vectors\` | 5, 9, 16; 0; the same but the line ends | the same | yes |
+
+### What was added for it
+
+Each line added or changed carries "ADDED (started again)".
+
+- `crdt_model.py`: `STARTS` and `START_STOPS`; `marked`, the marking of the keys; `keys_of`; the
+  fold under the key that stands, the states `split` and `outdated`, a keep record and a version
+  record held to a summary entry; `write_head` under the key that stands, carrying the keep records
+  and the format; the acts `restart`, with the stop under each key it sets aside, and `newer`; Seal
+  again's keep record over a stop; a pairing and a renewal under the key that stands; Create refused
+  on a split or an outdated store; `pick` of an authority by name; `restart` and `newer` in the
+  alphabet, a keep record and the first authority among what a person deletes; the property
+  `aside-counts`.
+- `store.py`: `KEYLABEL`, `keyname`, `STARTED`, `PLUGIN`; the keep record and the version record in
+  the product's form, and their items.
+- `read.py`: `STARTS`, `ROOM`, `mark_keys`; the keys found and standing, the store key alone, the
+  room, the split and outdated states; the answer's `keys`; in the listing, `setAsideBy` and the
+  keep record the seal writes.
+- `bridge.py`: `starts()`, and the keys in the comparison of the read.
+- `vectors.py`: `--starts`; the keys read.py reads in each step under `STARTS`; `starts_vectors`.
+- `model\restart_runs.py`, `probe\restart.py`, `compare_starts.py`: new.
+- `run.ps1`: `-Starts`. `compare.py`: `--starts`.
+
+### Defects and limits of this configuration
+
+Reported, not fixed.
+
+- **The model merges Overwrite existing and Keep existing as Overwrite if newer**: where two copies
+  hold the same entry with different content (T10), the file keeps the other version in 2 cells; the
+  read is the same.
+- **The model holds no history**, so an edit is damage at once there; on files an edit past the
+  limit is eleven dialog edits, and the bridge adopts what the file holds.
+- **The room is read.py's**, measured as `StoreRoom` measures it over the probe's records; the model
+  holds no ceiling, so it reads the stores of `room` whole before the start.
+- **A merge giving what neither copy gave** counts a copy that served no authority as giving
+  nothing, so a rule or a name written there and merged into a copy that serves is counted; none of
+  them is wider than its own ideal.
+- **Development trials** of every part were run under an elevated token before the recorded runs;
+  every figure here is of the two runs under an ordinary user token.
+
+### Not run in this configuration
+
+- The dialog that keeps a store among several (§649), a key past the ceiling on keys, the group of a
+  store started again, a second gate over a socket, a window, a phone, the slow key derivation, the
+  product.

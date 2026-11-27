@@ -1,0 +1,20 @@
+== the marking of STORE.md 649 step 4: crdt_model.marked and read.py's mark_keys, written apart
+   no keep record: both keys stand                                                                      stand KA+KB          as stated
+   A names B                                                                                            stand KA             as stated
+   A names B, B names C: B set aside, so its record drops and C stands                                  stand KA+KC          as stated
+   A names B and C                                                                                      stand KA             as stated
+   a circle: A names B, B names A                                                                       stand KA+KB          as stated
+   a circle settled: then A names B again, naming both earlier records in after                         stand KA             as stated
+   a later record replaces an earlier, under another key: A names B; C names A, naming r1               stand KB+KC          as stated
+   a circle A, B names C outside it: C set aside by a key that stands                                   stand KA+KB          as stated
+   a key that names itself stands                                                                       stand KA+KB          as stated
+   a record naming a key not found marks nothing                                                        stand KA+KB          as stated
+   a deletion record tells of A naming B                                                                stand KA             as stated
+   a three-circle, and a fourth key it names                                                            stand KA+KB+KC       as stated
+   restarts in a chain: B names A; C names A and B naming r1                                            stand KC             as stated
+   two restarts apart: B names A, C names A                                                             stand KB+KC          as stated
+   two circles, A and B, C and D, and A names C: both circles marked in a single round, all stand       stand KA+KB+KC+KD    as stated; KC stands though KA, which stands, names it
+   20000 random sets of 1 to 6 keys and 0 to 8 relations (80134 relations): laws violated 0; read.py's marking differs 0; the marking changed by the order of the keys, the order of the relations or a relation read twice 0
+   sets in which a key stands that a standing key names with no circle leading back, circles marked in a single round: 255
+   keys that stand: 1: 4983, 2: 4402, 3: 3981, 4: 3590, 5: 2317, 6: 727
+   hand cases not as stated: 0

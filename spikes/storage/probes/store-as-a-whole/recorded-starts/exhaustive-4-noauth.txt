@@ -1,0 +1,2 @@
+== every sequence of 4 steps of the acts of a store started again over two copies: 24 steps wide with a keep record deleted with a deletion record and with none, from the store the model starts with, the convergence checked at the end: 331776 histories  no failure
+== 170 s

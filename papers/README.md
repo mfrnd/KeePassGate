@@ -64,6 +64,7 @@ evidence to its place here.
 | `ground/measured-lost-settled.md` | `spikes\storage\probes\store-as-a-whole\`, `model\lost_runs.py all` and `compare_lost.py` | `recorded-lost\` there, with its vectors in `recorded-lost\vectors\` |
 | `ground/measured-renewal-answers.md` | `spikes\storage\probes\store-as-a-whole\`, run with `-Answers` | `recorded-answers\` there, with its vectors in `recorded-answers\vectors\` |
 | `ground/measured-seal.md` | `spikes\storage\probes\store-as-a-whole\`, run with `-Seal` | `recorded-seal\` there, with its vectors in `recorded-seal\vectors\` |
+| `ground/measured-started-again.md` | `spikes\storage\probes\store-as-a-whole\`, run with `-Starts` | `recorded-starts\` there, with its vectors in `recorded-starts\vectors\` |
 
 The two desktop families show windows and the Android records come from an emulator, so neither
 runs again from the branch without those; each `RUN.md` states what did.

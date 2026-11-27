@@ -1,0 +1,3 @@
+== 2000 histories of the acts of a store started again (two) over two copies, 4 to 12 steps, seed 71: after every step that applied, the file the copy it changed holds on disk written by store.py's Encoder and read by read.py, held to the model's fold of it (the state, the authority served, the key that stands, the keys set aside, the clients admitted)
+   steps compared 11196 (ok 10004, outdated 1180, split 12); steps that differ 0
+== 3 s

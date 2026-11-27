@@ -1,0 +1,14 @@
+== No room on files: a store composed at the ceiling of the items of a summary entry, and a store at
+   the ceiling of the after of its content (StoreFormat.MaxItems 9999, MaxWritten 262144), each read, started
+   again and read again. The model holds no ceiling, so C names the read before the start.
+## 9997 revocations, so that the next summary entry would hold 9999 items
+   written; read: incomplete, served - under K, aside -, admitted -; next summary entry names 2 summary entries in 141 characters of content, 9999 items: NO ROOM [entries 0, read 1]
+      C read, step 0, file 0: model ('ok', 'a0', [('c0', ['pf'])], [('N', 'r'), ('root', 'r')], [], ['pf'], ['K'], []); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pf'], ['K'], [])
+   started again: applies; read: ok, served a10002 under K10002, aside K, admitted -; next summary entry names 1 summary entries in 108 characters of content, 2 items: room [entries 0, read 0]
+   a name and a pairing: apply; read: ok, served a10002 under K10002, aside K, admitted c1; next summary entry names 3 summary entries in 174 characters of content, 2 items: room [entries 0, read 0]
+## 7940 summary entries deleted with deletion records, so that the summary entry over them names 7941 and the next would name 7942
+   written; read: incomplete, served - under K, aside -, admitted -; next summary entry names 7942 summary entries in 262161 characters of content, 2 items: NO ROOM [entries 0, read 1]
+      C read, step 0, file 0: model ('ok', 'a0', [('c0', ['pf'])], [('N', 'r'), ('root', 'r')], [], ['pf'], ['K'], []); read.py ('incomplete', None, [], [('N', ''), ('root', '')], [], ['pf'], ['K'], [])
+   started again: applies; read: ok, served a7945 under K7945, aside K, admitted -; next summary entry names 1 summary entries in 108 characters of content, 2 items: room [entries 0, read 0]
+   a name and a pairing: apply; read: ok, served a7945 under K7945, aside K, admitted c1; next summary entry names 3 summary entries in 174 characters of content, 2 items: room [entries 0, read 0]
+== 12 s
