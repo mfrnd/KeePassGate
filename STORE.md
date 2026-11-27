@@ -891,7 +891,13 @@ the measured code, not run).
 commands' writes, and which authority is served. `AuthorityRecord` composes and reads the
 content, `StoreAuthorities` works out the authorities that stand and the authority served, and
 `AuthorityService` writes Create, Recreate, Delete and keeping an authority as acts of §627,
-each act held to the authorities that stood when it was composed. The admissions are records of
+each act held to the authorities that stood when it was composed. **Each command is answered by
+its write, and nothing reads the store back after it** (this document's own). On the settings
+dialog the buffer holds a press only where the plan of every act held with it takes the press,
+and the page reads the store as that same plan leaves it, so a read back finds what the write
+took and could refuse nothing the write did not, while a refusal after the write would leave
+the press held for OK. Keeping an authority from KeePass's main window applies the plan the
+store made of a reading in the same turn, as the dialog's OK does. The admissions are records of
 the store as well (§615), and their removal is part of the act: the write that retires an
 authority deletes every record of kind `client` whose `issuer` is that authority (§627 step 3),
 an admission that a pairing landed under the dialog among them, since the write is planned

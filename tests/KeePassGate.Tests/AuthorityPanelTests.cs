@@ -30,9 +30,9 @@ namespace KeePassGate.Tests
     ///
     /// **Most of these build the panel over a database of its own**, which production never does:
     /// the factory always hands it a `PendingDatabase`, whose `MarkModified` does nothing and whose
-    /// buffer cannot lose a write. So a test here asserting that the database was marked modified,
-    /// or that a write the store swallowed was reported, pins the panel's own contract with
-    /// `IGateDatabase`, and the shipped path, the buffer and its replay at OK, is pinned in
+    /// buffer holds a press only where its plan takes it. So a test here asserting that the
+    /// database was marked modified pins the panel's own contract with `IGateDatabase`, and the
+    /// shipped path, the buffer and its replay at OK, is pinned in
     /// `PendingChangesTests` and `GateWiringTests`, and here by the tests that build a
     /// `PendingDatabase` of their own.
     /// </remarks>
@@ -560,21 +560,6 @@ namespace KeePassGate.Tests
                 Assert.DoesNotThrow(() => panel.CreateAuthority());
 
                 Assert.That(Label(panel, GateTab.ResultLabelName).Text, Does.Contain("the database refused it"));
-                Assert.That(_database.MarkedModifiedCount, Is.Zero);
-            }
-        }
-
-        [Test]
-        public void A_write_that_vanishes_is_reported_rather_than_celebrated()
-        {
-            _database.Records.SwallowWrites = true;
-
-            using (var panel = NewPanel(true))
-            {
-                panel.CreateAuthority();
-
-                Assert.That(Label(panel, GateTab.ResultLabelName).Text, Does.Contain("could not be read back"));
-                Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.AbsentHeadline));
                 Assert.That(_database.MarkedModifiedCount, Is.Zero);
             }
         }

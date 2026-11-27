@@ -12,11 +12,17 @@ namespace KeePassGate.Authority
     /// keep an authority where several stand, each a write into the plugin's store, `STORE.md` §614.
     /// </summary>
     /// <remarks>
-    /// Two rules run through this class. Nothing is destroyed implicitly: creating where an
-    /// authority stands is refused rather than replacing it, because replacing it revokes every
-    /// client at once and that has to be asked for. And nothing is believed without reading it
-    /// back, because a write that did not land as it was written must be reported rather than
-    /// assumed.
+    /// Nothing is destroyed implicitly: creating where an authority stands is refused rather than
+    /// replacing it, because replacing it revokes every client at once and that has to be asked
+    /// for.
+    ///
+    /// **A command is answered by its store's write, and nothing is read back after it**,
+    /// `STORE.md` §614. On the KPG tab the store is the dialog's buffer, which holds an act only
+    /// where the plan of every act held with it takes the act, and reads the store as that same
+    /// plan leaves it: a read back there finds what the plan made, so it refuses nothing the write
+    /// took, and a refusal after the write would leave the act held for OK all the same. Keeping
+    /// an authority from KeePass's main window writes through `KdbxStore`, which applies to the
+    /// database the plan it made of a reading taken in the same turn, as the tab's OK does.
     ///
     /// **Each command is an act composed now and held to its ground at the write**, `STORE.md`
     /// §627: on the KPG tab the store is the dialog's buffer, the write lands at its OK, and the
@@ -180,17 +186,6 @@ namespace KeePassGate.Authority
                 }
             }
 
-            using (var check = Read())
-            {
-                if (check.Presence != AuthorityPresence.None)
-                {
-                    _log.Warn("the authority survived a delete");
-                    return AuthorityChange.Refused(
-                        "The authority is still in the database after being deleted. Read the page again " +
-                        "before pressing anything else.");
-                }
-            }
-
             // A press on the tab only waits for the dialog's OK, which a Cancel drops, so nothing
             // is logged as done there.
             if (!waits)
@@ -209,8 +204,7 @@ namespace KeePassGate.Authority
         /// <remarks>
         /// **An answer is about the authorities it was given among**, and the write is refused
         /// once any other set stands, as <see cref="AuthorityChange.IsOvertaken"/>, for a caller
-        /// that puts the question again: the database is as a synchronize left it. Read back like
-        /// everything else here, and believed only if what is served afterwards is the authority kept.
+        /// that puts the question again: the database is as a synchronize left it.
         /// </remarks>
         /// <param name="fingerprint">The `id` of the authority to keep.</param>
         /// <param name="offered">The `id` of every authority the question listed.</param>
@@ -266,17 +260,6 @@ namespace KeePassGate.Authority
 
                     _log.Error("an authority could not be kept: " + written, null);
                     return AuthorityChange.Refused("The authority could not be kept: " + written);
-                }
-            }
-
-            using (var check = Read())
-            {
-                if (!check.IsPresent || !string.Equals(check.Material.AuthorityDigest, fingerprint, StringComparison.Ordinal))
-                {
-                    _log.Warn("an authority was kept and the database does not read back as serving it");
-                    return AuthorityChange.Refused(
-                        "The authority was kept and the database does not read back as holding it " +
-                        "alone. Read the page again before pressing anything else.");
                 }
             }
 
@@ -386,9 +369,8 @@ namespace KeePassGate.Authority
         }
 
         /// <summary>
-        /// Mints an authority and its host certificate, writes it with a retirement of each
-        /// authority it replaces, and reads it back, which is what creating and recreating have in
-        /// common.
+        /// Mints an authority and its host certificate and writes it with a retirement of each
+        /// authority it replaces, which is what creating and recreating have in common.
         /// </summary>
         private AuthorityChange Issue(string verb, StoreReading reading, IReadOnlyList<string> replacing)
         {
@@ -446,47 +428,13 @@ namespace KeePassGate.Authority
                 }
             }
 
-            // Read back out of the store that was written to. On the tab that store is the tab's
-            // own buffer, so this proves the record round-trips through the format and not that
-            // it reached the database: the write that does that happens when the dialog is
-            // accepted, and is reported there.
-            using (var check = Read())
+            // Logged as done only where it is done, as a Delete is.
+            if (!waits)
             {
-                // Present is not enough: a write the store swallowed leaves the authority that was
-                // already there, which reads back as present. The digest of what was just minted
-                // is the only thing that separates the two.
-                if (!check.IsPresent ||
-                    !string.Equals(check.Material.AuthorityDigest, minted, StringComparison.Ordinal))
-                {
-                    _log.Warn("the authority was written and could not be read back");
-                    return AuthorityChange.Refused(NotReadBack(check.Presence));
-                }
-
-                // Logged as done only where it is done, as a Delete is.
-                if (!waits)
-                {
-                    _log.Info("authority " + verb + ", digest " + check.Material.AuthorityDigest);
-                }
-
-                return AuthorityChange.Done();
+                _log.Info("authority " + verb + ", digest " + minted);
             }
-        }
 
-        /// <summary>
-        /// What the operator is told when the record was written and the read back did not find it whole.
-        /// </summary>
-        /// <remarks>
-        /// Two states rather than a single state, because the operator's next move differs. Nothing standing
-        /// is a write the store did not keep. Something unreadable standing is the write landing:
-        /// the database now carries an authority this plugin refuses, and Create answers
-        /// "recreate it" from here on.
-        /// </remarks>
-        private static string NotReadBack(AuthorityPresence presence)
-        {
-            return presence == AuthorityPresence.Damaged
-                ? "The authority was written and could not be read back, so this database now holds " +
-                  "an authority that cannot be used. Recreate it to replace it."
-                : "The authority was written and could not be read back, so nothing was stored.";
+            return AuthorityChange.Done();
         }
 
         private static byte[] NewSniKey()

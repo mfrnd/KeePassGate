@@ -12,8 +12,8 @@ using NUnit.Framework;
 namespace KeePassGate.Tests
 {
     /// <summary>
-    /// The three things an operator can do, and the two rules that run through all of them:
-    /// nothing is destroyed implicitly, and nothing is believed without being read back.
+    /// The things an operator can do to an authority, and the rule that runs through all of them:
+    /// nothing is destroyed implicitly.
     /// </summary>
     [TestFixture]
     public sealed class AuthorityServiceTests
@@ -348,18 +348,6 @@ namespace KeePassGate.Tests
             Assert.That(Retired(), Does.Not.Contain(digests[1]), "nothing is retired");
         }
 
-        [Test]
-        public void A_choice_that_does_not_land_is_not_reported_as_made()
-        {
-            var digests = Undecided();
-            _records.SwallowWrites = true;
-
-            var result = _service.Keep(digests[1], digests);
-
-            Assert.That(result.Succeeded, Is.False, result.Message);
-            Assert.That(result.Message, Does.Contain("Read the page again"));
-        }
-
         /// <summary>
         /// Makes the database undecided, as copies that each recreated an authority leave it once
         /// they are merged: authorities side by side and none of them retired, two here. Answers
@@ -393,83 +381,6 @@ namespace KeePassGate.Tests
 
             Assert.That(result.Succeeded, Is.True, result.Message);
             Assert.That(_log.Warnings, Is.Empty);
-        }
-
-        [Test]
-        public void A_write_that_vanishes_is_reported_rather_than_believed()
-        {
-            // A store that loses a write: it is accepted and it is not there.
-            _records.SwallowWrites = true;
-
-            var result = _service.Create();
-
-            Assert.That(result.Succeeded, Is.False);
-            Assert.That(result.Message, Does.Contain("could not be read back"));
-            Assert.That(result.Message, Does.Contain("nothing was stored"));
-            Assert.That(_log.Warnings, Is.Not.Empty);
-        }
-
-        [Test]
-        public void A_write_that_lands_unusable_is_not_reported_as_nothing_having_happened()
-        {
-            // The other half of a failed read back. The authority is in the database and cannot
-            // be read, so the next press of Create is answered with "recreate it": a refusal
-            // stating nothing changed contradicts the very next thing the tab does.
-            _records.DamageAuthorities = true;
-
-            var result = _service.Create();
-
-            Assert.That(result.Succeeded, Is.False);
-            Assert.That(result.Message, Does.Contain("now holds an authority that cannot be used"));
-            Assert.That(result.Message, Does.Not.Contain("nothing"));
-
-            _records.DamageAuthorities = false;
-            var second = _service.Create();
-            Assert.That(second.Message, Does.Contain("cannot be read"),
-                "which is the answer the refusal above has to be consistent with");
-        }
-
-        [Test]
-        public void A_recreation_that_did_not_land_is_not_reported_as_having_worked()
-        {
-            // A swallowed write leaves the authority that was already there, and reading back only
-            // far enough to find one present is satisfied by it: the operator was told the
-            // recreation had worked, and told how many clients it had revoked, while the authority
-            // and all of those clients were untouched.
-            _service.Create();
-            string before;
-            using (var reading = _service.Read())
-            {
-                before = reading.Material.AuthorityDigest;
-            }
-
-            _records.SwallowWrites = true;
-            var result = _service.Recreate();
-
-            Assert.That(result.Succeeded, Is.False, result.Message);
-
-            _records.SwallowWrites = false;
-            using (var reading = _service.Read())
-            {
-                Assert.That(reading.Material.AuthorityDigest, Is.EqualTo(before),
-                    "the refusal has to be about the authority that is really there");
-            }
-        }
-
-        [Test]
-        public void A_deletion_that_does_not_land_does_not_claim_the_database_is_untouched()
-        {
-            // A delete the store swallowed leaves the authority standing, which is the case being
-            // reported, and reporting it as a change that changed nothing sends the operator away
-            // from a database that needs looking at.
-            _service.Create();
-            _records.SwallowWrites = true;
-
-            var result = _service.Delete();
-
-            Assert.That(result.Succeeded, Is.False);
-            Assert.That(result.Message, Does.Contain("still in the database"));
-            Assert.That(result.Message, Does.Not.Contain("Nothing was changed"));
         }
 
         [Test]
