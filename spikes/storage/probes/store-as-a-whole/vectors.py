@@ -173,6 +173,15 @@ ARGS = sys.argv[1:]
 # records, the stores and the sequences of measured-renewal-answers, each made with crdt_model.ANSWERS
 # and read.ANSWERS on while it is made, and off for everything else, so that every other vector is as
 # `--lost` prints it.
+# ADDED (seal again): `--seal` is `--answers` with Seal again added: the records the seal writes, the
+# stores of a stopped store with read.py's listing of what it lost, and the sequences R1 to R21 of
+# measured-seal, each made with crdt_model.SEAL and read.SEAL on while it is made, and off for
+# everything else, so that every other vector is as `--answers` prints it.
+SEALING = '--seal' in ARGS
+if SEALING:
+    ARGS.remove('--seal')
+    if '--answers' not in ARGS:
+        ARGS.append('--answers')
 ANSWERING = '--answers' in ARGS
 if ANSWERING:
     ARGS.remove('--answers')
@@ -1415,6 +1424,10 @@ def read_copy(W, enc, i, tree):
     rep = W.reps[i]
     eids = sorted(eid for u, (eid, mt, ok) in rep.entries.items() if u == eid and ok)
     written = [enc.entry(eid) for eid in eids]
+    if M.SEAL:      # ADDED (seal again): an entry edited past the limit, its content and a space, no history
+        for eid in sorted(eid for u, (eid, mt, ok) in rep.entries.items() if u == eid and not ok):
+            u, title, s, prot = enc.entry(eid)
+            written.append((u, title, dict(s, **{'KPG.Data': s['KPG.Data'] + ' '}), prot))
     d = dump([(u, s, []) for (u, title, s, prot) in written], [enc.u(x) for x in rep.dels])
     d['groups'] = {g: {'parent': p} for g, p in tree.items()}     # ADDED (rules per profile)
     return eids, written, d, R.read(d, history=True)
@@ -1426,19 +1439,24 @@ def state(W, enc, i, tree):
     rep = W.reps[i]
     eids, written, d, r = read_copy(W, enc, i, tree)
     heads = []
-    for (u, title, s, prot) in written:
+    for (u, title, s, prot) in written[:len(eids)]:     # ADDED (seal again): [:len(eids)], no damage
         if s['KPG.Kind'] == 'head':
             h = json.loads(s['KPG.Data'])
             heads.append({'id': u, 'height': int(h['height']), 'after': len(h['after'].split()),
                           'items': [json.loads(s[k]) for k in sorted(s)
                                     if k.startswith('KPG.S.')]})
-    return {'copy': i, 'keys': sorted(set(S.keybytes(W.EL[eid].key).hex() for eid in eids)),
+    more = {}
+    if M.SEAL:      # ADDED (seal again): the entries edited past the limit, and read.py's listing
+        more['damaged'] = sorted((described(enc, eid) for u, (eid, mt, ok) in rep.entries.items()
+                                  if u == eid and not ok), key=by_record)
+        more['losses'] = r['losses']
+    return dict(more, **{'copy': i, 'keys': sorted(set(S.keybytes(W.EL[eid].key).hex() for eid in eids)),
             'present': sorted((described(enc, eid) for eid in eids), key=by_record),
             'deletions': sorted((described(enc, x) for x in rep.dels), key=by_record),
             'heads': sorted(heads, key=lambda h: (h['height'], h['id'])),
             'answer': dict(answer(r), rules=rules(r, [ROOT] + sorted(tree, key=depth_of(tree))),
                            **({'renewals': renewals(r)} if M.ANSWERS else {})),     # ADDED (renewal answers)
-            'file': files(d)}
+            'file': files(d)})
 
 
 def depth_of(tree):
@@ -1892,6 +1910,179 @@ if ANSWERING:
         'copy\'s reading refuses at its clock; Pair and Revoke as before; Delete by hand, Seal again and '
         'Lose version as before; and Write text out of form its unreadable act, somebody holding the store '
         'key writing an answer whose text is refuse:until:2026-12-15 and a summary entry.')
+
+
+# ADDED (seal again): Seal again, measured in measured-seal: what a stopped store lost as read.py
+# lists it, the versions granting nothing the seal writes, and R1 to R21 of probe/seal.py.
+def damaged(e):
+    """An entry edited past the history limit: its content and a space, no history, so that no
+    version of it passes."""
+    u, s, hist = e
+    return (u, dict(s, **{'KPG.Data': s['KPG.Data'] + ' '}), [])
+
+
+def seal_stores():
+    """Small stores that stop, each read by read.py with its listing on, and the records the seal
+    writes over three of them."""
+    R.ANSWERS = M.ANSWERS = S.HEX = R.SEAL = True
+    GONE = S.ident(ONE, 'head', 'store', 7, 'ab' * 32)      # a summary entry nothing names
+    ROWV = ruled(PF, ROW_R)
+    ROWV2 = ruled(PF, ROW_RU, nonce=NONCE2)
+    SWV = ruled(SW, SW_DENY)
+    ANS = entry('version', {'after': '', 'doc': 'refuse:forever', 'nonce': NONCE, 'object': RENEW})
+    ANS2 = entry('version', {'after': '', 'doc': 'refuse:until:' + MOMENT1, 'nonce': NONCE2, 'object': RENEW})
+    UNKNOWN = ruled('rule:%s/pf' % ('ee' * 16), ROW_R)
+    base = [AUTH1, PROFILE, ADMITTED, ROOT_PF, ROOT_PG]
+    root_items = [restates(ROOT_PF), restates(ROOT_PG)]
+
+    def store(present, dels=(), items=None, head=True):
+        items = root_items if items is None else items
+        d = dump(list(present) + ([summary(*items)] if head else []), dels)
+        d['groups'] = {g: {'parent': p} for g, p in TREE.items()}
+        return d
+
+    edited_head = store(base)
+    h = summary(*root_items)
+    edited_head['entries'][h[0]]['strings'] = damaged(h)[1]
+    stores = {
+        'stopped: no summary entry in force': store(base, [GONE], head=False),
+        'stopped: a summary entry deleted that nothing in force replaces': store(base, [GONE]),
+        'stopped: a revocation edited past the limit, restated by the summary entry': store(
+            base + [damaged(REVOKED)], items=root_items + [REVOKING]),
+        'stopped: an admission edited past the limit': store([AUTH1, PROFILE, damaged(ADMITTED), ROOT_PF, ROOT_PG]),
+        'stopped: a version of a row edited past the limit, restated by the summary entry': store(
+            base + [damaged(ROWV)], items=root_items + [restates(ROWV)]),
+        'stopped: a version of a row edited past the limit, which no summary entry restates': store(
+            base + [damaged(ROWV)], [GONE], head=False),
+        'stopped: the summary entry edited past the limit': edited_head,
+        'stopped: an answer edited past the limit, restated by the summary entry': store(
+            base + [damaged(ANS)], items=root_items + [restates(ANS)]),
+        'stopped: a revocation no summary entry restates': store(base + [REVOKED]),
+        'stopped: a version of a row no summary entry restates': store(base + [ROWV]),
+        'stopped: a lost version of a row': store(base + [ROWV2], [ROWV[0], GONE], head=False),
+        'stopped: a lost version of the switch': store(base, [SWV[0], GONE], head=False),
+        'stopped: a lost answer': store(base + [ANS2], [ANS[0], GONE], head=False),
+        'stopped: a revocation known by its deletion record alone': store(base, [REVOKED[0], GONE], head=False),
+        'stopped: a retirement known by its deletion record alone': store(base + [AUTH2], [RETIRED[0], GONE],
+                                                                          head=False),
+        'stopped: a removal known by its deletion record alone': store(base, [REMOVED[0], GONE], head=False),
+        'stopped: two at once, a lost version of a row and a revocation edited past the limit': store(
+            base + [damaged(REVOKED)], [ROWV[0], GONE], head=False),
+        'stopped: a deletion record of a version of a node the file does not know': store(
+            base, [UNKNOWN[0], GONE], head=False),
+    }
+    for name, d in sorted(stores.items()):
+        r = R.read(d, history=True)
+        out['meanings']['meanings'][name] = dict(files(d), **answer(r), losses=r['losses'],
+                                                 rules=rules(r, [ROOT, N, BELOW]), renewals=renewals(r))
+    # the versions the seal writes, as read.py's listing plans them, composed as records
+    made = {}
+    for name, label in (('stopped: a lost version of a row', 'version, the seal\'s empty rule of a row, naming the '
+                         'standing version and the lost one'),
+                        ('stopped: a lost version of the switch', 'version, the seal\'s switch refusing, naming '
+                         'the lost version'),
+                        ('stopped: a lost answer', 'version, the seal\'s refusal of renewals forever, naming the '
+                         'standing version and the lost answer')):
+        (plan,) = out['meanings']['meanings'][name]['losses']['seal']
+        if plan['object'].startswith('renew:'):
+            made[label] = answer_record(plan['doc'], after=plan['after'], lost=plan['lost'], obj=plan['object'])
+        else:
+            made[label] = rule_record(plan['object'], plan['doc'], after=plan['after'], lost=plan['lost'])
+    out['records']['records'].update(made)
+    out['records']['records']['head of height 1, restating the seal\'s versions'] = record(
+        'head', {'after': '', 'height': '1', 'nonce': NONCE},
+        [FORMAT] + [restating_version(x) for x in made.values()], 1)
+    out['records']['about'] += (
+        ' The records whose names hold the seal\'s are the versions granting nothing that Seal again writes, '
+        'measured in measured-seal, each composed from the plan read.py\'s listing makes over the store of '
+        'the meanings file named stopped: a lost version of a row, of the switch, and a lost answer: an empty '
+        'rule, row:, for a row, the switch refusing, sw:deny, for a switch, and refuse:forever for an answer; '
+        'after names every version of the object in force and what those name in after, and lost the lost '
+        'versions the store\'s deletion records tell of and what the versions in force name in lost. The '
+        'summary entry restating the seal\'s versions holds an item for each.')
+    out['meanings']['about'] += (
+        ' The stores whose names begin with stopped: are stores that stop, read by read.py with its listing '
+        'of what a stopped store lost on (read.SEAL), for Seal again as measured-seal measured it. Each holds '
+        'the first authority, the profile record, the admission and the root\'s rows of pf and pg granting RU '
+        'but where its name gives otherwise, the summary entry restating the root\'s rows and what its name '
+        'gives, or none, and the records and deletion records its name gives. An entry edited past the '
+        'history limit holds its content followed by a space and no history, so that no version of it '
+        'passes. The summary entry nothing names is the one of the readings file, of height 7. losses holds '
+        'reasons, every condition of STORE.md 624 that holds, not only the first; damaged, each entry that '
+        'is damage with its identifier, the kind its tag names and its title, empty here; heads, every '
+        'deletion record that tells of a summary entry and that no summary entry in force names, where a '
+        'summary entry is in force; notRestated, each record present no summary entry present restates; '
+        'byDeletion, each revocation and retirement by its client key or authority, and each removal by its '
+        'name and identifier, that only a deletion record states; lost, each object a lost version makes '
+        'refuse with the identifiers; refusesAfter, each object that the deletion record of a damaged '
+        'version would make refuse once the seal has deleted it with a deletion record; and seal, the '
+        'versions granting nothing the seal writes, each with its object, its text, after and lost, where '
+        'the store is stopped with its key held. A deletion record of a version of a node the file does not '
+        'know tells of nothing, and the seal writes nothing for it.')
+    R.ANSWERS = M.ANSWERS = S.HEX = R.SEAL = False
+
+
+def seal_command(op):
+    if op[0] == 'merge':
+        return {'kp_sync': 'Synchronize', 'kp_other': 'Overwrite if newer', 'xc': 'Merge by KeePassXC'}[op[1]]
+    if op[0] == 'row':
+        return 'Remove row' if op[4] == 'off' else 'Set row'
+    if op[0] == 'renew':
+        return answer_command(op)
+    if op[0] == 'reseal+':
+        return 'Seal again with ' + seal_command(op[2])
+    return {'sealsee': 'Show seal', 'reseal': 'Seal again', 'edit': 'Edit past the limit', 'delauth': 'Delete',
+            'create': 'Create', 'recreate': 'Recreate', 'padd': 'Add name', 'prem': 'Remove name',
+            'rule': 'Set rows', 'switch': 'Set switch', 'pair': 'Pair', 'revoke': 'Revoke',
+            'renewcert': 'Renew', 'del': 'Delete by hand', 'lose': 'Lose version'}[op[0]]
+
+
+if SEALING:
+    import seal as SL       # noqa: E402
+    seal_stores()
+    # A7 of the answers, played past the seal with SEAL on, held to the sequence printed above
+    AN_A7 = [h for h in AN.histories() if h[0] == 'A7'][0]
+    a7_name = 'answers, A7: ' + AN_A7[1]
+    M.ANSWERS = R.ANSWERS = S.HEX = M.SEAL = R.SEAL = True
+    again = play(2, [(answer_command(op), op) for op in AN_A7[2] + [INTO_0, INTO_1] + AN.bound(AN_A7[3], 0)])
+    again['clients'] = {c: S.cert_hex(c) for c in ('c0', 'c1')}
+    again['clock'] = list(M.CLOCK)
+    for x in again['steps'] + [again['start']]:
+        x.pop('damaged', None)
+        x.pop('losses', None)
+    sys.stderr.write('A7 played with SEAL on: %s\n' % (
+        'the same as printed' if again == out['writes']['sequences'][a7_name] else 'DIFFERS'))
+    for label, what, ops, then in SL.histories(rows=True):
+        made_seq = play(2, [(seal_command(op), op) for op in ops + [INTO_0, INTO_1] + SL.bound(then, 0)])
+        made_seq['clients'] = {c: S.cert_hex(c) for c in ('c0', 'c1', 'c2')}
+        made_seq['clock'] = list(M.CLOCK)
+        if label in SL.ACCEPTED:
+            made_seq['accepted'] = SL.ACCEPTED[label]
+        out['writes']['sequences']['seal, %s: %s' % (label, what)] = made_seq
+    M.ANSWERS = R.ANSWERS = S.HEX = M.SEAL = R.SEAL = False
+    out['writes']['about'] += (
+        ' The sequences whose names begin with seal and a comma are R1 to R21 of measured-seal, Seal again, '
+        'played by the model with its answers and Seal again on (crdt_model.ANSWERS and SEAL) and read by '
+        'read.py with its readings of answers and of what a stopped store lost on: each sequence\'s acts, then '
+        'a Synchronize of copy 1 into copy 0 and of copy 0 into copy 1, then the acts that follow in copy 0. '
+        'R3s, a lost version of the switch, is played with rows alone, and the rule of N is played on pf\'s '
+        'row: Set rows with none empties every row at N. Every step adds damaged, each entry of the copy '
+        'edited past the history limit, written with its content followed by a space and no history, and '
+        'losses, read.py\'s listing as the meanings file gives it. The further commands: Show seal is the '
+        'model\'s sealsee, the seal\'s dialog, applying only on a stopped store; Seal again its reseal: for '
+        'each object a lost version makes refuse, a version granting nothing, naming in after the versions of '
+        'the object in force and what they name there and in lost what was lost and what those name there; '
+        'then a summary entry over everything that passes and is in force, every entry that is damage '
+        'deleted with a deletion record, and every summary entry present, told of or damaged named in its '
+        'after; refused where it would leave no entry holding the store key. Seal again with an act is its '
+        'reseal+: the seal and the act in a single write with one summary entry, the act composed over the '
+        'sealed store. Edit past the limit is its edit; Delete, Create and Recreate the commands on the '
+        'authority, Create refused on a stopped store while a store key stands; Add name and Remove name its '
+        'padd and prem; Merge by KeePassXC its xc merge. The sequence that holds accepted is the class of '
+        'STORE.md 639 row 5, which the sequence ends in: the copy merged into admits the client whose '
+        'revocation was lost with no deletion record before the seal, and a test holds it as accepted, never '
+        'as decided. A7 of the answers is played past the seal already above, and with Seal again on it '
+        'gives the same.')
 
 
 def product(readings):
