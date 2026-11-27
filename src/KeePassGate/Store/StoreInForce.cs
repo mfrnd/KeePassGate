@@ -41,6 +41,15 @@ namespace KeePassGate.Store
     /// away, and where the record and its item are lost as well, a renewal's `from` is the text
     /// left that names the certificate. Knowing a key only lets a deletion record refuse.
     ///
+    /// **A decision whose subject the file names nowhere is held by what tells of it**, `STORE.md`
+    /// §611: a revocation or a retirement a deletion record tells of, by that record's keyed tag
+    /// and subject hash, and a removal of a name by its identifier, and so is an item with no
+    /// subject that holds the same. Such an item tells its decision of every subject the file names
+    /// whose keyed tag and subject hash it holds, as a deletion record does, and restates every
+    /// record of its kind whose identifier begins with its hash, or the removal whose identifier
+    /// it holds; what tells of a subject the file names nowhere is restated by an item with no
+    /// subject, which every write carries until the subject is named.
+    ///
     /// **A certificate taken away is a set of statements**, `STORE.md` §648: each record of the
     /// kind by its identifier, each item of the kind as it is, and each deletion record of the
     /// kind that no record present and no item answers for, as a record whose content is
@@ -57,9 +66,10 @@ namespace KeePassGate.Store
     /// record at the place of a version is answered by a search of the lists in force of what it
     /// tells of. A store after many renewals still costs each hold a few lookups for each renewal
     /// ever made, for good, since KeePass keeps every deletion record, `STORE.md` §643. A subject
-    /// is hashed only where a deletion record under the key carries
-    /// the tag of a kind about that subject, and the hash is kept with the key, so a hold of a
-    /// store whose deletion records tell of nothing hashes nothing, `FoundKey.Subject`. Everything
+    /// is hashed only where a deletion record under the key carries the tag of a kind about that
+    /// subject, or an item with no subject of such a kind is present, and the hash is kept with the
+    /// key, so a hold of a store whose deletion records tell of nothing hashes nothing,
+    /// `FoundKey.Subject`. Everything
     /// is worked out as the reading is made, but the hash of the name an addition is composed
     /// for: what is handed out is read and never changed, by whichever thread holds the reading.
     ///
@@ -93,6 +103,9 @@ namespace KeePassGate.Store
 
         private readonly Dictionary<string, HashSet<string>> _taken = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
 
+        /// <summary>What a deletion record alone takes away, by kind, <see cref="ByDeletion"/>.</summary>
+        private readonly Dictionary<string, HashSet<string>> _byDeletion = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
         /// <summary>
         /// The removals of names, each by its name and the identifier of its record, its item's
         /// `id` or its deletion record: a summary entry restates each apart, `STORE.md` §611.
@@ -107,6 +120,20 @@ namespace KeePassGate.Store
         /// what tells of a removal of a name once the name is known, <see cref="RemovalsOnceKnown"/>.
         /// </summary>
         private readonly Dictionary<long, List<string>> _removalDeletions = new Dictionary<long, List<string>>();
+
+        /// <summary>
+        /// The decisions whose subject the file names nowhere, by kind, `STORE.md` §611: of a
+        /// revocation and a retirement each keyed tag and subject hash, and of a removal each
+        /// identifier, that a deletion record tells of or an item with no subject holds. What a
+        /// summary entry restates with no subject.
+        /// </summary>
+        private readonly Dictionary<string, SortedSet<string>> _unnamed = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// What the items with no subject of the summary entries present restate, by kind: each
+        /// keyed tag and subject hash, and each identifier of a removal.
+        /// </summary>
+        private readonly HashSet<(string Kind, string Carried)> _restatingUnnamed = new HashSet<(string Kind, string Carried)>();
 
         /// <summary>The keep records a summary entry carries, by identifier, each with its item's members.</summary>
         private readonly Dictionary<string, IReadOnlyDictionary<string, string>> _kept =
@@ -221,13 +248,15 @@ namespace KeePassGate.Store
         /// only of a name the file knows, `STORE.md` §623 step 2, so where the removal's record
         /// and every item restating it are gone, the reading holds no removal of a name that
         /// nothing else names, and the file the addition is written into tells of the removal by
-        /// its deletion record. It rules out an addition naming only what
-        /// <see cref="RemovalsOf"/> holds, which its own write would put out of force.
+        /// its deletion record, or by an item with no subject holding its identifier, `STORE.md`
+        /// §611. It rules out an addition naming only what <see cref="RemovalsOf"/> holds, which
+        /// its own write would put out of force.
         ///
         /// **Asked by whoever composes an addition**, over a reading whose key it composes under:
         /// the name is hashed under the key's bytes, as composing the addition hashes it, and not
         /// through the key's cache, which only the thread making the reading asks. Nothing is
-        /// hashed where no deletion record carries the tag of kind `removed`, and where the key's
+        /// hashed where no deletion record and no item with no subject carries the tag of kind
+        /// `removed`, and where the key's
         /// bytes were overwritten, as letting the reading go overwrites them, the call throws
         /// rather than answer with fewer removals.
         /// </remarks>
@@ -273,10 +302,62 @@ namespace KeePassGate.Store
         public IReadOnlyList<string> Told { get; private set; }
 
         /// <summary>
-        /// A summary entry that a deletion record tells of and that nothing in force replaces, or
-        /// null: a summary entry deleted that nothing present stands in for, `STORE.md` §624.
+        /// Every summary entry that a deletion record tells of and that nothing in force replaces,
+        /// ascending: summary entries deleted that nothing present stands in for, `STORE.md` §624.
         /// </summary>
-        public string Lost { get; private set; }
+        public IReadOnlyList<string> LostHeads { get; private set; }
+
+        /// <summary>
+        /// The values a kind restated by a member takes away by a deletion record alone, `STORE.md`
+        /// §623 step 2: a client revoked or an authority retired that no record present and no item
+        /// of a summary entry present names. None for a removal, which
+        /// <see cref="RemovalsByDeletion"/> holds, and for any other kind.
+        /// </summary>
+        public IReadOnlyCollection<string> ByDeletion(string kind)
+        {
+            HashSet<string> values;
+            return kind != null && _byDeletion.TryGetValue(kind, out values) ? values : Nothing;
+        }
+
+        /// <summary>
+        /// The removals of names known by a deletion record alone, each its name and the deletion
+        /// record's identifier: no record present and no item carries that identifier.
+        /// </summary>
+        public IReadOnlyCollection<KeyValuePair<string, string>> RemovalsByDeletion { get; private set; } = Array.Empty<KeyValuePair<string, string>>();
+
+        /// <summary>
+        /// The revocations, the retirements and the removals of names a deletion record alone
+        /// tells of whose subject the file names nowhere, each with every deletion record that
+        /// tells of it, by kind and then by what the summary entry's item holds, `STORE.md` §611:
+        /// none that an item with no subject carries.
+        /// </summary>
+        public IReadOnlyList<StoreUnnamed> UnnamedByDeletion { get; private set; } = Array.Empty<StoreUnnamed>();
+
+        /// <summary>
+        /// What a summary entry written over this reading restates with no subject for a kind,
+        /// ascending, `STORE.md` §611: of a revocation and a retirement each keyed tag and subject
+        /// hash, and of a removal each identifier, whose subject the file names nowhere. None for
+        /// any other kind.
+        /// </summary>
+        public IReadOnlyCollection<string> Unnamed(string kind)
+        {
+            SortedSet<string> carried;
+            return kind != null && _unnamed.TryGetValue(kind, out carried) ? carried : Nothing;
+        }
+
+        /// <summary>
+        /// The certificates taken away by a deletion record alone, each the deletion record's
+        /// identifier and the admission key it tells of, `STORE.md` §648: statements of their own
+        /// whose content is nowhere.
+        /// </summary>
+        public IReadOnlyCollection<KeyValuePair<string, string>> WithdrawnByDeletion { get; private set; } = Array.Empty<KeyValuePair<string, string>>();
+
+        /// <summary>
+        /// Every object that the deletion record of a damaged version would make refuse, once the
+        /// seal has deleted the version with one, and that no lost version of the reading makes refuse,
+        /// ascending, `STORE.md` §625: none where no version is damaged.
+        /// </summary>
+        public IReadOnlyList<string> RefusesAfter { get; private set; } = Array.Empty<string>();
 
         /// <summary>
         /// The authorities that stand under the key: in force, and named by no retirement, by
@@ -411,11 +492,17 @@ namespace KeePassGate.Store
         }
 
         /// <summary>
-        /// The first record that takes something away, or holds a plugin back, and that no
-        /// summary entry restates as its row of `STORE.md` §658 has it, or null, `STORE.md` §624.
+        /// Every record that takes something away, or holds a plugin back, and that no summary
+        /// entry restates as its row of `STORE.md` §658 has it, in the order of
+        /// <see cref="Records"/>, `STORE.md` §624: none in a store whose decisions are restated.
         /// </summary>
-        public FoundRecord NotRestated()
+        /// <remarks>
+        /// Every record is asked, also after the first that fails: a store that is whole asks every
+        /// record either way, and a stopped store's dialog lists each.
+        /// </remarks>
+        public IReadOnlyList<FoundRecord> NotRestated()
         {
+            var notRestated = new List<FoundRecord>();
             foreach (var record in Records.Where(record => record.Form.ReadsAsKind))
             {
                 var row = record.Form.Row;
@@ -423,9 +510,9 @@ namespace KeePassGate.Store
                 {
                     case StoreRestated.BySameMember:
                         var restated = (row.Name, record.Form.Member(row.RestatedBy), row.Name == StoreKinds.Removed ? record.Hex : null);
-                        if (!Restating.Contains(restated))
+                        if (!Restating.Contains(restated) && !_restatingUnnamed.Contains((row.Name, CarriedOf(row, record.Hex))))
                         {
-                            return record;
+                            notRestated.Add(record);
                         }
 
                         break;
@@ -440,7 +527,7 @@ namespace KeePassGate.Store
 
                         if (!Restating.Contains((row.Name, record.Hex, null)))
                         {
-                            return record;
+                            notRestated.Add(record);
                         }
 
                         break;
@@ -448,7 +535,7 @@ namespace KeePassGate.Store
                     case StoreRestated.ByFormat:
                         if (ItemFormat < record.Form.Number)
                         {
-                            return record;
+                            notRestated.Add(record);
                         }
 
                         break;
@@ -457,14 +544,14 @@ namespace KeePassGate.Store
                         // Only by an item of its identifier holding the same of every member.
                         if (!_itemStatements.Contains(StatementOf(record.Hex, record.Form.Members)))
                         {
-                            return record;
+                            notRestated.Add(record);
                         }
 
                         break;
                 }
             }
 
-            return null;
+            return notRestated;
         }
 
         /// <summary>
@@ -484,12 +571,18 @@ namespace KeePassGate.Store
         /// The identifier of every group and entry of the tree, walked only where a deletion record
         /// of a version is left that no node the objects name explains; null where there is none.
         /// </param>
+        /// <param name="damagedVersions">
+        /// The identifiers of the entries that are damage under the tag of kind `version`, each
+        /// told of as the deletion record the seal leaves for it would be, for
+        /// <see cref="RefusesAfter"/>; none, or null, for a store with no such damage.
+        /// </param>
         public static StoreInForce Of(
             FoundKey key,
             IReadOnlyList<FoundRecord> records,
             IReadOnlyDictionary<int, List<StoreId>> byTag,
             IReadOnlyCollection<KeyValuePair<string, string>> keptByDeletion,
-            Func<IEnumerable<byte[]>> nodes)
+            Func<IEnumerable<byte[]>> nodes,
+            IReadOnlyList<StoreId> damagedVersions = null)
         {
             var made = new StoreInForce { Key = key, Records = records };
             made.Heads = records.Where(record => record.Is(StoreKinds.Head)).ToList();
@@ -520,7 +613,7 @@ namespace KeePassGate.Store
             made.Highest(key, byKind);
             made.Take(key, byKind);
             made.Restate();
-            made.Index(key, byKind[StoreKinds.Version], nodes);
+            made.Index(key, byKind[StoreKinds.Version], nodes, damagedVersions ?? Array.Empty<StoreId>());
 
             var retired = made._taken[StoreKinds.Retired];
             made.Authorities = records
@@ -555,8 +648,9 @@ namespace KeePassGate.Store
         /// The authorities that stand under a key, and nothing else of what is in force: what a
         /// word is answered under where several keys stand, `STORE.md` §656. The authority
         /// records in force, less those a retirement names by record, by an item of any summary
-        /// entry present, or by a deletion record of its tag whose subject hash is that of an
-        /// authority present: the `id` of an authority present is the only value hashed.
+        /// entry present, or by a deletion record of its tag or an item with no subject holding
+        /// that tag whose subject hash is that of an authority present: the `id` of an authority
+        /// present is the only value hashed.
         /// </summary>
         public static IReadOnlyList<FoundRecord> Standing(
             FoundKey key, IReadOnlyList<FoundRecord> records, IReadOnlyDictionary<int, List<StoreId>> byTag)
@@ -576,8 +670,9 @@ namespace KeePassGate.Store
 
         /// <summary>
         /// The authorities a retirement under a key names, of those whose `id` is given: by
-        /// record, by an item of any summary entry present, or by a deletion record of its tag
-        /// whose subject hash is that of an `id` given, which are the only values hashed.
+        /// record, by an item of any summary entry present, or by a deletion record of its tag or
+        /// an item with no subject holding that tag, `STORE.md` §611, whose subject hash is that of
+        /// an `id` given, which are the only values hashed.
         /// </summary>
         public static ISet<string> Retired(
             FoundKey key, IReadOnlyList<FoundRecord> records, IReadOnlyDictionary<int, List<StoreId>> byTag, IEnumerable<string> ids)
@@ -585,17 +680,30 @@ namespace KeePassGate.Store
             var retired = new HashSet<string>(
                 records.Where(record => record.Is(StoreKinds.Retired)).Select(record => record.Form.Member(StoreKinds.AuthorityMember)),
                 StringComparer.Ordinal);
-            retired.UnionWith(records
+            var items = records
                 .Where(record => record.Is(StoreKinds.Head))
                 .SelectMany(head => head.Form.Items)
                 .Where(item => item.Kind == StoreKinds.Retired)
-                .Select(item => item.Member(StoreKinds.AuthorityMember)));
+                .ToList();
+            retired.UnionWith(items.Select(item => item.Member(StoreKinds.AuthorityMember)).Where(authority => authority != null));
 
+            // A deletion record of the kind's tag, and an item with no subject holding that tag,
+            // each by its subject hash.
             List<StoreId> told;
             var retirement = StoreKinds.Find(StoreKinds.Retired);
-            if (byTag.TryGetValue(key.TagOf(retirement), out told) && told.Count > 0)
+            var tag = key.TagOf(retirement);
+            var subjects = new HashSet<long>(byTag.TryGetValue(tag, out told) ? told.Select(identifier => identifier.Subject) : Enumerable.Empty<long>());
+            foreach (var item in items.Where(item => item.Member(StoreKinds.AuthorityMember) == null))
             {
-                var subjects = new HashSet<long>(told.Select(identifier => identifier.Subject));
+                StoreId carried;
+                if (StoreId.TryParseTagAndSubject(item.Member(StoreKinds.Hash), out carried) && carried.Tag == tag)
+                {
+                    subjects.Add(carried.Subject);
+                }
+            }
+
+            if (subjects.Count > 0)
+            {
                 retired.UnionWith(ids.Where(id => subjects.Contains(key.SubjectHash(StoreFormat.SubjectOf(retirement, id, out _)))));
             }
 
@@ -654,45 +762,145 @@ namespace KeePassGate.Store
 
         /// <summary>
         /// What each kind a summary entry restates by a member takes away: its records, its items,
-        /// and the deletion records that tell of it about a subject the file knows, `STORE.md`
-        /// §623 step 2; the identifiers of the removals of each name; and the deletion records
-        /// under the tag of kind `removed`, by subject hash.
+        /// and the deletion records and the items with no subject that tell of it about a subject
+        /// the file knows, `STORE.md` §623 step 2; what tells of a subject the file names nowhere,
+        /// `STORE.md` §611; the identifiers of the removals of each name; and the deletion records
+        /// and the items with no subject under the tag of kind `removed`, by subject hash.
         /// </summary>
         private void Take(FoundKey key, IReadOnlyDictionary<string, List<StoreId>> byKind)
         {
+            var unnamedDecisions = new List<StoreUnnamed>();
             foreach (var row in StoreKinds.All.Where(row => row.Restated == StoreRestated.BySameMember))
             {
                 var values = new HashSet<string>(StringComparer.Ordinal);
                 var removal = row.Name == StoreKinds.Removed;
+                var held = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var record in Records.Where(record => record.Is(row.Name)))
                 {
                     values.Add(record.Form.Member(row.RestatedBy));
+                    held.Add(removal ? record.Hex : record.Form.Member(row.RestatedBy));
                     if (removal)
                     {
                         _removals.Add((record.Form.Member(row.RestatedBy), record.Hex));
                     }
                 }
 
+                var unnamedItems = new List<StoreItem>();
                 foreach (var item in Items.Where(item => item.Kind == row.Name))
                 {
+                    if (item.Member(row.RestatedBy) == null)
+                    {
+                        unnamedItems.Add(item);
+                        continue;
+                    }
+
                     values.Add(item.Member(row.RestatedBy));
+                    held.Add(removal ? item.Member(StoreKinds.Id) : item.Member(row.RestatedBy));
                     if (removal)
                     {
                         _removals.Add((item.Member(row.RestatedBy), item.Member(StoreKinds.Id)));
                     }
                 }
 
-                foreach (var told in ToldValues(key, byKind[row.Name], row, () => KnownValues(row)))
+                // The values of every subject the file knows by their keyed subject hash, made
+                // only where a deletion record of the kind's tag or an item with no subject asks.
+                var identifiers = byKind[row.Name];
+                var known = identifiers.Count > 0 || unnamedItems.Count > 0
+                    ? Hashed(key, row, KnownValues(row))
+                    : new Dictionary<long, List<string>>();
+                var unnamed = new SortedSet<string>(StringComparer.Ordinal);
+
+                // An item with no subject tells of every subject the file knows whose keyed tag and
+                // subject hash it holds, as a deletion record does, and is carried as it is where
+                // it tells of none.
+                var tag = unnamedItems.Count > 0 ? key.TagOf(row) : 0;
+                foreach (var item in unnamedItems)
                 {
-                    values.Add(told.Value);
-                    if (removal)
+                    var carried = item.Member(removal ? StoreKinds.Id : StoreKinds.Hash);
+                    StoreId told;
+                    List<string> named = null;
+                    var tagged = (removal ? StoreId.TryParse(carried, out told) : StoreId.TryParseTagAndSubject(carried, out told)) && told.Tag == tag;
+                    if (tagged && removal)
                     {
-                        _removals.Add(told);
+                        ListAt(_removalDeletions, told.Subject).Add(carried);
+                    }
+
+                    if (!tagged || !known.TryGetValue(told.Subject, out named))
+                    {
+                        unnamed.Add(carried);
+                        continue;
+                    }
+
+                    foreach (var value in named)
+                    {
+                        values.Add(value);
+                        held.Add(removal ? carried : value);
+                        if (removal)
+                        {
+                            _removals.Add((value, carried));
+                        }
+                    }
+                }
+
+                // What a deletion record alone states: a removal by its identifier, which a record
+                // and an item carry as well, and any other kind by its value; and of a subject the
+                // file names nowhere, what an item with no subject is to hold.
+                var byDeletion = new HashSet<string>(StringComparer.Ordinal);
+                var removalsByDeletion = new List<KeyValuePair<string, string>>();
+                var carriedByItem = new HashSet<string>(unnamed, StringComparer.Ordinal);
+                var unnamedByDeletion = new SortedDictionary<string, SortedSet<string>>(StringComparer.Ordinal);
+                foreach (var identifier in identifiers.Distinct())
+                {
+                    var text = identifier.ToString();
+                    List<string> named;
+                    if (!known.TryGetValue(identifier.Subject, out named))
+                    {
+                        var carried = removal ? text : identifier.TagAndSubject;
+                        unnamed.Add(carried);
+                        if (!carriedByItem.Contains(carried) && !held.Contains(carried))
+                        {
+                            SortedSet<string> telling;
+                            if (!unnamedByDeletion.TryGetValue(carried, out telling))
+                            {
+                                telling = new SortedSet<string>(StringComparer.Ordinal);
+                                unnamedByDeletion[carried] = telling;
+                            }
+
+                            telling.Add(text);
+                        }
+
+                        continue;
+                    }
+
+                    foreach (var value in named)
+                    {
+                        values.Add(value);
+                        if (removal)
+                        {
+                            _removals.Add((value, text));
+                            if (!held.Contains(text))
+                            {
+                                removalsByDeletion.Add(new KeyValuePair<string, string>(value, text));
+                            }
+                        }
+                        else if (!held.Contains(value))
+                        {
+                            byDeletion.Add(value);
+                        }
                     }
                 }
 
                 _taken[row.Name] = values;
+                _byDeletion[row.Name] = byDeletion;
+                _unnamed[row.Name] = unnamed;
+                unnamedDecisions.AddRange(unnamedByDeletion.Select(pair => new StoreUnnamed(row.Name, pair.Value.ToList())));
+                if (removal)
+                {
+                    RemovalsByDeletion = removalsByDeletion.Distinct().ToList();
+                }
             }
+
+            UnnamedByDeletion = unnamedDecisions;
 
             foreach (var removal in _removals.Where(removal => removal.Name != null && removal.Id != null))
             {
@@ -745,11 +953,15 @@ namespace KeePassGate.Store
 
             // A deletion record that no record present and no item answers for stands for a
             // record whose content is nowhere: a statement of its own, which names no renewal.
+            var byDeletion = new List<KeyValuePair<string, string>>();
             foreach (var told in ToldValues(key, byKind[row.Name], row, () => KnownAdmissionKeys(row))
                          .Where(told => !answered.Contains(told.Identifier)))
             {
                 _statements.Add((told.Identifier, told.Value, string.Empty, null));
+                byDeletion.Add(new KeyValuePair<string, string>(told.Identifier, told.Value));
             }
+
+            WithdrawnByDeletion = byDeletion.Distinct().ToList();
 
             _taken[row.Name] = new HashSet<string>(_statements.Select(statement => statement.Certificate), StringComparer.Ordinal);
 
@@ -794,7 +1006,8 @@ namespace KeePassGate.Store
 
                 if (about.Restated == StoreRestated.BySameMember)
                 {
-                    foreach (var item in Items.Where(item => item.Kind == about.Name))
+                    // An item with no subject names none.
+                    foreach (var item in Items.Where(item => item.Kind == about.Name && item.Member(about.RestatedBy) != null))
                     {
                         yield return item.Member(about.RestatedBy);
                     }
@@ -856,21 +1069,7 @@ namespace KeePassGate.Store
                 yield break;
             }
 
-            var known = new HashSet<string>(knownValues(), StringComparer.Ordinal);
-            var hashes = new Dictionary<long, List<string>>();
-            foreach (var value in known)
-            {
-                List<string> sharing;
-                var hash = key.SubjectHash(StoreFormat.SubjectOf(row, value, out _));
-                if (!hashes.TryGetValue(hash, out sharing))
-                {
-                    sharing = new List<string>();
-                    hashes[hash] = sharing;
-                }
-
-                sharing.Add(value);
-            }
-
+            var hashes = Hashed(key, row, knownValues());
             foreach (var identifier in identifiers.Distinct())
             {
                 List<string> values;
@@ -886,6 +1085,32 @@ namespace KeePassGate.Store
         }
 
         /// <summary>
+        /// The values of a subject the file knows for a kind, by the hash of their subject under
+        /// the key, each value once: what a deletion record and an item with no subject are told by.
+        /// </summary>
+        private static Dictionary<long, List<string>> Hashed(FoundKey key, StoreKind row, IEnumerable<string> knownValues)
+        {
+            var hashes = new Dictionary<long, List<string>>();
+            foreach (var value in new HashSet<string>(knownValues.Where(value => value != null), StringComparer.Ordinal))
+            {
+                ListAt(hashes, key.SubjectHash(StoreFormat.SubjectOf(row, value, out _))).Add(value);
+            }
+
+            return hashes;
+        }
+
+        /// <summary>
+        /// What an item with no subject of this kind would hold to restate a record of it under
+        /// this identifier: of a removal the identifier, and of any other kind its first 16
+        /// characters, its keyed tag and subject hash, `STORE.md` §611.
+        /// </summary>
+        private static string CarriedOf(StoreKind row, string hex)
+        {
+            const int Carried = (StoreFormat.TagLength + StoreFormat.SubjectLength) * 2;
+            return row.Name == StoreKinds.Removed || hex == null || hex.Length < Carried ? hex : hex.Substring(0, Carried);
+        }
+
+        /// <summary>
         /// What the summary entries present restate, and what the versions in force replace, for
         /// the question of `STORE.md` §624 whether every decision present is restated.
         /// </summary>
@@ -898,7 +1123,14 @@ namespace KeePassGate.Store
                 switch (row.Restated)
                 {
                     case StoreRestated.BySameMember:
-                        // A removal is restated by its name and its identifier both.
+                        // A removal is restated by its name and its identifier both, and an item
+                        // with no subject restates by what it holds alone, `STORE.md` §611.
+                        if (item.Member(row.RestatedBy) == null)
+                        {
+                            _restatingUnnamed.Add((row.Name, item.Member(row.Name == StoreKinds.Removed ? StoreKinds.Id : StoreKinds.Hash)));
+                            break;
+                        }
+
                         Restating.Add((row.Name, item.Member(row.RestatedBy), row.Name == StoreKinds.Removed ? item.Member(StoreKinds.Id) : null));
                         break;
                     case StoreRestated.ById:
@@ -1061,17 +1293,43 @@ namespace KeePassGate.Store
         /// </remarks>
         /// <param name="deleted">The deletion records under the tag of kind `version`.</param>
         /// <param name="nodes">The identifier of every group and entry of the tree, or null where there is none.</param>
-        private void Index(FoundKey key, IReadOnlyList<StoreId> deleted, Func<IEnumerable<byte[]>> nodes)
+        /// <param name="damaged">
+        /// The entries that are damage under the tag of kind `version`, told of beside the deletion
+        /// records as the deletion record the seal would leave for each, and lost to nothing in this reading.
+        /// </param>
+        private void Index(FoundKey key, IReadOnlyList<StoreId> deleted, Func<IEnumerable<byte[]>> nodes, IReadOnlyList<StoreId> damaged)
         {
             var losing = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
 
             // A deletion record under which a version is present is that version's, and its object
-            // judges it below; every other is told of at its place, `Deletions`.
+            // judges it below; every other is told of at its place, `Deletions`. A damaged version
+            // the file holds no deletion record of is told of in the same pass, so that the tree is
+            // walked once at most, and kept apart afterwards.
+            var held = new HashSet<StoreId>(deleted);
+            var apart = damaged.Where(identifier => !held.Contains(identifier)).Distinct().ToList();
             var beside = new HashSet<StoreId>();
-            var told = deleted.Count > 0 ? new Deletions(this, key, losing) : null;
+            var told = deleted.Count + apart.Count > 0 ? new Deletions(this, key) : null;
             if (told != null)
             {
-                told.Tell(deleted, nodes, beside);
+                told.Tell(apart.Count == 0 ? deleted : deleted.Concat(apart).ToList(), nodes, beside, losing);
+            }
+
+            var afterDamage = new HashSet<string>(StringComparer.Ordinal);
+            if (apart.Count > 0)
+            {
+                var damagedHex = new HashSet<string>(apart.Select(identifier => identifier.ToString()), StringComparer.Ordinal);
+                foreach (var pair in losing.ToList())
+                {
+                    if (pair.Value.RemoveWhere(damagedHex.Contains) > 0)
+                    {
+                        afterDamage.Add(pair.Key);
+                    }
+
+                    if (pair.Value.Count == 0)
+                    {
+                        losing.Remove(pair.Key);
+                    }
+                }
             }
 
             foreach (var version in Versions.Values.Where(version => version.Object != null))
@@ -1116,6 +1374,7 @@ namespace KeePassGate.Store
             }
 
             _objects = _standing.Keys.Union(_lost.Keys, StringComparer.Ordinal).OrderBy(objectText => objectText, StringComparer.Ordinal).ToList();
+            RefusesAfter = afterDamage.Where(objectText => !_lost.ContainsKey(objectText)).OrderBy(objectText => objectText, StringComparer.Ordinal).ToList();
         }
 
         /// <summary>
@@ -1169,7 +1428,6 @@ namespace KeePassGate.Store
 
             private readonly StoreInForce _inForce;
             private readonly FoundKey _key;
-            private readonly Dictionary<string, SortedSet<string>> _losing;
 
             /// <summary>The objects of the versions present, each once.</summary>
             private readonly HashSet<string> _objects;
@@ -1192,12 +1450,11 @@ namespace KeePassGate.Store
             /// <summary>The names the file knows by their tags, worked out once a deletion record lies at a node's rows.</summary>
             private Dictionary<int, List<string>> _names;
 
-            public Deletions(StoreInForce inForce, FoundKey key, Dictionary<string, SortedSet<string>> losing)
+            public Deletions(StoreInForce inForce, FoundKey key)
             {
                 _inForce = inForce;
                 _key = key;
-                _losing = losing;
-                _objects = new HashSet<string>(
+               _objects = new HashSet<string>(
                     inForce.Versions.Values.Select(version => version.Object).Where(objectText => objectText != null), StringComparer.Ordinal);
                 foreach (var version in inForce.Versions.Values.Where(version =>
                              version.Object != null && version.InForce && !inForce._differing.ContainsKey(version.Id)))
@@ -1219,9 +1476,10 @@ namespace KeePassGate.Store
             /// <summary>
             /// Tells of each of these deletion records under the tag of kind `version`, putting
             /// into <paramref name="beside"/> each under which a version is present, which is
-            /// that version's to judge.
+            /// that version's to judge, and into <paramref name="losing"/> each other by the
+            /// objects it is lost to.
             /// </summary>
-            public void Tell(IReadOnlyList<StoreId> deleted, Func<IEnumerable<byte[]>> nodes, ISet<StoreId> beside)
+            public void Tell(IReadOnlyList<StoreId> deleted, Func<IEnumerable<byte[]>> nodes, ISet<StoreId> beside, Dictionary<string, SortedSet<string>> losing)
             {
                 // Placed by a version present at its place, with nothing hashed: the first version,
                 // in the order of the versions, whose identifier begins with the place's bytes.
@@ -1245,7 +1503,7 @@ namespace KeePassGate.Store
                     }
                     else if (places.TryGetValue(identifier.Place, out place))
                     {
-                        TellAt(place.Objects ?? (place.Objects = ToldAt(place.Object, identifier.Number)), identifier);
+                        TellAt(place.Objects ?? (place.Objects = ToldAt(place.Object, identifier.Number)), identifier, losing);
                     }
                     else
                     {
@@ -1255,7 +1513,7 @@ namespace KeePassGate.Store
 
                 if (unplaced.Count > 0)
                 {
-                    TellUnplaced(unplaced, nodes);
+                    TellUnplaced(unplaced, nodes, losing);
                 }
             }
 
@@ -1265,7 +1523,7 @@ namespace KeePassGate.Store
             /// key the file knows, and only where a deletion record is still not told of, at each
             /// node of the tree.
             /// </summary>
-            private void TellUnplaced(IReadOnlyList<StoreId> unplaced, Func<IEnumerable<byte[]>> nodes)
+            private void TellUnplaced(IReadOnlyList<StoreId> unplaced, Func<IEnumerable<byte[]>> nodes, Dictionary<string, SortedSet<string>> losing)
             {
                 var bySubject = new Dictionary<long, List<StoreId>>();
                 foreach (var identifier in unplaced)
@@ -1290,7 +1548,7 @@ namespace KeePassGate.Store
                     {
                         foreach (var identifier in telling)
                         {
-                            TellAt(AtRows(node, identifier.Number), identifier);
+                            TellAt(AtRows(node, identifier.Number), identifier, losing);
                         }
 
                         unmatched.Remove(rows);
@@ -1307,7 +1565,7 @@ namespace KeePassGate.Store
                         var told = new[] { Of(Switches + node) };
                         foreach (var identifier in telling.Where(identifier => identifier.Number == 0))
                         {
-                            TellAt(told, identifier);
+                            TellAt(told, identifier, losing);
                         }
 
                         unmatched.Remove(turned);
@@ -1340,7 +1598,7 @@ namespace KeePassGate.Store
                             var told = new[] { Of(answered) };
                             foreach (var identifier in telling.Where(identifier => identifier.Number == 0))
                             {
-                                TellAt(told, identifier);
+                                TellAt(told, identifier, losing);
                             }
 
                             unmatched.Remove(hash);
@@ -1427,7 +1685,7 @@ namespace KeePassGate.Store
             /// force of any of them names the record in `after`, and otherwise to each but those a
             /// version in force of which names it in `lost`.
             /// </summary>
-            private void TellAt(IReadOnlyList<ObjectTold> told, StoreId identifier)
+            private static void TellAt(IReadOnlyList<ObjectTold> told, StoreId identifier, Dictionary<string, SortedSet<string>> losing)
             {
                 for (var at = 0; at < told.Count; at++)
                 {
@@ -1441,7 +1699,7 @@ namespace KeePassGate.Store
                 {
                     if (!told[at].Settles(identifier))
                     {
-                        Losing(_losing, told[at].Object).Add(identifier.ToString());
+                        Losing(losing, told[at].Object).Add(identifier.ToString());
                     }
                 }
             }
@@ -1660,7 +1918,7 @@ namespace KeePassGate.Store
                 }
             }
 
-            Lost = Told.FirstOrDefault(identifier => !replaced.Contains(identifier));
+            LostHeads = Told.Where(identifier => !replaced.Contains(identifier)).Distinct(StringComparer.Ordinal).OrderBy(identifier => identifier, StringComparer.Ordinal).ToList();
 
             var items = 1;
             foreach (var row in StoreKinds.All.Where(row => row.Restated == StoreRestated.BySameMember && row.Name != StoreKinds.Removed))

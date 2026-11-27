@@ -182,7 +182,7 @@ namespace KeePassGate.Store
                     // newest item of the history, as KeePass's own backup puts it there.
                     var versions = new List<StoreVersion> { candidate.Versions[index] };
                     versions.AddRange(candidate.Versions);
-                    next.Add(new StoreCandidate(candidate.Identifier, versions));
+                    next.Add(candidate.WithVersions(versions));
                     continue;
                 }
 

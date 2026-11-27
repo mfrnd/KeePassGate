@@ -52,7 +52,7 @@ namespace KeePassGate.Store
             _passing = passing;
             State = judged.State;
             Reason = judged.Reason;
-            Damage = judged.Damage;
+            Damaged = judged.Damage;
             Passed = judged.Passed;
             ByHistory = judged.ByHistory;
             Judged = judged.Judged;
@@ -77,7 +77,16 @@ namespace KeePassGate.Store
         public string Reason { get; private set; }
 
         /// <summary>How many entries are damage under the store key, `STORE.md` §621.</summary>
-        public int Damage { get; private set; }
+        public int Damage
+        {
+            get { return Damaged.Count; }
+        }
+
+        /// <summary>
+        /// Every entry that is damage under the store key that stands, `STORE.md` §621, with the
+        /// kind its tag names: none where no single key stands.
+        /// </summary>
+        internal IReadOnlyList<StoreDamage> Damaged { get; private set; }
 
         /// <summary>How many candidates are no record and no damage, passed over and shown.</summary>
         public int Passed { get; private set; }

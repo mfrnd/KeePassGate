@@ -44,6 +44,15 @@ namespace KeePassGate.Store
 
         /// <summary>Three whole numbers, each from 0, joined by periods.</summary>
         Version,
+
+        /// <summary>
+        /// The first 16 characters of an identifier, lowercase hexadecimal: its tag and subject
+        /// hash, `STORE.md` §609.
+        /// </summary>
+        TagAndSubject,
+
+        /// <summary>A single identifier, 32 lowercase hexadecimal characters, `STORE.md` §609.</summary>
+        Identifier,
     }
 
     /// <summary>How a summary entry restates a record of a kind, `STORE.md` §658.</summary>
@@ -99,7 +108,8 @@ namespace KeePassGate.Store
             bool countsBesideDeletion,
             StoreRestated restated,
             string restatedBy,
-            IReadOnlyList<StoreMember> item)
+            IReadOnlyList<StoreMember> item,
+            IReadOnlyList<StoreMember> unnamed = null)
         {
             Name = name;
             SubjectPrefix = subjectPrefix;
@@ -110,6 +120,7 @@ namespace KeePassGate.Store
             Restated = restated;
             RestatedBy = restatedBy;
             Item = item;
+            Unnamed = unnamed;
         }
 
         /// <summary>The kind, as `KPG.Kind` and an item's `kind` name it.</summary>
@@ -142,6 +153,13 @@ namespace KeePassGate.Store
         /// kind no summary entry holds an item of.
         /// </summary>
         public IReadOnlyList<StoreMember> Item { get; private set; }
+
+        /// <summary>
+        /// The members of an item of this kind that names no subject, beside `kind`, or null for a
+        /// kind restated by its subject alone: a decision a deletion record tells of whose subject
+        /// the file names nowhere, `STORE.md` §611.
+        /// </summary>
+        public IReadOnlyList<StoreMember> Unnamed { get; private set; }
     }
 
     /// <summary>
@@ -199,6 +217,12 @@ namespace KeePassGate.Store
 
         /// <summary>The member of an item that names the record it restates by identifier.</summary>
         public const string Id = "id";
+
+        /// <summary>
+        /// The member of an item of a revocation or a retirement that names no subject, holding the
+        /// keyed tag and subject hash of the records it restates, `STORE.md` §611.
+        /// </summary>
+        public const string Hash = "hash";
 
         /// <summary>The member of a version, and of its item, naming what it is a version of.</summary>
         public const string ObjectMember = "object";
@@ -290,7 +314,8 @@ namespace KeePassGate.Store
                 Retired, "authority:", "authority", StoreNumber.None,
                 Members(new StoreMember("authority", StoreForm.Text), new StoreMember(StoreKey, StoreForm.Hex, true)),
                 true, StoreRestated.BySameMember, "authority",
-                Members(new StoreMember("authority", StoreForm.Text))),
+                Members(new StoreMember("authority", StoreForm.Text)),
+                Members(new StoreMember(Hash, StoreForm.TagAndSubject))),
             // What an admission's meaning reads is held where present and as a text, so a member
             // out of the form `STORE.md` §615 gives it admits nobody and stops nothing, §658.
             new StoreKind(
@@ -309,7 +334,8 @@ namespace KeePassGate.Store
                 Revoked, "client:", "client", StoreNumber.None,
                 Members(new StoreMember("client", StoreForm.Text)),
                 true, StoreRestated.BySameMember, "client",
-                Members(new StoreMember("client", StoreForm.Text))),
+                Members(new StoreMember("client", StoreForm.Text)),
+                Members(new StoreMember(Hash, StoreForm.TagAndSubject))),
             new StoreKind(
                 Withdrawn, "certificate:", Certificate, StoreNumber.None,
                 Members(
@@ -330,7 +356,8 @@ namespace KeePassGate.Store
                 Removed, "profile:", "name", StoreNumber.None,
                 Members(new StoreMember("name", StoreForm.Text)),
                 true, StoreRestated.BySameMember, "name",
-                Members(new StoreMember("name", StoreForm.Text), new StoreMember(Id, StoreForm.Text))),
+                Members(new StoreMember("name", StoreForm.Text), new StoreMember(Id, StoreForm.Text)),
+                Members(new StoreMember(Id, StoreForm.Identifier))),
             new StoreKind(
                 Version, string.Empty, ObjectMember, StoreNumber.ProfileTag,
                 Members(

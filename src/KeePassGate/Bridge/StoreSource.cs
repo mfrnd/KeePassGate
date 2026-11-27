@@ -61,7 +61,12 @@ namespace KeePassGate.Bridge
                     versions.Add(Version(history.GetAt((uint)index)));
                 }
 
-                candidates.Add(new StoreCandidate(entry.Uuid.UuidBytes, versions));
+                // The title by enumeration as well, kept as the object KeePass holds it in and read
+                // only where a page names the entry by it.
+                var title = entry.Strings.Where(pair => string.Equals(pair.Key, PwDefs.TitleField, StringComparison.Ordinal))
+                    .Select(pair => pair.Value)
+                    .FirstOrDefault();
+                candidates.Add(new StoreCandidate(entry.Uuid.UuidBytes, versions, title, KeePassStrings.Instance));
             }
 
             return new Walk(

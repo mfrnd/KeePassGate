@@ -621,8 +621,11 @@ summary entry a deletion record in the file names.
 | Item | Members | Restates |
 | --- | --- | --- |
 | `{"kind":"revoked",...}` | `client` | a revocation of that client key |
+| `{"kind":"revoked",...}` | `hash` | a revocation whose client the file names nowhere, by the first 16 characters of its identifier (below) |
 | `{"kind":"retired",...}` | `authority` | a retirement of that authority |
+| `{"kind":"retired",...}` | `hash` | a retirement whose authority the file names nowhere, by the first 16 characters of its identifier (below) |
 | `{"kind":"removed",...}` | `name`, `id` | the removal of a profile name, with the identifier of the removal's record |
+| `{"kind":"removed",...}` | `id` | a removal whose name the file names nowhere, by its identifier (below) |
 | `{"kind":"version",...}` | `id`, `object`, `after`, `doc` | a standing version of a rule, of a node's switch or of an answer to a renewal, whole, with its text. With a rule for each node and profile there is an item for each profile's standing version at each node (§617) |
 | `{"kind":"withdrawn",...}` | `id`, `certificate`, `renewed`, and `from` where the record holds it | a record that took a certificate away, with that record's identifier and what the record holds, member for member (§648) |
 | `{"kind":"kept",...}` | `id`, `key`, `after` | a keep record, with its identifier, the name of the key not kept and the keep records it replaces (§649) |
@@ -632,6 +635,24 @@ It restates every revocation, every retirement, every removal and every standing
 holds no authority, no admission and no profile addition, because losing any of those admits
 nobody. Each alone, the records or the newest summary entry, is enough to compute what takes
 access away, and the reading unites them (§623).
+
+**An item with no subject** (built; as measured in `papers/ground/measured-seal-restates.md` on
+`spikes/storage-survival`, the form named `hashes` there, before anything of it was built). A
+revocation, a retirement or a removal of a name that a deletion record under the store key tells
+of, and whose subject no record and no item of the file names, cannot be restated by its
+subject: the subject is a keyed hash in the deletion record's identifier, and nothing in the file
+gives it back. A summary entry restates such a decision by an item that names no subject: a
+revocation or a retirement by `hash`, the deletion record's keyed tag and subject hash, the first
+16 lowercase hexadecimal characters of its identifier (§609); and a removal by `id`, the deletion
+record's identifier, since an addition of the name has to name each removal of it in `after`
+(§616). Several deletion records of a single decision are a single item. Such an item tells its
+decision of every subject the file names whose keyed tag and subject hash it holds, as a deletion
+record does, so a subject named again later, an admission a merge brings back among them, is
+refused by its hash; it restates every record of its kind whose identifier begins with its
+`hash`, or the removal whose identifier it holds; and it counts as a carrier of the decision
+wherever a deletion record counts, an addition of the name naming such a removal in `after`
+among them. *Held by* `StoreInForceTests`, the reading of each item, and `StoreKindsTests`, the
+form.
 
 **What the kinds that were not measured add to it** (proposed; the items are those of the table,
 S23). Each of them takes something away or holds a plugin back, so each is restated: a
@@ -697,12 +718,12 @@ is left to the pull request that brings its meaning, under the item the last col
 | Kind | Subject | Members the core reads | Beside a deletion record naming it | Restated by | Left to |
 | --- | --- | --- | --- | --- | --- |
 | `authority` | `authority:` and `id` | `id`, `storeKey` | out of force, and its key still found (§621) | nothing | nothing: §614 |
-| `retired` | `authority:` and `authority` | `authority`, and `storeKey` where it holds the key | counts | an item `retired` with the same `authority` | nothing |
+| `retired` | `authority:` and `authority` | `authority`, and `storeKey` where it holds the key | counts | an item `retired` with the same `authority`, or an item `retired` with no subject whose `hash` the record's identifier begins with (§611) | nothing |
 | `client` | `client:` and `client` | `client`, and `certificate`, `der`, `issuer`, `profiles`, `subject`, `admitted` and `from` where it holds them | out of force | nothing | nothing: §615, §648 |
-| `revoked` | `client:` and `client` | `client` | counts | an item `revoked` with the same `client` | nothing: §615 |
+| `revoked` | `client:` and `client` | `client` | counts | an item `revoked` with the same `client`, or an item `revoked` with no subject whose `hash` the record's identifier begins with (§611) | nothing: §615 |
 | `withdrawn` | `certificate:` and `certificate` | `certificate`, and `renewed` and `from` where it holds them | counts | an item `withdrawn` whose `id` is the record's identifier, with the same `certificate`, `renewed` and `from` | nothing: §648 |
 | `profile` | `profile:` and `name` | `name`, `after` | out of force | nothing | nothing: §616 |
-| `removed` | `profile:` and `name` | `name` | counts | an item `removed` with the same `name`, whose `id` is the record's identifier | nothing |
+| `removed` | `profile:` and `name` | `name` | counts | an item `removed` with the same `name`, whose `id` is the record's identifier, or an item `removed` with no subject whose `id` is the record's identifier (§611) | nothing |
 | `version` | the `object`; for an object of type `rule`, its text before the first `/`, with the tag of the text after it in bytes 9 and 10 (§609) | `object`, `after`, `doc`, and `lost` where it holds it | out of force | an item `version` whose `id` is the record's identifier, with `lost` where the record holds it, where no version in force names the record in `after` | nothing: §617 for a rule and a switch, §618 for an answer to a renewal |
 | `kept` | `key:` and `key` | `key`, `after` | counts | an item `kept` whose `id` is the record's identifier | nothing |
 | `format` | `format:` and `format` | `format`, `plugin` | counts | the item `format` of a summary entry that states a format number at least the record's | nothing |
@@ -717,7 +738,10 @@ form. **Where the core takes an admission key from a text, it
 holds the text to that form** and passes over a text out of it, which stops nothing: the
 `certificate` and the `from` of `client`, and the `from` of `withdrawn` and of its item, are an
 admission key only as 64 lowercase hexadecimal characters, and `renewed` is split on single
-spaces into texts held to the same form (§623 step 2). `storeKey`, and the `certificate` of
+spaces into texts held to the same form (§623 step 2). The `hash` of an item with no subject is
+16 lowercase hexadecimal characters, the first eight bytes of an identifier (§609, §611); an
+item `revoked` or `retired` that holds neither its subject nor a `hash` in that form, and an item
+`removed` that holds no `id`, are no items of their kind. `storeKey`, and the `certificate` of
 `withdrawn` and of its item, are 64 lowercase hexadecimal characters, and `key` is the name of a
 store key (§649). `after`, and the `lost` of `version` and of its item, are lists of
 identifiers (§607), and a `lost` out of that form fails its version as an `after` does (§617).
@@ -2572,6 +2596,15 @@ of the object is that object's with no subject hashed; any other that holds 0 is
 `renew:` and each client key the file knows after the nodes the objects name and before the
 tree is walked (§620).
 
+**A lost answer whose client key the file no longer knows tells of nothing** (as measured,
+`papers/ground/measured-seal.md` 6 and 8 item 9). Where a deletion record of an answer whose
+text no file holds is in the file, and the client's admission is then deleted by hand, so that no
+record and no item names the client key any more, the deletion record tells of nothing, and the
+answer it refused is not refused. The client is admitted nowhere in that copy, since its
+admission is gone, so no renewal of it is asked. The measurement found the class in its random
+histories, apart from the seal, the shortest a lost answer and the admission deleted with its
+deletion record; it is a class of its own beside those of §639, and nothing is built for it.
+
 **What a version names is what its writer was shown** (fixed for the answers, S7):
 
 - **A version names in `after`** each standing version of the client's answer that its writer
@@ -2804,21 +2837,25 @@ and nothing kept outlasts a lock.
 as far as it decides whether a store may be served: `StoreReading` over the candidates and the
 deletion records `StoreSource` walks, read once for each hold through `IReadHold.Stamp`, with the
 checked forms kept in `StoreKept` and let go, their keys overwritten, with the target at a lock and
-a close. It answers the state of §656 and the guard's keys and tags (§633). What is in force (§623)
-is `StoreInForce`, worked out for a store that is whole or stopped: every record under the store key
-with whether a deletion record names it and whether it counts by its history, the summary entries
-present, in force and told of by deletion records, what the retirements, the revocations and the
-removals take away by record, by item and by deletion record, and the statements that took
-certificates away by record, by item and by a deletion record of an admission key the file knows
-(steps 1, 2, 4 and 7), the highest format number and plugin version (step 6), the authorities that
-stand, and the room of §627. The records of kind `profile` under the key are kept, in force or
-not, with the texts of §658, and the removals of each name by their identifiers, a removal known
-as a record, an item and a deletion record counted once: what the write of §627 step 3 deletes
-additions by. Which names are on the list (§616) is worked out from those by `ProfileNames`, from
-the reading of each hold that asks, and kept nowhere. The admission keys the file
-knows are those of step 2: the
-`certificate` and the `from` of every record of kind `client` present under the key, in force or
-not, each where it is an admission key, and what the records and the items that took certificates
+a close. It answers the state of §656 and the guard's keys and tags (§633), and every entry
+that is damage under the key that stands, with the kind its tag names (§621). What is in force
+(§623) is `StoreInForce`, worked out for a store that is whole or stopped: every record under the
+store key with whether a deletion record names it and whether it counts by its history, the
+summary entries present, in force and told of by deletion records, every summary entry told of
+that nothing in force replaces, every record no summary entry restates, what the retirements, the
+revocations and the removals take away by record, by item and by deletion record, and what a
+deletion record alone takes away, and the statements that took certificates away by record, by
+item and by a deletion record of an admission key the file knows (steps 1, 2, 4 and 7), each
+statement a deletion record alone makes held apart as well, and the objects a damaged version
+would make refuse once deleted with a deletion record (§625); and the highest format number and
+plugin version (step 6), the authorities that stand, and the room of §627. The records of kind
+`profile` under the key are kept, in force or not, with the texts of §658, and the removals of
+each name by their identifiers, a removal known as a record, an item and a deletion record counted
+once: what the write of §627 step 3 deletes additions by. Which names are on the list (§616) is
+worked out from those by `ProfileNames`, from the reading of each hold that asks, and kept
+nowhere. The admission keys the file knows are those of step 2: the `certificate` and the `from`
+of every record of kind `client` present under the key, in force or not, each where it is an
+admission key, and what the records and the items that took certificates
 away name; they are gathered only where a deletion record under the key carries the tag of a
 certificate taken away, so a store whose deletion records carry no such tag hashes no subject for
 them. The records of kind `client` are kept with the texts of §658, and their meaning is read
@@ -3223,31 +3260,31 @@ taken away, a keep record and a version record they are proposed.
    stays out. A revocation, a retirement and a removal count whether or not a deletion record
    names them, and so do a certificate taken away (§648), a keep record (§649) and a version
    record (§650).
-2. **What takes access away is a union.** The revocations, the retirements and the removals in
-   force are those present as records; those any summary entry present restates, whether or not
-   that summary entry is in force; and those a deletion record tells of. A deletion record tells
-   of a revocation, a retirement or a removal when its identifier begins with that kind's tag
-   under the store key and carries the subject hash of a client key, an authority or a name the
-   file knows (§609). So deleting a revocation for good, in any program that leaves a deletion
-   record, changes nothing. A certificate taken away is united the same way: it is refused where
-   a record, an item of any summary entry present or a deletion record states that it was taken
-   away. A deletion record tells of a certificate taken away when its identifier begins with that
-   kind's tag under the store key and carries the subject hash of `certificate:` and an admission
-   key the file knows. The file knows an admission key from the `certificate` and the `from` of
-   every record of kind `client` present, in force or not and whether or not it reads as an
-   admission (§615), since a record beside a deletion record still holds its content in the
-   file, and from the `certificate`, the `from` and each key in `renewed` of a record or an item
-   that took a certificate away; a text that is not 64 lowercase hexadecimal characters is no
-   admission key. Knowing a key only lets a deletion record refuse. The `from` of a renewal is
-   among them because the admission of a certificate taken away is deleted in the write that
-   takes it away, so where the record and its item are then lost, a renewal's `from` is the text
-   left that names that certificate, and with it the deletion record still refuses that renewal.
-   It rules out knowing a key from `der`, since `certificate` tells also for a record that does
-   not read as an admission, and from an admission's identifier, whose subject is the client
-   key. Such a deletion record whose identifier is that of a record present, or the `id`
-   of an item, adds nothing to what that record or item states. Any other stands for a record
-   whose content is nowhere, and is a statement of its own that names no renewal (§648). A keep
-   record is united under the rules of §649.
+2. **What takes access away is a union.** The revocations, the retirements and the removals in force
+   are those present as records; those any summary entry present restates, whether or not that
+   summary entry is in force; and those a deletion record tells of. A deletion record tells of a
+   revocation, a retirement or a removal when its identifier begins with that kind's tag under the
+   store key and carries the subject hash of a client key, an authority or a name the file knows
+   (§609). So deleting a revocation for good, in any program that leaves a deletion record, changes
+   nothing. An item with no subject tells of its decision as such a deletion record does, by the
+   keyed tag and subject hash it holds (§611). A certificate taken away is united the same way: it
+   is refused where a record, an item of any summary entry present or a deletion record states that
+   it was taken away. A deletion record tells of a certificate taken away when its identifier begins
+   with that kind's tag under the store key and carries the subject hash of `certificate:` and an
+   admission key the file knows. The file knows an admission key from the `certificate` and the
+   `from` of every record of kind `client` present, in force or not and whether or not it reads as
+   an admission (§615), since a record beside a deletion record still holds its content in the file,
+   and from the `certificate`, the `from` and each key in `renewed` of a record or an item that took
+   a certificate away; a text that is not 64 lowercase hexadecimal characters is no admission key.
+   Knowing a key only lets a deletion record refuse. The `from` of a renewal is among them because
+   the admission of a certificate taken away is deleted in the write that takes it away, so where
+   the record and its item are then lost, a renewal's `from` is the text left that names that
+   certificate, and with it the deletion record still refuses that renewal. It rules out knowing a
+   key from `der`, since `certificate` tells also for a record that does not read as an admission,
+   and from an admission's identifier, whose subject is the client key. Such a deletion record whose
+   identifier is that of a record present, or the `id` of an item, adds nothing to what that record
+   or item states. Any other stands for a record whose content is nowhere, and is a statement of its
+   own that names no renewal (§648). A keep record is united under the rules of §649.
 3. **The versions of an object** are the records of kind `version` in force and the versions
    that the summary entries in force restate. Those that no version names stand, and the
    object's value is what all standing versions allow (§617). An object refuses as §617 states,
@@ -3360,6 +3397,43 @@ deletion record, as a script, a merge that keeps no record or a file written ove
 page states plainly that it cannot know what was deleted without a record and that confirming
 makes the shown state the state, and the tab lists what is in force, so that it can be checked
 first (§636).
+
+**What the reading lists of a stopped store** (built; as measured in
+`papers/ground/measured-seal.md` on `spikes/storage-survival`, which listed it with `probe/read.py`
+before anything of it was built). Every condition of §624 the store fails, and its room (§643), and
+not the first alone, which is all the reading's reason names. Every entry that is damage, by its
+identifier, the kind its tag names under the store key and its title. Every summary entry a deletion
+record tells of that nothing in force names, where a summary entry is in force; where none is, that
+is the condition, and the listing names those a deletion record tells of at the greatest height of
+any summary entry of the store, present, damaged or told of, where `probe/read.py` names none: every
+write deletes the summary entry before it with a deletion record, so the listing names the summary
+entry deleted last, the summary entry the stop is about, and none where a summary entry present or
+damaged stands above it. That is what the dialog shows alone: the seal's summary entry names every
+summary entry told of as replaced either way, so nothing the seal writes depends on it, and the
+tests that hold the listing to the measured reading's hold the product's own rule there, which no
+vector states. Every record present that no summary entry present restates, a condition only where a
+summary entry is present: both what restates and whether it is a condition are asked of the summary
+entries present, in force or not, and the condition of no summary entry in force of the summary
+entries in force, as `probe/read.py` keys them, so a summary entry present beside its own deletion
+record makes both conditions hold. The revocations, the retirements, the removals and the
+certificates taken away that a deletion record alone states, which the union of §623 step 2 keeps in
+force and the seal's summary entry restates; and apart, the revocations, the retirements and the
+removals of names that deletion records alone tell of whose subject the file names nowhere, each
+with every deletion record that tells of it, which the seal's summary entry restates by an item
+with no subject (§611). Every object a lost version makes refuse, with the
+deletion records that tell of it, and what the seal's version of it names: in `after` every version
+of the object in force and what those name there, and in `lost` what was lost and what those name
+there, no identifier in both lists. And every object the deletion record of a damaged version would
+make refuse once the seal has deleted that version with one, and that no lost version makes refuse
+now. A deletion record of a version at a node the file does not know tells of nothing (§617) and is
+listed nowhere. That is what the page can show, by kind; a decision lost with no deletion record it
+cannot show. The listing is a function of the reading and hashes nothing beyond it: a damaged
+version is told of at its place in the reading's own pass over the deletion records, so the tree is
+walked once at most. *Held by* `StoreLossesTests`, against every store of
+`tests/Shared/StoreMeaningVectors.json` whose name begins `stopped:`, read beside the tree of the
+stores of rules, which is the tree their answer names and which the measured reading read them
+beside; and the certificates taken away, which neither the model nor `probe/read.py` holds, by
+`StoreLossesTests` alone; and by `StoreInForceTests` and `StoreReadingStatesTests`.
 
 **What was run.** The press left the store as decided wherever it was run after a summary entry
 was deleted or deduplicated (`measured-store-as-a-whole` 3.4, 3.6). With a record for each
@@ -5635,6 +5709,13 @@ from another database, and Database Maintenance removes it with every other dele
 2.4), and for an answer to a renewal in the model and on real files
 (`measured-renewal-answers` 5, 7).
 
+**A lost answer whose client key the file no longer knows** (no row of its own; §618). *Who:* a
+person who deletes a client's admission by hand in a copy whose store holds the deletion record of
+a lost answer of that client, and no other record or item names the client key. *What happens:*
+the deletion record tells of nothing, so the answer it refused is refused no more; the client is
+admitted nowhere in that copy. *Measured:* in the model, in the random histories of Seal again,
+where no seal was involved (`measured-seal` 6).
+
 **A file is merged in that was made to grant, by somebody who holds the store key** (row 7).
 *Who:* the store key is a string in an entry of the database and is never renewed. So whoever can
 open the database, or could open any copy of it made since the first authority, holds it, also
@@ -6527,8 +6608,9 @@ that finds a measurement against a decision reports it and does not design aroun
     pairing's write with its save (§620, §627): it overturns nothing either. What stays owed is
     the same run on a machine that is not a developer's, and a database of more entries than
     10,000.
-13. **The page that seals the store again**: what it shows after each kind of loss. Nothing of it
-    was run as a page.
+13. **The page that seals the store again**: what it shows after each kind of loss. What it can
+    show, the listing of §625, is held to what `probe/read.py` listed for each kind of loss
+    (`StoreLossesTests`). Nothing of it was run as a page.
 14. **Which of KeePass's windows takes back or takes away an entry of the plugin's group** while
     the plugin writes (§626). This item is this document's own, read from `DESIGN.md` §124 and
     from no report. Run by the pull request that keeps the authority in the store, in the host
