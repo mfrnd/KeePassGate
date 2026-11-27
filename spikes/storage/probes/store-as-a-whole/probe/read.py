@@ -105,6 +105,16 @@ JUDGE = None
 # `forever`, and `renew_detail` the cause and what stands.
 ANSWERS = False
 ANSWER_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
+# ADDED (seal again): the answer also holds `losses`, what a stopped store lost as PLAN 3.1 of the
+# pull request that builds Seal again lists it for the seal's dialog and the seal's act: every
+# condition of STORE.md 624 that holds, not only the first; each entry that is damage, by its
+# identifier, the kind its tag names and its title; every deletion record that tells of a summary
+# entry and that no summary entry in force names; each revocation, retirement and removal in force by
+# a deletion record alone; each record no summary entry restates; each object a lost version makes
+# refuse, with the deletion records; each object the deletion record of a damaged version would make
+# refuse once the seal has deleted it; and `seal`, the versions granting nothing the seal writes,
+# each with its object, its text, `after` and `lost`, composed from this reading alone.
+SEAL = False
 
 
 def answer_text(text):
@@ -349,6 +359,7 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
                         held.append(k)
                         copied_keys += 1
     els, passed, damage, by_history = [], 0, 0, 0
+    damaged = []        # ADDED (seal again): (identifier, the kind its tag names, title)
     for c in cands:
         for n, v in enumerate(c.versions if history else [c]):
             v.u = c.u
@@ -367,6 +378,9 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
             els.append(c)
         elif any(c.u[:6] == S.tag(k, kind) for k in held for kind in S.KINDS):
             damage += 1             # under a plugin identifier and failing: damage
+            e = dump['entries'][c.u]     # ADDED (seal again)
+            damaged.append((c.u, [kind for k in held for kind in S.KINDS if c.u[:6] == S.tag(k, kind)][0],
+                            e.get('title', e['strings'].get('Title', ''))))
         else:
             passed += 1             # passed over and shown (change 3)
     # ADDED (two readings): a record that can only take access away, counted from a copy under
@@ -593,6 +607,7 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
                 out.append(o)
         return out
 
+    stated = (set(refusals), set(prem))     # ADDED (seal again): what records and items state
     for u in dels:
         for kind, k in tags.get(u[:6], ()):
             if JUDGE is not None and kind == 'version':     # ADDED (lost settled)
@@ -886,6 +901,70 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
         extra['known_names'] = sorted(names)
     if ANSWERS:     # ADDED (renewal answers)
         extra['renew_detail'] = renew_detail
+    if SEAL:        # ADDED (seal again): what a stopped store lost, and what the seal writes
+        reasons = []
+        told_heads = []
+        if store and not heads_live:
+            reasons.append('no summary entry of the store is in force')
+        if heads_live:
+            known_h = set(h.u for h in heads_live)
+            for h in heads_live:
+                known_h |= set(h.d['after'].split())
+            told_heads = sorted(u for u in dels if tagged(u, 'head') and u not in known_h)
+            if told_heads:
+                reasons.append('a summary entry was deleted that nothing in force replaces')
+        if damaged:
+            reasons.append('entries of the store have no version that passes')
+        n_ref, n_prem, n_regs = set(), set(), set()
+        for h in heads:
+            for it in heads_items(h):
+                if it['kind'] in ('revoked', 'retired'):
+                    n_ref.add((it['kind'], it['client'] if it['kind'] == 'revoked' else it['authority']))
+                elif it['kind'] == 'removed':
+                    n_prem.add((it['name'], it['id']))
+                elif it['kind'] == 'version':
+                    n_regs.add(it['id'])
+        not_restated = sorted(
+            [c.u for c in by.get('revoked', []) if ('revoked', c.d['client']) not in n_ref]
+            + [c.u for c in by.get('retired', []) if ('retired', c.d['authority']) not in n_ref]
+            + [c.u for c in by.get('removed', []) if (c.d['name'], c.u) not in n_prem]
+            + [c.u for c in by.get('version', []) if c.u not in named and c.u not in deadall and c.u not in n_regs])
+        if not_restated and heads:
+            reasons.append('a record no summary entry restates')
+        by_deletion = {
+            'revoked': sorted(s for (k, s) in refusals - stated[0] if k == 'revoked'),
+            'retired': sorted(s for (k, s) in refusals - stated[0] if k == 'retired'),
+            'removed': sorted('%s %s' % (n, i) for (n, i) in prem - stated[1])}
+        after_damage = set()
+        for (u, kind, title) in damaged:
+            if kind == 'version':
+                for kd, k in tags.get(u[:6], ()):
+                    if kd == 'version':
+                        after_damage |= set(judged(u, k)) if JUDGE is not None else set()
+
+        def granting_nothing(o):
+            if o.startswith('renew:'):
+                return 'refuse:forever'
+            if o.startswith('switch:'):
+                return S.doc(('sws', frozenset(['deny'])))
+            if o.startswith('rule:') and '/' in o:
+                return S.doc(('rows', frozenset(), False))
+            return S.doc(('const', frozenset()))
+        seal = []
+        if status == 'incomplete' and held:
+            for o, ids in sorted(lost.items()):
+                V = vers.get(o, {})
+                aft = set(V)
+                for after, f in V.values():
+                    aft |= after
+                lst = set(ids) | lost_of.get(o, set())
+                seal.append({'object': o, 'doc': granting_nothing(o), 'after': sorted(aft), 'lost': sorted(lst)})
+        extra['losses'] = {
+            'reasons': reasons, 'heads': told_heads,
+            'damaged': [{'id': u, 'kind': kind, 'title': title} for (u, kind, title) in sorted(damaged)],
+            'notRestated': not_restated, 'byDeletion': by_deletion,
+            'lost': {o: sorted(ids) for o, ids in sorted(lost.items())},
+            'refusesAfter': sorted(after_damage - set(lost)), 'seal': seal}
     return dict(**extra,status=status, served=served, auths=auths, adm=adm if serve else {}, valid=valid,
                 names=sorted(on), words={n: (w if serve else frozenset()) for n, w in raw.items()},
                 words_raw=raw, renew=renew, refusals=refusals, counts=counts,

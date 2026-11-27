@@ -164,6 +164,16 @@ def answers():
     PREFIX = 'an-'
 
 
+def seal():
+    """ADDED (seal again): the configuration of answers(), with Seal again as PLAN 3.1 of the pull
+    request that builds it designs it (crdt_model.SEAL) and read.py's listing of what a stopped store
+    lost (read.SEAL). The bridge writes every act at once, so the seal is saved as it is written."""
+    global PREFIX
+    answers()
+    M.SEAL = RD.SEAL = True
+    PREFIX = 'se-'
+
+
 def use(form):
     """ADDED (rules per profile): 'rows', the configuration's form, or 'whole', a version of a node's
     whole rule as every configuration before, with the words per profile kept on, so that a part

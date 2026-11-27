@@ -143,6 +143,25 @@
       bridge-two, bridge-hand
                            answer_runs.py bridge: every file of 2,000 histories read by read.py
 
+    With -Seal (ADDED, seal again), Seal again as PLAN 3.1 of the pull request that builds it
+    designs it: the configuration of -Answers with crdt_model.SEAL and read.py's listing of what a
+    stopped store lost on. Output in `out\seal\`, compared with `recorded-seal\`; databases in
+    `work\se-*`; then the three files of vectors that `vectors.py --seal` prints, into
+    `out\seal\vectors\`, held to `recorded-answers\vectors\` in `out\seal\vectors-compare.txt`:
+
+      cells, edits         seal.py: R1 to R21 on real files, every merge both ways; each kind of
+                           record edited past the history limit, sealed, then merged both ways
+      hand                 seal_runs.py hand: R1 to R21 in the model, Create on a stopped store with
+                           the switch off, the seal beside an act, the seal composed as shown
+      seal-two, seal-three, seal-long
+                           seal_runs.py seal: random histories of the seal's alphabet
+      damage               seal_runs.py damage: configurations F, I and K, a damaged version sealed
+      exhaustive-4         seal_runs.py exhaustive 4: every sequence of 4 steps of a narrow alphabet
+      search-2, search-3   seal_runs.py search: the design's twelve configurations over 2 and 3
+                           files, 20,000 histories each, its seeds, the seal's acts in the alphabet
+      bridge               seal_runs.py bridge: every file of 2,000 histories read by read.py, and
+                           the seal read.py plans held to the seal the model writes
+
 .PARAMETER Parts
     Which parts to run; every part by default.
 
@@ -173,9 +192,10 @@ param([string[]] $Parts = @(), [int] $Parallel = 6, [switch] $Decided, [switch] 
     [switch] $Rows,     # ADDED (rules per profile)
     [switch] $Owed,     # ADDED (owed forms)
     [switch] $S34,      # ADDED (S34 forms)
-    [switch] $Answers)  # ADDED (renewal answers)
-if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent, ($Reading -ne ''), $Rows.IsPresent, $Owed.IsPresent, $S34.IsPresent, $Answers.IsPresent | Where-Object { $_ }).Count -gt 1) {
-    throw 'One of -Decided, -Rewrite, -Copies, -Reading, -Rows, -Owed, -S34, -Answers.'     # ADDED (two readings); -Reading (copies extended); -Rows (rules per profile); -Owed (owed forms); -S34 (S34 forms); -Answers (renewal answers)
+    [switch] $Answers,  # ADDED (renewal answers)
+    [switch] $Seal)     # ADDED (seal again)
+if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent, ($Reading -ne ''), $Rows.IsPresent, $Owed.IsPresent, $S34.IsPresent, $Answers.IsPresent, $Seal.IsPresent | Where-Object { $_ }).Count -gt 1) {
+    throw 'One of -Decided, -Rewrite, -Copies, -Reading, -Rows, -Owed, -S34, -Answers, -Seal.'     # ADDED (two readings); -Reading (copies extended); -Rows (rules per profile); -Owed (owed forms); -S34 (S34 forms); -Answers (renewal answers)
 }
 
 $ErrorActionPreference = 'Stop'
@@ -358,6 +378,24 @@ if ($Answers) {
         'laws'          = @("$model\answer_runs.py", 'laws', '20000', '7')
     }
 }
+# ADDED (seal again): Seal again, the longest parts first; each model part draws on four processes of
+# its own
+if ($Seal) {
+    $config = 'seal'
+    $all = [ordered]@{
+        'exhaustive-4' = @("$model\seal_runs.py", 'exhaustive', '4', '4')
+        'cells'        = @("$probe\seal.py", 'cells')
+        'edits'        = @("$probe\seal.py", 'edits')
+        'search-3'     = @("$model\seal_runs.py", 'search', '3', '20000', '4')
+        'search-2'     = @("$model\seal_runs.py", 'search', '2', '20000', '4')
+        'seal-two'     = @("$model\seal_runs.py", 'seal', 'two', '200000', '61', '4', '12', '4')
+        'seal-three'   = @("$model\seal_runs.py", 'seal', 'three', '100000', '62', '4', '12', '4')
+        'seal-long'    = @("$model\seal_runs.py", 'seal', 'two', '100000', '63', '8', '16', '4')
+        'damage'       = @("$model\seal_runs.py", 'damage', '20000', '4')
+        'bridge'       = @("$model\seal_runs.py", 'bridge', 'two', '2000', '71', '4')
+        'hand'         = @("$model\seal_runs.py", 'hand')
+    }
+}
 # Through -File a list arrives as one string, so commas are split here.
 $Parts = @($Parts | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 if ($Parts.Count -eq 0) { $Parts = @($all.Keys) }
@@ -371,7 +409,7 @@ if ($Parts.Count -eq $all.Count) {
     if ($config) {
         # ADDED (two readings): the configuration's own output and databases only
         if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
-        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } elseif ($Rows) { 'pe-*', 'po-*' } elseif ($Owed) { 'qo-*' } elseif ($S34) { 'qss-*', 'qsa-*' } elseif ($Answers) { 'an-*' } else {     # ADDED (owed forms): qo-*; (S34 forms): qss-* and qsa-*; (renewal answers): an-*
+        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } elseif ($Rows) { 'pe-*', 'po-*' } elseif ($Owed) { 'qo-*' } elseif ($S34) { 'qss-*', 'qsa-*' } elseif ($Answers) { 'an-*' } elseif ($Seal) { 'se-*' } else {     # ADDED (owed forms): qo-*; (S34 forms): qss-* and qsa-*; (renewal answers): an-*; (seal again): se-*
             $letter = if ($Reading -eq 'cap-items') { 'i' } else { $Reading[0] }     # ADDED (copies extended)
             "x${letter}h-*", "x${letter}e-*"
         }
@@ -437,6 +475,13 @@ if ($Answers -and $Parts.Count -eq $all.Count) {     # ADDED (renewal answers): 
     & uv run --no-project python -I -X utf8 (Join-Path $family 'compare_answers.py') print $vectors |
         Set-Content -Encoding UTF8 (Join-Path $out 'vectors-print.txt')
     & uv run --no-project python -I -X utf8 (Join-Path $family 'compare_answers.py') vectors $vectors (Join-Path $family 'recorded-lost\vectors') |
+        Set-Content -Encoding UTF8 (Join-Path $out 'vectors-compare.txt')
+}
+if ($Seal -and $Parts.Count -eq $all.Count) {     # ADDED (seal again): the vectors, and how they hold
+    $vectors = Join-Path $out 'vectors'
+    & uv run --no-project python -I -X utf8 (Join-Path $family 'compare_seal.py') print $vectors |
+        Set-Content -Encoding UTF8 (Join-Path $out 'vectors-print.txt')
+    & uv run --no-project python -I -X utf8 (Join-Path $family 'compare_seal.py') vectors $vectors (Join-Path $family 'recorded-answers\vectors') |
         Set-Content -Encoding UTF8 (Join-Path $out 'vectors-compare.txt')
 }
 if ($config) {     # ADDED (two readings)

@@ -367,6 +367,39 @@ OUT_OF_FORM = UNTIL + '2026-12-15'      # what `unreadable` writes: a day with n
 IDEAL_LOST = True
 MOMENT_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 
+# ADDED (seal again): Seal again as PLAN 3.1 of the pull request that builds it designs it, played
+# before anything of it is built in the product. SEAL False: every act as before. With it on:
+#   - Create is refused on a stopped store while a store key stands (STORE.md 624), as the product
+#     refuses it; where no key stands it starts a store as before;
+#   - the seal's write names in the new summary entry's `after` every damaged summary entry it
+#     deletes, so that the deletion record it leaves for one tells of a summary entry named;
+#   - under `pending` the seal, and an act written with it, waits in the open database for the next
+#     save, as every act of the settings dialog's OK does (PLAN 3.1, what the write is believed on);
+#   - the act `sealsee` (gate) fixes what the seal's dialog shows, the reading of a stopped store, and
+#     `reseal+` (gate, act) writes the seal and the act after it in a single write, the act composed
+#     over the sealed store, with one summary entry (PLAN 1, §625 point 6);
+#   - SEAL_COMPOSE 'write' composes the seal over the reading at the write, as designed (§625 point
+#     5); 'shown', the control, over what the last `sealsee` showed.
+SEAL = False
+SEAL_COMPOSE = 'write'
+SEAL_NAME_DAMAGED = True    # off: a damaged summary entry the seal deletes left unnamed, the control
+
+
+def grants_nothing(obj, f):
+    """ADDED (seal again): whether an object's value grants nothing: an empty rule for a row, the
+    switch refusing, refuse:forever for an answer, a rule that grants nothing whatever arrives."""
+    if f is None:
+        return False
+    if obj.startswith('renew:') and ANSWERS:
+        return answer_token(f)[0] == 'forever'
+    if f[0] == 'rows':
+        return f[1] is not None and not f[1]
+    if f[0] == 'sws':
+        return 'deny' in f[1]
+    if f[0] == 'ans':
+        return answer_token(f)[0] == 'forever'
+    return all(not app(f, x) for x in (frozenset(), frozenset('r'), frozenset('w'), ALL))
+
 
 def answer_read(text):
     """ADDED (renewal answers): a text read strictly: ('forever',), ('until', moment), ('ask',), or None
@@ -584,7 +617,8 @@ GATE_ACTS = ('pair', 'revoke', 'recreate', 'padd', 'prem', 'rule', 'renew', 'ado
              'row', 'switch', 'drop',            # ADDED (rules per profile): with ROWS only
              'lift',                             # ADDED (S34 forms): with DEP only
              'settle', 'plain',                  # ADDED (lost settled)
-             'see', 'clock')                     # ADDED (renewal answers): with ANSWERS only
+             'see', 'clock',                     # ADDED (renewal answers): with ANSWERS only
+             'sealsee', 'reseal+')               # ADDED (seal again): with SEAL only
 
 
 class World:
@@ -641,6 +675,7 @@ class World:
         w.wkey = getattr(self, 'wkey', 'K')
         w.loses = getattr(self, 'loses', frozenset())      # ADDED (lost settled)
         w.clock, w.seen = list(self.clock), dict(self.seen)     # ADDED (renewal answers)
+        w.sealshown = dict(getattr(self, 'sealshown', {}))     # ADDED (seal again)
         return w
 
     # ADDED (store-as-a-whole): the file as another program reads it, and what it holds (change 4)
@@ -853,7 +888,9 @@ class World:
             for e in V.values():
                 dead |= e.after
                 # ADDED (renewal answers): in the oracle, what a lift settled in `lost` it saw
-                if ANSWERS and IDEAL_LOST and fl.idealkeys and obj.startswith('renew:'):
+                # ADDED (seal again): with SEAL, of every object: what the seal's version settled in
+                # `lost` its dialog showed lost, and a version set after it carries that on
+                if ANSWERS and IDEAL_LOST and fl.idealkeys and (obj.startswith('renew:') or SEAL):
                     dead |= e.lost
             f = None
             for i, e in V.items():
@@ -1067,6 +1104,9 @@ class World:
             if u == eid and not ok:      # damage goes with the write that seals over it
                 del rep.entries[u]
                 rep.dels[u] = t
+                # ADDED (seal again): a damaged summary entry deleted here is named by the new one
+                if SEAL and SEAL_NAME_DAMAGED and self.EL[u].kind == 'head' and own(self.EL[u].key):
+                    anc.add(u)
         for d in dead:
             if d in rep.entries and rep.entries[d][0] == d:
                 del rep.entries[d]
@@ -1123,20 +1163,63 @@ class World:
             grants = [e.data[1] for e in V.values() if e.id not in dd and e.data[0] == 'rows' and e.data[1] is not None]
             op = ('row', op[1], op[2], op[3], ''.join(sorted(frozenset.intersection(*grants) if grants else ())))
             kind = 'row'
+        if kind == 'sealsee':   # ADDED (seal again): ('sealsee', gate), the seal's dialog opens and shows
+            # the reading of the stopped store; a seal composed under SEAL_COMPOSE 'shown' composes over it
+            if not SEAL or v['status'] != 'incomplete' or not v['ents']:
+                return False
+            self.sealshown = dict(getattr(self, 'sealshown', {}))
+            self.sealshown[i] = v
+            return True
+        if kind == 'reseal+':   # ADDED (seal again): ('reseal+', gate, act), the seal and an act in one write
+            return self.seal_with(i, op[2])
         if kind == 'reseal':
             if v['status'] != 'incomplete' or not v['ents']:
                 return False
+            if SEAL:    # ADDED (seal again): a write that would leave no entry holding the store key is
+                # refused, as every write of the product is (StoreWrite.Plan): played, and put back
+                snap = (rep.clone(), set(self.K[i]), set(self.Kever[i]),
+                        set(self.Kdisk[i]) if self.Kdisk[i] is not None else None)
+                was = (self.n, self.t, getattr(self, 'wkey', 'K'), set(self.EL))
+                self.seal_write(i, v)
+                left = self.fold(rep)['held']
+                rep.__dict__.update(snap[0].__dict__)       # put back in place: the copy stays this object
+                self.K[i], self.Kever[i], self.Kdisk[i] = snap[1:]
+                self.n, self.t, self.wkey = was[:3]         # and the play leaves no trace: no number,
+                for x in set(self.EL) - was[3]:             # no moment and no element of it is kept
+                    del self.EL[x]
+                if not left:
+                    self.stats['seal-refused-for-the-store-key'] = self.stats.get('seal-refused-for-the-store-key', 0) + 1
+                    return False
+            # ADDED (seal again): written into the open database and kept by the next save
+            sealwait = SEAL and self.flags.pending and rep.disk is None
+            if sealwait:
+                rep.disk = rep.clone()
+                self.Kdisk[i] = set(self.K[i])
+            self.seal_write(i, v)       # ADDED (seal again): the press's write, moved into a method
+            if not (SEAL and self.flags.pending):    # ADDED (seal again): under SEAL it waits for a save
+                self.flush(i)       # ADDED (store-as-a-whole): a write of the plugin's own is saved
+            return True
+        return self.act_rest(i, op, rep, v, kind)
+
+    def seal_write(self, i, v):
+        """The press's write over the reading `v` of copy i, as it stood in `act` (ADDED (seal again):
+        moved here unchanged but for `shown`, so that the guard above can play it first)."""
+        rep = self.reps[i]
+        if True:
+            shown = v
+            if SEAL and SEAL_COMPOSE == 'shown':   # ADDED (seal again): the control, over the store shown
+                shown = getattr(self, 'sealshown', {}).get(i, v)
             t = self.now()
-            for obj, ids in sorted(v['lost'].items()):
+            for obj, ids in sorted(shown['lost'].items()):     # ADDED (seal again): shown for v
                 # a version was deleted here and nothing holds its text: the press writes the
                 # refusal down, naming what was lost
-                after = set(ids) | set(v['vers'].get(obj, {}))
-                for e in v['vers'].get(obj, {}).values():
+                after = set(ids) | set(shown['vers'].get(obj, {}))     # ADDED (seal again): shown for v
+                for e in shown['vers'].get(obj, {}).values():
                     after |= e.after
                 lst = frozenset()   # ADDED (lost settled): under 'lost' what was lost is named in `lost`
                 if JUDGE == 'lost':
-                    after = (after - set(ids)) | set(v['vers'].get(obj, {}))
-                    lst = frozenset(set(ids).union(*(e.lost for e in v['vers'].get(obj, {}).values())))
+                    after = (after - set(ids)) | set(shown['vers'].get(obj, {}))
+                    lst = frozenset(set(ids).union(*(e.lost for e in shown['vers'].get(obj, {}).values())))
                 e = self.mk('ver', obj, after=after, data=refusal_of(obj), lost=lst)     # ADDED (rules per profile): refusal_of; (lost settled): lost
                 rep.entries[e.id] = [e.id, t, True]
                 self.K[i].add(e.id)
@@ -1150,13 +1233,18 @@ class World:
                     self.K[i].add(e.id)
             self.K[i].add(self.write_head(rep, set()))
             self.Kever[i] |= self.K[i]
-            self.flush(i)       # ADDED (store-as-a-whole): a write of the plugin's own is saved
-            return True
+
+    def act_rest(self, i, op, rep, v, kind):
+        """The rest of `act` (ADDED (seal again): split from it unchanged, so that the press's write
+        can be a method of its own)."""
         new = []
         # ADDED (store-as-a-whole): Create, when no authority stands: under the key the store holds,
         # or under a new key when it holds none
         if kind == 'create':
             if v['served'] or v['auths']:
+                return False
+            # ADDED (seal again): refused on a stopped store while a store key stands (STORE.md 624)
+            if SEAL and v['status'] == 'incomplete' and v['held']:
                 return False
             key = sorted(v['held'])[0] if v['held'] else 'K%d' % (self.n + 1)
             self.n += 1
@@ -1296,7 +1384,12 @@ class World:
             after = set(V)
             for e in V.values():
                 after |= e.after
-            new.append(self.mk('ver', obj, after=after, data=doc))
+            lst = frozenset()
+            if SEAL and kind == 'rule':     # ADDED (seal again): a node's whole rule names what it
+                # settles in `lost`, as a row's version does (names_lost), so that a rule set after
+                # the seal carries on the losses the seal's version named
+                after, lst = self.names_lost(v, obj, list(V.values()), after)
+            new.append(self.mk('ver', obj, after=after, data=doc, lost=lst))     # ADDED (seal again): lost
             # ADDED (store-as-a-whole): `self.flags.mark and`
             if self.flags.mark and node and node in rep.nodes and rep.nodes[node][0] != node:
                 rep.nodes[node] = [node, self.now()]    # the marker, once in the node's life
@@ -1325,6 +1418,48 @@ class World:
         if not ((kind == 'rule' or (ROWS is not None and kind in ('row', 'switch', 'drop', 'lift'))     # ADDED (S34 forms): lift
                  or (ANSWERS and kind == 'renew'))      # ADDED (renewal answers)
                 and self.flags.pending):
+            self.flush(i)
+        return True
+
+    def seal_with(self, i, op):
+        """ADDED (seal again): Seal again and the act `op` at gate i in a single write, as the settings
+        dialog's OK writes them (PLAN 3.1): the seal composed over the stopped store, the act composed
+        over the sealed store, and one summary entry over both. Played as the seal and the act each
+        written alone, which composes each over what it is composed over in the single write; then
+        the file is put back as it was before the seal and the elements those two writes made, every
+        summary entry left out, are written in a single write of their own, which deletes damage,
+        prunes and writes the deletion records as any write does. An act that does not apply over the
+        sealed store is left out, and the seal is written alone."""
+        if not SEAL:
+            return False
+        rep = self.reps[i]
+        v = self.fold(rep)
+        if v['status'] != 'incomplete' or not v['ents'] or op[1] != i:
+            return False
+        snap = rep.clone()
+        K0, Kever0 = set(self.K[i]), set(self.Kever[i])
+        Kdisk0 = set(self.Kdisk[i]) if self.Kdisk[i] is not None else None
+        if not self.act(i, ('reseal', i)):
+            return False
+        if not self.act(i, op):
+            return True
+        new = set(u for u in rep.entries if u not in snap.entries and self.EL[u].kind != 'head')
+        rep.entries = {u: list(x) for u, x in snap.entries.items()}
+        rep.dels = dict(snap.dels)
+        rep.disk = snap.disk.clone() if snap.disk is not None else None
+        self.K[i], self.Kever[i] = set(K0), set(Kever0)
+        self.Kdisk[i] = set(Kdisk0) if Kdisk0 is not None else None
+        if self.flags.pending and rep.disk is None:
+            rep.disk = snap.clone()
+            rep.disk.disk = None
+            self.Kdisk[i] = set(K0)
+        t = self.now()
+        for u in sorted(new):
+            rep.entries[u] = [u, t, True]
+            self.K[i].add(u)
+        self.K[i].add(self.write_head(rep, new))
+        self.Kever[i] |= self.K[i]
+        if not self.flags.pending:
             self.flush(i)
         return True
 
@@ -2093,6 +2228,30 @@ def narrower_renewals(A, I, against='its ideal'):
     return None
 
 
+def seal_with_differs(W, X, i):
+    """ADDED (seal again): None when copy i of W, the seal and an act in a single write, holds what
+    copy i of X holds, the seal and the act written apart, but for the summary entries: the same
+    records present, the same deletion records of records, and the same reading; else what differs."""
+    def body(w):
+        rep = w.reps[i]
+        ents = frozenset(u for u, (eid, mt, ok) in rep.entries.items() if w.EL[eid].kind != 'head')
+        dels = frozenset(u for u in rep.dels if u not in w.EL or w.EL[u].kind != 'head')
+        return ents, dels
+    va, vb = W.fold(W.reps[i]), X.fold(X.reps[i])
+    if summary(va) != summary(vb) or va['regval'] != vb['regval'] or va['lost'] != vb['lost']:
+        return 'reading: single write %r, apart %r' % (summary(va), summary(vb))
+    a, b = body(W), body(X)
+    if a[0] != b[0]:
+        # every record one holds and the other does not, and whether each is out of force there
+        named = W.reps[i].dels
+        return 'info:records present: single write %s, apart %s' % (
+            ', '.join('%s%s' % (u, ' beside its deletion record' if u in named else '') for u in sorted(a[0] - b[0])) or 'none',
+            ', '.join(sorted(b[0] - a[0])) or 'none')
+    if a[1] != b[1]:
+        return 'info:deletion records: single write %s, apart %s' % (sorted(a[1] - b[1]), sorted(b[1] - a[1]))
+    return None
+
+
 def summary(v):
     return (v['status'], v['served'], tuple(sorted((c, tuple(sorted(p))) for c, p in v['adm'].items())),
             tuple(sorted((n, ''.join(sorted(w))) for n, w in v['words'].items())),
@@ -2149,8 +2308,51 @@ def run(ops, nrep, flags=FULL, check_conv=True, world=None):
         if ANSWERS and op[0] == 'renewcert' and op[1] < len(W.reps):
             renewal = (W.ideal(op[1]), CLOCK[W.clock[op[1]]])
         stats0 = dict(W.stats)      # ADDED (store-as-a-whole)
+        # ADDED (seal again): the copy before a seal, its damaged versions, and the seal and the act
+        # written apart, for the single write of `reseal+`
+        sealing = apart = alone = None
+        if SEAL and op[0] in ('reseal', 'reseal+') and op[1] < len(W.reps):
+            r0 = W.reps[op[1]]
+            sealing = (W.fold(r0), set(u for u, (eid, mt, ok) in r0.entries.items()
+                                       if u == eid and not ok and W.EL[eid].kind in ('ver', 'pin')))
+            if op[0] == 'reseal+':
+                apart = W.clone()
+                if apart.step(('reseal', op[1])):
+                    alone = apart.clone()
+                    apart.step(op[2])
+                else:
+                    apart = None
         if not W.step(op):
+            # ADDED (seal again): a seal refused for leaving no entry holding the store key, counted
+            if SEAL and W.stats.get('seal-refused-for-the-store-key', 0) != stats0.get('seal-refused-for-the-store-key', 0) \
+                    and 'info:seal-refused-for-the-store-key' not in seen:
+                seen.add('info:seal-refused-for-the-store-key')
+                fails.append(('info:seal-refused-for-the-store-key', k, 'file %d' % op[1]))
             continue
+        if sealing is not None:     # ADDED (seal again): what the seal has to leave
+            i = op[1]
+            A = W.fold(W.reps[i])
+            if A['status'] != 'ok':
+                fails.append(('seal-left-stopped', k, 'file %d: store %s after the seal' % (i, A['status'])))
+            if alone is not None:   # the seal of a single write held as written alone
+                A = alone.fold(alone.reps[i])
+                if A['status'] != 'ok':
+                    fails.append(('seal-left-stopped', k, 'file %d: store %s after the seal alone' % (i, A['status'])))
+            for obj in sorted(sealing[0]['lost']):
+                if not grants_nothing(obj, A['regval'].get(obj)):
+                    fails.append(('seal-granted-a-lost-object', k, 'file %d: %s' % (i, obj)))
+            told = sorted(o for o, ids in A['lost'].items() if ids & sealing[1])
+            if told and 'info:seal-damaged-version-refuses' not in seen:
+                seen.add('info:seal-damaged-version-refuses')
+                fails.append(('info:seal-damaged-version-refuses', k, 'file %d: %s' % (i, ', '.join(told))))
+            if apart is not None:
+                w = seal_with_differs(W, apart, i)
+                if w and w.startswith('info:'):     # the same reading, another file: counted
+                    if 'info:seal-with-keeps-other-records' not in seen:
+                        seen.add('info:seal-with-keeps-other-records')
+                        fails.append(('info:seal-with-keeps-other-records', k, 'file %d: %s' % (i, w[5:])))
+                elif w:
+                    fails.append(('seal-with-reads-otherwise', k, 'file %d: %s' % (i, w)))
         if renewal is not None and answer_refuses(renewal[0]['renew'].get(op[2], ASK), renewal[1]):
             fails.append(('safety', k, 'file %d: renewal of %s issued where its ideal is %s' % (
                 op[1], op[2], answer_label(renewal[0]['renew'].get(op[2], ASK)))))
@@ -2160,7 +2362,7 @@ def run(ops, nrep, flags=FULL, check_conv=True, world=None):
             # operator approved a renewal that a clock behind it would have refused without asking
             seen.add('info:renewal-at-a-clock-ahead')
             fails.append(('info:renewal-at-a-clock-ahead', k, 'file %d: renewal of %s' % (op[1], op[2])))
-        sealed = sealed or op[0] == 'reseal'
+        sealed = sealed or op[0] in ('reseal', 'reseal+')    # ADDED (seal again): reseal+
         for i in range(nrep):
             A = W.fold(W.reps[i])
             w = narrower(A, W.ideal(i), W.reps[i].nodes)
@@ -2272,6 +2474,10 @@ def alphabet(nrep, cfg, flags=None):     # ADDED (store-as-a-whole): `flags`
     if 'rec' in cfg:
         faults += [('del', r, s, 1) for r in R for s in sels]
         faults += [('reseal', r) for r in R]
+        if SEAL:    # ADDED (seal again): the seal's dialog, and the seal beside an act in a single write
+            faults += [('sealsee', r) for r in R]
+            faults += [('reseal+', r, a) for r in R for a in
+                       (('revoke', r, 'c0'), ('create', r), ('rule', r, 'N', 'r'), ('padd', r, 'pg'))]
     if 'skew' in cfg:
         faults += [('del', r, s, 2) for r in R for s in sels]
     if 'trace' in cfg:
