@@ -3156,6 +3156,22 @@ reading once the keys found are back within the ceiling.
   It is fail-open, by the person who can equally write any record under the database's own key
   (§639).
 
+**What is built.** The reading of this section: the keys found, those that stand and those set
+aside, marked as step 4 has it, circles found in a single round all standing, and every keep record
+read under any key found, as a record, as an item of a summary entry present and as a deletion
+record that tells of a keep record, also where a single key is found, where the keep records mark
+nothing and are what a store started again names in `after` (§632). Damage is judged under the key
+that stands alone, so an entry of a key set aside that no version passes stops nothing. A keep
+record under the store key that names a key found nowhere and that no summary entry restates is the
+stop a store started again writes (§632): it stops the store as a record no summary entry restates,
+also where no summary entry is present, and the listing of a stopped store names it apart with the
+key it names, for the seal's dialog (§625). *Held by* `StoreReadingKeysTests` against the stores of
+`StoreMeaningVectors.json` whose names begin `keys:`, as `probe/read.py` read them
+(`measured-started-again` 8, 13): the state, the authority served, the keys found, standing and set
+aside, every keep record read, and the stops listed apart. The measured reading names the profile
+names of a split store from its records under every key; the product reads nothing in force there
+and names none, which serves nothing either way.
+
 ### The history rule §622
 
 **The rule** (decision 7). Every record carries the check. A record counts in its current version

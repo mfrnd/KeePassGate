@@ -125,6 +125,10 @@ namespace KeePassGate.Store
     /// those, a revocation, a retirement and a removal whose subject the file names nowhere, which
     /// the seal's summary entry restates by an item with no subject, `STORE.md` §611.
     ///
+    /// **A store a start stopped is told apart**: a keep record under the store key that names a
+    /// key found nowhere and that no summary entry restates is the stop a start wrote, `STORE.md`
+    /// §632, listed with the key it names, so that the dialog can show the store set aside.
+    ///
     /// **Pure**: it reads the reading and nothing else, and hashes nothing, everything having been
     /// worked out as the reading was made.
     /// </remarks>
@@ -202,6 +206,13 @@ namespace KeePassGate.Store
         /// </summary>
         public IReadOnlyList<string> RefusesAfter { get; private set; }
 
+        /// <summary>
+        /// Every stop a start wrote under the store key, `STORE.md` §632: a keep record that no
+        /// summary entry restates and that names a key found nowhere, each its identifier and the
+        /// name of the key it names, by identifier. The seal keeps this store over each.
+        /// </summary>
+        public IReadOnlyList<KeyValuePair<string, string>> SetAside { get; private set; }
+
         /// <summary>What a reading of a stopped store lost, or null for a store in any other state.</summary>
         public static StoreLosses Of(StoreReading reading)
         {
@@ -211,6 +222,8 @@ namespace KeePassGate.Store
             }
 
             var inForce = reading.InForce;
+            var notRestated = inForce.NotRestated();
+            var found = new HashSet<string>(reading.Found.Select(key => key.Name), StringComparer.Ordinal);
             var losses = new StoreLosses
             {
                 Reason = reading.Reason,
@@ -220,7 +233,12 @@ namespace KeePassGate.Store
                     : DeletedLast(
                         inForce.LostHeads,
                         inForce.Heads.Select(head => head.Hex).Concat(reading.Damaged.Where(damaged => damaged.Kind == StoreKinds.Head).Select(damaged => damaged.Hex))),
-                NotRestated = inForce.NotRestated().Select(record => record.Hex).OrderBy(hex => hex, StringComparer.Ordinal).ToList(),
+                NotRestated = notRestated.Select(record => record.Hex).OrderBy(hex => hex, StringComparer.Ordinal).ToList(),
+                SetAside = notRestated
+                    .Where(record => record.Is(StoreKinds.Kept) && !found.Contains(record.Form.Member(StoreKinds.Key)))
+                    .Select(record => new KeyValuePair<string, string>(record.Hex, record.Form.Member(StoreKinds.Key)))
+                    .OrderBy(stop => stop.Key, StringComparer.Ordinal)
+                    .ToList(),
                 Revoked = Ascending(inForce.ByDeletion(StoreKinds.Revoked)),
                 Retired = Ascending(inForce.ByDeletion(StoreKinds.Retired)),
                 RevokedBy = Telling(inForce, StoreKinds.Revoked),
@@ -251,8 +269,10 @@ namespace KeePassGate.Store
             }
 
             // Asked only where a summary entry is present, as the measured reading asked it: with
-            // none, a record nothing restates is no loss of its own but the summary entry's.
-            if (losses.NotRestated.Count > 0 && inForce.Heads.Count > 0)
+            // none, a record nothing restates is no loss of its own but the summary entry's. A
+            // stop a start wrote is a condition of its own wherever it is, since it is written to
+            // be restated by nothing.
+            if (losses.SetAside.Count > 0 || (losses.NotRestated.Count > 0 && inForce.Heads.Count > 0))
             {
                 stops.Add(StoreStop.NotRestated);
             }

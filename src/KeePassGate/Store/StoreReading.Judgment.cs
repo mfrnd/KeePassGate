@@ -48,6 +48,16 @@ namespace KeePassGate.Store
 
             public int ByHistory { get; private set; }
 
+            /// <summary>The names of the keys that stand, in the order they were found: none where no key is judged.</summary>
+            public IReadOnlyList<string> Standing { get; private set; } = Array.Empty<string>();
+
+            /// <summary>
+            /// The identifier of every keep record read under any key found, as a record, an item
+            /// or a deletion record that tells of a keep record, ascending: none where no key is
+            /// judged.
+            /// </summary>
+            public IReadOnlyList<string> KeptRead { get; private set; } = Array.Empty<string>();
+
             /// <summary>Whether anything was judged, which past the ceiling on keys nothing is.</summary>
             public bool Judged { get; private set; } = true;
 
@@ -164,9 +174,19 @@ namespace KeePassGate.Store
                     }
                 }
 
-                var kept = keys.Count == 1 ? new List<Relation>() : KeptRelations(keys, records).ToList();
+                // The keep records are read under a single key as well, for what a store started
+                // again names in `after`, `STORE.md` §632; they mark nothing there.
+                var kept = KeptRelations(keys, records).ToList();
                 var told = keys.Count == 1 ? new List<Relation>() : DeletedRelations(keys, byTag).ToList();
-                var standing = Standing(keys.Count, kept.Concat(told).ToList());
+                var relations = kept.Concat(told).ToList();
+                var standing = StandingOf(keys.Count, relations);
+                var standingNames = standing.Select(key => keys[key].Name).ToList();
+                var keptRead = relations
+                    .Select(relation => relation.Id)
+                    .Where(id => id != null)
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(id => id, StringComparer.Ordinal)
+                    .ToList();
 
                 if (standing.Count > 1)
                 {
@@ -180,6 +200,8 @@ namespace KeePassGate.Store
                         + " store keys stand, and the operator has kept no store")
                     {
                         Passed = passed,
+                        Standing = standingNames,
+                        KeptRead = keptRead,
                         Answering = standing
                             .SelectMany(key => StoreInForce.Standing(keys[key], records[key], byTag))
                             .ToList(),
@@ -193,6 +215,8 @@ namespace KeePassGate.Store
                     .ToList();
                 var judged = Store(keys[store], records[store], damage[store], byTag, keptByDeletion, nodes);
                 judged.Damage = damage[store];
+                judged.Standing = standingNames;
+                judged.KeptRead = keptRead;
                 judged.Passed = passed;
                 judged.ByHistory = records[store].Count(record => record.ByHistory);
                 judged.Retires = id => StoreInForce.Retired(keys[store], records[store], byTag, new[] { id }).Contains(id);
@@ -300,7 +324,7 @@ namespace KeePassGate.Store
             /// into K by K marks first, however many keep records the file holds, and the marking
             /// runs over those.
             /// </remarks>
-            private static IReadOnlyList<int> Standing(int keys, IReadOnlyList<Relation> relations)
+            private static IReadOnlyList<int> StandingOf(int keys, IReadOnlyList<Relation> relations)
             {
                 if (keys == 1)
                 {

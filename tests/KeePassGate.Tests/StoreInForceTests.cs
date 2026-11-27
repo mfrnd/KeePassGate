@@ -23,6 +23,7 @@ namespace KeePassGate.Tests
             { "ok", StoreState.Whole },
             { "incomplete", StoreState.Stopped },
             { "nostore", StoreState.None },
+            { "split", StoreState.Split },
         };
 
         private static IEnumerable<TestCaseData> Measured()
@@ -53,6 +54,14 @@ namespace KeePassGate.Tests
                 reading.Answering.Select(record => record.Form.Member("id")).OrderBy(id => id, System.StringComparer.Ordinal),
                 Is.EqualTo(((JArray)store["auths"]).Select(id => (string)id)),
                 "the authorities that stand");
+
+            // A split store has nothing in force, `STORE.md` §649: only its authorities are
+            // answered under.
+            if (reading.State == StoreState.Split)
+            {
+                Assert.That(reading.InForce, Is.Null, "nothing in force under several keys");
+                return;
+            }
 
             var refusals = reading.InForce.Taken("retired").Select(subject => "retired " + subject)
                 .Concat(reading.InForce.Taken("revoked").Select(subject => "revoked " + subject))
