@@ -3472,60 +3472,83 @@ a retired authority's entry does after Delete with the retirement edited, or aft
 the new authority edited, the plan refuses the seal as it refuses every such write, and the press
 is not offered. The way out there is the command that starts the store again (§632).
 
-**What is built.** The seal is an act of the store, `SealActs`, the only act a stopped store
-takes, and only as the first act of its write (`StoreAct.Seals`); it is refused where the store
-has no room, which the seal does not lift, wherever the plan refuses it, and where its own write
-would leave the store stopped, as a summary entry naming as many as a string holds leaves no room
-for the write after it (§643): asked of the store as the write would leave it, before the act is
-written or held, so that a press refused holds nothing for OK. **Its versions** are
-those of the listing above, each composed by its type's own text, an empty rule for a profile's
-row, the switch refusing for a switch and `refuse:forever` for an answer, naming in `after` every
-version of its object in force and what those name there and in `lost` what was lost and what
-those name there, no identifier in both; a version whose content or item does not fit the ceiling
-of a string is left out and named, and its object goes on refusing; an object of no type the
-plugin writes gets none. Nothing is written for what a deletion record alone keeps in force: the
-write's summary entry restates it. **Its write** deletes every entry that is damage, whatever its
-tag, each with a deletion record, and names in its summary entry's `after` every damaged summary
-entry it deletes, beside everything a summary entry names (§611), above whose heights it stands;
-without that name its own deletion record would stop the store again at once (as measured,
-`measured-seal` 8 item 1). The acts after it in the same write are planned over the sealed store,
-Create among them. **It is composed at the write**: an act that holds what is to be done, composed
-again wherever the KPG tab's buffer is read and at OK over the store as it stands then
-(`StoreAct.Again`), so a merge under its dialog that brought a lost version's text back leaves
-that object out, a further loss has its version, and over a store that became whole the act comes
-to nothing. **A decision whose subject the file names nowhere** (as measured,
-`measured-seal-restates`): where a revocation, a retirement or a removal is deleted with its
-deletion record and with every summary entry, and no record or item left names its subject, the
-seal's summary entry restates it by an item with no subject (§611), and every write after it
-carries that item until the subject is named. A copy from before the decision that brings the
-subject back, by any merge into either copy and with the sealed copy's deletion records kept or
-cleared, finds the client refused, the name off the list and the authority retired, as the
-measured model's seal leaves them; restated by the subject alone, as the seal first did, the
-deletion record was the decision's single carrier (§639). *Held by* `SealActsTests`, against the
-seal's records of `tests/Shared/StoreRecordVectors.json` and the `seal` of every store of the
-`stopped:` family; `StoreWriteTests`, `StoreRoomTests` and `AuthorityCommandsInStoreTests`; and
-`StoreWriteShapeTests`, R1 to R21 and R3s of `tests/Shared/StoreWriteVectors.json`, each played
-through the product's acts with the seal pressed where its dialog is shown and written at the
-step that seals through the KPG tab's buffer, held after every step by shape and by answer, and
-R21 as the accepted class of §639 row 5; and R5 to R7 and F5 to F7r of what the seal restates,
-each followed by a merge by Overwrite if newer and by KeePassXC into the other copy as
-sealed, and by those and by Synchronize with the sealed copy's deletion records cleared, each
-summary entry's items with no subject held to the model's by the subject each is about.
+**What is built.** The seal is an act of the store, `SealActs`, the only act a stopped store takes,
+and only as the first act of its write (`StoreAct.Seals`); it is refused where the store has no
+room, which the seal does not lift, wherever the plan refuses it, and where its own write would
+leave the store stopped, as a summary entry naming as many as a string holds leaves no room for the
+write after it (§643): asked of the store as the write would leave it, before the act is written or
+held, so that a press refused holds nothing for OK. **Its versions** are those of the listing above,
+each composed by its type's own text, an empty rule for a profile's row, the switch refusing for a
+switch and `refuse:forever` for an answer, naming in `after` every version of its object in force
+and what those name there and in `lost` what was lost and what those name there, no identifier in
+both; a version whose content or item does not fit the ceiling of a string is left out and named,
+and its object goes on refusing; an object of no type the plugin writes gets none. Nothing is
+written for what a deletion record alone keeps in force: the write's summary entry restates it.
+**Its write** deletes every entry that is damage, whatever its tag, each with a deletion record, and
+names in its summary entry's `after` every damaged summary entry it deletes, beside everything a
+summary entry names (§611), above whose heights it stands; without that name its own deletion record
+would stop the store again at once (as measured, `measured-seal` 8 item 1). The acts after it in the
+same write are planned over the sealed store, Create among them. **It is composed at the write**: an
+act that holds what is to be done, composed again wherever the KPG tab's buffer is read and at OK
+over the store as it stands then (`StoreAct.Again`), so a merge under its dialog that brought a lost
+version's text back leaves that object out, a further loss has its version, and over a store that
+became whole the act comes to nothing. **A decision whose subject the file names nowhere** (as
+measured, `measured-seal-restates`): where a revocation, a retirement or a removal is deleted with
+its deletion record and with every summary entry, and no record or item left names its subject, the
+seal's summary entry restates it by an item with no subject (§611), and every write after it carries
+that item until the subject is named. A copy from before the decision that brings the subject back,
+by any merge into either copy and with the sealed copy's deletion records kept or cleared, finds the
+client refused, the name off the list and the authority retired, as the measured model's seal leaves
+them; restated by the subject alone, as the seal first did, the deletion record was the decision's
+single carrier (§639). *Held by* `SealActsTests`, against the seal's records of
+`tests/Shared/StoreRecordVectors.json` and the `seal` of every store of the `stopped:` family;
+`StoreWriteTests`, `StoreRoomTests` and `AuthorityCommandsInStoreTests`; and `StoreWriteShapeTests`,
+R1 to R21 and R3s of `tests/Shared/StoreWriteVectors.json`, each played through the product's acts
+with the seal pressed where its dialog is shown and written at the step that seals through the KPG
+tab's buffer, held after every step by shape and by answer, and R21 as the accepted class of §639
+row 5; and R5 to R7 and F5 to F7r of what the seal restates, each followed by a merge by Overwrite
+if newer and by KeePassXC into the other copy as sealed, and by those and by Synchronize with the
+sealed copy's deletion records cleared, each summary entry's items with no subject held to the
+model's by the subject each is about. The sequences are played over the unit tier's store, whose
+merges are not KeePass's where both copies hold an entry apart: its Synchronize takes this copy's
+entry where KeePass takes the entry modified last, and the sequences put the other copy's entry in
+its place where they edited it there; no sequence passes such an entry where the real merge would
+end wider, and the real merges are the host tier's. Over real databases, `SealInRealDatabaseTests`
+seals each stop on the tab's buffer and writes it at OK through the real writer: the only summary
+entry deleted, a summary entry made apart deleted beside one in force, each kind of entry edited
+past the history limit, and a record no summary entry restates; `StoreWritesUnderDialogsTests`
+refuses it under each window that would take it back, and `StoreSealMergeTests` holds it through
+each of KeePass's merges in both directions, the copy merged into whole in every cell, F5 among them
+with the deletion records kept and cleared.
 
 **What the page and its dialog are.** Over a stopped store the Certificate Authority page states
-why, and where the seal could be written and lift the stop offers **Seal store again** in
-Recreate's place; where it could not, for want of room, because its write would leave no entry
-holding the store key, or because its write would leave no room for the write after it, it offers
-nothing and states why. The press opens a dialog of the plugin's own, sized as the
-authority chooser is: the stop's reason, a row for every item of the listing with its kind, what
-it was about, a node by its title and a client by its name where the database holds them, a
-decision whose subject the database names nowhere by its kind alone, and what the seal makes of
-it, every deletion record that tells of it in the row's tooltip, the two sentences on what cannot
-be shown, and a count of what the seal keeps. Confirming holds the act in
-the tab's buffer, and OK writes it, logs what it wrote and deleted, and writes the audit's line.
-*Held by*
-`SealFormTests`, `AuthorityDescriptionTests`, `AuthorityPanelTests`, `PendingRecordsTests`,
-`GateWiringTests` and `GateTabFitsTests`.
+why, and where the seal could be written and lift the stop offers **Seal store again** in Recreate's
+place; where it could not, for want of room, because its write would leave no entry holding the
+store key, or because its write would leave no room for the write after it, it offers no seal and
+states why, and offers Start store again wherever the store takes a start (§632). The press asks the
+same of the store as it stands at the press, and opens no dialog over a seal OK could not write. The
+dialog is the plugin's own, sized as the authority chooser is: the reason the reading names first,
+and a row for each loss the listing shows: each stop a start wrote, each summary entry deleted that
+nothing replaces, each object a lost version makes refuse, each decision a deletion record alone
+keeps in force, each damaged entry and each object its deletion record would leave refusing, with
+its kind, what it was about, and what the seal makes of it, every deletion record that tells of it
+in the row's tooltip. A rule's node is named by its title wherever the tree holds it, the recycle
+bin among it, and an answer to a renewal by the name of its client where an admission names the
+client; a decision whose subject the database names nowhere is named by its kind alone. A record no
+summary entry restates has no row, the seal's summary entry restating it, and no condition has a row
+of its own: with no row, the dialog states that no deletion record shows a loss. Under the list the
+two sentences on what cannot be shown, and a count of what the seal keeps, the clients as the
+Clients page counts them. Confirming holds the act in the tab's buffer, and OK writes it, logs what
+it wrote and deleted, and writes the audit's line. While it waits no code is handed out, and the
+line over the invite button names the seal: to pair once OK has landed it where the sealed store
+holds an authority, and that it takes effect at OK where the store holds none, since the seal
+deletes no authority. **What the page's question costs** (measured): whether the seal could be
+written and lift the stop is asked at every reading the page draws a stopped store from, the seal
+composed, planned, applied in memory and the store it leaves read. Beside ten thousand entries and a
+thousand lost objects it took 77 ms at the median where the page's reading took 64 and the press up
+to the dialog 184, and with ten history items on every entry 73, 87 and 184 ms (`FINDINGS.md`,
+`StoreReadingCostTests`). *Held by* `SealFormTests`, `AuthorityDescriptionTests`,
+`AuthorityPanelTests`, `PendingRecordsTests`, `GateWiringTests` and `GateTabFitsTests`.
 
 ---
 
@@ -5791,25 +5814,29 @@ the confirmation is the person's own act, the witness did not travel through a K
 from another database, and Database Maintenance removes it with every other deletion record
 (`measured-desktop-windows` 3.3, 5.2). *Measured:* in the model (`measured-store-as-a-whole` 2.3,
 2.4), and for an answer to a renewal in the model and on real files
-(`measured-renewal-answers` 5, 7).
+(`measured-renewal-answers` 5, 7). *Pinned* over real databases by `StoreSealMergeTests`: the seal
+is shown no revocation and restates none, and none is in force after any of KeePass's own merges
+with a copy from before the revocation.
 
 **The store is sealed again after a decision was deleted in both carriers, each with a deletion
-record, whose subject nothing left names** (no row of its own; closed, §611). *Who:* a revocation,
-a retirement or a removal of a name is made in a copy, and its record and the summary entry are
-deleted with a deletion record each, past the guard or with it off, so that the client's record,
-the authority's or the addition goes with the decision and nothing left names the subject; the
-store stops; the operator seals it. *What happens, where the seal restates the decision by its
-subject alone:* the seal's summary entry restates nothing of it, the deletion record is its only
-carrier, and a copy from before the decision then brings the subject back: by Overwrite if newer,
-Overwrite existing, Keep existing or KeePassXC into the copy from before, or by any method but
-Create new IDs once Database Maintenance has removed the sealed copy's deletion records. The
-revoked client is admitted, or the removed name back on the list; the retired authority stands
-beside the new one, and nothing is served until it is kept. *What covers it:* the seal's item with
-no subject, carried by every write until the subject is named, which refuses the subject when it
-comes back (§611). *Measured:* in the model and on real files: restated by its subject alone,
-46 of 972 cells on files ended wider than their own ideal and 23 granted less, and the form built
-never differs from the model's control in any part (`measured-seal-restates` 4 to 6). *Pinned*
-by `StoreWriteShapeTests`, R5 to R7 and F5 to F7r of what the seal restates.
+record, whose subject nothing left names** (no row of its own; closed, §611). *Who:* a revocation, a
+retirement or a removal of a name is made in a copy, and its record and the summary entry are
+deleted with a deletion record each, past the guard or with it off, so that the client's record, the
+authority's or the addition goes with the decision and nothing left names the subject; the store
+stops; the operator seals it. *What happens, where the seal restates the decision by its subject
+alone:* the seal's summary entry restates nothing of it, the deletion record is its only carrier,
+and a copy from before the decision then brings the subject back: by Overwrite if newer, Overwrite
+existing, Keep existing or KeePassXC into the copy from before, or by any method but Create new IDs
+once Database Maintenance has removed the sealed copy's deletion records. The revoked client is
+admitted, or the removed name back on the list; the retired authority stands beside the new
+authority, and nothing is served until it is kept. *What covers it:* the seal's item with no
+subject, carried by every write until the subject is named, which refuses the subject when it comes
+back (§611). *Measured:* in the model and on real files: restated by its subject alone, 46 of 972
+cells on files ended wider than their own ideal and 23 granted less, and the form built never
+differs from the model's control in any part (`measured-seal-restates` 4 to 6). *Pinned* by
+`StoreWriteShapeTests`, R5 to R7 and F5 to F7r of what the seal restates, and over real databases by
+`StoreSealMergeTests`, F5 through each of KeePass's merges in both directions, with the deletion
+records kept and cleared.
 
 **A lost answer whose client key the file no longer knows** (no row of its own; §618). *Who:* a
 person who deletes a client's admission by hand in a copy whose store holds the deletion record of

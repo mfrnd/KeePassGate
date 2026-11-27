@@ -238,6 +238,15 @@ limit, a save and a reload, and copies brought together by `PwDatabase.MergeIn`;
 each part of a write's application back by its own undo, and every part in the order a write
 takes them, and holds the database to what it was before.
 
+**It seals a stopped store again in real databases.** `SealInRealDatabaseTests` makes each stop of
+`STORE.md` §624 with KeePass's own types, presses the seal on the KPG tab's buffer and writes it at
+the dialog's OK through the real writer, then saves and reopens the file;
+`StoreWritesUnderDialogsTests` refuses the seal under each window that would take it back; and
+`StoreSealMergeTests` brings a sealed copy together with a copy from before the loss by each of
+KeePass's five merge methods in both directions, the copy merged into whole in every cell, the class
+`STORE.md` §639 row 5 accepts pinned by name, and F5 of `measured-seal-restates`, a revocation whose
+client nothing names, with the sealed copy's deletion records kept and cleared.
+
 **Who a store admits is held in both tiers.** In the unit tier `StoreAdmissionsTests` reads stores
 the test composes, each rule of `STORE.md` §615 on its own, and `AdmissionActsTests` holds what
 an admission, a revocation and a certificate taken away are composed of. In this tier

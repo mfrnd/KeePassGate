@@ -296,6 +296,88 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        [TestCase("damaged entry")]
+        [TestCase("summary entry")]
+        [TestCase("maintenance")]
+        [TestCase("tan wizard")]
+        public void The_seal_is_refused_whole_under_a_window_that_would_take_it_back_and_written_once_it_has_gone(string window)
+        {
+            // `STORE.md` §625 and §626: the seal deletes every damaged entry and the summary entry
+            // in force, and goes through the writer's guard as every other write of the
+            // settings dialog's OK does, so a window that puts either back, or adds under the
+            // database as the seal saves, refuses the seal whole.
+            StoreSeeds.Authority(Store());
+            StoreSeeds.Revoke(Store(), new string('c', 64));
+            var damaged = Entry("revoked");
+            damaged.CreateBackup(_database.Database);
+            damaged.Strings.Set("KPG.Data", new ProtectedString(false, "{\"client\":\"edited\"}"));
+            for (var edit = 2; edit <= 11; edit++)
+            {
+                damaged.CreateBackup(_database.Database);
+                damaged.Expires = !damaged.Expires;
+            }
+
+            Assume.That(StateNow(), Is.EqualTo(StoreState.Stopped));
+
+            using (var entryDialog = new PwEntryForm())
+            using (var maintenance = new DatabaseOperationsForm())
+            using (var wizard = new TanWizardForm())
+            {
+                Form form;
+                string refused;
+                switch (window)
+                {
+                    case "damaged entry":
+                        entryDialog.InitEx(damaged, PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
+                        form = entryDialog;
+                        refused = "an entry dialog is open on the entry this would be written to";
+                        break;
+                    case "summary entry":
+                        entryDialog.InitEx(Entry("head"), PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
+                        form = entryDialog;
+                        refused = "an entry dialog is open on the entry this would be written to";
+                        break;
+                    case "maintenance":
+                        maintenance.InitEx(_database.Database);
+                        form = maintenance;
+                        refused = "the database maintenance dialog is open on this database";
+                        break;
+                    default:
+                        wizard.InitEx(_database.Database, _database.RootGroup);
+                        form = wizard;
+                        refused = "the TAN wizard dialog is open on this database";
+                        break;
+                }
+
+                GlobalWindowManager.AddWindow(form);
+                try
+                {
+                    var sealedNow = Service().Seal();
+                    Assert.That(sealedNow.Succeeded, Is.False);
+                    Assert.That(sealedNow.Message, Does.Contain(refused));
+                    Assert.That(StateNow(), Is.EqualTo(StoreState.Stopped), "nothing was written");
+                    Assert.That(_database.RootGroup.FindEntry(damaged.Uuid, true), Is.SameAs(damaged), "the damaged entry stands");
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+
+            var sealedAfter = Service().Seal();
+            Assert.That(sealedAfter.Succeeded, Is.True, sealedAfter.Message);
+            Assert.That(StateNow(), Is.EqualTo(StoreState.Whole), "and the same seal goes through once the window has gone");
+        }
+
+        /// <summary>The store's state as a fresh reading reads it.</summary>
+        private StoreState StateNow()
+        {
+            using (var reading = Store().Read())
+            {
+                return reading.State;
+            }
+        }
+
         /// <summary>The profiles the store holds a row for at a node, as a reading made now reads them.</summary>
         private IReadOnlyList<string> Rows(string node)
         {
