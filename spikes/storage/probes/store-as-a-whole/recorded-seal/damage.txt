@@ -1,0 +1,7 @@
+== PLAN 4.1 item 2: a damaged version whose text no summary entry holds, sealed. Configurations F, I and K over two files, 20000 histories each with the design's seeds; of the histories that hold an edit and a seal, those in which a seal applied, and those after which an object refuses by the deletion record of a damaged version the seal deleted
+   F + foreign: edits, import with new identifiers, planted entries   with an edit and a seal 1223, a seal applied 172, an object refusing by a damaged version's deletion record 1
+      edit 1 (ver rule:root new) ; renew 1 c1 forever ; del 1 (head old) 1 ; del 0 (rec) 1 ; del 0 (ver rule:root new) 1 ; merge k2a 0 1 ; clock 0 0 ; padd 0 pg ; reseal+ 1 (rule 1 N r)  (at reseal+ 1 (rule 1 N r): rule:root)
+   I everything at once                                               with an edit and a seal 473, a seal applied 57, an object refusing by a damaged version's deletion record 0
+   K the same, and foreign edits, imports and planted entries         with an edit and a seal 489, a seal applied 56, an object refusing by a damaged version's deletion record 0
+   every such history is also held to the property of the search, `safety` among it: the counts of the search part give any that fails
+== 2 s

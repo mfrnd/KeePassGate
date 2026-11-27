@@ -1,0 +1,64 @@
+﻿== StoreRecordVectors.json
+   members at the top: about, key, profileTags, records, renewalTexts, texts
+   key: the same
+   profileTags: the same
+   records: 47 held today, 51 printed; added 4, removed 0, changed 0
+      added: head of height 1, restating the seal's versions
+      added: version, the seal's empty rule of a row, naming the standing version and the lost one
+      added: version, the seal's refusal of renewals forever, naming the standing version and the lost answer
+      added: version, the seal's switch refusing, naming the lost version
+   renewalTexts: the same
+   texts: the same
+   about: the text held today, and 657 characters added after it
+   lines: 118 added; 1 held today replaced or removed: "about": "Records in the forms STORE.md 614, 615 and 648 fix
+== StoreMeaningVectors.json
+   members at the top: about, key, meanings
+   key: the same
+   meanings: 112 held today, 130 printed; added 18, removed 0, changed 0
+      added: stopped: a deletion record of a version of a node the file does not know
+      added: stopped: a lost answer
+      added: stopped: a lost version of a row
+      added: stopped: a lost version of the switch
+      added: stopped: a removal known by its deletion record alone
+      added: stopped: a retirement known by its deletion record alone
+      added: stopped: a revocation edited past the limit, restated by the summary entry
+      added: stopped: a revocation known by its deletion record alone
+      added: stopped: a revocation no summary entry restates
+      added: stopped: a summary entry deleted that nothing in force replaces
+      added: stopped: a version of a row edited past the limit, restated by the summary entry
+      added: stopped: a version of a row edited past the limit, which no summary entry restates
+      added: stopped: a version of a row no summary entry restates
+      added: stopped: an admission edited past the limit
+      added: stopped: an answer edited past the limit, restated by the summary entry
+      added: stopped: no summary entry in force
+      added: stopped: the summary entry edited past the limit
+      added: stopped: two at once, a lost version of a row and a revocation edited past the limit
+   about: the text held today, and 1702 characters added after it
+   lines: 3256 added; 1 held today replaced or removed: "about": "What probe/read.py of spikes/storage/probes/store-
+== StoreWriteVectors.json
+   members at the top: about, sequences
+   sequences: 63 held today, 85 printed; added 22, removed 0, changed 0
+      added: seal, R10: the newest version of N's rule edited: damage whose text the summary entry carries
+      added: seal, R11: the summary entry edited: damage; Seal again deletes it and names it
+      added: seal, R12: the newest version of N's rule and the summary entry both edited: a damaged version whose text no summary entry holds, which refuses after the seal by its own deletion record
+      added: seal, R13: a revocation at copy 1 whose summary entry copy 1 deletes with no deletion record, merged into copy 0 by KeePassXC: a record no summary entry restates
+      added: seal, R14: two at once: a lost version and the revocation of c0 edited
+      added: seal, R15: the authority deleted, none after it, and the summary entry deleted with a deletion record: stopped with the key held in the retirement and no authority standing; Create refused; Seal again; then Create under the key held, and a pairing
+      added: seal, R16: a lost version, then Seal again and a revocation of c1 in a single write
+      added: seal, R17: stopped with no authority standing, then Seal again and Create in a single write
+      added: seal, R18: a lost version, then Seal again and N's rule set again in a single write
+      added: seal, R19: the seal's dialog shows a lost version at copy 0; a KeePassXC merge from copy 1 brings a summary entry that restates it and names the one deleted while the dialog stands, beside damage that keeps the store stopped; the seal is composed at the write and writes nothing for the version
+      added: seal, R1: the only summary entry in force deleted with a deletion record: no summary entry in force; Seal again restates every record present
+      added: seal, R20: the seal's dialog shows the summary entry deleted at copy 0; a Synchronize from copy 1 brings a deletion record of a version whose content no file holds while the dialog stands; the seal is composed at the write and settles it
+      added: seal, R21: the accepted class of STORE.md 639 row 5: c0 revoked at copy 0, the revocation and the summary entry deleted with no deletion record, Seal again, then KeePassXC into the stale copy 1, which never held the revocation
+      added: seal, R2: a summary entry made apart in each copy and synchronized; at copy 0 one of the two deleted with a deletion record: a summary entry deleted that nothing in force replaces
+      added: seal, R3: the newest version of N's rule deleted with a deletion record and the summary entry with one: a lost version; Seal again writes a version granting nothing
+      added: seal, R3s: N's switch set to refuse, its version deleted with a deletion record and the summary entry with one: a lost version of the switch
+      added: seal, R4: c1's refusal deleted with a deletion record and the summary entry with one: a lost answer; Seal again writes refuse:forever naming it in lost
+      added: seal, R5: the revocation of c0 deleted with a deletion record and the summary entry with one: known by the deletion record alone, restated by the seal
+      added: seal, R6: the retirement deleted with a deletion record and the summary entry with one
+      added: seal, R7: the removal of pf deleted with a deletion record and the summary entry with one
+      added: seal, R8: the revocation of c0 edited at copy 0: damage; Seal again deletes it with a deletion record
+      added: seal, R9: the admission of c1 edited: damage; Seal again deletes it, and c1 is refused
+   about: the text held today, and 2060 characters added after it
+   lines: 153825 added; 1 held today replaced or removed: "about": "The file after each act of fixed sequences that th

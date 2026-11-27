@@ -59,6 +59,13 @@ on the chain of those texts at each position of a gate's clock, in the model, ov
 `keepassxc-cli`. Its record is `recorded-answers\`, with the vectors it prints in
 `recorded-answers\vectors\`. The section "The standing answers to a renewal" at the end holds it.
 
+**A further configuration, Seal again**, was added on 2026-11-26 for the report `measured-seal.md`:
+`run.ps1 -Seal`, the press that lifts a stopped store as the plan of the pull request that builds it
+designs it, over the configuration of the answers: in the model, over the files `store.py` writes of
+it, and on real files made by KeePassLib and merged by KeePassLib and `keepassxc-cli`. Its record is
+`recorded-seal\`, with the vectors it prints in `recorded-seal\vectors\`. The section "Seal again"
+at the end holds it.
+
 | Path | What it is |
 | --- | --- |
 | `model\crdt_model.py` | a copy of `spikes\storage\model\crdt_model.py` with the switches of section "What was added" below; every new switch at its default is the design's model |
@@ -88,6 +95,8 @@ on the chain of those texts at each position of a gate's clock, in the model, ov
 | `recorded-lost\` | the output of those parts, which `measured-lost-settled.md` quotes; `recorded-lost\vectors\` the three files of vectors `vectors.py --lost` prints |
 | `model\answer_runs.py`, `probe\answers.py`, `compare_answers.py` | the parts of the standing answers to a renewal in the model and on real files (section "The standing answers to a renewal"), and the comparisons of the vectors |
 | `recorded-answers\` | the output of those parts, which `measured-renewal-answers.md` quotes; `recorded-answers\vectors\` the three files of vectors `vectors.py --answers` prints |
+| `model\seal_runs.py`, `probe\seal.py`, `compare_seal.py` | the parts of Seal again in the model and on real files (section "Seal again"), and the comparisons of the vectors |
+| `recorded-seal\` | the output of those parts, which `measured-seal.md` quotes; `recorded-seal\vectors\` the three files of vectors `vectors.py --seal` prints |
 
 **Everything ran twice**, on 2026-11-16, on a machine other measurements were sharing. Every
 output of the second run is the same as the record line for line, apart from what `compare.py`
@@ -2170,3 +2179,178 @@ Reported, not fixed.
   refuses both alike.
 - The slow key derivation; KeePassXC releases other than 2.8.0 in `random`.
 - The product, a window, a phone.
+
+## Seal again
+
+Added on 2026-11-26 for `papers\ground\measured-seal.md`. Seal again lifts a stopped store
+(`STORE.md` §624 and §625); the pull request that builds it designs it in its plan, section 3.1,
+and its section 4.1 names what is measured here first: a seal after a stop by an edited entry, a
+damaged version whose text no summary entry holds, a seal on a store stopped with no authority
+standing and then Create, a seal beside another act in a single write, a seal composed over a store
+that changed since its dialog showed it, what the dialog lists after each kind of loss, and the
+accepted class of §639 row 5 pinned. `run.ps1 -Seal` runs it; its record is `recorded-seal\`, with
+the vectors it prints in `recorded-seal\vectors\`.
+
+### What it runs
+
+`run.ps1 -Seal` runs these parts, each into `out\seal\<part>.txt`, held to `recorded-seal\` by
+`compare.py --seal` and by `compare_seal.py check`; after them `compare_seal.py print` writes the
+three files of vectors `vectors.py --seal` prints into `out\seal\vectors\`, with
+`vectors-print.txt`, and `compare_seal.py vectors` holds them to `recorded-answers\vectors\`, the
+files as they stand, which are the product's `tests\Shared` on `origin/master` (`133a08b4`) byte for
+byte, in `vectors-compare.txt`.
+
+| Part | What it is |
+| --- | --- |
+| `edits` | `probe\seal.py edits`: each kind of store entry of `cases.py history` edited at copy 0 past KeePass's history limit (the dialog edit and ten more; the dialog edit and ten quick edits) and with no history kept, and a rule version granting read, alone and with the summary entry; the read and read.py's listing; Seal again where the store stops with its key held; then each merge of KeePassLib's five methods and KeePassXC 2.8.0 both ways with the unedited copy |
+| `cells` | `probe\seal.py cells`: R1 to R21 on real files: the read and read.py's listing before the seal, the copy after it, then every merge both ways by KeePassLib's five methods and four `keepassxc-cli` releases, each held to every decision any gate made, to the copy's own ideal and to both copies just before the merge, then the acts that follow |
+| `hand` | `model\seal_runs.py hand`: R1 to R21 in the model, every merge both ways; R15 with the switch off and on; R11 and R12 with the damaged summary entry named and left unnamed; R16 to R18 as a single write beside the seal and the act written apart; every sequence with the seal composed over what its dialog showed, the control |
+| `seal-two`, `seal-three`, `seal-long` | `model\seal_runs.py seal`: random histories of the seal's alphabet, 200,000 over two copies, 100,000 over three and 100,000 over two of 8 to 16 steps |
+| `damage` | `model\seal_runs.py damage`: configurations F, I and K over two files, 20,000 histories each with the design's seeds: the histories with an edit and a seal, and those after which an object refuses by the deletion record of a damaged version the seal deleted |
+| `exhaustive-4` | `model\seal_runs.py exhaustive 4`: every sequence of 4 steps of a narrow alphabet of 40 steps over two copies after a fixed divergence, the convergence checked at the end |
+| `search-2`, `search-3` | `model\seal_runs.py search`: the design's twelve configurations over two and three files, 20,000 histories each with the design's seeds, the seal's dialog and the seal beside an act in the alphabet wherever Seal again is |
+| `bridge` | `model\seal_runs.py bridge`: 2,000 random histories of the seal's alphabet, every file the Encoder writes, a damaged entry with its check failing, read by read.py with its listing and held to the model's fold, and at every stopped copy the seal read.py's listing plans held to the seal the model writes |
+
+**The store.** The configuration of the standing answers to a renewal (`crdt_model.STORE` with no
+repair, a rule, an answer, a lift and the seal waiting in the open database for the next save, a
+rule as a version of a node's whole rule, the answers on and the reading of lost versions, `JUDGE`
+`lost`), with `crdt_model.SEAL` on. The parts on files write every act at once, as every part on
+files has. The vectors play the sequences with rows per profile in the form `seen`, as every
+sequence of `--writes` plays.
+
+**What a history is held to.** `crdt_model.run`, as for the answers, and with the seal on, after
+every seal that applied: `seal-left-stopped`, the copy not whole after the seal, or after the seal
+of a single write played alone; `seal-granted-a-lost-object`, an object that refused for a lost
+version before the seal granting after it; `seal-with-reads-otherwise`, a single write whose reading
+differs from the seal and the act written apart; counted as `info:`, a single write that keeps other
+records than the two writes apart (`info:seal-with-keeps-other-records`), an object refusing after
+the seal by the deletion record of a damaged version the seal deleted
+(`info:seal-damaged-version-refuses`), and a seal refused for leaving no entry holding the store key
+(`info:seal-refused-for-the-store-key`). A history that fails a property that ends it is shrunk by
+that property and classed by what it holds: a store key lost (decision 9), `STORE.md` §639 rows 1 to
+5, a client's admission deleted so that a deletion record of its answer tells of nothing, or
+`OTHER`, printed with every step as a counterexample. A history beyond its ideal after a seal
+(`sealed-after-a-loss`) is row 5 where it holds a loss that left no deletion record, and is played
+again with every seal left out: where it fails `safety` the same, the seal was not what made it
+fail, and it is classed by what it holds then.
+
+### The command
+
+From the branch root, in Windows PowerShell 5.1, under an ordinary user token, with
+`PSModulePath` removed when started from PowerShell 7:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1 -Seal -Parallel 4
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\compare.py --seal
+```
+
+A run of every part empties `out\seal\` and the databases `work\se-*` and nothing of the other
+configurations'. Each model part draws on four processes of its own; the parts on files start the
+KeePassLib host and `keepassxc-cli` as the earlier parts on files do. Nothing shows a window.
+
+**How long**, in seconds, four parts at once on twelve logical processors, each model part on four
+processes of its own:
+
+| Part | Run 1 | Run 2 |
+| --- | --- | --- |
+| `exhaustive-4` | 993 | 952 |
+| `cells` | 412 | 592 |
+| `search-3`, `search-2` | 161, 105 | 216, 155 |
+| `edits` | 131 | 165 |
+| `seal-two`, `seal-three`, `seal-long` | 110, 75, 80 | 206, 125, 90 |
+| `damage`, `bridge`, `hand` | 5, 5, 5 | 5, 10, 5 |
+
+**How the runs were made.** A first start of run 1 was not kept: it held a seal beside an act to
+the seal and the act written apart by the whole file rather than by the reading first, classed a
+history beyond its ideal after a seal as row 5 without playing it again with the seal left out,
+classed the loss of the retirement that holds the store key followed by Create as a counterexample
+rather than as decision 9, and had no rule version granting read among the kinds of `edits`. The
+code was changed for each, and run 1 and run 2 were then `run.ps1 -Seal -Parallel 4`, in turn,
+under an ordinary user token; run 1's outputs are `recorded-seal\`, but the empty `.err` files and
+`times.txt`. With the new switches off, the parts `cells`, `losses`, `model-hand`, `model-losses`,
+`laws`, `bridge-two` and `bridge-hand` of `-Answers` were run again after the last change, in the
+same session, and printed their records line for line with the masks of "Running it"; before it,
+`model\store_runs.py scenarios` and `section6` printed `recorded\` line for line, and
+`model\lost_runs.py` its `tags`, `hand` and `bridge-two`. `vectors.py --answers` prints the three
+files of `recorded-answers\vectors\` byte for byte but the line ends, in both runs.
+
+**Compared.** Every output of run 2 is the same as `recorded-seal\` line for line, with the running
+times masked: 13 files, the two listings of the vectors among them; and the three files of vectors
+printed into `out\seal\vectors\` are the same bytes as those of `recorded-seal\vectors\` but the
+line ends.
+
+| Figure | Recorded | Second run | Reproduced |
+| --- | --- | --- | --- |
+| `edits`: kinds and edits; seals applied, store whole after; seals that do not apply, no store key | 12 by 3; 30, 30; 6 | the same | yes |
+| `edits`: 360 merge cells after a seal: as decided, narrower, wider than every decision (each an import into the unedited copy, within its own ideal); steps where file and model disagree | 315, 42, 3; 0 | the same | yes |
+| `cells`, 378 cells: as decided, narrower, refusing, wider (accepted: R21 row 5, and imports into a copy that stays stale); beyond both copies; beyond the own ideal outside the accepted classes | 337, 29, 1, 11; 0; 0 | the same | yes |
+| `cells`: steps where file and model disagree | 1, an entry of R19 after Create new IDs, the read the same | the same | yes |
+| `hand`, 168 cells: beyond the own ideal outside the accepted classes; by `after` alone; imports that stay stale; row 5 | 0; 5, all of R18; 4; 2 and 2 | the same | yes |
+| `hand`: R15 Create with the switch off and on; R11 and R12 with the damaged summary entry left unnamed; R16 to R18 the same as apart but for the summary entries; sequences differing composed as shown | writes on the stopped store, refused; stopped again; 3 of 3; R19, R20 | the same | yes |
+| `seal-two`, `-three`, `-long`: histories in which a seal was drawn | 131,304, 65,965, 80,509 | the same | yes |
+| the same: `safety` (rows 2 and 3, row 3, decision 9); `sealed-after-a-loss` (row 5, rows 2 and 3 with the seal not involved); counterexamples | 27 (14, 0, 13), 2 (1, 0, 1), 47 (14, 1, 32); 0, 0, 11 (10, 1); none | the same | yes |
+| the same: `one-loss` (an admission deleted so that an answer's deletion record tells of nothing; rows 2 and 3; row 3) | 168 (164, 4, 0), 70 (70, 0, 0), 131 (124, 6, 1) | the same | yes |
+| the same: a damaged version refusing after the seal; a seal refused for the store key; a single write keeping other records; seal left stopped, a lost object granting, a single write reading otherwise | 239, 66, 278; 28, 2, 43; 0, 0, 2; none | the same | yes |
+| `exhaustive-4`: histories; failing a property that ends a history, `sealed-after-a-loss` aside; a damaged version refusing after the seal; `sealed-after-a-loss`, each holding a loss that left no deletion record (row 5) | 2,560,000; none; 6,720; 1,938 | the same | yes |
+| `damage`, F, I and K: histories with an edit and a seal; a seal applied; an object refusing by a damaged version's deletion record | 1,223, 473, 489; 172, 57, 56; 1, 0, 0 | the same | yes |
+| `search-2`: `safety` (E rows 2 and 3, K decision 9); `sealed-after-a-loss` (C, rows 2 and 3, the seal not involved); `rollback-by-overwrite` H and I; seal infos | 2; 1; 73, 19; F 1 damaged version, 1 refused for the key | the same | yes |
+| `search-3`: `safety` (H decision 9); `rollback-by-overwrite` H and I | 1; 103, 31 | the same | yes |
+| `bridge`: steps compared, differing; seals compared, differing | 9,700, 0; 1,305, 0 | the same | yes |
+| vectors: records, stores, sequences added; members changed or removed; `--answers` against `recorded-answers\vectors\` | 4, 18, 22; 0; the same but the line ends | the same | yes |
+
+### What was added for it
+
+Each line added or changed carries "ADDED (seal again)".
+
+- `crdt_model.py`: `SEAL`, `SEAL_COMPOSE` and `SEAL_NAME_DAMAGED`; `grants_nothing`; Create refused
+  on a stopped store while a store key stands; in `write_head`, a damaged summary entry the write
+  deletes named in the new summary entry's `after`; the press's write moved unchanged into
+  `seal_write`, and the rest of `act` into `act_rest`, so that the seal is played first and put back
+  where it would leave no entry holding the store key (counted as `seal-refused-for-the-store-key`);
+  the seal waiting for a save under `pending`; the acts `sealsee` and `reseal+` (`seal_with`), and
+  the seal's two acts in the design's alphabet where `reseal` is; a whole rule set at a node naming
+  in `lost` what it settles (`names_lost`), as a row's version does; in the oracle, a version a
+  version of the same object names in `lost` counted as seen, for every object; in `run`, the
+  properties of the seal and `seal_with_differs`.
+- `read.py`: `SEAL`, and the answer's `losses`.
+- `bridge.py`: `seal()`.
+- `vectors.py`: `--seal`; a damaged entry in a step's file and `damaged` and `losses` in each step
+  under `SEAL`; `seal_stores`, `seal_command` and the sequences of the seal.
+- `model\seal_runs.py`, `probe\seal.py`, `compare_seal.py`: new.
+- `run.ps1`: `-Seal`. `compare.py`: `--seal`.
+
+### Defects and limits of this configuration
+
+Reported, not fixed.
+
+- **The model holds no history**, so an edit is damage at once there; on files an edit is eleven
+  dialog edits of KeePass's own paths (`Store.cs history-edit`), past the limit, and the bridge
+  adopts what the file holds. A single edit within the limit counts by its history and stops
+  nothing (`measured-decided-store` 3.3).
+- **The model tells every deletion record of a revocation by the element it names**, where read.py
+  tells it only for a client key the file knows; a revocation whose entry is damaged and whose
+  summary entry is lost is, in read.py, known again only once a record names its client key.
+- **The single write is played as the seal and the act each written alone, then fused** into one
+  write over the elements those two made: what each is composed over is what it is composed over in
+  the product's single write, and the fusing is what the comparison holds.
+- **A seal held in the open database is the seal**: `sealed-after-a-loss` counts every failure after
+  a seal was drawn, saved or not; the histories where a merge read the file from before an unsaved
+  seal are told apart by playing them again with the seal left out.
+- **The ideal counts `lost` as seen for every object**, which makes the seal's version a decision:
+  after the seal, a merged copy is held to the refusal the seal wrote. The parts on files print
+  both copies and the oracle, and `hand` prints the ideal by `after` alone beside it.
+- **The listing is read.py's**, over the model's files and real files; the product's reading gives
+  the first reason alone (`StoreReading.Judgment`); certificates taken away are in no part, since
+  neither the model nor read.py holds them.
+- **No room and no ceiling**: the model holds neither, so a seal refused for the store's room is not
+  run; the refusal for the store key is the product's guard of `StoreWrite.Plan`, played here.
+- **The cells of `edits` label an import into the unedited copy that stays stale as wider** than
+  every decision, within its own ideal, where `cells` labels it accepted (§640).
+- **Development trials** of every part were run in the elevated session before the recorded runs;
+  every figure here is of the two runs under an ordinary user token.
+
+### Not run in this configuration
+
+- Start again (`PLAN.md` 4.2), a later configuration; the page, the dialog and the press in a
+  window (4.3); a store with no room or at a ceiling; a certificate taken away; three copies on
+  files; the slow key derivation; the product.

@@ -1,0 +1,4 @@
+== every sequence of 4 steps of a narrow seal alphabet over two copies (40 steps wide: deletions of N's newest version, the newest summary entry and the revocation with a deletion record or with none, edits, the seal's dialog, Seal again, the seal beside a revocation, Create and N's rule, Create, a save, KeePass ending before a save, six merges), after the divergence rule 0 N r ; revoke 0 c0 ; pair 0 ; renew 0 c1 forever ; merge kp_sync 1 0 ; rule 0 N none ; prem 0 pf, the convergence checked at the end: 2560000 histories
+    info:seal-damaged-version-refuses x6720; first shortest (file 1: rule:N): del 0 (ver rule:N new) 0 ; del 1 (head new) 0 ; edit 1 (ver rule:N new) ; reseal 1
+    sealed-after-a-loss, Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5) x1938; first shortest (file 0: node N grants rw): del 0 (ver rule:N new) 0 ; del 0 (ver rule:N new) 0 ; del 0 (head new) 0 ; reseal+ 0 (rule 0 N rw)
+== 992 s

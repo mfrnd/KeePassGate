@@ -1,0 +1,6 @@
+﻿StoreRecordVectors.json with --answers: the same bytes as recorded-answers\vectors but the line ends
+StoreRecordVectors.json with --seal: A7 played with SEAL on: the same as printed
+StoreMeaningVectors.json with --answers: the same bytes as recorded-answers\vectors but the line ends
+StoreMeaningVectors.json with --seal: A7 played with SEAL on: the same as printed
+StoreWriteVectors.json with --answers: the same bytes as recorded-answers\vectors but the line ends
+StoreWriteVectors.json with --seal: A7 played with SEAL on: the same as printed

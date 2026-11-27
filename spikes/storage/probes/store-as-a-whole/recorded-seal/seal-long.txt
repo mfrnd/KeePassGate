@@ -1,0 +1,36 @@
+== 100000 histories of the seal's alphabet over 2 copies, 8 to 16 steps, seed 63: 68 acts (a pairing, a revocation, Recreate, Delete, Create, a name added and removed, N's and the root's rule, an answer and a lift, a renewal, a save, KeePass ending before a save, the seal's dialog, Seal again, the seal beside an act), 8 merges (Synchronize, Overwrite if newer, KeePassXC, Create new IDs) and 72 faults (a deletion by hand of each kind with a deletion record or with none, an edit of each kind, every deletion record cleared, a deletion record of a version whose content no file holds); an act drawn with 0.45, a merge with 0.3, a fault with 0.25
+   histories: accepted:unsaved-answer-lost x263, accepted:unsaved-rule-lost x780, info:seal-damaged-version-refuses x278, info:seal-refused-for-the-store-key x43, info:seal-with-keeps-other-records x2, info:unsaved-lift-lost x6, one-loss x131, safety x47, sealed-after-a-loss x11
+    histories in which a seal was drawn: 80509
+    shortest accepted:unsaved-answer-lost: renew 1 c0 forever ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 1 root inherit ; quit 1
+    shortest info:seal-damaged-version-refuses: edit 1 (ver rule:root new) ; del 1 (head old) 0 ; reseal+ 1 (revoke 1 c1)
+    shortest info:seal-refused-for-the-store-key: delauth 1 ; del 1 (ref retired) 0 ; edit 0 (head new) ; merge kp_other 0 1 ; reseal+ 0 (prem 0 pf)
+    shortest info:seal-with-keeps-other-records: recreate 1 ; edit 1 (head new) ; edit 1 (ref retired) ; merge xc 1 0 ; reseal+ 1 (rule 1 N r)
+    shortest info:unsaved-lift-lost: lose 1 renew:c0 ; renew 1 c0 forever ; reseal+ 1 (revoke 1 c1) ; reseal 1 ; renew 1 c0 ask ; reseal+ 1 (renew 1 c1 forever) ; quit 1 ; renew 1 c0 ask ; reseal+ 0 (padd 0 pg) ; reseal+ 1 (rule 1 N none)
+    one-loss, a client's admission deleted by hand with no other record of its key, so that a deletion record of its answer tells of nothing (STORE.md 618): the client admitted nowhere in that copy: 124 histories, 9 distinct once shrunk, the three shortest
+        #1805, shrunk to 2 steps: lose 0 renew:c0 ; del 0 (rec) 0   (file 0: renewal of c0 ask where the copy before the step is forever (refusing at - against 012))
+        #1936, shrunk to 2 steps: lose 1 renew:c0 ; del 1 (rec) 1   (file 1: renewal of c0 ask where the copy before the step is forever (refusing at - against 012))
+        #3975, shrunk to 2 steps: lose 0 renew:c0 ; del 0 (rec) 1   (file 0: renewal of c0 ask where the copy before the step is forever (refusing at - against 012))
+    one-loss, a decision and its summary entry deleted with no deletion record (STORE.md 639 row 3): 1 histories, 1 distinct once shrunk
+        #47818, shrunk to 6 steps: rule 1 root none ; revoke 0 c0 ; merge kp_sync 1 0 ; merge kp_sync 0 1 ; del 0 (head old) 0 ; del 0 (ver rule:root new) 0   (file 0: node root grants r)
+    one-loss, a decision and its summary entry deleted, and a merge that carries no deletion record (STORE.md 639 rows 2 and 3): 6 histories, 6 distinct once shrunk, the three shortest
+        #34546, shrunk to 4 steps: prem 0 pf ; del 0 (head new) 1 ; merge xc 1 0 ; del 1 (prem) 0   (file 1: client c0 holds ['pf'])
+        #46094, shrunk to 4 steps: revoke 1 c0 ; del 1 (head new) 0 ; merge xc 0 1 ; del 0 (ref revoked) 0   (file 0: client c0 admitted)
+        #76476, shrunk to 4 steps: revoke 1 c0 ; del 1 (head new) 1 ; merge xc 0 1 ; del 0 (ref revoked) 0   (file 0: client c0 admitted)
+    safety, a decision and its summary entry deleted with no deletion record (STORE.md 639 row 3): 1 histories, 1 distinct once shrunk
+        #47818, shrunk to 6 steps: rule 1 root none ; revoke 0 c0 ; merge kp_sync 1 0 ; merge kp_sync 0 1 ; del 0 (head old) 0 ; del 0 (ver rule:root new) 0   (file 0: node root grants r)
+    safety, a decision and its summary entry deleted, and a merge that carries no deletion record (STORE.md 639 rows 2 and 3): 14 histories, 14 distinct once shrunk, the three shortest
+        #14776, shrunk to 4 steps: revoke 1 c0 ; del 1 (ref revoked) 0 ; del 1 (head new) 0 ; merge kp_other 0 1   (file 0: client c0 admitted)
+        #23496, shrunk to 4 steps: delauth 0 ; del 0 (ref retired) 1 ; del 0 (head old) 0 ; merge kp_other 1 0   (file 1: client c0 admitted)
+        #34546, shrunk to 4 steps: prem 0 pf ; del 0 (head new) 1 ; merge xc 1 0 ; del 1 (prem) 0   (file 1: client c0 holds ['pf'])
+    safety, a store key lost: the entry holding it deleted or edited, then Create (decision 9): 32 histories, 22 distinct once shrunk, the three shortest
+        #1914, shrunk to 3 steps: del 0 (auth) 0 ; create 0 ; rule 0 root rw   (file 0: node root grants rw)
+        #6112, shrunk to 3 steps: del 1 (auth) 1 ; create 1 ; rule 1 root rw   (file 1: node root grants rw)
+        #31650, shrunk to 3 steps: edit 0 (auth) ; create 0 ; rule 0 root rw   (file 0: node root grants rw)
+    sealed-after-a-loss, Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5): 10 histories, 10 distinct once shrunk, the three shortest
+        #15279, shrunk to 4 steps: del 1 (ver rule:root new) 0 ; del 1 (head new) 0 ; reseal 1 ; rule 1 root rw   (file 1: node root grants rw)
+        #25659, shrunk to 4 steps: del 1 (ver rule:root new) 0 ; del 1 (head old) 0 ; reseal 1 ; rule 1 root rw   (file 1: node root grants rw)
+        #34584, shrunk to 4 steps: del 1 (ver rule:root new) 0 ; del 1 (head new) 0 ; reseal+ 1 (create 1) ; rule 1 root rw   (file 1: node root grants rw)
+    sealed-after-a-loss, a decision and its summary entry deleted, and a merge that carries no deletion record (STORE.md 639 rows 2 and 3), the seal not involved (the history fails the same with no seal): 1 histories, 1 distinct once shrunk
+        #65366, shrunk to 6 steps: rule 1 N none ; import 1 0 ; del 1 (head new) 0 ; del 1 (ver rule:N new) 1 ; reseal+ 1 (rule 1 N r) ; merge xc 0 1   (file 0: node N grants r)
+== 77 s

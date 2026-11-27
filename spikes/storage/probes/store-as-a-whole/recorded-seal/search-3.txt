@@ -1,0 +1,74 @@
+== the store as decided with the answers and Seal again: the design's search, its twelve configurations over 3 files, 20000 histories each, its seeds; where deletions by hand are, the seal's dialog and the seal beside an act (a revocation, Create, N's rule set, a name added) in the alphabet
+A merges only (every program)                                      3 files  20000 histories: accepted:copy-wider x3, accepted:unsaved-answer-lost x45, accepted:unsaved-rule-lost x53
+    histories in which a seal was drawn: 0
+    shortest accepted:copy-wider: rule 2 N none ; revoke 2 c0 ; merge k2a 1 2 ; copy 1
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until2 ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 1 root inherit ; quit 1
+B + deletions by hand with a deletion record                       3 files  20000 histories: accepted:copy-wider x1, accepted:unsaved-answer-lost x35, accepted:unsaved-rule-lost x39, info:renewal-at-a-clock-ahead x1
+    histories in which a seal was drawn: 6262
+    shortest accepted:copy-wider: rule 1 N none ; revoke 1 c0 ; copy 1
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until1 ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 0 root inherit ; quit 0
+    shortest info:renewal-at-a-clock-ahead: del 2 (rec) 1 ; renew 1 c0 until1 ; clock 1 1 ; see 2 c1 ; recreate 2 ; merge xc 1 2 ; create 2 ; del 0 (ref revoked) 1 ; renewcert 1 c0
+C + deletions that leave no record                                 3 files  20000 histories: accepted:copy-wider x1, accepted:unsaved-answer-lost x35, accepted:unsaved-rule-lost x44
+    histories in which a seal was drawn: 3900
+    shortest accepted:copy-wider: rule 0 N none ; pair 0 ; copy 0
+    shortest accepted:unsaved-answer-lost: renew 2 c0 until1 ; quit 2
+    shortest accepted:unsaved-rule-lost: rule 2 root none ; quit 2
+D + records dated before the entry (a clock behind)                3 files  20000 histories: accepted:copy-wider x4, accepted:unsaved-answer-lost x37, accepted:unsaved-rule-lost x58
+    histories in which a seal was drawn: 4008
+    shortest accepted:copy-wider: rule 1 N none ; pair 1 ; copy 1
+    shortest accepted:unsaved-answer-lost: renew 1 c0 forever ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 1 root none ; quit 1
+E + deletion records cleared                                       3 files  20000 histories: accepted:copy-wider x2, accepted:unsaved-answer-lost x34, accepted:unsaved-rule-lost x38, info:renewal-at-a-clock-ahead x1
+    histories in which a seal was drawn: 3973
+    shortest accepted:copy-wider: rule 1 N none ; merge kp_other 1 0 ; copy 1
+    shortest accepted:unsaved-answer-lost: renew 1 c0 forever ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 1 root none ; quit 1
+    shortest info:renewal-at-a-clock-ahead: merge kp_sync 1 2 ; see 2 c0 ; renew 0 c0 until1 ; del 0 (ver renew:c0 new) 1 ; clock 0 2 ; renewcert 0 c0
+F + foreign: edits, import with new identifiers, planted entries   3 files  20000 histories: accepted:copy-wider x4, accepted:unsaved-answer-lost x40, accepted:unsaved-rule-lost x40
+    histories in which a seal was drawn: 3224
+    shortest accepted:copy-wider: rule 0 N none ; merge kp_other 0 1 ; copy 0
+    shortest accepted:unsaved-answer-lost: renew 2 c0 until2 ; quit 2
+    shortest accepted:unsaved-rule-lost: rule 0 root inherit ; quit 0
+G + a copy stripped of its reference                               3 files  20000 histories: accepted:copy-wider x3, accepted:unsaved-answer-lost x34, accepted:unsaved-rule-lost x29
+    histories in which a seal was drawn: 6008
+    shortest accepted:copy-wider: rule 2 N none ; pair 2 ; copy 2
+    shortest accepted:unsaved-answer-lost: renew 2 c0 forever ; quit 2
+    shortest accepted:unsaved-rule-lost: rule 1 N none ; quit 1
+H + a whole file written over another                              3 files  20000 histories: accepted:copy-wider x1, accepted:unsaved-answer-lost x36, accepted:unsaved-rule-lost x41, rollback-by-overwrite x103, safety x1
+    histories in which a seal was drawn: 5836
+    shortest accepted:copy-wider: rule 2 N none ; renewcert 2 c0 ; merge xc 0 2 ; copy 0
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until1 ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 2 N none ; quit 2
+    rollback-by-overwrite, a whole file written over another (STORE.md 639 row 1): 103 histories, 44 distinct once shrunk, the three shortest
+        #322, shrunk to 2 steps: delauth 2 ; over 2 0   (file 2)
+        #448, shrunk to 2 steps: recreate 0 ; over 0 2   (file 0)
+        #917, shrunk to 2 steps: revoke 1 c0 ; over 1 2   (file 1)
+    safety, a store key lost: the entry holding it deleted or edited, then Create (decision 9): 1 histories, 1 distinct once shrunk
+        #558, shrunk to 3 steps: del 1 (auth) 1 ; create 1 ; rule 1 root rw   (file 1: node root grants rw)
+I everything at once                                               3 files  20000 histories: accepted:copy-wider x1, accepted:unsaved-answer-lost x36, accepted:unsaved-rule-lost x38, rollback-by-overwrite x31
+    histories in which a seal was drawn: 1929
+    shortest accepted:copy-wider: rule 2 N none ; merge kp_sync 2 1 ; copy 2
+    shortest accepted:unsaved-answer-lost: renew 0 c0 until1 ; quit 0
+    shortest accepted:unsaved-rule-lost: rule 1 root none ; quit 1
+    rollback-by-overwrite, a whole file written over another (STORE.md 639 row 1): 31 histories, 21 distinct once shrunk, the three shortest
+        #2641, shrunk to 2 steps: prem 2 pf ; over 2 1   (file 2)
+        #3177, shrunk to 2 steps: delauth 2 ; over 2 0   (file 2)
+        #4433, shrunk to 2 steps: prem 0 pf ; over 0 2   (file 0)
+J only KeePass Synchronize and Keepass2Android; deletions with a record 3 files  20000 histories: accepted:unsaved-answer-lost x37, accepted:unsaved-rule-lost x34
+    histories in which a seal was drawn: 6310
+    shortest accepted:unsaved-answer-lost: renew 0 c0 until1 ; quit 0
+    shortest accepted:unsaved-rule-lost: rule 0 root none ; quit 0
+J2 the same; every kind of deletion                                3 files  20000 histories: accepted:copy-wider x2, accepted:unsaved-answer-lost x37, accepted:unsaved-rule-lost x39, info:renewal-at-a-clock-ahead x2
+    histories in which a seal was drawn: 2976
+    shortest accepted:copy-wider: rule 0 N none ; renewcert 0 c0 ; copy 0
+    shortest accepted:unsaved-answer-lost: renew 2 c0 until2 ; quit 2
+    shortest accepted:unsaved-rule-lost: rule 2 root none ; quit 2
+    shortest info:renewal-at-a-clock-ahead: merge k2a 2 0 ; renew 0 c0 ask ; copy 0 ; renewcert 1 c0 ; renew 2 c0 until1 ; clock 2 2 ; renew 1 c0 ask ; merge kp_sync 2 0 ; renewcert 2 c0
+K the same, and foreign edits, imports and planted entries         3 files  20000 histories: accepted:copy-wider x2, accepted:unsaved-answer-lost x37, accepted:unsaved-rule-lost x38
+    histories in which a seal was drawn: 1990
+    shortest accepted:copy-wider: rule 1 N none ; merge kp_sync 1 0 ; copy 1
+    shortest accepted:unsaved-answer-lost: renew 2 c0 until2 ; quit 2
+    shortest accepted:unsaved-rule-lost: rule 2 N none ; quit 2
+== 160 s
