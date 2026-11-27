@@ -260,6 +260,16 @@ KeePass's five merge methods in both directions, the copy merged into whole in e
 `STORE.md` §639 row 5 accepts pinned by name, and F5 of `measured-seal-restates`, a revocation whose
 client nothing names, with the sealed copy's deletion records kept and cleared.
 
+**It starts a store again in real databases.** `StartAgainInRealDatabaseTests` holds a whole, a
+stopped, a no-room, a split and an outdated store made with KeePass's own types, presses Start store
+again on the KPG tab's buffer and writes it at the dialog's OK through the real writer, then saves
+and reopens the file: a new key stands, the earlier entries and group stay, and the new key lost
+leaves the earlier store stopped until the seal keeps it. `StoreStartAgainMergeTests` plays T4 to T7
+and T14 of `measured-started-again` over two real databases by each of KeePass's five merge methods
+in both directions, a copy merged into by new identifiers held to how it read, and
+`OpenDatabaseTargetsTests` refuses the handshake of a client of the earlier authority.
+`StoreReadingCostTests` holds, explicitly, a reading beside the entries of three earlier stores.
+
 **Who a store admits is held in both tiers.** In the unit tier `StoreAdmissionsTests` reads stores
 the test composes, each rule of `STORE.md` §615 on its own, and `AdmissionActsTests` holds what
 an admission, a revocation and a certificate taken away are composed of. In this tier

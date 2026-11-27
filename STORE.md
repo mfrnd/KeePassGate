@@ -4654,23 +4654,46 @@ start pressed on the KPG tab's buffer and written at its OK, held after every st
 found, standing and set aside and by shape and answer under the key that stands, and T16 as the
 class §639 accepts.
 
-**What the page offers** (S28, settled). **Start store again**, on the Certificate Authority page
-in the place of Create, wherever a key is found and judged and Create has nothing to do: a whole
-store with an authority standing or damaged, a stopped store with room or without, a split store
-within `StoreFormat.MaxKeys` and an outdated store; not where no key is found, which Create starts,
-nor where several authorities stand in a whole store, where the chooser takes Create's place, nor
-past the ceiling on keys, nor while nothing is written into the store in this session, nor a second
-time while a start waits for the dialog's OK. Its tooltip states what it does. Under a split or an
-outdated store, and under a stopped store the seal cannot lift, the page's last line names it as
-the way out. The press asks first in the form Delete asks, "No" the default, in the words of the
-warning above, with the count of the clients that would pair again where the store can be counted
-and, under a split store, how many store keys stand, all of them set aside. The start is held for
-the settings dialog's OK; from the press on the pages read the new store, its authority and no
-client, and the invitation is off with the authority's notice. At OK the log names the new key and
-each key set aside by the first characters of their names, and the audit holds a `started` line
-with the new key's name, every key set aside and how many clients stopped being admitted. *Held
-by* `AuthorityDescriptionTests`, `AuthorityPanelTests`, `PendingRecordsTests`, `GateWiringTests`
-and `GateTabFitsTests`.
+**What the page offers** (S28, settled). **Start store again**, on the Certificate Authority page in
+the place of Create, wherever a key is found and judged and Create has nothing to do: a whole store
+with an authority standing or damaged, a stopped store with room or without, a split store within
+`StoreFormat.MaxKeys` and an outdated store; not where no key is found, which Create starts, nor
+where several authorities stand in a whole store, where the chooser takes Create's place, nor past
+the ceiling on keys, nor while nothing is written into the store in this session, nor a second time
+while a start waits for the dialog's OK. Its tooltip states what it does. Under a split or an
+outdated store, and under a stopped store the seal cannot lift, the page's last line names it as the
+way out. The press asks first in the form Delete asks, "No" the default, in the words of the warning
+above, with the count of the clients that would pair again where the store can be counted and, under
+a split store, how many store keys stand, all of them set aside. The start is held for the settings
+dialog's OK; from the press on the pages read the new store, its authority and no client, and the
+invitation is off with the authority's notice. Recreate pressed after it makes another authority in
+the place of the authority the start makes, and the start is written with that, its new key held by
+the authority as the measured start's is; Delete is refused while the start waits, with Cancel named
+as what takes the start back, since a start whose new key no authority holds was not measured and
+would set every earlier store aside under a key that serves nothing. At OK the log names the new key
+and each key set aside by the first characters of their names, and the audit holds a `started` line
+with the new key's name, every key set aside and how many clients stopped being admitted, counted as
+the question counts them and the Clients page lists them: each client with an admission that gets in
+(`ClientReaches.Admitted`). *Held by* `AuthorityDescriptionTests`, `AuthorityPanelTests`,
+`PendingRecordsTests`, `GateWiringTests` and `GateTabFitsTests`. Over real databases,
+`StartAgainInRealDatabaseTests` starts each state the page offers the start in at the dialog's OK
+through the real writer, saves and reopens: the new key stands, the earlier key is found and set
+aside, nothing is deleted and a group of its own stands beside the earlier group; and the new key
+lost leaves the earlier store stopped until the seal keeps it. `StoreStartAgainMergeTests` brings
+two copies together by each of KeePass's five methods both ways, as T4 to T7 and T14: a stale gate's
+pairing counts nowhere the keep record reaches, the earlier authority brought back counts for
+nothing, two copies started apart leave two keys standing that a later start sets aside, a start
+after a start stands over both earlier keys, and a new key brought back to the earlier store sealed
+over its loss meets the seal's keep record and splits every copy no deletion record reaches, a copy
+merged into by new identifiers reading as it did. A client of the earlier authority finds no target
+(`OpenDatabaseTargetsTests`). `StoreWritesUnderDialogsTests` refuses the start whole under Database
+Maintenance and under the TAN wizard, and writes it once the window has gone; an entry dialog on the
+earlier authority refuses nothing, since the start touches no entry. **What a reading after starts
+costs** (measured by `StoreReadingCostTests`, explicit, in Release): beside ten thousand entries and
+three stores set aside, each of a thousand revocations, a reading held the thread 93 ms at the
+median and 120 at worst, and 112 ms at the median with ten history items on every entry, the keys
+found, the keep records read and the entries of each store set aside checked under their own key
+(`FINDINGS.md`).
 
 **The path by hand remains possible.** With the guard switched off, the operator deletes the
 plugin's group for good, synchronizes that deletion into every copy, and creates an authority.
@@ -6925,9 +6948,12 @@ that finds a measurement against a decision reports it and does not design aroun
     a Delete and a Create after it, and the new key lost by a deletion and by edits, then sealed;
     a second gate that still serves the earlier store as the file its pairing leaves (T4), and not
     over a socket. *Run in the product*: T1 to T16 through the product's acts
-    (`StoreWriteShapeTests`). Owed by the pull request that builds the command: a second gate over
-    a socket, the press in KeePass's window, and the start over real databases merged by
-    KeePass's own methods.
+    (`StoreWriteShapeTests`); over real databases, a start at OK over a whole, a stopped, a no-room,
+    a split and an outdated store, kept by a save, and the new key lost and sealed back
+    (`StartAgainInRealDatabaseTests`); T4 to T7 over two real databases by each of KeePass's five
+    methods both ways (`StoreStartAgainMergeTests`); and the handshake of a client of the earlier
+    authority refused for want of a target (`OpenDatabaseTargetsTests`). Owed: a second gate that
+    still serves the earlier store over a socket, and the press in KeePass's window.
 22. **The words of §656**, of which nothing was run: each state answered with its word, to a
     request before a route is chosen and to a `head`; `frozen` to a write and to no read; and
     whether `lost` and `outdated` can be sent at all (S33). The pull request that builds the

@@ -100,6 +100,25 @@ namespace KeePassGate.Host.Tests
             NoTargetFor(gone, "once the operator kept another");
         }
 
+        [Test]
+        public void A_connection_naming_the_gate_of_a_store_started_again_finds_no_target()
+        {
+            // `STORE.md` §632: the earlier authority is set aside with its key, so a client it
+            // issued finds no target and its handshake is refused, and the new authority is served.
+            CreateAuthorityIn(_first);
+            var gone = _targets.Current().Single();
+            Assume.That(Served(gone), Is.EqualTo("ok"));
+
+            var service = new AuthorityService(new KdbxStore(_first.Database, GateVersion.Current, null), NullGateLog.Instance);
+            var started = service.StartAgain();
+            Assert.That(started.Succeeded, Is.True, started.Message);
+            var served = _targets.Current().Single();
+            Assert.That(served.DatabaseId, Is.Not.EqualTo(gone.DatabaseId), "the new authority is served");
+            Assert.That(Served(served), Is.EqualTo("ok"));
+
+            NoTargetFor(gone, "once the store was started again");
+        }
+
         /// <summary>
         /// Asserts that a handshake naming the gate of this target is refused for want of a target,
         /// by the gate's own line, and that no handshake completed over any certificate.

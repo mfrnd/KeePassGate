@@ -369,6 +369,94 @@ namespace KeePassGate.Host.Tests
             Assert.That(StateNow(), Is.EqualTo(StoreState.Whole), "and the same seal goes through once the window has gone");
         }
 
+        [TestCase("maintenance")]
+        [TestCase("tan wizard")]
+        public void A_start_is_refused_under_a_window_that_would_take_it_back_and_written_once_it_has_gone(string window)
+        {
+            // `STORE.md` §632 and §626: a store started again goes through the writer's guard as
+            // every other write of the settings dialog's OK does, so a window that writes the
+            // database back or adds under it as the start saves refuses the start whole.
+            StoreSeeds.Authority(Store());
+            var earlier = KeyNow();
+
+            using (var maintenance = new DatabaseOperationsForm())
+            using (var wizard = new TanWizardForm())
+            {
+                Form form;
+                string refused;
+                if (window == "maintenance")
+                {
+                    maintenance.InitEx(_database.Database);
+                    form = maintenance;
+                    refused = "the database maintenance dialog is open on this database";
+                }
+                else
+                {
+                    wizard.InitEx(_database.Database, _database.RootGroup);
+                    form = wizard;
+                    refused = "the TAN wizard dialog is open on this database";
+                }
+
+                GlobalWindowManager.AddWindow(form);
+                try
+                {
+                    var started = Service().StartAgain();
+                    Assert.That(started.Succeeded, Is.False);
+                    Assert.That(started.Message, Does.Contain(refused));
+                    Assert.That(KeyNow(), Is.EqualTo(earlier), "nothing was written");
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(form);
+                }
+            }
+
+            var startedAfter = Service().StartAgain();
+            Assert.That(startedAfter.Succeeded, Is.True, startedAfter.Message);
+            Assert.That(KeyNow(), Is.Not.EqualTo(earlier), "and the same start goes through once the window has gone");
+        }
+
+        [Test]
+        public void A_start_touches_no_entry_so_an_entry_dialog_on_the_earlier_authority_does_not_refuse_it()
+        {
+            // `STORE.md` §632: the start deletes nothing, sets nothing back and protects nothing of
+            // the store it sets aside, so no entry dialog holds an entry it writes; what that
+            // dialog's OK puts back is an entry of the store set aside, which counts for nothing.
+            StoreSeeds.Authority(Store());
+            var earlier = KeyNow();
+
+            using (var entryDialog = new PwEntryForm())
+            {
+                entryDialog.InitEx(Entry("authority"), PwEditMode.EditExistingEntry, _database.Database, _icons, false, false);
+                GlobalWindowManager.AddWindow(entryDialog);
+                try
+                {
+                    var started = Service().StartAgain();
+                    Assert.That(started.Succeeded, Is.True, started.Message);
+                }
+                finally
+                {
+                    GlobalWindowManager.RemoveWindow(entryDialog);
+                }
+            }
+
+            Assert.That(KeyNow(), Is.Not.EqualTo(earlier));
+            using (var reading = Store().Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(reading.Found.Select(key => key.Name), Does.Contain(earlier), "the earlier key set aside");
+            }
+        }
+
+        /// <summary>The name of the store key that stands, as a fresh reading reads it.</summary>
+        private string KeyNow()
+        {
+            using (var reading = Store().Read())
+            {
+                return reading.InForce.Key.Name;
+            }
+        }
+
         /// <summary>The store's state as a fresh reading reads it.</summary>
         private StoreState StateNow()
         {

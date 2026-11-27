@@ -73,6 +73,12 @@ namespace KeePassGate.Host.Tests
         /// <summary>The runs of a seal, each a database of its own filled afresh.</summary>
         private const int SealRuns = 5;
 
+        /// <summary>The stores set aside beside the store that stands, in the measurement of a reading after starts.</summary>
+        private const int EarlierStores = 3;
+
+        /// <summary>The revocations each earlier store holds, in the same measurement.</summary>
+        private const int EarlierRevocations = 1000;
+
         /// <summary>The moment a refusal until a moment names in the measurements of the answers.</summary>
         private static readonly DateTimeOffset Moment = new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
@@ -352,6 +358,55 @@ namespace KeePassGate.Host.Tests
                     later[later.Count / 2],
                     later[later.Count - 1]));
             }
+        }
+
+        [TestCase(0)]
+        [TestCase(10)]
+        public void What_a_reading_beside_the_entries_of_three_earlier_stores_holds_the_thread_for(int history)
+        {
+            // `STORE.md` §632: three stores started again in turn, each holding a thousand
+            // revocations before it is set aside, beside 10,000 entries. A reading finds every key,
+            // reads the keep records, marks the keys and judges the store under the key that
+            // stands; the entries of the stores set aside are each checked under their own key.
+            var holds = new List<double>();
+            for (var run = 0; run <= SealRuns; run++)
+            {
+                using (var database = TemporaryDatabase.New())
+                {
+                    Fill(database.Database, history);
+                    var plain = new KdbxStore(database.Database, GateVersion.Current, null, entry => null);
+                    StoreSeeds.Authority(plain);
+                    for (var store = 0; store < EarlierStores; store++)
+                    {
+                        byte[] key;
+                        using (var reading = plain.Read())
+                        {
+                            key = (byte[])reading.InForce.Key.Bytes.Clone();
+                        }
+
+                        var revocations = Enumerable.Range(0, EarlierRevocations)
+                            .Select(index => StoreRecord.Compose(key, StoreKinds.Revoked, new Dictionary<string, string>
+                            {
+                                { StoreKinds.ClientMember, (store * EarlierRevocations + index).ToString("x64", System.Globalization.CultureInfo.InvariantCulture) },
+                            }))
+                            .ToList();
+                        Assert.That(plain.Write(new[] { new StoreAct("revocations", key, StoreFormat.KeyName(key), revocations, null) }).Taken, Is.True);
+                        Array.Clear(key, 0, key.Length);
+                        Assert.That(new AuthorityService(plain, NullGateLog.Instance).StartAgain().Succeeded, Is.True);
+                    }
+
+                    var clock = Stopwatch.StartNew();
+                    using (var reading = plain.Read())
+                    {
+                        holds.Add(clock.Elapsed.TotalMilliseconds);
+                        Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                        Assert.That(reading.Found, Has.Count.EqualTo(EarlierStores + 1));
+                        Assert.That(reading.Standing, Has.Count.EqualTo(1));
+                    }
+                }
+            }
+
+            Print("a reading beside " + EarlierStores + " earlier stores of " + EarlierRevocations + " revocations each, history " + history, holds);
         }
 
         [TestCase(0)]
