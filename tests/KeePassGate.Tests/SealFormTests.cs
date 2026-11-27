@@ -89,6 +89,33 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_store_a_start_set_aside_is_a_row_naming_the_key_found_nowhere_and_the_store_kept()
+        {
+            // The stop a start wrote under the store key, whose new key is found nowhere: listed
+            // first, by the key's start, with the store kept over it; the line over the list names
+            // the start beside the deletion records.
+            var store = new ComposedStore(One);
+            var stop = store.Kept(One, Two);
+            using (var reading = store.Read())
+            {
+                var losses = StoreLosses.Of(reading);
+                var rows = SealRows.Of(losses, Array.Empty<string>(), node => null, client => null);
+
+                Assert.That(
+                    rows.Select(row => row.Kind + " | " + row.Of + " | " + row.After),
+                    Is.EqualTo(new[] { "Set aside by a start | key " + StoreComposer.KeyName(Two).Substring(0, 8) + ", found nowhere | this store kept" }));
+                Assert.That(rows.Single().Tip, Does.StartWith(stop.Hex).And.Contain("keeps this store"));
+
+                using (var form = new SealForm(losses.Reason, rows, "Kept: 1 authority."))
+                {
+                    Assert.That(Text(form, "KpgSealOver"), Is.EqualTo("A start and deletion records show these:"));
+                    var list = ControlTree.FindByName<ListView>(form, GateTab.SealListName);
+                    Assert.That(list.Items.Cast<ListViewItem>().Select(item => item.Text), Is.EqualTo(new[] { "Set aside by a start" }));
+                }
+            }
+        }
+
+        [Test]
         public void A_row_s_tooltip_carries_every_deletion_record_that_tells_of_its_object()
         {
             var store = Stopped(out _, out _);

@@ -239,11 +239,12 @@ puts the seal into the database, and never on **Cancel**: it changes what every 
 an operator reading this file sees why every client's refusals changed. The line has `decision`
 `sealed`, `reason` `store sealed again`, and `admissionKey`, `clientKey`, `operation`, `node` and
 `decidedAt` as `null`; its `database` is the authority the sealed store serves, or `null` where it
-serves none. Three members of its own follow: `stopped`, why the store was stopped, as the
-Certificate Authority page stated it; `written`, the identifiers of the records the seal wrote,
-each a version granting nothing for a rule, a switch or an answer to a renewal whose version was
-lost; and `deleted`, the identifiers of the entries the seal deleted because no version of them
-passed. Each is a list, empty where the seal wrote or deleted none.
+serves none. Three members of its own follow: `stopped`, why the store was stopped, whole, where
+the Certificate Authority page cuts a long reason short; `written`, the identifiers of the records
+the seal wrote, each a version granting nothing for a rule, a switch or an answer to a renewal
+whose version was lost, or a keep record that keeps the store over the key a store started again
+made; and `deleted`, the identifiers of the entries the seal deleted because no version of them
+passed. `written` and `deleted` are lists, empty where the seal wrote or deleted none.
 
 **Not everything that changes who is admitted is here yet.** Recreating or deleting the authority
 takes every record away and is not written down, and neither is a change to the rules or to the

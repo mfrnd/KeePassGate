@@ -25,6 +25,12 @@ namespace KeePassGate.Authority
     /// brought back is no loss there and gets nothing, a further loss gets its version, and over
     /// a store that is whole the act comes to nothing.
     ///
+    /// **A store a start stopped is kept**: for each stop a start wrote under the store key, a keep
+    /// record naming the key the stop names, with the stop in `after`, so that the stop counts for
+    /// nothing and the key the start made, should it come back, meets this store in a circle and
+    /// the store splits until it is started again, `STORE.md` §632: keeping a store of several,
+    /// §649, is not built.
+    ///
     /// **Nothing for what the union keeps in force.** A revocation, a retirement, a removal and a
     /// certificate taken away that only a deletion record states are in force by `STORE.md` §623
     /// step 2, and the write's summary entry restates each, so no record is written for them: by
@@ -98,6 +104,18 @@ namespace KeePassGate.Authority
                     }
 
                     records.Add(record);
+                }
+
+                // A stop a start wrote, lifted by keeping this store over the key the start made:
+                // a keep record naming that key, with the stop in `after`, which the write's
+                // summary entry restates beside the stop, `STORE.md` §632.
+                foreach (var stop in losses.SetAside)
+                {
+                    records.Add(StoreRecord.Compose(key, StoreKinds.Kept, new Dictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        { StoreKinds.Key, stop.Value },
+                        { StoreKinds.After, stop.Key },
+                    }));
                 }
 
                 return new StoreAct(Name, key, inForce.Key.Name, records, null, Again, seals: true, leftOut: left);

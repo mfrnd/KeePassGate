@@ -3447,21 +3447,22 @@ record makes both conditions hold. The revocations, the retirements, the removal
 certificates taken away that a deletion record alone states, which the union of §623 step 2 keeps in
 force and the seal's summary entry restates; and apart, the revocations, the retirements and the
 removals of names that deletion records alone tell of whose subject the file names nowhere, each
-with every deletion record that tells of it, which the seal's summary entry restates by an item
-with no subject (§611). Every object a lost version makes refuse, with the
-deletion records that tell of it, and what the seal's version of it names: in `after` every version
-of the object in force and what those name there, and in `lost` what was lost and what those name
-there, no identifier in both lists. And every object the deletion record of a damaged version would
-make refuse once the seal has deleted that version with one, and that no lost version makes refuse
-now. A deletion record of a version at a node the file does not know tells of nothing (§617) and is
-listed nowhere. That is what the page can show, by kind; a decision lost with no deletion record it
-cannot show. The listing is a function of the reading and hashes nothing beyond it: a damaged
-version is told of at its place in the reading's own pass over the deletion records, so the tree is
-walked once at most. *Held by* `StoreLossesTests`, against every store of
-`tests/Shared/StoreMeaningVectors.json` whose name begins `stopped:`, read beside the tree of the
-stores of rules, which is the tree their answer names and which the measured reading read them
-beside; and the certificates taken away, which neither the model nor `probe/read.py` holds, by
-`StoreLossesTests` alone; and by `StoreInForceTests` and `StoreReadingStatesTests`.
+with every deletion record that tells of it, which the seal's summary entry restates by an item with
+no subject (§611). Every object a lost version makes refuse, with the deletion records that tell of
+it, and what the seal's version of it names: in `after` every version of the object in force and
+what those name there, and in `lost` what was lost and what those name there, no identifier in both
+lists. And every object the deletion record of a damaged version would make refuse once the seal has
+deleted that version with a deletion record, and that no lost version makes refuse now. Every stop a
+store started again wrote under the store key, with the key it names (below). A deletion record of a
+version at a node the file does not know tells of nothing (§617) and is listed nowhere. That is what
+the page can show, by kind; a decision lost with no deletion record it cannot show. The listing is a
+function of the reading and hashes nothing beyond it: a damaged version is told of at its place in
+the reading's own pass over the deletion records, so the tree is walked once at most. *Held by*
+`StoreLossesTests`, against every store of `tests/Shared/StoreMeaningVectors.json` whose name begins
+`stopped:`, read beside the tree of the stores of rules, which is the tree their answer names and
+which the measured reading read them beside; and the certificates taken away, which neither the
+model nor `probe/read.py` holds, by `StoreLossesTests` alone; and by `StoreInForceTests` and
+`StoreReadingStatesTests`.
 
 **What was run.** The press left the store as decided wherever it was run after a summary entry was
 deleted or deduplicated (`measured-store-as-a-whole` 3.4, 3.6). With a record for each node and
@@ -3535,6 +3536,21 @@ past the history limit, and a record no summary entry restates; `StoreWritesUnde
 refuses it under each window that would take it back, and `StoreSealMergeTests` holds it through
 each of KeePass's merges in both directions, the copy merged into whole in every cell, F5 among them
 with the deletion records kept and cleared.
+
+**Over a store a start stopped** (as measured, `measured-started-again` 5). A store started again
+writes, under each key it sets aside, a stop: a keep record naming the new key that no summary entry
+restates (§632). Once the new key is lost, the earlier key stands alone and the stop stops its
+store. The listing names each such stop apart, with the key it names, which is found nowhere, and
+the seal keeps the store over it: for each stop, a keep record under the store key naming the key
+the stop names, with the stop in `after`, which the write's summary entry restates beside the stop.
+The earlier store is served again with its own key, its authority and its clients, and what was
+decided under the new key is out of it. Should the new key come back by a merge that carries no
+deletion record, the two keep records name each other's keys in a circle, both keys stand and the
+store is split until it is started again: keeping a store of several (§649) is not built. A split
+store whose new key is lost is split again, each earlier key holding a stop, and the seal does not
+apply to it; a further start settles it. *Held by* `SealActsTests`, against the keep record of
+`tests/Shared/StoreRecordVectors.json` the seal writes over the store of the `keys:` family whose
+new key was lost, and `SealFormTests`, the row of a store set aside.
 
 **What the page and its dialog are.** Over a stopped store the Certificate Authority page states
 why, and where the seal could be written and lift the stop offers **Seal store again** in Recreate's

@@ -69,6 +69,87 @@ namespace KeePassGate.Tests
             }
         }
 
+        [Test]
+        public void Over_a_store_a_start_stopped_the_seal_keeps_the_store_as_the_measured_model_did()
+        {
+            // The store of `tests/Shared/StoreMeaningVectors.json` whose new key was lost after a
+            // start: its stop names the new key, and the seal writes the keep record of
+            // `tests/Shared/StoreRecordVectors.json`, naming that key and the stop in `after`,
+            // which its summary entry restates beside the stop. The store is whole after it, and
+            // the earlier authority served.
+            const string name = "keys: started again, then the new key lost, the earlier store stopped";
+            var store = (JObject)RuleVectors.Meanings["meanings"][name];
+            var planned = (JObject)((JArray)store["losses"]["seal"]).Single();
+            var measured = (JObject)RuleVectors.Records["records"]["kept, the keep record Seal again writes over a store a start stopped, naming the new key and the stop in after"];
+            using (var reading = RuleVectors.Reading(store))
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Stopped), reading.Reason);
+                string refused;
+                var act = SealActs.Seal(reading, out refused);
+                Assert.That(act, Is.Not.Null, refused);
+                var record = act.Records.Single();
+                Assert.That(record.Kind, Is.EqualTo((string)planned["kind"]));
+                Assert.That(record.Member(StoreKinds.Key), Is.EqualTo((string)planned["key"]), "the key the stop names");
+                Assert.That(record.Member(StoreKinds.After), Is.EqualTo(string.Join(" ", ((JArray)planned["after"]).Select(id => (string)id))), "the stop in after");
+
+                var members = record.Members.ToDictionary(member => member.Key, member => member.Value, StringComparer.Ordinal);
+                members[StoreKinds.Nonce] = (string)measured["members"][StoreKinds.Nonce];
+                var again = StoreRecord.Compose(StoreComposer.BytesOf((string)measured["key"]), record.Kind, members);
+                Assert.That(again.Content, Is.EqualTo((string)measured["content"]), "the content");
+                Assert.That(again.Hex, Is.EqualTo((string)measured["id"]), "the identifier");
+
+                var write = StoreWrite.Plan(reading, new[] { act }, Plugin);
+                Assert.That(write.Refused, Is.Null);
+                var kept = write.Add[write.Add.Count - 1].Strings
+                    .Where(pair => pair.Key.StartsWith("KPG.S.", StringComparison.Ordinal))
+                    .Select(pair => JObject.Parse(pair.Value))
+                    .Where(item => (string)item["kind"] == "kept")
+                    .Select(item => (string)item["id"] + " " + (string)item["after"])
+                    .OrderBy(line => line, StringComparer.Ordinal);
+                var stop = (string)planned["after"][0];
+                Assert.That(kept, Is.EqualTo(new[] { stop + " ", record.Hex + " " + stop }.OrderBy(line => line, StringComparer.Ordinal)), "the stop and the keep record restated");
+
+                var applied = write.Applied(reading.Candidates, reading.Deletions);
+                using (var sealedStore = StoreReading.Afresh(applied.Key, applied.Value))
+                {
+                    Assert.That(sealedStore.State, Is.EqualTo(StoreState.Whole), sealedStore.Reason);
+                    Assert.That(StoreLosses.Of(sealedStore), Is.Null);
+                    Assert.That(StoreAuthorities.Served(sealedStore), Is.Not.Null, "the earlier authority served");
+                }
+
+                act.Forget();
+            }
+        }
+
+        [Test]
+        public void A_seal_over_a_split_store_is_refused_and_a_stop_beside_another_loss_is_kept_with_it()
+        {
+            // A split store is no stopped store and is not sealed. A stop beside a lost summary
+            // entry: the seal names the summary entry and keeps the store in the same write.
+            var split = new ComposedStore(One);
+            split.Add(StoreRecords.Authority(Two, 'b'));
+            string refused;
+            Assert.That(SealActs.Seal(split.Read(), out refused), Is.Null);
+            Assert.That(refused, Does.Contain("not stopped"));
+
+            var store = new ComposedStore(One);
+            var stop = store.Kept(One, Three);
+            store.Deleted.Add(StoreComposer.IdentifierOf(One, "head", "store", 7, new string('a', 64)));
+            using (var reading = store.Read())
+            {
+                var act = SealActs.Seal(reading, out refused);
+                Assert.That(act.Records.Select(record => record.Kind + " " + record.Member(StoreKinds.After)), Is.EqualTo(new[] { "kept " + stop.Hex }));
+                var write = StoreWrite.Plan(reading, new[] { act }, Plugin);
+                var applied = write.Applied(reading.Candidates, reading.Deletions);
+                using (var sealedStore = StoreReading.Afresh(applied.Key, applied.Value))
+                {
+                    Assert.That(sealedStore.State, Is.EqualTo(StoreState.Whole), sealedStore.Reason);
+                }
+
+                act.Forget();
+            }
+        }
+
         private static IEnumerable<TestCaseData> EveryStopped()
         {
             foreach (var meaning in ((JObject)RuleVectors.Meanings["meanings"]).Properties()

@@ -61,6 +61,7 @@ namespace KeePassGate.Ui
         public const string Withdrawn = "Certificate taken away";
         public const string Retirement = "Retirement";
         public const string Damaged = "Damaged entry";
+        public const string SetAside = "Set aside by a start";
 
         public const string Replaced = "named as replaced";
         public const string EmptyRule = "an empty rule";
@@ -69,6 +70,10 @@ namespace KeePassGate.Ui
         public const string Restated = "restated, stays in force";
         public const string DeletedWithRecord = "deleted with a record";
         public const string RefusesUntilSet = "refuses until set again";
+        public const string StoreKept = "this store kept";
+
+        /// <summary>What the second column of a store a start set aside holds after the key's start.</summary>
+        public const string FoundNowhere = ", found nowhere";
 
         /// <summary>What a node the tree does not hold is called in the second column.</summary>
         public const string NodeNotHeld = "a node this database does not hold";
@@ -99,6 +104,11 @@ namespace KeePassGate.Ui
 
             var left = new HashSet<string>(leftOut ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
             var rows = new List<SealRow>();
+
+            // A store a start set aside first: the key the start made, found nowhere, `STORE.md`
+            // §632; the seal keeps this store over it.
+            rows.AddRange(losses.SetAside.Select(stop => new SealRow(SetAside, "key " + Start(stop.Value) + FoundNowhere, StoreKept, stop.Key)));
+
             foreach (var head in losses.Heads)
             {
                 rows.Add(new SealRow(SummaryEntry, "height " + Height(head).ToString(CultureInfo.InvariantCulture), Replaced, head));
@@ -152,6 +162,8 @@ namespace KeePassGate.Ui
                     return "It stays in force, and the new summary entry restates it.";
                 case DeletedWithRecord:
                     return "The entry is deleted with a deletion record.";
+                case StoreKept:
+                    return "A keep record keeps this store over the key the start made. Should that key come back, both stores stand and nothing is served until the store is started again.";
                 default:
                     return "It refuses until it is set again.";
             }

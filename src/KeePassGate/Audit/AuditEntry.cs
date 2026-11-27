@@ -320,8 +320,9 @@ namespace KeePassGate.Audit
         public string Stopped { get; private set; }
 
         /// <summary>
-        /// The identifiers of the records the operator's seal wrote, the versions granting nothing,
-        /// or null on every other line, which then leaves the member out.
+        /// The identifiers of the records the operator's seal wrote, the versions granting nothing
+        /// and the keep records over a store started again, or null on every other line, which
+        /// then leaves the member out.
         /// </summary>
         public IReadOnlyList<string> Written { get; private set; }
 

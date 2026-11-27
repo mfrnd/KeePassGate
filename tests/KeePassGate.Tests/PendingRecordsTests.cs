@@ -1034,6 +1034,35 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_seal_over_a_store_a_start_stopped_logs_the_key_it_keeps_the_store_over_and_no_version()
+        {
+            // `STORE.md` §625: the stop names a key found nowhere, and the seal's keep record is
+            // named in the log by that key, apart from the versions granting nothing.
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            var lost = StoreFormat.NewKey();
+            var named = StoreComposer.KeyName(lost);
+            using (var reading = live.Store.Read())
+            {
+                var key = (byte[])reading.InForce.Key.Bytes.Clone();
+                live.Records.Put(StoreComposer.Record(key, "kept", "key:" + named, StoreComposer.Content(("after", string.Empty), ("key", named))));
+                Array.Clear(key, 0, key.Length);
+            }
+
+            Assume.That(live.Store.Read().State, Is.EqualTo(StoreState.Stopped));
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            Assert.That(Service(pending).Seal().Succeeded, Is.True);
+
+            Assert.That(pending.Apply(), Is.True);
+
+            Assert.That(live.Store.Read().State, Is.EqualTo(StoreState.Whole));
+            var line = log.Entries.Select(entry => entry.Message).Single(message => message.StartsWith(SealActs.Name + ": the store was stopped: ", StringComparison.Ordinal));
+            Assert.That(line, Does.Contain("; versions granting nothing for none; "), "a keep record is no version");
+            Assert.That(line, Does.Contain("; kept over the keys a start made " + CertificateDigest.Shorten(named) + ";"));
+        }
+
+        [Test]
         public void A_seal_over_a_store_left_with_no_room_under_the_dialog_writes_nothing_and_the_log_names_the_state()
         {
             // The summary entry dropped, and the seal pressed; then a merge brings in deletion

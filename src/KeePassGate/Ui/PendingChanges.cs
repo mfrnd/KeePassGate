@@ -362,7 +362,8 @@ namespace KeePassGate.Ui
 
         /// <summary>
         /// Logs what the seal that landed wrote, and keeps it for the audit's line: the stop's
-        /// reason, each version granting nothing by its object, each damaged entry deleted by the
+        /// reason, each version granting nothing by its object, each key a start made that the seal
+        /// keeps this store over by the first characters of its name, each damaged entry deleted by the
         /// first characters of its identifier, each object that refuses after the seal, and each
         /// version left out, `STORE.md` §625. What the write deleted and the stop it lifted are the
         /// write's own, so a merge between the buffer's last reading and the write changes nothing
@@ -380,7 +381,8 @@ namespace KeePassGate.Ui
             var refusing = lifted == null ? new List<string>() : lifted.Refusing.ToList();
             Sealed = new SealLanded(reason, seal.Records.Select(record => record.Hex).ToList(), deleted);
             _log.Info(SealActs.Name + ": the store was stopped: " + (reason ?? "unknown")
-                      + "; versions granting nothing for " + Listed(seal.Records.Select(record => record.Member(StoreKinds.ObjectMember)))
+                      + "; versions granting nothing for " + Listed(seal.Records.Where(record => record.Kind == StoreKinds.Version).Select(record => record.Member(StoreKinds.ObjectMember)))
+                      + "; kept over the keys a start made " + Listed(seal.Records.Where(record => record.Kind == StoreKinds.Kept).Select(record => CertificateDigest.Shorten(record.Member(StoreKinds.Key))))
                       + "; damaged entries deleted " + Listed(deleted.Select(CertificateDigest.Shorten))
                       + "; refusing until set again " + Listed(refusing.Concat(seal.LeftOut)));
         }
@@ -485,7 +487,7 @@ namespace KeePassGate.Ui
         /// <summary>Why the store was stopped, as the store the write was planned over held it.</summary>
         public string Stopped { get; private set; }
 
-        /// <summary>The identifiers of the versions granting nothing the seal wrote.</summary>
+        /// <summary>The identifiers of the records the seal wrote: versions granting nothing, and keep records over a stop.</summary>
         public IReadOnlyList<string> Written { get; private set; }
 
         /// <summary>The identifiers of the entries the seal deleted as damage.</summary>

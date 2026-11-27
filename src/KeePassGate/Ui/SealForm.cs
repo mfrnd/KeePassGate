@@ -35,6 +35,9 @@ namespace KeePassGate.Ui
         /// <summary>The line over the list.</summary>
         public const string Over = "Deletion records show these as deleted:";
 
+        /// <summary>The line over the list where a start set this store aside, `STORE.md` §632.</summary>
+        public const string OverSetAside = "A start and deletion records show these:";
+
         /// <summary>The line in the list's place where no deletion record shows a loss.</summary>
         public const string NoneShown = "No deletion record shows a loss.";
 
@@ -117,7 +120,13 @@ namespace KeePassGate.Ui
             }
             else
             {
-                layout.Controls.Add(Line("KpgSealOver", Over, LogicalToDeviceUnits(Spacing.Tight)));
+                var setAside = false;
+                foreach (var row in rows)
+                {
+                    setAside |= row.Kind == SealRows.SetAside;
+                }
+
+                layout.Controls.Add(Line("KpgSealOver", setAside ? OverSetAside : Over, LogicalToDeviceUnits(Spacing.Tight)));
                 AddColumns();
                 foreach (var row in rows)
                 {
