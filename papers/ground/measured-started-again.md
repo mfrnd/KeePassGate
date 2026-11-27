@@ -392,6 +392,6 @@ were run again once the classes of section 7 were told apart. **Every output of 
 `recorded-starts\` line for line**, with the masks of `compare.py`: 22 files, the two listings of
 the vectors among them, and the three files of vectors the same bytes but the line ends. With
 `STARTS` off, every earlier part run again, Seal again's among them, printed its record line for
-line, and `vectors.py --seal` the files of `recorded-seal ectors\` byte for byte but the line ends.
+line, and `vectors.py --seal` the files of `recorded-seal\vectors\` byte for byte but the line ends.
 The times of both runs are in `RUN.md`; the longest part, `exhaustive-5`, took 1,704 and 1,705
 seconds.
