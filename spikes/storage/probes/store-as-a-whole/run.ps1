@@ -187,6 +187,31 @@
       bridge-two, bridge-hand
                            restart_runs.py bridge: every file of 2,000 histories read by read.py
 
+    With -Restates (ADDED, seal restates), what a summary entry restates of a revocation, a
+    retirement or a removal of a name that a deletion record alone tells of, under each form of
+    crdt_model.SEAL_RESTATES: all (the control, the form every part above was run in), named (the
+    product's form), ids (the form proposed) and hashes. Output in `out\restates\`, compared with
+    `recorded-restates\`; databases in `work\rs-*`, `work\se-named-*`, `work\se-ids-*` and
+    `work\sa-ids-*`; then `compare_restates.py` holds each form's cells to the control's
+    (`cells.txt`) and each part run under a form to its record (`against.txt`), and the three files of
+    vectors that `vectors.py --restates` prints go into `out\restates\vectors\`, held to
+    `recorded-starts\vectors\` in `out\restates\vectors-compare.txt`:
+
+      hand                 restates_runs.py hand: R1 to R21 and F5 to F7r in the model under every
+                           form, every merge both ways with and without the deletion records cleared
+      seal-two, seal-three, seal-long, search-2, search-3
+                           restates_runs.py random: the histories of seal_runs.py's parts, each under
+                           every form beside the control
+      exhaustive-seal-4, exhaustive-told-4
+                           restates_runs.py exhaustive 4: seal_runs.py's alphabet, and the alphabet
+                           after a decision a deletion record alone tells of, under every form
+      bridge, bridge-hand  restates_runs.py bridge: every file read by read.py under every form
+      cells-all, cells-named, cells-ids, cells-hashes
+                           restates.py cells: R1 to R21 and F5 to F7r on real files under the form
+      edits-named, edits-ids, hand-named, hand-ids, damage-named, damage-ids, seal-bridge-named,
+      seal-bridge-ids      the parts of -Seal of those names (bridge for seal-bridge) under the form
+      starts-<part>-ids    every part of -Starts under the form ids
+
 .PARAMETER Parts
     Which parts to run; every part by default.
 
@@ -219,9 +244,10 @@ param([string[]] $Parts = @(), [int] $Parallel = 6, [switch] $Decided, [switch] 
     [switch] $S34,      # ADDED (S34 forms)
     [switch] $Answers,  # ADDED (renewal answers)
     [switch] $Seal,     # ADDED (seal again)
-    [switch] $Starts)   # ADDED (started again)
-if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent, ($Reading -ne ''), $Rows.IsPresent, $Owed.IsPresent, $S34.IsPresent, $Answers.IsPresent, $Seal.IsPresent, $Starts.IsPresent | Where-Object { $_ }).Count -gt 1) {
-    throw 'One of -Decided, -Rewrite, -Copies, -Reading, -Rows, -Owed, -S34, -Answers, -Seal, -Starts.'     # ADDED (two readings); -Reading (copies extended); -Rows (rules per profile); -Owed (owed forms); -S34 (S34 forms); -Answers (renewal answers); -Seal (seal again); -Starts (started again)
+    [switch] $Starts,   # ADDED (started again)
+    [switch] $Restates) # ADDED (seal restates)
+if (@($Decided.IsPresent, $Rewrite.IsPresent, $Copies.IsPresent, ($Reading -ne ''), $Rows.IsPresent, $Owed.IsPresent, $S34.IsPresent, $Answers.IsPresent, $Seal.IsPresent, $Starts.IsPresent, $Restates.IsPresent | Where-Object { $_ }).Count -gt 1) {
+    throw 'One of -Decided, -Rewrite, -Copies, -Reading, -Rows, -Owed, -S34, -Answers, -Seal, -Starts, -Restates.'     # ADDED (two readings); -Reading (copies extended); -Rows (rules per profile); -Owed (owed forms); -S34 (S34 forms); -Answers (renewal answers); -Seal (seal again); -Starts (started again)
 }
 
 $ErrorActionPreference = 'Stop'
@@ -449,6 +475,62 @@ if ($Starts) {
         'laws'         = @("$model\restart_runs.py", 'laws', '20000', '7')
     }
 }
+# ADDED (seal restates): each form beside the control, the longest parts first; each model part draws
+# on four processes of its own. A part in $formOf runs with SEAL_RESTATES set to its form, which
+# setup() of seal_runs.py, restart_runs.py and bridge.py reads.
+$formOf = @{}
+if ($Restates) {
+    $config = 'restates'
+    $all = [ordered]@{
+        'exhaustive-seal-4' = @("$model\restates_runs.py", 'exhaustive', '4', 'seal', '4')
+        'starts-exhaustive-5-ids' = @("$model\restart_runs.py", 'exhaustive', '5', 'none', '4')
+        'cells-all'         = @("$probe\restates.py", 'cells', 'all')
+        'cells-named'       = @("$probe\restates.py", 'cells', 'named')
+        'cells-ids'         = @("$probe\restates.py", 'cells', 'ids')
+        'cells-hashes'      = @("$probe\restates.py", 'cells', 'hashes')
+        'search-3'          = @("$model\restates_runs.py", 'random', 'design', '3', '20000', '4')
+        'search-2'          = @("$model\restates_runs.py", 'random', 'design', '2', '20000', '4')
+        'seal-two'          = @("$model\restates_runs.py", 'random', 'seal', 'two', '200000', '61', '4', '12', '4')
+        'seal-three'        = @("$model\restates_runs.py", 'random', 'seal', 'three', '100000', '62', '4', '12', '4')
+        'seal-long'         = @("$model\restates_runs.py", 'random', 'seal', 'two', '100000', '63', '8', '16', '4')
+        'exhaustive-told-4' = @("$model\restates_runs.py", 'exhaustive', '4', 'told', '4')
+        'edits-named'       = @("$probe\seal.py", 'edits')
+        'edits-ids'         = @("$probe\seal.py", 'edits')
+        'starts-cells-ids'  = @("$probe\restart.py", 'cells')
+        'starts-random-ids' = @("$probe\restart.py", 'random', '300', '81')
+        'starts-room-ids'   = @("$probe\restart.py", 'room')
+        'starts-dialog-ids' = @("$probe\restart.py", 'dialog')
+        'starts-exhaustive-4-ids' = @("$model\restart_runs.py", 'exhaustive', '4', 'faults', '4')
+        'starts-exhaustive-4-noauth-ids' = @("$model\restart_runs.py", 'exhaustive', '4', 'noauth', '4')
+        'starts-search-3-ids' = @("$model\restart_runs.py", 'search', '3', '20000', '4')
+        'starts-search-2-ids' = @("$model\restart_runs.py", 'search', '2', '20000', '4')
+        'starts-search-noauth-3-ids' = @("$model\restart_runs.py", 'search-noauth', '3', '20000', '4')
+        'starts-search-noauth-2-ids' = @("$model\restart_runs.py", 'search-noauth', '2', '20000', '4')
+        'starts-starts-long-ids' = @("$model\restart_runs.py", 'starts', 'two', '200000', '64', '8', '16', '4')
+        'starts-starts-three-ids' = @("$model\restart_runs.py", 'starts', 'three', '200000', '62', '4', '12', '4')
+        'starts-starts-hand-ids' = @("$model\restart_runs.py", 'starts', 'hand', '200000', '63', '4', '12', '4')
+        'starts-starts-hand-noauth-ids' = @("$model\restart_runs.py", 'starts', 'hand-noauth', '200000', '65', '4', '12', '4')
+        'starts-starts-two-ids' = @("$model\restart_runs.py", 'starts', 'two', '200000', '61', '4', '12', '4')
+        'starts-bridge-two-ids' = @("$model\restart_runs.py", 'bridge', 'two', '2000', '71', '4')
+        'starts-bridge-hand-ids' = @("$model\restart_runs.py", 'bridge', 'hand', '2000', '72', '4')
+        'starts-model-hand-ids' = @("$model\restart_runs.py", 'hand')
+        'starts-laws-ids'   = @("$model\restart_runs.py", 'laws', '20000', '7')
+        'bridge'            = @("$model\restates_runs.py", 'bridge', '2000', '71', '4')
+        'bridge-hand'       = @("$model\restates_runs.py", 'bridge', '0', 'hand', '4')
+        'hand-named'        = @("$model\seal_runs.py", 'hand')
+        'hand-ids'          = @("$model\seal_runs.py", 'hand')
+        'damage-named'      = @("$model\seal_runs.py", 'damage', '20000', '4')
+        'damage-ids'        = @("$model\seal_runs.py", 'damage', '20000', '4')
+        'seal-bridge-named' = @("$model\seal_runs.py", 'bridge', 'two', '2000', '71', '4')
+        'seal-bridge-ids'   = @("$model\seal_runs.py", 'bridge', 'two', '2000', '71', '4')
+        'hand'              = @("$model\restates_runs.py", 'hand')
+    }
+    foreach ($p in $all.Keys) {
+        foreach ($form in 'named', 'ids') {
+            if ($p.EndsWith("-$form")) { $formOf[$p] = $form }
+        }
+    }
+}
 # Through -File a list arrives as one string, so commas are split here.
 $Parts = @($Parts | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 if ($Parts.Count -eq 0) { $Parts = @($all.Keys) }
@@ -462,7 +544,7 @@ if ($Parts.Count -eq $all.Count) {
     if ($config) {
         # ADDED (two readings): the configuration's own output and databases only
         if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
-        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } elseif ($Rows) { 'pe-*', 'po-*' } elseif ($Owed) { 'qo-*' } elseif ($S34) { 'qss-*', 'qsa-*' } elseif ($Answers) { 'an-*' } elseif ($Seal) { 'se-*' } elseif ($Starts) { 'sa-*' } else {     # ADDED (owed forms): qo-*; (S34 forms): qss-* and qsa-*; (renewal answers): an-*; (seal again): se-*; (started again): sa-*
+        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } elseif ($Rows) { 'pe-*', 'po-*' } elseif ($Owed) { 'qo-*' } elseif ($S34) { 'qss-*', 'qsa-*' } elseif ($Answers) { 'an-*' } elseif ($Seal) { 'se-*' } elseif ($Starts) { 'sa-*' } elseif ($Restates) { 'rs-*', 'se-named-*', 'se-ids-*', 'sa-ids-*' } else {     # ADDED (owed forms): qo-*; (S34 forms): qss-* and qsa-*; (renewal answers): an-*; (seal again): se-*; (started again): sa-*
             $letter = if ($Reading -eq 'cap-items') { 'i' } else { $Reading[0] }     # ADDED (copies extended)
             "x${letter}h-*", "x${letter}e-*"
         }
@@ -501,8 +583,10 @@ while ($queue.Count -gt 0 -or $running.Count -gt 0) {
     while ($queue.Count -gt 0 -and $running.Count -lt $Parallel) {
         $p = $queue.Dequeue()
         $argv = @('run', '--no-project', 'python', '-I', '-X', 'utf8') + $all[$p]
+        if ($formOf.Contains($p)) { $env:SEAL_RESTATES = $formOf[$p] }     # ADDED (seal restates)
         $proc = Start-Process -FilePath 'uv' -ArgumentList $argv -NoNewWindow -PassThru `
             -RedirectStandardOutput (Join-Path $out "$p.txt") -RedirectStandardError (Join-Path $out "$p.err")
+        Remove-Item Env:SEAL_RESTATES -ErrorAction SilentlyContinue     # ADDED (seal restates)
         [void]$proc.Handle     # so that ExitCode is kept once the process has gone
         $running[$p] = @{ Process = $proc; Started = Get-Date }
         Write-Host "started $p"
@@ -542,6 +626,17 @@ if ($Starts -and $Parts.Count -eq $all.Count) {     # ADDED (started again): the
     & uv run --no-project python -I -X utf8 (Join-Path $family 'compare_starts.py') print $vectors |
         Set-Content -Encoding UTF8 (Join-Path $out 'vectors-print.txt')
     & uv run --no-project python -I -X utf8 (Join-Path $family 'compare_starts.py') vectors $vectors (Join-Path $family 'recorded-seal\vectors') |
+        Set-Content -Encoding UTF8 (Join-Path $out 'vectors-compare.txt')
+}
+if ($Restates -and $Parts.Count -eq $all.Count) {     # ADDED (seal restates): the forms held to the control
+    & uv run --no-project python -I -X utf8 (Join-Path $family 'compare_restates.py') cells $out |
+        Set-Content -Encoding UTF8 (Join-Path $out 'cells.txt')
+    & uv run --no-project python -I -X utf8 (Join-Path $family 'compare_restates.py') against $out |
+        Set-Content -Encoding UTF8 (Join-Path $out 'against.txt')
+    $vectors = Join-Path $out 'vectors'
+    & uv run --no-project python -I -X utf8 (Join-Path $family 'compare_restates.py') print $vectors |
+        Set-Content -Encoding UTF8 (Join-Path $out 'vectors-print.txt')
+    & uv run --no-project python -I -X utf8 (Join-Path $family 'compare_restates.py') vectors $vectors (Join-Path $family 'recorded-starts\vectors') |
         Set-Content -Encoding UTF8 (Join-Path $out 'vectors-compare.txt')
 }
 if ($config) {     # ADDED (two readings)
