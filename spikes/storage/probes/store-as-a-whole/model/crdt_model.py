@@ -425,7 +425,7 @@ def grants_nothing(obj, f):
 #     are written under the key that stands, and a write of the plugin's own looks at nothing under any
 #     other key.
 STARTS = False
-# ADDED (started again): ruling 5 of 2026-11-27, a start stops the store it sets aside. With it on, `restart`
+# ADDED (started again): a start stops the store it sets aside. With START_STOPS on, `restart`
 # also writes, under each key it sets aside, a keep record naming the new key that no summary entry under
 # that key restates, so that the earlier store, should its key stand alone again, is stopped (STORE.md 624,
 # a record no summary entry restates); the keep records under the new key name it in `after`, so that it

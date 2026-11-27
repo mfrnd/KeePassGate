@@ -16,12 +16,15 @@ perfect transport, crdt_model.World.ideal), to both copies just before the merge
 ideal sets aside: a copy that serves under a key its ideal sets aside is flagged.
 
 Parts:
-  cells    T1 to T12, each a base, then every merge both ways (KeePassLib's five methods, four
-           keepassxc-cli releases), and the acts that follow in the copy merged into; T11 and T12
-           replay the class the model's search found, the key of the store started again lost
+  cells    T1 to T16, each a base, then every merge both ways (KeePassLib's five methods, four
+           keepassxc-cli releases), and the acts that follow in the copy merged into; T11 to T16
+           the key of the store started again lost, Seal again over the store the start stopped, and
+           the stop deleted by hand as well
   room     a store at the ceiling of the items of a summary entry, and a store at the ceiling of the
            `after` of its content, each read, started again and read again
-  random   random histories of the acts of a store started again, deletions by hand and merges,
+  dialog   what Seal again's reading lists of a store a start stopped once the new key is lost, and the
+           seal pressed over it
+  random   random histories of the acts of a store started again, deletions by hand, Seal again and merges,
            COUNT of them from SEED, with Synchronize, Overwrite if newer and KeePassXC 2.8.0
 """
 import os
@@ -86,13 +89,26 @@ def histories():
         ('T10', 'copy 0 starts the store again and pairs; at copy 1 the earlier authority\'s entry, which '
                 'carries the earlier key, edited 11 times, past KeePass\'s history limit',
          [('restart', 0), ('padd', 0, 'pf'), ('pair', 0), ('edit11', 1, ('auth', 'a0'))], then),
-        # the class the model's search found, replayed on files: the key of the store started again lost
-        ('T11', 'copy 0 starts the store again and pairs; the new authority\'s entry, which carries the new key, '
+        # the key of the store started again lost: the start stops the store it sets aside, so that nothing is
+        # served, and Seal again keeps the earlier store
+        ('T11','copy 0 starts the store again and pairs; the new authority\'s entry, which carries the new key, '
                 'deleted at copy 0 for good with a deletion record',
          [('restart', 0), ('padd', 0, 'pf'), ('pair', 0), ('del', 0, ('auth',), 1)], then),
         ('T12', 'copy 0 starts the store again and pairs; the new authority\'s entry edited 11 times at copy 0, past '
                 'KeePass\'s history limit',
          [('restart', 0), ('padd', 0, 'pf'), ('pair', 0), ('edit11', 0, ('auth',))], then),
+        ('T13', 'T11, then Seal again at copy 0, which keeps the earlier store',
+         [('restart', 0), ('padd', 0, 'pf'), ('pair', 0), ('del', 0, ('auth',), 1), ('reseal', 0)], then),
+        ('T14', 'copy 0 starts the store again and pairs, synchronized into copy 1; at copy 0 the new authority\'s '
+                'entry deleted with a deletion record, then Seal again; copy 1 holds the store started again',
+         [('restart', 0), ('padd', 0, 'pf'), ('pair', 0), INTO_1, ('del', 0, ('auth',), 1), ('reseal', 0)], then),
+        ('T15', 'the newest summary entry deleted at copy 0 with a deletion record, so the store stops there; copy 0 '
+                'starts it again and pairs; the new authority\'s entry edited 11 times, then Seal again',
+         [('del', 0, ('head', 'new'), 1), ('restart', 0), ('padd', 0, 'pf'), ('pair', 0), ('edit11', 0, ('auth',)),
+          ('reseal', 0)], then),
+        # the class the search finds beside the stop: the stop deleted by hand as well, replayed on files
+        ('T16', 'T11, then the stop under the earlier key deleted at copy 0 for good with a deletion record',
+         [('restart', 0), ('padd', 0, 'pf'), ('pair', 0), ('del', 0, ('auth',), 1), ('del', 0, ('kept',), 1)], then),
     ]
 
 
@@ -186,7 +202,7 @@ def beyond(r, pre0, pre1):
 
 
 def part_cells(host, tag, only=None):
-    print('== T1 to T12 on files, two copies, every merge both ways. Each cell: what the merged file reads as,')
+    print('== T1 to T16 on files, two copies, every merge both ways. Each cell: what the merged file reads as,')
     print('   held to both copies just before the merge, to its own ideal, to the keys its ideal and the oracle')
     print('   set aside, and to the oracle; then what the acts after the merge do in that copy. C: steps where')
     print('   the file and the model disagreed, entry by entry and in the read.')
@@ -292,6 +308,53 @@ def part_room(host, tag):
             print(x)
 
 
+# ------------------------------------------------------------------ the seal's dialog
+DIALOG = [
+    ('the new key lost by a deletion with a deletion record', [('restart', 0), ('padd', 0, 'pf'), ('pair', 0),
+                                                              ('del', 0, ('auth',), 1)]),
+    ('the new key lost by 11 edits', [('restart', 0), ('padd', 0, 'pf'), ('pair', 0), ('edit11', 0, ('auth',))]),
+    ('the earlier store stopped before the start, then the new key lost by 11 edits',
+     [('del', 0, ('head', 'new'), 1), ('restart', 0), ('padd', 0, 'pf'), ('pair', 0), ('edit11', 0, ('auth',))]),
+    ('a split store started again, then the new key lost',
+     [('del', 1, ('auth', 'a0'), 0), ('create', 1), INTO_0, ('restart', 0), ('del', 0, ('auth',), 1)]),
+]
+
+
+def part_dialog(host, tag):
+    print('== What Seal again\'s reading lists of a store a start stopped, once the new key is lost (read.py\'s')
+    print('   losses: the conditions of STORE.md 624 that hold, the records no summary entry restates, the stops a')
+    print('   start wrote by the key each names, and the records the seal writes), then the seal pressed and the store')
+    print('   read again. A key is named by the model\'s label where read.py finds it, else by its name\'s first 8.')
+    names = {}
+    for hid, ops in DIALOG:
+        b = run_ops(host, 2, tag, ops)
+        for k in list(b.W.EL.values()):
+            if k.kind == 'auth':
+                names[B.S.keyname(B.S.keybytes(k.key))] = k.key
+        r = read(b, 0)
+        L = r['losses']
+        print('## %s: %s' % (hid, seq(ops)))
+        print('   read: %s' % line(r))
+        print('   stopped because: %s' % '; '.join(L['reasons']))
+        print('   records no summary entry restates: %d; of them set aside by a start: %s' % (
+            len(L['notRestated']), ', '.join('%s naming %s' % (x['id'][:8], names.get(x['key'], x['key'][:8]))
+                                            for x in L['setAsideBy']) or 'none'))
+        print('   the seal writes: %s' % ('; '.join(
+            'a keep record naming %s, after %s' % (names.get(x['key'], x['key'][:8]), ' '.join(a[:8] for a in x['after']))
+            if x.get('kind') == 'kept' else 'a version of %s, %s' % (x['object'], x['doc']) for x in L['seal']) or 'nothing'))
+        ok = step(b, len(ops), ('reseal', 0))
+        r = read(b, 0)
+        written = [e for u, (eid, mt, okk) in b.W.reps[0].entries.items() for e in [b.W.EL[eid]]
+                   if e.kind == 'kept' and e.after and all(b.W.EL[x].kind == 'kept' and b.W.EL[x].key == e.key
+                                                           for x in e.after) and e.key in r['keys']['standing']]
+        plan = sorted((x['key'], tuple(x['after'])) for x in L['seal'] if x.get('kind') == 'kept')
+        wrote = sorted((B.S.keyname(B.S.keybytes(e.obj)), tuple(sorted(b.uid(x) for x in e.after))) for e in written)
+        print('   Seal again: %s; read: %s; the keep record written %s the plan [%s]' % (
+            'applies' if ok else 'refused', line(r), 'is' if plan == wrote else 'DIFFERS FROM', C.c_note(b)))
+        for x in C.c_lines(b, '      '):
+            print(x)
+
+
 # ------------------------------------------------------------------ random
 def alphabet():
     R = (0, 1)
@@ -300,7 +363,7 @@ def alphabet():
         acts += [('restart', r), ('pair', r), ('revoke', r, 'c0'), ('revoke', r, 'c1'), ('padd', r, 'pf'),
                  ('prem', r, 'pf'), ('rule', r, 'N', 'rw'), ('rule', r, 'N', 'none'), ('renew', r, 'c0', 'forever'),
                  ('renew', r, 'c0', 'ask'), ('renewcert', r, 'c0'), ('delauth', r), ('create', r), ('newer', r),
-                 ('del', r, ('auth', 'a0'), 1), ('del', r, ('auth',), 1), ('del', r, ('kept',), 0)]
+                 ('del', r, ('auth', 'a0'), 1), ('del', r, ('auth',), 1), ('del', r, ('kept',), 0), ('reseal', r)]
     merges = [m for d in R for s in R if d != s for m in
               [('merge', 'kp_sync', d, s), ('merge', 'kp_other', d, s, 'OverwriteIfNewer'), ('merge', 'xc', d, s, '2.8.0')]]
     return acts, merges
@@ -367,6 +430,8 @@ def main():
             part_cells(host, 'sc', sys.argv[2].split(',') if len(sys.argv) > 2 else None)
         elif part == 'room':
             part_room(host, 'so')
+        elif part == 'dialog':
+            part_dialog(host, 'sd')
         elif part == 'random':
             part_random(host, int(sys.argv[2]), int(sys.argv[3]), 'sr')
         else:

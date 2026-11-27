@@ -163,14 +163,16 @@
                            the seal read.py plans held to the seal the model writes
 
     With -Starts (ADDED, started again), the store started again of STORE.md 632 and the keys of
-    649: the configuration of -Answers with crdt_model.STARTS on, the keep record and the version
+    649: the configuration of -Seal with crdt_model.STARTS on, the keep record and the version
     record on files and the room of 643 read there. Output in `out\starts\`; databases in
     `work\sa-*`:
 
-      cells, random, room  restart.py: T1 to T10 on real files, every merge both ways; 300 random
+      cells, random, room, dialog
+                           restart.py: T1 to T16 on real files, every merge both ways; 300 random
                            histories of a store started again on files; the two stores at the
-                           ceilings, started again
-      model-hand, laws     restart_runs.py hand and laws: T1 to T10 in the model; the marking of
+                           ceilings, started again; what Seal again's reading lists of a store a
+                           start stopped, and the seal pressed over it
+      model-hand, laws     restart_runs.py hand and laws: T1 to T16 in the model; the marking of
                            649 step 4 held to its laws and to read.py's
       exhaustive-4, exhaustive-4-noauth, exhaustive-5
                            restart_runs.py: every sequence of 4 steps of a small alphabet with the
@@ -429,6 +431,7 @@ if ($Starts) {
         'cells'        = @("$probe\restart.py", 'cells')
         'random'       = @("$probe\restart.py", 'random', '300', '81')
         'room'         = @("$probe\restart.py", 'room')
+        'dialog'       = @("$probe\restart.py", 'dialog')
         'exhaustive-4' = @("$model\restart_runs.py", 'exhaustive', '4', 'faults', '4')
         'exhaustive-4-noauth' = @("$model\restart_runs.py", 'exhaustive', '4', 'noauth', '4')
         'search-3'     = @("$model\restart_runs.py", 'search', '3', '20000', '4')
@@ -532,6 +535,13 @@ if ($Seal -and $Parts.Count -eq $all.Count) {     # ADDED (seal again): the vect
     & uv run --no-project python -I -X utf8 (Join-Path $family 'compare_seal.py') print $vectors |
         Set-Content -Encoding UTF8 (Join-Path $out 'vectors-print.txt')
     & uv run --no-project python -I -X utf8 (Join-Path $family 'compare_seal.py') vectors $vectors (Join-Path $family 'recorded-answers\vectors') |
+        Set-Content -Encoding UTF8 (Join-Path $out 'vectors-compare.txt')
+}
+if ($Starts -and $Parts.Count -eq $all.Count) {     # ADDED (started again): the vectors, and how they hold
+    $vectors = Join-Path $out 'vectors'
+    & uv run --no-project python -I -X utf8 (Join-Path $family 'compare_starts.py') print $vectors |
+        Set-Content -Encoding UTF8 (Join-Path $out 'vectors-print.txt')
+    & uv run --no-project python -I -X utf8 (Join-Path $family 'compare_starts.py') vectors $vectors (Join-Path $family 'recorded-seal\vectors') |
         Set-Content -Encoding UTF8 (Join-Path $out 'vectors-compare.txt')
 }
 if ($config) {     # ADDED (two readings)

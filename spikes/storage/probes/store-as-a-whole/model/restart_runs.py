@@ -4,7 +4,7 @@ anything of it is built in the product.
 Run:  uv run --no-project python -I -X utf8 restart_runs.py PART [ARGS], its output into out\\starts
 
 Parts:
-  hand                        T1 to T12 of probe/restart.py in the model, every merge both ways, each
+  hand                        T1 to T16 of probe/restart.py in the model, every merge both ways, each
                               merged copy held to its own ideal, to every decision any gate made, to the
                               keys its ideal sets aside and to both copies just before
   laws COUNT SEED             the marking of STORE.md 649 step 4 over hand-made relations and COUNT
@@ -51,7 +51,7 @@ ANSWER_KIND_OF = AR.kind_of     # the classes of answer_runs.py, before this mod
 
 def setup():
     AR.setup()
-    M.STARTS = True
+    M.STARTS = M.SEAL = True     # Seal again as designed beside it: the seal lifts a store a start stopped
 
 
 def fmt(op):
@@ -109,7 +109,7 @@ def play(ops):
 
 def part_hand():
     import restart as R
-    print('== T1 to T12 in the model, two copies, every merge both ways. Each cell: the merged copy, held to its')
+    print('== T1 to T16 in the model, two copies, every merge both ways. Each cell: the merged copy, held to its')
     print('   own ideal, to every decision any gate made, to the keys its ideal sets aside and to both copies just')
     print('   before the merge; then the acts that follow in that copy. 11 edits are an edit here: damage at once.')
     tally = {}
@@ -275,6 +275,19 @@ def kind_of(ops, prop):
                 ' until the store is started again or kept (STORE.md 649)')
     if prop.startswith('convergence-to-ideal') and 'not wider' in prop and 'newer' in acts:
         return 'a store raised to a later format, outdated until started again (STORE.md 651, 632)'
+    stop_lost = any(op[0] in ('del', 'edit') and op[2] == ('kept',) for op in ops[first:])
+    lost_at = min([k for k, op in enumerate(ops) if k >= first and carrier_loss(op) and op[2] != ('auth', 'a0')]
+                  or [len(ops)])
+    if 'restart' in acts and any(op[0] == 'reseal' for op in ops[lost_at:]) and not stop_lost:
+        return ('Seal again keeps the earlier store once the new key is lost, as a store a start stopped is lifted: what was'
+                ' decided under the new key is out of it, while the oracle reads the two keys of the circle')
+    if 'restart' in acts and stop_lost and not newest and any(op[0] == 'del' and op[2] == ('head', 'new')
+                                                             for op in ops[first:]):
+        return ('the keep record of a start and the summary entry restating it deleted, so that the stop\'s deletion'
+                ' record sets the new key aside (STORE.md 639 rows 2 and 3)')
+    if newest and stop_lost and 'create' not in acts:
+        return ('NEW: the entry that carries the key of a store started again and the stop under the earlier key'
+                ' deleted or edited by hand, so that nothing stops the earlier store, which stands alone again')
     if newest and 'create' not in acts:
         return ('NEW: the entry that carries the key of a store started again deleted or edited, so that key is'
                 ' lost and the keep records under it are read no more: the earlier store stands alone again')
@@ -422,14 +435,15 @@ def part_starts(config, count, seed, lo, hi, workers):
 
 # ------------------------------------------------------------------ exhaustive
 def exhaustive_steps(faults):
-    """`faults`: 'none'; 'faults', the first and the newest authority deleted with a deletion record
-    and a keep record deleted with none; 'noauth', the keep record alone."""
+    """`faults`: 'none'; 'faults', the first and the newest authority deleted with a deletion record,
+    Seal again and a keep record deleted with a deletion record or with none; 'noauth', the keep
+    record alone."""
     steps = []
     for r in (0, 1):
         steps += [('restart', r), ('pair', r), ('rule', r, 'N', 'rw'), ('revoke', r, 'c0'), ('newer', r),
                   ('delauth', r), ('create', r)]
         if faults == 'faults':
-            steps += [('del', r, ('auth', 'a0'), 1), ('del', r, ('auth',), 1)]
+            steps += [('del', r, ('auth', 'a0'), 1), ('del', r, ('auth',), 1), ('reseal', r)]
         if faults in ('faults', 'noauth'):
             steps += [('del', r, ('kept',), 0), ('del', r, ('kept',), 1)]
     steps += [('merge', p, d, s) for p in ('kp_sync', 'kp_other', 'xc') for d in (0, 1) for s in (0, 1) if d != s]
@@ -475,8 +489,8 @@ def part_exhaustive(depth, faults, workers):
                 bad[key] = (bad[key][0] + n, bad[key][1], bad[key][2])
     print('== every sequence of %d steps of the acts of a store started again over two copies: %d steps wide%s, from'
           ' the store the model starts with, the convergence checked at the end: %d histories  %s' % (
-              depth, len(steps), {'faults': ' with the first and the newest authority deleted with a deletion record'
-                                            ' and a keep record deleted with a deletion record and with none',
+              depth, len(steps), {'faults': ' with the first and the newest authority deleted with a deletion record,'
+                                            ' Seal again and a keep record deleted with a deletion record and with none',
                                   'noauth': ' with a keep record deleted with a deletion record and with none'}.get(faults, ''),
               total,
               'no failure' if not bad else ', '.join('%s x%d' % (p, c) for p, (c, _, _) in sorted(bad.items()))))
@@ -494,7 +508,7 @@ def bridge_chunk(args):
     import read as RD
     import store as S
     RD.ANSWERS, RD.JUDGE, S.HEX = True, 'lost', True
-    RD.STARTS = RD.ROOM = True
+    RD.STARTS = RD.ROOM = RD.SEAL = True
     if 'kept' not in S.KINDS:
         S.KINDS = S.KINDS + S.STARTED
     rng = random.Random(seed)
