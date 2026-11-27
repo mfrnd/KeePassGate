@@ -65,6 +65,7 @@ evidence to its place here.
 | `ground/measured-renewal-answers.md` | `spikes\storage\probes\store-as-a-whole\`, run with `-Answers` | `recorded-answers\` there, with its vectors in `recorded-answers\vectors\` |
 | `ground/measured-seal.md` | `spikes\storage\probes\store-as-a-whole\`, run with `-Seal` | `recorded-seal\` there, with its vectors in `recorded-seal\vectors\` |
 | `ground/measured-started-again.md` | `spikes\storage\probes\store-as-a-whole\`, run with `-Starts` | `recorded-starts\` there, with its vectors in `recorded-starts\vectors\` |
+| `ground/measured-seal-restates.md` | `spikes\storage\probes\store-as-a-whole\`, run with `-Restates` | `recorded-restates\` there, with its vectors in `recorded-restates\vectors\` |
 
 The two desktop families show windows and the Android records come from an emulator, so neither
 runs again from the branch without those; each `RUN.md` states what did.
