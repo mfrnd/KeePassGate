@@ -191,10 +191,11 @@
     retirement or a removal of a name that a deletion record alone tells of, under each form of
     crdt_model.SEAL_RESTATES: all (the control, the form every part above was run in), named (the
     product's form), ids (the form proposed) and hashes. Output in `out\restates\`, compared with
-    `recorded-restates\`; databases in `work\rs-*`, `work\se-named-*`, `work\se-ids-*` and
-    `work\sa-ids-*`; then `compare_restates.py` holds each form's cells to the control's
-    (`cells.txt`) and each part run under a form to its record (`against.txt`), and the three files of
-    vectors that `vectors.py --restates` prints go into `out\restates\vectors\`, held to
+    `recorded-restates\`; databases in `work\rs-*`, `work\se-named-*`, `work\se-ids-*`,
+    `work\sa-ids-*` and the same with `hashes`; then `compare_restates.py` holds each form's cells
+    to the control's (`cells.txt`) and each part run under a form to its record (`against.txt`),
+    and the three files of vectors that `vectors.py --restates` prints go into
+    `out\restates\vectors\`, held to
     `recorded-starts\vectors\` in `out\restates\vectors-compare.txt`:
 
       hand                 restates_runs.py hand: R1 to R21 and F5 to F7r in the model under every
@@ -211,6 +212,7 @@
       edits-named, edits-ids, hand-named, hand-ids, damage-named, damage-ids, seal-bridge-named,
       seal-bridge-ids      the parts of -Seal of those names (bridge for seal-bridge) under the form
       starts-<part>-ids    every part of -Starts under the form ids
+      <part>-hashes        every part above whose name ends in -ids, under the form hashes
 
 .PARAMETER Parts
     Which parts to run; every part by default.
@@ -525,8 +527,12 @@ if ($Restates) {
         'seal-bridge-ids'   = @("$model\seal_runs.py", 'bridge', 'two', '2000', '71', '4')
         'hand'              = @("$model\restates_runs.py", 'hand')
     }
+    # every part run under ids, under hashes as well, after every other part
+    foreach ($p in @($all.Keys)) {
+        if ($p.EndsWith('-ids')) { $all[$p.Substring(0, $p.Length - 4) + '-hashes'] = $all[$p] }
+    }
     foreach ($p in $all.Keys) {
-        foreach ($form in 'named', 'ids') {
+        foreach ($form in 'named', 'ids', 'hashes') {
             if ($p.EndsWith("-$form")) { $formOf[$p] = $form }
         }
     }
@@ -544,7 +550,7 @@ if ($Parts.Count -eq $all.Count) {
     if ($config) {
         # ADDED (two readings): the configuration's own output and databases only
         if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
-        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } elseif ($Rows) { 'pe-*', 'po-*' } elseif ($Owed) { 'qo-*' } elseif ($S34) { 'qss-*', 'qsa-*' } elseif ($Answers) { 'an-*' } elseif ($Seal) { 'se-*' } elseif ($Starts) { 'sa-*' } elseif ($Restates) { 'rs-*', 'se-named-*', 'se-ids-*', 'sa-ids-*' } else {     # ADDED (owed forms): qo-*; (S34 forms): qss-* and qsa-*; (renewal answers): an-*; (seal again): se-*; (started again): sa-*
+        $prefixes = if ($Rewrite) { 'wb-*', 'wc-*', 'wn-*' } elseif ($Copies) { 'ch-*', 'ce-*' } elseif ($Rows) { 'pe-*', 'po-*' } elseif ($Owed) { 'qo-*' } elseif ($S34) { 'qss-*', 'qsa-*' } elseif ($Answers) { 'an-*' } elseif ($Seal) { 'se-*' } elseif ($Starts) { 'sa-*' } elseif ($Restates) { 'rs-*', 'se-named-*', 'se-ids-*', 'se-hashes-*', 'sa-ids-*', 'sa-hashes-*' } else {     # ADDED (owed forms): qo-*; (S34 forms): qss-* and qsa-*; (renewal answers): an-*; (seal again): se-*; (started again): sa-*
             $letter = if ($Reading -eq 'cap-items') { 'i' } else { $Reading[0] }     # ADDED (copies extended)
             "x${letter}h-*", "x${letter}e-*"
         }
