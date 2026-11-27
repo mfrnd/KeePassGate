@@ -96,13 +96,15 @@ namespace KeePassGate.Store
                 return Refusal("this plugin cannot state its version, and writes nothing into a store");
             }
 
-            // Step 1, the state, `STORE.md` §627: a store started where no key stands, a whole
-            // store, and a stopped store whose write is sealed again, the seal first; every other
-            // state is refused with its word, Create among them. A store with no room is stopped
-            // and the seal does not lift it, §643.
+            // Step 1, the state, `STORE.md` §627: a store started where no key stands, or started
+            // again over keys found and judged, whatever its state, with room or without, §632; a
+            // whole store; and a stopped store whose write is sealed again, the seal first. Every
+            // other state is refused with its word, Create among them. A store with no room is
+            // stopped and the seal does not lift it, §643.
             var inForce = reading.InForce;
-            var starts = reading.State == StoreState.None;
-            var seals = acts[0].Seals && reading.State == StoreState.Stopped && inForce != null;
+            var startsAgain = acts.Any(act => act.Starts) && StartsOver(reading);
+            var starts = reading.State == StoreState.None || startsAgain;
+            var seals = !starts && acts[0].Seals && reading.State == StoreState.Stopped && inForce != null;
             if (seals && !inForce.Room.HasRoom)
             {
                 return Full("the store has no room for the seal's write: " + inForce.Room.Reason, null);
@@ -125,7 +127,9 @@ namespace KeePassGate.Store
                 // A seal is written first, over a stopped store, and nowhere else: over a store
                 // that is whole it has nothing to seal, and after another act it would be planned
                 // over a store that act was composed for, `STORE.md` §625.
-                var why = !act.Seals ? act.Why(ground)
+                var why = act.Starts ? StartRefused(reading, act, ground)
+                    : !act.Seals ? act.Why(ground)
+                    : starts ? "the store is started again, which sets the store sealed aside"
                     : !ReferenceEquals(act, acts[0]) ? "a seal is written first, before every other act"
                     : !seals ? "the store is not stopped, so there is nothing to seal"
                     : null;
@@ -164,6 +168,12 @@ namespace KeePassGate.Store
             if (seals && !taken[0].Seals)
             {
                 return Refusal(leftOut[0], leftOut);
+            }
+
+            // Over a store started again nothing is written but behind the start.
+            if (startsAgain && !taken[0].Starts)
+            {
+                return Refusal(leftOut.FirstOrDefault() ?? "a store started again is written first", leftOut);
             }
 
             var key = starts ? taken[0].Key() : (byte[])inForce.Key.Bytes.Clone();
@@ -314,9 +324,13 @@ namespace KeePassGate.Store
             // the plugin's version is above the highest the store states.
             var format = starts ? 0 : inForce.Format;
             var stated = starts ? null : inForce.Plugin;
+            // A store started again writes its stops first, each under a key it sets aside, and
+            // then its own records under the new key, the version record first among them.
+            var keyName = StoreFormat.KeyName(key);
+            var stops = starts ? added.TakeWhile(record => Stops(record, keyName)).Count() : 0;
             if (starts || StoreInForce.Above(plugin, stated))
             {
-                added.Insert(0, StoreRecord.Compose(key, StoreKinds.Format, new Dictionary<string, string>(StringComparer.Ordinal)
+                added.Insert(stops, StoreRecord.Compose(key, StoreKinds.Format, new Dictionary<string, string>(StringComparer.Ordinal)
                 {
                     { StoreKinds.FormatMember, StoreFormat.Number.ToString(CultureInfo.InvariantCulture) },
                     { StoreKinds.PluginMember, plugin },
@@ -402,7 +416,9 @@ namespace KeePassGate.Store
                 items.AddRange(replaced.Restated.Select(id => Members(new StoreItem(StoreKinds.Version, inForce.Versions[id].Members))));
             }
 
-            items.AddRange(added.Select(Restating).Where(item => item != null));
+            // A stop is restated by no summary entry, under its key or any other, so that it stops
+            // the store it sets aside once the new key is lost, `STORE.md` §632.
+            items.AddRange(added.Where(record => !(starts && Stops(record, keyName))).Select(Restating).Where(item => item != null));
 
             // An item restating what is restated already is the same item, and a summary entry
             // holds it once.
@@ -559,6 +575,51 @@ namespace KeePassGate.Store
                     yield return addition.Hex;
                 }
             }
+        }
+
+        /// <summary>
+        /// Whether a store started again is written over this reading, `STORE.md` §632: keys are
+        /// found and judged, within `StoreFormat.MaxKeys`, the store whole, stopped, split or
+        /// outdated, with room or without.
+        /// </summary>
+        private static bool StartsOver(StoreReading reading)
+        {
+            return reading.Judged
+                   && reading.Found.Count > 0
+                   && (reading.State == StoreState.Whole
+                       || reading.State == StoreState.Stopped
+                       || reading.State == StoreState.Split
+                       || reading.State == StoreState.Outdated);
+        }
+
+        /// <summary>
+        /// Why a store started again does not apply to the store as this reading found it, or
+        /// null where it does: a key found that the act names no keep record for would stand
+        /// beside the new key, `STORE.md` §632; and the act is the first act of its write.
+        /// </summary>
+        private static string StartRefused(StoreReading reading, StoreAct act, StoreGround ground)
+        {
+            if (ground.KeyName != null)
+            {
+                return "a store started again is written first, before every other act";
+            }
+
+            var named = new HashSet<string>(
+                act.Records.Where(record => record.Kind == StoreKinds.Kept).Select(record => record.Member(StoreKinds.Key)),
+                StringComparer.Ordinal);
+            var missing = reading.Found.Select(found => found.Name).FirstOrDefault(name => !named.Contains(name));
+            return missing == null
+                ? null
+                : "a store key is found that it sets nothing aside for: " + missing.Substring(0, 8);
+        }
+
+        /// <summary>
+        /// Whether a record is a stop a store started again writes: a keep record naming the key
+        /// the write starts the store under, under a key it sets aside, `STORE.md` §632.
+        /// </summary>
+        private static bool Stops(StoreRecord record, string keyName)
+        {
+            return record.Kind == StoreKinds.Kept && string.Equals(record.Member(StoreKinds.Key), keyName, StringComparison.Ordinal);
         }
 
         /// <summary>Whether these identifiers hold this identifier, written as text.</summary>

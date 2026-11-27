@@ -169,6 +169,53 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Starting_the_store_again_serves_a_new_authority_under_a_new_key_and_admits_no_earlier_client()
+        {
+            _service.Create();
+            string first;
+            string earlierKey;
+            using (var stored = _records.Read())
+            using (var reading = _service.Read())
+            {
+                first = reading.Material.AuthorityDigest;
+                earlierKey = stored.InForce.Key.Name;
+            }
+
+            AdmissionRecord admitted;
+            using (var issuer = TestAuthority.New())
+            using (var client = issuer.IssueClient("agent-fictitious"))
+            {
+                admitted = StoreSeeds.Admit(_records, client, DateTimeOffset.UtcNow, "ops");
+            }
+
+            var writes = _records.Writes;
+            var result = _service.StartAgain();
+            Assert.That(_records.Writes, Is.EqualTo(writes + 1), "a single write");
+
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            using (var stored = _records.Read())
+            using (var reading = _service.Read())
+            {
+                Assert.That(reading.Material.AuthorityDigest, Is.Not.EqualTo(first));
+                Assert.That(stored.InForce.Key.Name, Is.Not.EqualTo(earlierKey), "a new key");
+                Assert.That(stored.Found.Select(key => key.Name), Does.Contain(earlierKey), "the earlier key found, and set aside");
+                Assert.That(StoreAdmissions.Admitted(stored, admitted.AdmissionKey), Is.Null, "the earlier client is admitted nowhere");
+            }
+
+            Assert.That(_log.Entries.Select(entry => entry.Message), Has.Some.StartsWith("store started again, authority, digest"));
+        }
+
+        [Test]
+        public void Starting_again_where_no_store_key_is_found_is_refused_as_Create_s()
+        {
+            var result = _service.StartAgain();
+
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Is.EqualTo("This database holds no store key. Create starts the store."));
+            Assert.That(_records.Writes, Is.EqualTo(0));
+        }
+
+        [Test]
         public void Recreating_repairs_damage()
         {
             StoreSeeds.Damaged(_records);

@@ -74,7 +74,8 @@ namespace KeePassGate.Bridge
                 Delete(database, tree, write.Delete, held, undo);
                 Record(database, write.Deletions, held, undo);
                 SetBack(database, tree, write.SetBack, undo);
-                Protect(database, tree, reading, write.Delete, undo);
+                // A store started again touches nothing of the store it sets aside, `STORE.md` §632.
+                Protect(database, tree, write.Starts ? null : reading, write.Delete, undo);
                 applied = true;
             }
             finally
@@ -300,7 +301,7 @@ namespace KeePassGate.Bridge
             return write.Delete
                 .SelectMany(tree.Under)
                 .Concat(write.SetBack.Select(pair => tree.First(pair.Key)).Where(entry => entry != null))
-                .Concat(Carriers(tree, reading, write.Delete).Where(Unprotected));
+                .Concat(Carriers(tree, write.Starts ? null : reading, write.Delete).Where(Unprotected));
         }
 
         /// <summary>
@@ -314,7 +315,7 @@ namespace KeePassGate.Bridge
                 write.Add.Select(record => record.Hex),
                 write.Delete,
                 write.SetBack.Select(pair => pair.Key),
-                CarriersOf(reading, write.Delete));
+                CarriersOf(write.Starts ? null : reading, write.Delete));
         }
 
         /// <summary>The entry that holds a record, in no group yet, `STORE.md` §607.</summary>
@@ -464,7 +465,7 @@ namespace KeePassGate.Bridge
         /// </summary>
         private static IEnumerable<string> CarriersOf(StoreReading reading, IEnumerable<string> deleted)
         {
-            if (reading.InForce == null)
+            if (reading == null || reading.InForce == null)
             {
                 return Enumerable.Empty<string>();
             }

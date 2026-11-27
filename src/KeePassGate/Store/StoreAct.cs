@@ -45,6 +45,11 @@ namespace KeePassGate.Store
         /// record, since its write's summary entry is what it writes.
         /// </param>
         /// <param name="leftOut">What the act left out as it was composed, each with why, for the log; none for null.</param>
+        /// <param name="starts">
+        /// Whether the act starts the store again under its key, `STORE.md` §632: its records are
+        /// a stop under each key found, then the authority holding its key and a keep record for
+        /// each key found, and its write reads nothing of the store but the keys found.
+        /// </param>
         internal StoreAct(
             string name,
             byte[] key,
@@ -53,7 +58,8 @@ namespace KeePassGate.Store
             Func<StoreGround, string> ground,
             Func<StoreReading, StoreAct> again = null,
             bool seals = false,
-            IReadOnlyList<string> leftOut = null)
+            IReadOnlyList<string> leftOut = null,
+            bool starts = false)
         {
             if (key == null)
             {
@@ -78,6 +84,7 @@ namespace KeePassGate.Store
             _ground = ground;
             Again = again;
             Seals = seals;
+            Starts = starts;
             LeftOut = (leftOut ?? Array.Empty<string>()).ToList();
         }
 
@@ -86,6 +93,13 @@ namespace KeePassGate.Store
         /// over a stopped store, and only as its first.
         /// </summary>
         internal bool Seals { get; private set; }
+
+        /// <summary>
+        /// Whether the act starts the store again under a new key, `STORE.md` §632: taken over a
+        /// store in which keys are found and judged, whatever its state, and setting every key
+        /// found aside.
+        /// </summary>
+        internal bool Starts { get; private set; }
 
         /// <summary>What the act left out as it was composed, each with why: what the log names.</summary>
         internal IReadOnlyList<string> LeftOut { get; private set; }

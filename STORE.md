@@ -3661,9 +3661,10 @@ step names another source:
    single state: the press of §625 on a stopped store; keeping a store where several keys
    stand, which is held to the format of the store kept; raising a store whose format number is
    below the plugin's own (§652); Create where no key stands; and the command that starts the
-   store again, wherever a key is found (§632). The measured code's Create also wrote on a
-   stopped store, which §624 rules out. A write that the store has no room for is refused as
-   well (below).
+   store again, wherever a key is found and judged, with room or without (§632), which reads
+   nothing of the store but the keys found and the keep records, and is written first in its
+   write. The measured code's Create also wrote on a stopped store, which §624 rules out. A
+   write that the store has no room for is refused as well (below).
 2. **The records of the act are added** to the plugin's group, and with them a version record
    where §650 has the write carry it (proposed). The act of a write of rules holds, beside the
    versions of the rows and of the switch that were changed, the versions at that node and
@@ -4606,6 +4607,45 @@ keep everything written under it.
 - **A key the plugin cannot find, it cannot name.** Where the earlier store's key is in a form
   the plugin does not read, that store is no store to this plugin, and a plugin that finds both
   keys asks which store to keep (§649, reasoning).
+
+**It stops the store it sets aside** (a later decision, as measured, `measured-started-again` 1,
+9 to 12). Without it, the loss of the new authority's entry alone left the earlier key standing
+alone and served the earlier store whole again, its clients admitted (`measured-started-again`
+9). So the write begins, under each key found, with a **stop**: a keep record naming the new key,
+with an empty `after`, which no summary entry restates. While the new key is found, the keep
+record under it names the stop in `after`, so the stop counts for nothing and its key is not
+judged. Once the new key is lost, the earlier key stands alone and the stop is a record no
+summary entry restates: the earlier store is stopped (§624) and serves nothing, and only Seal
+again, through its dialog, brings it back (§625).
+
+**What is built.** `AuthorityService.StartAgain`, an act of the store that starts it
+(`StoreAct.Starts`), composed at the press over the store as the page showed it, in a single write
+that deletes nothing, sets nothing back and touches no entry of the store it sets aside: under each
+key found, the stop; then under the new key the version record, the authority with its host
+certificate and gate key, a keep record naming each key found, each naming in `after` every keep
+record the reading read under any key found (§649) and every stop the write makes, and a summary
+entry of height 1 that names nothing and restates the keep records and the format, never a stop. The
+version record is written before the authority, where the measured write has it after the keep
+records; no identifier and no reading depends on the order of a write's records. The write is taken
+over a store in which keys are found and judged, whatever its state: whole, stopped, with or without
+room (§643), split within `StoreFormat.MaxKeys` and outdated; it is refused where no key is found,
+which Create starts, and past the ceiling on keys, where no key can be named. It goes into a group
+of the plugin's own made for it (§606). **Held at the write to the keys found then**: a key found
+that it names no keep record for would stand beside the new key, so the act is left out and named.
+Every act composed under the earlier key and held beside it is left out and named, as for a key that
+went, while an act composed over the store as the start leaves it is written after it. After the
+write the reading finds the new key standing and every other key set aside, and judges the format,
+the kinds and damage under the new key alone, so an outdated store holds the plugin back no more. A
+pairing, a renewal and every write of the plugin's own after it are made under the key that stands,
+and every summary entry carries every keep record under that key forward, from an item, else from
+its record, else from a deletion record that tells of it. *Held by* `StoreWriteTests`, a start over
+each state the command takes, the stop restated by nothing and the start left out for a key found
+that it names nothing for; `AuthorityServiceTests`; `StoreRecordTests`, the stop, the keep record
+and the summary entry against `tests/Shared/StoreRecordVectors.json`; and `StoreWriteShapeTests`, T1
+to T16 of `tests/Shared/StoreWriteVectors.json`, each played through the product's acts with the
+start pressed on the KPG tab's buffer and written at its OK, held after every step by the keys
+found, standing and set aside and by shape and answer under the key that stands, and T16 as the
+class §639 accepts.
 
 **The path by hand remains possible.** With the guard switched off, the operator deletes the
 plugin's group for good, synchronizes that deletion into every copy, and creates an authority.
@@ -5869,6 +5909,22 @@ differs from the model's control in any part (`measured-seal-restates` 4 to 6). 
 `StoreSealMergeTests`, F5 through each of KeePass's merges in both directions, with the deletion
 records kept and cleared.
 
+**The new key's carrier and the stop of a store started again both deleted or edited by hand**
+(the shape of row 3; §632). *Who:* a person who deletes for good, or edits past the history limit,
+both the entry of the authority the start made, which carries the new key, and the stop under the
+earlier key, past the guard or with it off, in a single copy or in two copies a merge then brings
+together. *What happens:* the new key is found nowhere, and nothing is left that stops the earlier
+store, since the stop has a single carrier, its own entry, by design, and a deletion record of it
+tells of a key the earlier store cannot name once the new key is lost. The earlier store is served
+whole, its clients admitted, its rules and answers in force. *What covers it:* nothing in the
+store; the guard keeps both entries from being deleted on the tab (§635), and either deletion
+alone serves nothing more than before it (as measured, T11 and T12). A second carrier of the stop
+that a deletion of an entry does not take away would close it, and none is built: the class is
+accepted. *Measured:* in the model and on real files, the only class of any part outside the
+classes accepted, shrunk to the start and the two deletions, in either order, with or without a
+deletion record, and with an edit of the authority's entry (`measured-started-again` 9, T16).
+*Pinned* by `StoreWriteShapeTests` T16, as accepted and never as decided.
+
 **A lost answer whose client key the file no longer knows** (no row of its own; §618). *Who:* a
 person who deletes a client's admission by hand in a copy whose store holds the deletion record of
 a lost answer of that client, and no other record or item names the client key. *What happens:*
@@ -6260,8 +6316,11 @@ reading is reasoning.
 past the warning (§632). *What happens:* what the loss of the key does, by a decision and at
 once: every client pairs again, and every rule, profile name and revocation is entered again,
 so what entering again can leave out applies as above. The earlier store stays in the file and
-counts for nothing, and no command takes the press back. *What covers it:* the warning, which
-names what has to be entered again. *Measured:* not run.
+counts for nothing, stopped by the start, and no command takes the press back: should the new
+key be lost, the earlier store serves nothing until Seal again keeps it (§625). *What covers
+it:* the warning, which names what has to be entered again. *Measured:* in the model and on real
+files (`measured-started-again` 4, T1 to T16), and through the product's acts
+(`StoreWriteShapeTests`).
 
 ### Refusing, narrower, or a decision lost §642
 
@@ -6834,10 +6893,16 @@ that finds a measurement against a decision reports it and does not design aroun
 20. **The move from 0.2** (§645, §654), which was read from the source of 0.2.0 and not run. The
     steps, and the path through KeePass's windows for clearing what 0.2 left, are run in a real
     KeePass by the pull request that writes the warning.
-21. **The command that starts the store again** (§632), of which nothing was run: pressed on a
-    whole store, by a plugin that the store's format holds back, and by a plugin that does not
-    read the store's form; then the earlier store brought back by each merge, and a second gate
-    that still serves the earlier store. Owed by the pull request that builds the command.
+21. **The command that starts the store again** (§632). *Run before it was built*
+    (`papers/ground/measured-started-again.md`), in the model and on real files: pressed on a
+    whole, a stopped, a split, an outdated store and a store with no room, the earlier store
+    brought back by each merge both ways, two copies started again apart, a start after a start,
+    a Delete and a Create after it, and the new key lost by a deletion and by edits, then sealed;
+    a second gate that still serves the earlier store as the file its pairing leaves (T4), and not
+    over a socket. *Run in the product*: T1 to T16 through the product's acts
+    (`StoreWriteShapeTests`). Owed by the pull request that builds the command: a second gate over
+    a socket, the press in KeePass's window, and the start over real databases merged by
+    KeePass's own methods.
 22. **The words of §656**, of which nothing was run: each state answered with its word, to a
     request before a route is chosen and to a `head`; `frozen` to a write and to no read; and
     whether `lost` and `outdated` can be sent at all (S33). The pull request that builds the
@@ -7410,9 +7475,10 @@ fixed, and the list above names where: S1, S12, S13, S16, S20, S23, S26, S31 and
   then stand again, which is narrower, and no form that was run meets the condition there
   without ending wider (§617).
 - **S28. The command that starts the store again, in its texts and its place** (§632). Decided:
-  the command, its warning, a store under a new key, every other key set aside. Proposed: what
-  it writes. Not fixed: its caption, the words of its warning, and on which page of the tab and
-  in which states it is offered. Has to satisfy: a plugin that the store's format holds back, or
+  the command, its warning, a store under a new key, every other key set aside, and the stop
+  under each key set aside. Fixed for the first writes: what it writes, as built (§632 "What is
+  built"). Not fixed: its caption, the words of its warning, and on which page of the tab and in
+  which states it is offered. Has to satisfy: a plugin that the store's format holds back, or
   that does not read the store's form, can use it; nothing of the earlier store is converted;
   and the earlier store coming back by a merge does not hold the plugin back again.
 - **S30. The entries under a store key that was not kept** (§649). They stay in the file, passed

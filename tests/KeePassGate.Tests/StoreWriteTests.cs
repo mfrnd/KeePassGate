@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using KeePassGate.Authority;
+using KeePassGate.Diagnostics;
 using KeePassGate.Store;
 using KeePassGate.Testing;
 using KeePassGate.Tests.Fakes;
@@ -1604,6 +1605,201 @@ namespace KeePassGate.Tests
             var write = StoreWrite.Plan(reading, new[] { Sealing(reading) }, Plugin);
 
             Assert.That(write.Refused, Does.Contain("no entry holding the store key"));
+        }
+
+        private static IEnumerable<TestCaseData> StartingStates()
+        {
+            yield return new TestCaseData("whole").SetArgDisplayNames("whole");
+            yield return new TestCaseData("stopped").SetArgDisplayNames("stopped");
+            yield return new TestCaseData("no room").SetArgDisplayNames("no room");
+            yield return new TestCaseData("split").SetArgDisplayNames("split");
+            yield return new TestCaseData("outdated").SetArgDisplayNames("outdated");
+        }
+
+        [TestCaseSource(nameof(StartingStates))]
+        public void A_store_started_again_writes_a_stop_under_each_key_found_and_a_store_under_a_new_key_deleting_nothing(string state)
+        {
+            // `STORE.md` §632, as measured (`measured-started-again` 1, 12): under each key found a
+            // stop naming the new key, restated by no summary entry; under the new key the
+            // authority, a keep record naming each key found with every stop in `after`, the
+            // version record and a summary entry of height 1 naming nothing; nothing deleted.
+            var store = StartingStore(state);
+            IReadOnlyList<string> found;
+            using (var before = store.Read())
+            {
+                Assume.That(before.Judged, Is.True);
+                found = before.Found.Select(key => key.Name).ToList();
+            }
+
+            var started = new AuthorityService(store, NullGateLog.Instance).StartAgain();
+            Assert.That(started.Succeeded, Is.True, started.Message);
+
+            var act = store.Written.Last().Single();
+            Assert.That(act.Starts, Is.True);
+            var plan = store.LastPlan;
+            Assert.That(plan.Starts, Is.True);
+            Assert.That(plan.Delete, Is.Empty, "nothing deleted");
+            Assert.That(plan.Deletions, Is.Empty, "no deletion record");
+            Assert.That(plan.SetBack, Is.Empty, "nothing set back");
+
+            var newName = act.KeyName;
+            var kinds = plan.Add.Select(record => record.Kind).ToList();
+            Assert.That(kinds, Is.EqualTo(Enumerable.Repeat("kept", found.Count)
+                .Concat(new[] { "format", "authority" })
+                .Concat(Enumerable.Repeat("kept", found.Count))
+                .Concat(new[] { "head" })), "the stops first, then the new store");
+            var stops = plan.Add.Take(found.Count).ToList();
+            Assert.That(stops.Select(stop => stop.Member("key")), Is.All.EqualTo(newName), "each stop names the new key");
+            Assert.That(stops.Select(stop => stop.Member("after")), Is.All.Empty);
+            var kept = plan.Add.Skip(found.Count + 2).Take(found.Count).ToList();
+            Assert.That(kept.Select(record => record.Member("key")), Is.EquivalentTo(found), "a keep record naming each key found");
+            foreach (var record in kept)
+            {
+                Assert.That(Split(record.Member("after")), Is.SupersetOf(stops.Select(stop => stop.Hex)), "every stop in after");
+            }
+
+            var head = SummaryOf(plan);
+            Assert.That(head.Member("height"), Is.EqualTo("1"));
+            Assert.That(head.Member("after"), Is.Empty);
+            var restated = Items(head).Select(item => Newtonsoft.Json.Linq.JObject.Parse(item)).ToList();
+            Assert.That(restated.Where(item => (string)item["kind"] == "kept").Select(item => (string)item["id"]), Is.EquivalentTo(kept.Select(record => record.Hex)), "the keep records restated, the stops not");
+            Assert.That(restated.Count(item => (string)item["kind"] == "format"), Is.EqualTo(1));
+
+            using (var after = store.Read())
+            {
+                Assert.That(after.State, Is.EqualTo(StoreState.Whole), after.Reason);
+                Assert.That(after.InForce.Key.Name, Is.EqualTo(newName), "the new key stands");
+                Assert.That(after.Standing, Is.EqualTo(new[] { newName }));
+                Assert.That(after.Found.Select(key => key.Name).Except(new[] { newName }), Is.EquivalentTo(found), "every earlier key set aside");
+                Assert.That(after.InForce.Authorities, Has.Count.EqualTo(1));
+                Assert.That(after.Room.HasRoom, Is.True, "the new store has room");
+            }
+        }
+
+        [Test]
+        public void Once_the_new_key_is_lost_the_stop_stops_the_earlier_store_and_lists_the_key_found_nowhere()
+        {
+            // `measured-started-again` T11: the new authority's entry deleted for good with its
+            // deletion record, so the earlier key stands alone, and its stop is a record no summary
+            // entry restates.
+            var store = StartingStore("whole");
+            var started = new AuthorityService(store, NullGateLog.Instance).StartAgain();
+            Assume.That(started.Succeeded, Is.True, started.Message);
+            var authority = store.LastPlan.Add.Single(record => record.Kind == "authority");
+            var newName = store.LastPlan.Add[0].Member("key");
+            store.Drop(authority.Hex);
+            store.Delete(authority.Identifier);
+
+            using (var reading = store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Stopped), reading.Reason);
+                Assert.That(reading.Found.Select(key => key.Name), Has.None.EqualTo(newName));
+                Assert.That(StoreLosses.Of(reading).SetAside.Single().Value, Is.EqualTo(newName));
+            }
+        }
+
+        [Test]
+        public void A_start_composed_at_the_press_is_left_out_at_the_write_for_a_key_found_that_it_names_no_record_for()
+        {
+            // A key brought in under the dialog would stand beside the new key.
+            var store = StartingStore("whole");
+            var buffer = new KeePassGate.Ui.PendingRecords(() => store);
+            var pressed = new AuthorityService(buffer, NullGateLog.Instance).StartAgain();
+            Assume.That(pressed.Succeeded, Is.True, pressed.Message);
+            store.Put(StoreRecords.Authority(Two, 'b'));
+
+            var composed = buffer.Composed().Where(act => act != null).ToList();
+            var write = StoreWrite.Plan(store.Read(), composed, Plugin);
+
+            Assert.That(write.Refused, Does.Contain("a store key is found that it sets nothing aside for"));
+            buffer.Discard();
+        }
+
+        [Test]
+        public void An_act_composed_under_the_earlier_key_is_left_out_beside_a_start_and_one_composed_after_it_is_written()
+        {
+            var store = StartingStore("whole");
+            byte[] earlier;
+            using (var reading = store.Read())
+            {
+                earlier = (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+
+            var buffer = new KeePassGate.Ui.PendingRecords(() => store);
+            StoreSeeds.Name(buffer, "early");
+            var pressed = new AuthorityService(buffer, NullGateLog.Instance).StartAgain();
+            Assume.That(pressed.Succeeded, Is.True, pressed.Message);
+            StoreSeeds.Name(buffer, "late");
+
+            var composed = buffer.Composed().Where(act => act != null).ToList();
+            var done = store.Write(composed);
+
+            Assert.That(done.Taken, Is.True, done.Reason);
+            Assert.That(done.LeftOut.Single(), Does.Contain("composed under a store key that does not stand"));
+            using (var after = store.Read())
+            {
+                Assert.That(KeePassGate.Acl.ProfileNames.Of(after).Names, Is.EqualTo(new[] { "late" }));
+                Assert.That(after.InForce.Key.Name, Is.Not.EqualTo(StoreFormat.KeyName(earlier)));
+            }
+
+            buffer.Discard();
+        }
+
+        [Test]
+        public void A_start_is_refused_where_no_key_is_found_and_past_the_ceiling_on_keys()
+        {
+            var none = new AuthorityService(new MemoryStore(), NullGateLog.Instance).StartAgain();
+            Assert.That(none.Succeeded, Is.False);
+            Assert.That(none.Message, Does.Contain("Create starts the store"));
+
+            var beyond = new MemoryStore();
+            for (var at = 0; at <= StoreFormat.MaxKeys; at++)
+            {
+                var key = StoreFormat.NewKey();
+                beyond.Put(StoreComposer.Record(key, "authority", "authority:" + Hex('a'), StoreComposer.Content(("id", Hex('a')), ("storeKey", StoreComposer.HexOf(key)))));
+            }
+
+            Assume.That(beyond.Read().Judged, Is.False);
+            var refused = new AuthorityService(beyond, NullGateLog.Instance).StartAgain();
+            Assert.That(refused.Succeeded, Is.False);
+            Assert.That(beyond.Written, Is.Empty, "nothing written");
+        }
+
+        /// <summary>A store in a state a start applies to, under the key One.</summary>
+        private static MemoryStore StartingStore(string state)
+        {
+            var store = new MemoryStore();
+            switch (state)
+            {
+                case "whole":
+                    store.Put(StoreRecords.Authority(One, 'a'));
+                    store.Put(Head(One, 1, string.Empty));
+                    break;
+                case "stopped":
+                    store.Put(StoreRecords.Authority(One, 'a'));
+                    store.Put(Head(One, 1, string.Empty));
+                    store.Delete(StoreComposer.IdentifierOf(One, "head", "store", 9, new string('5', 64)));
+                    break;
+                case "no room":
+                    return Holding(StoreFormat.MaxItems);
+                case "split":
+                    store.Put(StoreRecords.Authority(One, 'a'));
+                    store.Put(Head(One, 1, string.Empty));
+                    store.Put(StoreRecords.Authority(Two, 'b'));
+                    break;
+                case "outdated":
+                    store.Put(StoreRecords.Authority(One, 'a'));
+                    store.Put(Format(One, StoreFormat.Number + 1));
+                    store.Put(Head(One, 1, string.Empty, FormatItem(StoreFormat.Number + 1)));
+                    break;
+            }
+
+            return store;
+        }
+
+        private static IEnumerable<string> Split(string after)
+        {
+            return string.IsNullOrEmpty(after) ? Enumerable.Empty<string>() : after.Split(' ');
         }
 
         /// <summary>A store stopped by a summary entry deleted that nothing replaces, its authority standing.</summary>

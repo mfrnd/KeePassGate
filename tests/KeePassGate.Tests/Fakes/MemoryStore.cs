@@ -66,6 +66,9 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>Every act handed to a write, whatever came of it, in order.</summary>
         public List<StoreAct> Offered { get; } = new List<StoreAct>();
 
+        /// <summary>The plan of the last write taken, or null before a write is taken.</summary>
+        public StoreWrite LastPlan { get; private set; }
+
         /// <summary>The entries the store holds, each its identifier and its versions.</summary>
         public IReadOnlyList<StoreCandidate> Candidates
         {
@@ -243,6 +246,7 @@ namespace KeePassGate.Tests.Fakes
             }
 
             Written.Add(acts);
+            LastPlan = plan;
             Writes++;
             var applied = plan.Applied(_candidates, _deletions);
             _candidates = applied.Key.ToList();
