@@ -56,6 +56,12 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>The message after an OK on a group dialog that left a change of the tab out.</summary>
         public const string RuleNotKept = "rule-not-kept";
 
+        /// <summary>The Certificate Authority page over a stopped store, offering Seal store again.</summary>
+        public const string StoreStopped = "store-stopped";
+
+        /// <summary>The dialog Seal store again opens: what the deletion records show as deleted, and what sealing makes of it.</summary>
+        public const string SealAgain = "seal-again";
+
         /// <summary>
         /// The clients page with two clients whose renewals stand refused, and the row menu of one
         /// of them open on the answer and Allow renewal.
@@ -114,6 +120,8 @@ namespace KeePassGate.Host.Tests.Live
             RuleLimit,
             RuleBoxMixed,
             RuleNotKept,
+            StoreStopped,
+            SealAgain,
             ClientsStandingAnswers,
             RenewalApproval,
             AuthorityChooser,

@@ -3447,21 +3447,20 @@ stores of rules, which is the tree their answer names and which the measured rea
 beside; and the certificates taken away, which neither the model nor `probe/read.py` holds, by
 `StoreLossesTests` alone; and by `StoreInForceTests` and `StoreReadingStatesTests`.
 
-**What was run.** The press left the store as decided wherever it was run after a summary entry
-was deleted or deduplicated (`measured-store-as-a-whole` 3.4, 3.6). With a record for each
-node and profile, the press wrote an empty rule for the row whose version was lost and for no
-other row, and the switch refusing for a lost version of the switch
-(`measured-rules-per-profile` 8). Nothing of it was run as a page (§644). Pressed after a loss
-that left no trace, it ends wider (§639). **Run before it was built**
-(`papers/ground/measured-seal.md` on `spikes/storage-survival`), in the model and on real files,
-as the design below has it: after a stop by each kind of entry edited past the history limit or
-with no history kept, the seal applied wherever the key was held and left the store whole, what
-the damaged entry held standing where a summary entry carried its text and refusing where none
-did; R1 to R21 and R3s, each kind of loss, the seal beside an act in a single write and the seal
-composed after a merge under its dialog, merged by every method both ways, with no file beyond
-its own ideal outside the classes §639 accepts; and random and exhaustive histories of the seal's
-acts, in which no seal left its store stopped and no object that refused for a lost version
-granted after it.
+**What was run.** The press left the store as decided wherever it was run after a summary entry was
+deleted or deduplicated (`measured-store-as-a-whole` 3.4, 3.6). With a record for each node and
+profile, the press wrote an empty rule for the row whose version was lost and for no other row, and
+the switch refusing for a lost version of the switch (`measured-rules-per-profile` 8). As a page in
+a real KeePass it is run by the end to end tier's `LiveSealTests` (§644 item 13). Pressed after a
+loss that left no trace, it ends wider (§639). **Run before it was built**
+(`papers/ground/measured-seal.md` on `spikes/storage-survival`), in the model and on real files, as
+the design below has it: after a stop by each kind of entry edited past the history limit or with no
+history kept, the seal applied wherever the key was held and left the store whole, what the damaged
+entry held standing where a summary entry carried its text and refusing where none did; R1 to R21
+and R3s, each kind of loss, the seal beside an act in a single write and the seal composed after a
+merge under its dialog, merged by every method both ways, with no file beyond its own ideal outside
+the classes §639 accepts; and random and exhaustive histories of the seal's acts, in which no seal
+left its store stopped and no object that refused for a lost version granted after it.
 
 **Where it does not apply.** Where the file holds no store key there is no stop to lift (§632).
 It lifts neither several store keys (§649) nor a plugin that is held back (§652). Sealing is a
@@ -6745,8 +6744,9 @@ that finds a measurement against a decision reports it and does not design aroun
     10,000.
 13. **The page that seals the store again**: what it shows after each kind of loss. What it can
     show, the listing of §625, is held to what `probe/read.py` listed for each kind of loss
-    (`StoreLossesTests`). Built as the dialog Seal store again opens (§625), which lists every
-    item of the listing; a press in a real KeePass stays owed by the end to end tier.
+    (`StoreLossesTests`). Built as the dialog Seal store again opens (§625), which has a row for
+    each loss of the listing and none for a record no summary entry restates or for a condition;
+    the press in a real KeePass is the end to end tier's, `LiveSealTests`.
 14. **Which of KeePass's windows takes back or takes away an entry of the plugin's group** while
     the plugin writes (§626). This item is this document's own, read from `DESIGN.md` §124 and
     from no report. Run by the pull request that keeps the authority in the store, in the host

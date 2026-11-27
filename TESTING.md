@@ -576,6 +576,14 @@ after that save and stays disabled, and is enabled again once the chooser is can
 and unit tiers make KeePass's two assignments themselves, under the chooser and under the approval
 dialogs; this is what notices a KeePass whose trigger or unblock behaves differently.
 
+**A stopped store sealed again**, in `LiveSealTests`: a seeded store loses its summary entry and the
+version of the root's rule, each deleted for good with a deletion record before KeePass opens the
+file, and a client is answered `503 stopped`. Seal store again on the KPG tab raises the seal's
+dialog with the lost rule and the summary entry deleted as its rows, Seal again there holds the
+seal, the client is still refused while the settings dialog stands, and its OK writes the seal: the
+client is served from the next request, KeePass's title carries the mark of a change, and after a
+save the file holds the version granting nothing and a store that serves its authority.
+
 The client half of pairing lives in `tests/Shared/PairingClient.cs` and is compiled into **both**
 test assemblies. That is deliberate: if the loopback tests and the end to end test each had their
 own client, either could pass against a protocol only it knew.

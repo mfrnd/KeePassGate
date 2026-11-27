@@ -91,6 +91,9 @@ namespace KeePassGate.Host.Tests.Live
         /// <summary>The copy of the database the pictures of rules made apart are taken over, put back after them.</summary>
         private const string BeforeTheCopies = "before-the-copies.kdbx";
 
+        /// <summary>The copy of the database the pictures of a stopped store are taken over, put back after them.</summary>
+        private const string BeforeTheStop = "before-the-stop.kdbx";
+
         /// <summary>A copy of the database changed apart from it and merged back in before KeePass starts.</summary>
         private const string ApartCopy = "apart-one.kdbx";
 
@@ -339,6 +342,8 @@ namespace KeePassGate.Host.Tests.Live
 
             ShowRulesMadeApart();
 
+            ShowAStoppedStore();
+
             ShowStandingAnswers();
 
             AskToRenew();
@@ -513,6 +518,73 @@ namespace KeePassGate.Host.Tests.Live
         private static string Row(string profile, string mask, string state)
         {
             return profile + " | " + mask + " | " + state;
+        }
+
+        /// <summary>
+        /// The Certificate Authority page over a stopped store, offering Seal store again, and the
+        /// dialog its press opens: screenshotted, and both canceled.
+        /// </summary>
+        /// <remarks>
+        /// **A KeePass of its own, over a database put back afterwards**, as the pictures of rules
+        /// made apart are: every picture after these is of the store whole.
+        ///
+        /// **Stopped in the file before KeePass starts**, as `LiveSealTests` stops it, for the
+        /// reason the rules made apart are merged there: nothing written underneath a running
+        /// KeePass is seen. The summary entry and every version of a rule are deleted, each with a
+        /// deletion record, as KeePass's own delete and an emptied recycle bin leave them, so the
+        /// page states that no summary entry is in force and the dialog lists the summary entry
+        /// deleted last beside the rules it lost.
+        ///
+        /// **Canceled rather than sealed**, because the pictures are of the question, and the
+        /// database is put back either way.
+        /// </remarks>
+        private void ShowAStoppedStore()
+        {
+            var keePass = _session.KeePass;
+            var before = keePass.CopyDatabase(BeforeTheStop);
+            keePass.ChangeTheStore(database =>
+            {
+                var kind = KeePassGate.Store.StoreFormat.KindField;
+                var deleted = database.RootGroup.GetEntries(true)
+                    .Where(found => found.Strings.ReadSafe(kind) == KeePassGate.Store.StoreKinds.Head
+                                    || found.Strings.ReadSafe(kind) == KeePassGate.Store.StoreKinds.Version)
+                    .ToList();
+                Assert.That(deleted.Count(found => found.Strings.ReadSafe(kind) == KeePassGate.Store.StoreKinds.Head), Is.EqualTo(1),
+                    "a whole store holds a single summary entry");
+                foreach (var entry in deleted)
+                {
+                    entry.ParentGroup.Entries.Remove(entry);
+                    database.DeletedObjects.Add(new KeePassLib.PwDeletedObject(entry.Uuid, DateTime.UtcNow));
+                }
+            });
+
+            var log = keePass.ReadPluginLog();
+            var driver = KeePassDriver.Start(keePass);
+            WaitUntilServing(driver, Occurrences(log, ListeningLine), Occurrences(log, ServingLine));
+
+            var settings = driver.OpenDatabaseSettings();
+            Assert.That(settings, Is.Not.Null, "The database settings dialog never opened. " + driver.Diagnostics);
+            driver.SelectGateTab(settings);
+            Assert.That(driver.SelectPage(settings, GateTab.AuthorityPageText), Is.Not.Null, driver.Diagnostics);
+            Assert.That(
+                driver.TextMatching(settings, System.Text.RegularExpressions.Regex.Escape(AuthorityDescription.SealLine)),
+                Is.Not.Null,
+                "the page offers no seal. " + driver.Diagnostics);
+
+            Shoot(settings, DocumentationImages.StoreStopped);
+
+            Assert.That(LiveSealTests.Press(settings, GateTab.SealButtonText), Is.True, driver.Diagnostics);
+            var sealDialog = driver.WaitForWindowById(GateTab.SealFormName, DialogTimeout);
+            Assert.That(sealDialog, Is.Not.Null, "No dialog appeared after Seal store again. " + driver.Diagnostics);
+
+            Shoot(sealDialog, DocumentationImages.SealAgain);
+
+            Assert.That(driver.PressButton(sealDialog, GateTab.SealCancelButtonText), Is.True, driver.Diagnostics);
+            Assert.That(driver.WaitForWindowToClose(GateTab.SealFormName, DialogTimeout), Is.True,
+                "The seal's dialog was still open after Cancel. " + driver.Diagnostics);
+            driver.CloseDialog(settings);
+            Assert.That(driver.ShutDown(), Is.True, "KeePass did not exit cleanly after the pictures of a stopped store");
+            keePass.RestoreDatabase(before);
         }
 
         /// <summary>
