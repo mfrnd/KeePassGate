@@ -6952,8 +6952,9 @@ that finds a measurement against a decision reports it and does not design aroun
     a split and an outdated store, kept by a save, and the new key lost and sealed back
     (`StartAgainInRealDatabaseTests`); T4 to T7 over two real databases by each of KeePass's five
     methods both ways (`StoreStartAgainMergeTests`); and the handshake of a client of the earlier
-    authority refused for want of a target (`OpenDatabaseTargetsTests`). Owed: a second gate that
-    still serves the earlier store over a socket, and the press in KeePass's window.
+    authority refused for want of a target (`OpenDatabaseTargetsTests`). The press in a real
+    KeePass over an outdated store is the end to end tier's, `LiveStartAgainTests`. Owed: a second
+    gate that still serves the earlier store over a socket.
 22. **The words of §656**, of which nothing was run: each state answered with its word, to a
     request before a route is chosen and to a `head`; `frozen` to a write and to no read; and
     whether `lost` and `outdated` can be sent at all (S33). The pull request that builds the

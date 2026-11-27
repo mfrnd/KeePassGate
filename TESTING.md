@@ -607,6 +607,14 @@ seal, the client is still refused while the settings dialog stands, and its OK w
 client is served from the next request, KeePass's title carries the mark of a change, and after a
 save the file holds the version granting nothing and a store that serves its authority.
 
+**A store started again**, in `LiveStartAgainTests`: a seeded store holds a version record of a
+later format, put in before KeePass opens the file, and a client is answered `503 outdated`. Start
+store again on the KPG tab raises its warning, Yes there holds the start, the page reads the new
+store while the client is still refused, and the settings dialog's OK writes it, waited for by the
+tab's own line: the client of the earlier store is refused at the handshake, an invitation made on
+the new store pairs a client that is served, KeePass's title carries the mark of a change, and
+after a save the file serves the new authority.
+
 The client half of pairing lives in `tests/Shared/PairingClient.cs` and is compiled into **both**
 test assemblies. That is deliberate: if the loopback tests and the end to end test each had their
 own client, either could pass against a protocol only it knew.
