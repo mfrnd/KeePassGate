@@ -1,0 +1,77 @@
+== the store as decided with the answers and the store started again: the design's search, its twelve configurations over 3 files, 20000 histories each, its seeds; restart and a plugin of a later format in the alphabet, a keep record and the first authority among what a person deletes and edits; no deletion or edit by hand of an authority's entry or of a retirement, the entries that carry a store key
+A merges only (every program)                                      3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x4, accepted:unsaved-answer-lost x40, accepted:unsaved-rule-lost x28, convergence-to-ideal (not wider) x1307
+    shortest accepted:copy-wider: rule 2 N none ; merge kp_sync 2 0 ; copy 2
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until2 ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 0 root none ; quit 0
+    convergence-to-ideal (not wider), about something else, a store raised to a later format, outdated until started again (STORE.md 651, 632): 1277 histories, 3 distinct once shrunk
+        #3, shrunk to 1 steps: newer 2   (('outdated', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ('pf',)) vs ('ok', 'a0', (('c0', ('pf',)),), (('N', 'r'), ('root', 'r')), (('c0', 'ask'),), ('pf',)))
+        #11, shrunk to 1 steps: newer 0   (('outdated', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ('pf',)) vs ('ok', 'a0', (('c0', ('pf',)),), (('N', 'r'), ('root', 'r')), (('c0', 'ask'),), ('pf',)))
+        #202, shrunk to 1 steps: newer 1   (('outdated', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ('pf',)) vs ('ok', 'a0', (('c0', ('pf',)),), (('N', 'r'), ('root', 'r')), (('c0', 'ask'),), ('pf',)))
+    convergence-to-ideal (not wider), about something else, a store started again beside another key that stands, so the copies are split and serve nothing until the store is started again or kept (STORE.md 649): 30 histories, 5 distinct once shrunk, the three shortest
+        #459, shrunk to 2 steps: restart 2 ; restart 0   (('split', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ()) vs ('ok', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ()))
+        #2051, shrunk to 2 steps: restart 1 ; restart 2   (('split', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ()) vs ('ok', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ()))
+        #4124, shrunk to 2 steps: restart 1 ; restart 0   (('split', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ()) vs ('ok', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ()))
+B + deletions by hand with a deletion record                       3 files  20000 histories; oracle a lift's lost counted as seen: accepted:unsaved-answer-lost x34, accepted:unsaved-rule-lost x31
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until1 ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 2 root inherit ; quit 2
+C + deletions that leave no record                                 3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x2, accepted:unsaved-answer-lost x34, accepted:unsaved-rule-lost x33, safety x1
+    shortest accepted:copy-wider: rule 0 N none ; merge kp_other 0 2 ; merge kp_sync 2 0 ; copy 2
+    shortest accepted:unsaved-answer-lost: renew 0 c0 until1 ; quit 0
+    shortest accepted:unsaved-rule-lost: rule 2 N none ; quit 2
+    safety, about something else, a decision and its summary entry deleted, and a merge that carries no deletion record (STORE.md 639 rows 2 and 3): 1 histories, 1 distinct once shrunk
+        #18770, shrunk to 4 steps: revoke 1 c0 ; del 1 ('head', 'old') 1 ; del 1 ('ref', 'revoked') 1 ; merge kp_other 0 1   (file 0: client c0 admitted)
+D + records dated before the entry (a clock behind)                3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x3, accepted:unsaved-answer-lost x30, accepted:unsaved-rule-lost x39, info:renewal-at-a-clock-ahead x2, safety x1
+    shortest accepted:copy-wider: rule 0 N none ; merge kp_sync 0 1 ; copy 0
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until1 ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 0 root inherit ; quit 0
+    shortest info:renewal-at-a-clock-ahead: del 1 ('ref', 'revoked') 2 ; renew 2 c0 until1 ; clock 2 2 ; del 2 ('ver', 'rule:N', 'old') 1 ; reseal+ 1 ('create', 1) ; renewcert 2 c0
+    safety, about something else, a decision and its summary entry deleted, and a merge that carries no deletion record (STORE.md 639 rows 2 and 3): 1 histories, 1 distinct once shrunk
+        #18300, shrunk to 4 steps: revoke 1 c0 ; del 1 ('head', 'new') 2 ; del 1 ('ref', 'revoked') 1 ; merge xc 2 1   (file 2: client c0 admitted)
+E + deletion records cleared                                       3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x1, accepted:unsaved-answer-lost x31, accepted:unsaved-rule-lost x40
+    shortest accepted:copy-wider: rule 0 N none ; merge kp_other 0 2 ; copy 0
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until2 ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 2 root none ; quit 2
+F + foreign: edits, import with new identifiers, planted entries   3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x2, accepted:unsaved-answer-lost x27, accepted:unsaved-rule-lost x39, info:renewal-at-a-clock-ahead x1, info:seal-damaged-version-refuses x2, info:unsaved-lift-lost x1
+    shortest accepted:copy-wider: rule 1 N none ; merge kp_sync 1 2 ; copy 1
+    shortest accepted:unsaved-answer-lost: renew 0 c0 until2 ; quit 0
+    shortest accepted:unsaved-rule-lost: rule 2 root inherit ; quit 2
+    shortest info:renewal-at-a-clock-ahead: adopt 1 0 r ; merge k2a 2 0 ; edit 0 ('padd',) ; edit 2 ('ver', 'rule:N', 'new') ; renew 1 c0 until2 ; prem 2 pf ; clock 1 2 ; rule 1 N none ; renewcert 1 c0
+    shortest info:seal-damaged-version-refuses: merge xc 1 0 ; renew 0 c0 forever ; edit 1 ('head', 'old') ; edit 1 ('ver', 'rule:root', 'new') ; merge kp_sync 1 0 ; rule 1 root r ; reseal+ 1 ('create', 1) ; rule 2 root inherit
+    shortest info:unsaved-lift-lost: renewcert 2 c0 ; renew 1 c1 until1 ; unreadable 2 c0 ; merge kp_other 0 1 ; renew 1 c0 ask ; renew 2 c0 ask ; quit 2
+G + a copy stripped of its reference                               3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x3, accepted:unsaved-answer-lost x28, accepted:unsaved-rule-lost x33, info:renewal-at-a-clock-ahead x1
+    shortest accepted:copy-wider: rule 2 N none ; prem 2 pf ; copy 2
+    shortest accepted:unsaved-answer-lost: renew 1 c0 forever ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 2 root none ; quit 2
+    shortest info:renewal-at-a-clock-ahead: renew 2 c0 until2 ; del 0 ('ver', 'renew:c0', 'new') 1 ; clock 2 2 ; merge kp_other 1 0 ; renewcert 2 c0
+H + a whole file written over another                              3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x1, accepted:unsaved-answer-lost x31, accepted:unsaved-rule-lost x45, info:renewal-at-a-clock-ahead x1, rollback-by-overwrite x124
+    shortest accepted:copy-wider: rule 1 N none ; merge kp_other 1 2 ; copy 1
+    shortest accepted:unsaved-answer-lost: renew 1 c0 forever ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 1 root inherit ; quit 1
+    shortest info:renewal-at-a-clock-ahead: renew 0 c0 until1 ; merge kp_other 1 2 ; clock 0 1 ; merge k2a 0 1 ; copy 0 ; restart 2 ; renewcert 0 c0
+    rollback-by-overwrite, about something else, a whole file written over another (STORE.md 639 row 1): 124 histories, 47 distinct once shrunk, the three shortest
+        #193, shrunk to 2 steps: revoke 0 c0 ; over 0 1   (file 0)
+        #388, shrunk to 2 steps: restart 2 ; over 2 1   (file 2)
+        #724, shrunk to 2 steps: revoke 2 c0 ; over 2 1   (file 2)
+I everything at once                                               3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x4, accepted:unsaved-answer-lost x38, accepted:unsaved-rule-lost x38, info:renewal-at-a-clock-ahead x1, rollback-by-overwrite x38
+    shortest accepted:copy-wider: rule 2 N none ; prem 2 pf ; copy 2
+    shortest accepted:unsaved-answer-lost: renew 0 c0 until2 ; quit 0
+    shortest accepted:unsaved-rule-lost: rule 2 root inherit ; quit 2
+    shortest info:renewal-at-a-clock-ahead: renew 0 c0 until1 ; padd 0 pf ; rule 2 N rw ; renew 1 c1 forever ; edit 1 ('ver', 'renew:c1', 'new') ; clock 0 1 ; merge dx 2 0 ; renewcert 0 c0
+    rollback-by-overwrite, about something else, a whole file written over another (STORE.md 639 row 1): 38 histories, 29 distinct once shrunk, the three shortest
+        #108, shrunk to 2 steps: revoke 1 c0 ; over 1 2   (file 1)
+        #204, shrunk to 2 steps: prem 1 pf ; over 1 0   (file 1)
+        #1621, shrunk to 2 steps: prem 0 pf ; over 0 2   (file 0)
+J only KeePass Synchronize and Keepass2Android; deletions with a record 3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x3, accepted:unsaved-answer-lost x39, accepted:unsaved-rule-lost x33
+    shortest accepted:copy-wider: rule 2 N none ; padd 2 pg ; copy 2
+    shortest accepted:unsaved-answer-lost: renew 0 c0 until1 ; quit 0
+    shortest accepted:unsaved-rule-lost: rule 0 root none ; quit 0
+J2 the same; every kind of deletion                                3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x6, accepted:unsaved-answer-lost x38, accepted:unsaved-rule-lost x29, info:renewal-at-a-clock-ahead x1
+    shortest accepted:copy-wider: rule 2 N none ; merge kp_sync 2 0 ; copy 2
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until1 ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 0 N none ; quit 0
+    shortest info:renewal-at-a-clock-ahead: renew 1 c0 until1 ; del 2 ('ver', 'rule:N', 'new') 0 ; clock 1 1 ; renew 1 c1 until1 ; del 2 ('ver', 'rule:N', 'new') 1 ; renewcert 1 c0 ; renew 0 c0 until2 ; merge k2a 2 0 ; merge k2a 1 2
+K the same, and foreign edits, imports and planted entries         3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x1, accepted:unsaved-answer-lost x37, accepted:unsaved-rule-lost x38
+    shortest accepted:copy-wider: rule 1 N none ; recreate 1 ; copy 1
+    shortest accepted:unsaved-answer-lost: renew 2 c0 forever ; quit 2
+    shortest accepted:unsaved-rule-lost: rule 0 root inherit ; quit 0
+== 326 s

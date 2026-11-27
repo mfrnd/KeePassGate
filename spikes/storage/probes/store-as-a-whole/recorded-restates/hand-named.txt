@@ -1,0 +1,320 @@
+== R1 to R21 in the model, two copies, every merge both ways. Each sequence: copy 0 before the seal and
+   after it, the versions the seal wrote, then each merge of copy 0 into copy 1 and back, the merged copy
+   beside its own ideal, every decision any gate made (the oracle) and both copies just before.
+## R1: the only summary entry in force deleted with a deletion record: no summary entry in force; Seal again restates every record present
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; del 0 (head new) 1 ; sealsee 0 ; reseal 0
+   copy 0 before the seal: incomplete, lost nothing
+   copy 0 after the seal: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; the seal wrote: no version; own ideal: within
+   Synchronize                                  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Synchronize                                  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+## R2: a summary entry made apart in each copy and synchronized; at copy 0 one of the two deleted with a deletion record: a summary entry deleted that nothing in force replaces
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; padd 1 ph ; padd 0 pi ; merge kp_sync 0 1 ; del 0 (head old) 1 ; sealsee 0 ; reseal 0
+   copy 0 before the seal: incomplete, lost nothing
+   copy 0 after the seal: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg ph pi; the seal wrote: no version; own ideal: within
+   Synchronize                                  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg ph pi; then pair applies
+   Synchronize                                  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg ph pi; then pair applies
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg ph pi; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg ph pi; then pair applies
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg ph pi; then pair applies
+   KeePassXC                                    into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg ph pi; then pair applies
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg ph; then pair applies
+   Create new IDs                               into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg ph pi; then pair applies
+## R3: the newest version of N's rule deleted with a deletion record and the summary entry with one: a lost version; Seal again writes a version granting nothing
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; rule 0 N r ; del 0 (ver rule:N new) 1 ; del 0 (head new) 1 ; sealsee 0 ; reseal 0
+   copy 0 before the seal: incomplete, lost rule:N
+   copy 0 after the seal: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; the seal wrote: rule:N refuses after 0 lost 2; own ideal: within
+   Synchronize                                  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Synchronize                                  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+## R4: c1's refusal deleted with a deletion record and the summary entry with one: a lost answer; Seal again writes refuse:forever naming it in lost
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; del 0 (ver renew:c1 new) 1 ; del 0 (head new) 1 ; sealsee 0 ; reseal 0
+   copy 0 before the seal: incomplete, lost renew:c1
+   copy 0 after the seal: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; the seal wrote: renew:c1 refuse:forever after 0 lost 1; own ideal: within
+   Synchronize                                  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then renewcert does not apply
+   Synchronize                                  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then renewcert does not apply
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then renewcert does not apply
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then renewcert does not apply
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then renewcert does not apply
+   KeePassXC                                    into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then renewcert does not apply
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then renewcert does not apply
+   Create new IDs                               into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then renewcert does not apply
+## R5: the revocation of c0 deleted with a deletion record and the summary entry with one: known by the deletion record alone, restated by the seal
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; del 0 (ref revoked) 1 ; del 0 (head new) 1 ; sealsee 0 ; reseal 0
+   copy 0 before the seal: incomplete, lost nothing
+   copy 0 after the seal: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; the seal wrote: no version; own ideal: within
+   Synchronize                                  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Synchronize                                  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+## R6: the retirement deleted with a deletion record and the summary entry with one
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; del 0 (ref retired) 1 ; del 0 (head new) 1 ; sealsee 0 ; reseal 0
+   copy 0 before the seal: incomplete, lost nothing
+   copy 0 after the seal: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; the seal wrote: no version; own ideal: within
+   Synchronize                                  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Synchronize                                  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+## R7: the removal of pf deleted with a deletion record and the summary entry with one
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; del 0 (prem) 1 ; del 0 (head new) 1 ; sealsee 0 ; reseal 0
+   copy 0 before the seal: incomplete, lost nothing
+   copy 0 after the seal: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; the seal wrote: no version; own ideal: within
+   Synchronize                                  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Synchronize                                  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+## R8: the revocation of c0 edited at copy 0: damage; Seal again deletes it with a deletion record
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; edit 0 (ref revoked) ; sealsee 0 ; reseal 0
+   copy 0 before the seal: incomplete, lost nothing
+   copy 0 after the seal: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; the seal wrote: no version; own ideal: within
+   Synchronize                                  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Synchronize                                  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+## R9: the admission of c1 edited: damage; Seal again deletes it, and c1 is refused
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; edit 0 (rec) ; sealsee 0 ; reseal 0
+   copy 0 before the seal: incomplete, lost nothing
+   copy 0 after the seal: served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; the seal wrote: no version; own ideal: within
+   Synchronize                                  into 1: served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Synchronize                                  into 0: served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 0: served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 0: served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+## R10: the newest version of N's rule edited: damage whose text the summary entry carries
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; rule 0 N r ; edit 0 (ver rule:N new) ; sealsee 0 ; reseal 0
+   copy 0 before the seal: incomplete, lost nothing
+   copy 0 after the seal: served a7, admitted c1:pg, N r, root r, renewals c0:ask c1:forever, names pg; the seal wrote: no version; own ideal: within
+   Synchronize                                  into 1: served a7, admitted c1:pg, N r, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Synchronize                                  into 0: served a7, admitted c1:pg, N r, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N r, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted c1:pg, N r, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N r, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 0: served a7, admitted c1:pg, N r, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 0: served a7, admitted c1:pg, N r, root r, renewals c0:ask c1:forever, names pg; then pair applies
+## R11: the summary entry edited: damage; Seal again deletes it and names it
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; edit 0 (head new) ; sealsee 0 ; reseal 0
+   copy 0 before the seal: incomplete, lost nothing
+   copy 0 after the seal: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; the seal wrote: no version; own ideal: within
+   Synchronize                                  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Synchronize                                  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+## R12: the newest version of N's rule and the summary entry both edited: a damaged version whose text no summary entry holds, which refuses after the seal by its own deletion record
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; rule 0 N r ; edit 0 (ver rule:N new) ; edit 0 (head new) ; sealsee 0 ; reseal 0
+   copy 0 before the seal: incomplete, lost rule:N
+   copy 0 after the seal: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; the seal wrote: rule:N refuses after 0 lost 1; own ideal: within
+   Synchronize                                  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Synchronize                                  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+## R13: a revocation at copy 1 whose summary entry copy 1 deletes with no deletion record, merged into copy 0 by KeePassXC: a record no summary entry restates
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; pair 0 ; merge kp_sync 1 0 ; revoke 1 c2 ; del 1 (head new) 0 ; merge xc 0 1 2.8.0 ; sealsee 0 ; reseal 0
+   copy 0 before the seal: incomplete, lost nothing
+   copy 0 after the seal: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; the seal wrote: no version; own ideal: within
+   Synchronize                                  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair does not apply
+   Synchronize                                  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair does not apply
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair does not apply
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair does not apply
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair does not apply
+   KeePassXC                                    into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair does not apply
+   Create new IDs                               into 1: store incomplete; then pair does not apply
+   Create new IDs                               into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair does not apply
+## R14: two at once: a lost version and the revocation of c0 edited
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; rule 0 N r ; del 0 (ver rule:N new) 1 ; del 0 (head new) 1 ; edit 0 (ref revoked) ; sealsee 0 ; reseal 0
+   copy 0 before the seal: incomplete, lost rule:N
+   copy 0 after the seal: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; the seal wrote: rule:N refuses after 0 lost 2; own ideal: within
+   Synchronize                                  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Synchronize                                  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+## R15: the authority deleted, none after it, and the summary entry deleted with a deletion record: stopped with the key held in the retirement and no authority standing; Create refused; Seal again; then Create under the key held, and a pairing
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; delauth 0 ; del 0 (head new) 1 ; create 0 (does not apply) ; sealsee 0 ; reseal 0 ; create 0 ; pair 0
+   copy 0 before the seal: incomplete, lost nothing
+   copy 0 after the seal: served a21, admitted c2:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; the seal wrote: no version; own ideal: within
+   Synchronize                                  into 1: served a21, admitted c2:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair does not apply
+   Synchronize                                  into 0: served a21, admitted c2:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair does not apply
+   Overwrite if newer, existing, keep existing  into 1: served a21, admitted c2:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair does not apply
+   Overwrite if newer, existing, keep existing  into 0: served a21, admitted c2:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair does not apply
+   KeePassXC                                    into 1: served a21, admitted c2:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair does not apply
+   KeePassXC                                    into 0: served a21, admitted c2:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair does not apply
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair does not apply; an import into a copy that stays stale (STORE.md 640): client c1 admitted
+   Create new IDs                               into 0: served a21, admitted c2:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair does not apply
+## R16: a lost version, then Seal again and a revocation of c1 in a single write
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; rule 0 N r ; del 0 (ver rule:N new) 1 ; del 0 (head new) 1 ; sealsee 0 ; reseal+ 0 (revoke 0 c1)
+   copy 0 before the seal: incomplete, lost rule:N
+   copy 0 after the seal: served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; the seal wrote: rule:N refuses after 0 lost 2; own ideal: within
+   Synchronize                                  into 1: served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Synchronize                                  into 0: served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 1: served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 0: served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies; an import into a copy that stays stale (STORE.md 640): client c1 admitted
+   Create new IDs                               into 0: served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+## R17: stopped with no authority standing, then Seal again and Create in a single write
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; delauth 0 ; del 0 (head new) 1 ; sealsee 0 ; reseal+ 0 (create 0)
+   copy 0 before the seal: incomplete, lost nothing
+   copy 0 after the seal: served a21, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; the seal wrote: no version; own ideal: within
+   Synchronize                                  into 1: served a21, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Synchronize                                  into 0: served a21, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 1: served a21, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a21, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 1: served a21, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 0: served a21, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies; an import into a copy that stays stale (STORE.md 640): client c1 admitted
+   Create new IDs                               into 0: served a21, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+## R18: a lost version, then Seal again and N's rule set again in a single write
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; rule 0 N r ; del 0 (ver rule:N new) 1 ; del 0 (head new) 1 ; sealsee 0 ; reseal+ 0 (rule 0 N rw)
+   copy 0 before the seal: incomplete, lost rule:N
+   copy 0 after the seal: served a7, admitted c1:pg, N rw, root r, renewals c0:ask c1:forever, names pg; the seal wrote: no version; own ideal: within
+   Synchronize                                  into 1: served a7, admitted c1:pg, N rw, root r, renewals c0:ask c1:forever, names pg; then pair applies; beyond its own ideal by after alone: node N grants rw
+   Synchronize                                  into 0: served a7, admitted c1:pg, N rw, root r, renewals c0:ask c1:forever, names pg; then pair applies; beyond its own ideal by after alone: node N grants rw
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted c1:pg, N rw, root r, renewals c0:ask c1:forever, names pg; then pair applies; beyond its own ideal by after alone: node N grants rw
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 0: served a7, admitted c1:pg, N rw, root r, renewals c0:ask c1:forever, names pg; then pair applies; beyond its own ideal by after alone: node N grants rw
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 0: served a7, admitted c1:pg, N rw, root r, renewals c0:ask c1:forever, names pg; then pair applies; beyond its own ideal by after alone: node N grants rw
+## R19: the seal's dialog shows a lost version at copy 0; a KeePassXC merge from copy 1 brings a summary entry that restates it and names the one deleted while the dialog stands, beside damage that keeps the store stopped; the seal is composed at the write and writes nothing for the version
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; rule 0 N r ; merge kp_sync 1 0 ; padd 1 ph ; del 0 (ver rule:N new) 1 ; del 0 (head new) 1 ; edit 0 (rec) ; sealsee 0 ; merge xc 0 1 2.8.0 ; reseal 0
+   copy 0 before the seal: incomplete, lost nothing
+   copy 0 after the seal: served a7, admitted none, N r, root r, renewals c0:ask c1:forever, names pg ph; the seal wrote: no version; own ideal: within
+   Synchronize                                  into 1: served a7, admitted none, N r, root r, renewals c0:ask c1:forever, names pg ph; then pair applies
+   Synchronize                                  into 0: served a7, admitted none, N r, root r, renewals c0:ask c1:forever, names pg ph; then pair applies
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N r, root r, renewals c0:ask c1:forever, names pg ph; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted none, N r, root r, renewals c0:ask c1:forever, names pg ph; then pair applies
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N r, root r, renewals c0:ask c1:forever, names pg ph; then pair applies
+   KeePassXC                                    into 0: served a7, admitted none, N r, root r, renewals c0:ask c1:forever, names pg ph; then pair applies
+   Create new IDs                               into 1: served a7, admitted c1:pg, N r, root r, renewals c0:ask c1:forever, names pg ph; then pair applies
+   Create new IDs                               into 0: served a7, admitted none, N r, root r, renewals c0:ask c1:forever, names pg ph; then pair applies
+## R20: the seal's dialog shows the summary entry deleted at copy 0; a Synchronize from copy 1 brings a deletion record of a version whose content no file holds while the dialog stands; the seal is composed at the write and settles it
+   revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; del 0 (head new) 1 ; lose 1 rule:N ; sealsee 0 ; merge kp_sync 0 1 ; reseal 0
+   copy 0 before the seal: incomplete, lost rule:N
+   copy 0 after the seal: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; the seal wrote: rule:N refuses after 1 lost 1; own ideal: within
+   Synchronize                                  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Synchronize                                  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Overwrite if newer, existing, keep existing  into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   KeePassXC                                    into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 1: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+   Create new IDs                               into 0: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; then pair applies
+## R21: the accepted class of STORE.md 639 row 5: c0 revoked at copy 0, the revocation and the summary entry deleted with no deletion record, Seal again, then KeePassXC into the stale copy 1, which never held the revocation
+   revoke 0 c0 ; del 0 (ref revoked) 0 ; del 0 (head new) 0 ; sealsee 0 ; reseal 0
+   copy 0 before the seal: incomplete, lost nothing
+   copy 0 after the seal: served a0, admitted none, N r, root r, renewals c0:ask, names pf; the seal wrote: no version; own ideal: within
+   Synchronize                                  into 1: served a0, admitted none, N r, root r, renewals c0:ask, names pf; then renewcert does not apply
+   Synchronize                                  into 0: served a0, admitted none, N r, root r, renewals c0:ask, names pf; then renewcert does not apply
+   Overwrite if newer, existing, keep existing  into 1: served a0, admitted c0:pf, N r, root r, renewals c0:ask, names pf; then renewcert applies; accepted beyond its own ideal: client c0 admitted; accepted beyond every decision: client c0 admitted
+   Overwrite if newer, existing, keep existing  into 0: served a0, admitted none, N r, root r, renewals c0:ask, names pf; then renewcert does not apply
+   KeePassXC                                    into 1: served a0, admitted c0:pf, N r, root r, renewals c0:ask, names pf; then renewcert applies; accepted beyond its own ideal: client c0 admitted; accepted beyond every decision: client c0 admitted
+   KeePassXC                                    into 0: served a0, admitted none, N r, root r, renewals c0:ask, names pf; then renewcert does not apply
+   Create new IDs                               into 1: served a0, admitted c0:pf, N r, root r, renewals c0:ask, names pf; then renewcert applies; an import into a copy that stays stale (STORE.md 640): client c0 admitted
+   Create new IDs                               into 0: served a0, admitted none, N r, root r, renewals c0:ask, names pf; then renewcert does not apply
+== cells: 168; flagged: accepted beyond every decision 2, accepted beyond its own ideal 2, an import into a copy that stays stale (STORE.md 640) 4, beyond its own ideal by after alone 5
+== R15 with Seal again's rules off (SEAL off: the measured Create, which asks only whether an authority stands) and on
+   SEAL off: revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; delauth 0 ; del 0 (head new) 1 ; create 0 ; sealsee 0 (does not apply) ; reseal 0 (does not apply) ; create 0 (does not apply) ; pair 0
+      copy 0: served a20, admitted c2:pg, N nothing, root r, renewals c0:ask c1:forever, names pg
+      after the first Create: served a20, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg
+   SEAL on: revoke 0 c0 ; recreate 0 ; pair 0 ; padd 0 pg ; prem 0 pf ; rule 0 N none ; renew 0 c1 forever ; merge kp_sync 1 0 ; delauth 0 ; del 0 (head new) 1 ; create 0 (does not apply) ; sealsee 0 ; reseal 0 ; create 0 ; pair 0
+      copy 0: served a21, admitted c2:pg, N nothing, root r, renewals c0:ask c1:forever, names pg
+      after the first Create: store incomplete (Create does not apply)
+== R11 and R12 with the seal's summary entry naming the damaged summary entry it deletes (the design) and not naming it (SEAL_NAME_DAMAGED off, as the model wrote every summary entry before)
+   R11, named: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg
+   R11, not named: store incomplete
+   R12, named: served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg
+   R12, not named: store incomplete
+== R16 to R18: the seal and the act in a single write, beside the seal written alone and the act after it
+   R16: single write: served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; apart: served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; the same but for the summary entries
+      summary entries present: single write 1, apart 1; their deletion records: 9, 10
+   R17: single write: served a21, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; apart: served a21, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; the same but for the summary entries
+      summary entries present: single write 1, apart 1; their deletion records: 9, 10
+   R18: single write: served a7, admitted c1:pg, N rw, root r, renewals c0:ask c1:forever, names pg; apart: served a7, admitted c1:pg, N rw, root r, renewals c0:ask c1:forever, names pg; the same but for the summary entries
+      summary entries present: single write 1, apart 1; their deletion records: 9, 10
+== every sequence with the seal composed over what its dialog showed (the control), beside the design, which composes it at the write: copy 0 after the seal, and what it names
+   R1: the same
+      at the write served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote no version; names 0 identifiers not of the store at the write
+   R2: the same
+      at the write served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg ph pi; wrote no version; names 0 identifiers not of the store at the write
+   R3: the same
+      at the write served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote rule:N refuses after 0 lost 2; names 0 identifiers not of the store at the write
+   R4: the same
+      at the write served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote renew:c1 refuse:forever after 0 lost 1; names 0 identifiers not of the store at the write
+   R5: the same
+      at the write served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote no version; names 0 identifiers not of the store at the write
+   R6: the same
+      at the write served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote no version; names 0 identifiers not of the store at the write
+   R7: the same
+      at the write served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote no version; names 0 identifiers not of the store at the write
+   R8: the same
+      at the write served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote no version; names 0 identifiers not of the store at the write
+   R9: the same
+      at the write served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote no version; names 0 identifiers not of the store at the write
+   R10: the same
+      at the write served a7, admitted c1:pg, N r, root r, renewals c0:ask c1:forever, names pg; wrote no version; names 0 identifiers not of the store at the write
+   R11: the same
+      at the write served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote no version; names 0 identifiers not of the store at the write
+   R12: the same
+      at the write served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote rule:N refuses after 0 lost 1; names 0 identifiers not of the store at the write
+   R13: the same
+      at the write served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote no version; names 0 identifiers not of the store at the write
+   R14: the same
+      at the write served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote rule:N refuses after 0 lost 2; names 0 identifiers not of the store at the write
+   R15: the same
+      at the write served a21, admitted c2:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote no version; names 0 identifiers not of the store at the write
+   R16: the same
+      at the write served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote rule:N refuses after 0 lost 2; names 0 identifiers not of the store at the write
+   R17: the same
+      at the write served a21, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote no version; names 0 identifiers not of the store at the write
+   R18: the same
+      at the write served a7, admitted c1:pg, N rw, root r, renewals c0:ask c1:forever, names pg; wrote no version; names 0 identifiers not of the store at the write
+   R19: differs
+      at the write served a7, admitted none, N r, root r, renewals c0:ask c1:forever, names pg ph; wrote no version; names 0 identifiers not of the store at the write
+      as shown     served a7, admitted none, N nothing, root r, renewals c0:ask c1:forever, names pg ph; wrote rule:N refuses after 0 lost 2; names 0 identifiers not of the store at the write
+   R20: differs
+      at the write served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote rule:N refuses after 1 lost 1; names 0 identifiers not of the store at the write
+      as shown     served a7, admitted c1:pg, N nothing, root r, renewals c0:ask c1:forever, names pg; wrote no version; names 0 identifiers not of the store at the write
+   R21: the same
+      at the write served a0, admitted none, N r, root r, renewals c0:ask, names pf; wrote no version; names 0 identifiers not of the store at the write

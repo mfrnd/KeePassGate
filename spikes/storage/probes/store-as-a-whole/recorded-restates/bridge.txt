@@ -1,0 +1,7 @@
+== 2000 histories of the seal's alphabet over two copies, 4 to 12 steps, seed 71, under each form: after every step that applied, the file the copy it changed holds written by store.py's Encoder and read by read.py, held to the model's fold: whether the store is whole, the objects a lost version makes refuse, and every revocation and retirement either reads; where the copy is stopped, the versions read.py plans for the seal held to those the model's seal writes
+   form all: steps compared 9700, steps that differ 1; seals compared 1305, seals that differ 0; summary entries holding an item with no subject, counted at each step 0
+      merge kp_sync 1 0 ; import 1 0 ; padd 0 pg ; recreate 0 ; del 0 (head old) 0 ; del 0 (ref retired) 1 ; merge xc 0 1, at del 0 (ref retired) 1: model (False, [], [('retired', 'a0')]), read.py (False, [], [])
+   form named: steps compared 9700, steps that differ 0; seals compared 1305, seals that differ 0; summary entries holding an item with no subject, counted at each step 0
+   form ids: steps compared 9700, steps that differ 0; seals compared 1305, seals that differ 0; summary entries holding an item with no subject, counted at each step 0
+   form hashes: steps compared 9700, steps that differ 0; seals compared 1305, seals that differ 0; summary entries holding an item with no subject, counted at each step 0
+== 66 s

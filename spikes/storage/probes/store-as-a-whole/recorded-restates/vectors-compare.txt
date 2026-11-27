@@ -1,0 +1,65 @@
+﻿== StoreRecordVectors.json
+   members at the top: about, key, profileTags, records, renewalTexts, texts
+   key: the same
+   profileTags: the same
+   records: 56 held today, 56 printed; added 0, removed 0, changed 0
+   renewalTexts: the same
+   texts: the same
+   about: the same
+   lines: 0 added; 0 held today replaced or removed
+== StoreMeaningVectors.json
+   members at the top: about, key, meanings
+   key: the same
+   meanings: 139 held today, 139 printed; added 0, removed 0, changed 0
+   about: the same
+   lines: 0 added; 0 held today replaced or removed
+== StoreWriteVectors.json
+   members at the top: about, sequences
+   sequences: 101 held today, 146 printed; added 45, removed 0, changed 0
+      added: restates, F5, as sealed, Merge by KeePassXC into 1: c0 revoked at copy 0 alone, the revocation and the summary entry deleted with a deletion record each, Seal again; copy 1 the copy from before, holding c0's admission
+      added: restates, F5, as sealed, Overwrite if newer into 1: c0 revoked at copy 0 alone, the revocation and the summary entry deleted with a deletion record each, Seal again; copy 1 the copy from before, holding c0's admission
+      added: restates, F5, deletion records cleared, Merge by KeePassXC into 0: c0 revoked at copy 0 alone, the revocation and the summary entry deleted with a deletion record each, Seal again; copy 1 the copy from before, holding c0's admission
+      added: restates, F5, deletion records cleared, Overwrite if newer into 0: c0 revoked at copy 0 alone, the revocation and the summary entry deleted with a deletion record each, Seal again; copy 1 the copy from before, holding c0's admission
+      added: restates, F5, deletion records cleared, Synchronize into 1: c0 revoked at copy 0 alone, the revocation and the summary entry deleted with a deletion record each, Seal again; copy 1 the copy from before, holding c0's admission
+      added: restates, F5r, as sealed, Merge by KeePassXC into 1: as F5, and c0 revoked at copy 1 on its own: a revocation of c0 under another identifier
+      added: restates, F5r, as sealed, Overwrite if newer into 1: as F5, and c0 revoked at copy 1 on its own: a revocation of c0 under another identifier
+      added: restates, F5r, deletion records cleared, Merge by KeePassXC into 0: as F5, and c0 revoked at copy 1 on its own: a revocation of c0 under another identifier
+      added: restates, F5r, deletion records cleared, Overwrite if newer into 0: as F5, and c0 revoked at copy 1 on its own: a revocation of c0 under another identifier
+      added: restates, F5r, deletion records cleared, Synchronize into 1: as F5, and c0 revoked at copy 1 on its own: a revocation of c0 under another identifier
+      added: restates, F6, as sealed, Merge by KeePassXC into 1: the authority recreated at copy 0 alone, the retirement and the summary entry deleted with a deletion record each, Seal again; copy 1 the copy from before, holding the authority retired
+      added: restates, F6, as sealed, Overwrite if newer into 1: the authority recreated at copy 0 alone, the retirement and the summary entry deleted with a deletion record each, Seal again; copy 1 the copy from before, holding the authority retired
+      added: restates, F6, deletion records cleared, Merge by KeePassXC into 0: the authority recreated at copy 0 alone, the retirement and the summary entry deleted with a deletion record each, Seal again; copy 1 the copy from before, holding the authority retired
+      added: restates, F6, deletion records cleared, Overwrite if newer into 0: the authority recreated at copy 0 alone, the retirement and the summary entry deleted with a deletion record each, Seal again; copy 1 the copy from before, holding the authority retired
+      added: restates, F6, deletion records cleared, Synchronize into 1: the authority recreated at copy 0 alone, the retirement and the summary entry deleted with a deletion record each, Seal again; copy 1 the copy from before, holding the authority retired
+      added: restates, F6r, as sealed, Merge by KeePassXC into 1: as F6, and the authority recreated at copy 1 on its own: a retirement of a0 under another identifier
+      added: restates, F6r, as sealed, Overwrite if newer into 1: as F6, and the authority recreated at copy 1 on its own: a retirement of a0 under another identifier
+      added: restates, F6r, deletion records cleared, Merge by KeePassXC into 0: as F6, and the authority recreated at copy 1 on its own: a retirement of a0 under another identifier
+      added: restates, F6r, deletion records cleared, Overwrite if newer into 0: as F6, and the authority recreated at copy 1 on its own: a retirement of a0 under another identifier
+      added: restates, F6r, deletion records cleared, Synchronize into 1: as F6, and the authority recreated at copy 1 on its own: a retirement of a0 under another identifier
+      added: restates, F7, as sealed, Merge by KeePassXC into 1: pf removed at copy 0 alone, the removal and the summary entry deleted with a deletion record each, Seal again; copy 1 the copy from before, holding pf's addition
+      added: restates, F7, as sealed, Overwrite if newer into 1: pf removed at copy 0 alone, the removal and the summary entry deleted with a deletion record each, Seal again; copy 1 the copy from before, holding pf's addition
+      added: restates, F7, deletion records cleared, Merge by KeePassXC into 0: pf removed at copy 0 alone, the removal and the summary entry deleted with a deletion record each, Seal again; copy 1 the copy from before, holding pf's addition
+      added: restates, F7, deletion records cleared, Overwrite if newer into 0: pf removed at copy 0 alone, the removal and the summary entry deleted with a deletion record each, Seal again; copy 1 the copy from before, holding pf's addition
+      added: restates, F7, deletion records cleared, Synchronize into 1: pf removed at copy 0 alone, the removal and the summary entry deleted with a deletion record each, Seal again; copy 1 the copy from before, holding pf's addition
+      added: restates, F7r, as sealed, Merge by KeePassXC into 1: as F7, and pf removed at copy 1 on its own: a removal of pf under another identifier
+      added: restates, F7r, as sealed, Overwrite if newer into 1: as F7, and pf removed at copy 1 on its own: a removal of pf under another identifier
+      added: restates, F7r, deletion records cleared, Merge by KeePassXC into 0: as F7, and pf removed at copy 1 on its own: a removal of pf under another identifier
+      added: restates, F7r, deletion records cleared, Overwrite if newer into 0: as F7, and pf removed at copy 1 on its own: a removal of pf under another identifier
+      added: restates, F7r, deletion records cleared, Synchronize into 1: as F7, and pf removed at copy 1 on its own: a removal of pf under another identifier
+      added: restates, R5, as sealed, Merge by KeePassXC into 1: the revocation of c0 deleted with a deletion record and the summary entry with one: known by the deletion record alone, restated by the seal
+      added: restates, R5, as sealed, Overwrite if newer into 1: the revocation of c0 deleted with a deletion record and the summary entry with one: known by the deletion record alone, restated by the seal
+      added: restates, R5, deletion records cleared, Merge by KeePassXC into 0: the revocation of c0 deleted with a deletion record and the summary entry with one: known by the deletion record alone, restated by the seal
+      added: restates, R5, deletion records cleared, Overwrite if newer into 0: the revocation of c0 deleted with a deletion record and the summary entry with one: known by the deletion record alone, restated by the seal
+      added: restates, R5, deletion records cleared, Synchronize into 1: the revocation of c0 deleted with a deletion record and the summary entry with one: known by the deletion record alone, restated by the seal
+      added: restates, R6, as sealed, Merge by KeePassXC into 1: the retirement deleted with a deletion record and the summary entry with one
+      added: restates, R6, as sealed, Overwrite if newer into 1: the retirement deleted with a deletion record and the summary entry with one
+      added: restates, R6, deletion records cleared, Merge by KeePassXC into 0: the retirement deleted with a deletion record and the summary entry with one
+      added: restates, R6, deletion records cleared, Overwrite if newer into 0: the retirement deleted with a deletion record and the summary entry with one
+      added: restates, R6, deletion records cleared, Synchronize into 1: the retirement deleted with a deletion record and the summary entry with one
+      added: restates, R7, as sealed, Merge by KeePassXC into 1: the removal of pf deleted with a deletion record and the summary entry with one
+      added: restates, R7, as sealed, Overwrite if newer into 1: the removal of pf deleted with a deletion record and the summary entry with one
+      added: restates, R7, deletion records cleared, Merge by KeePassXC into 0: the removal of pf deleted with a deletion record and the summary entry with one
+      added: restates, R7, deletion records cleared, Overwrite if newer into 0: the removal of pf deleted with a deletion record and the summary entry with one
+      added: restates, R7, deletion records cleared, Synchronize into 1: the removal of pf deleted with a deletion record and the summary entry with one
+   about: the text held today, and 1455 characters added after it
+   lines: 165424 added; 1 held today replaced or removed: "about": "The file after each act of fixed sequences that th

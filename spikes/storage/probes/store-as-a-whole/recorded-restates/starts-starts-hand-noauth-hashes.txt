@@ -1,0 +1,18 @@
+== 200000 histories of the acts of a store started again over 2 copies, 4 to 12 steps, seed 65: 48 acts (a start again, a pairing, revocations, a name added and removed, rules, an answer and a lift, renewals, Delete, Create, Recreate, a plugin of a later format, a save, KeePass ending before a save, a keep record and the newest summary entry deleted with a deletion record or with none, Seal again, every deletion record cleared; no entry that can carry a store key deleted or edited) and 8 merges (Synchronize, Overwrite if newer, KeePassXC, Create new IDs), an act drawn with 0.6
+   histories; oracle a lift's lost counted as seen: accepted:unsaved-answer-lost x754, accepted:unsaved-rule-lost x831, aside-counts x3, info:unsaved-lift-lost x6, one-loss x3, safety x3
+    shortest accepted:unsaved-answer-lost: renew 1 c0 forever ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 0 N none ; quit 0
+    shortest info:unsaved-lift-lost: renew 1 c0 forever ; merge xc 0 1 ; import 1 0 ; renew 1 c0 ask ; quit 1 ; reseal 1
+    aside-counts, about something else, the keep record of a start and the summary entry restating it deleted, so that the stop's deletion record sets the new key aside (STORE.md 639 rows 2 and 3): 3 histories, 3 distinct once shrunk
+        #50321, shrunk to 4 steps: restart 0 ; del 0 ('head', 'new') 1 ; del 0 ('kept',) 1 ; del 0 ('kept',) 0   (file 0: served under K, which its ideal sets aside)
+        #65926, shrunk to 4 steps: restart 0 ; del 0 ('head', 'new') 0 ; del 0 ('kept',) 1 ; del 0 ('kept',) 0   (file 0: served under K, which its ideal sets aside)
+        #135479, shrunk to 4 steps: restart 1 ; del 1 ('kept',) 1 ; del 1 ('head', 'new') 0 ; del 1 ('kept',) 0   (file 1: served under K, which its ideal sets aside)
+    one-loss, about something else, the keep record of a start and the summary entry restating it deleted, so that the stop's deletion record sets the new key aside (STORE.md 639 rows 2 and 3): 3 histories, 3 distinct once shrunk
+        #50321, shrunk to 4 steps: restart 0 ; del 0 ('head', 'new') 1 ; del 0 ('kept',) 1 ; del 0 ('kept',) 0   (file 0: client c0 admitted)
+        #65926, shrunk to 4 steps: restart 0 ; del 0 ('head', 'new') 0 ; del 0 ('kept',) 1 ; del 0 ('kept',) 0   (file 0: client c0 admitted)
+        #135479, shrunk to 4 steps: restart 1 ; del 1 ('kept',) 1 ; del 1 ('head', 'new') 0 ; del 1 ('kept',) 0   (file 1: client c0 admitted)
+    safety, about something else, the keep record of a start and the summary entry restating it deleted, so that the stop's deletion record sets the new key aside (STORE.md 639 rows 2 and 3): 3 histories, 3 distinct once shrunk
+        #50321, shrunk to 4 steps: restart 0 ; del 0 ('head', 'new') 1 ; del 0 ('kept',) 1 ; del 0 ('kept',) 0   (file 0: client c0 admitted)
+        #65926, shrunk to 4 steps: restart 0 ; del 0 ('head', 'new') 0 ; del 0 ('kept',) 1 ; del 0 ('kept',) 0   (file 0: client c0 admitted)
+        #135479, shrunk to 4 steps: restart 1 ; del 1 ('kept',) 1 ; del 1 ('head', 'new') 0 ; del 1 ('kept',) 0   (file 1: client c0 admitted)
+== 153 s

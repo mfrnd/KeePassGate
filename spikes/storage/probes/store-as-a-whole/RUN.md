@@ -74,6 +74,15 @@ and on real files made by KeePassLib and merged by KeePassLib and `keepassxc-cli
 `recorded-starts\`, with the vectors it prints in `recorded-starts\vectors\`. The section "A store
 started again" at the end holds it.
 
+**A further configuration, what a summary entry restates of a decision told by deletion alone**, was
+added on 2026-11-27 for the report `measured-seal-restates.md`: `run.ps1 -Restates`, the forms of
+`crdt_model.SEAL_RESTATES` (the product's, the control every configuration above was run in, and
+two forms proposed) over the configuration of Seal again, each held to the control history by
+history: in the model, over the files `store.py` writes of it, and on real files made by KeePassLib
+and merged by KeePassLib and `keepassxc-cli`. Its record is `recorded-restates\`, with the vectors
+it prints in `recorded-restates\vectors\`. The section "What a summary entry restates of a decision
+told by deletion alone" at the end holds it.
+
 | Path | What it is |
 | --- | --- |
 | `model\crdt_model.py` | a copy of `spikes\storage\model\crdt_model.py` with the switches of section "What was added" below; every new switch at its default is the design's model |
@@ -105,6 +114,8 @@ started again" at the end holds it.
 | `recorded-answers\` | the output of those parts, which `measured-renewal-answers.md` quotes; `recorded-answers\vectors\` the three files of vectors `vectors.py --answers` prints |
 | `model\seal_runs.py`, `probe\seal.py`, `compare_seal.py` | the parts of Seal again in the model and on real files (section "Seal again"), and the comparisons of the vectors |
 | `model\restart_runs.py`, `probe\restart.py`, `compare_starts.py` | the parts of a store started again in the model and on real files (section "A store started again"), and the comparisons of the vectors |
+| `model\restates_runs.py`, `probe\restates.py`, `compare_restates.py` | the parts of what a summary entry restates of a decision told by deletion alone, in the model and on real files (section "What a summary entry restates of a decision told by deletion alone"), and the comparisons of the forms, of the parts run under a form and of the vectors |
+| `recorded-restates\` | the output of those parts, which `measured-seal-restates.md` quotes; `recorded-restates\vectors\` the three files of vectors `vectors.py --restates` prints |
 | `recorded-seal\` | the output of those parts, which `measured-seal.md` quotes; `recorded-seal\vectors\` the three files of vectors `vectors.py --seal` prints |
 
 **Everything ran twice**, on 2026-11-16, on a machine other measurements were sharing. Every
@@ -2516,3 +2527,151 @@ Reported, not fixed.
 - The dialog that keeps a store among several (§649), a key past the ceiling on keys, the group of a
   store started again, a second gate over a socket, a window, a phone, the slow key derivation, the
   product.
+
+## What a summary entry restates of a decision told by deletion alone
+
+Added on 2026-11-27 for `papers\ground\measured-seal-restates.md`. Every configuration above
+restated a revocation, a retirement and a removal of a name that a deletion record under the store
+key tells of by the element the record names, whatever the file still named; the product's reading tells such
+a deletion record only for a subject a record or an item of the file names, and its seal restates
+only what it tells. `crdt_model.SEAL_RESTATES` holds the form, with `SEAL` on: `named` (the
+product's form, and the switch's default), `all` (the control: the form every configuration above
+was run in, which each of their setups keeps unless the environment names another in
+`SEAL_RESTATES`), `ids` (the form proposed: a decision whose subject nothing names restated by an
+item holding its deletion record's identifier and the kind) and `hashes` (as `ids`, a revocation or
+a retirement held by the identifier's keyed tag and subject hash alone). `run.ps1 -Restates` runs
+it; its record is `recorded-restates\`, with the vectors it prints in `recorded-restates\vectors\`.
+
+### What it runs
+
+`run.ps1 -Restates` runs these parts, each into `out\restates\<part>.txt`, held to
+`recorded-restates\` by `compare.py --restates`; after them `compare_restates.py cells` holds each
+form's cells on files to the control's in `cells.txt`, `compare_restates.py against` holds each part
+run under a form to the record of the configuration it belongs to in `against.txt`,
+`compare_restates.py print` writes the three files of vectors `vectors.py --restates` prints into
+`out\restates\vectors\`, with `vectors-print.txt`, and `compare_restates.py vectors` holds them to
+`recorded-starts\vectors\`, the files as they stand, in `vectors-compare.txt`.
+
+| Part | What it is |
+| --- | --- |
+| `hand` | `model\restates_runs.py hand`: R1 to R21 of `probe\seal.py` and F5 to F7r of `probe\restates.py` in the model under every form, every merge both ways by Synchronize, Overwrite if newer, KeePassXC and Create new IDs, with nothing before it and with every deletion record of the sealed copy cleared before it; then every cell in which a form differs from the control |
+| `cells-all`, `cells-named`, `cells-ids`, `cells-hashes` | `probe\restates.py cells FORM`: the same sequences on real files under the form, every merge both ways by KeePassLib's five methods and four `keepassxc-cli` releases, with and without the deletion records cleared, each merged file held to every decision any gate made, to its own ideal and to both copies just before |
+| `seal-two`, `seal-three`, `seal-long` | `model\restates_runs.py random seal`: the histories of `seal_runs.py`'s parts of those names, the same counts and seeds, each played under every form beside the control |
+| `search-2`, `search-3` | `model\restates_runs.py random design`: the histories of `seal_runs.py`'s search, the design's twelve configurations with their seeds, each under every form beside the control |
+| `exhaustive-seal-4` | `model\restates_runs.py exhaustive 4 seal`: every sequence of 4 steps of `seal_runs.py`'s exhaustive alphabet after its divergence, under every form beside the control |
+| `exhaustive-told-4` | `model\restates_runs.py exhaustive 4 told`: after each of a revocation, a retirement and a removal at copy 0 whose record and summary entry are deleted with a deletion record each, copy 1 the copy from before, every sequence of 4 steps of 25: the seal's dialog, the seal, every deletion record cleared, the newest summary entry deleted with a deletion record or with none, a save and a pairing at either copy, the same decision made apart at copy 1, and every merge both ways by Synchronize, Overwrite if newer, KeePassXC and Create new IDs |
+| `bridge`, `bridge-hand` | `model\restates_runs.py bridge`: 2,000 random histories of the seal's alphabet, and every cell of `hand` as a single sequence, under every form, every file the Encoder writes read by read.py and held to the model's fold: whole or not, the objects a lost version makes refuse, every revocation and retirement either reads; and the versions read.py plans for a seal held to those the model writes |
+| `edits-named`, `-ids`, `-hashes`; `hand-`, `damage-`, `seal-bridge-` the same | the parts `edits`, `hand`, `damage` and `bridge` of `-Seal` under the form, held to `recorded-seal\` by `against` |
+| `starts-<part>-ids`, `starts-<part>-hashes` | every part of `-Starts` under the form, held to `recorded-starts\` by `against` |
+
+**What a history is held to.** The parts named after a form are the configurations' own parts with
+`SEAL_RESTATES` set for their process, and print what those parts print; `against` holds each to
+the record of the control, line for line with `compare.py`'s masks, so that a part printing the same
+is a part in which the form changes nothing. The parts of `restates_runs.py` play each history under
+the control and under each form, and count, for each form, the histories that fail a property of
+`crdt_model.run` that ends a history, end with a copy stopped, end with a copy wider than its own
+ideal, or end with a copy granting less than the same copy under the control, where the control does
+not; and each of those the other way round. The first of each such kind are shrunk while they still
+differ that way, and printed with the class `seal_runs.py`'s classes would give them. Beside it, the
+histories in which a summary entry holding an item with no subject was written. On files, every cell
+is held to the oracle, to its own ideal and to both copies just before, as `seal.py cells` holds it,
+and `cells` holds the classes cell by cell to the control's.
+
+### The command
+
+From the branch root, in Windows PowerShell 5.1, under an ordinary user token, with `PSModulePath`
+removed when started from PowerShell 7:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\storage\probes\store-as-a-whole\run.ps1 -Restates -Parallel 4
+uv run --no-project python -I -X utf8 spikes\storage\probes\store-as-a-whole\compare.py --restates
+```
+
+A run of every part empties `out\restates\` and the databases `work\rs-*`, `work\se-named-*`,
+`work\se-ids-*`, `work\se-hashes-*`, `work\sa-ids-*` and `work\sa-hashes-*`, and nothing of the
+other configurations'. Each model part draws on four processes of its own. Nothing shows a window.
+
+**How long**, in seconds, four parts at once on twelve logical processors, each model part on four
+processes of its own; the parts under `hashes` ran on their own, after run 2:
+
+| Part | Run 1 | Run 2 |
+| --- | --- | --- |
+| `exhaustive-seal-4`, `exhaustive-told-4` | 5,956, 2,028 | 5,730, 1,986 |
+| `search-3`, `search-2`, `seal-two`, `seal-three`, `seal-long` | 827, 637, 667, 436, 507 | 987, 747, 772, 516, 506 |
+| `cells-all`, `cells-named`, `cells-ids`, `cells-hashes` | 251, 251, 271, 271 | 296, 296, 281, 276 |
+| `hand`, `bridge`, `bridge-hand` | 201, 134, 132 | 5, 15, 15 |
+| `starts-exhaustive-5-ids`, `starts-exhaustive-5-hashes` | 2,539, 2,173 | 2,753, 1,704 |
+| every other part under `named` or `ids` | 5 to 509 | 5 to 456 |
+| every other part under `hashes` | 5 to 1,119 | 5 to 297 |
+
+**How the runs were made.** Run 1 and run 2 were `run.ps1 -Restates -Parallel 4`, in turn; a first
+start of run 1 stopped before any part ran, the table of forms in `run.ps1` bearing the name of the
+switch `-Restates`, which PowerShell reads as the same variable, and ran once that was renamed.
+Run 1's outputs are `recorded-restates\`, but the empty `.err` files and `times.txt`. Once run 2
+had ended, the parts under `hashes` were added to the configuration and ran twice with `-Parts`,
+the first time's outputs added to `recorded-restates\` and `against.txt` written again over all of
+them. With `SEAL_RESTATES` unset, `model\store_runs.py scenarios` and `section6`, `answer_runs.py`
+`hand`, `losses`, `laws` and `bridge two`, `answers.py cells`, `seal_runs.py` `hand`, `bridge` and
+`search 2`, `seal.py cells`, `restart_runs.py` `hand` and `bridge hand`, and `restart.py cells`
+printed their records line for line, and `vectors.py --starts` the three files of
+`recorded-starts\vectors\` byte for byte but the line ends.
+
+**Compared.** Every output of run 2, and of the second run of the parts under `hashes`, is the same
+as `recorded-restates\` line for line, with the masks of "Running it": 70 files, the listings of the
+cells, of the parts held to their records and of the vectors among them; and the three files of
+vectors printed into `out\restates\vectors\` are the same bytes as those of
+`recorded-restates\vectors\` but the line ends.
+
+| Figure | Recorded | Second run | Reproduced |
+| --- | --- | --- | --- |
+| `cells-<form>`, 972 cells each: differing from the control under `named`, of them wider than the own ideal and the oracle (F5 and F7), and serving nothing (F6); under `ids` and `hashes` | 69, 46, 23; 0 and 0 | the same | yes |
+| `cells-<form>`: beyond both copies; steps where file and model disagree | 0 in every form; 1, an entry of R19 after Create new IDs, the read the same | the same | yes |
+| `hand`, 432 cells each: differing under `named`, wider, of them with the deletion records cleared, granting less; under `ids` and `hashes` | 24, 16, 12, 8; 0 and 0 | the same | yes |
+| `seal-two`, `seal-three`, `seal-long`, `search-2`, `search-3`, `exhaustive-seal-4`: histories differing under any form; holding an item with no subject | none; 19, 1, 35, 2, 1, 6,888 | the same | yes |
+| `exhaustive-told-4`, 390,625 histories after each decision, under `named`: after a revocation failing, wider, stopped; after a retirement granting less, stopped; after a removal failing, wider | 815, 765, 9; 815, 9; 791, 733 | the same | yes |
+| `exhaustive-told-4` under `ids`: stopped after a revocation and after a retirement; under `hashes`; holding an item | 9 and 9; none; 55,312, 55,227, 55,227 | the same | yes |
+| `bridge`, `bridge-hand`: steps; differing under `all`; under the other forms; seals differing | 9,700 and 5,732; 1 and 212; 0; 0 | the same | yes |
+| `against`: the parts of Seal again under `named`, `ids` and `hashes`, of a store started again under `ids` and `hashes`, the same as their records | 52 of 52 | the same | yes |
+| vectors: sequences added; records and stores added; members changed or removed; `--starts` against `recorded-starts\vectors\` | 45; none; none; the same but the line ends | the same | yes |
+
+### What was added for it
+
+Each line added or changed carries "ADDED (seal restates)".
+
+- `crdt_model.py`: `SEAL_RESTATES`, `restates_by_subject` and `seal_names`; under a form other than
+  `all`, the subjects the file names, a deletion record of a revocation, a retirement or a removal
+  told only for a subject among them, an item with no subject read and held to the completeness
+  check, and an addition of a name naming a removal of it that a deletion record or such an item
+  tells of; `seal_carried`, and the items `refid` and `refsub` of a summary entry, written only
+  where a decision needs them.
+- `store.py`: the items with no subject, `{"id", "kind"}` and `{"hash", "kind"}`.
+- `read.py`: `subject_item`; an item with no subject telling its decision of a subject named by its
+  hash, restating the record of its identifier, or with `hash` every record of its kind whose
+  identifier begins with it, in the completeness check and in the listing's records no summary
+  entry restates.
+- `bridge.py`: `restates_dir`, and `seal()` reading the form from the environment; `seal_runs.py`
+  and `restart_runs.py` the same in `setup`; `vectors.py`: the control kept in `--seal` and
+  `--starts`, and `--restates` with `restates_vectors`.
+- `model\restates_runs.py`, `probe\restates.py`, `compare_restates.py`: new.
+- `run.ps1`: `-Restates`. `compare.py`: `--restates`.
+
+### Defects and limits of this configuration
+
+Reported, not fixed.
+
+- **The control is the model's earlier reading**, which tells a deletion record by the element it
+  names: a reading the product cannot make, so that the control is an ideal of what a seal could
+  restate rather than a form to build. `bridge-hand` counts the steps where it reads a refusal
+  read.py does not.
+- **The seal's own classes accept what the product's form leaves**: a history the form `named`
+  widens holds a merge that carries no deletion record or records cleared, which `seal_runs.py`
+  classes as §639 row 5. The differences are counted against the control for that reason.
+- **The search parts and the random parts of the seal never reach the class**, and print the same
+  under every form; `exhaustive-told-4` and the sequences F5 to F7r are made for it.
+- **One disagreement of file and model on files**, an entry of R19 after Create new IDs in every
+  form, the read the same, as in `recorded-seal\cells.txt`.
+
+### Not run in this configuration
+
+- The product's dialog over a store that holds such an item, a key past the ceiling on keys, a
+  second gate over a socket, a window, a phone, the slow key derivation, the product.

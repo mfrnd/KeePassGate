@@ -1,0 +1,7 @@
+== every sequence of 4 steps of the alphabet of seal_runs.py's exhaustive part (40 steps wide) after rule 0 N r ; revoke 0 c0 ; pair 0 ; renew 0 c1 forever ; merge kp_sync 1 0 ; rule 0 N none ; prem 0 pf, under each form beside the control: 2560000 histories
+   form named: no history differs from the control (of 2560000)
+   form ids: histories in which a summary entry holding an item with no subject was written: 6888 of 2560000
+   form ids: no history differs from the control (of 2560000)
+   form hashes: histories in which a summary entry holding an item with no subject was written: 6888 of 2560000
+   form hashes: no history differs from the control (of 2560000)
+== 5955 s

@@ -1,0 +1,2 @@
+== every sequence of 5 steps of the acts of a store started again over two copies: 20 steps wide, from the store the model starts with, the convergence checked at the end: 3200000 histories  no failure
+== 2163 s

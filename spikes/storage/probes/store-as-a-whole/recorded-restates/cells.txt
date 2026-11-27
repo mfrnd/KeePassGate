@@ -1,0 +1,211 @@
+﻿== each form's cells on files held to the control's (all), cell by cell
+   form named: 972 cells, 69 differ from the control; wider where the control is not 46; stopped where the control is whole 0; otherwise differing 23; cells in one and not the other 0
+      F5 | cleared | KeePass KeepExisting | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | cleared | KeePass KeepExisting | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | cleared | KeePass OverwriteExisting | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | cleared | KeePass OverwriteExisting | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | cleared | KeePass OverwriteIfNewer | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | cleared | KeePass OverwriteIfNewer | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | cleared | KeePass Synchronize | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | cleared | KeePass Synchronize | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | cleared | KeePassXC 2.4.2 | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | cleared | KeePassXC 2.4.2 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | cleared | KeePassXC 2.6.6 | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | cleared | KeePassXC 2.6.6 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | cleared | KeePassXC 2.7.12 | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | cleared | KeePassXC 2.7.12 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | cleared | KeePassXC 2.8.0 | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | cleared | KeePassXC 2.8.0 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | nothing | KeePass KeepExisting | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | nothing | KeePass OverwriteExisting | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | nothing | KeePass OverwriteIfNewer | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | nothing | KeePassXC 2.4.2 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | nothing | KeePassXC 2.6.6 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | nothing | KeePassXC 2.7.12 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F5 | nothing | KeePassXC 2.8.0 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 admitted; within the copies; BEYOND ITS OWN IDEAL: client c0 admitted; store ok
+      F6 | cleared | KeePass KeepExisting | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | cleared | KeePass KeepExisting | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | cleared | KeePass OverwriteExisting | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | cleared | KeePass OverwriteExisting | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | cleared | KeePass OverwriteIfNewer | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | cleared | KeePass OverwriteIfNewer | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | cleared | KeePass Synchronize | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | cleared | KeePass Synchronize | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | cleared | KeePassXC 2.4.2 | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | cleared | KeePassXC 2.4.2 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | cleared | KeePassXC 2.6.6 | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | cleared | KeePassXC 2.6.6 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | cleared | KeePassXC 2.7.12 | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | cleared | KeePassXC 2.7.12 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | cleared | KeePassXC 2.8.0 | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | cleared | KeePassXC 2.8.0 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | nothing | KeePass KeepExisting | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | nothing | KeePass OverwriteExisting | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | nothing | KeePass OverwriteIfNewer | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | nothing | KeePassXC 2.4.2 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | nothing | KeePassXC 2.6.6 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | nothing | KeePassXC 2.7.12 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F6 | nothing | KeePassXC 2.8.0 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  refuses: nothing served (2 authorities stand); within the copies; within its own ideal; store ok
+      F7 | cleared | KeePass KeepExisting | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | cleared | KeePass KeepExisting | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | cleared | KeePass OverwriteExisting | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | cleared | KeePass OverwriteExisting | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | cleared | KeePass OverwriteIfNewer | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | cleared | KeePass OverwriteIfNewer | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | cleared | KeePass Synchronize | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | cleared | KeePass Synchronize | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | cleared | KeePassXC 2.4.2 | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | cleared | KeePassXC 2.4.2 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | cleared | KeePassXC 2.6.6 | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | cleared | KeePassXC 2.6.6 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | cleared | KeePassXC 2.7.12 | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | cleared | KeePassXC 2.7.12 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | cleared | KeePassXC 2.8.0 | into 0
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | cleared | KeePassXC 2.8.0 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | nothing | KeePass KeepExisting | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | nothing | KeePass OverwriteExisting | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | nothing | KeePass OverwriteIfNewer | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | nothing | KeePassXC 2.4.2 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | nothing | KeePassXC 2.6.6 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | nothing | KeePassXC 2.7.12 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+      F7 | nothing | KeePassXC 2.8.0 | into 1
+         all:    as decided; within the copies; within its own ideal; store ok
+         named:  WIDER: client c0 holds ['pf']; within the copies; BEYOND ITS OWN IDEAL: client c0 holds ['pf']; store ok
+   form ids: 972 cells, 0 differ from the control; wider where the control is not 0; stopped where the control is whole 0; otherwise differing 0; cells in one and not the other 0
+   form hashes: 972 cells, 0 differ from the control; wider where the control is not 0; stopped where the control is whole 0; otherwise differing 0; cells in one and not the other 0

@@ -1,0 +1,108 @@
+== the store as decided with the answers and the store started again: the design's search, its twelve configurations over 3 files, 20000 histories each, its seeds; restart and a plugin of a later format in the alphabet, a keep record and the first authority among what a person deletes and edits
+A merges only (every program)                                      3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x4, accepted:unsaved-answer-lost x40, accepted:unsaved-rule-lost x28, convergence-to-ideal (not wider) x1307
+    shortest accepted:copy-wider: rule 2 N none ; merge kp_sync 2 0 ; copy 2
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until2 ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 0 root none ; quit 0
+    convergence-to-ideal (not wider), about something else, a store raised to a later format, outdated until started again (STORE.md 651, 632): 1277 histories, 3 distinct once shrunk
+        #3, shrunk to 1 steps: newer 2   (('outdated', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ('pf',)) vs ('ok', 'a0', (('c0', ('pf',)),), (('N', 'r'), ('root', 'r')), (('c0', 'ask'),), ('pf',)))
+        #11, shrunk to 1 steps: newer 0   (('outdated', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ('pf',)) vs ('ok', 'a0', (('c0', ('pf',)),), (('N', 'r'), ('root', 'r')), (('c0', 'ask'),), ('pf',)))
+        #202, shrunk to 1 steps: newer 1   (('outdated', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ('pf',)) vs ('ok', 'a0', (('c0', ('pf',)),), (('N', 'r'), ('root', 'r')), (('c0', 'ask'),), ('pf',)))
+    convergence-to-ideal (not wider), about something else, a store started again beside another key that stands, so the copies are split and serve nothing until the store is started again or kept (STORE.md 649): 30 histories, 5 distinct once shrunk, the three shortest
+        #459, shrunk to 2 steps: restart 2 ; restart 0   (('split', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ()) vs ('ok', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ()))
+        #2051, shrunk to 2 steps: restart 1 ; restart 2   (('split', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ()) vs ('ok', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ()))
+        #4124, shrunk to 2 steps: restart 1 ; restart 0   (('split', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ()) vs ('ok', None, (), (('N', ''), ('root', '')), (('c0', 'ask'),), ()))
+B + deletions by hand with a deletion record                       3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x5, accepted:unsaved-answer-lost x42, accepted:unsaved-rule-lost x35, aside-counts x1, safety x1
+    shortest accepted:copy-wider: rule 0 N r ; merge kp_other 0 1 ; copy 0 ; rule 0 N none
+    shortest accepted:unsaved-answer-lost: renew 0 c0 forever ; quit 0
+    shortest accepted:unsaved-rule-lost: rule 2 root inherit ; quit 2
+    aside-counts, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 1 histories, 1 distinct once shrunk
+        #10154, shrunk to 4 steps: restart 1 ; merge kp_sync 0 1 ; del 0 ('auth',) 1 ; del 0 ('kept',) 1   (file 0: served under K, which its ideal sets aside)
+    safety, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 1 histories, 1 distinct once shrunk
+        #10154, shrunk to 4 steps: restart 1 ; merge kp_sync 0 1 ; del 0 ('auth',) 1 ; del 0 ('kept',) 1   (file 0: client c0 admitted)
+C + deletions that leave no record                                 3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x1, accepted:unsaved-answer-lost x31, accepted:unsaved-rule-lost x37, aside-counts x2, info:renewal-at-a-clock-ahead x1, safety x2
+    shortest accepted:copy-wider: rule 0 N none ; merge kp_other 0 2 ; merge kp_sync 2 0 ; copy 2
+    shortest accepted:unsaved-answer-lost: renew 0 c0 until1 ; quit 0
+    shortest accepted:unsaved-rule-lost: rule 2 N none ; quit 2
+    shortest info:renewal-at-a-clock-ahead: renew 0 c0 until1 ; clock 0 1 ; merge kp_sync 1 2 ; del 2 ('head', 'new') 0 ; del 1 ('head', 'old') 0 ; renewcert 0 c0 ; merge dx 2 0 ; merge xc 1 0 ; del 1 ('padd',) 1
+    aside-counts, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 2 histories, 1 distinct once shrunk
+        #3602, shrunk to 3 steps: restart 0 ; del 0 ('auth',) 0 ; del 0 ('kept',) 1   (file 0: served under K, which its ideal sets aside)
+    safety, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 2 histories, 1 distinct once shrunk
+        #3602, shrunk to 3 steps: restart 0 ; del 0 ('auth',) 0 ; del 0 ('kept',) 1   (file 0: client c0 admitted)
+D + records dated before the entry (a clock behind)                3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x4, accepted:unsaved-answer-lost x31, accepted:unsaved-rule-lost x30, aside-counts x1, info:renewal-at-a-clock-ahead x1, safety x2
+    shortest accepted:copy-wider: rule 1 N none ; recreate 1 ; copy 1
+    shortest accepted:unsaved-answer-lost: renew 0 c0 until2 ; quit 0
+    shortest accepted:unsaved-rule-lost: rule 0 N none ; quit 0
+    shortest info:renewal-at-a-clock-ahead: merge dx 1 0 ; save 0 ; renewcert 2 c0 ; quit 1 ; renew 1 c0 until1 ; del 1 ('ver', 'renew:c0', 'old') 2 ; clock 1 1 ; merge xc 0 1 ; renewcert 1 c0
+    aside-counts, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 1 histories, 1 distinct once shrunk
+        #15585, shrunk to 3 steps: restart 2 ; del 2 ('auth',) 1 ; del 2 ('kept',) 2   (file 2: served under K, which its ideal sets aside)
+    safety, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 1 histories, 1 distinct once shrunk
+        #15585, shrunk to 3 steps: restart 2 ; del 2 ('auth',) 1 ; del 2 ('kept',) 2   (file 2: client c0 admitted)
+    safety, about something else, a store key lost: the authority's entry deleted or edited, then Create (decision 9): 1 histories, 1 distinct once shrunk
+        #13417, shrunk to 3 steps: del 0 ('auth',) 1 ; create 0 ; rule 0 root rw   (file 0: node root grants rw)
+E + deletion records cleared                                       3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x1, accepted:unsaved-answer-lost x34, accepted:unsaved-rule-lost x31, safety x1
+    shortest accepted:copy-wider: rule 0 N none ; merge kp_other 0 2 ; copy 0
+    shortest accepted:unsaved-answer-lost: renew 2 c0 until2 ; quit 2
+    shortest accepted:unsaved-rule-lost: rule 0 N none ; quit 0
+    safety, about a renewal answer, a store key lost: the authority's entry deleted or edited, then Create (decision 9): 1 histories, 1 distinct once shrunk
+        #9627, shrunk to 6 steps: del 0 ('auth', 'a0') 1 ; create 0 ; renew 2 c0 forever ; pair 2 ; merge k2a 1 2 ; merge k2a 1 0   (file 1: renewal of c0 ask where its ideal is forever (refusing at - against 012))
+F + foreign: edits, import with new identifiers, planted entries   3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x1, accepted:unsaved-answer-lost x26, accepted:unsaved-rule-lost x46
+    shortest accepted:copy-wider: rule 0 N none ; merge kp_other 0 1 ; copy 0
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until2 ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 2 root inherit ; quit 2
+G + a copy stripped of its reference                               3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x1, accepted:unsaved-answer-lost x30, accepted:unsaved-rule-lost x33, info:renewal-at-a-clock-ahead x1
+    shortest accepted:copy-wider: rule 2 N none ; merge kp_other 2 1 ; copy 2
+    shortest accepted:unsaved-answer-lost: renew 2 c0 until2 ; quit 2
+    shortest accepted:unsaved-rule-lost: rule 0 root inherit ; quit 0
+    shortest info:renewal-at-a-clock-ahead: del 2 ('ver', 'renew:c0', 'old') 1 ; renew 2 c0 until2 ; del 0 ('ver', 'renew:c0', 'old') 1 ; clock 2 2 ; merge kp_other 1 0 ; renewcert 2 c0 ; renew 0 c1 ask
+H + a whole file written over another                              3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x1, accepted:unsaved-answer-lost x27, accepted:unsaved-rule-lost x41, aside-counts x1, info:renewal-at-a-clock-ahead x1, one-loss x1, rollback-by-overwrite x116, safety x1
+    shortest accepted:copy-wider: rule 0 N none ; revoke 0 c0 ; copy 0
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until2 ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 2 root none ; quit 2
+    shortest info:renewal-at-a-clock-ahead: sealsee 1 ; rule 2 N inherit ; renew 2 c0 until1 ; clock 2 1 ; clock 0 1 ; renewcert 2 c0
+    aside-counts, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 1 histories, 1 distinct once shrunk
+        #8547, shrunk to 3 steps: restart 2 ; del 2 ('kept',) 1 ; del 2 ('auth',) 1   (file 2: served under K, which its ideal sets aside)
+    one-loss, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 1 histories, 1 distinct once shrunk
+        #8547, shrunk to 3 steps: restart 2 ; del 2 ('kept',) 1 ; del 2 ('auth',) 1   (file 2: client c0 admitted)
+    rollback-by-overwrite, about something else, a whole file written over another (STORE.md 639 row 1): 116 histories, 42 distinct once shrunk, the three shortest
+        #696, shrunk to 2 steps: delauth 1 ; over 1 2   (file 1)
+        #713, shrunk to 2 steps: prem 0 pf ; over 0 1   (file 0)
+        #771, shrunk to 2 steps: restart 0 ; over 0 1   (file 0)
+    safety, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 1 histories, 1 distinct once shrunk
+        #8547, shrunk to 3 steps: restart 2 ; del 2 ('kept',) 1 ; del 2 ('auth',) 1   (file 2: client c0 admitted)
+I everything at once                                               3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x4, accepted:unsaved-answer-lost x31, accepted:unsaved-rule-lost x35, aside-counts x1, info:renewal-at-a-clock-ahead x1, one-loss x1, rollback-by-overwrite x35, safety x1
+    shortest accepted:copy-wider: rule 2 N none ; prem 2 pf ; copy 2
+    shortest accepted:unsaved-answer-lost: renew 2 c0 until2 ; quit 2
+    shortest accepted:unsaved-rule-lost: rule 2 root inherit ; quit 2
+    shortest info:renewal-at-a-clock-ahead: rule 1 N rw ; revoke 1 c1 ; renew 1 c0 until1 ; padd 2 pg ; clock 1 1 ; merge k2a 0 1 ; renewcert 1 c0 ; see 1 c1
+    aside-counts, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 1 histories, 1 distinct once shrunk
+        #7517, shrunk to 3 steps: restart 2 ; del 2 ('kept',) 2 ; edit 2 ('auth',)   (file 2: served under K, which its ideal sets aside)
+    one-loss, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 1 histories, 1 distinct once shrunk
+        #7517, shrunk to 3 steps: restart 2 ; del 2 ('kept',) 2 ; edit 2 ('auth',)   (file 2: client c0 admitted)
+    rollback-by-overwrite, about something else, a whole file written over another (STORE.md 639 row 1): 35 histories, 25 distinct once shrunk, the three shortest
+        #692, shrunk to 2 steps: prem 2 pf ; over 2 1   (file 2)
+        #860, shrunk to 2 steps: restart 0 ; over 0 1   (file 0)
+        #1041, shrunk to 2 steps: recreate 1 ; over 1 2   (file 1)
+    safety, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 1 histories, 1 distinct once shrunk
+        #7517, shrunk to 3 steps: restart 2 ; del 2 ('kept',) 2 ; edit 2 ('auth',)   (file 2: client c0 admitted)
+J only KeePass Synchronize and Keepass2Android; deletions with a record 3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x2, accepted:unsaved-answer-lost x33, accepted:unsaved-rule-lost x27, aside-counts x1, info:renewal-at-a-clock-ahead x1, safety x1
+    shortest accepted:copy-wider: rule 1 N none ; save 1 ; copy 1
+    shortest accepted:unsaved-answer-lost: pair 1 ; renew 1 c1 until2 ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 1 N none ; quit 1
+    shortest info:renewal-at-a-clock-ahead: merge kp_sync 2 0 ; renew 1 c1 forever ; copy 1 ; renew 2 c0 until2 ; clock 2 2 ; padd 1 pg ; renewcert 2 c0
+    aside-counts, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 1 histories, 1 distinct once shrunk
+        #18243, shrunk to 3 steps: restart 0 ; del 0 ('auth',) 1 ; del 0 ('kept',) 1   (file 0: served under K, which its ideal sets aside)
+    safety, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 1 histories, 1 distinct once shrunk
+        #18243, shrunk to 3 steps: restart 0 ; del 0 ('auth',) 1 ; del 0 ('kept',) 1   (file 0: client c0 admitted)
+J2 the same; every kind of deletion                                3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x6, accepted:unsaved-answer-lost x39, accepted:unsaved-rule-lost x30, info:renewal-at-a-clock-ahead x1
+    shortest accepted:copy-wider: rule 1 N none ; renewcert 1 c0 ; copy 1
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until1 ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 1 N none ; quit 1
+    shortest info:renewal-at-a-clock-ahead: renew 1 c1 ask ; renew 2 c0 until2 ; delauth 1 ; clock 2 0 ; rule 1 root r ; padd 1 pf ; clock 2 2 ; renewcert 2 c0 ; del 0 ('ver', 'renew:c1', 'new') 0
+K the same, and foreign edits, imports and planted entries         3 files  20000 histories; oracle a lift's lost counted as seen: accepted:copy-wider x3, accepted:unsaved-answer-lost x35, accepted:unsaved-rule-lost x30, info:seal-damaged-version-refuses x1, safety x1
+    shortest accepted:copy-wider: rule 2 N none ; merge kp_sync 2 1 ; copy 2
+    shortest accepted:unsaved-answer-lost: renew 1 c0 until2 ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 0 root none ; quit 0
+    shortest info:seal-damaged-version-refuses: rule 2 root rw ; renew 1 c1 until2 ; merge k2a 0 2 ; edit 0 ('ver', 'rule:root', 'new') ; merge kp_sync 0 1 ; merge k2a 2 0 ; padd 0 pf ; del 0 ('head', 'old') 2 ; reseal+ 0 ('revoke', 0, 'c0')
+    safety, about a renewal answer, a store key lost: the authority's entry deleted or edited, then Create (decision 9): 1 histories, 1 distinct once shrunk
+        #13511, shrunk to 4 steps: renew 0 c0 forever ; edit 1 ('auth',) ; create 1 ; merge kp_sync 0 1   (file 0: renewal of c0 ask where its ideal is forever (refusing at - against 012))
+== 317 s

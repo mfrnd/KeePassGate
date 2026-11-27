@@ -1,0 +1,15 @@
+== random histories of a store started again, deletions by hand and merges, two copies: 300 histories, steps 1767, entry disagreements 0, read differences 0, 1074 s
+   files at the end against every decision: WIDER 41, as decided 322, narrower 27, refuses 210
+   steps at which the copy changed read wider than its own ideal: 0; served under a key its ideal or the oracle sets aside: 0
+   merges held to both copies just before: 970; that gave what neither copy gave: 5
+## history 147: renewcert 0 c0 ; reseal 1 ; merge kp_other 1 0 OverwriteIfNewer ; del 0 ('auth',) 1 ; revoke 1 c0 ; renew 0 c0 ask ; merge kp_other 1 0 OverwriteIfNewer ; merge xc 0 1 2.8.0 ; rule 0 N rw ; merge kp_sync 0 1 ; renew 1 c0 forever ; merge xc 1 0 2.8.0
+   at step 11 (merge xc 1 0 2.8.0): BEYOND BOTH COPIES: node N grants rw
+## history 181: merge kp_other 1 0 OverwriteIfNewer ; rule 1 N rw ; del 1 ('auth', 'a0') 1 ; merge kp_other 0 1 OverwriteIfNewer ; merge kp_other 0 1 OverwriteIfNewer ; reseal 1
+   at step 3 (merge kp_other 0 1 OverwriteIfNewer): BEYOND BOTH COPIES: node N grants rw
+## history 200: merge kp_sync 1 0 ; rule 0 N rw ; rule 1 N none ; rule 0 N none ; pair 1 ; merge kp_other 1 0 OverwriteIfNewer ; del 1 ('auth', 'a0') 1 ; merge kp_sync 1 0 ; revoke 0 c1 ; merge kp_other 1 0 OverwriteIfNewer ; merge kp_other 0 1 OverwriteIfNewer
+   at step 10 (merge kp_other 0 1 OverwriteIfNewer): BEYOND BOTH COPIES: client c1 holds pf
+## history 260: pair 0 ; merge kp_sync 1 0 ; del 1 ('auth', 'a0') 1 ; merge kp_other 0 1 OverwriteIfNewer ; merge xc 1 0 2.8.0 ; prem 1 pf ; merge kp_other 0 1 OverwriteIfNewer ; padd 1 pf ; merge xc 0 1 2.8.0 ; renew 1 c0 forever ; merge kp_other 0 1 OverwriteIfNewer ; del 0 ('auth',) 1
+   at step 8 (merge xc 0 1 2.8.0): BEYOND BOTH COPIES: client c0 holds pf
+## history 281: del 1 ('auth', 'a0') 1 ; create 0 ; newer 0 ; merge xc 0 1 2.8.0 ; rule 1 N rw ; create 1 ; rule 0 N rw ; merge xc 1 0 2.8.0 ; reseal 0 ; merge kp_sync 1 0 ; prem 0 pf ; del 0 ('auth', 'a0') 1
+   at step 9 (merge kp_sync 1 0): BEYOND BOTH COPIES: serves a6
+== 1089 s

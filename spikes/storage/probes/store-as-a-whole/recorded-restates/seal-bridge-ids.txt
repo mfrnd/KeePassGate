@@ -1,0 +1,4 @@
+== 2000 histories of the seal's alphabet over two copies, 4 to 12 steps, seed 71: after every step that applied, the file the copy it changed holds written by store.py's Encoder, a damaged entry with its check failing, every certificate and client key in hexadecimal, read by read.py with its listing, held to the model's fold (whether the store is whole, and the objects a lost version makes refuse); and where the copy is stopped, the versions read.py's listing plans for the seal held to the versions the model's seal writes over the same copy
+   steps compared 9700; steps that differ 0
+   seals compared 1305; seals that differ 0
+== 19 s

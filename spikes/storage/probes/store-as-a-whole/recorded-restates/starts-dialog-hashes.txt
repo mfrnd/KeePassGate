@@ -1,0 +1,29 @@
+== What Seal again's reading lists of a store a start stopped, once the new key is lost (read.py's
+   losses: the conditions of STORE.md 624 that hold, the records no summary entry restates, the stops a
+   start wrote by the key each names, and the records the seal writes), then the seal pressed and the store
+   read again. A key is named by the model's label where read.py finds it, else by its name's first 8.
+## the new key lost by a deletion with a deletion record: restart 0 ; padd 0 pf ; pair 0 ; del 0 ('auth',) 1
+   read: incomplete, served - under K, aside -, admitted -
+   stopped because: a record no summary entry restates
+   records no summary entry restates: 1; of them set aside by a start: a2ba26f6 naming K4
+   the seal writes: a keep record naming K4, after a2ba26f6
+   Seal again: applies; read: ok, served a0 under K, aside -, admitted c0; the keep record written is the plan [entries 0, read 0]
+## the new key lost by 11 edits: restart 0 ; padd 0 pf ; pair 0 ; edit11 0 ('auth',)
+   read: incomplete, served - under K, aside -, admitted -
+   stopped because: a record no summary entry restates
+   records no summary entry restates: 1; of them set aside by a start: a2ba26f6 naming K4
+   the seal writes: a keep record naming K4, after a2ba26f6
+   Seal again: applies; read: ok, served a0 under K, aside -, admitted c0; the keep record written is the plan [entries 0, read 0]
+## the earlier store stopped before the start, then the new key lost by 11 edits: del 0 ('head', 'new') 1 ; restart 0 ; padd 0 pf ; pair 0 ; edit11 0 ('auth',)
+   read: incomplete, served - under K, aside -, admitted -
+   stopped because: no summary entry of the store is in force; a record no summary entry restates
+   records no summary entry restates: 2; of them set aside by a start: a2ba26f6 naming K4
+   the seal writes: a keep record naming K4, after a2ba26f6
+   Seal again: applies; read: ok, served a0 under K, aside -, admitted c0; the keep record written is the plan [entries 0, read 0]
+## a split store started again, then the new key lost: del 1 ('auth', 'a0') 0 ; create 1 ; merge kp_sync 0 1 ; restart 0 ; del 0 ('auth',) 1
+   read: split, served - under K+K4, aside -, admitted -
+   stopped because: a record no summary entry restates
+   records no summary entry restates: 2; of them set aside by a start: a2ba268a naming K6, fc3261d7 naming K6
+   the seal writes: nothing
+   Seal again: refused; read: split, served - under K+K4, aside -, admitted -; the keep record written is the plan [entries 0, read 0]
+== 2 s

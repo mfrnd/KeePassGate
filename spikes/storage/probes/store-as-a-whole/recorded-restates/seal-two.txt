@@ -1,0 +1,8 @@
+== 200000 histories of the seal's alphabet over 2 copies, 4 to 12 steps, seed 61 (as seal_runs.py's part seal two): every history that holds a seal played under each form beside the control
+   histories: 200000 histories, 131304 holding a seal
+   form named: no history differs from the control (of 200000)
+   form ids: histories in which a summary entry holding an item with no subject was written: 19 of 200000
+   form ids: no history differs from the control (of 200000)
+   form hashes: histories in which a summary entry holding an item with no subject was written: 19 of 200000
+   form hashes: no history differs from the control (of 200000)
+== 665 s

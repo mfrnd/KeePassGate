@@ -1,0 +1,11 @@
+== every sequence of 4 steps of the acts of a store started again over two copies: 30 steps wide with the first and the newest authority deleted with a deletion record, Seal again and a keep record deleted with a deletion record and with none, from the store the model starts with, the convergence checked at the end: 810000 histories  aside-counts x876, one-loss x436, safety x868
+    first shortest aside-counts (file 0: served under K4, which its ideal sets aside): restart 0 ; restart 0 ; del 0 ('auth',) 1 ; del 0 ('kept',) 0   [NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again]
+    first shortest one-loss (file 0: client c0 admitted): restart 0 ; pair 0 ; del 0 ('kept',) 0 ; del 0 ('auth',) 1   [NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again]
+    first shortest safety (file 0: client c0 admitted): restart 0 ; pair 0 ; del 0 ('auth',) 1 ; del 0 ('kept',) 0   [NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again]
+    aside-counts, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 812 sequences
+    aside-counts, a store key lost: the authority's entry deleted or edited, then Create (decision 9): 64 sequences
+    one-loss, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 404 sequences
+    one-loss, a store key lost: the authority's entry deleted or edited, then Create (decision 9): 32 sequences
+    safety, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 804 sequences
+    safety, a store key lost: the authority's entry deleted or edited, then Create (decision 9): 64 sequences
+== 505 s

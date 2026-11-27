@@ -1,0 +1,52 @@
+== the design's search as seal_runs.py runs it, its twelve configurations over 3 files, 20000 histories each, its seeds: every history that holds a seal played under each form beside the control
+   A merges only (every program): 20000 histories, 0 holding a seal
+   form named: no history differs from the control (of 20000)
+   form ids: no history differs from the control (of 20000)
+   form hashes: no history differs from the control (of 20000)
+   B + deletions by hand with a deletion record: 20000 histories, 6262 holding a seal
+   form named: no history differs from the control (of 20000)
+   form ids: no history differs from the control (of 20000)
+   form hashes: no history differs from the control (of 20000)
+   C + deletions that leave no record: 20000 histories, 3900 holding a seal
+   form named: no history differs from the control (of 20000)
+   form ids: no history differs from the control (of 20000)
+   form hashes: no history differs from the control (of 20000)
+   D + records dated before the entry (a clock behind): 20000 histories, 4008 holding a seal
+   form named: no history differs from the control (of 20000)
+   form ids: no history differs from the control (of 20000)
+   form hashes: no history differs from the control (of 20000)
+   E + deletion records cleared: 20000 histories, 3973 holding a seal
+   form named: no history differs from the control (of 20000)
+   form ids: no history differs from the control (of 20000)
+   form hashes: no history differs from the control (of 20000)
+   F + foreign: edits, import with new identifiers, planted entries: 20000 histories, 3224 holding a seal
+   form named: no history differs from the control (of 20000)
+   form ids: no history differs from the control (of 20000)
+   form hashes: no history differs from the control (of 20000)
+   G + a copy stripped of its reference: 20000 histories, 6008 holding a seal
+   form named: no history differs from the control (of 20000)
+   form ids: histories in which a summary entry holding an item with no subject was written: 1 of 20000
+   form ids: no history differs from the control (of 20000)
+   form hashes: histories in which a summary entry holding an item with no subject was written: 1 of 20000
+   form hashes: no history differs from the control (of 20000)
+   H + a whole file written over another: 20000 histories, 5836 holding a seal
+   form named: no history differs from the control (of 20000)
+   form ids: no history differs from the control (of 20000)
+   form hashes: no history differs from the control (of 20000)
+   I everything at once: 20000 histories, 1929 holding a seal
+   form named: no history differs from the control (of 20000)
+   form ids: no history differs from the control (of 20000)
+   form hashes: no history differs from the control (of 20000)
+   J only KeePass Synchronize and Keepass2Android; deletions with a record: 20000 histories, 6310 holding a seal
+   form named: no history differs from the control (of 20000)
+   form ids: no history differs from the control (of 20000)
+   form hashes: no history differs from the control (of 20000)
+   J2 the same; every kind of deletion: 20000 histories, 2976 holding a seal
+   form named: no history differs from the control (of 20000)
+   form ids: no history differs from the control (of 20000)
+   form hashes: no history differs from the control (of 20000)
+   K the same, and foreign edits, imports and planted entries: 20000 histories, 1990 holding a seal
+   form named: no history differs from the control (of 20000)
+   form ids: no history differs from the control (of 20000)
+   form hashes: no history differs from the control (of 20000)
+== 823 s

@@ -1,0 +1,6 @@
+== 200000 histories of the acts of a store started again over 2 copies, 8 to 16 steps, seed 64: 36 acts (a start again, a pairing, revocations, a name added and removed, rules, an answer and a lift, renewals, Delete, Create, Recreate, a plugin of a later format, a save, KeePass ending before a save) and 6 merges (Synchronize, Overwrite if newer, KeePassXC), an act drawn with 0.6
+   histories; oracle a lift's lost counted as seen: accepted:unsaved-answer-lost x1835, accepted:unsaved-rule-lost x2224, info:unsaved-lift-lost x43
+    shortest accepted:unsaved-answer-lost: renew 1 c0 forever ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 0 N none ; quit 0
+    shortest info:unsaved-lift-lost: renew 1 c0 forever ; pair 1 ; renew 1 c0 ask ; merge xc 1 0 ; save 0 ; create 0 ; merge xc 0 1 ; merge xc 0 1 ; quit 1
+== 421 s

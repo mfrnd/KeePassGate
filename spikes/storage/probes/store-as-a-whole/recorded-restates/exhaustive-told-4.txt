@@ -1,0 +1,75 @@
+== every sequence of 4 steps of the seal, deletion records cleared, every merge, the decision made apart at copy 1, a summary entry deleted, a pairing and a save (25 steps wide) after rule 0 N r ; prem 0 pf ; del 0 (prem) 1 ; del 0 (head new) 1, under each form beside the control: 390625 histories
+   form named, the form fails where the control does not: 791 histories of 390625 (sealed-after-a-loss 791)
+        #146, shrunk to 3 steps: reseal 0 ; save 0 ; merge kp_other 1 0   (fails sealed-after-a-loss; wider at 1; the seal's classes would put it in: Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5))
+        #148, shrunk to 3 steps: reseal 0 ; save 0 ; merge xc 1 0   (fails sealed-after-a-loss; wider at 1; the seal's classes would put it in: Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5))
+        #171, shrunk to 3 steps: reseal 0 ; pair 0 ; merge kp_other 1 0   (fails sealed-after-a-loss; wider at 1; the seal's classes would put it in: Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5))
+        #173, shrunk to 3 steps: reseal 0 ; pair 0 ; merge xc 1 0   (fails sealed-after-a-loss; wider at 1; the seal's classes would put it in: Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5))
+   form named, the form ends wider than its own ideal where the control does not: 733 histories of 390625
+        #146, shrunk to 3 steps: reseal 0 ; save 0 ; merge kp_other 1 0   (fails sealed-after-a-loss; wider at 1; the seal's classes would put it in: Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5))
+        #148, shrunk to 3 steps: reseal 0 ; save 0 ; merge xc 1 0   (fails sealed-after-a-loss; wider at 1; the seal's classes would put it in: Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5))
+        #171, shrunk to 3 steps: reseal 0 ; pair 0 ; merge kp_other 1 0   (fails sealed-after-a-loss; wider at 1; the seal's classes would put it in: Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5))
+        #173, shrunk to 3 steps: reseal 0 ; pair 0 ; merge xc 1 0   (fails sealed-after-a-loss; wider at 1; the seal's classes would put it in: Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5))
+   form named, the control ends granting less where the form does not: 733 histories of 390625
+        #146: reseal 0 ; sealsee 0 ; save 0 ; merge kp_other 1 0   (granting less at 1)
+        #148: reseal 0 ; sealsee 0 ; save 0 ; merge xc 1 0   (granting less at 1)
+   form ids: histories in which a summary entry holding an item with no subject was written: 55227 of 390625
+   form ids: no history differs from the control (of 390625)
+   form hashes: histories in which a summary entry holding an item with no subject was written: 55227 of 390625
+   form hashes: no history differs from the control (of 390625)
+== every sequence of 4 steps of the seal, deletion records cleared, every merge, the decision made apart at copy 1, a summary entry deleted, a pairing and a save (25 steps wide) after rule 0 N r ; recreate 0 ; del 0 (ref retired) 1 ; del 0 (head new) 1, under each form beside the control: 390625 histories
+   form named, the form ends stopped where the control does not: 9 histories of 390625
+        #893, shrunk to 4 steps: recreate 1 ; reseal 0 ; del 1 (head new) 0 ; merge kp_sync 0 1   (stopped at 0)
+        #895, shrunk to 4 steps: recreate 1 ; reseal 0 ; del 1 (head new) 0 ; merge kp_other 0 1   (stopped at 0)
+        #920, shrunk to 4 steps: recreate 1 ; reseal 0 ; del 1 (head new) 1 ; merge kp_other 0 1   (stopped at 0)
+        #6293, shrunk to 4 steps: recreate 1 ; del 1 (head new) 0 ; reseal 0 ; merge kp_sync 0 1   (stopped at 0)
+   form named, the form ends granting less where the control does not: 815 histories of 390625
+        #146, shrunk to 3 steps: reseal 0 ; save 0 ; merge kp_other 1 0   (granting less at 1)
+        #148, shrunk to 3 steps: reseal 0 ; save 0 ; merge xc 1 0   (granting less at 1)
+        #171, shrunk to 3 steps: reseal 0 ; pair 0 ; merge kp_other 1 0   (granting less at 1)
+        #173, shrunk to 3 steps: reseal 0 ; pair 0 ; merge xc 1 0   (granting less at 1)
+   form ids: histories in which a summary entry holding an item with no subject was written: 55227 of 390625
+   form ids, the form ends stopped where the control does not: 9 histories of 390625
+        #893, shrunk to 4 steps: recreate 1 ; reseal 0 ; del 1 (head new) 0 ; merge kp_sync 0 1   (stopped at 0)
+        #895, shrunk to 4 steps: recreate 1 ; reseal 0 ; del 1 (head new) 0 ; merge kp_other 0 1   (stopped at 0)
+        #920, shrunk to 4 steps: recreate 1 ; reseal 0 ; del 1 (head new) 1 ; merge kp_other 0 1   (stopped at 0)
+        #6293, shrunk to 4 steps: recreate 1 ; del 1 (head new) 0 ; reseal 0 ; merge kp_sync 0 1   (stopped at 0)
+   form hashes: histories in which a summary entry holding an item with no subject was written: 55227 of 390625
+   form hashes: no history differs from the control (of 390625)
+== every sequence of 4 steps of the seal, deletion records cleared, every merge, the decision made apart at copy 1, a summary entry deleted, a pairing and a save (25 steps wide) after rule 0 N r ; revoke 0 c0 ; del 0 (ref revoked) 1 ; del 0 (head new) 1, under each form beside the control: 390625 histories
+   form named, the form fails where the control does not: 815 histories of 390625 (sealed-after-a-loss 815)
+        #146, shrunk to 3 steps: reseal 0 ; save 0 ; merge kp_other 1 0   (fails sealed-after-a-loss; wider at 1; the seal's classes would put it in: Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5))
+        #148, shrunk to 3 steps: reseal 0 ; save 0 ; merge xc 1 0   (fails sealed-after-a-loss; wider at 1; the seal's classes would put it in: Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5))
+        #171, shrunk to 3 steps: reseal 0 ; pair 0 ; merge kp_other 1 0   (fails sealed-after-a-loss; wider at 1; the seal's classes would put it in: Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5))
+        #173, shrunk to 3 steps: reseal 0 ; pair 0 ; merge xc 1 0   (fails sealed-after-a-loss; wider at 1; the seal's classes would put it in: Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5))
+   form named, the form ends stopped where the control does not: 9 histories of 390625
+        #893, shrunk to 4 steps: revoke 1 c0 ; reseal 0 ; del 1 (head new) 0 ; merge kp_sync 0 1   (stopped at 0; granting less at 0)
+        #895, shrunk to 4 steps: revoke 1 c0 ; reseal 0 ; del 1 (head new) 0 ; merge kp_other 0 1   (stopped at 0; granting less at 0)
+        #920, shrunk to 4 steps: revoke 1 c0 ; reseal 0 ; del 1 (head new) 1 ; merge kp_other 0 1   (stopped at 0; granting less at 0)
+        #6293, shrunk to 4 steps: revoke 1 c0 ; del 1 (head new) 0 ; reseal 0 ; merge kp_sync 0 1   (stopped at 0; granting less at 0)
+   form named, the form ends wider than its own ideal where the control does not: 765 histories of 390625
+        #146, shrunk to 3 steps: reseal 0 ; save 0 ; merge kp_other 1 0   (fails sealed-after-a-loss; wider at 1; the seal's classes would put it in: Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5))
+        #148, shrunk to 3 steps: reseal 0 ; save 0 ; merge xc 1 0   (fails sealed-after-a-loss; wider at 1; the seal's classes would put it in: Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5))
+        #171, shrunk to 3 steps: reseal 0 ; pair 0 ; merge kp_other 1 0   (fails sealed-after-a-loss; wider at 1; the seal's classes would put it in: Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5))
+        #173, shrunk to 3 steps: reseal 0 ; pair 0 ; merge xc 1 0   (fails sealed-after-a-loss; wider at 1; the seal's classes would put it in: Seal again after a loss in both carriers with no deletion record (STORE.md 639 row 5))
+   form named, the form ends granting less where the control does not: 9 histories of 390625
+        #893, shrunk to 4 steps: revoke 1 c0 ; reseal 0 ; del 1 (head new) 0 ; merge kp_sync 0 1   (stopped at 0; granting less at 0)
+        #895, shrunk to 4 steps: revoke 1 c0 ; reseal 0 ; del 1 (head new) 0 ; merge kp_other 0 1   (stopped at 0; granting less at 0)
+        #920, shrunk to 4 steps: revoke 1 c0 ; reseal 0 ; del 1 (head new) 1 ; merge kp_other 0 1   (stopped at 0; granting less at 0)
+        #6293, shrunk to 4 steps: revoke 1 c0 ; del 1 (head new) 0 ; reseal 0 ; merge kp_sync 0 1   (stopped at 0; granting less at 0)
+   form named, the control ends granting less where the form does not: 765 histories of 390625
+        #146: reseal 0 ; sealsee 0 ; save 0 ; merge kp_other 1 0   (granting less at 1)
+        #148: reseal 0 ; sealsee 0 ; save 0 ; merge xc 1 0   (granting less at 1)
+   form ids: histories in which a summary entry holding an item with no subject was written: 55312 of 390625
+   form ids, the form ends stopped where the control does not: 9 histories of 390625
+        #893, shrunk to 4 steps: revoke 1 c0 ; reseal 0 ; del 1 (head new) 0 ; merge kp_sync 0 1   (stopped at 0; granting less at 0)
+        #895, shrunk to 4 steps: revoke 1 c0 ; reseal 0 ; del 1 (head new) 0 ; merge kp_other 0 1   (stopped at 0; granting less at 0)
+        #920, shrunk to 4 steps: revoke 1 c0 ; reseal 0 ; del 1 (head new) 1 ; merge kp_other 0 1   (stopped at 0; granting less at 0)
+        #6293, shrunk to 4 steps: revoke 1 c0 ; del 1 (head new) 0 ; reseal 0 ; merge kp_sync 0 1   (stopped at 0; granting less at 0)
+   form ids, the form ends granting less where the control does not: 9 histories of 390625
+        #893, shrunk to 4 steps: revoke 1 c0 ; reseal 0 ; del 1 (head new) 0 ; merge kp_sync 0 1   (stopped at 0; granting less at 0)
+        #895, shrunk to 4 steps: revoke 1 c0 ; reseal 0 ; del 1 (head new) 0 ; merge kp_other 0 1   (stopped at 0; granting less at 0)
+        #920, shrunk to 4 steps: revoke 1 c0 ; reseal 0 ; del 1 (head new) 1 ; merge kp_other 0 1   (stopped at 0; granting less at 0)
+        #6293, shrunk to 4 steps: revoke 1 c0 ; del 1 (head new) 0 ; reseal 0 ; merge kp_sync 0 1   (stopped at 0; granting less at 0)
+   form hashes: histories in which a summary entry holding an item with no subject was written: 55312 of 390625
+   form hashes: no history differs from the control (of 390625)
+== 2007 s

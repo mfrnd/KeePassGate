@@ -1,0 +1,57 @@
+== 200000 histories of the acts of a store started again over 2 copies, 4 to 12 steps, seed 63: 64 acts (a start again, a pairing, revocations, a name added and removed, rules, an answer and a lift, renewals, Delete, Create, Recreate, a plugin of a later format, a save, KeePass ending before a save, the first and the newest authority, a retirement, a keep record and the newest summary entry deleted with a deletion record or with none, the newest and the first authority edited, Seal again, every deletion record cleared) and 8 merges (Synchronize, Overwrite if newer, KeePassXC, Create new IDs), an act drawn with 0.6
+   histories; oracle a lift's lost counted as seen: accepted:unsaved-answer-lost x462, accepted:unsaved-rule-lost x464, aside-counts x224, info:seal-refused-for-the-store-key x4, info:unsaved-lift-lost x4, one-loss x99, safety x317, sealed-after-a-loss x2
+    shortest accepted:unsaved-answer-lost: renew 1 c0 forever ; quit 1
+    shortest accepted:unsaved-rule-lost: rule 1 N none ; quit 1
+    shortest info:seal-refused-for-the-store-key: import 1 0 ; recreate 0 ; edit 0 ('auth',) ; merge xc 0 1 ; reseal 0 ; rule 1 N none ; del 0 ('auth',) 0
+    shortest info:unsaved-lift-lost: renew 1 c0 forever ; merge kp_other 0 1 ; import 0 1 ; merge kp_sync 1 0 ; del 0 ('auth',) 1 ; renew 1 c0 ask ; quit 1 ; renew 1 c0 ask
+    aside-counts, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 223 histories, 85 distinct once shrunk, the three shortest
+        #15, shrunk to 3 steps: restart 1 ; del 1 ('kept',) 0 ; edit 1 ('auth',)   (file 1: served under K, which its ideal sets aside)
+        #1124, shrunk to 3 steps: restart 0 ; del 0 ('auth',) 0 ; del 0 ('kept',) 1   (file 0: served under K, which its ideal sets aside)
+        #1494, shrunk to 3 steps: restart 0 ; del 0 ('kept',) 0 ; edit 0 ('auth',)   (file 0: served under K, which its ideal sets aside)
+    aside-counts, about something else, the keep record of a start and the summary entry restating it deleted, so that the stop's deletion record sets the new key aside (STORE.md 639 rows 2 and 3): 1 histories, 1 distinct once shrunk
+        #158097, shrunk to 4 steps: restart 1 ; del 1 ('kept',) 1 ; del 1 ('kept',) 0 ; del 1 ('head', 'new') 1   (file 1: served under K, which its ideal sets aside)
+    one-loss, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 89 histories, 43 distinct once shrunk, the three shortest
+        #15, shrunk to 3 steps: restart 1 ; del 1 ('kept',) 0 ; edit 1 ('auth',)   (file 1: client c0 admitted)
+        #1494, shrunk to 3 steps: restart 0 ; del 0 ('kept',) 0 ; edit 0 ('auth',)   (file 0: client c0 admitted)
+        #7716, shrunk to 3 steps: restart 1 ; del 1 ('kept',) 1 ; edit 1 ('auth',)   (file 1: client c0 admitted)
+    one-loss, about something else, a decision and its summary entry deleted, and a merge that carries no deletion record (STORE.md 639 rows 2 and 3): 6 histories, 6 distinct once shrunk, the three shortest
+        #82190, shrunk to 4 steps: delauth 0 ; del 0 ('head', 'new') 0 ; merge kp_other 1 0 ; del 1 ('ref', 'retired') 0   (file 1: client c0 admitted)
+        #94806, shrunk to 4 steps: delauth 1 ; merge xc 0 1 ; del 0 ('head', 'new') 0 ; del 0 ('ref', 'retired') 0   (file 0: client c0 admitted)
+        #154198, shrunk to 4 steps: delauth 1 ; del 1 ('ref', 'retired') 1 ; merge kp_other 0 1 ; del 0 ('head', 'new') 0   (file 0: client c0 admitted)
+    one-loss, about something else, every deletion record removed while a loss stands (STORE.md 639 row 4): 3 histories, 3 distinct once shrunk
+        #20416, shrunk to 5 steps: delauth 1 ; clear 1 ; del 1 ('ref', 'retired') 0 ; merge kp_sync 0 1 ; del 0 ('head', 'new') 0   (file 0: client c0 admitted)
+        #125947, shrunk to 5 steps: delauth 0 ; del 0 ('head', 'new') 0 ; clear 0 ; merge kp_sync 1 0 ; del 1 ('ref', 'retired') 0   (file 1: client c0 admitted)
+        #196344, shrunk to 5 steps: delauth 1 ; del 1 ('ref', 'retired') 0 ; merge xc 1 0 ; clear 1 ; del 1 ('head', 'new') 0   (file 1: client c0 admitted)
+    one-loss, about something else, the keep record of a start and the summary entry restating it deleted, so that the stop's deletion record sets the new key aside (STORE.md 639 rows 2 and 3): 1 histories, 1 distinct once shrunk
+        #158097, shrunk to 4 steps: restart 1 ; del 1 ('kept',) 1 ; del 1 ('kept',) 0 ; del 1 ('head', 'new') 1   (file 1: client c0 admitted)
+    safety, about a renewal answer, a store key lost: the authority's entry deleted or edited, then Create (decision 9): 73 histories, 64 distinct once shrunk, the three shortest
+        #2919, shrunk to 4 steps: edit 0 ('auth',) ; renew 1 c0 forever ; create 0 ; merge kp_sync 1 0   (file 1: renewal of c0 ask where its ideal is forever (refusing at - against 012))
+        #10357, shrunk to 4 steps: renew 1 c0 forever ; merge kp_sync 1 0 ; del 1 ('auth', 'a0') 1 ; create 1   (file 1: renewal of c0 ask where its ideal is forever (refusing at - against 012))
+        #11156, shrunk to 4 steps: renew 1 c0 forever ; import 1 0 ; del 1 ('auth',) 0 ; create 1   (file 1: renewal of c0 ask where its ideal is forever (refusing at - against 012))
+    safety, about a renewal answer, a store key lost: the earlier authority's entry deleted or edited, then the store started again, under which what the lost key held is passed over (decision 9): 3 histories, 3 distinct once shrunk
+        #61858, shrunk to 5 steps: edit 1 ('auth', 'a0') ; renew 0 c0 forever ; restart 0 ; merge xc 0 1 ; restart 0   (file 0: renewal of c0 ask where its ideal is forever (refusing at - against 012))
+        #116326, shrunk to 5 steps: restart 0 ; renew 1 c0 forever ; merge kp_sync 1 0 ; del 1 ('auth', 'a0') 1 ; restart 1   (file 1: renewal of c0 ask where its ideal is forever (refusing at - against 012))
+        #193766, shrunk to 5 steps: restart 1 ; renew 0 c0 forever ; del 1 ('auth', 'a0') 1 ; merge kp_sync 0 1 ; restart 0   (file 0: renewal of c0 ask where its ideal is forever (refusing at - against 012))
+    safety, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 218 histories, 83 distinct once shrunk, the three shortest
+        #15, shrunk to 3 steps: restart 1 ; del 1 ('kept',) 0 ; edit 1 ('auth',)   (file 1: client c0 admitted)
+        #1124, shrunk to 3 steps: restart 0 ; del 0 ('auth',) 0 ; del 0 ('kept',) 1   (file 0: client c0 admitted)
+        #1494, shrunk to 3 steps: restart 0 ; del 0 ('kept',) 0 ; edit 0 ('auth',)   (file 0: client c0 admitted)
+    safety, about something else, a decision and its summary entry deleted, and a merge that carries no deletion record (STORE.md 639 rows 2 and 3): 16 histories, 16 distinct once shrunk, the three shortest
+        #41209, shrunk to 4 steps: delauth 1 ; del 1 ('head', 'new') 0 ; del 1 ('ref', 'retired') 1 ; merge xc 0 1   (file 0: client c0 admitted)
+        #67209, shrunk to 4 steps: delauth 1 ; del 1 ('ref', 'retired') 0 ; del 1 ('head', 'new') 0 ; merge xc 0 1   (file 0: client c0 admitted)
+        #82190, shrunk to 4 steps: delauth 0 ; del 0 ('head', 'new') 0 ; merge kp_other 1 0 ; del 1 ('ref', 'retired') 0   (file 1: client c0 admitted)
+    safety, about something else, a store key lost: the authority's entry deleted or edited, then Create (decision 9): 3 histories, 3 distinct once shrunk
+        #23800, shrunk to 5 steps: rule 1 N none ; merge kp_other 1 0 ; del 1 ('auth',) 1 ; create 1 ; rule 1 N rw   (file 1: node N grants rw)
+        #172184, shrunk to 5 steps: rule 0 N none ; merge kp_sync 0 1 ; del 0 ('auth', 'a0') 0 ; create 0 ; rule 0 N rw   (file 0: node N grants rw)
+        #89627, shrunk to 6 steps: rule 1 N none ; merge kp_sync 1 0 ; del 1 ('auth', 'a0') 1 ; merge kp_sync 0 1 ; create 0 ; rule 0 N rw   (file 0: node N grants rw)
+    safety, about something else, every deletion record removed while a loss stands (STORE.md 639 row 4): 3 histories, 3 distinct once shrunk
+        #5477, shrunk to 5 steps: delauth 0 ; del 0 ('ref', 'retired') 1 ; merge xc 1 0 ; del 1 ('head', 'new') 1 ; clear 1   (file 1: client c0 admitted)
+        #20416, shrunk to 5 steps: delauth 1 ; clear 1 ; del 1 ('ref', 'retired') 0 ; merge kp_sync 0 1 ; del 0 ('head', 'new') 0   (file 0: client c0 admitted)
+        #125947, shrunk to 5 steps: delauth 0 ; del 0 ('head', 'new') 0 ; clear 0 ; merge kp_sync 1 0 ; del 1 ('ref', 'retired') 0   (file 1: client c0 admitted)
+    safety, about something else, the keep record of a start and the summary entry restating it deleted, so that the stop's deletion record sets the new key aside (STORE.md 639 rows 2 and 3): 1 histories, 1 distinct once shrunk
+        #158097, shrunk to 4 steps: restart 1 ; del 1 ('kept',) 1 ; del 1 ('kept',) 0 ; del 1 ('head', 'new') 1   (file 1: client c0 admitted)
+    sealed-after-a-loss, about something else, NEW: the entry that carries the key of a store started again and the stop under the earlier key deleted or edited by hand, so that nothing stops the earlier store, which stands alone again: 1 histories, 1 distinct once shrunk
+        #174218, shrunk to 5 steps: del 0 ('head', 'new') 0 ; reseal 0 ; restart 0 ; edit 0 ('auth',) ; del 0 ('kept',) 1   (file 0: client c0 admitted)
+    sealed-after-a-loss, about something else, Seal again keeps the earlier store once the new key is lost, as a store a start stopped is lifted: what was decided under the new key is out of it, while the oracle reads the two keys of the circle: 1 histories, 1 distinct once shrunk
+        #84949, shrunk to 5 steps: restart 0 ; rule 0 N none ; newer 0 ; del 0 ('auth',) 0 ; reseal 0   (file 0: node N grants r)
+== 283 s
