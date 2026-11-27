@@ -52,6 +52,9 @@ ANSWER_KIND_OF = AR.kind_of     # the classes of answer_runs.py, before this mod
 def setup():
     AR.setup()
     M.STARTS = M.SEAL = True     # Seal again as designed beside it: the seal lifts a store a start stopped
+    # ADDED (seal restates): the form these parts were run in, the control, unless the environment
+    # names another in SEAL_RESTATES (which reaches every worker a part starts)
+    M.SEAL_RESTATES = os.environ.get('SEAL_RESTATES', 'all')
 
 
 def fmt(op):

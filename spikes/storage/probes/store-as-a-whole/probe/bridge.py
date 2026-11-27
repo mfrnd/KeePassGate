@@ -171,7 +171,16 @@ def seal():
     global PREFIX
     answers()
     M.SEAL = RD.SEAL = True
-    PREFIX = 'se-'
+    # ADDED (seal restates): the form these parts were run in, the control, unless the environment
+    # names another in SEAL_RESTATES (which reaches every worker a part starts)
+    M.SEAL_RESTATES = os.environ.get('SEAL_RESTATES', 'all')
+    PREFIX = 'se-' + restates_dir()
+
+
+def restates_dir():
+    """ADDED (seal restates): nothing for the control, else the form and a hyphen, so that the databases
+    of a part run under another form go into directories of their own."""
+    return '' if M.SEAL_RESTATES == 'all' else M.SEAL_RESTATES + '-'
 
 
 def starts():
@@ -183,7 +192,7 @@ def starts():
     M.STARTS = RD.STARTS = RD.ROOM = True
     if 'kept' not in S.KINDS:
         S.KINDS = S.KINDS + S.STARTED
-    PREFIX = 'sa-'
+    PREFIX = 'sa-' + restates_dir()
 
 
 def use(form):

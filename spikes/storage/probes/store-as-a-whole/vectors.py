@@ -2056,6 +2056,7 @@ if SEALING:
     AN_A7 = [h for h in AN.histories() if h[0] == 'A7'][0]
     a7_name = 'answers, A7: ' + AN_A7[1]
     M.ANSWERS = R.ANSWERS = S.HEX = M.SEAL = R.SEAL = True
+    M.SEAL_RESTATES = 'all'     # ADDED (seal restates): the form these sequences were printed in
     again = play(2, [(answer_command(op), op) for op in AN_A7[2] + [INTO_0, INTO_1] + AN.bound(AN_A7[3], 0)])
     again['clients'] = {c: S.cert_hex(c) for c in ('c0', 'c1')}
     again['clock'] = list(M.CLOCK)
@@ -2102,6 +2103,7 @@ def starts_vectors():
     and T1 to T16 of measured-started-again played by the model, with STARTS on while they are made."""
     import restart as RS    # noqa: E402
     M.ANSWERS = R.ANSWERS = S.HEX = M.SEAL = R.SEAL = M.STARTS = R.STARTS = True
+    M.SEAL_RESTATES = 'all'     # ADDED (seal restates): the form these sequences were printed in
     kinds = S.KINDS
     if 'kept' not in S.KINDS:
         S.KINDS = S.KINDS + S.STARTED

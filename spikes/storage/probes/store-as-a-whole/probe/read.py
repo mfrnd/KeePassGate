@@ -382,6 +382,13 @@ def heads_items(h):
     return [json.loads(v) for k, v in sorted(h.extra.items())]
 
 
+def subject_item(it):
+    """ADDED (seal restates): whether an item of a revocation, a retirement or a removal names its
+    subject; an item that does not holds the identifier of a deletion record, `id`, or its keyed tag
+    and subject hash, `hash`, and its kind."""
+    return {'revoked': 'client', 'retired': 'authority', 'removed': 'name'}[it['kind']] in it
+
+
 def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings): `copies`; (copies extended): `ext`
     """ADDED (decided store): `history` is the history rule of EVALUATION.md 4.3 (decision 7): a
     record counts in its current version when that version passes the check, or else in the
@@ -572,9 +579,12 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
     for c in by.get('removed', []):
         prem.add((c.d['name'], c.u))
     hv = []
+    by_id = []      # ADDED (seal restates): (kind, identifier or tag and subject hash) of an item with no subject
     for h in heads:
         for it in heads_items(h):
-            if it['kind'] == 'revoked':
+            if it['kind'] in ('revoked', 'retired', 'removed') and not subject_item(it):
+                by_id.append((it['kind'], it.get('id') or it.get('hash')))
+            elif it['kind'] == 'revoked':
                 refusals.add(('revoked', it['client']))
             elif it['kind'] == 'retired':
                 refusals.add(('retired', it['authority']))
@@ -694,6 +704,24 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
                 out.append(o)
         return out
 
+    # ADDED (seal restates): an item with no subject tells its decision of every subject the file names
+    # whose hash under a key held is the one it holds; it restates the record of its identifier, and
+    # with `hash` every record of its kind whose identifier begins with it
+    c_ids, c_hashes = set(), set()
+    for kind, u in by_id:
+        if not u:
+            continue
+        (c_ids if len(u) > 16 else c_hashes).add(u)
+        for kd, k in tags.get(u[:6], ()):
+            what = subj.get((k, u[6:16])) if kd == kind else None
+            if what is None:
+                continue
+            if kind == 'revoked' and what[0] == 'client':
+                refusals.add(('revoked', what[1]))
+            elif kind == 'retired' and what[0] == 'authority':
+                refusals.add(('retired', what[1]))
+            elif kind == 'removed' and what[0] == 'profile' and len(u) > 16:
+                prem.add((what[1], u))
     stated = (set(refusals), set(prem))     # ADDED (seal again): what records and items state
     for u in dels:
         for kind, k in tags.get(u[:6], ()):
@@ -794,6 +822,8 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
         c_ref, c_prem, c_regs = set(), set(), set()
         for h in heads:
             for it in heads_items(h):
+                if it['kind'] in ('revoked', 'retired', 'removed') and not subject_item(it):
+                    continue    # ADDED (seal restates): by identifier, below
                 if it['kind'] == 'revoked':
                     c_ref.add(('revoked', it['client']))
                 elif it['kind'] == 'retired':
@@ -805,14 +835,17 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
         def held_to(c):     # ADDED (two readings): with 'exempt', a record from a copy is not
             return c.copy is None or copies != 'exempt'
 
+        def by_ident(c):    # ADDED (seal restates): an item with no subject restates it
+            return c.u in c_ids or (c.kind != 'removed' and c.u[:16] in c_hashes)
+
         for c in by.get('revoked', []):
-            if ('revoked', c.d['client']) not in c_ref and held_to(c):
+            if ('revoked', c.d['client']) not in c_ref and held_to(c) and not by_ident(c):
                 status = 'incomplete'
         for c in by.get('retired', []):
-            if ('retired', c.d['authority']) not in c_ref and held_to(c):
+            if ('retired', c.d['authority']) not in c_ref and held_to(c) and not by_ident(c):
                 status = 'incomplete'
         for c in by.get('removed', []):
-            if (c.d['name'], c.u) not in c_prem and held_to(c):
+            if (c.d['name'], c.u) not in c_prem and held_to(c) and not by_ident(c):
                 status = 'incomplete'
         for c in by.get('version', []):
             if c.u not in named and c.u not in deadall and c.u not in c_regs and held_to(c):
@@ -1040,16 +1073,21 @@ def read(dump, history=False, copies=None, ext=None):     # ADDED (two readings)
         n_ref, n_prem, n_regs = set(), set(), set()
         for h in heads:
             for it in heads_items(h):
+                if it['kind'] in ('revoked', 'retired', 'removed') and not subject_item(it):
+                    continue    # ADDED (seal restates): by identifier, below
                 if it['kind'] in ('revoked', 'retired'):
                     n_ref.add((it['kind'], it['client'] if it['kind'] == 'revoked' else it['authority']))
                 elif it['kind'] == 'removed':
                     n_prem.add((it['name'], it['id']))
                 elif it['kind'] == 'version':
                     n_regs.add(it['id'])
+
+        def restated_by_id(c):  # ADDED (seal restates)
+            return c.u in c_ids or (c.kind != 'removed' and c.u[:16] in c_hashes)
         not_restated = sorted(
-            [c.u for c in by.get('revoked', []) if ('revoked', c.d['client']) not in n_ref]
-            + [c.u for c in by.get('retired', []) if ('retired', c.d['authority']) not in n_ref]
-            + [c.u for c in by.get('removed', []) if (c.d['name'], c.u) not in n_prem]
+            [c.u for c in by.get('revoked', []) if ('revoked', c.d['client']) not in n_ref and not restated_by_id(c)]
+            + [c.u for c in by.get('retired', []) if ('retired', c.d['authority']) not in n_ref and not restated_by_id(c)]
+            + [c.u for c in by.get('removed', []) if (c.d['name'], c.u) not in n_prem and not restated_by_id(c)]
             + [c.u for c in by.get('version', []) if c.u not in named and c.u not in deadall and c.u not in n_regs])
         if not_restated and heads:
             reasons.append('a record no summary entry restates')

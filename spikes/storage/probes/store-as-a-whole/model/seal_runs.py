@@ -56,6 +56,9 @@ def setup():
     M.IDEAL_LOST = True
     M.SEAL = True
     M.SEAL_COMPOSE = 'write'
+    # ADDED (seal restates): the form these parts were run in, the control, unless the environment
+    # names another in SEAL_RESTATES (which reaches every worker a part starts)
+    M.SEAL_RESTATES = os.environ.get('SEAL_RESTATES', 'all')
 
 
 def fmt(op):

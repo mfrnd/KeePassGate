@@ -324,6 +324,15 @@ class Encoder:
                               'after': ' '.join(sorted(self.u(y) for y in a))})
             if 'fmt' in e.data:
                 items.append({'format': str(e.data['fmt']), 'kind': 'format', 'plugin': PLUGIN[e.data['fmt']]})
+            # ADDED (seal restates): a decision whose subject the file does not name, restated by the
+            # identifier of its deletion record, or by that identifier's keyed tag and subject hash,
+            # each with its kind and no subject
+            for x in sorted(e.data.get('refid', ())):
+                r = W.EL[x]
+                items.append({'id': self.u(x), 'kind': 'removed' if r.kind == 'prem' else r.data[0]})
+            for t in sorted(e.data.get('refsub', ())):
+                about = 'client:' + cert_hex(t[1]) if t[0] == 'revoked' else 'authority:' + t[1]
+                items.append({'hash': tag(key, t[0]) + subject_hash(key, about), 'kind': t[0]})
             for k, it in enumerate(sorted(items, key=dumps)):
                 extra['KPG.S.%04d' % (k + 1)] = dumps(it)
         elif e.kind == 'kept':      # ADDED (started again): a keep record, naming a key by its name

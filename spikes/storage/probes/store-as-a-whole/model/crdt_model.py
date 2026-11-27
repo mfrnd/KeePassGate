@@ -384,6 +384,38 @@ SEAL = False
 SEAL_COMPOSE = 'write'
 SEAL_NAME_DAMAGED = True    # off: a damaged summary entry the seal deletes left unnamed, the control
 
+# ADDED (seal restates): what a summary entry restates of a revocation, a retirement and a removal of
+# a name that a deletion record under the store key tells of, the seal's first among them. With SEAL
+# on, by SEAL_RESTATES:
+#   'named'   the product's form: a deletion record of such a decision is told only for a subject the
+#             file names, as read.py tells it (a client of a record of kind `client` or of a revocation
+#             in a record or an item; an authority of a record of kind `authority` or of a retirement
+#             in a record or an item; a name of a record of kind `profile` or `removed` or of a removal
+#             in an item), and a summary entry restates what is told; an addition of a name names a
+#             removal of it that only a deletion record tells of
+#   'all'     the control, the model's form before: every such deletion record told by the element it
+#             names, whatever the file names, and restated by its subject
+#   'ids'     the form proposed: as 'named', and a decision a deletion record tells of whose subject
+#             nothing names is restated by the deletion record's identifier alone, an item holding the
+#             identifier and the kind, carried by every summary entry after it while nothing names the
+#             subject; such an item restates the record with its identifier and tells the decision of
+#             a subject named again, matched by computing the subject's hash
+#   'hashes'  as 'ids', but a revocation or a retirement restated by the identifier's keyed tag and
+#             subject hash alone, so that the item restates every record of its kind about the subject;
+#             a removal of a name, whose identifier an addition has to name, by its identifier
+# With SEAL off every deletion record is read as before, whatever the switch holds.
+SEAL_RESTATES = 'named'
+
+
+def restates_by_subject():
+    """ADDED (seal restates): whether a deletion record of a decision is told whatever the file names."""
+    return not SEAL or SEAL_RESTATES == 'all'
+
+
+def seal_names(sk, t):
+    """ADDED (seal restates): whether the file names the subject of a revocation or a retirement."""
+    return t[1] in (sk[0] if t[0] == 'revoked' else sk[1])
+
 
 def grants_nothing(obj, f):
     """ADDED (seal again): whether an object's value grants nothing: an empty rule for a row, the
@@ -827,6 +859,26 @@ class World:
                 if u.startswith('T|'):
                     p = u.split('|')
                     refusals.add((p[1], p[2]))
+        # ADDED (seal restates): the subjects the file names, and what an item restates by identifier
+        sk, refids, refsubs = None, set(), set()
+        if not restates_by_subject():
+            sk = (set(rtuple(('revoked', e.obj), fl)[1] for e in ents.values() if e.kind == 'rec')
+                  | set(s for (k, s) in refusals if k == 'revoked'),
+                  set(e.obj for e in ents.values() if e.kind == 'auth') | set(s for (k, s) in refusals if k == 'retired'),
+                  set(e.obj for e in ents.values() if e.kind in ('padd', 'prem')) | set(n for (n, r) in prem))
+            if fl.snapshot:
+                for h in heads:
+                    for x in h.data.get('refid', ()):
+                        refids.add(x)
+                        e = EL[x]
+                        if e.kind == 'ref' and seal_names(sk, rtuple(e.data, fl)):
+                            refusals.add(rtuple(e.data, fl))
+                        elif e.kind == 'prem' and e.obj in sk[2]:
+                            prem.add((e.obj, x))
+                    for t in h.data.get('refsub', ()):
+                        refsubs.add(t)
+                        if seal_names(sk, t):
+                            refusals.add(t)
         vers, supers, lost = {}, set(), {}
         for e in ents.values():
             if e.kind in ('ver', 'pin'):
@@ -869,9 +921,10 @@ class World:
                 if e is None or e.key not in held:      # ADDED (store-as-a-whole): `not in held`
                     continue
                 if e.kind == 'ref':
-                    refusals.add(rtuple(e.data, fl))    # a deleted refusal still refuses (ADDED: rtuple)
+                    if sk is None or seal_names(sk, rtuple(e.data, fl)):    # ADDED (seal restates)
+                        refusals.add(rtuple(e.data, fl))    # a deleted refusal still refuses (ADDED: rtuple)
                 elif e.kind == 'prem':
-                    if known is None or e.obj in known:     # ADDED (owed forms): a name the file knows
+                    if (known is None or e.obj in known) and (sk is None or e.obj in sk[2]):     # ADDED (owed forms): a name the file knows; (seal restates): sk
                         prem.add((e.obj, e.id))             # a deleted removal still removes
                 elif e.kind in ('ver', 'pin') and (JUDGE is not None or exact):     # ADDED (lost settled)
                     continue    # told below, by judge_dels
@@ -925,6 +978,9 @@ class World:
                 c_ref |= h.data['ref']
                 c_prem |= h.data['prem']
                 c_regs |= h.data['regs']
+            c_ref |= refsubs        # ADDED (seal restates): an item by tag and subject hash
+            for x in refids:        # ADDED (seal restates): an item by identifier restates its record
+                c_prem.add((EL[x].obj, x))
             for V in vers.values():
                 for e in V.values():
                     deadall |= e.after
@@ -933,7 +989,8 @@ class World:
                 # client's key, which is what the summary entry restates; read as its certificate, a
                 # revocation of a client whose certificate was renewed stopped the store in the model
                 # alone (no earlier output changes, since the switch is off in every earlier part)
-                if (e.kind == 'ref' and (rtuple(e.data, fl) if ANSWERS else e.data) not in c_ref) or \
+                if (e.kind == 'ref' and (rtuple(e.data, fl) if ANSWERS else e.data) not in c_ref
+                        and e.id not in refids) or \
                         (e.kind == 'prem' and (e.obj, e.id) not in c_prem) or \
                         (e.kind in ('ver', 'pin') and e.id not in named and e.id not in deadall
                          and e.id not in c_regs):
@@ -1099,7 +1156,36 @@ class World:
             out['renew_why'] = renew_why
         if STARTS:      # ADDED (started again)
             out.update(keys)
+        if sk is not None:      # ADDED (seal restates)
+            out.update(seal_known=sk, refids=frozenset(refids), refsubs=frozenset(refsubs))
         return out
+
+    def seal_carried(self, rep, v):
+        """ADDED (seal restates): under 'ids' and 'hashes', what a summary entry written over the
+        reading `v` restates by identifier, and by tag and subject hash: each revocation, retirement
+        and removal a deletion record under the key held tells of, or an item of a summary entry
+        present restates by identifier, whose subject the file does not name. A decision whose subject
+        the file names is restated by its subject, as every summary entry restates it."""
+        sk = v.get('seal_known')
+        ids, subs = set(), set()
+        if sk is None or SEAL_RESTATES not in ('ids', 'hashes'):
+            return frozenset(), frozenset()
+        cands = set(u for u in rep.dels if u in self.EL and self.EL[u].kind in ('ref', 'prem')
+                    and self.EL[u].key in v['held']) | set(v['refids'])
+        for x in sorted(cands):
+            e = self.EL[x]
+            if e.kind == 'ref':
+                t = rtuple(e.data, self.flags)
+                if seal_names(sk, t):
+                    continue
+                if SEAL_RESTATES == 'hashes':
+                    subs.add(t)
+                else:
+                    ids.add(x)
+            elif e.obj not in sk[2]:
+                ids.add(x)
+        subs |= set(t for t in v['refsubs'] if not seal_names(sk, t))
+        return frozenset(ids), frozenset(subs)
 
     def keys_of(self, rep, raw, fl):
         """ADDED (started again): the keys found, the keep records read, and which keys stand. A key is
@@ -1265,6 +1351,11 @@ class World:
         ack = frozenset(x for o in old_heads for x in o.data.get('ack', ()))
         if ack:
             h.data['ack'] = ack
+        refid, refsub = self.seal_carried(rep, v)     # ADDED (seal restates): no item where there is none
+        if refid:
+            h.data['refid'] = refid
+        if refsub:
+            h.data['refsub'] = refsub
         if STARTS and len(v['held']) == 1:
             # ADDED (started again): every keep record under the key that stands, from an item, else
             # from its record, else from a deletion record that tells of it with nothing in `after`;
@@ -1511,6 +1602,10 @@ class World:
             rids = [r for (m, r) in v['prem'] if m == n]
             if KNOWN and ADD_FORM == 'name':    # ADDED (owed forms): the name being added counted as known
                 rids += sorted(u for u in rep.dels if u not in rids and self.EL.get(u) is not None
+                               and self.EL[u].kind == 'prem' and self.EL[u].obj == n and self.EL[u].key in v['held'])
+            if not restates_by_subject():   # ADDED (seal restates): the name being added counted as known,
+                # so that a removal of it a deletion record or an item by identifier tells of is named
+                rids += sorted(u for u in set(rep.dels) | set(v['refids']) if u not in rids and self.EL.get(u) is not None
                                and self.EL[u].kind == 'prem' and self.EL[u].obj == n and self.EL[u].key in v['held'])
             gen = 1 + max([self.EL[r].height for r in rids] + [0])
             new.append(self.mk('padd', n, after=rids, height=gen))
