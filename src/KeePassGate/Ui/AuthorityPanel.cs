@@ -802,7 +802,14 @@ namespace KeePassGate.Ui
             try
             {
                 var unwritable = _service == null || !_database.IsOpen ? null : _database.Store.Unwritable;
-                var description = DescribeNow(reading, admitted, reaches).Under(stored, unwritable);
+                // Whether the write of Create or Recreate would be taken and leave the store whole,
+                // asked only where the page would offer either over a store that takes writes.
+                var described = DescribeNow(reading, admitted, reaches);
+                var issueRefusal = stored != null && unwritable == null && StoreWords.Of(stored.State) == null
+                                 && (described.CanCreate || described.CanRecreate)
+                    ? AuthorityService.IssueRefusal(stored)
+                    : null;
+                var description = described.Under(stored, unwritable, issueRefusal);
                 _status.Text = description.Headline;
 
                 Draw(description.Facts);

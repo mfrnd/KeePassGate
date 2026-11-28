@@ -199,6 +199,42 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Recreate_is_withheld_with_why_where_its_write_would_leave_the_store_full()
+        {
+            // Room for a single write more, and an authority that does not read: Recreate is the
+            // answer to that authority, and its write would leave the store without room, which
+            // serves nothing. The page offers no press that could only be refused.
+            StoreRecords.NearlyFull(_database.Records, 1);
+
+            using (var panel = new AuthorityPanel(new PendingDatabase(_database, _log), new FakePrompt(true), _log))
+            {
+                Assume.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.DamagedHeadline));
+                Assert.That(Button(panel, GateTab.RecreateButtonName).Enabled, Is.False);
+                Assert.That(Button(panel, GateTab.DeleteButtonName).Enabled, Is.True, "Delete is no Create");
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text,
+                    Does.Contain(AuthorityDescription.Off(GateTab.RecreateButtonText, AuthorityService.Full)));
+            }
+        }
+
+        [Test]
+        public void Create_after_a_Delete_is_withheld_with_why_where_its_write_would_leave_the_store_full()
+        {
+            // Room for two writes more: the Delete pressed on the page leaves room for a write after
+            // it, and a Create after it would leave none.
+            StoreRecords.NearlyFull(_database.Records, 2);
+
+            using (var panel = new AuthorityPanel(new PendingDatabase(_database, _log), new FakePrompt(true), _log))
+            {
+                panel.DeleteAuthority();
+
+                Assume.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.RetiredHeadline));
+                Assert.That(Button(panel, GateTab.CreateButtonName).Enabled, Is.False);
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text,
+                    Does.Contain(AuthorityDescription.Off(GateTab.CreateButtonText, AuthorityService.Full)));
+            }
+        }
+
+        [Test]
         public void The_tab_has_a_page_for_each_of_its_three_subjects()
         {
             // What this database can issue, the names a rule can grant to, and who holds what was

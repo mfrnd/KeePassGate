@@ -34,6 +34,15 @@ namespace KeePassGate.Authority
     /// </remarks>
     public sealed class AuthorityService
     {
+        /// <summary>
+        /// Why a Create or a Recreate is refused where its write would leave the store without
+        /// room for the write after it, `STORE.md` §643.
+        /// </summary>
+        public const string Full = "the store would be left full, and nothing is served then";
+
+        /// <summary>What can be done about a store a Create or a Recreate would leave full.</summary>
+        public const string NothingMakesRoom = "Nothing on this tab makes room.";
+
         private readonly IGateStore _store;
         private readonly AuthorityIssuer _issuer;
         private readonly IGateLog _log;
@@ -381,9 +390,21 @@ namespace KeePassGate.Authority
 
             try
             {
+                // Asked at the press, before anything is minted, written or held: a write that
+                // would leave the store held back is refused with nothing waiting for OK, and the
+                // page offers no such press. Inside the catch below, since it draws random bytes.
+                var issueRefusal = IssueRefusal(reading);
+                if (issueRefusal != null)
+                {
+                    _log.Warn("the authority was not " + verb + ": " + issueRefusal);
+                    return AuthorityChange.Refused(
+                        "The authority could not be " + verb + ": " + issueRefusal + "."
+                        + (issueRefusal == Full ? " " + NothingMakesRoom : string.Empty));
+                }
+
                 var authority = _issuer.CreateAuthority();
                 var host = _issuer.IssueHost(authority);
-                sniKey = NewSniKey();
+                sniKey = NewRandom(AuthorityMaterial.SniKeyLength);
 
                 // Under the store key that stands, or a new key where none does, `STORE.md` §632:
                 // a Recreate carries the key, and a Create after a Delete keeps it.
@@ -437,15 +458,90 @@ namespace KeePassGate.Authority
             return AuthorityChange.Done();
         }
 
-        private static byte[] NewSniKey()
+        /// <summary>
+        /// Why a Create or a Recreate over this reading would not be taken, or null where its write
+        /// would be taken and leave the store whole, `STORE.md` §614 and §643: the records the
+        /// write holds, planned over the reading and applied in memory, and the store they leave
+        /// judged. Asked by the press before anything is minted, written or held, and by the page
+        /// that offers the press; a Create is asked only where no authority stands, so the
+        /// retirements are those of a Recreate.
+        /// </summary>
+        /// <remarks>
+        /// **Asked of the store as the page reads it.** On the KPG tab that is the store as OK
+        /// would leave it with the presses held, and the press is planned as a write after them,
+        /// as a press on the next dialog is: OK writes every press in a single write, which names
+        /// a summary entry fewer, so a press refused here would have left room for a single write
+        /// more at the most, and the page counts the room of a write after OK as well. **Asked at
+        /// the press and not at OK**: a write landing under the dialog, as a pairing, can still
+        /// leave the store full at OK, and OK writes the press all the same.
+        ///
+        /// **An authority stands in for the authority not yet minted**: a record of kind
+        /// `authority` holding the store key and an `id` of the same length. No item restates an
+        /// authority and nothing a summary entry holds is drawn from its content, so the store a
+        /// minted authority's write leaves differs only in that record's own strings, far below
+        /// the plugin's ceiling for a string.
+        /// </remarks>
+        internal static string IssueRefusal(StoreReading reading)
         {
-            var key = new byte[AuthorityMaterial.SniKeyLength];
-            using (var random = RandomNumberGenerator.Create())
+            if (reading == null)
             {
-                random.GetBytes(key);
+                throw new ArgumentNullException(nameof(reading));
             }
 
-            return key;
+            var starts = reading.State == StoreState.None;
+            var key = starts ? StoreFormat.NewKey() : (byte[])reading.InForce.Key.Bytes.Clone();
+            StoreAct act = null;
+            try
+            {
+                var records = Standing(reading).Select(id => Retirement(key, id, false)).ToList();
+                records.Add(StoreRecord.Compose(key, StoreKinds.Authority, new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    // Random, so that no retirement a file holds names it: as long as a digest.
+                    { StoreKinds.Id, Hex.Of(NewRandom(StandInLength)) },
+                    { StoreKinds.StoreKey, Hex.Of(key) },
+                }));
+                act = new StoreAct("Create", key, starts ? null : reading.InForce.Key.Name, records, null);
+
+                var write = StoreWrite.Plan(reading, new[] { act }, GateVersion.Current);
+                if (write.Refused != null)
+                {
+                    return write.NoRoom ? Full : write.Refused;
+                }
+
+                var applied = write.Applied(reading.Candidates, reading.Deletions);
+                using (var after = StoreReading.Afresh(applied.Key, applied.Value))
+                {
+                    if (after.State == StoreState.Whole)
+                    {
+                        return null;
+                    }
+
+                    return after.Room != null && !after.Room.HasRoom ? Full : after.Reason;
+                }
+            }
+            finally
+            {
+                if (act != null)
+                {
+                    act.Forget();
+                }
+
+                Array.Clear(key, 0, key.Length);
+            }
+        }
+
+        /// <summary>The bytes of the `id` that stands in for an authority not yet minted: a SHA-256 digest's.</summary>
+        private const int StandInLength = 32;
+
+        private static byte[] NewRandom(int length)
+        {
+            var bytes = new byte[length];
+            using (var random = RandomNumberGenerator.Create())
+            {
+                random.GetBytes(bytes);
+            }
+
+            return bytes;
         }
     }
 }
