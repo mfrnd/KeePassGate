@@ -1425,14 +1425,14 @@ So the rules here:
   **Measured through the real router and vault**, over ten thousand entries in a hundred groups
   beside a store of 282 entries, in Release, the median of twenty-one runs: without history, the
   hold a connection is judged in 3.5 milliseconds, a read of an entry 3.5 and a listing of every
-  entry 39; where every entry holds ten history items, KeePass's default limit, 60, 59 and 100.
+  entry 39; where every entry holds ten history items, KeePass's default limit, 21, 25 and 86.
   The first reading, with nothing kept, adds about forty milliseconds once. A change's turn reads
-  the store once: 2.6 milliseconds, and 58 with full histories, where each of its two questions
-  read it and it took 6.3 and 120. A file whose 1,000 entries each bring a key of their own is
+  the store once: 2.6 milliseconds, and 21 with full histories, where each of its two questions
+  read it and it took 6.3. A file whose 1,000 entries each bring a key of their own is
   read again in a millisecond, where each key was asked of every version and it took nineteen
   seconds, which every hold would have outlasted. So the walk is what
   grows with the database, as `STORE.md` §620 estimated, and a database in which every entry
-  carries a full history is where it shows: about a sixth of a second of KeePass's thread for a
+  carries a full history is where it shows: under a tenth of a second of KeePass's thread for a
   listing, against the five seconds a hold is let run. `FINDINGS.md` has the figures beside the
   table above.
 
@@ -1441,12 +1441,12 @@ So the rules here:
   (§124), and the entries changed, which marks the database as changed and saves nothing, the save
   being the operator's. Beside the same ten thousand entries and a store that starts at the same
   size and gains an entry with each write, the store's own write of a Recreate, which is that span
-  and not the writer's own questions or the redraw of KeePass's window, took 18 milliseconds at the
-  median and 74 where every entry holds ten history items; the first write of a run, 83 and 93
-  milliseconds, is warm-up, since every write reads the store afresh and keeps nothing. A write is
-  made at the settings dialog's OK and at keeping an authority, a single press each, and no request
-  of a client's makes a write. `StoreReadingCostTests` measures it, and `FINDINGS.md` has the
-  figures.
+  and not the writer's own questions or the redraw of KeePass's window, took 13 milliseconds at the
+  median and 32 where every entry holds ten history items; the first write of a run without
+  history, 77 milliseconds, is warm-up, since every write reads the store afresh and keeps nothing.
+  A write is made at the settings dialog's OK and at keeping an authority, a single press each, and
+  no request of a client's makes a write. `StoreReadingCostTests` measures it, and `FINDINGS.md` has
+  the figures.
 
   **The rules a group's or an entry's dialog changed are such a write, made as that dialog
   closes**, `STORE.md` §629. The KPG tab of the dialog holds every press, and the handler of the
@@ -1839,17 +1839,24 @@ So the rules here:
   change, from what the database held before and from the file: taken back out over a file that
   did not change, a certificate given up leaves nothing to save, held by
   `GiveUpInRealDatabaseTests.A_certificate_given_up_that_no_save_kept_is_taken_back_out_and_stays_admitted`.
-  This reverses a write that set a key of the database's custom data and read that key back. The
-  turn now walks the tree once ahead of its save. **What that adds beside the save is small,
-  and the save is what grows**, measured beside ten thousand entries in Release, the median of
-  twenty-one pairings after a first: the writer's whole turn with a save that writes nothing,
-  from the reading with every entry to the record read back and the file hashed back, took 13
-  milliseconds, and 73 where every entry holds ten history items; with KeePass's own save of
-  the database, 127 milliseconds, and 4.8 seconds, 10.8 at worst, with the histories. That is a
-  figure, on a developer's machine, for the save no sum of this plugin's timeouts bounds, above.
-  A pairing that approves 32 names the list does not hold, the most a request can ask for, each
-  an addition of the same write, took 24 milliseconds where a pairing for a name the list held
-  took 13 in the same run, and 90 against 74 with the histories. And the hold a connection is
+  This reverses a write that set a key of the database's custom data and read that key back.
+  Ahead of its save the turn walks every entry of the tree once, for its reading, and the write
+  finds each entry it touches by its identifier in the entries that walk passed, `STORE.md`
+  §627; it walks the groups of the tree once more for the group it writes into, and the reading
+  walks the tree again only where a deletion record is left that nothing the file names
+  explains, `STORE.md` §620. After the save, the record is read back by a search of the tree
+  for each entry the write added. **What that adds beside the save is small, and the save is
+  what grows**, measured beside ten thousand entries
+  in Release, the median of twenty-one pairings after a first: the writer's whole turn with a
+  save that writes nothing, from the reading with every entry to the record read back and the
+  file hashed back, took 7.1 milliseconds, and 34 where every entry holds ten history items;
+  with KeePass's own save of the database, 125 milliseconds, and 1.13 seconds, 1.19 at worst,
+  with the histories. That is a figure, on a developer's machine, for the save no sum of this
+  plugin's timeouts bounds, above. A write that walked the tree again for each step that finds
+  entries took 55 milliseconds and 77 in the same series, `FINDINGS.md` section 22. A pairing
+  that approves 32 names the list does not hold, the most a request can ask for, each an
+  addition of the same write, took 18.6 milliseconds where a pairing for a name the list held
+  took 7.1 in the same series, and 49 against 34 with the histories. And the hold a connection is
   judged in, which reads the names with the admission, took 2.8 milliseconds beside 32 names
   against 2.7 without them, and 8.9 beside a name added again after 7,936 removals, the most an
   addition's content holds. `StoreReadingCostTests.What_a_pairing_s_write_holds_the_thread_for`,

@@ -876,7 +876,7 @@ KeePass through UI automation cannot unload. Run them from **Windows PowerShell*
   side, and `test_an_authority_and_a_host_good_for_a_hundred_years_are_accepted` on the client's.
 - **Reading the plugin's store at every hold costs a walk of every entry with its history.**
   Through the real router and vault over ten thousand entries: 3.5 ms for a hold without history
-  and 60 with ten history items on each, a listing of every entry 39 and 100. A version is kept
+  and 21 with ten history items on each, a listing of every entry 39 and 86. A version is kept
   checked between holds by the very string objects it holds, which is right only because KeePass
   replaces a string's object when its text changes and changes none in place, which
   `KeePassContractTests` pins. **And a file can bring a key for each of its entries**, since a key

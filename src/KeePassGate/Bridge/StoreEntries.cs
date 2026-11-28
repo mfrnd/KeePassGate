@@ -23,10 +23,11 @@ namespace KeePassGate.Bridge
     /// a group made is removed, and the database's mark is put back as it was. Each step is a part
     /// of its own that pushes its undo, in the order the application takes them.
     ///
-    /// **Each step finds its entries by a walk of the tree of its own**: the deletions, the records
-    /// set back and the content protected again each walk the tree once, and asking which entries
-    /// a write touches walks it once more, so applying a write costs a few walks and never a
-    /// search for each entry.
+    /// **Every step finds its entries in the same map**, `TreeEntries`, made from the walk of the
+    /// reading the write was planned against: asking which entries a write touches, the
+    /// deletions, the records set back and the content protected again each look their
+    /// identifiers up there, so applying a write walks the tree for none of them and searches it
+    /// for no entry.
     ///
     /// **A write applied hands its undo back**, every step but the mark, for a writer that saves
     /// and takes the write back out where the save does not land, `STORE.md` §627: the writer
@@ -40,7 +41,8 @@ namespace KeePassGate.Bridge
         /// did but the database's mark, which runs once.
         /// </summary>
         /// <param name="reading">The reading the write was planned against, in the same turn.</param>
-        public static Action Apply(PwDatabase database, StoreWrite write, StoreReading reading)
+        /// <param name="tree">The entries of the tree that reading walked, by their identifiers.</param>
+        public static Action Apply(PwDatabase database, StoreWrite write, StoreReading reading, TreeEntries tree)
         {
             if (database == null)
             {
@@ -50,6 +52,11 @@ namespace KeePassGate.Bridge
             if (write == null || write.Refused != null || write.Empty)
             {
                 throw new ArgumentException("A write refused, or with nothing left in it, is applied to nothing.", nameof(write));
+            }
+
+            if (tree == null)
+            {
+                throw new ArgumentNullException(nameof(tree));
             }
 
             var marked = new Stack<Action>();
@@ -64,10 +71,10 @@ namespace KeePassGate.Bridge
                 var group = Group(database, write.Starts ? null : reading, undo);
                 Add(group, write.Add, undo);
                 var held = DeletionsHeld(database);
-                Delete(database, write.Delete, held, undo);
+                Delete(database, tree, write.Delete, held, undo);
                 Record(database, write.Deletions, held, undo);
-                SetBack(database, write.SetBack, undo);
-                Protect(database, reading, write.Delete, undo);
+                SetBack(database, tree, write.SetBack, undo);
+                Protect(database, tree, reading, write.Delete, undo);
                 applied = true;
             }
             finally
@@ -176,25 +183,18 @@ namespace KeePassGate.Bridge
         /// <remarks>
         /// **Every entry under an identifier goes**, where the tree holds several, each reading as
         /// the record: a deletion that left an entry would leave the record beside its own
-        /// deletion record. **Linear in the entries of the tree**: the entries are found by a single walk of
-        /// the tree, and each group losing entries is written once, its other entries kept in their
-        /// order, so a write that deletes thousands of entries costs a walk and a pass over each
-        /// such group.
+        /// deletion record. **Linear in the entries deleted and the groups losing them**: each
+        /// identifier is looked up in the tree's map, and each group losing entries is written
+        /// once, its other entries kept in their order, so a write that deletes thousands of
+        /// entries costs a lookup each and a pass over each such group.
         /// </remarks>
-        internal static void Delete(PwDatabase database, IEnumerable<string> entries, ISet<string> held, Stack<Action> undo)
+        internal static void Delete(PwDatabase database, TreeEntries tree, IEnumerable<string> entries, ISet<string> held, Stack<Action> undo)
         {
             var identifiers = entries.ToList();
-            var tree = EntriesOf(database);
             var losing = new Dictionary<PwGroup, HashSet<PwEntry>>();
             foreach (var hex in identifiers)
             {
-                List<PwEntry> under;
-                if (!tree.TryGetValue(hex, out under))
-                {
-                    continue;
-                }
-
-                foreach (var entry in under.Where(entry => entry.ParentGroup != null))
+                foreach (var entry in tree.Under(hex).Where(entry => entry.ParentGroup != null))
                 {
                     HashSet<PwEntry> lost;
                     if (!losing.TryGetValue(entry.ParentGroup, out lost))
@@ -256,36 +256,6 @@ namespace KeePassGate.Bridge
             }
         }
 
-        /// <summary>
-        /// Every entry of the tree by its identifier, as lowercase hexadecimal, from a single
-        /// walk of the tree: each identifier with every entry under it, in the order walked.
-        /// </summary>
-        private static Dictionary<string, List<PwEntry>> EntriesOf(PwDatabase database)
-        {
-            var tree = new Dictionary<string, List<PwEntry>>(StringComparer.Ordinal);
-            foreach (var entry in database.RootGroup.GetEntries(true))
-            {
-                var hex = Hex.Of(entry.Uuid.UuidBytes);
-                List<PwEntry> under;
-                if (!tree.TryGetValue(hex, out under))
-                {
-                    under = new List<PwEntry>();
-                    tree[hex] = under;
-                }
-
-                under.Add(entry);
-            }
-
-            return tree;
-        }
-
-        /// <summary>The first entry walked under an identifier, as KeePass's own search finds an entry, or null.</summary>
-        private static PwEntry First(Dictionary<string, List<PwEntry>> tree, string hex)
-        {
-            List<PwEntry> under;
-            return tree.TryGetValue(hex, out under) ? under[0] : null;
-        }
-
         /// <summary>A deletion record for each identifier the file names none of yet, which the undo takes away.</summary>
         internal static void Record(PwDatabase database, IEnumerable<string> identifiers, ISet<string> held, Stack<Action> undo)
         {
@@ -296,12 +266,11 @@ namespace KeePassGate.Bridge
         }
 
         /// <summary>Each record that counts by its history set back, `STORE.md` §628.</summary>
-        internal static void SetBack(PwDatabase database, IEnumerable<KeyValuePair<string, int>> records, Stack<Action> undo)
+        internal static void SetBack(PwDatabase database, TreeEntries tree, IEnumerable<KeyValuePair<string, int>> records, Stack<Action> undo)
         {
-            var tree = EntriesOf(database);
             foreach (var pair in records)
             {
-                var entry = First(tree, pair.Key);
+                var entry = tree.First(pair.Key);
                 if (entry != null)
                 {
                     SetBack(database, entry, pair.Value, undo);
@@ -314,9 +283,9 @@ namespace KeePassGate.Bridge
         /// went, the same text, as an edited record is set back, `STORE.md` §628 (S18): every such
         /// record the reading found but those the write deletes.
         /// </summary>
-        internal static void Protect(PwDatabase database, StoreReading reading, IEnumerable<string> deleted, Stack<Action> undo)
+        internal static void Protect(PwDatabase database, TreeEntries tree, StoreReading reading, IEnumerable<string> deleted, Stack<Action> undo)
         {
-            foreach (var entry in Carriers(EntriesOf(database), reading, deleted).ToList())
+            foreach (var entry in Carriers(tree, reading, deleted).ToList())
             {
                 Protect(database, entry, undo);
             }
@@ -326,17 +295,26 @@ namespace KeePassGate.Bridge
         /// Every entry of the database a write deletes, sets back or protects again, which is what
         /// a window holding a copy of an entry would put back over, `STORE.md` §626.
         /// </summary>
-        internal static IEnumerable<PwEntry> Touched(PwDatabase database, StoreWrite write, StoreReading reading)
+        internal static IEnumerable<PwEntry> Touched(TreeEntries tree, StoreWrite write, StoreReading reading)
         {
-            var tree = EntriesOf(database);
             return write.Delete
-                .SelectMany(hex =>
-                {
-                    List<PwEntry> under;
-                    return tree.TryGetValue(hex, out under) ? under : Enumerable.Empty<PwEntry>();
-                })
-                .Concat(write.SetBack.Select(pair => First(tree, pair.Key)).Where(entry => entry != null))
+                .SelectMany(tree.Under)
+                .Concat(write.SetBack.Select(pair => tree.First(pair.Key)).Where(entry => entry != null))
                 .Concat(Carriers(tree, reading, write.Delete).Where(Unprotected));
+        }
+
+        /// <summary>
+        /// Why a write asks the entries of its reading what a walk of the tree at its steps would
+        /// answer otherwise, or null where it does not, `TreeEntries.Unsound`: its additions, its
+        /// deletions, the records it sets back and the records it protects again.
+        /// </summary>
+        internal static string Unsound(TreeEntries tree, StoreWrite write, StoreReading reading)
+        {
+            return tree.Unsound(
+                write.Add.Select(record => record.Hex),
+                write.Delete,
+                write.SetBack.Select(pair => pair.Key),
+                CarriersOf(reading, write.Delete));
         }
 
         /// <summary>The entry that holds a record, in no group yet, `STORE.md` §607.</summary>
@@ -473,18 +451,28 @@ namespace KeePassGate.Bridge
         /// The entry of every record holding the store key that the reading found, but those the
         /// write deletes.
         /// </summary>
-        private static IEnumerable<PwEntry> Carriers(Dictionary<string, List<PwEntry>> tree, StoreReading reading, IEnumerable<string> deleted)
+        private static IEnumerable<PwEntry> Carriers(TreeEntries tree, StoreReading reading, IEnumerable<string> deleted)
+        {
+            return CarriersOf(reading, deleted)
+                .Select(tree.First)
+                .Where(entry => entry != null);
+        }
+
+        /// <summary>
+        /// The identifier of every record holding the store key that the reading found, but those
+        /// the write deletes.
+        /// </summary>
+        private static IEnumerable<string> CarriersOf(StoreReading reading, IEnumerable<string> deleted)
         {
             if (reading.InForce == null)
             {
-                return Enumerable.Empty<PwEntry>();
+                return Enumerable.Empty<string>();
             }
 
             var deleting = new HashSet<string>(deleted, StringComparer.Ordinal);
             return reading.InForce.Records
                 .Where(record => record.Form.StoreKey != null && !deleting.Contains(record.Hex))
-                .Select(record => First(tree, record.Hex))
-                .Where(entry => entry != null);
+                .Select(record => record.Hex);
         }
 
         /// <summary>Whether an entry's content went unprotected, which a write protects again.</summary>

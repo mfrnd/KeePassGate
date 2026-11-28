@@ -237,7 +237,7 @@ namespace KeePassGate.Host.Tests
                 Assume.That(write.Refused, Is.Null);
                 Assume.That(write.SetBack, Has.Count.EqualTo(1), "the version record set back");
                 applied = write.Applied(reading.Candidates, reading.Deletions);
-                Application.Apply(database.Database, write, reading);
+                Application.Apply(database.Database, write, reading, Tree(database));
             }
 
             using (var inMemory = StoreReading.Afresh(applied.Key, applied.Value))
@@ -292,7 +292,7 @@ namespace KeePassGate.Host.Tests
                 var write = StoreWrite.Plan(reading, new[] { new StoreAct("a switch", key, StoreFormat.KeyName(key), new[] { replacing }, null) }, GateVersion.Current);
                 Assert.That(write.Refused, Is.Null, write.Refused);
                 Assert.That(write.Delete, Does.Contain(replaced.Hex));
-                undo = Application.Apply(database.Database, write, reading);
+                undo = Application.Apply(database.Database, write, reading, Tree(database));
             }
 
             Assert.That(database.RootGroup.FindEntry(new PwUuid(replaced.Identifier), true), Is.Null, "the version replaced is deleted");
@@ -337,7 +337,7 @@ namespace KeePassGate.Host.Tests
                 });
                 var write = StoreWrite.Plan(reading, new[] { new StoreAct("a switch", key, StoreFormat.KeyName(key), new[] { replacing }, null) }, GateVersion.Current);
                 Assert.That(write.Refused, Is.Null, write.Refused);
-                undo = Application.Apply(database.Database, write, reading);
+                undo = Application.Apply(database.Database, write, reading, Tree(database));
             }
 
             Assert.That(Under(database, replaced), Is.EqualTo(0), "both entries deleted");
@@ -359,7 +359,7 @@ namespace KeePassGate.Host.Tests
             var group = entry.ParentGroup;
             var at = group.Entries.IndexOf(entry);
             var undo = new Stack<System.Action>();
-            Application.Delete(database.Database, new[] { replaced.Hex }, Application.DeletionsHeld(database.Database), undo);
+            Application.Delete(database.Database, Tree(database), new[] { replaced.Hex }, Application.DeletionsHeld(database.Database), undo);
             Assert.That(group.Entries.IndexOf(entry), Is.EqualTo(-1));
 
             var since = new PwEntry(true, true);
@@ -483,6 +483,42 @@ namespace KeePassGate.Host.Tests
             Assert.That(Store(first).Read().State, Is.EqualTo(StoreState.Split));
         }
 
+        [Test]
+        public void A_write_is_staged_only_against_the_reading_its_store_made_last_for_a_write()
+        {
+            // `STORE.md` §627: a write finds the entries it touches in the walk of the reading it
+            // is planned against, so a reading made without every entry, a reading of another
+            // store, a reading before the last made for a write and a reading staged against
+            // already are each refused before anything is planned.
+            var database = Database();
+            StoreSeeds.Authority(Store(database));
+            var store = Store(database);
+            using (var plain = store.Read())
+            using (var another = Store(database).ForWrite())
+            using (var earlier = store.ForWrite())
+            using (var last = store.ForWrite())
+            {
+                var key = (byte[])last.InForce.Key.Bytes.Clone();
+                var version = StoreRecord.Compose(key, "version", new Dictionary<string, string>
+                {
+                    { "after", string.Empty },
+                    { "doc", "sw:deny" },
+                    { "object", "switch:" + new string('1', 32) },
+                });
+                var acts = new[] { new StoreAct("a switch", key, StoreFormat.KeyName(key), new[] { version }, null) };
+
+                Assert.That(() => store.Stage(plain, acts), Throws.ArgumentException, "a reading without every entry");
+                Assert.That(() => store.Stage(another, acts), Throws.ArgumentException, "a reading of another store");
+                Assert.That(() => store.Stage(earlier, acts), Throws.ArgumentException, "a reading before the last");
+                var staged = store.Stage(last, acts);
+                Assert.That(staged.Refused ?? staged.Held, Is.Null, "the last reading made for a write");
+                Assert.That(() => store.Stage(last, acts), Throws.ArgumentException, "a reading staged against already");
+                staged.Apply();
+            }
+
+            Assert.That(database.RootGroup.GetEntries(true).Count(entry => entry.Strings.ReadSafe("KPG.Kind") == "version"), Is.EqualTo(1));
+        }
+
         [TestCase("the mark")]
         [TestCase("the group made")]
         [TestCase("the entries added")]
@@ -520,6 +556,7 @@ namespace KeePassGate.Host.Tests
 
                 var undo = new Stack<System.Action>();
                 var db = database.Database;
+                var tree = Tree(database);
                 switch (part)
                 {
                     case "the mark":
@@ -532,25 +569,25 @@ namespace KeePassGate.Host.Tests
                         Application.Add(Application.Group(db, reading, undo), write.Add, undo);
                         break;
                     case "the entries deleted":
-                        Application.Delete(db, write.Delete, Application.DeletionsHeld(db), undo);
+                        Application.Delete(db, tree, write.Delete, Application.DeletionsHeld(db), undo);
                         break;
                     case "the deletion records":
                         Application.Record(db, write.Delete, Application.DeletionsHeld(db), undo);
                         break;
                     case "the records set back":
-                        Application.SetBack(db, write.SetBack, undo);
+                        Application.SetBack(db, tree, write.SetBack, undo);
                         break;
                     case "the protection":
-                        Application.Protect(db, reading, Enumerable.Empty<string>(), undo);
+                        Application.Protect(db, tree, reading, Enumerable.Empty<string>(), undo);
                         break;
                     default:
                         Application.Mark(db, undo);
                         Application.Add(Application.Group(db, reading, undo), write.Add, undo);
                         var held = Application.DeletionsHeld(db);
-                        Application.Delete(db, write.Delete, held, undo);
+                        Application.Delete(db, tree, write.Delete, held, undo);
                         Application.Record(db, write.Deletions, held, undo);
-                        Application.SetBack(db, write.SetBack, undo);
-                        Application.Protect(db, reading, write.Delete, undo);
+                        Application.SetBack(db, tree, write.SetBack, undo);
+                        Application.Protect(db, tree, reading, write.Delete, undo);
                         break;
                 }
 
@@ -579,6 +616,12 @@ namespace KeePassGate.Host.Tests
         private static KdbxStore Store(TemporaryDatabase database)
         {
             return new KdbxStore(database.Database, GateVersion.Current, NullGateLog.Instance);
+        }
+
+        /// <summary>The entries of a database's tree by their identifiers, as the walk of a reading for a write passes them.</summary>
+        private static TreeEntries Tree(TemporaryDatabase database)
+        {
+            return new TreeEntries(database.RootGroup.GetEntries(true).ToList());
         }
 
         private static AuthorityService Service(TemporaryDatabase database)

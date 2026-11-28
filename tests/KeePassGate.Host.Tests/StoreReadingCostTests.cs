@@ -1065,6 +1065,11 @@ namespace KeePassGate.Host.Tests
             }
         }
 
+        /// <summary>
+        /// The fixture's entries in a hundred groups, each with this many history items, each made
+        /// as KeePass's own edit makes one, by `PwEntry.CreateBackup`: a copy of the entry with no
+        /// history of its own.
+        /// </summary>
         private static List<PwEntry> Fill(PwDatabase database, int history, PwGroup parent = null)
         {
             var groups = Enumerable.Range(0, Groups).Select(index =>
@@ -1083,13 +1088,19 @@ namespace KeePassGate.Host.Tests
                 entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(true, "an invented password"));
                 for (var edit = 0; edit < history; edit++)
                 {
-                    entry.History.Add(entry.CloneDeep());
+                    entry.CreateBackup(database);
                 }
 
                 groups[index % Groups].AddEntry(entry, true);
                 made.Add(entry);
             }
 
+            // Every entry and every history item an entry of its own, and no history item with a
+            // history: as many as a database of this many entries and items holds.
+            Assert.That(
+                made.Sum(entry => 1L + entry.History.UCount + entry.History.Sum(item => (long)item.History.UCount)),
+                Is.EqualTo((long)Entries * (history + 1)),
+                "the entries with their history items");
             return made;
         }
 

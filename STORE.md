@@ -2728,36 +2728,35 @@ shows. This estimate parsed no content and went through no router.
 real router and vault, in Release, the median of 21 runs; `FINDINGS.md` section 22). Over 10,000
 entries in a hundred groups beside a store of 282 entries: the hold a connection is judged in,
 which reads the store and nothing else, 3.5 ms; a read of an entry 3.5 ms; a listing of every
-entry 39 ms. Where every entry holds ten history items, 60, 59 and 100 ms, and the worst run 143
+entry 39 ms. Where every entry holds ten history items, 21, 25 and 86 ms, and the worst run 148
 ms. The first reading, with nothing kept, adds about 40 ms once. A request takes two holds that
-read the store. A change's turn on KeePass's thread reads it once: 2.6 ms, and 58 ms where every
-entry holds ten history items, where it read it at each question and took 6.3 and 120 ms. A
+read the store. A change's turn on KeePass's thread reads it once: 2.6 ms, and 21 ms where every
+entry holds ten history items, where it read it at each question and took 6.3 ms. A
 file that brings a store key of its own for each of its entries costs what any file of its size
 costs (§649): 2 ms for a second reading of 300 such entries and 1 ms for 1,000, where the work
 under each key took 0.7 and 19 seconds. With what is in force and the room worked out at every
-reading as well (§623, §627), the same holds measured 2.4, 2.7 and 48 ms, and 59, 57 and 101 ms
-where every entry holds ten history items, which is the earlier run within what two runs on one
-machine differ by; and a store at both of the plugin's own ceilings (§643), a summary entry
-naming 7,900 summary entries each with its deletion record and restating 9,000 revocations, 900
-of them with a deletion record besides, held the thread for 21 ms, and 24.6 ms in a later run.
-**With the admission of the certificate read by meaning in that hold** (§615), as a connection
-is judged, asked of the gate's own target for the database: beside the same store, an
-authority the product created and a single admission, the hold measured 2.6 ms, and 2.8 ms
-beside the ten admissions the growth run's gate held (§643); where every entry holds ten
-history items, 57 and 56 ms. The word alone measured 2.6 and 54 ms in the same run, so reading
-the admission adds less than two runs differ by. **At a summary entry restating 9,997
-certificates taken away**, the most that leaves the store room for a write, beside 10,000
-entries without history, the hold measured 16.9 ms for a pairing's admission beside those
-statements, and 27.2 ms for the renewal at the end of a chain of `from` as long as the
-statements, each renewed from the certificate before it and naming the next (§648 rule 4):
-following a chain as long as the store can hold costs about 10 ms over the statements alone.
-**With the names read in that hold as well** (§616), beside the same store, a single admission
+reading as well (§623, §627), the same holds measured 2.4, 2.7 and 48 ms, which is the earlier run
+within what two runs on one machine differ by; and a store at both of the plugin's own ceilings
+(§643), a summary entry naming 7,900 summary entries each with its deletion record and restating
+9,000 revocations, 900 of them with a deletion record besides, held the thread for 21 ms, and 24.6
+ms in a later run. **With the admission of the certificate read by meaning in that hold** (§615), as
+a connection is judged, asked of the gate's own target for the database: beside the same store, an
+authority the product created and a single admission, the hold measured 2.6 ms, and 2.8 ms beside
+the ten admissions the growth run's gate held (§643); where every entry holds ten history items,
+20.6 and 20.7 ms, and the word alone 20.6 ms in the same series. The word alone measured 2.6 ms in
+the same run as the first two, so reading the admission adds less than two runs differ by. **At a
+summary entry restating 9,997 certificates taken away**, the most that leaves the store room for a
+write, beside 10,000 entries without history, the hold measured 16.9 ms for a pairing's admission
+beside those statements, and 27.2 ms for the renewal at the end of a chain of `from` as long as the
+statements, each renewed from the certificate before it and naming the next (§648 rule 4): following
+a chain as long as the store can hold costs about 10 ms over the statements alone. **With the names
+read in that hold as well** (§616), beside the same store, a single admission
 and 32 names on the list, the hold measured 2.78 ms at the median and 3.95 at worst, against
 2.72 ms for the admission alone in the same run; where every entry holds ten history items,
-57.3 ms against 58.4. Beside a single name removed and added again 7,936 times, the most that
-fit the addition's content, each removal an item of the summary entry and the addition naming
-all those removals, it measured 8.85 ms, 14.7 at worst, and 64.3 ms with the history: the names
-cost about 6 ms at that bound and nothing a run can tell at 32 names (`StoreReadingCostTests`,
+21.7 ms against 20.6 in the same series. Beside a single name removed and added again 7,936 times,
+the most that fit the addition's content, each removal an item of the summary entry and the addition
+naming all those removals, it measured 8.85 ms, 14.7 at worst, and 27.3 ms with the history: the
+names cost about 6 ms at that bound and nothing a run can tell at 32 names (`StoreReadingCostTests`,
 explicit, in Release, the median of 21 after a first). **Beside the standing answers to a
 renewal** (§618), with the admission's client among those answered, the hold measured 2.75 ms
 beside no answer, 3.40 ms beside 100 clients each holding a standing answer and 9.53 ms beside
@@ -3846,8 +3845,8 @@ and saves nothing. Once the plan exists, every entry it deletes, sets back or pr
 asked about, and the write is refused while an entry dialog holds any of them (§626). The store's
 own write of a Recreate, from its reading in the writer's turn through the plan and the entries
 asked about to the entries changed, and without the writer's own questions or the redraw of
-KeePass's window, took 18 ms at the median beside ten thousand entries and a store that starts at
-282 entries and gains an entry with each write, and 74 ms where every entry holds ten history items;
+KeePass's window, took 13 ms at the median beside ten thousand entries and a store that starts at
+282 entries and gains an entry with each write, and 32 ms where every entry holds ten history items;
 the first write of a run is slower, as warm-up (`StoreReadingCostTests`, `DESIGN.md` §119). A write
 the application cannot finish is taken back out at once. **The writes that save are built**: the
 admission of a pairing and of a renewal (§615), a certificate that its client gives up (§648),
@@ -3869,15 +3868,18 @@ Release, the median of 21 pairings after a first, each a new client with a profi
 10,000 entries in a hundred groups and an authority the product created, each series on a
 database of its own): the writer's whole turn with a save that writes nothing, which is the
 reading with every entry, the plan, the entries asked about, the application, the record read
-back and the file hashed back, took 13 ms, and 73 ms where every entry holds ten history
-items. With KeePass's own save of the database the turn took 127 ms, and 4.8 seconds, 10.8 at
+back and the file hashed back, took 7.1 ms, and 34 ms where every entry holds ten history
+items. With KeePass's own save of the database the turn took 125 ms, and 1.13 seconds, 1.19 at
 worst, where every entry holds ten history items. So the save is what grows, and the store's
-part of a pairing's turn is what its reading costs (§620). **A pairing that approves 32 names
-the list does not hold**, each an addition of the admission's own write, took 24.0 ms at the
-median and 38.0 at worst against 12.8 ms in the same run for a pairing whose name the list held,
-and 89.7 against 74.0 ms where every entry holds ten history items
+part of a pairing's turn is mostly what its reading costs (§620), beside two reads of the file
+to hash it: the write finds every entry it touches in the entries its reading's walk passed,
+where a walk of the tree for each step that finds entries took 55 ms and 77 ms in the same
+series. **A pairing that approves 32 names the list does not hold**, each an addition of the
+admission's own write, took 18.6 ms at the median and 31 at worst against 7.1 ms in the same
+series for a pairing whose name the list held, and 49 against 34 ms where every entry holds
+ten history items
 (`StoreReadingCostTests.What_a_pairing_s_write_approving_32_new_names_holds_the_thread_for`):
-about 11 to 16 ms for the most names a pairing can ask for. Each figure was measured with no
+about 11 to 15 ms for the most names a pairing can ask for. Each figure was measured with no
 settings, group or entry dialog open. The KPG tab of each such dialog open as the record lands
 reads its own database's store again inside the same turn, the settings tab for its redraw and
 the grant editor for its pick list (`GrantPanel.Resync`), since the notice that a record landed
@@ -3928,10 +3930,12 @@ became of the entries' times, the version replaced came back with its deletion r
 wherever its entry was last changed in the second of its deletion or after it, and did not
 stand; where its entry was last changed before the deletion, Synchronize deleted it in the copy
 that held it and did not bring it back into the copy that replaced it. **The entries a write
-deletes, sets back and protects again are each found by a walk of the tree**, with a further walk
-for the entries it touches, and each group that loses entries is written once: the store's write
-deleting 2,000 replaced versions beside 10,000 entries took 140 ms at the median of 21 after a
-first, and 174 ms where every entry holds ten history items
+deletes, sets back and protects again, and the entries it asks about, are found by their
+identifiers in the entries the walk of the write's own reading passed**, a single map for the
+write, and each group that loses entries is written once: the store's write deleting 2,000
+replaced versions beside 10,000 entries took 76 ms at the median of 21 after a first, against
+106 ms for a write that walked the tree for each of those steps, and 85 against 121 ms where
+every entry holds ten history items, each the median of three series run in turn
 (`StoreReadingCostTests.What_a_write_deleting_2000_replaced_versions_holds_the_thread_for`,
 explicit, in Release). **The acts about a name are built as the buffer holds them**: the last
 press for each name, composed again at OK, the additions of a pairing in the admission's own act,
@@ -6221,28 +6225,28 @@ identifier (read from the measured code).
 `StoreReadingCostTests.What_an_OK_above_versions_that_follow_holds_the_thread_for`, explicit, in
 Release, on a developer's machine, beside 10,000 entries in a hundred groups: an OK at the root
 group above versions that follow, the median of ten after a first, each renewing every version
-below). Above 200, 2,000 and 9,000 such versions the whole write held the thread for 126, 489
-and 1,928 ms, the worst of each 134, 568 and 2,290 ms, and in an earlier run 3,496 ms at
-9,000. At 2,000 that is the reading in the writer's turn 126 ms, the composition with every
-renewal 158 ms, the plan 95 ms and the application 78 ms; at 9,000 584, 503, 702 and 156 ms.
+below, the median of three series). Above 200, 2,000 and 9,000 such versions the whole write
+held the thread for 27.8, 321 and 1,824 ms, the worst of each 32.7, 387 and 2,067 ms. At 2,000
+that is the reading in the writer's turn 81.5 ms, the composition with every renewal 141 ms, the
+plan 65.3 ms and the application 22.0 ms; at 9,000 429, 595, 570 and 135 ms.
 **The composition is mostly records**, timed part by part in a build that did so: at 2,000,
 composing and checking a record for each renewal took about 110 ms, the rules of the reading 15
 to 60 ms, the walk of KeePass's tree 18 ms, and the walks above each node with the names each
 renewal carries about 32 ms, where they took 45 ms while the tag of `version` and the profile's
 tag were worked out for each node and not once for the act. Opening the tab of that group,
-which reads the versions below, took 45, 143 and 663 ms. A hold of the gate reading an entry
-took 4, 31 and 170 ms beside those versions before any OK, and 10, 104 and 426 ms after the ten
+which reads the versions below, took 11.6, 122 and 529 ms. A hold of the gate reading an entry
+took 4.4, 31 and 171 ms beside those versions before any OK, and 4.6, 48 and 225 ms after the ten
 OKs, beside the deletion records they left, a deletion record for each version each OK renewed.
 **At a group below the root** (the same test, the group under the root holding the hundred
 groups, a rule at the root and at the group, so that the act walks the group's parent for every
-mask it records and the tab for what arrives, which an OK at the root never does; in a single run
-beside the root's), above 200, 2,000 and 9,000 versions the whole write held the thread for 67, 363
-and 1,745 ms, the worst of each 87, 418 and 1,902 ms, where the root in the same run took 70, 368
-and 1,742 ms. At 2,000 that is the reading 79 ms, the composition 129 ms, the plan 79 ms and the
-application 77 ms; at 9,000 417, 550, 556 and 173 ms. Opening that group's tab took 13, 93 and 521
-ms, against 15, 123 and 513 ms at the root in that run, and a hold reading an entry after the ten
-OKs took 5, 36 and 222 ms. The walk above the group adds no more than two runs at the root differ
-by, since the rules are worked out once for the act (§617).
+mask it records and the tab for what arrives, which an OK at the root never does; in the same
+three series), above 200, 2,000 and 9,000 versions the whole write held the thread for 28.7, 305
+and 1,695 ms, the worst of each 47.9, 347 and 1,906 ms, where the root took 27.8, 321 and 1,824
+ms. At 2,000 that is the reading 74.9 ms, the composition 140 ms, the plan 51.4 ms and the
+application 20.2 ms; at 9,000 449, 549, 553 and 113 ms. Opening that group's tab took 10.7, 119
+and 506 ms, against 11.6, 122 and 529 ms at the root, and a hold reading an entry after the ten
+OKs took 5.4, 39 and 217 ms. The walk above the group adds no more than two runs at the root
+differ by, since the rules are worked out once for the act (§617).
 The model's own figure, 113 seconds for 2,000 nodes, is of a model that reads its whole file
 again for each node, and is no figure for the product.
 
@@ -6269,14 +6273,15 @@ and 223 ms, about 0.29 microseconds a renewal over the run. So a hold passes a s
 above 9,000; above 2,000 versions it reaches about four seconds at the 7,942 writes a store has
 room for (below), and does not pass five seconds there. **An OK above those versions grows
 faster**, since it reads, checks, composes and writes the text of every name again, in each
-version and in its item: above 2,000 versions the whole OK took 334, 422, 691 and 1,575 ms, about
-3.1 microseconds a renewal, where it took 350, 507, 969 and 4,525 ms as first built, about 10.4.
-Of the 3.1, the reading in the writer's turn, which checks every version afresh, is about 1.1,
-the composition with every renewal 0.9, the plan 1.0, most of it the summary entry restating
-every list, and the application 0.4. Above 9,000 versions the OK took 1,308, 1,708 and 2,908 ms,
-about 4.4 microseconds a renewal. So an OK passes a second after about 110 writes above 2,000
-versions and five seconds after about 750, and above 9,000 versions it is past a second at its
-first write and passes five seconds after about 90. What would take the line away is owed (§644
+version and in its item: above 2,000 versions the whole OK took 253, 365, 661 and 1,535 ms, about
+3.2 microseconds a renewal, where it took 350, 507, 969 and 4,525 ms as first built, about 10.4.
+Of the 3.2, the reading in the writer's turn, which checks every version afresh, is about 1.0,
+the composition with every renewal 0.8, the plan 1.1, most of it the summary entry restating
+every list, and the application 0.4. Above 9,000 versions the OK took 1,239, 1,694 and 2,948 ms,
+about 4.7 microseconds a renewal, each whole OK applied once a series and the median of three
+series. So an OK passes a second after about 115 writes above 2,000 versions and five seconds
+after about 740, and above 9,000 versions it is past a second at its first write and passes five
+seconds after about 90. What would take the line away is owed (§644
 item 33).
 
 **What a standing answer to a renewal adds, for good** (§618; measured by
@@ -6300,16 +6305,16 @@ costs every hold about 7 microseconds, and each answer it replaced about 0.3 to 
 renewals above follow; the hold parses no text. **What its write holds KeePass's thread for**
 (`What_an_answer_s_write_holds_the_thread_for`): the turn of the writer in which the renewal
 dialog's refusal forever is written and saved (§618), each refusal about a client of its own
-beside 10,000 entries and an authority, took 52.8 ms at the median and 66.5 at worst for the
+beside 10,000 entries and an authority, took 5.7 ms at the median and 17.9 at worst for the
 store's own part, which is the reading with every entry, the act, the plan, the entries asked
-about and the application, with a save that writes nothing and the file hashed back; and 173 ms
-at the median and 184 at worst with KeePass's own save of the database, which the answer's
-write makes. With ten history items on every entry, 108 and 122 ms for the store's own part,
-and 4.6 seconds at the median and 8.8 at worst with the save. In a second run beside a
-pairing's write on the same build, the store's own part took 45.4 ms against the pairing's 47.5,
-and with the save 164 against 166 ms, 4.5 against 4.6 seconds with the histories: the answer's
-write costs what a pairing's does, and its save is what grows, which no sum of the plugin's
-timeouts bounds (`DESIGN.md` §119).
+about and the application, with a save that writes nothing and the file hashed back; and 124 ms
+at the median and 143 at worst with KeePass's own save of the database, which the answer's
+write makes. With ten history items on every entry, 34 and 57 ms for the store's own part,
+and 1.17 seconds at the median and 1.23 at worst with the save, each figure the median of
+three series. Beside a pairing's write in the same series, the store's own part
+took 5.7 ms against the pairing's 7.1, and with the save 124 against 125 ms, 1.17 against 1.13
+seconds with the histories: the answer's write costs what a pairing's does, and its save is
+what grows, which no sum of the plugin's timeouts bounds (`DESIGN.md` §119).
 
 **How many ruled nodes the 9,999 item names of a summary entry hold** (S13; the same
 computation). With a record for each node and profile, 1,999 nodes of four rows each with the
