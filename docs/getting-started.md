@@ -358,6 +358,8 @@ passes, a record no summary entry restates, or no room left for the store's next
 client is answered `503 stopped` until the stop is lifted, in this copy and in every copy
 the deletion or the edit reaches.
 
+![The Certificate Authority page over a stopped store](images/store-stopped.png)
+
 **Seal store again**, in the place of **Recreate authority**, lifts the stop. It opens a window
 listing what the deletion records show as deleted, a row for each: what kind of thing it was, what
 it was about, and what sealing makes of it. A rule, a switch or an answer to a renewal whose version
@@ -371,6 +373,8 @@ tooltip, and is restated all the same: a copy from before the decision that brin
 the authority or the name back finds it refused. A rule or an answer that refuses until set again
 is set again in the grant editor or lifted on the Clients page. The window counts what the seal
 keeps: the authorities, the clients, the profile names, the ruled nodes and the standing answers.
+
+![The window Seal store again opens](images/seal-again.png)
 
 **What was deleted with no deletion record cannot be shown**, and the window states it: sealing
 makes the state shown the state, in this copy and in every copy that takes the file in. So the
