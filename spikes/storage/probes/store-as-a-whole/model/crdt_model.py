@@ -387,7 +387,7 @@ SEAL_NAME_DAMAGED = True    # off: a damaged summary entry the seal deletes left
 # ADDED (seal restates): what a summary entry restates of a revocation, a retirement and a removal of
 # a name that a deletion record under the store key tells of, the seal's first among them. With SEAL
 # on, by SEAL_RESTATES:
-#   'named'   the product's form: a deletion record of such a decision is told only for a subject the
+#   'named'   the product's form as first built: a deletion record of such a decision is told only for a subject the
 #             file names, as read.py tells it (a client of a record of kind `client` or of a revocation
 #             in a record or an item; an authority of a record of kind `authority` or of a retirement
 #             in a record or an item; a name of a record of kind `profile` or `removed` or of a removal
@@ -395,16 +395,18 @@ SEAL_NAME_DAMAGED = True    # off: a damaged summary entry the seal deletes left
 #             removal of it that only a deletion record tells of
 #   'all'     the control, the model's form before: every such deletion record told by the element it
 #             names, whatever the file names, and restated by its subject
-#   'ids'     the form proposed: as 'named', and a decision a deletion record tells of whose subject
+#   'ids'     the form first proposed: as 'named', and a decision a deletion record tells of whose subject
 #             nothing names is restated by the deletion record's identifier alone, an item holding the
 #             identifier and the kind, carried by every summary entry after it while nothing names the
 #             subject; such an item restates the record with its identifier and tells the decision of
 #             a subject named again, matched by computing the subject's hash
-#   'hashes'  as 'ids', but a revocation or a retirement restated by the identifier's keyed tag and
-#             subject hash alone, so that the item restates every record of its kind about the subject;
-#             a removal of a name, whose identifier an addition has to name, by its identifier
-# With SEAL off every deletion record is read as before, whatever the switch holds.
-SEAL_RESTATES = 'named'
+#   'hashes'  the form adopted, the default: as 'ids', but a revocation or a retirement restated by the
+#             identifier's keyed tag and subject hash alone, so that the item restates every record of
+#             its kind about the subject; a removal of a name, whose identifier an addition has to name,
+#             by its identifier
+# With SEAL off every deletion record is read as before, whatever the switch holds. 'named' and 'ids'
+# stay as measured in measured-seal-restates.
+SEAL_RESTATES = 'hashes'
 
 
 def restates_by_subject():

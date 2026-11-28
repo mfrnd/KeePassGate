@@ -184,7 +184,7 @@ ARGS = sys.argv[1:]
 # other vector is as `--seal` prints it.
 # ADDED (seal restates): `--restates` is `--starts` with the form proposed for what a summary entry
 # restates of a decision a deletion record alone tells of: the sequences of measured-seal-restates,
-# each made with crdt_model.SEAL_RESTATES 'ids' and SEAL on while it is made, and off for everything
+# each made with crdt_model.SEAL_RESTATES 'hashes' and SEAL on while it is made, and off for everything
 # else, so that every other vector is as `--starts` prints it.
 RESTATING = '--restates' in ARGS
 if RESTATING:
@@ -2254,12 +2254,13 @@ if STARTING:
 
 def restates_vectors():
     """ADDED (seal restates): the sequences of a decision that a deletion record alone tells of, sealed
-    in the form proposed (crdt_model.SEAL_RESTATES 'ids'), then merged with the copy from before, with
+    in the form adopted (crdt_model.SEAL_RESTATES 'hashes'), then merged with the copy from before, with
     the sealed copy's deletion records cleared or not."""
     import seal as SL       # noqa: E402
     import restates as RT   # noqa: E402
     M.ANSWERS = R.ANSWERS = S.HEX = M.SEAL = R.SEAL = True
-    M.SEAL_RESTATES = 'ids'
+    form = M.SEAL_RESTATES
+    M.SEAL_RESTATES = 'hashes'
     hist = dict((h[0], h) for h in SL.histories(rows=True) + RT.FINDINGS)
     cells = [('nothing', ('merge', 'kp_other', 1, 0)), ('nothing', ('merge', 'xc', 1, 0)),
              ('cleared', ('merge', 'kp_other', 0, 1)), ('cleared', ('merge', 'xc', 0, 1)),
@@ -2281,23 +2282,27 @@ def restates_vectors():
             name = 'restates, %s, %s, %s into %d: %s' % (
                 label, 'deletion records cleared' if pre == 'cleared' else 'as sealed', merged[merge[1]], d, what)
             out['writes']['sequences'][name] = made_seq
-    M.SEAL_RESTATES = 'named'
+    M.SEAL_RESTATES = form
     M.ANSWERS = R.ANSWERS = S.HEX = M.SEAL = R.SEAL = False
     out['writes']['about'] += (
         ' The sequences whose names begin with restates and a comma are those of measured-seal-restates: R5 to '
         'R7 of measured-seal and F5 to F7r, a revocation, a retirement or a removal of a name that a deletion '
         'record alone tells of once its record and the summary entry are deleted, played by the model with its '
-        'answers and Seal again on and the summary entry restating such a decision in the form proposed '
-        '(crdt_model.SEAL_RESTATES ids), and read by read.py: each sequence\'s acts, every deletion '
+        'answers and Seal again on and the summary entry restating such a decision in the form adopted '
+        '(crdt_model.SEAL_RESTATES hashes), and read by read.py: each sequence\'s acts, every deletion '
         'record of copy 0 cleared where the name has deletion records cleared, then the merge the name gives '
         'into the copy it names, then the acts that follow in that copy. In F5 to F7r copy 1 is the copy '
         'from before the decision; in R5 to R7 it was synchronized after it. Where the seal finds a decision '
         'that a deletion record under the store key tells of and whose subject no record or item of the file '
-        'names, its summary entry restates it by an item holding the identifier of that deletion record and the '
-        'kind, revoked, retired or removed, and no subject; every summary entry after it carries the item while '
-        'nothing names the subject, and restates the decision by its subject once something does. Such an item '
-        'restates the record whose identifier it holds, and tells its decision of every subject the file names '
-        'whose keyed hash under the key is the one the identifier holds. Clear deletion records removes every deletion record of the copy, as Database Maintenance does.')
+        'names, its summary entry restates it by an item holding the kind, revoked, retired or removed, and no '
+        'subject: for a revocation or a retirement, hash, the first 16 hexadecimal characters of that deletion '
+        'record\'s identifier, its keyed tag and subject hash; for a removal of a name, id, the whole '
+        'identifier. Every summary entry after it carries the item while nothing names the subject, and '
+        'restates the decision by its subject once something does. An item with hash restates every record of '
+        'its kind whose identifier begins with it, and an item with id the record whose identifier it holds; '
+        'each tells its decision of every subject the file names whose keyed hash under the key is the one it '
+        'holds. Clear deletion records removes every deletion record of the copy, as Database Maintenance '
+        'does.')
 
 
 if RESTATING:
