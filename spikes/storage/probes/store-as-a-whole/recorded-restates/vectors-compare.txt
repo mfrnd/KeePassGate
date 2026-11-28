@@ -61,5 +61,5 @@
       added: restates, R7, deletion records cleared, Merge by KeePassXC into 0: the removal of pf deleted with a deletion record and the summary entry with one
       added: restates, R7, deletion records cleared, Overwrite if newer into 0: the removal of pf deleted with a deletion record and the summary entry with one
       added: restates, R7, deletion records cleared, Synchronize into 1: the removal of pf deleted with a deletion record and the summary entry with one
-   about: the text held today, and 1455 characters added after it
+   about: the text held today, and 1683 characters added after it
    lines: 165424 added; 1 held today replaced or removed: "about": "The file after each act of fixed sequences that th

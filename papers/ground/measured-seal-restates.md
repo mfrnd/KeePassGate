@@ -35,8 +35,8 @@ record or an item names by its subject is restated by its subject, as before.
 | --- | --- | --- |
 | `all`, the control | told by the element it names, whatever the file names | the decision, by its subject |
 | `named`, the product's | told only for a subject the file names: a client of a record of kind `client` or of a revocation in a record or an item; an authority of a record of kind `authority` or of a retirement in a record or an item; a name of a record of kind `profile` or `removed` or of a removal in an item | what is told, by its subject; nothing of the rest |
-| `ids`, the form proposed | as `named` | as `named`, and a decision whose subject nothing names by an item holding the identifier of its deletion record and the kind, `{"id", "kind"}`, carried by every summary entry after it while nothing names the subject |
-| `hashes` | as `named` | as `ids`, but a revocation or a retirement by the identifier's keyed tag and subject hash alone, `{"hash", "kind"}`; a removal of a name by its identifier, as in `ids` |
+| `ids`, the form first proposed | as `named` | as `named`, and a decision whose subject nothing names by an item holding the identifier of its deletion record and the kind, `{"id", "kind"}`, carried by every summary entry after it while nothing names the subject |
+| `hashes`, the form adopted | as `named` | as `ids`, but a revocation or a retirement by the identifier's keyed tag and subject hash alone, `{"hash", "kind"}`; a removal of a name by its identifier, as in `ids` |
 
 **An item with no subject** restates the record whose identifier it holds (with `hash`, every
 record of its kind whose identifier begins with it), and tells its decision of every subject the
@@ -49,14 +49,15 @@ tells of, counting the name being added as named (`STORE.md` §627, as the produ
 ## 2. What was implemented
 
 **In the model** (`crdt_model.py`, each line marked "ADDED (seal restates)"). The switch, with the
-product's form as its default; with it set to `all`, or Seal again off, every output prints as
-before, and every earlier configuration's setup keeps `all` unless the environment names another
-form in `SEAL_RESTATES`, so that a part of Seal again or of a store started again can be run under a
-form unchanged. In the fold, under a form other than `all`: the subjects the file names, read as
-`read.py` reads them; a deletion record of a decision told only for a subject among them; the items
-with no subject read, telling a decision of a subject named and restating their records in the
-completeness check. `seal_carried` composes the items a summary entry holds, written only where a
-decision needs them.
+product's form as its default while the runs were made, and `hashes`, adopted after them, as its
+default since, `named` and `ids` staying as switches; with it set to `all`, or Seal again off, every
+output prints as before, and every earlier configuration's setup keeps `all` unless the environment
+names another form in `SEAL_RESTATES`, so that a part of Seal again or of a store started again can
+be run under a form unchanged. In the fold, under a form other than `all`: the subjects the file
+names, read as `read.py` reads them; a deletion record of a decision told only for a subject among
+them; the items with no subject read, telling a decision of a subject named and restating their
+records in the completeness check. `seal_carried` composes the items a summary entry holds, written
+only where a decision needs them.
 
 **On files.** `store.py` writes the two items; `read.py` reads them (`subject_item`), in the
 completeness check and in the listing's records no summary entry restates. `probe/restates.py`
@@ -147,7 +148,7 @@ and 9 after a retirement in `exhaustive-told-4`, the shortest `revoke 1 c0 ; res
 new) 0 ; merge kp_sync 0 1`. The store is stopped, narrower and never wider, and Seal again lifts
 it again. The control restates the revocation by subject and stays whole.
 
-## 5. The form proposed, `ids`
+## 5. The form first proposed, `ids`
 
 **Never wider than its own ideal**, in every part: on files 972 cells and in the model 432, each the
 same as the control's cell by cell; the random histories, the search and both exhaustive alphabets;
@@ -168,6 +169,8 @@ less; Seal again lifts it.
 line, on files and in the model; so do Seal again's parts.
 
 ## 6. A form that does better, `hashes`
+
+**Adopted** after the runs, and the model's default since (section 9 for its vectors).
 
 **`hashes` never differs from the control**, in any part, and is never wider than its own ideal. It
 holds a revocation or a retirement by the identifier's keyed tag and subject hash alone (16
@@ -226,8 +229,10 @@ compare.
 ## 9. The vectors
 
 `vectors.py --restates` prints the three files of `--starts` with the sequences of this
-measurement added under names of their own, played under `ids`, the form proposed when the runs
-were made; `--starts` prints `recorded-starts\vectors\` byte for byte but the line ends.
+measurement added under names of their own, played under `hashes`, the form adopted and the
+switch's default since; `--starts` prints `recorded-starts\vectors\` byte for byte but the line
+ends. The runs of section 10 printed the same sequences under `ids`, the form first proposed;
+`recorded-restates\vectors\` holds the print under `hashes`, made twice, the same bytes.
 
 | File | Held today | Printed | Added | Changed or removed |
 | --- | --- | --- | --- | --- |
@@ -237,11 +242,15 @@ were made; `--starts` prints `recorded-starts\vectors\` byte for byte but the li
 
 The sequences are R5, R6, R7 and F5 to F7r, each followed by five merges: Overwrite if newer and
 KeePassXC into copy 1 as sealed, and Overwrite if newer, KeePassXC and Synchronize with copy 0's
-deletion records cleared. **Nothing held today changed**: the line diff against
-`recorded-starts\vectors\` adds 165,424 lines and replaces a single line, the line of `about`, whose
-text is the text held today with 1,455 characters added after it. Every step holds each summary
-entry's items, the items with no subject among them. **In the form `hashes`** the sequences hold the
-same answers; their revocation and retirement items would hold the hash in place of the identifier.
+deletion records cleared. **Nothing held today changed**: every record, store and sequence held is
+the same, and the line diff against `recorded-starts\vectors\` adds 165,424 lines and replaces a
+single line, the line of `about`, whose text is the text held today with 1,683 characters added
+after it. Every step holds each summary entry's items, the items with no subject among them: in
+R5, R6, F5, F5r, F6 and F6r, `{"hash", "kind"}` for a revocation or a retirement, and in R7, F7 and
+F7r, `{"id", "kind": "removed"}`. **Against the print under `ids`**, the 15 sequences of a removal
+are the same, and the other 30 differ in their summary entries alone, `hash` in place of `id` and
+the summary entries' identifiers following wherever a step lists them; no answer of any step
+differs.
 
 ## 10. The two runs
 

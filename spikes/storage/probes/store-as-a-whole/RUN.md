@@ -2532,15 +2532,17 @@ Reported, not fixed.
 
 Added on 2026-11-27 for `papers\ground\measured-seal-restates.md`. Every configuration above
 restated a revocation, a retirement and a removal of a name that a deletion record under the store
-key tells of by the element the record names, whatever the file still named; the product's reading tells such
-a deletion record only for a subject a record or an item of the file names, and its seal restates
-only what it tells. `crdt_model.SEAL_RESTATES` holds the form, with `SEAL` on: `named` (the
-product's form, and the switch's default), `all` (the control: the form every configuration above
-was run in, which each of their setups keeps unless the environment names another in
-`SEAL_RESTATES`), `ids` (the form proposed: a decision whose subject nothing names restated by an
-item holding its deletion record's identifier and the kind) and `hashes` (as `ids`, a revocation or
-a retirement held by the identifier's keyed tag and subject hash alone). `run.ps1 -Restates` runs
-it; its record is `recorded-restates\`, with the vectors it prints in `recorded-restates\vectors\`.
+key tells of by the element the record names, whatever the file still named; the product's reading
+tells such a deletion record only for a subject a record or an item of the file names, and its seal
+restates only what it tells. `crdt_model.SEAL_RESTATES` holds the form, with `SEAL` on: `named`
+(the product's form as first built, the switch's default while the runs were made), `all` (the
+control: the form every configuration above was run in, which each of their setups keeps unless
+the environment names another in `SEAL_RESTATES`), `ids` (the form first proposed: a decision whose
+subject nothing names restated by an item holding its deletion record's identifier and the kind)
+and `hashes` (as `ids`, a revocation or a retirement held by the identifier's keyed tag and subject
+hash alone), **the form adopted after the runs, and the switch's default since**; `named` and `ids`
+stay as switches, as measured. `run.ps1 -Restates` runs it; its record is `recorded-restates\`,
+with the vectors it prints in `recorded-restates\vectors\`.
 
 ### What it runs
 
@@ -2619,8 +2621,23 @@ printed their records line for line, and `vectors.py --starts` the three files o
 **Compared.** Every output of run 2, and of the second run of the parts under `hashes`, is the same
 as `recorded-restates\` line for line, with the masks of "Running it": 70 files, the listings of the
 cells, of the parts held to their records and of the vectors among them; and the three files of
-vectors printed into `out\restates\vectors\` are the same bytes as those of
-`recorded-restates\vectors\` but the line ends.
+vectors printed into `out\restates\vectors\` were the same bytes as those of run 1 but the line
+ends.
+
+**The vectors printed again under `hashes`.** Both runs printed the sequences of `--restates` under
+`ids`. Once `hashes` was adopted and made the default, `vectors.py --restates` printed them again
+under `hashes`, twice, the same bytes, with nothing else run beside it;
+`recorded-restates\vectors\`, `vectors-print.txt` and `vectors-compare.txt` are that print, and
+replace the print of run 1, so that a run of the configuration now differs from the record in those
+three files and in `vectors-compare.txt` alone. Against `recorded-starts\vectors\`, the files as they stand,
+it adds the same 45 sequences and changes, removes or adds nothing else: every record and store
+held, and every sequence held, the same, and `about` the text held today with 1,683 characters added
+after it. Against run 1's print under `ids`, every record, store and other sequence is the same, the
+15 sequences of R7, F7 and F7r (a removal, held by its identifier in both forms) the same, and the
+30 of R5, R6, F5, F5r, F6 and F6r differ only in their summary entries: the items of a revocation
+and a retirement hold `hash` in place of `id`, and the summary entries' identifiers, wherever a step
+lists them as present or deleted, follow; no answer of any step differs. With the default changed,
+`restates_runs.py hand` and `seal_runs.py hand` printed their records line for line.
 
 | Figure | Recorded | Second run | Reproduced |
 | --- | --- | --- | --- |
@@ -2632,7 +2649,8 @@ vectors printed into `out\restates\vectors\` are the same bytes as those of
 | `exhaustive-told-4` under `ids`: stopped after a revocation and after a retirement; under `hashes`; holding an item | 9 and 9; none; 55,312, 55,227, 55,227 | the same | yes |
 | `bridge`, `bridge-hand`: steps; differing under `all`; under the other forms; seals differing | 9,700 and 5,732; 1 and 212; 0; 0 | the same | yes |
 | `against`: the parts of Seal again under `named`, `ids` and `hashes`, of a store started again under `ids` and `hashes`, the same as their records | 52 of 52 | the same | yes |
-| vectors: sequences added; records and stores added; members changed or removed; `--starts` against `recorded-starts\vectors\` | 45; none; none; the same but the line ends | the same | yes |
+| vectors, printed under `ids` by the runs: sequences added; records and stores added; members changed or removed; `--starts` against `recorded-starts\vectors\` | 45; none; none; the same but the line ends | the same | yes |
+| vectors printed again under `hashes`: sequences added; records and stores added; members held changed or removed; sequences differing from the print under `ids`, answers among them | 45; none; none; 30, no answer | the same bytes | yes |
 
 ### What was added for it
 
