@@ -62,7 +62,7 @@ namespace KeePassGate.Tests
                 Assert.That(sealable.Headline, Is.EqualTo(AuthorityDescription.HeldBackHeadline(StoreWords.Stopped)));
                 Assert.That(sealable.Details, Is.EqualTo(new[]
                 {
-                    AuthorityDescription.HeldBackLine(StoreWords.Stopped), reading.Reason,
+                    AuthorityDescription.HeldBackLine(StoreWords.Stopped), AsSentence(reading.Reason),
                     "Seal store again lifts the stop. What was lost is shown first.",
                 }));
                 Assert.That(sealable.CanSeal, Is.True);
@@ -86,7 +86,9 @@ namespace KeePassGate.Tests
 
                 var unwritable = page.Under(reading, "the dialogs that would take a write back could not be watched", null, null);
                 Assert.That(unwritable.CanSeal, Is.False);
-                Assert.That(unwritable.Details[unwritable.Details.Count - 1], Does.Contain("could not be watched"));
+                Assert.That(
+                    unwritable.Details[unwritable.Details.Count - 1],
+                    Is.EqualTo("The dialogs that would take a write back could not be watched."));
             }
 
             using (var outdated = HeldBack.Database(StoreWords.Outdated).Store.Read())
@@ -108,7 +110,7 @@ namespace KeePassGate.Tests
                 var page = AuthorityDescription.Of(authority, null, null, Now).Under(reading, null, null, null);
 
                 Assert.That(page.CanStartAgain, Is.True);
-                Assert.That(page.Details, Is.EqualTo(new[] { AuthorityDescription.HeldBackLine(word), reading.Reason, "Start store again is the way out." }));
+                Assert.That(page.Details, Is.EqualTo(new[] { AuthorityDescription.HeldBackLine(word), AsSentence(reading.Reason), "Start store again is the way out." }));
                 Assert.That(new[] { page.CanCreate, page.CanRecreate, page.CanDelete, page.CanSeal, page.CanInvite }, Is.All.False);
 
                 var unwritable = AuthorityDescription.Of(authority, null, null, Now).Under(reading, "the dialogs that would take a write back could not be watched", null, null);
@@ -813,6 +815,16 @@ namespace KeePassGate.Tests
         public void A_missing_reading_is_refused()
         {
             Assert.Throws<ArgumentNullException>(() => AuthorityDescription.Of(null, null, null, Now));
+        }
+
+        /// <summary>
+        /// A reason the store gives, composed for the log in lower case and with no period, as the
+        /// page shows it on a line of its own.
+        /// </summary>
+        private static string AsSentence(string reason)
+        {
+            Assert.That(reason, Does.Match("^[a-z]").And.Not.EndWith("."), "a reason as the store composes it");
+            return char.ToUpperInvariant(reason[0]) + reason.Substring(1) + ".";
         }
     }
 }

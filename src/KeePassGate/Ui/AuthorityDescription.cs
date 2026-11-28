@@ -180,9 +180,28 @@ namespace KeePassGate.Ui
         /// </summary>
         internal static string UnsealableLine(string unsealable, bool offersStart)
         {
-            var reason = Clipped.Message(unsealable);
-            var sentence = UnsealableStart + reason + (reason.EndsWith(".", StringComparison.Ordinal) ? string.Empty : ".");
+            var sentence = UnsealableStart + Ended(Clipped.Message(unsealable));
             return offersStart ? sentence + " " + StartLine : sentence;
+        }
+
+        /// <summary>
+        /// A reason the store or the session gives, on a line of its own: cut as the page cuts what
+        /// it did not compose, its first letter a capital, and ended as a sentence where the cut did
+        /// not end it.
+        /// </summary>
+        /// <remarks>
+        /// The reasons are composed for the log and for the place after a colon, so each begins in
+        /// lower case and ends with no period.
+        /// </remarks>
+        internal static string ReasonLine(string reason)
+        {
+            var clipped = Clipped.Message(reason);
+            return clipped.Length == 0 ? clipped : Ended(char.ToUpperInvariant(clipped[0]) + clipped.Substring(1));
+        }
+
+        private static string Ended(string clipped)
+        {
+            return clipped.EndsWith(".", StringComparison.Ordinal) ? clipped : clipped + ".";
         }
 
         /// <summary>
@@ -245,10 +264,10 @@ namespace KeePassGate.Ui
             {
                 var sealable = unwritable == null && unsealable == null;
                 var remedy = unwritable != null
-                    ? Clipped.Message(unwritable)
+                    ? ReasonLine(unwritable)
                     : sealable ? SealLine : UnsealableLine(unsealable, offersStart);
                 return new AuthorityDescription(
-                    HeldBackHeadline(word), null, new[] { HeldBackLine(word), Clipped.Message(store.Reason), remedy }, false, false, false)
+                    HeldBackHeadline(word), null, new[] { HeldBackLine(word), ReasonLine(store.Reason), remedy }, false, false, false)
                 {
                     CanSeal = sealable,
                     CanStartAgain = offersStart,
@@ -257,7 +276,7 @@ namespace KeePassGate.Ui
 
             if (word != null)
             {
-                var lines = new List<string> { HeldBackLine(word), Clipped.Message(store.Reason) };
+                var lines = new List<string> { HeldBackLine(word), ReasonLine(store.Reason) };
                 if (offersStart)
                 {
                     lines.Add(StartLine);
@@ -271,7 +290,7 @@ namespace KeePassGate.Ui
 
             if (unwritable != null)
             {
-                return new AuthorityDescription(UnwritableHeadline, null, new[] { Clipped.Message(unwritable) }, false, false, false);
+                return new AuthorityDescription(UnwritableHeadline, null, new[] { ReasonLine(unwritable) }, false, false, false);
             }
 
             if (store == null)
@@ -635,11 +654,11 @@ namespace KeePassGate.Ui
             {
                 new AuthorityDescription(DamagedHeadline, null, damage, false, true, true) { CanStartAgain = true },
                 new AuthorityDescription(PresentHeadline, facts, present, false, true, true) { CanStartAgain = true },
-                new AuthorityDescription(HeldBackHeadline(StoreWords.Outdated), null, new[] { HeldBackLine(StoreWords.Outdated), Clipped.Message(Thrown), StartLine }, false, false, false) { CanStartAgain = true },
-                new AuthorityDescription(HeldBackHeadline(StoreWords.Stopped), null, new[] { HeldBackLine(StoreWords.Stopped), Clipped.Message(Thrown), SealLine }, false, false, false) { CanSeal = true, CanStartAgain = true },
-                new AuthorityDescription(HeldBackHeadline(StoreWords.Stopped), null, new[] { HeldBackLine(StoreWords.Stopped), Clipped.Message(Thrown), UnsealableLine(Thrown, true) }, false, false, false) { CanStartAgain = true },
-                new AuthorityDescription(HeldBackHeadline(StoreWords.Split), null, new[] { HeldBackLine(StoreWords.Split), Clipped.Message(Thrown), StartLine }, false, false, false) { CanStartAgain = true },
-                new AuthorityDescription(UnwritableHeadline, null, new[] { Clipped.Message(Thrown) }, false, false, false),
+                new AuthorityDescription(HeldBackHeadline(StoreWords.Outdated), null, new[] { HeldBackLine(StoreWords.Outdated), ReasonLine(Thrown), StartLine }, false, false, false) { CanStartAgain = true },
+                new AuthorityDescription(HeldBackHeadline(StoreWords.Stopped), null, new[] { HeldBackLine(StoreWords.Stopped), ReasonLine(Thrown), SealLine }, false, false, false) { CanSeal = true, CanStartAgain = true },
+                new AuthorityDescription(HeldBackHeadline(StoreWords.Stopped), null, new[] { HeldBackLine(StoreWords.Stopped), ReasonLine(Thrown), UnsealableLine(Thrown, true) }, false, false, false) { CanStartAgain = true },
+                new AuthorityDescription(HeldBackHeadline(StoreWords.Split), null, new[] { HeldBackLine(StoreWords.Split), ReasonLine(Thrown), StartLine }, false, false, false) { CanStartAgain = true },
+                new AuthorityDescription(UnwritableHeadline, null, new[] { ReasonLine(Thrown) }, false, false, false),
                 new AuthorityDescription(UndecidedHeadline, null, new[] { Longest(UndecidedLine), chooserRoom }, false, true, true)
                 {
                     CanChoose = true
