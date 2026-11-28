@@ -50,6 +50,11 @@ namespace KeePassGate.Store
         /// a stop under each key found, then the authority holding its key and a keep record for
         /// each key found, and its write reads nothing of the store but the keys found.
         /// </param>
+        /// <param name="admitted">
+        /// For an act that starts the store again, how many clients a reading of the store admits,
+        /// asked of the store its write is planned over, for what the write tells of itself; null
+        /// for every other act.
+        /// </param>
         internal StoreAct(
             string name,
             byte[] key,
@@ -59,7 +64,8 @@ namespace KeePassGate.Store
             Func<StoreReading, StoreAct> again = null,
             bool seals = false,
             IReadOnlyList<string> leftOut = null,
-            bool starts = false)
+            bool starts = false,
+            Func<StoreReading, int> admitted = null)
         {
             if (key == null)
             {
@@ -85,6 +91,7 @@ namespace KeePassGate.Store
             Again = again;
             Seals = seals;
             Starts = starts;
+            Admitted = admitted;
             LeftOut = (leftOut ?? Array.Empty<string>()).ToList();
         }
 
@@ -100,6 +107,13 @@ namespace KeePassGate.Store
         /// found aside.
         /// </summary>
         internal bool Starts { get; private set; }
+
+        /// <summary>
+        /// How many clients a reading of the store admits, for an act that starts the store again:
+        /// the answer of whoever composed the act, which owns that question, asked of the store the
+        /// write is planned over. Null for every other act.
+        /// </summary>
+        internal Func<StoreReading, int> Admitted { get; private set; }
 
         /// <summary>What the act left out as it was composed, each with why: what the log names.</summary>
         internal IReadOnlyList<string> LeftOut { get; private set; }
@@ -212,10 +226,45 @@ namespace KeePassGate.Store
         public IReadOnlyList<string> Refusing { get; private set; }
     }
 
+    /// <summary>
+    /// What a write that started the store again set aside, `STORE.md` §632, as the store it was
+    /// planned over held it: the name of the new key, the name of every key set aside, and how
+    /// many clients the store admitted, none of whom the new store admits.
+    /// </summary>
+    public sealed class StoreStarted
+    {
+        internal StoreStarted(string key, IReadOnlyList<string> setAside, int clients)
+        {
+            Key = key;
+            SetAside = setAside;
+            Clients = clients;
+        }
+
+        /// <summary>The name of the key the store was started again under.</summary>
+        public string Key { get; private set; }
+
+        /// <summary>The name of every key the start set aside, as the keys were found.</summary>
+        public IReadOnlyList<string> SetAside { get; private set; }
+
+        /// <summary>
+        /// How many clients the store the write was planned over admitted, as the act's composer
+        /// counts them, `StoreAct.Admitted`: none where nothing was in force, as under several keys.
+        /// </summary>
+        public int Clients { get; private set; }
+    }
+
     /// <summary>What a write into the store came to: taken, or refused and why, and the acts left out.</summary>
     public sealed class StoreWritten
     {
-        private StoreWritten(bool taken, string reason, IReadOnlyList<StoreAct> acts, IReadOnlyList<string> leftOut, bool wrote, bool waits, StoreSealed sealedAgain = null)
+        private StoreWritten(
+            bool taken,
+            string reason,
+            IReadOnlyList<StoreAct> acts,
+            IReadOnlyList<string> leftOut,
+            bool wrote,
+            bool waits,
+            StoreSealed sealedAgain = null,
+            StoreStarted started = null)
         {
             Taken = taken;
             Reason = reason;
@@ -224,7 +273,14 @@ namespace KeePassGate.Store
             Wrote = wrote;
             Waits = waits;
             Sealed = sealedAgain;
+            Started = started;
         }
+
+        /// <summary>
+        /// What the write set aside where it started the store again and was made, or null: told
+        /// from the write itself, not from a reading before it.
+        /// </summary>
+        public StoreStarted Started { get; private set; }
 
         /// <summary>
         /// What the write lifted where it sealed a stopped store again and was made, or null: told
@@ -259,9 +315,10 @@ namespace KeePassGate.Store
         /// </summary>
         public bool Waits { get; private set; }
 
-        internal static StoreWritten Done(IReadOnlyList<StoreAct> taken, IReadOnlyList<string> leftOut, bool wrote, StoreSealed sealedAgain = null)
+        internal static StoreWritten Done(
+            IReadOnlyList<StoreAct> taken, IReadOnlyList<string> leftOut, bool wrote, StoreSealed sealedAgain = null, StoreStarted started = null)
         {
-            return new StoreWritten(true, null, taken, leftOut, wrote, false, sealedAgain);
+            return new StoreWritten(true, null, taken, leftOut, wrote, false, sealedAgain, started);
         }
 
         internal static StoreWritten Waiting(IReadOnlyList<StoreAct> taken, IReadOnlyList<string> leftOut)

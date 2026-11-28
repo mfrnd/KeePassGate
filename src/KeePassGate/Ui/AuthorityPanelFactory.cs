@@ -359,6 +359,13 @@ namespace KeePassGate.Ui
                 _audit.StoreSealed(Served(live), sealedAgain.Stopped, sealedAgain.Written, sealedAgain.Deleted);
             }
 
+            // A store started again, `STORE.md` §632, the database named by the new authority.
+            var started = database.Started;
+            if (started != null)
+            {
+                _audit.StoreStarted(Served(live), started.Key, started.SetAside, started.Clients);
+            }
+
             var revoked = Landed(database, AdmissionActs.RevokeName, StoreKinds.Revoked, StoreKinds.ClientMember);
             var taken = Landed(database, AdmissionActs.TakeAwayName, StoreKinds.Withdrawn, StoreKinds.Certificate);
             if (revoked.Count == 0 && taken.Count == 0)

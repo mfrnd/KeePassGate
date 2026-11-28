@@ -929,28 +929,35 @@ took and could refuse nothing the write did not, while a refusal after the write
 the press held for OK. Keeping an authority from KeePass's main window applies the plan the
 store made of a reading in the same turn, as the dialog's OK does. **A Create or a Recreate is
 asked first whether its write would be taken and leave the store whole**, since a store left
-without room serves nothing, the authority just made among it, and nothing on the tab lifts that
-(§643). Its records are planned over the store as the page reads it and applied in memory, an
-authority with an `id` of a digest's length standing in for the authority not yet minted, and
-the store they leave is judged. Where the write would be refused or leave the store held back,
-the press is refused before anything is minted, written or held, and the page withholds the
-button with a line naming it and why, and where the store would be left full, that nothing on
-the tab makes room, in the place of the line of a store past half its room. On the settings
-dialog that store is the store as OK would leave it with the presses held, so a press is judged
-as a write after them, as on the next dialog: OK writes them all in a single write, which names
-a summary entry fewer, so a press refused there would have left room for a single write more at
-the most. **The question is asked at the press and not at OK**: a write landing under the
-dialog, as a pairing, can still leave the store full at OK, and OK writes the Create or the
-Recreate all the same. **Delete and keeping an authority are not asked.** A store left without
-room is stopped, and nothing the plugin offers lifts that (§643): a Delete that takes the last of
-the room stops the store for good, and every Create after it is refused; keeping an authority
-that takes the last of it leaves the authority kept in a stopped store, served nothing. *Held
-by* `PendingRecordsTests`: a Recreate whose own write would leave the store full is refused with
-nothing held, and a Create after a Delete, whose write would leave the store full, is refused
-with the Delete left held; and by `AuthorityPanelTests`, which withholds each button with its
-line. The admissions are records of the store as well (§615), and their removal is part of the
-act: the write that retires an
-authority deletes every record of kind `client` whose `issuer` is that authority (§627 step 3),
+without room serves nothing, the authority just made among it, until it is started again (§643).
+Its records are planned over the store as the page reads it and applied in memory, an authority
+with an `id` of a digest's length standing in for the authority not yet minted, and the store
+they leave is judged. Where the write would be refused or leave the store held back, the press
+is refused before anything is minted, written or held, and the page withholds the button with a
+line naming it and why, in the place of the line of a store past half its room. **Where the
+store would be left full, the line and the refusal name the way out where the page offers it**:
+Start store again, which the page offers beside a Recreate where a single authority stands or
+is damaged (§632), and whose write leaves room, since its summary entry under the new key names
+no earlier summary entry and no summary entry restates the stops it writes under the keys it
+sets aside. Beside the chooser, where several authorities stand, and beside Create, which holds
+the place a start takes, no start is offered, and the line names no command: nothing on the page
+makes room. On the settings dialog that store is the store as OK would leave it with the presses
+held, so a press is judged as a write after them, as on the next dialog: OK writes them all in a
+single write, which names a summary entry fewer, so a press refused there would have left room
+for a single write more at the most. **The question is asked at the press and not at OK**: a
+write landing under the dialog, as a pairing, can still leave the store full at OK, and OK writes
+the Create or the Recreate all the same. **Delete and keeping an authority are not asked.** A
+store left without room is stopped, and the seal does not lift a stop for want of room (§625):
+a Delete or a keeping of an authority that takes the last of the room leaves a stopped store,
+served nothing, over which the page offers Start store again as the way out. *Held by*
+`PendingRecordsTests`: a Recreate whose own write would leave the store full is refused with
+nothing held, naming the start, and naming none beside several authorities; a Create after a
+Delete, whose write would leave the store full, is refused with the Delete left held, naming no
+start; and a start over a store a Recreate would leave full, and over a store with no room left,
+leaves the store whole with room; and by `AuthorityPanelTests`, which withholds each button with
+its line and offers the start over the store a Delete left without room. The admissions are
+records of the store as well (§615), and their removal is part of the act: the write that retires
+an authority deletes every record of kind `client` whose `issuer` is that authority (§627 step 3),
 an admission that a pairing landed under the dialog among them, since the write is planned
 against the store as it stands at OK. An act refused or left out at OK deletes none, and a
 revocation is taken away by no command. A standing answer to a renewal stays where its client
@@ -4647,6 +4654,24 @@ start pressed on the KPG tab's buffer and written at its OK, held after every st
 found, standing and set aside and by shape and answer under the key that stands, and T16 as the
 class §639 accepts.
 
+**What the page offers** (S28, settled). **Start store again**, on the Certificate Authority page
+in the place of Create, wherever a key is found and judged and Create has nothing to do: a whole
+store with an authority standing or damaged, a stopped store with room or without, a split store
+within `StoreFormat.MaxKeys` and an outdated store; not where no key is found, which Create starts,
+nor where several authorities stand in a whole store, where the chooser takes Create's place, nor
+past the ceiling on keys, nor while nothing is written into the store in this session, nor a second
+time while a start waits for the dialog's OK. Its tooltip states what it does. Under a split or an
+outdated store, and under a stopped store the seal cannot lift, the page's last line names it as
+the way out. The press asks first in the form Delete asks, "No" the default, in the words of the
+warning above, with the count of the clients that would pair again where the store can be counted
+and, under a split store, how many store keys stand, all of them set aside. The start is held for
+the settings dialog's OK; from the press on the pages read the new store, its authority and no
+client, and the invitation is off with the authority's notice. At OK the log names the new key and
+each key set aside by the first characters of their names, and the audit holds a `started` line
+with the new key's name, every key set aside and how many clients stopped being admitted. *Held
+by* `AuthorityDescriptionTests`, `AuthorityPanelTests`, `PendingRecordsTests`, `GateWiringTests`
+and `GateTabFitsTests`.
+
 **The path by hand remains possible.** With the guard switched off, the operator deletes the
 plugin's group for good, synchronizes that deletion into every copy, and creates an authority.
 It is the operator's own act on the file, and it sets nothing aside: an earlier store that a
@@ -7476,9 +7501,9 @@ fixed, and the list above names where: S1, S12, S13, S16, S20, S23, S26, S31 and
   without ending wider (§617).
 - **S28. The command that starts the store again, in its texts and its place** (§632). Decided:
   the command, its warning, a store under a new key, every other key set aside, and the stop
-  under each key set aside. Fixed for the first writes: what it writes, as built (§632 "What is
-  built"). Not fixed: its caption, the words of its warning, and on which page of the tab and in
-  which states it is offered. Has to satisfy: a plugin that the store's format holds back, or
+  under each key set aside. Fixed: what it writes, its caption, the words of its warning, its page
+  and the states it is offered in, as built (§632 "What is built" and "What the page offers").
+  Satisfied: a plugin that the store's format holds back, or
   that does not read the store's form, can use it; nothing of the earlier store is converted;
   and the earlier store coming back by a merge does not hold the plugin back again.
 - **S30. The entries under a store key that was not kept** (§649). They stay in the file, passed

@@ -97,6 +97,9 @@ namespace KeePassGate.Pipeline
         /// <summary>The reason of the line of the operator's seal of a stopped store, `STORE.md` §625.</summary>
         public const string SealedReason = "store sealed again";
 
+        /// <summary>The reason of the line of the operator's store started again, `STORE.md` §632.</summary>
+        public const string StartedReason = "store started again";
+
         private readonly IGateAudit _audit;
         private readonly Func<DateTimeOffset> _clock;
         private readonly DecisionPace _pace;
@@ -265,6 +268,16 @@ namespace KeePassGate.Pipeline
         public void StoreSealed(string databaseId, string stopped, IReadOnlyList<string> written, IReadOnlyList<string> deleted)
         {
             _audit.Record(AuditEntry.Store(_clock(), databaseId, AuditEntry.Sealed, SealedReason, stopped, written, deleted));
+        }
+
+        /// <summary>
+        /// The operator's store started again, once the settings dialog's OK has written it,
+        /// `STORE.md` §632: the new key's name, the name of every key set aside, and how many
+        /// clients stopped being admitted. Never paced, as the operator's revocation is not.
+        /// </summary>
+        public void StoreStarted(string databaseId, string key, IReadOnlyList<string> setAside, int clients)
+        {
+            _audit.Record(AuditEntry.Start(_clock(), databaseId, StartedReason, key, setAside, clients));
         }
 
         /// <summary>

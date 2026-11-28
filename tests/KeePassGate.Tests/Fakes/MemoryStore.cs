@@ -252,7 +252,7 @@ namespace KeePassGate.Tests.Fakes
             _candidates = applied.Key.ToList();
             _deletions = applied.Value.ToList();
 
-            return StoreWritten.Done(plan.Taken, plan.LeftOut, !plan.Empty, plan.Sealed);
+            return StoreWritten.Done(plan.Taken, plan.LeftOut, !plan.Empty, plan.Sealed, plan.Started);
         }
     }
 }

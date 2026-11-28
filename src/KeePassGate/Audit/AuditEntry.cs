@@ -89,6 +89,9 @@ namespace KeePassGate.Audit
         /// <summary>The decision of the line of the operator's seal of a stopped store, `STORE.md` §625.</summary>
         public const string Sealed = "sealed";
 
+        /// <summary>The decision of the line of the operator's store started again, `STORE.md` §632.</summary>
+        public const string Started = "started";
+
         public AuditEntry(
             DateTimeOffset at,
             string databaseId,
@@ -333,6 +336,24 @@ namespace KeePassGate.Audit
         public IReadOnlyList<string> Deleted { get; private set; }
 
         /// <summary>
+        /// The name of the key a store was started again under, on the line of the operator's
+        /// start, or null on every other line, which then leaves the member out.
+        /// </summary>
+        public string StoreKey { get; private set; }
+
+        /// <summary>
+        /// The name of every key the operator's start set aside, or null on every other line,
+        /// which then leaves the member out.
+        /// </summary>
+        public IReadOnlyList<string> SetAside { get; private set; }
+
+        /// <summary>
+        /// How many clients the store admitted before the operator's start, none of whom it admits
+        /// after, or null on every other line, which then leaves the member out.
+        /// </summary>
+        public int? Clients { get; private set; }
+
+        /// <summary>
         /// A line about the store as a whole rather than a request or an admission: the operator's
         /// seal of a stopped store, `STORE.md` §625, about no certificate, client, operation or node.
         /// </summary>
@@ -350,6 +371,20 @@ namespace KeePassGate.Audit
                 Stopped = stopped,
                 Written = written,
                 Deleted = deleted,
+            };
+        }
+
+        /// <summary>
+        /// The line of the operator's store started again, `STORE.md` §632: the new key's name, the
+        /// name of every key set aside, and how many clients stopped being admitted.
+        /// </summary>
+        internal static AuditEntry Start(DateTimeOffset at, string databaseId, string reason, string key, IReadOnlyList<string> setAside, int clients)
+        {
+            return new AuditEntry(at, databaseId, null, null, null, null, null, Started, reason, null, null, null)
+            {
+                StoreKey = key,
+                SetAside = setAside,
+                Clients = clients,
             };
         }
 
@@ -422,6 +457,18 @@ namespace KeePassGate.Audit
 
                 List(json, "written", Written);
                 List(json, "deleted", Deleted);
+
+                if (StoreKey != null)
+                {
+                    Member(json, "storeKey", StoreKey);
+                }
+
+                List(json, "setAside", SetAside);
+                if (Clients.HasValue)
+                {
+                    json.WritePropertyName("clients");
+                    json.WriteValue(Clients.Value);
+                }
 
                 json.WriteEndObject();
                 json.Flush();

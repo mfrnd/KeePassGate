@@ -43,6 +43,17 @@ none, since it releases both.
   is listed by its kind, and the summary entry restates it by the keyed hash its deletion record
   holds, so that a copy from before the decision that brings the subject back finds it refused. The
   audit holds a `sealed` line for it. `STORE.md` §625 and §611.
+- **Start store again makes a new store under a new key.** On the Certificate Authority page, in the
+  place of **Create authority**, wherever the database holds a store key and an authority stands,
+  whole or damaged, or the store holds the gate back, stopped, with or without room, under more than
+  one key or written by a later plugin. It asks first, **No** the default, naming everything that
+  has to be entered again; **Yes** holds the start for the settings dialog's **OK**, and the pages
+  read the new store from the press on, **Recreate authority** making another authority for it and
+  **Delete authority** refused until **OK** or **Cancel**. The write sets every earlier store key
+  aside and stops each earlier store, so that a new key lost serves nothing until **Seal store
+  again** keeps the earlier store, which its window lists as set aside by a start. It deletes
+  nothing: the earlier entries stay, passed over, beside the new store's group. Every client of the
+  earlier store pairs again. The audit holds a `started` line for it. `STORE.md` §632.
 - **The X on the clients page revokes the client, with every certificate it holds.** The page
   lists a client's certificates as a group of rows: the certificate admitted last carries the
   client's name and the X, and each earlier certificate is indented under it as `earlier
@@ -459,13 +470,17 @@ none, since it releases both.
 - **Create authority and Recreate authority are off where the change would leave the store full**,
   and where the store would refuse it or be left held back for another reason. An authority made
   by the change that takes the last of the store's room would never be served, since nothing is
-  served for a database whose store has no room left. The Certificate Authority page states why
-  under the buttons, and that nothing on the tab makes room, and a press made all the same, as
-  where the store changed since the page was drawn, is refused with nothing held for OK. The
-  question is asked at the press and not at OK, so a pairing that lands while the dialog is open
-  can still leave the store full once OK writes the change. Delete authority and keeping an
-  authority are not held back: either can take the last of the room, which stops the store for
-  good. `STORE.md` §614.
+  served for a database whose store has no room left until the store is started again. The
+  Certificate Authority page states why under the buttons, and a press made all the same, as
+  where the store changed since the page was drawn, is refused with nothing held for OK. Where the
+  store would be left full, the line and the refusal name **Start store again** as the way out
+  where the page offers it, beside **Recreate authority** over a single authority, since a start
+  leaves room; beside **Create authority** and beside the chooser the page offers no start, and
+  states that nothing on it makes room. The question is asked at the press and not at OK, so a
+  pairing that lands while the dialog is open can still leave the store full once OK writes the
+  change. Delete authority and keeping an authority are not held back: either can take the last
+  of the room, which stops the store, and the page then offers **Start store again** as the way
+  out. `STORE.md` §614.
 
 ## 0.2.0, 2026-11-17
 

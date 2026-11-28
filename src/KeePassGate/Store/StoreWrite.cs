@@ -76,6 +76,12 @@ namespace KeePassGate.Store
         /// </summary>
         public StoreSealed Sealed { get; private set; }
 
+        /// <summary>
+        /// What the write sets aside where it starts the store again over keys found, from the
+        /// store it is planned over, or null for any other write, `STORE.md` §632.
+        /// </summary>
+        public StoreStarted Started { get; private set; }
+
         /// <summary>The plan of writing these acts into the store as this reading found it.</summary>
         /// <param name="plugin">The plugin's own version, three whole numbers joined by periods.</param>
         public static StoreWrite Plan(StoreReading reading, IReadOnlyList<StoreAct> acts, string plugin)
@@ -486,6 +492,9 @@ namespace KeePassGate.Store
                 LeftOut = leftOut,
                 Sealed = seals
                     ? new StoreSealed(reading.Reason, reading.Damaged.Select(damaged => damaged.Hex).ToList(), inForce.RefusesAfter)
+                    : null,
+                Started = taken[0].Starts
+                    ? new StoreStarted(keyName, reading.Found.Select(found => found.Name).ToList(), taken[0].Admitted == null ? 0 : taken[0].Admitted(reading))
                     : null,
             };
         }

@@ -189,6 +189,12 @@ namespace KeePassGate.Ui
                 return StoreWritten.Refused(unwritable);
             }
 
+            var withheld = WithheldUnderStart(_acts, acts);
+            if (withheld != null)
+            {
+                return StoreWritten.Refused(withheld);
+            }
+
             var next = _acts.ToList();
             var letGo = new List<StoreAct>();
             var standing = new List<StoreAct>();
@@ -292,9 +298,12 @@ namespace KeePassGate.Ui
         /// act of what is left of both, under the made act's key and ground, takes the made act's
         /// place: the made act's records less that authority, and the pressed act's less its
         /// retirement, every retirement left holding the store key where the retirement dropped
-        /// held it. It is named as the act pressed, but where the made act starts the store, as
-        /// only a Create on a database with no key does: what is left then starts it too, and is
-        /// a Create.
+        /// held it. It is named as the act pressed, but where the made act brings a new key, as
+        /// a Create on a database with no key and a store started again do: what is left then
+        /// brings it too, and is named as the made act. **A store started again stays a start**:
+        /// a Recreate pressed after it leaves the start with the authority the Recreate made,
+        /// `STORE.md` §632, and a Delete is withheld before it is folded,
+        /// <see cref="WithheldUnderStart"/>.
         /// </remarks>
         /// <param name="letGo">Where the acts taken out are put, for the caller to let go once the press is held.</param>
         private static StoreAct Fold(List<StoreAct> buffer, StoreAct act, ICollection<StoreAct> letGo)
@@ -370,7 +379,7 @@ namespace KeePassGate.Ui
                 }
 
                 var name = maker.Against == null ? maker.Name : act.Name;
-                var folded = new StoreAct(name, key, maker.Against, left, maker.Why);
+                var folded = new StoreAct(name, key, maker.Against, left, maker.Why, starts: maker.Starts, admitted: maker.Admitted);
                 buffer.Insert(at, folded);
                 return folded;
             }
@@ -378,6 +387,35 @@ namespace KeePassGate.Ui
             {
                 Array.Clear(key, 0, key.Length);
             }
+        }
+
+        /// <summary>
+        /// Why a press is withheld while a store started again waits, or null where it is not:
+        /// a press that retires the authority the start made and makes none in its place, as
+        /// Delete does, `STORE.md` §632.
+        /// </summary>
+        /// <remarks>
+        /// **The start's new key is held by the authority it makes**, and nothing else the start
+        /// writes holds it: a start whose authority a Delete took away would set every earlier
+        /// store aside under a key no entry holds, and serve nothing in any copy. A start that
+        /// holds its key some other way was never measured, so the press is withheld with what
+        /// takes the start back, and Recreate, which makes an authority in the place of the
+        /// start's, folds into the start.
+        /// </remarks>
+        private static string WithheldUnderStart(IEnumerable<StoreAct> held, IEnumerable<StoreAct> pressed)
+        {
+            var starting = new HashSet<string>(
+                held.Where(act => act.Starts)
+                    .SelectMany(act => act.Records)
+                    .Where(record => record.Kind == StoreKinds.Authority)
+                    .Select(record => record.Member(StoreKinds.Id)),
+                StringComparer.Ordinal);
+            var unmaking = pressed.FirstOrDefault(act =>
+                act.Records.Any(record => record.Kind == StoreKinds.Retired && starting.Contains(record.Member(StoreKinds.AuthorityMember)))
+                && !act.Records.Any(record => record.Kind == StoreKinds.Authority));
+            return unmaking == null
+                ? null
+                : "a store started again waits for this dialog's OK with the authority it makes. Cancel takes the start back";
         }
 
         /// <summary>Whether a record is an authority among these.</summary>

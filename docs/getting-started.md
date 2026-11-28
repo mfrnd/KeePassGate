@@ -254,8 +254,8 @@ to remove one program: for that, see [`clients.md`](clients.md).
 
 **Delete authority** stops this database being served at all, and the Certificate Authority page
 then shows every authority this database has held as retired. Where the Delete takes the last of
-the store's room, described below, the store is left full for good: **Create authority** is off
-after it, and nothing on the tab gives the database an authority again.
+the store's room, described below, the page reads instead that the store is stopped, and
+[**Start store again**](#starting-the-store-again) is the way out.
 
 Both ask first, and both state how many clients are about to be cut off, because that is the
 number nobody can work out unaided. Both retire the old authority rather than only removing it, so
@@ -265,16 +265,20 @@ a copy of the file from before, synchronized in later, cannot put it back into s
 The store is what the Certificate Authority page calls the entries of
 [the plugin's group](#the-plugins-group). It has room for a number of changes, and the
 Certificate Authority page states how many are left once half of them are spent. Nothing is
-served for a database whose store has no room left, and nothing on the tab makes room again, so
-an authority made by the change that fills the store would never be served. The Certificate
-Authority page then states why the button is off, and that nothing on the tab makes room, in the
-place of the count of changes left; the authority that stands and the clients it admits are
-served as before, until a change from elsewhere, such as a pairing, takes the last of the room.
-The same holds where the store would not take the change for another reason. **The question is
-asked when the button is pressed, and not at OK**: a pairing that lands while the dialog is open
-can still leave the store full once OK writes the change. **Delete authority is not held back
-this way**, and neither is keeping an authority: either can take the last of the room, and the
-store then serves nothing for good.
+served for a database whose store has no room left until the store is started again, so an
+authority made by the change that fills the store would never be served. The same holds where
+the store would not take the change for another reason. The Certificate Authority page then
+states why the button is off, in the place of the count of changes left, and where the store
+would be left full, the way out where the page offers it: beside **Recreate authority** over a
+single authority, whole or damaged, **Start store again**, which leaves room, at the cost
+[Starting the store again](#starting-the-store-again) names. Beside **Create authority**, and
+beside **Choose authority** where several authorities stand, the page offers no start, and states
+that nothing on it makes room. The authority that stands and the clients it admits are served as
+before, until a change from elsewhere, such as a pairing, takes the last of the room. **The
+question is asked when the button is pressed, and not at OK**: a pairing that lands while the
+dialog is open can still leave the store full once OK writes the change. **Delete authority is
+not held back this way**, and neither is keeping an authority: either can take the last of the
+room, and the store is then stopped, with **Start store again** offered as the way out.
 
 ## The plugin's group
 
@@ -381,7 +385,37 @@ seal, [Sealing the store again](audit.md#sealing-the-store-again).
 **Where the seal could not be written or would not lift the stop, it is not offered**, and the page
 states why: a store with no room for its next write, which the seal does not lift, a store whose
 only entry left holding the store key would be deleted by the seal's own write, and a store the
-seal's own write would leave with no room for the write after it.
+seal's own write would leave with no room for the write after it. **Start store again** is the
+way out there.
+
+## Starting the store again
+
+**Start store again** makes a new store under a new key and sets every earlier store of the database
+aside. It takes the place of **Create authority** wherever the database holds a store key and an
+authority stands, whole or damaged, and wherever the store holds the gate back: stopped, with room
+for its next write or without, held by more than one store key, or written by a later plugin. It
+asks first, with **No** as the default, and names the cost: every client has to be paired again, and
+every profile name, every rule, every revocation, every certificate taken away and every standing
+answer to a renewal has to be entered again, the rules that narrow among them. Nothing is carried
+over, and no command takes it back. The entries of the earlier store stay in the database, passed
+over, and the new store goes into a group of its own beside them.
+
+**Yes** holds the start, like every other press on the tab: the pages read the new store from the
+press on, its authority and no client, and no invitation is handed out until **OK**. Whatever else
+the dialog held for the earlier store is left out at **OK**, and the log names it; a profile name
+or a revocation pressed after the start is written into the new store with it. **Recreate
+authority** pressed after it makes another authority in the place of the authority the start
+makes, and the start is written with that; **Delete authority** is refused while the start waits,
+since the new store is started with its authority, and **Cancel** takes the start back. A client
+of the earlier store is refused at the handshake from the next connection on. The audit records
+the start, [Starting the store again](audit.md#starting-the-store-again).
+
+**The earlier store is stopped, not deleted.** Should the entry that holds the new store's key be
+lost, deleted for good or edited until no version of it passes, the earlier store is not served
+again: it reads **The store of this database is stopped.**, and **Seal store again** lists it as
+set aside by a start, under a key found nowhere. Sealing it keeps the earlier store, with its
+clients and its rules as they were before the start; should the new key come back by a merge, both
+stores stand and nothing is served until a store is started again.
 
 ## Locking while a program writes
 

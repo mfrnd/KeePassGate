@@ -246,6 +246,18 @@ whose version was lost, or a keep record that keeps the store over the key a sto
 made; and `deleted`, the identifiers of the entries the seal deleted because no version of them
 passed. `written` and `deleted` are lists, empty where the seal wrote or deleted none.
 
+## Starting the store again
+
+**A store started again is written down as well**, when the settings dialog's **OK** puts the start
+into the database, and never on **Cancel**: every client of the earlier store stops being admitted
+at once. The line has `decision` `started`, `reason` `store started again`, and `admissionKey`,
+`clientKey`, `operation`, `node` and `decidedAt` as `null`; its `database` is the authority the new
+store serves. Three members of its own follow: `storeKey`, the name of the new store's key, a
+digest of the key that tells nothing of it; `setAside`, the name of every key the start set aside;
+and `clients`, how many clients the earlier store admitted, counted as the Clients page and the
+question Start store again asks count them: each client with an admission that gets in, none of
+whom the new store admits.
+
 **Not everything that changes who is admitted is here yet.** Recreating or deleting the authority
 takes every record away and is not written down, and neither is a change to the rules or to the
 profiles. Those wait for a design of audit levels.

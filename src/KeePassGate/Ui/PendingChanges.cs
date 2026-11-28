@@ -33,6 +33,9 @@ namespace KeePassGate.Ui
         /// </summary>
         bool AuthorityWaiting { get; }
 
+        /// <summary>Whether a store started again is waiting on the plugin's store, `STORE.md` §632.</summary>
+        bool StartWaiting { get; }
+
         /// <summary>
         /// Whether a seal of the store is waiting, `STORE.md` §625, and no act beside it makes,
         /// replaces or deletes an authority: what the clients page names as waiting then.
@@ -157,6 +160,12 @@ namespace KeePassGate.Ui
             return act.Records.Any(record => record.Kind == StoreKinds.Authority || record.Kind == StoreKinds.Retired);
         }
 
+        /// <summary>Whether a store started again is waiting on the plugin's store, `STORE.md` §632.</summary>
+        public bool StartWaiting
+        {
+            get { return _records.Acts.Any(act => act.Starts); }
+        }
+
         /// <summary>Whether an act of this name is waiting on the plugin's store.</summary>
         public bool ActWaiting(string name)
         {
@@ -175,6 +184,12 @@ namespace KeePassGate.Ui
         /// where it wrote no seal, `STORE.md` §625.
         /// </summary>
         public SealLanded Sealed { get; private set; }
+
+        /// <summary>
+        /// What the store started again that the last <see cref="Apply"/> wrote came to, for the
+        /// audit's line, or null where it wrote no start, `STORE.md` §632.
+        /// </summary>
+        public StoreStarted Started { get; private set; }
 
         /// <summary>
         /// The names of the Adds held that OK would leave out now, because a removal of the name
@@ -239,6 +254,7 @@ namespace KeePassGate.Ui
         {
             Landed = Array.Empty<StoreAct>();
             Sealed = null;
+            Started = null;
             if (!_database.IsOpen)
             {
                 // The database went away while the dialog was open, which is a locked or closed
@@ -320,6 +336,7 @@ namespace KeePassGate.Ui
                             _log.Info("the plugin's store holds what the " + GateName.Product + " tab held: "
                                       + string.Join(", ", Landed.Select(Described)));
                             Seal(Landed.FirstOrDefault(act => act.Seals), written.Sealed);
+                            Start(Landed.FirstOrDefault(act => act.Starts), written.Started);
                             StillRefused(Landed);
                         }
                     }
@@ -385,6 +402,25 @@ namespace KeePassGate.Ui
                       + "; kept over the keys a start made " + Listed(seal.Records.Where(record => record.Kind == StoreKinds.Kept).Select(record => CertificateDigest.Shorten(record.Member(StoreKinds.Key))))
                       + "; damaged entries deleted " + Listed(deleted.Select(CertificateDigest.Shorten))
                       + "; refusing until set again " + Listed(refusing.Concat(seal.LeftOut)));
+        }
+
+        /// <summary>
+        /// Logs the store started again that landed, and keeps it for the audit's line: the name of
+        /// the new key and of each key set aside, each by its first characters, and how many clients
+        /// the store admitted, `STORE.md` §632. All of it is the write's own, so a merge between the
+        /// buffer's last reading and the write changes nothing of what the lines name, and OK reads
+        /// the store no second time before the write.
+        /// </summary>
+        private void Start(StoreAct start, StoreStarted started)
+        {
+            if (start == null || started == null)
+            {
+                return;
+            }
+
+            Started = started;
+            _log.Info(Described(start) + ": the store was started again under the key " + CertificateDigest.Shorten(started.Key)
+                      + "; keys set aside " + Listed(started.SetAside.Select(CertificateDigest.Shorten)));
         }
 
         /// <summary>

@@ -1158,6 +1158,13 @@ plan, with no window asked and nothing spent. A client of that authority cannot 
 more: no target answers for an authority that does not stand, so its handshake is refused,
 while several authorities stand and once the operator has kept an authority
 (`OpenDatabaseTargetsTests.A_connection_naming_the_gate_of_an_authority_that_no_longer_stands_finds_no_target`).
+**A store started again is such an authority gone**, `STORE.md` §632: the earlier store's
+authority is set aside with its key, so a client it issued finds no target and its handshake is
+refused, and a pairing or a renewal whose approval was held against it is answered `409 no
+invitation` or `401 unpaired` with nothing written, as for an authority recreated: the plan's own
+refusal of an authority that does not stand, which the pairing tests run for an authority recreated
+and retired and none runs for a store started again. Every client of the earlier store pairs again
+under the new authority.
 The condition that the handler hands the write compares no authority: the plan has held it by
 then. Held by
 `PairingInRealDatabaseTests.An_authority_retired_beside_several_others_while_the_dialog_stands_is_answered_no_invitation_with_nothing_spent`,

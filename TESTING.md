@@ -225,6 +225,19 @@ with no subject for it instead, `STORE.md` §611.
 `SealFormTests` holds every string of the seal's window and its room at each scaling, a hundred
 rows of the longest texts among them, with nothing scrolling sideways.
 
+**The vectors of a store started again are those of `papers/ground/measured-started-again.md`**,
+printed with `--starts` into its record `recorded-starts`, every member the files held before
+unchanged: the stop, the keep records and the summary entry of a start among the records, the
+stores whose names begin `keys:` with the keys `probe/read.py` found, stood and set aside and the
+keep records it read, and the sequences T1 to T16. `StoreReadingKeysTests` holds the reading to the
+stores, `SealActsTests` the keep record the seal writes over a stop, and `StoreWriteShapeTests`
+plays the sequences through the product's acts, the start pressed on the KPG tab's buffer and
+written at its OK, every key the product makes taken for the model's label of the key that stands
+after the same step, and what is held under a key held under the key that stands alone. T16, the
+new key's carrier and the stop both deleted by hand, is pinned as the class `STORE.md` §639 accepts.
+A split store has nothing in force, so the tests that read every store of the meanings expect no
+names and no refusals of it, where the measured reading lists what its records under every key hold.
+
 **Where the product is stricter than the measured code on purpose, no vector is changed to
 agree.** A write above renews, where nothing arrived, only a version that recorded nothing; the
 remark at the place states the difference, `STORE.md` §644 records it as owed to the model, and

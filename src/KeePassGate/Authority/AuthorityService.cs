@@ -42,8 +42,20 @@ namespace KeePassGate.Authority
         /// </summary>
         public const string Full = "the store would be left full, and nothing is served then";
 
-        /// <summary>What can be done about a store a Create or a Recreate would leave full.</summary>
-        public const string NothingMakesRoom = "Nothing on this tab makes room.";
+        /// <summary>
+        /// What can be done about a store a Create or a Recreate would leave full, where the page
+        /// offers Start store again: a start writes a store of its own under a new key, `STORE.md`
+        /// §632, whose summary entry names no earlier summary entry, so it leaves room, §643.
+        /// </summary>
+        public const string StartMakesRoom = "Start store again is the way out.";
+
+        /// <summary>
+        /// What can be done about a store a Create or a Recreate would leave full, where the page
+        /// offers no start: nothing the page holds makes room. The tab as a whole is not
+        /// answered for, since a write that takes the last of the room leaves a stopped store, and
+        /// the page offers a start over that.
+        /// </summary>
+        public const string NothingMakesRoom = "Nothing on this page makes room.";
 
         private readonly IGateStore _store;
         private readonly AuthorityIssuer _issuer;
@@ -378,6 +390,17 @@ namespace KeePassGate.Authority
             }
         }
 
+        /// <summary>
+        /// How many clients a reading of the store admits, as the clients page counts them and
+        /// the question Start store again asks counts them, `ClientReaches.Admitted`, so that the
+        /// audit of a store started again counts what the operator was told the start costs; none
+        /// where nothing is in force.
+        /// </summary>
+        private static int ClientsAdmitted(StoreReading reading)
+        {
+            return Ui.ClientReaches.Admitted(reading, DateTimeOffset.UtcNow);
+        }
+
         /// <summary>The verb of a store started again, as the log and a refusal name it.</summary>
         private const string StartedAgain = "started again";
 
@@ -525,7 +548,7 @@ namespace KeePassGate.Authority
                     _log.Warn("the authority was not " + verb + ": " + issueRefusal);
                     return AuthorityChange.Refused(
                         "The authority could not be " + verb + ": " + issueRefusal + "."
-                        + (issueRefusal == Full ? " " + NothingMakesRoom : string.Empty));
+                        + (issueRefusal == Full ? " " + (StartOffered(verb, reading) ? StartMakesRoom : NothingMakesRoom) : string.Empty));
                 }
 
                 var authority = _issuer.CreateAuthority();
@@ -545,7 +568,7 @@ namespace KeePassGate.Authority
                     StoreAct act;
                     if (again)
                     {
-                        act = new StoreAct("Start again", key, null, Started(reading, key, issued), null, starts: true);
+                        act = new StoreAct("Start again", key, null, Started(reading, key, issued), null, starts: true, admitted: ClientsAdmitted);
                     }
                     else
                     {
@@ -665,6 +688,23 @@ namespace KeePassGate.Authority
 
                 Array.Clear(key, 0, key.Length);
             }
+        }
+
+        /// <summary>
+        /// Whether the Certificate Authority page offers Start store again beside the press of this
+        /// verb over this reading, as `AuthorityDescription.Under` decides it, `STORE.md` §632:
+        /// beside a Recreate where a single authority stands or is damaged and a key is found and
+        /// judged, and never beside a Create, which holds the place a start takes, nor beside
+        /// the chooser, which takes it where several authorities stand.
+        /// </summary>
+        /// <remarks>
+        /// A start already waiting for the dialog's OK is not asked about: the page offers no
+        /// second start then, and the store it reads is the store the start leaves, a summary
+        /// entry of height 1, which no single Create or Recreate leaves full.
+        /// </remarks>
+        private static bool StartOffered(string verb, StoreReading reading)
+        {
+            return verb == "recreated" && reading.Judged && reading.Found.Count > 0 && Standing(reading).Count <= 1;
         }
 
         /// <summary>What a command that mints an authority writes, as the log names it: the store where it is started again.</summary>

@@ -26,7 +26,8 @@ database. A rule changed apart in copies of a database stands in every version a
 all versions allow, and a group or an entry whose rule was removed is given at most what
 reached it then, until the operator settles either on the tab. A locked database answers `503
 locked`, and a store that is not whole answers `503 stopped` until the operator seals it again on
-the KPG tab, after a window of its own lists what the deletion records show as lost. PyKeePassGate
+the KPG tab, after a window of its own lists what the deletion records show as lost, or starts it
+again under a new key, which sets every earlier store aside and stops it. PyKeePassGate
 is the reference client, a library and a command line covering every route, and a `v` tag publishes
 the two, the plugin's zip as a GitHub release and the client on PyPI. [`docs/`](docs/README.md) is
 the operator's account of all of it.

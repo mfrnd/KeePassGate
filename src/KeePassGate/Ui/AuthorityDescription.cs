@@ -151,11 +151,39 @@ namespace KeePassGate.Ui
         /// </summary>
         public bool CanSeal { get; private set; }
 
+        /// <summary>
+        /// Whether the page offers Start store again, in the place Create has, `STORE.md` §632:
+        /// wherever a key is found and judged and Create has nothing to do, a whole store with an
+        /// authority standing or damaged, a stopped store with room or without, a split store
+        /// within the ceiling on keys and an outdated store; never where nothing is written into
+        /// the store in this session.
+        /// </summary>
+        public bool CanStartAgain { get; private set; }
+
+        /// <summary>The line under a store held back that only a store started again lifts here.</summary>
+        public const string StartLine = AuthorityService.StartMakesRoom;
+
         /// <summary>The line under a stopped store whose seal the page offers.</summary>
         public const string SealLine = "Seal store again lifts the stop. What was lost is shown first.";
 
         /// <summary>What the line under a stopped store the seal cannot lift begins with, its reason following.</summary>
-        public const string UnsealableStart = "It cannot be sealed again: ";
+        /// <remarks>
+        /// **No colon of its own**, since the reason can carry a colon: the seal's write refused for
+        /// its room is named with the room's reason after a colon.
+        /// </remarks>
+        public const string UnsealableStart = "It cannot be sealed again, since ";
+
+        /// <summary>
+        /// The line under a stopped store the seal cannot lift: why, cut as the page cuts what it
+        /// did not compose, ended as a sentence where the cut did not end it, and
+        /// <see cref="StartLine"/> after it where the page offers a start.
+        /// </summary>
+        internal static string UnsealableLine(string unsealable, bool offersStart)
+        {
+            var reason = Clipped.Message(unsealable);
+            var sentence = UnsealableStart + reason + (reason.EndsWith(".", StringComparison.Ordinal) ? string.Empty : ".");
+            return offersStart ? sentence + " " + StartLine : sentence;
+        }
 
         /// <summary>
         /// Whether a code minted now could ever be redeemed, which is a narrower question than
@@ -191,7 +219,11 @@ namespace KeePassGate.Ui
         ///
         /// **Create and Recreate are off where the store would refuse the write or be left held
         /// back by it**, a store left full among it, `AuthorityService.IssueRefusal`, with a line
-        /// naming the button and why: the page offers no press that could only be refused.
+        /// naming the button and why: the page offers no press that could only be refused. Where
+        /// the store would be left full, the line names Start store again where the page offers
+        /// it, since a start leaves room, and otherwise names no command, <see cref="Off"/>. The
+        /// panel offers no second start while a start waits for OK, and the store it reads then
+        /// is the store the start leaves, which no single Create or Recreate leaves full.
         /// </remarks>
         /// <param name="unwritable">Why nothing is written into the store in this session, or null.</param>
         /// <param name="issueRefusal">
@@ -206,23 +238,35 @@ namespace KeePassGate.Ui
         internal AuthorityDescription Under(StoreReading store, string unwritable, string issueRefusal, string unsealable)
         {
             var word = store == null ? null : StoreWords.Of(store.State);
+            // A store started again sets aside whatever holds the gate back, wherever its keys
+            // are judged, `STORE.md` §632.
+            var offersStart = unwritable == null && store != null && store.Judged && store.Found.Count > 0;
             if (word == StoreWords.Stopped)
             {
                 var sealable = unwritable == null && unsealable == null;
                 var remedy = unwritable != null
                     ? Clipped.Message(unwritable)
-                    : sealable ? SealLine : UnsealableStart + Clipped.Message(unsealable);
+                    : sealable ? SealLine : UnsealableLine(unsealable, offersStart);
                 return new AuthorityDescription(
                     HeldBackHeadline(word), null, new[] { HeldBackLine(word), Clipped.Message(store.Reason), remedy }, false, false, false)
                 {
                     CanSeal = sealable,
+                    CanStartAgain = offersStart,
                 };
             }
 
             if (word != null)
             {
-                return new AuthorityDescription(
-                    HeldBackHeadline(word), null, new[] { HeldBackLine(word), Clipped.Message(store.Reason) }, false, false, false);
+                var lines = new List<string> { HeldBackLine(word), Clipped.Message(store.Reason) };
+                if (offersStart)
+                {
+                    lines.Add(StartLine);
+                }
+
+                return new AuthorityDescription(HeldBackHeadline(word), null, lines, false, false, false)
+                {
+                    CanStartAgain = offersStart,
+                };
             }
 
             if (unwritable != null)
@@ -235,26 +279,31 @@ namespace KeePassGate.Ui
                 return this;
             }
 
+            // Over a whole store, where an authority stands or is damaged: Create has nothing to
+            // do there, and the chooser takes its place where several stand.
             var room = store.Room;
             var half = room != null && room.PastHalf;
             var off = issueRefusal != null && (_canCreate || _canRecreate);
-            if (!half && !off)
-            {
-                return this;
-            }
+            var startOffered = offersStart && _canRecreate && !CanChoose;
 
             // Create is offered only where no authority stands and Recreate only where an
             // authority stands, so the line names the button the page holds back. It takes the
             // place of the line of a store past half its room, since it tells of the room left.
             var details = new List<string>(_details);
-            details.Add(off
-                ? Off(_canCreate ? GateTab.CreateButtonText : GateTab.RecreateButtonText, issueRefusal)
-                : HalfLine(Math.Min(room.Writes, room.ItemsLeft)));
+            if (off)
+            {
+                details.Add(Off(_canCreate ? GateTab.CreateButtonText : GateTab.RecreateButtonText, issueRefusal, startOffered));
+            }
+            else if (half)
+            {
+                details.Add(HalfLine(Math.Min(room.Writes, room.ItemsLeft)));
+            }
 
             return new AuthorityDescription(
                 _headline, _facts, details, _canCreate && !off, _canRecreate && !off, _canDelete, _isServed)
             {
                 CanChoose = CanChoose,
+                CanStartAgain = startOffered,
             };
         }
 
@@ -294,12 +343,16 @@ namespace KeePassGate.Ui
         /// <summary>
         /// The line of a page that withholds a button, Create or Recreate, whose write the store
         /// would refuse or that would leave the store held back: the button and why, and where
-        /// the store would be left full, that nothing on the tab makes room.
+        /// the store would be left full, what makes room: Start store again where the page offers
+        /// it, since a start leaves room (`STORE.md` §632, §643), and otherwise that nothing on
+        /// the page does, which names no command the page does not hold.
         /// </summary>
-        internal static string Off(string button, string reason)
+        /// <param name="offersStart">Whether the page offers Start store again beside the button.</param>
+        internal static string Off(string button, string reason, bool offersStart)
         {
             return reason == AuthorityService.Full
-                ? button + " is off: " + AuthorityService.Full + ". " + AuthorityService.NothingMakesRoom
+                ? button + " is off: " + AuthorityService.Full + ". "
+                  + (offersStart ? AuthorityService.StartMakesRoom : AuthorityService.NothingMakesRoom)
                 : button + " is off: " + NotTaken + ".";
         }
 
@@ -568,8 +621,11 @@ namespace KeePassGate.Ui
             // And beside each page that offers Create or Recreate, the line that withholds it where
             // it shows, in the place of the line of a store past half its room, whichever of the
             // lines is longer.
-            var recreateRoom = LongestOf(HalfLine(StoreFormat.MaxItems), Off(GateTab.RecreateButtonText, AuthorityService.Full), Off(GateTab.RecreateButtonText, NotTaken));
-            var createRoom = LongestOf(HalfLine(StoreFormat.MaxItems), Off(GateTab.CreateButtonText, AuthorityService.Full), Off(GateTab.CreateButtonText, NotTaken));
+            // A page that offers Start store again beside Recreate names it in that line, and the
+            // chooser's page and every page that offers Create offer no start.
+            var recreateRoom = LongestOf(HalfLine(StoreFormat.MaxItems), Off(GateTab.RecreateButtonText, AuthorityService.Full, true), Off(GateTab.RecreateButtonText, NotTaken, true));
+            var chooserRoom = LongestOf(HalfLine(StoreFormat.MaxItems), Off(GateTab.RecreateButtonText, AuthorityService.Full, false), Off(GateTab.RecreateButtonText, NotTaken, false));
+            var createRoom = LongestOf(HalfLine(StoreFormat.MaxItems), Off(GateTab.CreateButtonText, AuthorityService.Full, false), Off(GateTab.CreateButtonText, NotTaken, false));
 
             var present = OneLine(warnings);
             present.Add(recreateRoom);
@@ -577,14 +633,14 @@ namespace KeePassGate.Ui
 
             return new List<AuthorityDescription>
             {
-                new AuthorityDescription(DamagedHeadline, null, damage, false, true, true),
-                new AuthorityDescription(PresentHeadline, facts, present, false, true, true),
-                new AuthorityDescription(HeldBackHeadline(StoreWords.Outdated), null, new[] { HeldBackLine(StoreWords.Outdated), Clipped.Message(Thrown) }, false, false, false),
-                new AuthorityDescription(HeldBackHeadline(StoreWords.Stopped), null, new[] { HeldBackLine(StoreWords.Stopped), Clipped.Message(Thrown), SealLine }, false, false, false) { CanSeal = true },
-                new AuthorityDescription(HeldBackHeadline(StoreWords.Stopped), null, new[] { HeldBackLine(StoreWords.Stopped), Clipped.Message(Thrown), UnsealableStart + Clipped.Message(Thrown) }, false, false, false),
-                new AuthorityDescription(HeldBackHeadline(StoreWords.Split), null, new[] { HeldBackLine(StoreWords.Split), Clipped.Message(Thrown) }, false, false, false),
+                new AuthorityDescription(DamagedHeadline, null, damage, false, true, true) { CanStartAgain = true },
+                new AuthorityDescription(PresentHeadline, facts, present, false, true, true) { CanStartAgain = true },
+                new AuthorityDescription(HeldBackHeadline(StoreWords.Outdated), null, new[] { HeldBackLine(StoreWords.Outdated), Clipped.Message(Thrown), StartLine }, false, false, false) { CanStartAgain = true },
+                new AuthorityDescription(HeldBackHeadline(StoreWords.Stopped), null, new[] { HeldBackLine(StoreWords.Stopped), Clipped.Message(Thrown), SealLine }, false, false, false) { CanSeal = true, CanStartAgain = true },
+                new AuthorityDescription(HeldBackHeadline(StoreWords.Stopped), null, new[] { HeldBackLine(StoreWords.Stopped), Clipped.Message(Thrown), UnsealableLine(Thrown, true) }, false, false, false) { CanStartAgain = true },
+                new AuthorityDescription(HeldBackHeadline(StoreWords.Split), null, new[] { HeldBackLine(StoreWords.Split), Clipped.Message(Thrown), StartLine }, false, false, false) { CanStartAgain = true },
                 new AuthorityDescription(UnwritableHeadline, null, new[] { Clipped.Message(Thrown) }, false, false, false),
-                new AuthorityDescription(UndecidedHeadline, null, new[] { Longest(UndecidedLine), recreateRoom }, false, true, true)
+                new AuthorityDescription(UndecidedHeadline, null, new[] { Longest(UndecidedLine), chooserRoom }, false, true, true)
                 {
                     CanChoose = true
                 },

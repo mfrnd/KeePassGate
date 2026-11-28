@@ -209,6 +209,60 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_store_started_again_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel()
+        {
+            // `STORE.md` §632 and `docs/audit.md`: the line names the new authority, the new key,
+            // every key set aside and how many clients stopped being admitted.
+            var audit = new RecordingAudit();
+            Assume.That(new AuthorityService(_database.Store, _log).Create().Succeeded, Is.True);
+            string earlier;
+            using (var reading = _database.Store.Read())
+            {
+                earlier = reading.InForce.Key.Name;
+            }
+
+            // A client of the authority served, which gets in, as the clients page counts it.
+            using (var client = new AuthorityIssuer().IssueClient(StoreSeeds.KeyOf(_database.Store, StoreSeeds.Served(_database.Store)), "agent-fictitious", new[] { "ops" }).Read())
+            {
+                StoreSeeds.Admit(_database.Store, client, DateTimeOffset.UtcNow, "ops");
+            }
+
+            var factory = new AuthorityPanelFactory(
+                new FakeDatabaseSource(_database), new FakePrompt(true), _log, null, null, null, new AdmissionAudit(audit), new SessionRefusals());
+
+            foreach (var answer in new[] { DialogResult.Cancel, DialogResult.OK })
+            {
+                using (var form = Dialogs.WithNestedTabControl("General"))
+                using (var panel = (AuthorityPanel)factory.CreatePanel(form))
+                {
+                    panel.StartStoreAgain();
+                    form.DialogResult = answer;
+                    form.RaiseClosed();
+                }
+
+                if (answer == DialogResult.Cancel)
+                {
+                    Assert.That(audit.Entries, Is.Empty, "a Cancel took it away again");
+                    Assert.That(_database.Store.Read().InForce.Key.Name, Is.EqualTo(earlier));
+                }
+            }
+
+            var line = audit.Entries.Single();
+            using (var reading = _database.Store.Read())
+            {
+                Assert.That(reading.InForce.Key.Name, Is.Not.EqualTo(earlier));
+                Assert.That(line.DatabaseId, Is.EqualTo(StoreAuthorities.Served(reading)), "named by the new authority");
+                Assert.That(line.StoreKey, Is.EqualTo(reading.InForce.Key.Name));
+            }
+
+            Assert.That(line.Decision, Is.EqualTo(AuditEntry.Started));
+            Assert.That(line.Reason, Is.EqualTo(AdmissionAudit.StartedReason));
+            Assert.That(line.SetAside, Is.EqualTo(new[] { earlier }));
+            Assert.That(line.Clients, Is.EqualTo(1));
+            Assert.That(line.Line(), Does.Contain("\"decision\":\"started\"").And.Contain("\"setAside\":[").And.Contain("\"clients\":1"));
+        }
+
+        [Test]
         public void A_seal_is_written_down_when_the_dialogs_OK_lands_it_and_never_on_Cancel()
         {
             // `STORE.md` §625 and `docs/audit.md`: the line names the database the sealed store

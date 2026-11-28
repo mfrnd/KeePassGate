@@ -816,8 +816,9 @@ document came whole from a single copy, so a rule another copy had narrowed for 
 at the same node was lost, where two copies that change different profiles at a node do not
 meet now. **A document that would not read refusing at its node alone**: a record of a rule
 that fails its check is damage to the store, which stops the store for the whole database
-until it is sealed again with **Seal store again** on the KPG tab's first page, `STORE.md` §621,
-§624 and §625, and what refuses at a node alone is a lost version or a text out of form. That is a
+until it is sealed again with **Seal store again** on the KPG tab's first page, or started again
+with **Start store again** beside it, `STORE.md` §621, §624, §625 and §632, and what refuses at a
+node alone is a lost version or a text out of form. That is a
 wider refusal than before, and deliberately the store's own rule: every record takes access away or
 grants it under the same check. **And its ceiling**: a document held the default and 31 profiles,
 and a 32nd made it unreadable; a node holds a rule for any number of profiles now, since a ceiling

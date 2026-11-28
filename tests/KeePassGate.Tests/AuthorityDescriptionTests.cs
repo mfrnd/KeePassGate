@@ -70,8 +70,19 @@ namespace KeePassGate.Tests
 
                 var unsealable = page.Under(reading, null, null, "the write would leave no entry holding the store key");
                 Assert.That(unsealable.CanSeal, Is.False, "no press OK could not write");
-                Assert.That(unsealable.Details[unsealable.Details.Count - 1], Is.EqualTo("It cannot be sealed again: the write would leave no entry holding the store key"));
-                Assert.That(unsealable.DetailText, Does.Not.Contain("Start"), "the page names no command it does not hold");
+                Assert.That(
+                    unsealable.Details[unsealable.Details.Count - 1],
+                    Is.EqualTo("It cannot be sealed again, since the write would leave no entry holding the store key. Start store again is the way out."),
+                    "the command that the page holds there");
+                Assert.That(unsealable.CanStartAgain, Is.True);
+
+                // A reason that ends cut, and that carries a colon of its own: a single colon on the
+                // line, and the cut followed by the next sentence and no further period.
+                var cut = page.Under(reading, null, null, "the store has no room for the seal's write: " + string.Join(" ", Enumerable.Repeat("a summary entry names more than it holds", 6)));
+                var line = cut.Details[cut.Details.Count - 1];
+                Assert.That(line, Does.EndWith("... " + AuthorityDescription.StartLine));
+                Assert.That(line, Does.Not.Contain("...."));
+                Assert.That(line.Count(character => character == ':'), Is.EqualTo(1), line);
 
                 var unwritable = page.Under(reading, "the dialogs that would take a write back could not be watched", null, null);
                 Assert.That(unwritable.CanSeal, Is.False);
@@ -82,6 +93,58 @@ namespace KeePassGate.Tests
             using (var authority = new AuthorityService(new MemoryStore(), null).Read())
             {
                 Assert.That(AuthorityDescription.Of(authority, null, null, Now).Under(outdated, null, null, null).CanSeal, Is.False, "only a stopped store is sealed");
+            }
+        }
+
+        [TestCase("split")]
+        [TestCase("outdated")]
+        public void Under_a_split_or_an_outdated_store_Start_store_again_is_offered_and_named(string word)
+        {
+            // `STORE.md` §632: a store started again sets aside whatever holds the gate back.
+            var store = HeldBack.Database(word);
+            using (var authority = new AuthorityService(store.Store, null).Read())
+            using (var reading = store.Store.Read())
+            {
+                var page = AuthorityDescription.Of(authority, null, null, Now).Under(reading, null, null, null);
+
+                Assert.That(page.CanStartAgain, Is.True);
+                Assert.That(page.Details, Is.EqualTo(new[] { AuthorityDescription.HeldBackLine(word), reading.Reason, "Start store again is the way out." }));
+                Assert.That(new[] { page.CanCreate, page.CanRecreate, page.CanDelete, page.CanSeal, page.CanInvite }, Is.All.False);
+
+                var unwritable = AuthorityDescription.Of(authority, null, null, Now).Under(reading, "the dialogs that would take a write back could not be watched", null, null);
+                Assert.That(unwritable.CanStartAgain, Is.False, "nothing is written in this session");
+                Assert.That(unwritable.DetailText, Does.Not.Contain("Start store again"));
+            }
+        }
+
+        [Test]
+        public void Over_a_whole_store_Start_store_again_is_offered_where_an_authority_stands_and_nowhere_Create_or_the_chooser_acts()
+        {
+            var whole = new MemoryStore();
+            StoreSeeds.Authority(whole);
+            using (var authority = new AuthorityService(whole, null).Read())
+            using (var reading = whole.Read())
+            {
+                var page = AuthorityDescription.Of(authority, null, null, Now).Under(reading, null, null, null);
+                Assert.That(page.CanStartAgain, Is.True, "an authority stands");
+                Assert.That(page.DetailText, Does.Not.Contain("Start store again"), "no line: the button's tooltip tells what it does");
+            }
+
+            var empty = new MemoryStore();
+            using (var authority = new AuthorityService(empty, null).Read())
+            using (var reading = empty.Read())
+            {
+                Assert.That(AuthorityDescription.Of(authority, null, null, Now).Under(reading, null, null, null).CanStartAgain, Is.False, "no key: Create starts the store");
+            }
+
+            var deleted = new MemoryStore();
+            StoreSeeds.Authority(deleted);
+            new AuthorityService(deleted, null).Delete();
+            using (var authority = new AuthorityService(deleted, null).Read())
+            using (var reading = deleted.Read())
+            {
+                Assume.That(reading.State, Is.EqualTo(StoreState.Whole));
+                Assert.That(AuthorityDescription.Of(authority, null, null, Now).Under(reading, null, null, null).CanStartAgain, Is.False, "no authority stands: Create's");
             }
         }
 
@@ -683,13 +746,24 @@ namespace KeePassGate.Tests
             var problems = AuthorityRecord.LongestProblems(string.Empty);
 
             // The line of a store past half its room, or the line that holds Recreate back in its
-            // place, whichever is longer.
+            // place, whichever is longer, naming Start store again where the page offers it.
             var room = new[]
             {
                 AuthorityDescription.HalfLine(StoreFormat.MaxItems),
-                AuthorityDescription.Off(GateTab.RecreateButtonText, AuthorityService.Full),
-                AuthorityDescription.Off(GateTab.RecreateButtonText, AuthorityDescription.NotTaken),
+                AuthorityDescription.Off(GateTab.RecreateButtonText, AuthorityService.Full, true),
+                AuthorityDescription.Off(GateTab.RecreateButtonText, AuthorityDescription.NotTaken, true),
             }.OrderByDescending(line => line.Length).First();
+            Assert.That(room, Does.EndWith(AuthorityDescription.StartLine), "the longest of them names the start");
+
+            // Beside the chooser and beside Create no start is offered, and none is named.
+            var undecided = longest.Single(description => description.Headline == AuthorityDescription.UndecidedHeadline);
+            Assert.That(undecided.Details[undecided.Details.Count - 1], Is.EqualTo(AuthorityDescription.Off(GateTab.RecreateButtonText, AuthorityService.Full, false)));
+            foreach (var headline in new[] { AuthorityDescription.AbsentHeadline, AuthorityDescription.RetiredHeadline })
+            {
+                var created = longest.Single(description => description.Headline == headline);
+                Assert.That(created.Details[created.Details.Count - 1], Is.EqualTo(AuthorityDescription.Off(GateTab.CreateButtonText, AuthorityService.Full, false)), headline);
+                Assert.That(created.DetailText, Does.Not.Contain(GateTab.StartAgainButtonText), headline);
+            }
 
             Assert.That(lines.Length, Is.EqualTo(problems.Count + 3),
                 "every problem, the two lines under them, and the line of the room that is left");

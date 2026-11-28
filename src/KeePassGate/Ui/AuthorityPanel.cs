@@ -140,6 +140,7 @@ namespace KeePassGate.Ui
         private readonly Button _delete;
         private readonly Button _choose;
         private readonly Button _seal;
+        private readonly Button _start;
         private readonly Button _invite;
         private readonly CodeBox _token;
         private readonly Button _copy;
@@ -331,7 +332,13 @@ namespace KeePassGate.Ui
             // `STORE.md` §625: nothing else is written into a stopped store.
             _seal = NewButton(GateTab.SealButtonName, GateTab.SealButtonText, OnSeal);
             _seal.Visible = false;
+
+            // In Create's place as well, wherever a key is found and judged and Create has nothing
+            // to do, `STORE.md` §632.
+            _start = NewButton(GateTab.StartAgainButtonName, GateTab.StartAgainButtonText, OnStartAgain);
+            _start.Visible = false;
             buttons.Controls.Add(_choose);
+            buttons.Controls.Add(_start);
             buttons.Controls.Add(_create);
             buttons.Controls.Add(_seal);
             buttons.Controls.Add(_recreate);
@@ -392,6 +399,7 @@ namespace KeePassGate.Ui
             _tips = new ToolTip();
             Tooltips.Set(_tips, _copy, GateTab.CopyButtonLabel);
             Tooltips.Set(_tips, _token, GateTab.InvitationBoxHelp);
+            Tooltips.Set(_tips, _start, GateTab.StartAgainButtonHelp);
 
             _ticking.Tick += (sender, e) =>
                 WindowHandlers.Run("the KPG tab's countdown could not be moved on", () => OnTick(sender, e));
@@ -704,6 +712,83 @@ namespace KeePassGate.Ui
             });
         }
 
+        /// <summary>
+        /// Starts the store again under a new key, `STORE.md` §632, asking first in the form Delete
+        /// asks, "No" the default: the start is held for this dialog's OK, and the pages read the
+        /// new store from the press on. Nothing happens if the answer is no, or where the store
+        /// takes no start.
+        /// </summary>
+        public void StartStoreAgain()
+        {
+            Act(() =>
+            {
+                int standing;
+                bool counted;
+                using (var reading = _database.Store.Read())
+                {
+                    if (reading.State == StoreState.None || !reading.Judged)
+                    {
+                        return null;
+                    }
+
+                    standing = reading.Standing.Count;
+                    counted = reading.InForce != null;
+                }
+
+                if (!_prompt.Confirm(StartAgainTitle, StartAgainQuestion(counted ? Cost(CountRecords()) : null, standing)))
+                {
+                    return null;
+                }
+
+                return _service.StartAgain();
+            });
+        }
+
+        /// <summary>The title of the question Start store again asks.</summary>
+        public const string StartAgainTitle = "Start the store again";
+
+        /// <summary>
+        /// The question Start store again asks, `STORE.md` §632: what it does, what has to be
+        /// entered again, what the clients lose where the store can be counted, and how many store
+        /// keys it sets aside where several stand.
+        /// </summary>
+        /// <param name="cost">The line counting the clients that would have to pair again, or null where the store cannot be counted.</param>
+        /// <param name="standing">How many store keys stand.</param>
+        public static string StartAgainQuestion(string cost, int standing)
+        {
+            var lines = new List<string>
+            {
+                "Starting the store again makes a new store under a new key and sets every earlier store of this " +
+                "database aside, for good, in this copy and in every copy that takes the file in. Nothing is " +
+                "carried over.",
+                "Every client has to be paired again. Every profile name, every rule, every revocation, every " +
+                "certificate taken away and every standing answer to a renewal has to be entered again, the rules " +
+                "that narrow among them. The entries of the earlier store stay in the database, passed over.",
+            };
+            if (cost != null)
+            {
+                lines.Add(cost);
+            }
+
+            if (standing > 1)
+            {
+                lines.Add(standing.ToString("N0", System.Globalization.CultureInfo.CurrentCulture) + " store keys stand. All of them are set aside.");
+            }
+
+            lines.Add("Start it again?");
+            return string.Join(Environment.NewLine + Environment.NewLine, lines);
+        }
+
+        /// <summary>Whether a start waits for this dialog's OK.</summary>
+        private bool StartWaiting
+        {
+            get
+            {
+                var pending = _database as IPendingChanges;
+                return pending != null && pending.StartWaiting;
+            }
+        }
+
         private bool ShowSealForm(string reason, IReadOnlyList<SealRow> rows, string kept)
         {
             using (var form = new SealForm(reason, rows, kept))
@@ -930,8 +1015,14 @@ namespace KeePassGate.Ui
                 _create.Enabled = description.CanCreate;
                 _recreate.Enabled = description.CanRecreate;
                 _delete.Enabled = description.CanDelete;
+                // Not offered again while a start waits for this dialog's OK: the page reads the
+                // store the start leaves, and a second start pressed over it would name a key
+                // the first start made, which OK leaves out.
+                var offersStart = description.CanStartAgain && !StartWaiting;
                 _choose.Visible = description.CanChoose;
-                _create.Visible = !description.CanChoose;
+                _start.Visible = offersStart;
+                _start.Enabled = offersStart;
+                _create.Visible = !description.CanChoose && !offersStart;
                 _seal.Visible = description.CanSeal;
                 _seal.Enabled = description.CanSeal;
                 _recreate.Visible = !description.CanSeal;
@@ -975,6 +1066,7 @@ namespace KeePassGate.Ui
                 _recreate.Enabled = false;
                 _delete.Enabled = false;
                 _seal.Enabled = false;
+                _start.Enabled = false;
                 _invite.Enabled = false;
                 _copy.Enabled = !string.IsNullOrEmpty(_token.Text);
                 _ticking.Stop();
@@ -1980,6 +2072,11 @@ namespace KeePassGate.Ui
         private void OnSeal(object sender, EventArgs e)
         {
             SealAgain();
+        }
+
+        private void OnStartAgain(object sender, EventArgs e)
+        {
+            StartStoreAgain();
         }
 
         private void OnInvite(object sender, EventArgs e)

@@ -568,5 +568,17 @@ namespace KeePassGate.Ui
         public const string SealCancelButtonName = "KpgSealCancelButton";
 
         public const string SealCancelButtonText = "Cancel";
+
+        /// <summary>
+        /// The authority page's button that starts the store again under a new key, in the place
+        /// Create has wherever a key is found and Create has nothing to do, `STORE.md` §632.
+        /// </summary>
+        public const string StartAgainButtonName = "KpgStartAgainButton";
+
+        public const string StartAgainButtonText = "Start store again";
+
+        /// <summary>What the button does, in its tooltip.</summary>
+        public const string StartAgainButtonHelp =
+            "Makes a new store under a new key and sets every earlier store of this database aside.";
     }
 }
