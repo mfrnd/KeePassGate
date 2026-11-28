@@ -30,9 +30,9 @@ namespace KeePassGate.Tests
     ///
     /// **Most of these build the panel over a database of its own**, which production never does:
     /// the factory always hands it a `PendingDatabase`, whose `MarkModified` does nothing and whose
-    /// buffer cannot lose a write. So a test here asserting that the database was marked modified,
-    /// or that a write the store swallowed was reported, pins the panel's own contract with
-    /// `IGateDatabase`, and the shipped path, the buffer and its replay at OK, is pinned in
+    /// buffer holds a press only where its plan takes it. So a test here asserting that the
+    /// database was marked modified pins the panel's own contract with `IGateDatabase`, and the
+    /// shipped path, the buffer and its replay at OK, is pinned in
     /// `PendingChangesTests` and `GateWiringTests`, and here by the tests that build a
     /// `PendingDatabase` of their own.
     /// </remarks>
@@ -195,6 +195,42 @@ namespace KeePassGate.Tests
                 Assert.That(Button(panel, GateTab.CreateButtonName).Enabled, Is.False);
                 Assert.That(Button(panel, GateTab.RecreateButtonName).Enabled, Is.True);
                 Assert.That(Button(panel, GateTab.DeleteButtonName).Enabled, Is.True);
+            }
+        }
+
+        [Test]
+        public void Recreate_is_withheld_with_why_where_its_write_would_leave_the_store_full()
+        {
+            // Room for a single write more, and an authority that does not read: Recreate is the
+            // answer to that authority, and its write would leave the store without room, which
+            // serves nothing. The page offers no press that could only be refused.
+            StoreRecords.NearlyFull(_database.Records, 1);
+
+            using (var panel = new AuthorityPanel(new PendingDatabase(_database, _log), new FakePrompt(true), _log))
+            {
+                Assume.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.DamagedHeadline));
+                Assert.That(Button(panel, GateTab.RecreateButtonName).Enabled, Is.False);
+                Assert.That(Button(panel, GateTab.DeleteButtonName).Enabled, Is.True, "Delete is no Create");
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text,
+                    Does.Contain(AuthorityDescription.Off(GateTab.RecreateButtonText, AuthorityService.Full)));
+            }
+        }
+
+        [Test]
+        public void Create_after_a_Delete_is_withheld_with_why_where_its_write_would_leave_the_store_full()
+        {
+            // Room for two writes more: the Delete pressed on the page leaves room for a write after
+            // it, and a Create after it would leave none.
+            StoreRecords.NearlyFull(_database.Records, 2);
+
+            using (var panel = new AuthorityPanel(new PendingDatabase(_database, _log), new FakePrompt(true), _log))
+            {
+                panel.DeleteAuthority();
+
+                Assume.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.RetiredHeadline));
+                Assert.That(Button(panel, GateTab.CreateButtonName).Enabled, Is.False);
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text,
+                    Does.Contain(AuthorityDescription.Off(GateTab.CreateButtonText, AuthorityService.Full)));
             }
         }
 
@@ -560,21 +596,6 @@ namespace KeePassGate.Tests
                 Assert.DoesNotThrow(() => panel.CreateAuthority());
 
                 Assert.That(Label(panel, GateTab.ResultLabelName).Text, Does.Contain("the database refused it"));
-                Assert.That(_database.MarkedModifiedCount, Is.Zero);
-            }
-        }
-
-        [Test]
-        public void A_write_that_vanishes_is_reported_rather_than_celebrated()
-        {
-            _database.Records.SwallowWrites = true;
-
-            using (var panel = NewPanel(true))
-            {
-                panel.CreateAuthority();
-
-                Assert.That(Label(panel, GateTab.ResultLabelName).Text, Does.Contain("could not be read back"));
-                Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.AbsentHeadline));
                 Assert.That(_database.MarkedModifiedCount, Is.Zero);
             }
         }

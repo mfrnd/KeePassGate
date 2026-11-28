@@ -443,6 +443,16 @@ none, since it releases both.
   in the program under test. A thread answering a peer that really went quiet ends after a minute,
   and a test that relied on the ten seconds, to see what a program does when the gate goes quiet,
   sets `quiet` itself.
+- **Create authority and Recreate authority are off where the change would leave the store full**,
+  and where the store would refuse it or be left held back for another reason. An authority made
+  by the change that takes the last of the store's room would never be served, since nothing is
+  served for a database whose store has no room left. The Certificate Authority page states why
+  under the buttons, and that nothing on the tab makes room, and a press made all the same, as
+  where the store changed since the page was drawn, is refused with nothing held for OK. The
+  question is asked at the press and not at OK, so a pairing that lands while the dialog is open
+  can still leave the store full once OK writes the change. Delete authority and keeping an
+  authority are not held back: either can take the last of the room, which stops the store for
+  good. `STORE.md` §614.
 
 ## 0.2.0, 2026-11-17
 

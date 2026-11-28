@@ -88,6 +88,19 @@ namespace KeePassGate.Tests
         }
 
         /// <summary>
+        /// Puts into the store an authority that does not read, under <see cref="One"/>, and a
+        /// summary entry naming so many summary entries no store holds that about this many writes
+        /// fit before the store has no room: a write naming a summary entry more for each.
+        /// </summary>
+        internal static void NearlyFull(MemoryStore store, int writes)
+        {
+            // 7,939 summary entries named leave room for two writes, as `StoreRoom` counts them.
+            var named = 7939 + 2 - writes;
+            store.Put(Authority(One, 'a'));
+            store.Put(Head(One, 1, string.Join(" ", Enumerable.Range(0, named).Select(index => index.ToString("x32", CultureInfo.InvariantCulture)))));
+        }
+
+        /// <summary>
         /// The members of a record of kind `client` that does not read as an admission, holding a
         /// client key and a certificate and nothing a decision refuses.
         /// </summary>

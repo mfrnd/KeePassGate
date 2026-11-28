@@ -244,6 +244,60 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void A_Recreate_whose_own_write_would_leave_the_store_full_is_refused_with_nothing_held()
+        {
+            // Room for a single write more: the Recreate's write fits and leaves no room for the
+            // write after it, and a store without room serves nothing, the authority just made
+            // among it. Refused at the press, with nothing held for OK to write.
+            var live = new FakeGateDatabase();
+            StoreRecords.NearlyFull(live.Records, 1);
+            using (var reading = live.Store.Read())
+            {
+                Assume.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assume.That(reading.Room.Writes, Is.EqualTo(1), "room for a single write more");
+            }
+
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            var writes = live.Records.Writes;
+
+            var recreated = Service(pending).Recreate();
+
+            Assert.That(recreated.Succeeded, Is.False);
+            Assert.That(recreated.Message, Does.Contain(AuthorityService.Full).And.Contain(AuthorityService.NothingMakesRoom));
+            Assert.That(Held(pending), Is.Empty, "nothing is held for OK");
+            Assert.That(pending.Apply(), Is.False);
+            Assert.That(live.Records.Writes, Is.EqualTo(writes), "and OK writes nothing");
+        }
+
+        [Test]
+        public void A_Create_after_a_Delete_whose_write_would_leave_the_store_full_is_refused_and_the_Delete_stays_held()
+        {
+            // Room for two writes more. The Delete pressed leaves room for a write after it, and
+            // the Create pressed after it is a write after the Delete, which leaves none.
+            var live = new FakeGateDatabase();
+            StoreRecords.NearlyFull(live.Records, 2);
+            using (var reading = live.Store.Read())
+            {
+                Assume.That(reading.Room.Writes, Is.EqualTo(2), "room for two writes more");
+            }
+
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            Assume.That(Service(pending).Delete().Succeeded, Is.True);
+
+            var created = Service(pending).Create();
+
+            Assert.That(created.Succeeded, Is.False);
+            Assert.That(created.Message, Does.Contain(AuthorityService.Full));
+            Assert.That(Held(pending), Is.EqualTo(new[] { "Delete" }), "the Delete alone is held");
+            Assert.That(pending.Apply(), Is.True);
+            using (var written = live.Store.Read())
+            {
+                Assert.That(written.State, Is.EqualTo(StoreState.Whole), written.Reason);
+                Assert.That(written.Answering, Is.Empty, "the Delete alone is written");
+            }
+        }
+
+        [Test]
         public void A_write_refused_at_OK_writes_nothing_and_names_what_was_not_written()
         {
             // As the writer's guard refuses a write where KeePass is part way through something of

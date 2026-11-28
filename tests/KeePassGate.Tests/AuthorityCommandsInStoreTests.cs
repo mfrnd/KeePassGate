@@ -196,17 +196,6 @@ namespace KeePassGate.Tests
             Assert.That(store.Candidates.Count(candidate => candidate.Hex == name.Hex), Is.EqualTo(1));
         }
 
-        [Test]
-        public void A_write_the_store_does_not_keep_is_reported_and_not_believed()
-        {
-            var store = new MemoryStore { SwallowWrites = true };
-
-            var created = Service(store).Create();
-
-            Assert.That(created.Succeeded, Is.False);
-            Assert.That(created.Message, Does.Contain("nothing was stored"));
-        }
-
         private static AuthorityService Service(MemoryStore store)
         {
             return new AuthorityService(store, NullGateLog.Instance);

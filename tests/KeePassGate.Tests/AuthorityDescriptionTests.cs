@@ -644,17 +644,28 @@ namespace KeePassGate.Tests
             var lines = damaged.DetailText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
             var problems = AuthorityRecord.LongestProblems(string.Empty);
 
-            Assert.That(lines.Length, Is.EqualTo(problems.Count + 2), "every problem, then the two lines under them");
+            // The line of a store past half its room, or the line that holds Recreate back in its
+            // place, whichever is longer.
+            var room = new[]
+            {
+                AuthorityDescription.HalfLine(StoreFormat.MaxItems),
+                AuthorityDescription.Off(GateTab.RecreateButtonText, AuthorityService.Full),
+                AuthorityDescription.Off(GateTab.RecreateButtonText, AuthorityDescription.NotTaken),
+            }.OrderByDescending(line => line.Length).First();
+
+            Assert.That(lines.Length, Is.EqualTo(problems.Count + 3),
+                "every problem, the two lines under them, and the line of the room that is left");
             Assert.That(lines[0], Is.EqualTo(problems[0]));
             Assert.That(lines[1], Is.EqualTo(problems[1]));
             Assert.That(lines[2], Does.StartWith(problems[2]));
             Assert.That(lines[2].Length, Is.EqualTo(Clipped.Limit + 3), "a message long enough to be cut");
             Assert.That(lines[3], Does.StartWith("Nothing is served while this is true."));
             Assert.That(lines[4], Is.EqualTo("9999 admission records would be removed with it."));
+            Assert.That(lines[5], Is.EqualTo(room));
 
             var whole = longest.Single(description => description.Headline == AuthorityDescription.PresentHeadline);
-            Assert.That(whole.Details.Count, Is.EqualTo(2), "the warnings on a line, as they are drawn, and the store past half its room");
-            Assert.That(whole.Details[1], Is.EqualTo(AuthorityDescription.HalfLine(StoreFormat.MaxItems)));
+            Assert.That(whole.Details.Count, Is.EqualTo(2), "the warnings on a line, as they are drawn, and the line of the room that is left");
+            Assert.That(whole.Details[1], Is.EqualTo(room));
             Assert.That(whole.DetailText, Does.Contain("clients have expired"));
             Assert.That(whole.DetailText, Does.Not.Contain("Authority"),
                 "the authority and its host certificate are not warned about, CA.md §219");

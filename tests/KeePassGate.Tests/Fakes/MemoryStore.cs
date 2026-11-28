@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using KeePassGate.Authority;
 using KeePassGate.Store;
 using KeePassGate.Testing;
 
@@ -15,9 +14,7 @@ namespace KeePassGate.Tests.Fakes
     /// <remarks>
     /// The entries a test puts here directly are composed by `tests/Shared/StoreComposer.cs`, so
     /// that a test can hold the product's writes to records it did not make. It can also be told
-    /// to lose a write or to damage what a write holds, which no database does, for the read backs
-    /// that are there in case a database ever does, and to refuse a write or throw, as a writer and
-    /// a database that went do.
+    /// to refuse a write or throw, as a writer and a database that went do.
     /// </remarks>
     internal sealed class MemoryStore : IGateStore
     {
@@ -35,16 +32,6 @@ namespace KeePassGate.Tests.Fakes
         /// How many readings were asked for, the reading a write plans over apart.
         /// </summary>
         public int Reads { get; private set; }
-
-        /// <summary>When true, a write is planned and answered as made, and nothing is kept.</summary>
-        public bool SwallowWrites { get; set; }
-
-        /// <summary>
-        /// When true, every authority a write holds lands with certificates and a gate key that
-        /// will not read: a write that landed and cannot be used, which needs another message
-        /// than a write that was lost.
-        /// </summary>
-        public bool DamageAuthorities { get; set; }
 
         /// <summary>Why every write is refused, as a writer refuses a write, or null for writes that are made.</summary>
         public string RefuseWrites { get; set; }
@@ -203,11 +190,6 @@ namespace KeePassGate.Tests.Fakes
                 return StoreWritten.Refused(RefuseWrites ?? Unwritable);
             }
 
-            if (DamageAuthorities)
-            {
-                acts = acts.Select(Damaged).ToList();
-            }
-
             StoreWrite plan;
             using (var reading = Reading())
             {
@@ -221,44 +203,11 @@ namespace KeePassGate.Tests.Fakes
 
             Written.Add(acts);
             Writes++;
-            if (!SwallowWrites)
-            {
-                var applied = plan.Applied(_candidates, _deletions);
-                _candidates = applied.Key.ToList();
-                _deletions = applied.Value.ToList();
-            }
+            var applied = plan.Applied(_candidates, _deletions);
+            _candidates = applied.Key.ToList();
+            _deletions = applied.Value.ToList();
 
             return StoreWritten.Done(plan.Taken, plan.LeftOut, !plan.Empty);
-        }
-
-        /// <summary>The same act, with every authority it holds composed again with parts no reader takes.</summary>
-        private static StoreAct Damaged(StoreAct act)
-        {
-            var key = act.Key();
-            try
-            {
-                var records = act.Records.Select(record =>
-                {
-                    if (record.Kind != StoreKinds.Authority)
-                    {
-                        return record;
-                    }
-
-                    var members = record.Members
-                        .Where(member => member.Key != StoreKinds.Nonce)
-                        .ToDictionary(member => member.Key, member => member.Value, StringComparer.Ordinal);
-                    members[AuthorityRecord.AuthorityMember] = "rubbish";
-                    members[AuthorityRecord.HostMember] = "rubbish";
-                    members[AuthorityRecord.SniKeyMember] = "rubbish";
-                    return StoreRecord.Compose(key, StoreKinds.Authority, members);
-                }).ToList();
-
-                return new StoreAct(act.Name, key, act.Against, records, act.Why);
-            }
-            finally
-            {
-                Array.Clear(key, 0, key.Length);
-            }
         }
     }
 }

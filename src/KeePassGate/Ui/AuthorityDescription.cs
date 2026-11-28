@@ -176,9 +176,17 @@ namespace KeePassGate.Ui
         /// write back are not watched: the plugin's load logs it, and every OK refuses what the tab
         /// holds for the store. A code handed out is not offered either, since no client is
         /// paired then.
+        ///
+        /// **Create and Recreate are off where the store would refuse the write or be left held
+        /// back by it**, a store left full among it, `AuthorityService.IssueRefusal`, with a line
+        /// naming the button and why: the page offers no press that could only be refused.
         /// </remarks>
         /// <param name="unwritable">Why nothing is written into the store in this session, or null.</param>
-        internal AuthorityDescription Under(StoreReading store, string unwritable)
+        /// <param name="issueRefusal">
+        /// Why the write of a Create or a Recreate over the store would not be taken or would leave
+        /// the store held back, or null where it would be taken and leave the store whole.
+        /// </param>
+        internal AuthorityDescription Under(StoreReading store, string unwritable, string issueRefusal)
         {
             var word = store == null ? null : StoreWords.Of(store.State);
             if (word != null)
@@ -198,13 +206,23 @@ namespace KeePassGate.Ui
             }
 
             var room = store.Room;
-            if (room == null || !room.PastHalf)
+            var half = room != null && room.PastHalf;
+            var off = issueRefusal != null && (_canCreate || _canRecreate);
+            if (!half && !off)
             {
                 return this;
             }
 
+            // Create is offered only where no authority stands and Recreate only where an
+            // authority stands, so the line names the button the page holds back. It takes the
+            // place of the line of a store past half its room, since it tells of the room left.
+            var details = new List<string>(_details);
+            details.Add(off
+                ? Off(_canCreate ? GateTab.CreateButtonText : GateTab.RecreateButtonText, issueRefusal)
+                : HalfLine(Math.Min(room.Writes, room.ItemsLeft)));
+
             return new AuthorityDescription(
-                _headline, _facts, _details.Concat(new[] { HalfLine(Math.Min(room.Writes, room.ItemsLeft)) }), _canCreate, _canRecreate, _canDelete, _isServed)
+                _headline, _facts, details, _canCreate && !off, _canRecreate && !off, _canDelete, _isServed)
             {
                 CanChoose = CanChoose,
             };
@@ -234,6 +252,25 @@ namespace KeePassGate.Ui
                 default:
                     return "It is not whole, or it has no room for its next write. Nothing is served for this database.";
             }
+        }
+
+        /// <summary>
+        /// Why a button is off where the store would refuse its write, or be left held back by it
+        /// for a reason other than room: a fixed sentence, since no write of the authority's over
+        /// a whole store is known to meet such a reason, and the page is measured whole with it.
+        /// </summary>
+        public const string NotTaken = "the store would not take the write as it stands";
+
+        /// <summary>
+        /// The line of a page that withholds a button, Create or Recreate, whose write the store
+        /// would refuse or that would leave the store held back: the button and why, and where
+        /// the store would be left full, that nothing on the tab makes room.
+        /// </summary>
+        internal static string Off(string button, string reason)
+        {
+            return reason == AuthorityService.Full
+                ? button + " is off: " + AuthorityService.Full + ". " + AuthorityService.NothingMakesRoom
+                : button + " is off: " + NotTaken + ".";
         }
 
         /// <summary>The line of a store past half its room, `STORE.md` §643.</summary>
@@ -498,8 +535,15 @@ namespace KeePassGate.Ui
             // The line of a store past half its room beside the longest warnings, with as many
             // changes as fit in a store just past half of its room, and the store that holds the
             // gate back, by each word, with the longest reason a page shows.
+            // And beside each page that offers Create or Recreate, the line that withholds it where
+            // it shows, in the place of the line of a store past half its room, whichever of the
+            // lines is longer.
+            var recreateRoom = LongestOf(HalfLine(StoreFormat.MaxItems), Off(GateTab.RecreateButtonText, AuthorityService.Full), Off(GateTab.RecreateButtonText, NotTaken));
+            var createRoom = LongestOf(HalfLine(StoreFormat.MaxItems), Off(GateTab.CreateButtonText, AuthorityService.Full), Off(GateTab.CreateButtonText, NotTaken));
+
             var present = OneLine(warnings);
-            present.Add(HalfLine(StoreFormat.MaxItems));
+            present.Add(recreateRoom);
+            damage.Add(recreateRoom);
 
             return new List<AuthorityDescription>
             {
@@ -509,13 +553,19 @@ namespace KeePassGate.Ui
                 new AuthorityDescription(HeldBackHeadline(StoreWords.Stopped), null, new[] { HeldBackLine(StoreWords.Stopped), Clipped.Message(Thrown) }, false, false, false),
                 new AuthorityDescription(HeldBackHeadline(StoreWords.Split), null, new[] { HeldBackLine(StoreWords.Split), Clipped.Message(Thrown) }, false, false, false),
                 new AuthorityDescription(UnwritableHeadline, null, new[] { Clipped.Message(Thrown) }, false, false, false),
-                new AuthorityDescription(UndecidedHeadline, null, new[] { Longest(UndecidedLine) }, false, true, true)
+                new AuthorityDescription(UndecidedHeadline, null, new[] { Longest(UndecidedLine), recreateRoom }, false, true, true)
                 {
                     CanChoose = true
                 },
-                new AuthorityDescription(AbsentHeadline, null, Array.Empty<string>(), true, false, false),
-                new AuthorityDescription(RetiredHeadline, null, new[] { RetiredLine, Longest(RecordsOnlyLine) }, true, false, false)
+                new AuthorityDescription(AbsentHeadline, null, new[] { createRoom }, true, false, false),
+                new AuthorityDescription(RetiredHeadline, null, new[] { RetiredLine, Longest(RecordsOnlyLine), createRoom }, true, false, false)
             };
+        }
+
+        /// <summary>The longest of these lines, the first of them where several are as long.</summary>
+        private static string LongestOf(params string[] lines)
+        {
+            return lines.OrderByDescending(line => line.Length).First();
         }
 
         /// <summary>What stands in for an exception's message where the longest page is composed.</summary>

@@ -891,8 +891,35 @@ the measured code, not run).
 commands' writes, and which authority is served. `AuthorityRecord` composes and reads the
 content, `StoreAuthorities` works out the authorities that stand and the authority served, and
 `AuthorityService` writes Create, Recreate, Delete and keeping an authority as acts of §627,
-each act held to the authorities that stood when it was composed. The admissions are records of
-the store as well (§615), and their removal is part of the act: the write that retires an
+each act held to the authorities that stood when it was composed. **Each command is answered by
+its write, and nothing reads the store back after it** (this document's own). On the settings
+dialog the buffer holds a press only where the plan of every act held with it takes the press,
+and the page reads the store as that same plan leaves it, so a read back finds what the write
+took and could refuse nothing the write did not, while a refusal after the write would leave
+the press held for OK. Keeping an authority from KeePass's main window applies the plan the
+store made of a reading in the same turn, as the dialog's OK does. **A Create or a Recreate is
+asked first whether its write would be taken and leave the store whole**, since a store left
+without room serves nothing, the authority just made among it, and nothing on the tab lifts that
+(§643). Its records are planned over the store as the page reads it and applied in memory, an
+authority with an `id` of a digest's length standing in for the authority not yet minted, and
+the store they leave is judged. Where the write would be refused or leave the store held back,
+the press is refused before anything is minted, written or held, and the page withholds the
+button with a line naming it and why, and where the store would be left full, that nothing on
+the tab makes room, in the place of the line of a store past half its room. On the settings
+dialog that store is the store as OK would leave it with the presses held, so a press is judged
+as a write after them, as on the next dialog: OK writes them all in a single write, which names
+a summary entry fewer, so a press refused there would have left room for a single write more at
+the most. **The question is asked at the press and not at OK**: a write landing under the
+dialog, as a pairing, can still leave the store full at OK, and OK writes the Create or the
+Recreate all the same. **Delete and keeping an authority are not asked.** A store left without
+room is stopped, and nothing the plugin offers lifts that (§643): a Delete that takes the last of
+the room stops the store for good, and every Create after it is refused; keeping an authority
+that takes the last of it leaves the authority kept in a stopped store, served nothing. *Held
+by* `PendingRecordsTests`: a Recreate whose own write would leave the store full is refused with
+nothing held, and a Create after a Delete, whose write would leave the store full, is refused
+with the Delete left held; and by `AuthorityPanelTests`, which withholds each button with its
+line. The admissions are records of the store as well (§615), and their removal is part of the
+act: the write that retires an
 authority deletes every record of kind `client` whose `issuer` is that authority (§627 step 3),
 an admission that a pairing landed under the dialog among them, since the write is planned
 against the store as it stands at OK. An act refused or left out at OK deletes none, and a

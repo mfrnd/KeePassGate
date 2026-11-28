@@ -253,11 +253,28 @@ Every program let in has to pair again. It is the recovery from an authority no 
 to remove one program: for that, see [`clients.md`](clients.md).
 
 **Delete authority** stops this database being served at all, and the Certificate Authority page
-then shows every authority this database has held as retired.
+then shows every authority this database has held as retired. Where the Delete takes the last of
+the store's room, described below, the store is left full for good: **Create authority** is off
+after it, and nothing on the tab gives the database an authority again.
 
 Both ask first, and both state how many clients are about to be cut off, because that is the
 number nobody can work out unaided. Both retire the old authority rather than only removing it, so
 a copy of the file from before, synchronized in later, cannot put it back into service.
+
+**Create authority and Recreate authority are off where the change would leave the store full.**
+The store is what the Certificate Authority page calls the entries of
+[the plugin's group](#the-plugins-group). It has room for a number of changes, and the
+Certificate Authority page states how many are left once half of them are spent. Nothing is
+served for a database whose store has no room left, and nothing on the tab makes room again, so
+an authority made by the change that fills the store would never be served. The Certificate
+Authority page then states why the button is off, and that nothing on the tab makes room, in the
+place of the count of changes left; the authority that stands and the clients it admits are
+served as before, until a change from elsewhere, such as a pairing, takes the last of the room.
+The same holds where the store would not take the change for another reason. **The question is
+asked when the button is pressed, and not at OK**: a pairing that lands while the dialog is open
+can still leave the store full once OK writes the change. **Delete authority is not held back
+this way**, and neither is keeping an authority: either can take the last of the room, and the
+store then serves nothing for good.
 
 ## The plugin's group
 
