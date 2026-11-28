@@ -281,6 +281,25 @@ namespace KeePassGate.Ui
             "Deleting the authority is not applied yet. It takes effect when OK is pressed.";
 
         /// <summary>
+        /// What it shows while a seal of the store is waiting for OK, and the store holds an
+        /// authority to pair with once OK has landed it, `STORE.md` §625.
+        /// </summary>
+        /// <remarks>
+        /// The gate goes on answering out of the stopped store until OK, so a code handed out now
+        /// would be refused. The seal changes no authority, and the notice about an authority
+        /// change named a change nobody made.
+        /// </remarks>
+        public const string PendingSealNotice =
+            "The seal is not applied yet. Press OK and reopen this dialog to pair.";
+
+        /// <summary>
+        /// What it shows while a seal of a store that holds no authority is waiting for OK: there
+        /// is nothing to pair with once OK has landed it, and no authority is being deleted.
+        /// </summary>
+        public const string PendingSealNoAuthorityNotice =
+            "The seal is not applied yet. It takes effect when OK is pressed.";
+
+        /// <summary>
         /// What it says while a profile edit is waiting for OK.
         /// </summary>
         /// <remarks>
@@ -320,7 +339,8 @@ namespace KeePassGate.Ui
         /// </remarks>
         public static readonly IReadOnlyList<string> InviteNotices = new[]
         {
-            PendingAuthorityNotice, PendingDeleteNotice, PendingProfilesNotice, PendingProfilesCodeOutNotice
+            PendingAuthorityNotice, PendingDeleteNotice, PendingSealNotice, PendingSealNoAuthorityNotice,
+            PendingProfilesNotice, PendingProfilesCodeOutNotice
         };
 
         /// <summary>The dialog raised when somebody asks to pair.</summary>
@@ -523,5 +543,42 @@ namespace KeePassGate.Ui
         public const string ChooserCancelButtonName = "KpgChooserCancelButton";
 
         public const string ChooserCancelButtonText = "Cancel";
+
+        /// <summary>
+        /// The authority page's button for a stopped store the seal applies to, in the place
+        /// Recreate has, since nothing else is written into a stopped store, `STORE.md` §625.
+        /// </summary>
+        public const string SealButtonName = "KpgSealButton";
+
+        public const string SealButtonText = "Seal store again";
+
+        /// <summary>The dialog that shows what a stopped store lost before it is sealed again.</summary>
+        public const string SealFormName = "KpgSealForm";
+
+        public const string SealListName = "KpgSealList";
+
+        public const string SealListLabel = "What deletion records show as deleted";
+
+        public const string SealKeptLabelName = "KpgSealKeptLabel";
+
+        public const string SealConfirmButtonName = "KpgSealConfirmButton";
+
+        public const string SealConfirmButtonText = "Seal again";
+
+        public const string SealCancelButtonName = "KpgSealCancelButton";
+
+        public const string SealCancelButtonText = "Cancel";
+
+        /// <summary>
+        /// The authority page's button that starts the store again under a new key, in the place
+        /// Create has wherever a key is found and Create has nothing to do, `STORE.md` §632.
+        /// </summary>
+        public const string StartAgainButtonName = "KpgStartAgainButton";
+
+        public const string StartAgainButtonText = "Start store again";
+
+        /// <summary>What the button does, in its tooltip.</summary>
+        public const string StartAgainButtonHelp =
+            "Makes a new store under a new key and sets every earlier store of this database aside.";
     }
 }

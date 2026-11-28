@@ -204,6 +204,40 @@ the store's own key that do there what the model's searched names do under its k
 tags meet or a name whose tag is 0, and over the sequence's tree, which the model reads a
 deletion record at.
 
+**The seal's vectors are those of `papers/ground/measured-seal.md`**, printed by the same script
+with `--seal` into its record `recorded-seal`, every member the files held before unchanged: the
+seal's versions among the records, the stores whose names begin `stopped:` with what
+`probe/read.py` listed of what each lost, and the sequences R1 to R21 and R3s. `StoreLossesTests`
+holds the listing to the stores, `SealActsTests` the seal's versions to the records and to what
+the listing planned, and `StoreWriteShapeTests` plays the sequences through the product's acts,
+the seal pressed where the model's dialog is shown and written at the step that seals through the
+KPG tab's buffer, composed again there over the store as it stands. **The sequences of what the
+seal restates are those of `papers/ground/measured-seal-restates.md`**, printed with `--restates`
+into its record `recorded-restates`, every member the files held before unchanged: R5 to R7 and F5
+to F7r, a decision a deletion record alone tells of whose subject nothing names, each followed by a
+merge by Overwrite if newer and by KeePassXC into the other copy and by those and by
+Synchronize with the sealed copy's deletion records cleared, under names beginning `restates` and
+a comma. `StoreWriteShapeTests` plays them as it plays R1 to R21, and holds each summary entry's
+items with no subject to the model's by the subject each is about, read off the model's deletion
+records; where R1 to R21, printed with the model's form that restates such a decision by its
+subject, hold an item by the subject the product's file names nowhere, the product holds an item
+with no subject for it instead, `STORE.md` §611.
+`SealFormTests` holds every string of the seal's window and its room at each scaling, a hundred
+rows of the longest texts among them, with nothing scrolling sideways.
+
+**The vectors of a store started again are those of `papers/ground/measured-started-again.md`**,
+printed with `--starts` into its record `recorded-starts`, every member the files held before
+unchanged: the stop, the keep records and the summary entry of a start among the records, the
+stores whose names begin `keys:` with the keys `probe/read.py` found, stood and set aside and the
+keep records it read, and the sequences T1 to T16. `StoreReadingKeysTests` holds the reading to the
+stores, `SealActsTests` the keep record the seal writes over a stop, and `StoreWriteShapeTests`
+plays the sequences through the product's acts, the start pressed on the KPG tab's buffer and
+written at its OK, every key the product makes taken for the model's label of the key that stands
+after the same step, and what is held under a key held under the key that stands alone. T16, the
+new key's carrier and the stop both deleted by hand, is pinned as the class `STORE.md` §639 accepts.
+A split store has nothing in force, so the tests that read every store of the meanings expect no
+names and no refusals of it, where the measured reading lists what its records under every key hold.
+
 **Where the product is stricter than the measured code on purpose, no vector is changed to
 agree.** A write above renews, where nothing arrived, only a version that recorded nothing; the
 remark at the place states the difference, `STORE.md` §644 records it as owed to the model, and
@@ -216,6 +250,25 @@ goes into, the deletions with their records, a record set back under the databas
 limit, a save and a reload, and copies brought together by `PwDatabase.MergeIn`; and it takes
 each part of a write's application back by its own undo, and every part in the order a write
 takes them, and holds the database to what it was before.
+
+**It seals a stopped store again in real databases.** `SealInRealDatabaseTests` makes each stop of
+`STORE.md` §624 with KeePass's own types, presses the seal on the KPG tab's buffer and writes it at
+the dialog's OK through the real writer, then saves and reopens the file;
+`StoreWritesUnderDialogsTests` refuses the seal under each window that would take it back; and
+`StoreSealMergeTests` brings a sealed copy together with a copy from before the loss by each of
+KeePass's five merge methods in both directions, the copy merged into whole in every cell, the class
+`STORE.md` §639 row 5 accepts pinned by name, and F5 of `measured-seal-restates`, a revocation whose
+client nothing names, with the sealed copy's deletion records kept and cleared.
+
+**It starts a store again in real databases.** `StartAgainInRealDatabaseTests` holds a whole, a
+stopped, a no-room, a split and an outdated store made with KeePass's own types, presses Start store
+again on the KPG tab's buffer and writes it at the dialog's OK through the real writer, then saves
+and reopens the file: a new key stands, the earlier entries and group stay, and the new key lost
+leaves the earlier store stopped until the seal keeps it. `StoreStartAgainMergeTests` plays T4 to T7
+and T14 of `measured-started-again` over two real databases by each of KeePass's five merge methods
+in both directions, a copy merged into by new identifiers held to how it read, and
+`OpenDatabaseTargetsTests` refuses the handshake of a client of the earlier authority.
+`StoreReadingCostTests` holds, explicitly, a reading beside the entries of three earlier stores.
 
 **Who a store admits is held in both tiers.** In the unit tier `StoreAdmissionsTests` reads stores
 the test composes, each rule of `STORE.md` §615 on its own, and `AdmissionActsTests` holds what
@@ -545,6 +598,22 @@ window, which enabled it behind the question; the main window is read from Windo
 after that save and stays disabled, and is enabled again once the chooser is canceled. The host
 and unit tiers make KeePass's two assignments themselves, under the chooser and under the approval
 dialogs; this is what notices a KeePass whose trigger or unblock behaves differently.
+
+**A stopped store sealed again**, in `LiveSealTests`: a seeded store loses its summary entry and the
+version of the root's rule, each deleted for good with a deletion record before KeePass opens the
+file, and a client is answered `503 stopped`. Seal store again on the KPG tab raises the seal's
+dialog with the lost rule and the summary entry deleted as its rows, Seal again there holds the
+seal, the client is still refused while the settings dialog stands, and its OK writes the seal: the
+client is served from the next request, KeePass's title carries the mark of a change, and after a
+save the file holds the version granting nothing and a store that serves its authority.
+
+**A store started again**, in `LiveStartAgainTests`: a seeded store holds a version record of a
+later format, put in before KeePass opens the file, and a client is answered `503 outdated`. Start
+store again on the KPG tab raises its warning, Yes there holds the start, the page reads the new
+store while the client is still refused, and the settings dialog's OK writes it, waited for by the
+tab's own line: the client of the earlier store is refused at the handshake, an invitation made on
+the new store pairs a client that is served, KeePass's title carries the mark of a change, and
+after a save the file serves the new authority.
 
 The client half of pairing lives in `tests/Shared/PairingClient.cs` and is compiled into **both**
 test assemblies. That is deliberate: if the loopback tests and the end to end test each had their

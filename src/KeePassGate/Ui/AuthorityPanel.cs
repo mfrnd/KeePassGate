@@ -139,6 +139,8 @@ namespace KeePassGate.Ui
         private readonly Button _recreate;
         private readonly Button _delete;
         private readonly Button _choose;
+        private readonly Button _seal;
+        private readonly Button _start;
         private readonly Button _invite;
         private readonly CodeBox _token;
         private readonly Button _copy;
@@ -227,6 +229,7 @@ namespace KeePassGate.Ui
             _database = database;
             Clipboard = SystemClipboard.Instance;
             AskWhichToKeep = ShowChooser;
+            AskToSeal = ShowSealForm;
             _prompt = prompt ?? new MessageBoxPrompt();
             _log = log ?? NullGateLog.Instance;
             _invitations = invitations;
@@ -324,8 +327,20 @@ namespace KeePassGate.Ui
             // is barely wide enough for three of would not fit.
             _choose = NewButton(GateTab.ChooseButtonName, GateTab.ChooseButtonText, OnChoose);
             _choose.Visible = false;
+
+            // In Recreate's place, and shown only over a stopped store whose seal OK would write,
+            // `STORE.md` §625: nothing else is written into a stopped store.
+            _seal = NewButton(GateTab.SealButtonName, GateTab.SealButtonText, OnSeal);
+            _seal.Visible = false;
+
+            // In Create's place as well, wherever a key is found and judged and Create has nothing
+            // to do, `STORE.md` §632.
+            _start = NewButton(GateTab.StartAgainButtonName, GateTab.StartAgainButtonText, OnStartAgain);
+            _start.Visible = false;
             buttons.Controls.Add(_choose);
+            buttons.Controls.Add(_start);
             buttons.Controls.Add(_create);
+            buttons.Controls.Add(_seal);
             buttons.Controls.Add(_recreate);
             buttons.Controls.Add(_delete);
             authority.Controls.Add(buttons);
@@ -384,6 +399,7 @@ namespace KeePassGate.Ui
             _tips = new ToolTip();
             Tooltips.Set(_tips, _copy, GateTab.CopyButtonLabel);
             Tooltips.Set(_tips, _token, GateTab.InvitationBoxHelp);
+            Tooltips.Set(_tips, _start, GateTab.StartAgainButtonHelp);
 
             _ticking.Tick += (sender, e) =>
                 WindowHandlers.Run("the KPG tab's countdown could not be moved on", () => OnTick(sender, e));
@@ -602,6 +618,187 @@ namespace KeePassGate.Ui
         internal Func<AuthorityChoice, string, string> AskWhichToKeep { get; set; }
 
         /// <summary>
+        /// Shows what a stopped store lost, its reason, its rows and what the seal keeps, and
+        /// answers whether the operator pressed Seal again. Settable for the reason
+        /// <see cref="AskWhichToKeep"/> is.
+        /// </summary>
+        internal Func<string, IReadOnlyList<SealRow>, string, bool> AskToSeal { get; set; }
+
+        /// <summary>
+        /// Seals the stopped store again, `STORE.md` §625, once the operator has read what it lost
+        /// in the seal's dialog and pressed Seal again there: the seal is held for this dialog's OK,
+        /// like everything on the tab, and the pages read the store as the seal leaves it. Nothing
+        /// happens if the answer is no, or where the store is not stopped.
+        /// </summary>
+        /// <remarks>
+        /// **What the dialog shows is the store as it stands at the press**, and what OK writes is
+        /// the seal composed again over the store as it stands then, `StoreAct.Again`.
+        /// </remarks>
+        public void SealAgain()
+        {
+            Act(() =>
+            {
+                string reason;
+                IReadOnlyList<SealRow> rows;
+                string kept;
+                using (var reading = _database.Store.Read())
+                {
+                    var losses = StoreLosses.Of(reading);
+                    if (losses == null)
+                    {
+                        return null;
+                    }
+
+                    string refused;
+                    var act = SealActs.Seal(reading, out refused);
+                    if (act == null)
+                    {
+                        return AuthorityChange.Refused("The store of this database cannot be sealed again, since " + refused + ".");
+                    }
+
+                    try
+                    {
+                        // Asked before the dialog opens, as the page asked it at its last redraw:
+                        // a merge since can leave a seal OK could not write, and no dialog is
+                        // shown over it.
+                        string unsealed;
+                        using (var sealedStore = SealActs.Sealed(reading, act, out unsealed))
+                        {
+                            if (sealedStore == null)
+                            {
+                                return AuthorityChange.Refused("The store of this database cannot be sealed again, since " + unsealed + ".");
+                            }
+
+                            kept = SealRows.Kept(sealedStore);
+                        }
+
+                        // Every node the tree holds, the recycle bin among them: a rule a store
+                        // lost may be about a node removed into the bin, which the database holds.
+                        var titles = new Dictionary<string, string>(StringComparer.Ordinal);
+                        foreach (var node in (_database.Nodes == null ? Enumerable.Empty<IRuledNode>() : _database.Nodes.Held(reading)).Where(node => !titles.ContainsKey(node.Id)))
+                        {
+                            titles[node.Id] = node.Title;
+                        }
+
+                        var names = new Dictionary<string, string>(StringComparer.Ordinal);
+                        foreach (var record in StoreAdmissions.Listing(reading).Records.Where(record => !names.ContainsKey(record.ClientKey)))
+                        {
+                            names[record.ClientKey] = ClientList.Describe(record);
+                        }
+
+                        var leftOut = act.LeftOut.Select(line => line.Substring(0, Math.Max(0, line.IndexOf(": ", StringComparison.Ordinal))));
+                        rows = SealRows.Of(
+                            losses,
+                            leftOut,
+                            node =>
+                            {
+                                string title;
+                                return titles.TryGetValue(node, out title) ? title : null;
+                            },
+                            client =>
+                            {
+                                string name;
+                                return names.TryGetValue(client, out name) ? name : null;
+                            });
+                        reason = losses.Reason;
+                    }
+                    finally
+                    {
+                        act.Forget();
+                    }
+                }
+
+                return AskToSeal(reason, rows, kept) ? _service.Seal() : null;
+            });
+        }
+
+        /// <summary>
+        /// Starts the store again under a new key, `STORE.md` §632, asking first in the form Delete
+        /// asks, "No" the default: the start is held for this dialog's OK, and the pages read the
+        /// new store from the press on. Nothing happens if the answer is no, or where the store
+        /// takes no start.
+        /// </summary>
+        public void StartStoreAgain()
+        {
+            Act(() =>
+            {
+                int standing;
+                bool counted;
+                using (var reading = _database.Store.Read())
+                {
+                    if (reading.State == StoreState.None || !reading.Judged)
+                    {
+                        return null;
+                    }
+
+                    standing = reading.Standing.Count;
+                    counted = reading.InForce != null;
+                }
+
+                if (!_prompt.Confirm(StartAgainTitle, StartAgainQuestion(counted ? Cost(CountRecords()) : null, standing)))
+                {
+                    return null;
+                }
+
+                return _service.StartAgain();
+            });
+        }
+
+        /// <summary>The title of the question Start store again asks.</summary>
+        public const string StartAgainTitle = "Start the store again";
+
+        /// <summary>
+        /// The question Start store again asks, `STORE.md` §632: what it does, what has to be
+        /// entered again, what the clients lose where the store can be counted, and how many store
+        /// keys it sets aside where several stand.
+        /// </summary>
+        /// <param name="cost">The line counting the clients that would have to pair again, or null where the store cannot be counted.</param>
+        /// <param name="standing">How many store keys stand.</param>
+        public static string StartAgainQuestion(string cost, int standing)
+        {
+            var lines = new List<string>
+            {
+                "Starting the store again makes a new store under a new key and sets every earlier store of this " +
+                "database aside, for good, in this copy and in every copy that takes the file in. Nothing is " +
+                "carried over.",
+                "Every client has to be paired again. Every profile name, every rule, every revocation, every " +
+                "certificate taken away and every standing answer to a renewal has to be entered again, the rules " +
+                "that narrow among them. The entries of the earlier store stay in the database, passed over.",
+            };
+            if (cost != null)
+            {
+                lines.Add(cost);
+            }
+
+            if (standing > 1)
+            {
+                lines.Add(standing.ToString("N0", System.Globalization.CultureInfo.CurrentCulture) + " store keys stand. All of them are set aside.");
+            }
+
+            lines.Add("Start it again?");
+            return string.Join(Environment.NewLine + Environment.NewLine, lines);
+        }
+
+        /// <summary>Whether a start waits for this dialog's OK.</summary>
+        private bool StartWaiting
+        {
+            get
+            {
+                var pending = _database as IPendingChanges;
+                return pending != null && pending.StartWaiting;
+            }
+        }
+
+        private bool ShowSealForm(string reason, IReadOnlyList<SealRow> rows, string kept)
+        {
+            using (var form = new SealForm(reason, rows, kept))
+            {
+                form.ShowDialog(FindForm());
+                return form.Sealed;
+            }
+        }
+
+        /// <summary>
         /// Where the gate's audit is writing, which the chooser reads each client's last request
         /// from, or null for a tab with no audit behind it.
         /// </summary>
@@ -809,7 +1006,8 @@ namespace KeePassGate.Ui
                                  && (described.CanCreate || described.CanRecreate)
                     ? AuthorityService.IssueRefusal(stored)
                     : null;
-                var description = described.Under(stored, unwritable, issueRefusal);
+                var unsealable = stored != null && stored.State == StoreState.Stopped ? SealActs.Unsealable(stored) : null;
+                var description = described.Under(stored, unwritable, issueRefusal, unsealable);
                 _status.Text = description.Headline;
 
                 Draw(description.Facts);
@@ -817,8 +1015,17 @@ namespace KeePassGate.Ui
                 _create.Enabled = description.CanCreate;
                 _recreate.Enabled = description.CanRecreate;
                 _delete.Enabled = description.CanDelete;
+                // Not offered again while a start waits for this dialog's OK: the page reads the
+                // store the start leaves, and a second start pressed over it would name a key
+                // the first start made, which OK leaves out.
+                var offersStart = description.CanStartAgain && !StartWaiting;
                 _choose.Visible = description.CanChoose;
-                _create.Visible = !description.CanChoose;
+                _start.Visible = offersStart;
+                _start.Enabled = offersStart;
+                _create.Visible = !description.CanChoose && !offersStart;
+                _seal.Visible = description.CanSeal;
+                _seal.Enabled = description.CanSeal;
+                _recreate.Visible = !description.CanSeal;
 
                 // Inviting needs an authority that can issue, which is narrower than what
                 // recreating and deleting need: `CanRecreate` is true of a damaged authority, and
@@ -858,6 +1065,8 @@ namespace KeePassGate.Ui
                 _create.Enabled = false;
                 _recreate.Enabled = false;
                 _delete.Enabled = false;
+                _seal.Enabled = false;
+                _start.Enabled = false;
                 _invite.Enabled = false;
                 _copy.Enabled = !string.IsNullOrEmpty(_token.Text);
                 _ticking.Stop();
@@ -936,6 +1145,13 @@ namespace KeePassGate.Ui
             // authority is one to pair with once OK has landed it, and a delete is not.
             if (AuthorityIsWaiting)
             {
+                // A seal changes no authority, and over a store with none it deletes none.
+                var pending = _database as IPendingChanges;
+                if (pending != null && pending.SealWaiting)
+                {
+                    return _offered == null ? GateTab.PendingSealNoAuthorityNotice : GateTab.PendingSealNotice;
+                }
+
                 return _offered == null ? GateTab.PendingDeleteNotice : GateTab.PendingAuthorityNotice;
             }
 
@@ -1810,46 +2026,27 @@ namespace KeePassGate.Ui
         /// </remarks>
         private int CountRecords()
         {
-            using (var reading = _service.Read())
+            if (_database == null || !_database.IsOpen)
             {
-                // The clients that get in, judged as the clients page judges its rows: an
-                // admission that admits nobody, of another authority, listed twice or a renewal
-                // that does not count, loses nothing to a recreate, and neither does a record the
-                // gate refuses, not for client use, not yet valid or expired, or a record that will
-                // not read. While several authorities wait to be chosen between, a client of any
-                // of them is counted, judged as it would stand were that authority kept, since
-                // choosing would keep it and this keeps none.
-                var now = DateTimeOffset.UtcNow;
-                var counted = new List<AdmissionRecord>();
-                foreach (var authority in Admitting(reading))
+                return 0;
+            }
+
+            // The clients that get in, judged as the clients page judges its rows, by the single
+            // count of `ClientReaches.Admitted`: while several authorities wait to be chosen
+            // between, a client of any of them is counted, since choosing would keep it and this
+            // keeps none.
+            try
+            {
+                using (var reading = _database.Store.Read())
                 {
-                    var admitted = authority.Key == null ? AdmittedClients() : ClientsUnder(authority.Key);
-                    counted.AddRange(admitted.Records.Where(
-                        record => admitted.StandingOf(record) == AdmissionStanding.Admitted
-                                  && ClientReaches.GetsIn(record, authority.Value, now)));
+                    return ClientReaches.Admitted(reading, DateTimeOffset.UtcNow);
                 }
-
-                return ClientList.ClientNames(counted).Count;
             }
-        }
-
-        /// <summary>
-        /// The authorities whose clients recreating or deleting cuts off, each by the `id` its
-        /// clients are listed under: the authority served, by none, since the listing as it stands
-        /// is the listing under it, or while several are undecided, each candidate that reads.
-        /// </summary>
-        private static IReadOnlyList<KeyValuePair<string, X509Certificate2>> Admitting(AuthorityReading reading)
-        {
-            if (reading.IsPresent)
+            catch (Exception error) when (Expected.OfCustomData(error))
             {
-                return new[] { new KeyValuePair<string, X509Certificate2>(null, reading.Material.Authority) };
+                _log.Error("the admitted clients could not be read", error);
+                return 0;
             }
-
-            return reading.Presence == AuthorityPresence.Undecided
-                ? reading.Candidates.Where(candidate => candidate.IsWhole)
-                    .Select(candidate => new KeyValuePair<string, X509Certificate2>(candidate.Fingerprint, candidate.Material.Authority))
-                    .ToList()
-                : new List<KeyValuePair<string, X509Certificate2>>();
         }
 
         private void OnCreate(object sender, EventArgs e)
@@ -1870,6 +2067,16 @@ namespace KeePassGate.Ui
         private void OnChoose(object sender, EventArgs e)
         {
             ChooseAuthority();
+        }
+
+        private void OnSeal(object sender, EventArgs e)
+        {
+            SealAgain();
+        }
+
+        private void OnStartAgain(object sender, EventArgs e)
+        {
+            StartStoreAgain();
         }
 
         private void OnInvite(object sender, EventArgs e)

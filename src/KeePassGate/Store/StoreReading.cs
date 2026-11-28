@@ -19,8 +19,10 @@ namespace KeePassGate.Store
     ///
     /// **It keeps no key.** The keys found are the checked forms' own, held by the forms that
     /// gave them; what it answers with are the tags they give and the entries that pass under
-    /// them, which is what the API's guard asks, `STORE.md` §633, and the records it found, each
-    /// with the form that passes, whose key is overwritten when the forms kept are let go.
+    /// them, which is what the API's guard asks, `STORE.md` §633, the records it found, each
+    /// with the form that passes, and the keys found, for a write that starts the store again
+    /// under a new key: every key is the forms' own and is overwritten when the forms kept are
+    /// let go.
     ///
     /// **Its work is bounded in the keys found**, by `StoreFormat.MaxKeys`: each version is asked
     /// about its own key while keys are found, and past the ceiling about no other, so a file that
@@ -44,15 +46,23 @@ namespace KeePassGate.Store
         private StoreKept _owned;
 
         private StoreReading(
-            ISet<int> tags, ISet<string> passing, Judgment judged, IReadOnlyList<StoreCandidate> candidates, IReadOnlyList<byte[]> deletions)
+            ISet<int> tags,
+            ISet<string> passing,
+            IReadOnlyList<FoundKey> keys,
+            Judgment judged,
+            IReadOnlyList<StoreCandidate> candidates,
+            IReadOnlyList<byte[]> deletions)
         {
             _tags = tags;
+            Found = keys;
+            Standing = judged.Standing;
+            KeptRead = judged.KeptRead;
             Candidates = candidates;
             Deletions = deletions;
             _passing = passing;
             State = judged.State;
             Reason = judged.Reason;
-            Damage = judged.Damage;
+            Damaged = judged.Damage;
             Passed = judged.Passed;
             ByHistory = judged.ByHistory;
             Judged = judged.Judged;
@@ -67,6 +77,27 @@ namespace KeePassGate.Store
         /// </summary>
         public bool Judged { get; private set; }
 
+        /// <summary>
+        /// Every key found, in the order the candidates gave them, `STORE.md` §621: what a store
+        /// started again writes a stop under, `STORE.md` §632. Each is held by the form that gave
+        /// it, and overwritten when the forms are let go.
+        /// </summary>
+        internal IReadOnlyList<FoundKey> Found { get; private set; }
+
+        /// <summary>
+        /// The names of the keys that stand, `STORE.md` §649: the store key alone in a store
+        /// judged under a single key, several in a split store, none where no key is found or
+        /// past `StoreFormat.MaxKeys`, where none is judged.
+        /// </summary>
+        internal IReadOnlyList<string> Standing { get; private set; }
+
+        /// <summary>
+        /// The identifier of every keep record read under any key found, as a record, as an item of
+        /// a summary entry present and as a deletion record that tells of a keep record, ascending:
+        /// what a store started again names in `after`, `STORE.md` §632 and §649.
+        /// </summary>
+        internal IReadOnlyList<string> KeptRead { get; private set; }
+
         /// <summary>Whether the gate may serve the database, and if not why, `STORE.md` §656.</summary>
         public StoreState State { get; private set; }
 
@@ -77,7 +108,16 @@ namespace KeePassGate.Store
         public string Reason { get; private set; }
 
         /// <summary>How many entries are damage under the store key, `STORE.md` §621.</summary>
-        public int Damage { get; private set; }
+        public int Damage
+        {
+            get { return Damaged.Count; }
+        }
+
+        /// <summary>
+        /// Every entry that is damage under the store key that stands, `STORE.md` §621, with the
+        /// kind its tag names: none where no single key stands.
+        /// </summary>
+        internal IReadOnlyList<StoreDamage> Damaged { get; private set; }
 
         /// <summary>How many candidates are no record and no damage, passed over and shown.</summary>
         public int Passed { get; private set; }
@@ -343,7 +383,7 @@ namespace KeePassGate.Store
                 var judged = beyond
                     ? Judgment.Beyond(keys.Count, candidates.Count)
                     : Judgment.Of(candidates, forms, keys, deletions ?? Array.Empty<byte[]>(), nodes);
-                return new StoreReading(tags, passing, judged, candidates, deletions ?? Array.Empty<byte[]>());
+                return new StoreReading(tags, passing, keys, judged, candidates, deletions ?? Array.Empty<byte[]>());
             }
             finally
             {

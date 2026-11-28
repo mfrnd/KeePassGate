@@ -263,10 +263,68 @@ namespace KeePassGate.Tests
             var recreated = Service(pending).Recreate();
 
             Assert.That(recreated.Succeeded, Is.False);
-            Assert.That(recreated.Message, Does.Contain(AuthorityService.Full).And.Contain(AuthorityService.NothingMakesRoom));
+            Assert.That(recreated.Message, Is.EqualTo(
+                "The authority could not be recreated: the store would be left full, and nothing is served then. "
+                + "Start store again is the way out."), "the page beside a Recreate over a single authority offers the start");
             Assert.That(Held(pending), Is.Empty, "nothing is held for OK");
             Assert.That(pending.Apply(), Is.False);
             Assert.That(live.Records.Writes, Is.EqualTo(writes), "and OK writes nothing");
+        }
+
+        [Test]
+        public void A_Recreate_between_several_authorities_whose_write_would_leave_the_store_full_names_no_start()
+        {
+            // Beside several authorities the chooser takes the place a start has, and the page
+            // offers none, so the refusal names none.
+            var live = new FakeGateDatabase();
+            StoreRecords.NearlyFull(live.Records, 1);
+            live.Records.Put(StoreRecords.Authority(StoreRecords.One, 'b'));
+            using (var reading = live.Store.Read())
+            {
+                Assume.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assume.That(reading.Answering.Count, Is.EqualTo(2), "two authorities stand");
+            }
+
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            var recreated = Service(pending).Recreate();
+
+            Assert.That(recreated.Succeeded, Is.False);
+            Assert.That(recreated.Message, Is.EqualTo(
+                "The authority could not be recreated: the store would be left full, and nothing is served then. "
+                + "Nothing on this page makes room."));
+            Assert.That(Held(pending), Is.Empty, "nothing is held for OK");
+        }
+
+        [TestCase(1)]
+        [TestCase(0)]
+        public void A_start_over_a_store_a_Recreate_would_leave_full_leaves_the_store_whole_with_room(int writes)
+        {
+            // `STORE.md` §632 and §643: the start writes a summary entry of height 1 under a new
+            // key, naming no summary entry, and the stops it writes under the key set aside are
+            // restated by no summary entry, so the room of the store set aside is not asked. With
+            // room for a single write more, which a Recreate would take, and with none, a store
+            // stopped for want of room.
+            var live = new FakeGateDatabase();
+            StoreRecords.NearlyFull(live.Records, writes);
+            using (var reading = live.Store.Read())
+            {
+                Assume.That(reading.Room.Writes, Is.EqualTo(writes));
+                Assume.That(AuthorityService.IssueRefusal(reading), Is.Not.Null, "no Create or Recreate is taken");
+            }
+
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            var started = Service(pending).StartAgain();
+
+            Assert.That(started.Succeeded, Is.True, started.Message);
+            Assert.That(Held(pending), Is.EqualTo(new[] { "Start again" }));
+            Assert.That(pending.Apply(), Is.True);
+            using (var written = live.Store.Read())
+            {
+                Assert.That(written.State, Is.EqualTo(StoreState.Whole), written.Reason);
+                Assert.That(written.Room.HasRoom, Is.True);
+                Assert.That(written.Room.PastHalf, Is.False, "the started store holds a single summary entry");
+                Assert.That(AuthorityService.IssueRefusal(written), Is.Null, "and a Recreate after it is taken");
+            }
         }
 
         [Test]
@@ -287,7 +345,9 @@ namespace KeePassGate.Tests
             var created = Service(pending).Create();
 
             Assert.That(created.Succeeded, Is.False);
-            Assert.That(created.Message, Does.Contain(AuthorityService.Full));
+            Assert.That(created.Message, Is.EqualTo(
+                "The authority could not be created: the store would be left full, and nothing is served then. "
+                + "Nothing on this page makes room."), "Create holds the place Start store again takes elsewhere");
             Assert.That(Held(pending), Is.EqualTo(new[] { "Delete" }), "the Delete alone is held");
             Assert.That(pending.Apply(), Is.True);
             using (var written = live.Store.Read())
@@ -874,6 +934,489 @@ namespace KeePassGate.Tests
             {
                 return KeePassGate.Acl.ProfileNames.Of(reading).Names;
             }
+        }
+
+        // Sealing the store again on the tab, `STORE.md` §625.
+
+        [Test]
+        public void A_seal_and_a_revocation_and_a_Create_pressed_after_it_are_written_in_a_single_write_at_OK()
+        {
+            // Delete, then the summary entry dropped: stopped with the key in the retirement and
+            // no authority standing. The seal is pressed first, and the pages read the sealed
+            // store, so Create and a revocation are pressed over it and written with it.
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            Assume.That(new AuthorityService(live.Store, NullGateLog.Instance).Delete().Succeeded, Is.True);
+            live.Records.Drop(live.Store.Read().InForce.Heads.Single().Hex);
+            Assume.That(live.Store.Read().State, Is.EqualTo(StoreState.Stopped));
+
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            Assert.That(Service(pending).Create().Succeeded, Is.False, "Create alone is refused on the stopped store");
+            Assert.That(Service(pending).Seal().Succeeded, Is.True);
+            Assert.That(Service(pending).Create().Succeeded, Is.True, "and taken over the sealed store");
+            StoreSeeds.Revoke(pending.Store, new string('c', 64));
+            Assert.That(Held(pending), Is.EqualTo(new[] { SealActs.Name, "Create", AdmissionActs.RevokeName }));
+
+            var writes = live.Records.Writes;
+            Assert.That(pending.Apply(), Is.True);
+
+            Assert.That(live.Records.Writes, Is.EqualTo(writes + 1), "a single write");
+            using (var reading = live.Store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(StoreAuthorities.Served(reading), Is.Not.Null);
+                Assert.That(reading.InForce.Taken(StoreKinds.Revoked), Has.Member(new string('c', 64)));
+                Assert.That(reading.InForce.HeadsInForce, Has.Count.EqualTo(1));
+            }
+
+            Assert.That(pending.Sealed, Is.Not.Null, "what the seal came to, for the audit's line");
+        }
+
+        [Test]
+        public void A_seal_over_a_store_that_became_whole_under_the_dialog_writes_nothing_and_the_log_names_the_press()
+        {
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            var head = live.Store.Read().InForce.Heads.Single();
+            var dropped = live.Records.Candidates.Single(candidate => candidate.Hex == head.Hex);
+            live.Records.Drop(head.Hex);
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            Assert.That(Service(pending).Seal().Succeeded, Is.True);
+
+            // A merge brings the summary entry back while the dialog stands.
+            live.Records.Put(dropped.Identifier, dropped.Versions.Select(version => (IReadOnlyDictionary<string, string>)version.Names
+                .Select((name, at) => new KeyValuePair<string, string>(name, version.Strings.Read(version.Values[at])))
+                .ToDictionary(pair => pair.Key, pair => pair.Value)).ToArray());
+            Assume.That(live.Store.Read().State, Is.EqualTo(StoreState.Whole));
+            var writes = live.Records.Writes;
+
+            Assert.That(pending.Apply(), Is.False);
+
+            Assert.That(live.Records.Writes, Is.EqualTo(writes), "nothing was written");
+            Assert.That(log.Entries.Select(entry => entry.Message), Has.Some.EqualTo("Seal again: nothing was left to seal at OK, the store being whole"));
+            Assert.That(pending.Sealed, Is.Null);
+        }
+
+        [Test]
+        public void What_the_seal_deleted_and_the_stop_it_lifted_are_told_from_its_write()
+        {
+            // An entry edited so that no version passes stops the store, and the seal is pressed;
+            // a second is merged in as OK writes. The log and the audit name what the write
+            // deleted, both entries, and the stop as the write found it.
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            byte[] key;
+            using (var reading = live.Store.Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+
+            var first = Damaged(live, key, '8');
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            Assert.That(Service(pending).Seal().Succeeded, Is.True);
+            string second = null;
+            live.Records.BeforeWrite = () =>
+            {
+                live.Records.BeforeWrite = null;
+                second = Damaged(live, key, '9');
+            };
+
+            Assert.That(pending.Apply(), Is.True);
+
+            using (var reading = live.Store.Read())
+            {
+                Assume.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assume.That(reading.Candidates.Select(candidate => candidate.Hex), Has.None.EqualTo(first).And.None.EqualTo(second), "the write deleted both");
+            }
+
+            Assert.That(pending.Sealed.Deleted, Is.EquivalentTo(new[] { first, second }));
+            Assert.That(pending.Sealed.Stopped, Does.StartWith("2 entries of the store have no version that passes"));
+            Assert.That(
+                log.Entries.Select(entry => entry.Message),
+                Has.Some.Contains(CertificateDigest.Shorten(first)).And.Contains(CertificateDigest.Shorten(second)));
+        }
+
+        /// <summary>A retirement put into the store under this key edited so that no version passes: its identifier.</summary>
+        private static string Damaged(FakeGateDatabase live, byte[] key, char authority)
+        {
+            var edited = StoreComposer.Record(key, "retired", "authority:" + StoreRecords.Hex(authority), StoreComposer.Content(("authority", StoreRecords.Hex(authority))));
+            live.Records.Put(edited.Identifier, StoreVersions.With(edited.Strings, StoreComposer.Data, "{\"edited\":\"\"}"));
+            return edited.Hex;
+        }
+
+        [Test]
+        public void A_seal_whose_store_would_still_be_stopped_is_refused_at_the_press_with_nothing_held()
+        {
+            // No summary entry, and deletion records of as many summary entries as the seal's
+            // summary entry can name: the seal fits, and leaves no room for the write after it,
+            // which stops the store again, `STORE.md` §643.
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            using (var reading = live.Store.Read())
+            {
+                var key = reading.InForce.Key.Bytes;
+                live.Records.Drop(reading.InForce.Heads.Single().Hex);
+                for (var at = 0; at < 7941; at++)
+                {
+                    live.Records.Delete(StoreComposer.IdentifierOf(key, "head", "store", 2, at.ToString("x12", CultureInfo.InvariantCulture) + new string('0', 52)));
+                }
+            }
+
+            using (var reading = live.Store.Read())
+            {
+                Assume.That(reading.State, Is.EqualTo(StoreState.Stopped));
+                Assume.That(reading.InForce.Room.HasRoom, Is.True, reading.InForce.Room.Reason);
+                string refused;
+                var seal = SealActs.Seal(reading, out refused);
+                Assume.That(seal, Is.Not.Null, refused);
+                var write = StoreWrite.Plan(reading, new[] { seal }, GateVersion.Current);
+                Assume.That(write.Refused, Is.Null, "the seal's own write fits");
+                var applied = write.Applied(reading.Candidates, reading.Deletions);
+                using (var sealedStore = StoreReading.Afresh(applied.Key, applied.Value))
+                {
+                    Assume.That(sealedStore.State, Is.EqualTo(StoreState.Stopped), "and leaves no room");
+                }
+
+                seal.Forget();
+            }
+
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            var pressed = Service(pending).Seal();
+
+            Assert.That(pressed.Succeeded, Is.False);
+            Assert.That(Held(pending), Is.Empty, "nothing waits for OK");
+            using (var reading = live.Store.Read())
+            {
+                Assert.That(SealActs.Unsealable(reading), Does.StartWith("the sealed store would still be stopped: "), "the page offers no seal");
+            }
+        }
+
+        [Test]
+        public void A_seal_over_a_store_a_start_stopped_logs_the_key_it_keeps_the_store_over_and_no_version()
+        {
+            // `STORE.md` §625: the stop names a key found nowhere, and the seal's keep record is
+            // named in the log by that key, apart from the versions granting nothing.
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            var lost = StoreFormat.NewKey();
+            var named = StoreComposer.KeyName(lost);
+            using (var reading = live.Store.Read())
+            {
+                var key = (byte[])reading.InForce.Key.Bytes.Clone();
+                live.Records.Put(StoreComposer.Record(key, "kept", "key:" + named, StoreComposer.Content(("after", string.Empty), ("key", named))));
+                Array.Clear(key, 0, key.Length);
+            }
+
+            Assume.That(live.Store.Read().State, Is.EqualTo(StoreState.Stopped));
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            Assert.That(Service(pending).Seal().Succeeded, Is.True);
+
+            Assert.That(pending.Apply(), Is.True);
+
+            Assert.That(live.Store.Read().State, Is.EqualTo(StoreState.Whole));
+            var line = log.Entries.Select(entry => entry.Message).Single(message => message.StartsWith(SealActs.Name + ": the store was stopped: ", StringComparison.Ordinal));
+            Assert.That(line, Does.Contain("; versions granting nothing for none; "), "a keep record is no version");
+            Assert.That(line, Does.Contain("; kept over the keys a start made " + CertificateDigest.Shorten(named) + ";"));
+        }
+
+        [Test]
+        public void A_seal_over_a_store_left_with_no_room_under_the_dialog_writes_nothing_and_the_log_names_the_state()
+        {
+            // The summary entry dropped, and the seal pressed; then a merge brings in deletion
+            // records of so many summary entries that the store has no room, which no seal lifts,
+            // `STORE.md` §643: still stopped, and the line names that.
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            byte[] key;
+            using (var reading = live.Store.Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+                live.Records.Drop(reading.InForce.Heads.Single().Hex);
+            }
+
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            Assert.That(Service(pending).Seal().Succeeded, Is.True);
+
+            for (var height = 2; height < 8000; height++)
+            {
+                live.Records.Delete(StoreComposer.IdentifierOf(key, "head", "store", height, new string('5', 64)));
+            }
+
+            using (var reading = live.Store.Read())
+            {
+                Assume.That(reading.State, Is.EqualTo(StoreState.Stopped));
+                Assume.That(reading.InForce.Room.HasRoom, Is.False);
+            }
+
+            var writes = live.Records.Writes;
+
+            Assert.That(pending.Apply(), Is.False);
+
+            Assert.That(live.Records.Writes, Is.EqualTo(writes), "nothing was written");
+            Assert.That(
+                log.Entries.Select(entry => entry.Message),
+                Has.Some.StartsWith("Seal again: not written at OK, the store being stopped: the store has no room for its next write: "));
+            Assert.That(log.Entries.Select(entry => entry.Message), Has.None.Contains("the store being whole"));
+            Assert.That(pending.Sealed, Is.Null);
+        }
+
+        // Starting the store again on the tab, `STORE.md` §632.
+
+        [Test]
+        public void A_start_and_a_name_pressed_after_it_are_written_in_a_single_write_at_OK_and_the_log_names_the_keys()
+        {
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            string earlier;
+            using (var reading = live.Store.Read())
+            {
+                earlier = reading.InForce.Key.Name;
+            }
+
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            Assert.That(Service(pending).StartAgain().Succeeded, Is.True);
+            StoreSeeds.Name(pending.Store, "reader");
+            Assert.That(Held(pending), Is.EqualTo(new[] { "Start again", KeePassGate.Acl.ProfileActs.AddName }));
+
+            var writes = live.Records.Writes;
+            Assert.That(pending.Apply(), Is.True);
+
+            Assert.That(live.Records.Writes, Is.EqualTo(writes + 1), "a single write");
+            using (var reading = live.Store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(reading.InForce.Key.Name, Is.Not.EqualTo(earlier));
+                Assert.That(KeePassGate.Acl.ProfileNames.Of(reading).Names, Is.EqualTo(new[] { "reader" }), "the name under the new key");
+                Assert.That(reading.InForce.HeadsInForce, Has.Count.EqualTo(1));
+            }
+
+            Assert.That(pending.Started, Is.Not.Null, "what the start came to, for the audit's line");
+            Assert.That(pending.Started.SetAside, Is.EqualTo(new[] { earlier }));
+            Assert.That(
+                log.Entries.Select(entry => entry.Message),
+                Has.Some.EqualTo("Start again: the store was started again under the key " + CertificateDigest.Shorten(pending.Started.Key)
+                                 + "; keys set aside " + CertificateDigest.Shorten(earlier)));
+        }
+
+        [Test]
+        public void The_clients_a_start_stops_admitting_are_counted_from_its_write()
+        {
+            // A client is admitted, the start is pressed, and a second admission is merged in as OK
+            // writes. The audit's count is the store the write was planned over, both clients,
+            // and OK reads the store no second time before the write.
+            var live = new FakeGateDatabase();
+            var served = StoreSeeds.Authority(live.Store);
+            byte[] key;
+            using (var reading = live.Store.Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+
+            using (var first = OwnClient(live, served, "agent-fictitious"))
+            using (var second = OwnClient(live, served, "agent-invented"))
+            {
+                Admitted(live, key, AdmissionRecord.For(first, DateTimeOffset.UtcNow, new[] { "ops" }, served));
+                var merged = AdmissionRecord.For(second, DateTimeOffset.UtcNow, new[] { "ops" }, served);
+                var pending = new PendingDatabase(live, NullGateLog.Instance);
+                Assert.That(Service(pending).StartAgain().Succeeded, Is.True);
+                live.Records.BeforeWrite = () =>
+                {
+                    live.Records.BeforeWrite = null;
+                    Admitted(live, key, merged);
+                };
+
+                Assert.That(pending.Apply(), Is.True);
+
+                Assert.That(pending.Started, Is.Not.Null);
+                Assert.That(pending.Started.Clients, Is.EqualTo(2), "both clients the store the write was planned over admitted");
+            }
+
+            Array.Clear(key, 0, key.Length);
+        }
+
+        [Test]
+        public void The_clients_a_start_stops_admitting_are_those_the_clients_page_lists_an_admission_that_will_not_read_among_none()
+        {
+            // An admission that will not read beside a client that reads: the clients page lists
+            // the second as a client and the first as a record that admits nobody, and the start's
+            // count is the page's own.
+            var live = new FakeGateDatabase();
+            var served = StoreSeeds.Authority(live.Store);
+            byte[] key;
+            using (var reading = live.Store.Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+
+            using (var client = OwnClient(live, served, "agent-fictitious"))
+            {
+                Admitted(live, key, AdmissionRecord.For(client, DateTimeOffset.UtcNow, new[] { "ops" }, served));
+            }
+
+            var unread = new string('e', 64);
+            live.Records.Put(StoreComposer.Record(key, "client", "client:" + unread, StoreComposer.Content(("certificate", unread), ("client", unread))));
+            Array.Clear(key, 0, key.Length);
+            int listed;
+            using (var reading = live.Store.Read())
+            {
+                var listing = StoreAdmissions.Listing(reading);
+                Assume.That(listing.Unreadable, Has.Count.EqualTo(1), "the admission that will not read is listed as admitting nobody");
+                listed = listing.Records.Select(record => record.ClientKey).Distinct(StringComparer.Ordinal).Count();
+            }
+
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            Assert.That(Service(pending).StartAgain().Succeeded, Is.True);
+            Assert.That(pending.Apply(), Is.True);
+
+            Assert.That(listed, Is.EqualTo(1));
+            Assert.That(pending.Started.Clients, Is.EqualTo(listed), "the clients the page lists");
+        }
+
+        [Test]
+        public void The_clients_a_start_stops_admitting_are_those_that_get_in_and_not_an_admission_of_a_certificate_another_authority_issued()
+        {
+            // The Clients page lists an admission whose certificate another authority issued as a
+            // client the gate refuses, and the start's warning counts nobody for it: nor does the
+            // count of the audit's line.
+            var live = new FakeGateDatabase();
+            var served = StoreSeeds.Authority(live.Store);
+            byte[] key;
+            using (var reading = live.Store.Read())
+            {
+                key = (byte[])reading.InForce.Key.Bytes.Clone();
+            }
+
+            using (var foreign = TestAuthority.New())
+            using (var stranger = foreign.IssueClient("agent-fictitious"))
+            {
+                Admitted(live, key, AdmissionRecord.For(stranger, DateTimeOffset.UtcNow, new[] { "ops" }, served));
+            }
+
+            Array.Clear(key, 0, key.Length);
+            Assume.That(StoreSeeds.Listed(live.Store).Records, Has.Count.EqualTo(1), "listed by the Clients page, as a client the gate refuses");
+
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            Assert.That(Service(pending).StartAgain().Succeeded, Is.True);
+            Assert.That(pending.Apply(), Is.True);
+
+            Assert.That(pending.Started.Clients, Is.Zero, "no client gets in, as the warning counts them");
+        }
+
+        /// <summary>A client certificate of the authority the store serves, for the caller to dispose.</summary>
+        private static System.Security.Cryptography.X509Certificates.X509Certificate2 OwnClient(FakeGateDatabase live, string served, string name)
+        {
+            return new AuthorityIssuer().IssueClient(StoreSeeds.KeyOf(live.Store, served), name, new[] { "ops" }).Read();
+        }
+
+        /// <summary>An admission put into the store under this key as an entry, as a merge brings one.</summary>
+        private static void Admitted(FakeGateDatabase live, byte[] key, AdmissionRecord admission)
+        {
+            live.Records.Put(StoreComposer.Record(
+                key, "client", "client:" + admission.ClientKey, StoreComposer.Content(admission.Members().Select(member => (member.Key, member.Value)).ToArray())));
+        }
+
+        [Test]
+        public void A_start_over_a_stopped_store_sets_a_seal_held_before_it_aside()
+        {
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            live.Records.Drop(live.Store.Read().InForce.Heads.Single().Hex);
+            Assume.That(live.Store.Read().State, Is.EqualTo(StoreState.Stopped));
+
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            Assert.That(Service(pending).Seal().Succeeded, Is.True);
+            Assert.That(Service(pending).StartAgain().Succeeded, Is.True, "offered over the sealed store");
+
+            Assert.That(pending.Apply(), Is.True);
+            using (var reading = live.Store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(reading.Standing, Has.Count.EqualTo(1));
+                Assert.That(reading.Found, Has.Count.EqualTo(2), "the earlier key set aside, stopped as it was");
+            }
+
+            Assert.That(pending.Sealed, Is.Null, "the seal set aside with its store");
+            Assert.That(pending.Started, Is.Not.Null);
+        }
+
+        [Test]
+        public void A_Recreate_pressed_after_a_start_folds_into_the_start_under_the_authority_it_makes()
+        {
+            // `STORE.md` §632: the page reads the store the start leaves and offers Recreate, and
+            // the press retires the authority the start made, which no database ever held, so
+            // what is left is the start with the authority the press makes.
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            string earlier;
+            using (var reading = live.Store.Read())
+            {
+                earlier = reading.InForce.Key.Name;
+            }
+
+            var log = new RecordingGateLog();
+            var pending = new PendingDatabase(live, log);
+            Assert.That(Service(pending).StartAgain().Succeeded, Is.True);
+            var started = StoreSeeds.Served(pending.Store);
+
+            var recreated = Service(pending).Recreate();
+
+            Assert.That(recreated.Succeeded, Is.True, recreated.Message);
+            Assert.That(Held(pending), Is.EqualTo(new[] { "Start again" }), "a single start, holding the authority the press made");
+            var made = StoreSeeds.Served(pending.Store);
+            Assert.That(made, Is.Not.Null.And.Not.EqualTo(started));
+
+            Assert.That(pending.Apply(), Is.True);
+            using (var reading = live.Store.Read())
+            {
+                Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                Assert.That(reading.InForce.Key.Name, Is.Not.EqualTo(earlier), "started again");
+                Assert.That(reading.Found.Select(key => key.Name), Has.Member(earlier), "the earlier key set aside");
+                Assert.That(StoreAuthorities.Served(reading), Is.EqualTo(made), "the authority the Recreate made is served");
+                Assert.That(reading.Answering, Has.Count.EqualTo(1), "the authority the start made never reached the database");
+            }
+
+            Assert.That(pending.Started, Is.Not.Null, "the audit's line of the start");
+            Assert.That(log.Entries.Select(entry => entry.Message), Has.None.Contains("not written"));
+        }
+
+        [Test]
+        public void A_Delete_pressed_after_a_start_is_withheld_with_what_takes_the_start_back()
+        {
+            // The start's new key is held by the authority it makes: a Delete pressed after it is
+            // refused with nothing changed, and the reason names the start and Cancel.
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+            Assert.That(Service(pending).StartAgain().Succeeded, Is.True);
+            var started = StoreSeeds.Served(pending.Store);
+
+            var deleted = Service(pending).Delete();
+
+            Assert.That(deleted.Succeeded, Is.False);
+            Assert.That(deleted.Message, Is.EqualTo(
+                "The authority could not be deleted: a store started again waits for this dialog's OK with the authority it makes. Cancel takes the start back"));
+            Assert.That(Held(pending), Is.EqualTo(new[] { "Start again" }), "the start held as it was");
+            Assert.That(StoreSeeds.Served(pending.Store), Is.EqualTo(started));
+            Assert.That(pending.Apply(), Is.True);
+            Assert.That(StoreSeeds.Served(live.Store), Is.EqualTo(started), "OK writes the start");
+        }
+
+        [Test]
+        public void A_seal_the_store_no_longer_takes_is_refused_at_the_press_with_nothing_held()
+        {
+            var live = new FakeGateDatabase();
+            StoreSeeds.Authority(live.Store);
+            var pending = new PendingDatabase(live, NullGateLog.Instance);
+
+            var whole = Service(pending).Seal();
+
+            Assert.That(whole.Succeeded, Is.False);
+            Assert.That(Held(pending), Is.Empty);
         }
 
         private static AuthorityService Service(PendingDatabase pending)

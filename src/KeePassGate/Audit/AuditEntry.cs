@@ -86,6 +86,12 @@ namespace KeePassGate.Audit
         /// <summary>What a revocation says, the operator's or a client's own.</summary>
         public const string Revoked = "revoked";
 
+        /// <summary>The decision of the line of the operator's seal of a stopped store, `STORE.md` §625.</summary>
+        public const string Sealed = "sealed";
+
+        /// <summary>The decision of the line of the operator's store started again, `STORE.md` §632.</summary>
+        public const string Started = "started";
+
         public AuditEntry(
             DateTimeOffset at,
             string databaseId,
@@ -311,6 +317,78 @@ namespace KeePassGate.Audit
         public string Requested { get; private set; }
 
         /// <summary>
+        /// Why the store was stopped, as the reading had it, on the line of the operator's seal,
+        /// or null on every other line, which then leaves the member out.
+        /// </summary>
+        public string Stopped { get; private set; }
+
+        /// <summary>
+        /// The identifiers of the records the operator's seal wrote, the versions granting nothing
+        /// and the keep records over a store started again, or null on every other line, which
+        /// then leaves the member out.
+        /// </summary>
+        public IReadOnlyList<string> Written { get; private set; }
+
+        /// <summary>
+        /// The identifiers of the entries the operator's seal deleted as damage, or null on every
+        /// other line, which then leaves the member out.
+        /// </summary>
+        public IReadOnlyList<string> Deleted { get; private set; }
+
+        /// <summary>
+        /// The name of the key a store was started again under, on the line of the operator's
+        /// start, or null on every other line, which then leaves the member out.
+        /// </summary>
+        public string StoreKey { get; private set; }
+
+        /// <summary>
+        /// The name of every key the operator's start set aside, or null on every other line,
+        /// which then leaves the member out.
+        /// </summary>
+        public IReadOnlyList<string> SetAside { get; private set; }
+
+        /// <summary>
+        /// How many clients the store admitted before the operator's start, none of whom it admits
+        /// after, or null on every other line, which then leaves the member out.
+        /// </summary>
+        public int? Clients { get; private set; }
+
+        /// <summary>
+        /// A line about the store as a whole rather than a request or an admission: the operator's
+        /// seal of a stopped store, `STORE.md` §625, about no certificate, client, operation or node.
+        /// </summary>
+        internal static AuditEntry Store(
+            DateTimeOffset at,
+            string databaseId,
+            string decision,
+            string reason,
+            string stopped,
+            IReadOnlyList<string> written,
+            IReadOnlyList<string> deleted)
+        {
+            return new AuditEntry(at, databaseId, null, null, null, null, null, decision, reason, null, null, null)
+            {
+                Stopped = stopped,
+                Written = written,
+                Deleted = deleted,
+            };
+        }
+
+        /// <summary>
+        /// The line of the operator's store started again, `STORE.md` §632: the new key's name, the
+        /// name of every key set aside, and how many clients stopped being admitted.
+        /// </summary>
+        internal static AuditEntry Start(DateTimeOffset at, string databaseId, string reason, string key, IReadOnlyList<string> setAside, int clients)
+        {
+            return new AuditEntry(at, databaseId, null, null, null, null, null, Started, reason, null, null, null)
+            {
+                StoreKey = key,
+                SetAside = setAside,
+                Clients = clients,
+            };
+        }
+
+        /// <summary>
         /// The line this becomes. One object, flat, with every member always present but the notes
         /// that apply only to some lines.
         /// </summary>
@@ -372,6 +450,26 @@ namespace KeePassGate.Audit
                     Member(json, "requested", Requested);
                 }
 
+                if (Stopped != null)
+                {
+                    Member(json, "stopped", Stopped);
+                }
+
+                List(json, "written", Written);
+                List(json, "deleted", Deleted);
+
+                if (StoreKey != null)
+                {
+                    Member(json, "storeKey", StoreKey);
+                }
+
+                List(json, "setAside", SetAside);
+                if (Clients.HasValue)
+                {
+                    json.WritePropertyName("clients");
+                    json.WriteValue(Clients.Value);
+                }
+
                 json.WriteEndObject();
                 json.Flush();
 
@@ -388,6 +486,24 @@ namespace KeePassGate.Audit
         {
             json.WritePropertyName(name);
             json.WriteValue(value);
+        }
+
+        /// <summary>A member that is a list of strings, left out where there is no list.</summary>
+        private static void List(JsonTextWriter json, string name, IReadOnlyList<string> values)
+        {
+            if (values == null)
+            {
+                return;
+            }
+
+            json.WritePropertyName(name);
+            json.WriteStartArray();
+            foreach (var value in values)
+            {
+                json.WriteValue(value);
+            }
+
+            json.WriteEndArray();
         }
     }
 }

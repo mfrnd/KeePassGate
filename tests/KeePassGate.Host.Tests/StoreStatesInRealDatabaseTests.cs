@@ -86,6 +86,40 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_eleventh_edit_s_stop_is_sealed_by_deleting_the_record_and_its_revocation_stands_by_its_item()
+        {
+            // `STORE.md` §625 and §644 item 2: the record edited past the limit is damage, which
+            // the seal deletes with a deletion record; the summary entry it writes restates the
+            // revocation its item held, so the client stays refused.
+            var store = Store(One);
+            var revoked = store.Decision("revoked");
+            Edit(store, revoked, "{\"client\":\"edited\"}");
+            for (var edit = 2; edit <= 11; edit++)
+            {
+                QuickEdit(store, revoked);
+            }
+
+            Assume.That(State(store), Is.EqualTo(StoreState.Stopped));
+
+            var written = new KdbxStore(store.Database, GateVersion.Current, null).Write(reading =>
+            {
+                string refused;
+                var seal = KeePassGate.Authority.SealActs.Seal(reading, out refused);
+                Assert.That(seal, Is.Not.Null, refused);
+                return seal;
+            });
+
+            Assert.That(written.Taken, Is.True, written.Reason);
+            Assert.That(State(store), Is.EqualTo(StoreState.Whole));
+            Assert.That(store.RootGroup.FindEntry(revoked.Uuid, true), Is.Null, "the damaged record is deleted");
+            Assert.That(store.Database.DeletedObjects.Any(deleted => deleted.Uuid.Equals(revoked.Uuid)), Is.True, "with a deletion record");
+            using (var reading = new KdbxStore(store.Database, GateVersion.Current, null).Read())
+            {
+                Assert.That(reading.InForce.Taken("revoked"), Has.Member(new string('c', 64)));
+            }
+        }
+
+        [Test]
         public void A_quick_edit_and_a_move_leave_the_record_passing_in_its_current_version()
         {
             var store = Store(One);

@@ -9,7 +9,9 @@ namespace KeePassGate.Authority
 {
     /// <summary>
     /// What an operator can do to a database's authority: create it, recreate it, delete it, and
-    /// keep an authority where several stand, each a write into the plugin's store, `STORE.md` §614.
+    /// keep an authority where several stand, each a write into the plugin's store, `STORE.md` §614;
+    /// seal the store again where it stopped, §625; and start the store again under a new key,
+    /// §632.
     /// </summary>
     /// <remarks>
     /// Nothing is destroyed implicitly: creating where an authority stands is refused rather than
@@ -40,8 +42,20 @@ namespace KeePassGate.Authority
         /// </summary>
         public const string Full = "the store would be left full, and nothing is served then";
 
-        /// <summary>What can be done about a store a Create or a Recreate would leave full.</summary>
-        public const string NothingMakesRoom = "Nothing on this tab makes room.";
+        /// <summary>
+        /// What can be done about a store a Create or a Recreate would leave full, where the page
+        /// offers Start store again: a start writes a store of its own under a new key, `STORE.md`
+        /// §632, whose summary entry names no earlier summary entry, so it leaves room, §643.
+        /// </summary>
+        public const string StartMakesRoom = "Start store again is the way out.";
+
+        /// <summary>
+        /// What can be done about a store a Create or a Recreate would leave full, where the page
+        /// offers no start: nothing the page holds makes room. The tab as a whole is not
+        /// answered for, since a write that takes the last of the room leaves a stopped store, and
+        /// the page offers a start over that.
+        /// </summary>
+        public const string NothingMakesRoom = "Nothing on this page makes room.";
 
         private readonly IGateStore _store;
         private readonly AuthorityIssuer _issuer;
@@ -282,6 +296,140 @@ namespace KeePassGate.Authority
             return AuthorityChange.Done();
         }
 
+        /// <summary>
+        /// Seals a stopped store again, `STORE.md` §625: a version granting nothing for every
+        /// object a lost version makes refuse, every entry that is damage deleted with a deletion
+        /// record, and a summary entry over what passes and is in force, in a single write. The
+        /// only command a stopped store takes, and refused on a store in any other state and on
+        /// a store with no room, which the seal does not lift.
+        /// </summary>
+        /// <remarks>
+        /// **Composed over the store as it stands at the write**, `SealActs`: on the KPG tab the
+        /// act is composed again over the store at OK, so what the dialog showed decides nothing
+        /// of what is written.
+        /// </remarks>
+        public AuthorityChange Seal()
+        {
+            var waits = false;
+            using (var reading = _store.Read())
+            {
+                if (reading.State != StoreState.Stopped)
+                {
+                    return HeldBack(reading)
+                           ?? AuthorityChange.Refused("The store of this database is not stopped, so there is nothing to seal again.");
+                }
+
+                string refused;
+                var act = SealActs.Seal(reading, out refused);
+                if (act == null)
+                {
+                    return AuthorityChange.Refused("The store of this database cannot be sealed again, since " + refused + ".");
+                }
+
+                // Asked of the store as the seal's write would leave it, before the act is written
+                // or held: a seal whose own write stops the store again is refused with nothing
+                // waiting for OK. The write plans the same act over the same store in the same
+                // turn, so nothing is read back after it.
+                var unsealed = SealActs.Unsealed(reading, act);
+                if (unsealed != null)
+                {
+                    act.Forget();
+                    _log.Warn("the store was not sealed again: " + unsealed);
+                    return AuthorityChange.Refused("The store of this database cannot be sealed again, since " + unsealed + ".");
+                }
+
+                var written = Write(act, out waits);
+                if (written != null)
+                {
+                    _log.Warn("the store could not be sealed again: " + written);
+                    return AuthorityChange.Refused("The store could not be sealed again: " + written);
+                }
+            }
+
+            // A press on the tab only waits for the dialog's OK, which a Cancel drops, so nothing
+            // is logged as done there.
+            if (!waits)
+            {
+                _log.Info("the store was sealed again");
+            }
+
+            return AuthorityChange.Done();
+        }
+
+        /// <summary>
+        /// Starts the store again under a new key, `STORE.md` §632: under each key found a stop,
+        /// a keep record naming the new key that no summary entry restates; then an authority
+        /// holding the new key with its host certificate, and a keep record naming each key found
+        /// and every keep record read with every stop in `after`; and the version record, which the
+        /// write puts first under the new key, and a summary entry of height 1, in a single write
+        /// that deletes nothing. Taken whatever the store's state,
+        /// with room or without, wherever keys are found and judged; refused where no key is found,
+        /// which Create starts, and past `StoreFormat.MaxKeys`, where no key can be named.
+        /// </summary>
+        /// <remarks>
+        /// **Composed once, at the press**, as every command on the authority is, and held at the
+        /// write to the keys found then: a key found that it names no keep record for leaves it
+        /// out, `StoreWrite`, since that key would stand beside the new key.
+        /// </remarks>
+        public AuthorityChange StartAgain()
+        {
+            using (var reading = _store.Read())
+            {
+                if (reading.State == StoreState.None)
+                {
+                    return AuthorityChange.Refused("This database holds no store key. Create starts the store.");
+                }
+
+                if (!reading.Judged || reading.Found.Count == 0)
+                {
+                    return AuthorityChange.Refused(
+                        "The store of this database cannot be started again, since no store key can be set aside: " + reading.Reason + ".");
+                }
+
+                return Issue(StartedAgain, reading, Array.Empty<string>());
+            }
+        }
+
+        /// <summary>
+        /// How many clients a reading of the store admits, as the clients page counts them and
+        /// the question Start store again asks counts them, `ClientReaches.Admitted`, so that the
+        /// audit of a store started again counts what the operator was told the start costs; none
+        /// where nothing is in force.
+        /// </summary>
+        private static int ClientsAdmitted(StoreReading reading)
+        {
+            return Ui.ClientReaches.Admitted(reading, DateTimeOffset.UtcNow);
+        }
+
+        /// <summary>The verb of a store started again, as the log and a refusal name it.</summary>
+        private const string StartedAgain = "started again";
+
+        /// <summary>
+        /// The records of a store started again under this new key, `STORE.md` §632: the stop under
+        /// each key found, the authority, and a keep record naming each key found, in that order.
+        /// </summary>
+        private static List<StoreRecord> Started(StoreReading reading, byte[] key, StoreRecord authority)
+        {
+            var name = StoreFormat.KeyName(key);
+            var stops = reading.Found
+                .Select(found => StoreRecord.Compose(found.Bytes, StoreKinds.Kept, new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    { StoreKinds.Key, name },
+                    { StoreKinds.After, string.Empty },
+                }))
+                .ToList();
+            var after = string.Join(" ", reading.KeptRead.Concat(stops.Select(stop => stop.Hex))
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(id => id, StringComparer.Ordinal));
+            var records = new List<StoreRecord>(stops) { authority };
+            records.AddRange(reading.Found.Select(found => StoreRecord.Compose(key, StoreKinds.Kept, new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                { StoreKinds.Key, found.Name },
+                { StoreKinds.After, after },
+            })));
+            return records;
+        }
+
         /// <summary>Why an authority standing cannot be kept, or null where it reads whole.</summary>
         private static string Unreadable(FoundRecord record)
         {
@@ -393,48 +541,60 @@ namespace KeePassGate.Authority
                 // Asked at the press, before anything is minted, written or held: a write that
                 // would leave the store held back is refused with nothing waiting for OK, and the
                 // page offers no such press. Inside the catch below, since it draws random bytes.
-                var issueRefusal = IssueRefusal(reading);
+                // A start is not asked: it writes under a new key, whatever the store it sets aside.
+                var issueRefusal = verb == StartedAgain ? null : IssueRefusal(reading);
                 if (issueRefusal != null)
                 {
                     _log.Warn("the authority was not " + verb + ": " + issueRefusal);
                     return AuthorityChange.Refused(
                         "The authority could not be " + verb + ": " + issueRefusal + "."
-                        + (issueRefusal == Full ? " " + NothingMakesRoom : string.Empty));
+                        + (issueRefusal == Full ? " " + (StartOffered(verb, reading) ? StartMakesRoom : NothingMakesRoom) : string.Empty));
                 }
 
                 var authority = _issuer.CreateAuthority();
                 var host = _issuer.IssueHost(authority);
                 sniKey = NewRandom(AuthorityMaterial.SniKeyLength);
 
-                // Under the store key that stands, or a new key where none does, `STORE.md` §632:
-                // a Recreate carries the key, and a Create after a Delete keeps it.
-                key = reading.State == StoreState.None ? StoreFormat.NewKey() : (byte[])reading.InForce.Key.Bytes.Clone();
+                // Under the store key that stands, or a new key where none does or the store is
+                // started again, `STORE.md` §632: a Recreate carries the key, and a Create after a
+                // Delete keeps it.
+                var again = verb == StartedAgain;
+                key = again || reading.State == StoreState.None ? StoreFormat.NewKey() : (byte[])reading.InForce.Key.Bytes.Clone();
 
                 using (var material = new AuthorityMaterial(authority, host, sniKey))
                 {
                     minted = material.AuthorityDigest;
-                    var records = replacing.Select(id => Retirement(key, id, false)).ToList();
-                    records.Add(StoreRecord.Compose(key, StoreKinds.Authority, AuthorityRecord.Members(material, key)));
-                    var stood = new HashSet<string>(Standing(reading), StringComparer.Ordinal);
-                    var act = new StoreAct(
-                        verb == "created" ? "Create" : "Recreate",
-                        key,
-                        reading.State == StoreState.None ? null : reading.InForce.Key.Name,
-                        records,
-                        ground => ground.Standing.SetEquals(stood) ? null : Overtaken);
+                    var issued = StoreRecord.Compose(key, StoreKinds.Authority, AuthorityRecord.Members(material, key));
+                    StoreAct act;
+                    if (again)
+                    {
+                        act = new StoreAct("Start again", key, null, Started(reading, key, issued), null, starts: true, admitted: ClientsAdmitted);
+                    }
+                    else
+                    {
+                        var records = replacing.Select(id => Retirement(key, id, false)).ToList();
+                        records.Add(issued);
+                        var stood = new HashSet<string>(Standing(reading), StringComparer.Ordinal);
+                        act = new StoreAct(
+                            verb == "created" ? "Create" : "Recreate",
+                            key,
+                            reading.State == StoreState.None ? null : reading.InForce.Key.Name,
+                            records,
+                            ground => ground.Standing.SetEquals(stood) ? null : Overtaken);
+                    }
 
                     var written = Write(act, out waits);
                     if (written != null)
                     {
-                        _log.Warn("the authority could not be " + verb + ": " + written);
-                        return AuthorityChange.Refused("The authority could not be " + verb + ": " + written);
+                        _log.Warn(Subject(verb) + " could not be " + verb + ": " + written);
+                        return AuthorityChange.Refused(Named(verb) + " could not be " + verb + ": " + written);
                     }
                 }
             }
             catch (Exception error) when (Expected.OfCryptography(error))
             {
-                _log.Error("the authority could not be " + verb, error);
-                return AuthorityChange.Refused("The authority could not be " + verb + ": " + error.Message);
+                _log.Error(Subject(verb) + " could not be " + verb, error);
+                return AuthorityChange.Refused(Named(verb) + " could not be " + verb + ": " + error.Message);
             }
             finally
             {
@@ -452,7 +612,7 @@ namespace KeePassGate.Authority
             // Logged as done only where it is done, as a Delete is.
             if (!waits)
             {
-                _log.Info("authority " + verb + ", digest " + minted);
+                _log.Info((verb == StartedAgain ? "store started again, authority" : "authority " + verb) + ", digest " + minted);
             }
 
             return AuthorityChange.Done();
@@ -528,6 +688,35 @@ namespace KeePassGate.Authority
 
                 Array.Clear(key, 0, key.Length);
             }
+        }
+
+        /// <summary>
+        /// Whether the Certificate Authority page offers Start store again beside the press of this
+        /// verb over this reading, as `AuthorityDescription.Under` decides it, `STORE.md` §632:
+        /// beside a Recreate where a single authority stands or is damaged and a key is found and
+        /// judged, and never beside a Create, which holds the place a start takes, nor beside
+        /// the chooser, which takes it where several authorities stand.
+        /// </summary>
+        /// <remarks>
+        /// A start already waiting for the dialog's OK is not asked about: the page offers no
+        /// second start then, and the store it reads is the store the start leaves, a summary
+        /// entry of height 1, which no single Create or Recreate leaves full.
+        /// </remarks>
+        private static bool StartOffered(string verb, StoreReading reading)
+        {
+            return verb == "recreated" && reading.Judged && reading.Found.Count > 0 && Standing(reading).Count <= 1;
+        }
+
+        /// <summary>What a command that mints an authority writes, as the log names it: the store where it is started again.</summary>
+        private static string Subject(string verb)
+        {
+            return verb == StartedAgain ? "the store" : "the authority";
+        }
+
+        /// <summary><see cref="Subject"/> at the start of a sentence.</summary>
+        private static string Named(string verb)
+        {
+            return verb == StartedAgain ? "The store" : "The authority";
         }
 
         /// <summary>The bytes of the `id` that stands in for an authority not yet minted: a SHA-256 digest's.</summary>

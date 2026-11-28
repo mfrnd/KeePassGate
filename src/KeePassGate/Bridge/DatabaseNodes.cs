@@ -43,29 +43,45 @@ namespace KeePassGate.Bridge
 
         public IEnumerable<IRuledNode> All(StoreReading reading)
         {
+            return Walk(reading, true);
+        }
+
+        /// <summary>
+        /// Every group and entry the tree holds, the recycle bin and what is in it among them, and
+        /// no node of the plugin's store: what the seal's dialog names a rule's node by, since a
+        /// rule a store lost may be about a node removed into the bin, `STORE.md` §625.
+        /// </summary>
+        public IEnumerable<IRuledNode> Held(StoreReading reading)
+        {
+            return Walk(reading, false);
+        }
+
+        /// <summary>The nodes of the tree, the recycle bin and what is in it left out where asked.</summary>
+        private IEnumerable<IRuledNode> Walk(StoreReading reading, bool leaveBinOut)
+        {
             var root = _database == null ? null : _database.RootGroup;
             if (root == null)
             {
                 yield break;
             }
 
-            var bin = KdbxVault.Bin(_database, root);
+            var bin = leaveBinOut ? KdbxVault.Bin(_database, root) : null;
             var store = reading == null ? null : StoreNodes.Of(reading);
 
             if (!Left(root, bin))
             {
-                yield return new Node(root.Uuid);
+                yield return new Node(root.Uuid, () => root.Name);
             }
 
             foreach (var group in root.GetGroups(true).Where(group => !Left(group, bin)))
             {
-                yield return new Node(group.Uuid);
+                yield return new Node(group.Uuid, () => group.Name);
             }
 
             foreach (var entry in root.GetEntries(true).Where(entry => !Left(entry.ParentGroup, bin)
                                                                        && (store == null || !store.Holds(entry))))
             {
-                yield return new Node(entry.Uuid);
+                yield return new Node(entry.Uuid, () => entry.Strings.ReadSafe(PwDefs.TitleField));
             }
         }
 
@@ -330,12 +346,20 @@ namespace KeePassGate.Bridge
 
         private sealed class Node : IRuledNode
         {
-            public Node(PwUuid uuid)
+            private readonly Func<string> _title;
+
+            public Node(PwUuid uuid, Func<string> title)
             {
                 Id = Hex.Of(uuid.UuidBytes);
+                _title = title;
             }
 
             public string Id { get; private set; }
+
+            public string Title
+            {
+                get { return _title() ?? string.Empty; }
+            }
         }
     }
 }

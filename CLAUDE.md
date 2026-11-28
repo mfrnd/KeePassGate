@@ -24,11 +24,13 @@ and writes every decision the rules make, and
 every pairing, renewal, revocation and certificate taken away, to an audit file outside the
 database. A rule changed apart in copies of a database stands in every version and grants what
 all versions allow, and a group or an entry whose rule was removed is given at most what
-reached it then, until the operator settles either on the tab. A locked database answers
-`503 locked`. PyKeePassGate is the reference client, a
-library and a command line covering every route, and a `v` tag publishes the two, the plugin's
-zip as a GitHub release and the client on PyPI. [`docs/`](docs/README.md) is the operator's
-account of all of it.
+reached it then, until the operator settles either on the tab. A locked database answers `503
+locked`, and a store that is not whole answers `503 stopped` until the operator seals it again on
+the KPG tab, after a window of its own lists what the deletion records show as lost, or starts it
+again under a new key, which sets every earlier store aside and stops it. PyKeePassGate
+is the reference client, a library and a command line covering every route, and a `v` tag publishes
+the two, the plugin's zip as a GitHub release and the client on PyPI. [`docs/`](docs/README.md) is
+the operator's account of all of it.
 
 ## Read these before proposing anything
 
@@ -459,7 +461,10 @@ designing around them.
   to be shortened rather than read. Each page is measured in the room that page is given, not all
   of them in the sum, which is the whole point of there being three. A
   `TabControl` with no window handle never sizes its pages, so the measurement creates one and
-  brings each page to the front before believing what it is told.
+  brings each page to the front before believing what it is told. **What does not fit a page is a
+  dialog of its own**, sized by what is in it and held to the smallest screen at every scaling:
+  the authority chooser, and the window **Seal store again** opens over a stopped store, which
+  lists what was lost and scrolls only downward, `SealFormTests`.
 - **The grant editor is a buffer, applied as the dialog closes with OK**, `STORE.md` §629. A press
   on the KPG tab of a group or entry dialog changes `GrantSheet` and nothing else. The handler of
   the dialog's close, where its result is OK, hands the changes to `DatabaseWriter.ByOperator`,

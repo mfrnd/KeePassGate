@@ -53,6 +53,20 @@ namespace KeePassGate.Store
             get { return (long)(_high & SubjectBits); }
         }
 
+        /// <summary>
+        /// Its first eight bytes, the tag and the subject hash, as the 16 lowercase hexadecimal
+        /// characters an item with no subject holds, `STORE.md` §611.
+        /// </summary>
+        public string TagAndSubject
+        {
+            get
+            {
+                var text = new char[(StoreFormat.TagLength + StoreFormat.SubjectLength) * 2];
+                Write(_high, text, 0);
+                return new string(text);
+            }
+        }
+
         /// <summary>Bytes 9 and 10: a height, a format number or the tag of a profile's name.</summary>
         public int Number
         {
@@ -119,6 +133,24 @@ namespace KeePassGate.Store
             }
 
             id = new StoreId(high, low);
+            return true;
+        }
+
+        /// <summary>
+        /// The tag and the subject hash 16 lowercase hexadecimal characters name, as the
+        /// identifier they begin with the rest 0, which <see cref="Tag"/> and
+        /// <see cref="Subject"/> read; false for any other text.
+        /// </summary>
+        public static bool TryParseTagAndSubject(string text, out StoreId id)
+        {
+            id = default(StoreId);
+            ulong high;
+            if (text == null || text.Length != (StoreFormat.TagLength + StoreFormat.SubjectLength) * 2 || !HexNumber(text, 0, text.Length, out high))
+            {
+                return false;
+            }
+
+            id = new StoreId(high, 0);
             return true;
         }
 

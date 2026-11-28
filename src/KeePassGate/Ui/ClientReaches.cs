@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using KeePassGate.Authority;
 using KeePassGate.Diagnostics;
 using KeePassGate.Pipeline;
+using KeePassGate.Store;
 
 namespace KeePassGate.Ui
 {
@@ -91,6 +94,62 @@ namespace KeePassGate.Ui
         {
             return Issued(certificate, authority) == ClientReach.Reaches
                    && CertificateValidity.IsCurrent(certificate, now);
+        }
+
+        /// <summary>
+        /// How many clients a reading of the store admits as the clients page counts them: each
+        /// client key with an admission the page lists as admitting that gets in at
+        /// <paramref name="now"/>, under the authority served, or while several authorities wait
+        /// to be chosen between, under each that reads, judged as it would stand were that
+        /// authority kept. None where nothing is in force.
+        /// </summary>
+        /// <remarks>
+        /// **The single count of clients a command cuts off**: what Recreate, Delete and Start
+        /// store again ask before the press, what the audit's line of a store started again
+        /// counts, and what the seal's dialog counts as kept. An admission of another authority,
+        /// listed twice or of a renewal that does not count admits nobody, and so does a record the
+        /// gate refuses, not for client use, not yet valid or expired, or a record that will not
+        /// read. A client that renewed is a single client by its client key.
+        /// </remarks>
+        internal static int Admitted(StoreReading reading, DateTimeOffset now)
+        {
+            if (reading == null || reading.InForce == null)
+            {
+                return 0;
+            }
+
+            var counted = new HashSet<string>(StringComparer.Ordinal);
+            using (var authority = AuthorityService.Read(reading))
+            {
+                foreach (var admitting in Admitting(authority))
+                {
+                    var listing = admitting.Key == null ? StoreAdmissions.Listing(reading) : StoreAdmissions.Listing(reading, admitting.Key);
+                    counted.UnionWith(listing.Records
+                        .Where(record => listing.StandingOf(record) == AdmissionStanding.Admitted && GetsIn(record, admitting.Value, now))
+                        .Select(record => record.ClientKey));
+                }
+            }
+
+            return counted.Count;
+        }
+
+        /// <summary>
+        /// The authorities whose clients are counted, each by the `id` its clients are listed
+        /// under: the authority served, by none, since the listing as it stands is the listing
+        /// under it, or while several are undecided, each candidate that reads.
+        /// </summary>
+        private static IReadOnlyList<KeyValuePair<string, X509Certificate2>> Admitting(AuthorityReading reading)
+        {
+            if (reading.IsPresent)
+            {
+                return new[] { new KeyValuePair<string, X509Certificate2>(null, reading.Material.Authority) };
+            }
+
+            return reading.Presence == AuthorityPresence.Undecided
+                ? reading.Candidates.Where(candidate => candidate.IsWhole)
+                    .Select(candidate => new KeyValuePair<string, X509Certificate2>(candidate.Fingerprint, candidate.Material.Authority))
+                    .ToList()
+                : new List<KeyValuePair<string, X509Certificate2>>();
         }
     }
 }

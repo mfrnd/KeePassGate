@@ -36,12 +36,12 @@ namespace KeePassGate.Tests
             "ceiling: a string of the store the plugin writes, 262144 characters",
             "ceiling: the items of a summary entry the plugin writes, 9999",
             "kind authority: subject authority: and id; number none; members id text, storeKey hex; beside a deletion record out of force; restated not",
-            "kind retired: subject authority: and authority; number none; members authority text, storeKey hex where present; beside a deletion record counts; restated by an item with the same authority; item authority text",
+            "kind retired: subject authority: and authority; number none; members authority text, storeKey hex where present; beside a deletion record counts; restated by an item with the same authority; item authority text; item with no subject hash tag and subject",
             "kind client: subject client: and client; number none; members client text, certificate text where present, der text where present, issuer text where present, profiles text where present, subject text where present, admitted text where present, from text where present; beside a deletion record out of force; restated not",
-            "kind revoked: subject client: and client; number none; members client text; beside a deletion record counts; restated by an item with the same client; item client text",
+            "kind revoked: subject client: and client; number none; members client text; beside a deletion record counts; restated by an item with the same client; item client text; item with no subject hash tag and subject",
             "kind withdrawn: subject certificate: and certificate; number none; members certificate hex, renewed text where present, from text where present; beside a deletion record counts; restated by an item whose id is its identifier, with the same certificate, renewed and from; item id text, certificate hex, renewed text where present, from text where present",
             "kind profile: subject profile: and name; number none; members name text, after identifiers; beside a deletion record out of force; restated not",
-            "kind removed: subject profile: and name; number none; members name text; beside a deletion record counts; restated by an item with the same name; item name text, id text",
+            "kind removed: subject profile: and name; number none; members name text; beside a deletion record counts; restated by an item with the same name; item name text, id text; item with no subject id identifier",
             "kind version: subject the object, before its first / where it is of the type rule and holds /; number the tag of the name after that /, none for an object not so split; members object text, after identifiers, doc text, lost identifiers where present; beside a deletion record out of force; restated by an item whose id is its identifier; item id text, object text, after identifiers, doc text, lost identifiers where present; objects of the types rule, switch, renew",
             "kind kept: subject key: and key; number none; members key key name, after identifiers; beside a deletion record counts; restated by an item whose id is its identifier; item id text, key key name, after identifiers",
             "kind format: subject format: and format; number format; members format number, plugin version; beside a deletion record counts; restated by the item format of a summary entry stating a number at least its own; item format number, plugin version",
@@ -108,6 +108,7 @@ namespace KeePassGate.Tests
                 "; beside a deletion record ", kind.CountsBesideDeletion ? "counts" : "out of force",
                 "; restated ", Restated(kind),
                 kind.Item != null ? "; item " + Members(kind.Item) : string.Empty,
+                kind.Unnamed != null ? "; item with no subject " + Members(kind.Unnamed) : string.Empty,
                 kind.Name == StoreKinds.Version ? "; objects of the types " + string.Join(", ", StoreKinds.ObjectTypes) : string.Empty);
         }
 
@@ -135,6 +136,8 @@ namespace KeePassGate.Tests
             {
                 case StoreForm.KeyName:
                     return "key name";
+                case StoreForm.TagAndSubject:
+                    return "tag and subject";
                 default:
                     return form.ToString().ToLowerInvariant();
             }

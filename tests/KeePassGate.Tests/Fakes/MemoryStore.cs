@@ -54,11 +54,20 @@ namespace KeePassGate.Tests.Fakes
         /// <summary>What a write throws, or null for writes that answer.</summary>
         public Exception ThrowOnWrite { get; set; }
 
+        /// <summary>
+        /// What changes the store as a write begins, before it reads the store it plans over, or
+        /// null: a merge landing between a caller's last reading and its write.
+        /// </summary>
+        public Action BeforeWrite { get; set; }
+
         /// <summary>The acts of every write made, in order.</summary>
         public List<IReadOnlyList<StoreAct>> Written { get; } = new List<IReadOnlyList<StoreAct>>();
 
         /// <summary>Every act handed to a write, whatever came of it, in order.</summary>
         public List<StoreAct> Offered { get; } = new List<StoreAct>();
+
+        /// <summary>The plan of the last write taken, or null before a write is taken.</summary>
+        public StoreWrite LastPlan { get; private set; }
 
         /// <summary>The entries the store holds, each its identifier and its versions.</summary>
         public IReadOnlyList<StoreCandidate> Candidates
@@ -119,6 +128,15 @@ namespace KeePassGate.Tests.Fakes
         /// Another copy brought into this store as KeePass's Synchronize brings it: every entry of
         /// both and every deletion record of both, less every entry a deletion record names.
         /// </summary>
+        /// <remarks>
+        /// **Not KeePass's where both copies hold an entry apart**: this copy's entry is taken,
+        /// where KeePass takes the entry modified last, since the store holds no times; a sequence
+        /// that edits an entry in the other copy puts that copy's entry in its place itself. Every
+        /// entry a deletion record names goes, as KeePass's does. No sequence played through it
+        /// passes an entry changed apart in both copies at a merge where the real merge would end
+        /// wider; the real merges are run on files by the host tier's merge tests, `STORE.md` §625
+        /// and §632.
+        /// </remarks>
         public void Synchronize(MemoryStore other)
         {
             var deletions = _deletions.Concat(other._deletions).GroupBy(KeePassGate.Hex.Of).Select(group => group.First()).ToList();
@@ -141,6 +159,31 @@ namespace KeePassGate.Tests.Fakes
                 .GroupBy(candidate => candidate.Hex)
                 .Select(group => group.First())
                 .ToList();
+        }
+
+        /// <summary>
+        /// Another copy brought into this store as KeePass's Overwrite if newer brings it: every
+        /// entry of both, and the deletion records this copy held. An entry both copies hold is
+        /// taken as this copy holds it, which is the newer only where the two are the same entry:
+        /// the store holds no times, so an entry the two copies changed apart is refused.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">An entry the two copies hold apart under a single identifier.</exception>
+        public void OverwriteIfNewer(MemoryStore other)
+        {
+            var held = _candidates.ToDictionary(candidate => candidate.Hex, StringComparer.Ordinal);
+            StoreCandidate mine;
+            if (other._candidates.Any(candidate => held.TryGetValue(candidate.Hex, out mine) && !ReferenceEquals(mine, candidate)))
+            {
+                throw new InvalidOperationException("Both copies changed an entry apart, and the test's store holds no times to tell the newer by.");
+            }
+
+            MergeWithoutDeletions(other);
+        }
+
+        /// <summary>Every deletion record taken out, as KeePass's Database Maintenance takes them out.</summary>
+        public void ClearDeletions()
+        {
+            _deletions = new List<byte[]>();
         }
 
         public StoreReading Read()
@@ -180,6 +223,7 @@ namespace KeePassGate.Tests.Fakes
         public StoreWritten Write(IReadOnlyList<StoreAct> acts)
         {
             Offered.AddRange(acts);
+            BeforeWrite?.Invoke();
             if (ThrowOnWrite != null)
             {
                 throw ThrowOnWrite;
@@ -202,12 +246,13 @@ namespace KeePassGate.Tests.Fakes
             }
 
             Written.Add(acts);
+            LastPlan = plan;
             Writes++;
             var applied = plan.Applied(_candidates, _deletions);
             _candidates = applied.Key.ToList();
             _deletions = applied.Value.ToList();
 
-            return StoreWritten.Done(plan.Taken, plan.LeftOut, !plan.Empty);
+            return StoreWritten.Done(plan.Taken, plan.LeftOut, !plan.Empty, plan.Sealed, plan.Started);
         }
     }
 }

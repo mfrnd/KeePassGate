@@ -41,11 +41,22 @@ namespace KeePassGate.Store
 
             public string Reason { get; private set; }
 
-            public int Damage { get; private set; }
+            /// <summary>Every entry that is damage under the key that stands, in the order the entries were walked.</summary>
+            public IReadOnlyList<StoreDamage> Damage { get; private set; } = Array.Empty<StoreDamage>();
 
             public int Passed { get; private set; }
 
             public int ByHistory { get; private set; }
+
+            /// <summary>The names of the keys that stand, in the order they were found: none where no key is judged.</summary>
+            public IReadOnlyList<string> Standing { get; private set; } = Array.Empty<string>();
+
+            /// <summary>
+            /// The identifier of every keep record read under any key found, as a record, an item
+            /// or a deletion record that tells of a keep record, ascending: none where no key is
+            /// judged.
+            /// </summary>
+            public IReadOnlyList<string> KeptRead { get; private set; } = Array.Empty<string>();
 
             /// <summary>Whether anything was judged, which past the ceiling on keys nothing is.</summary>
             public bool Judged { get; private set; } = true;
@@ -102,11 +113,9 @@ namespace KeePassGate.Store
                     };
                 }
 
-                // The tags of every kind under each key found, which each key keeps once made.
-                var known = keys
-                    .Select(key => (ISet<string>)new HashSet<string>(
-                        key.Tags.Select(tag => tag.ToString("x6", CultureInfo.InvariantCulture)), StringComparer.Ordinal))
-                    .ToList();
+                // The tags of every kind under each key found, which each key keeps once made, each
+                // with the kind it is the tag of; of two kinds whose tags meet, the first.
+                var known = keys.Select(Kinds).ToList();
                 // The deletion records by their tags, once for every key, `STORE.md` §649, and the
                 // entries among the candidates they name, in a single pass over them.
                 var named = new HashSet<StoreId>();
@@ -115,12 +124,12 @@ namespace KeePassGate.Store
                 // Each entry's record under each key found: the first version, in order, that
                 // passes under it, `STORE.md` §621 and §622.
                 var records = new List<FoundRecord>[keys.Count];
-                var damage = new List<string>[keys.Count];
+                var damage = new List<StoreDamage>[keys.Count];
                 var passed = 0;
                 for (var key = 0; key < keys.Count; key++)
                 {
                     records[key] = new List<FoundRecord>();
-                    damage[key] = new List<string>();
+                    damage[key] = new List<StoreDamage>();
                 }
 
                 for (var at = 0; at < candidates.Count; at++)
@@ -151,9 +160,10 @@ namespace KeePassGate.Store
                     var tagged = false;
                     for (var key = 0; key < keys.Count; key++)
                     {
-                        if (known[key].Contains(tag))
+                        string kind;
+                        if (known[key].TryGetValue(tag, out kind))
                         {
-                            damage[key].Add(candidate.Hex);
+                            damage[key].Add(new StoreDamage(candidate, kind));
                             tagged = true;
                         }
                     }
@@ -164,9 +174,19 @@ namespace KeePassGate.Store
                     }
                 }
 
-                var kept = keys.Count == 1 ? new List<Relation>() : KeptRelations(keys, records).ToList();
+                // The keep records are read under a single key as well, for what a store started
+                // again names in `after`, `STORE.md` §632; they mark nothing there.
+                var kept = KeptRelations(keys, records).ToList();
                 var told = keys.Count == 1 ? new List<Relation>() : DeletedRelations(keys, byTag).ToList();
-                var standing = Standing(keys.Count, kept.Concat(told).ToList());
+                var relations = kept.Concat(told).ToList();
+                var standing = StandingOf(keys.Count, relations);
+                var standingNames = standing.Select(key => keys[key].Name).ToList();
+                var keptRead = relations
+                    .Select(relation => relation.Id)
+                    .Where(id => id != null)
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(id => id, StringComparer.Ordinal)
+                    .ToList();
 
                 if (standing.Count > 1)
                 {
@@ -180,6 +200,8 @@ namespace KeePassGate.Store
                         + " store keys stand, and the operator has kept no store")
                     {
                         Passed = passed,
+                        Standing = standingNames,
+                        KeptRead = keptRead,
                         Answering = standing
                             .SelectMany(key => StoreInForce.Standing(keys[key], records[key], byTag))
                             .ToList(),
@@ -192,7 +214,9 @@ namespace KeePassGate.Store
                     .Select(relation => new KeyValuePair<string, string>(relation.Id, keys[relation.Target].Name))
                     .ToList();
                 var judged = Store(keys[store], records[store], damage[store], byTag, keptByDeletion, nodes);
-                judged.Damage = damage[store].Count;
+                judged.Damage = damage[store];
+                judged.Standing = standingNames;
+                judged.KeptRead = keptRead;
                 judged.Passed = passed;
                 judged.ByHistory = records[store].Count(record => record.ByHistory);
                 judged.Retires = id => StoreInForce.Retired(keys[store], records[store], byTag, new[] { id }).Contains(id);
@@ -206,12 +230,24 @@ namespace KeePassGate.Store
             private static Judgment Store(
                 FoundKey key,
                 IReadOnlyList<FoundRecord> records,
-                IReadOnlyList<string> damage,
+                IReadOnlyList<StoreDamage> damage,
                 IReadOnlyDictionary<int, List<StoreId>> byTag,
                 IReadOnlyCollection<KeyValuePair<string, string>> keptByDeletion,
                 Func<IEnumerable<byte[]>> nodes)
             {
-                var inForce = StoreInForce.Of(key, records, byTag, keptByDeletion, nodes);
+                // A damaged version is told of as the deletion record the seal would leave for it,
+                // `STORE.md` §625, apart from the deletion records the file holds.
+                var damagedVersions = new List<StoreId>();
+                foreach (var damaged in damage.Where(damaged => damaged.Kind == StoreKinds.Version))
+                {
+                    StoreId identifier;
+                    if (StoreId.TryParse(damaged.Hex, out identifier))
+                    {
+                        damagedVersions.Add(identifier);
+                    }
+                }
+
+                var inForce = StoreInForce.Of(key, records, byTag, keptByDeletion, nodes, damagedVersions);
 
                 // A record of a kind the plugin does not know, an item of such a kind, or a
                 // version of an object of such a type: outdated, with or without a version
@@ -236,23 +272,23 @@ namespace KeePassGate.Store
                     return Stopped("no summary entry of the store is in force", inForce);
                 }
 
-                if (inForce.Lost != null)
+                if (inForce.LostHeads.Count > 0)
                 {
-                    return Stopped("a summary entry was deleted that nothing in force replaces: " + Short(inForce.Lost), inForce);
+                    return Stopped("a summary entry was deleted that nothing in force replaces: " + Short(inForce.LostHeads[0]), inForce);
                 }
 
                 if (damage.Count > 0)
                 {
                     return Stopped(
                         damage.Count.ToString(CultureInfo.InvariantCulture)
-                        + " entries of the store have no version that passes, the first " + Short(damage[0]),
+                        + " entries of the store have no version that passes, the first " + Short(damage[0].Hex),
                         inForce);
                 }
 
                 var notRestated = inForce.NotRestated();
-                if (notRestated != null)
+                if (notRestated.Count > 0)
                 {
-                    return Stopped("a record no summary entry restates: " + Short(notRestated.Hex), inForce);
+                    return Stopped("a record no summary entry restates: " + Short(notRestated[0].Hex), inForce);
                 }
 
                 // Last, since a store with room is otherwise whole: answered as a stopped store,
@@ -288,7 +324,7 @@ namespace KeePassGate.Store
             /// into K by K marks first, however many keep records the file holds, and the marking
             /// runs over those.
             /// </remarks>
-            private static IReadOnlyList<int> Standing(int keys, IReadOnlyList<Relation> relations)
+            private static IReadOnlyList<int> StandingOf(int keys, IReadOnlyList<Relation> relations)
             {
                 if (keys == 1)
                 {
@@ -552,6 +588,22 @@ namespace KeePassGate.Store
                 }
 
                 return byTag;
+            }
+
+            /// <summary>The tag of every kind under a key, as hexadecimal, with the first kind of each tag.</summary>
+            private static IReadOnlyDictionary<string, string> Kinds(FoundKey key)
+            {
+                var kinds = new Dictionary<string, string>(StringComparer.Ordinal);
+                for (var index = 0; index < StoreKinds.All.Count; index++)
+                {
+                    var tag = key.Tags[index].ToString("x6", CultureInfo.InvariantCulture);
+                    if (!kinds.ContainsKey(tag))
+                    {
+                        kinds[tag] = StoreKinds.All[index].Name;
+                    }
+                }
+
+                return kinds;
             }
 
             private static IReadOnlyList<string> After(string list)

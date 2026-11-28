@@ -67,6 +67,18 @@ namespace KeePassGate.Host.Tests
         /// <summary>The answers each client was given in the measurement of clients answered again.</summary>
         private const int AnswersAgain = 10;
 
+        /// <summary>The objects whose versions a stopped store lost, which the seal grants nothing at.</summary>
+        private const int LostObjects = 1000;
+
+        /// <summary>The runs of a seal, each a database of its own filled afresh.</summary>
+        private const int SealRuns = 5;
+
+        /// <summary>The stores set aside beside the store that stands, in the measurement of a reading after starts.</summary>
+        private const int EarlierStores = 3;
+
+        /// <summary>The revocations each earlier store holds, in the same measurement.</summary>
+        private const int EarlierRevocations = 1000;
+
         /// <summary>The moment a refusal until a moment names in the measurements of the answers.</summary>
         private static readonly DateTimeOffset Moment = new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
@@ -346,6 +358,154 @@ namespace KeePassGate.Host.Tests
                     later[later.Count / 2],
                     later[later.Count - 1]));
             }
+        }
+
+        [TestCase(0)]
+        [TestCase(10)]
+        public void What_a_reading_beside_the_entries_of_three_earlier_stores_holds_the_thread_for(int history)
+        {
+            // `STORE.md` §632: three stores started again in turn, each holding a thousand
+            // revocations before it is set aside, beside 10,000 entries. A reading finds every key,
+            // reads the keep records, marks the keys and judges the store under the key that
+            // stands; the entries of the stores set aside are each checked under their own key.
+            var holds = new List<double>();
+            for (var run = 0; run <= SealRuns; run++)
+            {
+                using (var database = TemporaryDatabase.New())
+                {
+                    Fill(database.Database, history);
+                    var plain = new KdbxStore(database.Database, GateVersion.Current, null, entry => null);
+                    StoreSeeds.Authority(plain);
+                    for (var store = 0; store < EarlierStores; store++)
+                    {
+                        byte[] key;
+                        using (var reading = plain.Read())
+                        {
+                            key = (byte[])reading.InForce.Key.Bytes.Clone();
+                        }
+
+                        var revocations = Enumerable.Range(0, EarlierRevocations)
+                            .Select(index => StoreRecord.Compose(key, StoreKinds.Revoked, new Dictionary<string, string>
+                            {
+                                { StoreKinds.ClientMember, (store * EarlierRevocations + index).ToString("x64", System.Globalization.CultureInfo.InvariantCulture) },
+                            }))
+                            .ToList();
+                        Assert.That(plain.Write(new[] { new StoreAct("revocations", key, StoreFormat.KeyName(key), revocations, null) }).Taken, Is.True);
+                        Array.Clear(key, 0, key.Length);
+                        Assert.That(new AuthorityService(plain, NullGateLog.Instance).StartAgain().Succeeded, Is.True);
+                    }
+
+                    var clock = Stopwatch.StartNew();
+                    using (var reading = plain.Read())
+                    {
+                        holds.Add(clock.Elapsed.TotalMilliseconds);
+                        Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                        Assert.That(reading.Found, Has.Count.EqualTo(EarlierStores + 1));
+                        Assert.That(reading.Standing, Has.Count.EqualTo(1));
+                    }
+                }
+            }
+
+            Print("a reading beside " + EarlierStores + " earlier stores of " + EarlierRevocations + " revocations each, history " + history, holds);
+        }
+
+        [TestCase(0)]
+        [TestCase(10)]
+        [Apartment(System.Threading.ApartmentState.STA)]
+        public void What_the_seal_s_dialog_and_its_write_hold_the_thread_for_over_1000_lost_objects(int history)
+        {
+            // `STORE.md` §625: a store that lost a version at each of a thousand entries, each
+            // deleted with its deletion record and with its summary entry, beside 10,000 entries.
+            // The dialog's reading is the press of Seal store again on the tab up to the dialog:
+            // the reading, the listing of what was lost, its rows with each node's title, and the
+            // seal planned and applied in memory to count what it keeps. The page's question is
+            // asked at every reading the Certificate Authority page draws a stopped store from. The
+            // write is the seal composed over the writer's reading and applied. Each run is a
+            // database of its own.
+            var dialog = new List<double>();
+            var page = new List<double>();
+            var sealable = new List<double>();
+            var write = new List<double>();
+            for (var run = 0; run <= SealRuns; run++)
+            {
+                using (var database = TemporaryDatabase.New())
+                {
+                    var entries = Fill(database.Database, history);
+                    var plain = new KdbxStore(database.Database, GateVersion.Current, null, entry => null);
+                    StoreSeeds.Authority(plain);
+                    byte[] key;
+                    using (var reading = plain.Read())
+                    {
+                        key = (byte[])reading.InForce.Key.Bytes.Clone();
+                    }
+
+                    var versions = entries.Take(LostObjects)
+                        .Select(entry => RuleVersionOf(key, "switch:" + Hex.Of(entry.Uuid.UuidBytes), "sw:deny"))
+                        .ToList();
+                    Assert.That(plain.Write(new[] { new StoreAct("versions", key, StoreFormat.KeyName(key), versions, null) }).Taken, Is.True);
+                    var group = database.RootGroup.Groups.Single(found => StoreFormat.IsGroupIdentifier(found.Uuid.UuidBytes));
+                    foreach (var entry in group.Entries.Where(found => found.Strings.ReadSafe(StoreComposer.Kind) == StoreKinds.Version || found.Strings.ReadSafe(StoreComposer.Kind) == StoreKinds.Head).ToList())
+                    {
+                        group.Entries.Remove(entry);
+                        database.Database.DeletedObjects.Add(new PwDeletedObject(entry.Uuid, DateTime.UtcNow.AddSeconds(1)));
+                    }
+
+                    var writer = new DatabaseWriter(CurrentThread.Instance, saved => { }, null, null, null);
+                    var live = new OpenDatabase(database.Database, delegate { }, writer, NullGateLog.Instance);
+                    var rows = 0;
+                    string kept = null;
+                    double shown;
+                    using (var panel = new AuthorityPanel(live, null, NullGateLog.Instance))
+                    {
+                        var clock = Stopwatch.StartNew();
+                        shown = 0;
+                        panel.AskToSeal = (reason, listed, counted) =>
+                        {
+                            shown = clock.Elapsed.TotalMilliseconds;
+                            rows = listed.Count;
+                            kept = counted;
+                            return false;
+                        };
+                        panel.SealAgain();
+                    }
+
+                    dialog.Add(shown);
+                    Assert.That(rows, Is.EqualTo(LostObjects + 1), "a row for each lost object, and for the summary entry deleted last");
+                    Assert.That(kept, Does.StartWith("Kept: 1 authority"));
+
+                    // What the page asks of the stopped store at each reading it draws from:
+                    // the reading, and whether the seal's write would be taken and lift the
+                    // stop, `SealActs.Unsealable`, which plans the seal, applies it in memory
+                    // and reads what it leaves.
+                    var readClock = Stopwatch.StartNew();
+                    using (var reading = live.Store.Read())
+                    {
+                        page.Add(readClock.Elapsed.TotalMilliseconds);
+                        var sealableClock = Stopwatch.StartNew();
+                        var unsealable = SealActs.Unsealable(reading);
+                        sealable.Add(sealableClock.Elapsed.TotalMilliseconds);
+                        Assert.That(unsealable, Is.Null, "the page offers the seal");
+                    }
+
+                    var writeClock = Stopwatch.StartNew();
+                    var written = plain.Write(reading =>
+                    {
+                        string refused;
+                        return SealActs.Seal(reading, out refused);
+                    });
+                    write.Add(writeClock.Elapsed.TotalMilliseconds);
+                    Assert.That(written.Taken, Is.True, written.Reason);
+                    using (var reading = plain.Read())
+                    {
+                        Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+                    }
+                }
+            }
+
+            Print("the seal's dialog over " + LostObjects + " lost objects, history " + history, dialog);
+            Print("the page's reading of the stopped store, history " + history, page);
+            Print("the page's question whether the seal lifts the stop, history " + history, sealable);
+            Print("the seal's write over " + LostObjects + " lost objects, history " + history, write);
         }
 
         [TestCase(0)]

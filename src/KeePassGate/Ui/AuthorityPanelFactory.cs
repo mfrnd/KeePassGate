@@ -351,6 +351,21 @@ namespace KeePassGate.Ui
         /// </param>
         private void Ended(IGateDatabase live, PendingDatabase database, BeforeOk before)
         {
+            // The seal first, `STORE.md` §625: it is what lets every other act of the write in, and
+            // the database is named by the authority the sealed store serves.
+            var sealedAgain = database.Sealed;
+            if (sealedAgain != null)
+            {
+                _audit.StoreSealed(Served(live), sealedAgain.Stopped, sealedAgain.Written, sealedAgain.Deleted);
+            }
+
+            // A store started again, `STORE.md` §632, the database named by the new authority.
+            var started = database.Started;
+            if (started != null)
+            {
+                _audit.StoreStarted(Served(live), started.Key, started.SetAside, started.Clients);
+            }
+
             var revoked = Landed(database, AdmissionActs.RevokeName, StoreKinds.Revoked, StoreKinds.ClientMember);
             var taken = Landed(database, AdmissionActs.TakeAwayName, StoreKinds.Withdrawn, StoreKinds.Certificate);
             if (revoked.Count == 0 && taken.Count == 0)

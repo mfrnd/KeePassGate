@@ -232,6 +232,32 @@ writer, which on storage that answers is far more than it needs, so the lines wr
 closes reach the file; on storage that does not answer, KeePass closes after those two seconds and
 the lines still waiting are lost.
 
+## Sealing the store again
+
+**The store of this database sealed again is written down too**, when the settings dialog's **OK**
+puts the seal into the database, and never on **Cancel**: it changes what every client reaches, so
+an operator reading this file sees why every client's refusals changed. The line has `decision`
+`sealed`, `reason` `store sealed again`, and `admissionKey`, `clientKey`, `operation`, `node` and
+`decidedAt` as `null`; its `database` is the authority the sealed store serves, or `null` where it
+serves none. Three members of its own follow: `stopped`, why the store was stopped, whole, where
+the Certificate Authority page cuts a long reason short; `written`, the identifiers of the records
+the seal wrote, each a version granting nothing for a rule, a switch or an answer to a renewal
+whose version was lost, or a keep record that keeps the store over the key a store started again
+made; and `deleted`, the identifiers of the entries the seal deleted because no version of them
+passed. `written` and `deleted` are lists, empty where the seal wrote or deleted none.
+
+## Starting the store again
+
+**A store started again is written down as well**, when the settings dialog's **OK** puts the start
+into the database, and never on **Cancel**: every client of the earlier store stops being admitted
+at once. The line has `decision` `started`, `reason` `store started again`, and `admissionKey`,
+`clientKey`, `operation`, `node` and `decidedAt` as `null`; its `database` is the authority the new
+store serves. Three members of its own follow: `storeKey`, the name of the new store's key, a
+digest of the key that tells nothing of it; `setAside`, the name of every key the start set aside;
+and `clients`, how many clients the earlier store admitted, counted as the Clients page and the
+question Start store again asks count them: each client with an admission that gets in, none of
+whom the new store admits.
+
 **Not everything that changes who is admitted is here yet.** Recreating or deleting the authority
 takes every record away and is not written down, and neither is a change to the rules or to the
 profiles. Those wait for a design of audit levels.

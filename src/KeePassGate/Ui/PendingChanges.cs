@@ -32,6 +32,15 @@ namespace KeePassGate.Ui
         /// a pairing is answered by as it is.
         /// </summary>
         bool AuthorityWaiting { get; }
+
+        /// <summary>Whether a store started again is waiting on the plugin's store, `STORE.md` §632.</summary>
+        bool StartWaiting { get; }
+
+        /// <summary>
+        /// Whether a seal of the store is waiting, `STORE.md` §625, and no act beside it makes,
+        /// replaces or deletes an authority: what the clients page names as waiting then.
+        /// </summary>
+        bool SealWaiting { get; }
     }
 
     /// <summary>
@@ -126,9 +135,35 @@ namespace KeePassGate.Ui
         {
             get
             {
-                return _records.Acts.Any(act => act.Records.Any(record =>
-                    record.Kind == StoreKinds.Authority || record.Kind == StoreKinds.Retired));
+                // The seal as well: a code made while it waits would pair against a store the
+                // gate does not serve until OK, `STORE.md` §625.
+                return _records.Acts.Any(act => act.Seals || Changes(act));
             }
+        }
+
+        /// <summary>
+        /// Whether a seal is waiting on the plugin's store, `STORE.md` §625, and no act holding an
+        /// authority or a retirement beside it.
+        /// </summary>
+        public bool SealWaiting
+        {
+            get
+            {
+                var acts = _records.Acts;
+                return acts.Any(act => act.Seals) && !acts.Any(Changes);
+            }
+        }
+
+        /// <summary>Whether an act holds an authority or a retirement among its records.</summary>
+        private static bool Changes(StoreAct act)
+        {
+            return act.Records.Any(record => record.Kind == StoreKinds.Authority || record.Kind == StoreKinds.Retired);
+        }
+
+        /// <summary>Whether a store started again is waiting on the plugin's store, `STORE.md` §632.</summary>
+        public bool StartWaiting
+        {
+            get { return _records.Acts.Any(act => act.Starts); }
         }
 
         /// <summary>Whether an act of this name is waiting on the plugin's store.</summary>
@@ -143,6 +178,18 @@ namespace KeePassGate.Ui
         /// written from.
         /// </summary>
         public IReadOnlyList<StoreAct> Landed { get; private set; } = Array.Empty<StoreAct>();
+
+        /// <summary>
+        /// What the seal the last <see cref="Apply"/> wrote came to, for the audit's line, or null
+        /// where it wrote no seal, `STORE.md` §625.
+        /// </summary>
+        public SealLanded Sealed { get; private set; }
+
+        /// <summary>
+        /// What the store started again that the last <see cref="Apply"/> wrote came to, for the
+        /// audit's line, or null where it wrote no start, `STORE.md` §632.
+        /// </summary>
+        public StoreStarted Started { get; private set; }
 
         /// <summary>
         /// The names of the Adds held that OK would leave out now, because a removal of the name
@@ -206,6 +253,8 @@ namespace KeePassGate.Ui
         public bool Apply(Action landed = null)
         {
             Landed = Array.Empty<StoreAct>();
+            Sealed = null;
+            Started = null;
             if (!_database.IsOpen)
             {
                 // The database went away while the dialog was open, which is a locked or closed
@@ -254,6 +303,10 @@ namespace KeePassGate.Ui
                                     _log.Warn(Described(held[at]) + ": not written at OK, since a removal of the name "
                                               + "that the press did not see stands in the database");
                                 }
+                                else if (held[at].Seals)
+                                {
+                                    CameToNothing(live);
+                                }
                                 else if (RenewalActs.About(held[at]) != null)
                                 {
                                     _log.Warn(Described(held[at]) + ": not written at OK, since every answer to the "
@@ -282,6 +335,8 @@ namespace KeePassGate.Ui
                         {
                             _log.Info("the plugin's store holds what the " + GateName.Product + " tab held: "
                                       + string.Join(", ", Landed.Select(Described)));
+                            Seal(Landed.FirstOrDefault(act => act.Seals), written.Sealed);
+                            Start(Landed.FirstOrDefault(act => act.Starts), written.Started);
                             StillRefused(Landed);
                         }
                     }
@@ -320,6 +375,78 @@ namespace KeePassGate.Ui
             }
 
             return changed;
+        }
+
+        /// <summary>
+        /// Logs what the seal that landed wrote, and keeps it for the audit's line: the stop's
+        /// reason, each version granting nothing by its object, each key a start made that the seal
+        /// keeps this store over by the first characters of its name, each damaged entry deleted by the
+        /// first characters of its identifier, each object that refuses after the seal, and each
+        /// version left out, `STORE.md` §625. What the write deleted and the stop it lifted are the
+        /// write's own, so a merge between the buffer's last reading and the write changes nothing
+        /// of what the line names.
+        /// </summary>
+        private void Seal(StoreAct seal, StoreSealed lifted)
+        {
+            if (seal == null)
+            {
+                return;
+            }
+
+            var reason = lifted == null ? null : lifted.Stopped;
+            var deleted = lifted == null ? new List<string>() : lifted.Deleted.ToList();
+            var refusing = lifted == null ? new List<string>() : lifted.Refusing.ToList();
+            Sealed = new SealLanded(reason, seal.Records.Select(record => record.Hex).ToList(), deleted);
+            _log.Info(SealActs.Name + ": the store was stopped: " + (reason ?? "unknown")
+                      + "; versions granting nothing for " + Listed(seal.Records.Where(record => record.Kind == StoreKinds.Version).Select(record => record.Member(StoreKinds.ObjectMember)))
+                      + "; kept over the keys a start made " + Listed(seal.Records.Where(record => record.Kind == StoreKinds.Kept).Select(record => CertificateDigest.Shorten(record.Member(StoreKinds.Key))))
+                      + "; damaged entries deleted " + Listed(deleted.Select(CertificateDigest.Shorten))
+                      + "; refusing until set again " + Listed(refusing.Concat(seal.LeftOut)));
+        }
+
+        /// <summary>
+        /// Logs the store started again that landed, and keeps it for the audit's line: the name of
+        /// the new key and of each key set aside, each by its first characters, and how many clients
+        /// the store admitted, `STORE.md` §632. All of it is the write's own, so a merge between the
+        /// buffer's last reading and the write changes nothing of what the lines name, and OK reads
+        /// the store no second time before the write.
+        /// </summary>
+        private void Start(StoreAct start, StoreStarted started)
+        {
+            if (start == null || started == null)
+            {
+                return;
+            }
+
+            Started = started;
+            _log.Info(Described(start) + ": the store was started again under the key " + CertificateDigest.Shorten(started.Key)
+                      + "; keys set aside " + Listed(started.SetAside.Select(CertificateDigest.Shorten)));
+        }
+
+        /// <summary>
+        /// Logs a seal held that came to nothing at OK, naming the state the store is in: a store
+        /// that is whole has nothing to seal, and any other is named by its word and why, a store
+        /// with no room by its room, which no seal lifts, `STORE.md` §643.
+        /// </summary>
+        private void CameToNothing(StoreReading live)
+        {
+            if (live.State == StoreState.Whole)
+            {
+                _log.Info(SealActs.Name + ": nothing was left to seal at OK, the store being whole");
+                return;
+            }
+
+            var losses = StoreLosses.Of(live);
+            var why = losses != null && losses.Stops.Contains(StoreStop.NoRoom) ? live.InForce.Room.Reason : live.Reason;
+            _log.Warn(SealActs.Name + ": not written at OK, the store being "
+                      + (StoreWords.Of(live.State) ?? "without a store key") + (why == null ? string.Empty : ": " + why));
+        }
+
+        /// <summary>A list for the log, or `none`.</summary>
+        private static string Listed(IEnumerable<string> items)
+        {
+            var listed = items.ToList();
+            return listed.Count == 0 ? "none" : string.Join(", ", listed);
         }
 
         /// <summary>
@@ -378,6 +505,29 @@ namespace KeePassGate.Ui
         {
             _records.Discard();
         }
+    }
+
+    /// <summary>
+    /// What a seal written at the settings dialog's OK came to, `STORE.md` §625: why the store
+    /// was stopped, and the identifiers of what it wrote and of the damaged entries it deleted.
+    /// </summary>
+    public sealed class SealLanded
+    {
+        public SealLanded(string stopped, IReadOnlyList<string> written, IReadOnlyList<string> deleted)
+        {
+            Stopped = stopped;
+            Written = written;
+            Deleted = deleted;
+        }
+
+        /// <summary>Why the store was stopped, as the store the write was planned over held it.</summary>
+        public string Stopped { get; private set; }
+
+        /// <summary>The identifiers of the records the seal wrote: versions granting nothing, and keep records over a stop.</summary>
+        public IReadOnlyList<string> Written { get; private set; }
+
+        /// <summary>The identifiers of the entries the seal deleted as damage.</summary>
+        public IReadOnlyList<string> Deleted { get; private set; }
     }
 
     /// <summary>

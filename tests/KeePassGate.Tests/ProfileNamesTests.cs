@@ -46,6 +46,15 @@ namespace KeePassGate.Tests
             var deletions = ((JArray)store["deletions"]).Select(identifier => StoreComposer.BytesOf((string)identifier)).ToList();
             using (var reading = StoreReading.Of(candidates, deletions, null, new StoreKept()))
             {
+                // A split store has nothing in force and serves nothing, `STORE.md` §649, so no
+                // list is read from it, where the measured reading names what its records under
+                // every key hold.
+                if ((string)store["status"] == "split")
+                {
+                    Assert.That(ProfileNames.Of(reading).Names, Is.Empty, "a split store names nothing");
+                    return;
+                }
+
                 Assert.That(ProfileNames.Of(reading).Names, Is.EqualTo(((JArray)store["names"]).Select(named => (string)named)));
             }
         }

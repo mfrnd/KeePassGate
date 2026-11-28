@@ -109,6 +109,13 @@ its client key; and what takes a single certificate away is a record of a kind o
 [`STORE.md`](STORE.md) §614, §615 and §648 hold the records and §627 the writes, and the
 paragraphs on them below hold of them there.
 
+**A store started again makes an authority**, as Create and Recreate do: **Start store again** on
+the KPG tab writes a new store key, an authority holding it with its host certificate and gate key,
+and the records that set every earlier store key aside, `STORE.md` §632. The earlier authority is
+not retired: it is set aside with its store, its entry passed over, so it is served nowhere and a
+client it issued is refused at the handshake. Should the new key be lost, the earlier store is
+stopped rather than served, until **Seal store again** keeps it.
+
 Everything else under `KPG` keys in the **database's own** `CustomData`, which is the one dictionary
 KeePass stamps key by key and merges the same way. A node's access rule was the exception and lived
 on that node; it is a record of the store that names its node now, `STORE.md` §617, and nothing of

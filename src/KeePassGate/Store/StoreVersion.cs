@@ -108,7 +108,16 @@ namespace KeePassGate.Store
     /// </summary>
     public sealed class StoreCandidate
     {
-        public StoreCandidate(byte[] identifier, IReadOnlyList<StoreVersion> versions)
+        private readonly object _title;
+        private readonly IStoreStrings _titles;
+
+        /// <summary>An entry under this identifier with these versions, and the title it holds.</summary>
+        /// <param name="title">
+        /// The object holding the entry's title where it holds one, read only where the title is
+        /// asked for, `Title`; null for none.
+        /// </param>
+        /// <param name="titles">How <paramref name="title"/> is read; null where there is no title.</param>
+        public StoreCandidate(byte[] identifier, IReadOnlyList<StoreVersion> versions, object title = null, IStoreStrings titles = null)
         {
             if (identifier == null)
             {
@@ -123,6 +132,8 @@ namespace KeePassGate.Store
             Identifier = (byte[])identifier.Clone();
             Hex = KeePassGate.Hex.Of(identifier);
             Versions = versions;
+            _title = title;
+            _titles = titles;
         }
 
         public byte[] Identifier { get; private set; }
@@ -131,5 +142,20 @@ namespace KeePassGate.Store
         public string Hex { get; private set; }
 
         public IReadOnlyList<StoreVersion> Versions { get; private set; }
+
+        /// <summary>
+        /// The entry's title as it stands, read when asked, or empty where it holds none: what the KPG tab
+        /// names an entry that is damage by, `STORE.md` §625. No reading asks for it.
+        /// </summary>
+        public string Title()
+        {
+            return _title == null || _titles == null ? string.Empty : _titles.Read(_title) ?? string.Empty;
+        }
+
+        /// <summary>The same entry, with its title, holding these versions.</summary>
+        internal StoreCandidate WithVersions(IReadOnlyList<StoreVersion> versions)
+        {
+            return new StoreCandidate(Identifier, versions, _title, _titles);
+        }
     }
 }

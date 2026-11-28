@@ -65,6 +65,93 @@ namespace KeePassGate.Tests
         [TestCase("split")]
         [TestCase("outdated")]
         [TestCase("stopped")]
+        public void Under_a_store_that_holds_the_gate_back_Start_store_again_takes_Create_s_place(string word)
+        {
+            // `STORE.md` §632: wherever a key is found and judged and Create has nothing to do.
+            _database = HeldBack.Database(word);
+            using (var panel = NewPanel(true))
+            {
+                Assert.That(Shown(panel, Button(panel, GateTab.StartAgainButtonName)), Is.True);
+                Assert.That(Button(panel, GateTab.StartAgainButtonName).Enabled, Is.True);
+                Assert.That(Button(panel, GateTab.StartAgainButtonName).Text, Is.EqualTo("Start store again"));
+                Assert.That(Shown(panel, Button(panel, GateTab.CreateButtonName)), Is.False, "in Create's place");
+            }
+        }
+
+        [Test]
+        public void Where_no_key_is_found_no_start_is_offered()
+        {
+            using (var panel = NewPanel(true))
+            {
+                Assert.That(Shown(panel, Button(panel, GateTab.StartAgainButtonName)), Is.False, "Create starts a store where no key is found");
+                Assert.That(Shown(panel, Button(panel, GateTab.CreateButtonName)), Is.True);
+            }
+        }
+
+        [Test]
+        public void Over_a_whole_store_Start_store_again_asks_first_and_No_writes_nothing()
+        {
+            StoreSeeds.Authority(_database.Store);
+            var prompt = new FakePrompt(false);
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, prompt, _log, new InvitationBook(_log), null))
+            {
+                Assert.That(Shown(panel, Button(panel, GateTab.StartAgainButtonName)), Is.True, "offered on a whole store");
+                Assert.That(Shown(panel, Button(panel, GateTab.CreateButtonName)), Is.False);
+
+                panel.StartStoreAgain();
+
+                Assert.That(prompt.Asked, Is.EqualTo(1));
+                Assert.That(prompt.LastQuestion, Does.StartWith("Starting the store again makes a new store under a new key"));
+                Assert.That(prompt.LastQuestion, Does.Contain("Every client has to be paired again."));
+                Assert.That(prompt.LastQuestion, Does.EndWith("Start it again?"));
+                Assert.That(prompt.LastQuestion, Does.Not.Contain("store keys stand"), "a single key stands");
+                Assert.That(pending.Waiting, Is.False, "No holds nothing");
+            }
+        }
+
+        [Test]
+        public void The_press_holds_the_start_for_OK_and_the_pages_read_the_new_store_with_no_code_handed_out()
+        {
+            StoreSeeds.Authority(_database.Store);
+            string earlier;
+            using (var reading = _database.Store.Read())
+            {
+                earlier = reading.InForce.Key.Name;
+            }
+
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, new InvitationBook(_log), null))
+            {
+                StoreSeeds.Name(pending.Store, "early");
+                panel.StartStoreAgain();
+
+                Assert.That(pending.Waiting, Is.True, "the start held");
+                Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.PresentHeadline), "the page reads the new store");
+                Assert.That(Button(panel, GateTab.RecreateButtonName).Enabled, Is.True);
+                Assert.That(Button(panel, GateTab.DeleteButtonName).Enabled, Is.True);
+                Assert.That(Shown(panel, Button(panel, GateTab.StartAgainButtonName)), Is.False, "no second start while a start waits");
+                Assert.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.False, "no code while the start waits");
+                using (var live = _database.Store.Read())
+                {
+                    Assert.That(live.InForce.Key.Name, Is.EqualTo(earlier), "nothing lands before OK");
+                }
+            }
+
+            pending.Apply();
+            using (var after = _database.Store.Read())
+            {
+                Assert.That(after.State, Is.EqualTo(StoreState.Whole), after.Reason);
+                Assert.That(after.InForce.Key.Name, Is.Not.EqualTo(earlier), "OK writes the start");
+                Assert.That(KeePassGate.Acl.ProfileNames.Of(after).Names, Is.Empty, "the name pressed under the earlier key is left out");
+            }
+
+            Assert.That(_log.Entries.Select(entry => entry.Message), Has.Some.Contains("the store was started again under the key"));
+        }
+
+        [TestCase("split")]
+        [TestCase("outdated")]
+        [TestCase("stopped")]
         public void Under_a_store_that_holds_the_gate_back_the_page_states_its_word_and_every_command_is_off(string word)
         {
             _database = HeldBack.Database(word);
@@ -77,6 +164,144 @@ namespace KeePassGate.Tests
                 Assert.That(Button(panel, GateTab.CreateButtonName).Enabled, Is.False);
                 Assert.That(Button(panel, GateTab.RecreateButtonName).Enabled, Is.False);
                 Assert.That(Button(panel, GateTab.DeleteButtonName).Enabled, Is.False);
+            }
+        }
+
+        [Test]
+        public void Over_a_stopped_store_Seal_store_again_takes_Recreate_s_place_and_its_press_holds_the_seal_for_OK()
+        {
+            // `STORE.md` §625: the press opens the seal's dialog, and Seal again there holds the
+            // seal in the dialog's buffer; the pages read the store as the seal leaves it, the
+            // invitation is off while it waits, and OK writes it.
+            _database = HeldBack.Database(StoreWords.Stopped);
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, new InvitationBook(_log), null))
+            {
+                Assert.That(Shown(panel, Button(panel, GateTab.SealButtonName)), Is.True);
+                Assert.That(Shown(panel, Button(panel, GateTab.RecreateButtonName)), Is.False, "in Recreate's place");
+                Assert.That(Button(panel, GateTab.CreateButtonName).Enabled, Is.False);
+                Assert.That(Button(panel, GateTab.DeleteButtonName).Enabled, Is.False);
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.EndWith(AuthorityDescription.SealLine));
+
+                string shown = null;
+                IReadOnlyList<SealRow> rows = null;
+                string keeps = null;
+                panel.AskToSeal = (reason, listed, kept) =>
+                {
+                    shown = reason;
+                    rows = listed;
+                    keeps = kept;
+                    return false;
+                };
+                panel.SealAgain();
+                Assert.That(shown, Is.EqualTo(_database.Store.Read().Reason), "the dialog shows why the store stopped");
+                Assert.That(rows, Is.Empty, "a summary entry dropped with no record shows no loss");
+                Assert.That(
+                    keeps,
+                    Is.EqualTo("Kept: 1 authority, 0 clients, 0 profile names, 0 ruled nodes, 0 standing answers."),
+                    "what the seal keeps, counted over the store as its write leaves it");
+                Assert.That(pending.Waiting, Is.False, "Cancel on the dialog holds nothing");
+
+                panel.AskToSeal = (reason, listed, kept) => true;
+                panel.SealAgain();
+
+                Assert.That(pending.Waiting, Is.True, "Seal again holds the seal");
+                Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.PresentHeadline), "the page reads the sealed store");
+                Assert.That(Button(panel, GateTab.RecreateButtonName).Enabled, Is.True);
+                Assert.That(Shown(panel, Button(panel, GateTab.SealButtonName)), Is.False);
+                Assert.That(Button(panel, GateTab.InviteButtonName).Enabled, Is.False, "no code while the seal waits");
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Text, Is.EqualTo(GateTab.PendingSealNotice), "the notice names the seal");
+                Assert.That(_database.Store.Read().State, Is.EqualTo(StoreState.Stopped), "nothing lands before OK");
+            }
+
+            pending.Apply();
+            Assert.That(_database.Store.Read().State, Is.EqualTo(StoreState.Whole), "OK writes the seal");
+        }
+
+        [Test]
+        public void The_seal_s_dialog_names_a_lost_rule_s_node_in_the_recycle_bin_by_its_title()
+        {
+            // The rules of a node in the bin are in force for nobody, so no count walks it, and
+            // the database still holds it: a rule the store lost there is named by its title.
+            var binned = new string('b', 32);
+            _database.Nodes = new TestRuledNodes().Binned(new TestRuledNode(binned, "Old banking"));
+            StoreSeeds.Authority(_database.Store);
+            TestRuledNodes.Rule(_database.Records, binned, "ops", "row:R");
+            TestRuledNodes.Lost(_database.Records, binned, "ops");
+            _database.Records.Drop(_database.Store.Read().InForce.Heads.Single().Hex);
+            Assume.That(_database.Store.Read().State, Is.EqualTo(StoreState.Stopped));
+
+            using (var panel = new AuthorityPanel(new PendingDatabase(_database, _log), new FakePrompt(true), _log))
+            {
+                IReadOnlyList<SealRow> rows = null;
+                panel.AskToSeal = (reason, listed, kept) =>
+                {
+                    rows = listed;
+                    return false;
+                };
+                panel.SealAgain();
+
+                Assert.That(rows, Is.Not.Null, "the dialog opened");
+                Assert.That(rows.Single(row => row.Kind == SealRows.RuleOfAProfile).Of, Is.EqualTo("Old banking, ops"));
+            }
+        }
+
+        [Test]
+        public void Under_a_held_seal_of_a_store_with_no_authority_the_notice_names_the_seal_and_no_deletion()
+        {
+            // A Delete, and then the summary entry gone: the retirement holds the key, and the
+            // seal is held over a store with no authority.
+            StoreSeeds.Authority(_database.Store);
+            Assume.That(new AuthorityService(_database.Store, null).Delete().Succeeded, Is.True);
+            _database.Records.Drop(_database.Store.Read().InForce.Heads.Single().Hex);
+            Assume.That(_database.Store.Read().State, Is.EqualTo(StoreState.Stopped));
+
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log, new InvitationBook(_log), null))
+            {
+                panel.AskToSeal = (reason, listed, kept) => true;
+                panel.SealAgain();
+
+                Assert.That(pending.Waiting, Is.True);
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Text, Is.EqualTo(GateTab.PendingSealNoAuthorityNotice));
+                Assert.That(GateTab.PendingSealNoAuthorityNotice, Does.Not.Contain("pair"), "nothing to pair with once OK lands it");
+                Assert.That(Label(panel, GateTab.InviteNoticeName).Text, Is.Not.EqualTo(GateTab.PendingDeleteNotice));
+            }
+        }
+
+        [Test]
+        public void Over_a_stopped_store_the_seal_would_leave_without_the_store_key_no_seal_is_offered()
+        {
+            // The retirement holding the key damaged, and the authority it retired the only other
+            // entry holding it, which the seal's write deletes, `STORE.md` §625.
+            var store = _database.Records;
+            store.Put(StoreRecords.Authority(StoreRecords.One, 'a'));
+            var retired = StoreComposer.Record(
+                StoreRecords.One, "retired", "authority:" + StoreRecords.Hex('a'),
+                StoreComposer.Content(("authority", StoreRecords.Hex('a')), ("storeKey", StoreComposer.HexOf(StoreRecords.One))));
+            store.Put(retired.Identifier, StoreVersions.With(retired.Strings, StoreComposer.Data, "{\"edited\":\"\"}"));
+            store.Put(StoreRecords.Head(StoreRecords.One, 1, string.Empty, StoreComposer.Item(("authority", StoreRecords.Hex('a')), ("kind", "retired"))));
+            Assume.That(store.Read().State, Is.EqualTo(StoreState.Stopped));
+
+            var pending = new PendingDatabase(_database, _log);
+            using (var panel = new AuthorityPanel(pending, new FakePrompt(true), _log))
+            {
+                Assert.That(Shown(panel, Button(panel, GateTab.SealButtonName)), Is.False);
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Contain(AuthorityDescription.UnsealableStart + "the write would leave no entry holding the store key"));
+
+                // A press that reaches it all the same, as a merge between the redraw and the
+                // press can make it: refused before the dialog opens, with nothing held.
+                var asked = 0;
+                panel.AskToSeal = (reason, listed, kept) =>
+                {
+                    asked++;
+                    return true;
+                };
+                panel.SealAgain();
+
+                Assert.That(asked, Is.Zero, "no dialog over a seal OK could not write");
+                Assert.That(Label(panel, GateTab.ResultLabelName).Text, Does.Contain("cannot be sealed again, since the write would leave no entry holding the store key"));
+                Assert.That(pending.Waiting, Is.False);
             }
         }
 
@@ -199,11 +424,12 @@ namespace KeePassGate.Tests
         }
 
         [Test]
-        public void Recreate_is_withheld_with_why_where_its_write_would_leave_the_store_full()
+        public void Recreate_is_withheld_with_why_where_its_write_would_leave_the_store_full_and_Start_store_again_named_as_the_way_out()
         {
             // Room for a single write more, and an authority that does not read: Recreate is the
             // answer to that authority, and its write would leave the store without room, which
-            // serves nothing. The page offers no press that could only be refused.
+            // serves nothing. The page offers no press that could only be refused, and offers
+            // Start store again in Create's place, whose write makes room.
             StoreRecords.NearlyFull(_database.Records, 1);
 
             using (var panel = new AuthorityPanel(new PendingDatabase(_database, _log), new FakePrompt(true), _log))
@@ -211,16 +437,21 @@ namespace KeePassGate.Tests
                 Assume.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.DamagedHeadline));
                 Assert.That(Button(panel, GateTab.RecreateButtonName).Enabled, Is.False);
                 Assert.That(Button(panel, GateTab.DeleteButtonName).Enabled, Is.True, "Delete is no Create");
-                Assert.That(Label(panel, GateTab.DetailLabelName).Text,
-                    Does.Contain(AuthorityDescription.Off(GateTab.RecreateButtonText, AuthorityService.Full)));
+                Assert.That(Shown(panel, Button(panel, GateTab.StartAgainButtonName)), Is.True);
+                Assert.That(Button(panel, GateTab.StartAgainButtonName).Enabled, Is.True);
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Contain(
+                    "Recreate authority is off: the store would be left full, and nothing is served then. "
+                    + "Start store again is the way out."));
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Not.Contain("makes room"));
             }
         }
 
         [Test]
-        public void Create_after_a_Delete_is_withheld_with_why_where_its_write_would_leave_the_store_full()
+        public void Create_after_a_Delete_is_withheld_with_why_where_its_write_would_leave_the_store_full_and_no_command_the_page_lacks_is_named()
         {
             // Room for two writes more: the Delete pressed on the page leaves room for a write after
-            // it, and a Create after it would leave none.
+            // it, and a Create after it would leave none. Create holds the place Start store again
+            // takes elsewhere, so the line names no start.
             StoreRecords.NearlyFull(_database.Records, 2);
 
             using (var panel = new AuthorityPanel(new PendingDatabase(_database, _log), new FakePrompt(true), _log))
@@ -229,8 +460,51 @@ namespace KeePassGate.Tests
 
                 Assume.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.RetiredHeadline));
                 Assert.That(Button(panel, GateTab.CreateButtonName).Enabled, Is.False);
-                Assert.That(Label(panel, GateTab.DetailLabelName).Text,
-                    Does.Contain(AuthorityDescription.Off(GateTab.CreateButtonText, AuthorityService.Full)));
+                Assert.That(Shown(panel, Button(panel, GateTab.StartAgainButtonName)), Is.False);
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Contain(
+                    "Create authority is off: the store would be left full, and nothing is served then. "
+                    + "Nothing on this page makes room."));
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Not.Contain(GateTab.StartAgainButtonText));
+            }
+        }
+
+        [Test]
+        public void Beside_several_authorities_a_Recreate_that_would_leave_the_store_full_names_no_start()
+        {
+            // The chooser takes the place a start has, so the page offers no start, and the line
+            // names none.
+            StoreRecords.NearlyFull(_database.Records, 1);
+            _database.Records.Put(StoreRecords.Authority(StoreRecords.One, 'b'));
+
+            using (var panel = new AuthorityPanel(new PendingDatabase(_database, _log), new FakePrompt(true), _log))
+            {
+                Assume.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.UndecidedHeadline));
+                Assert.That(Button(panel, GateTab.RecreateButtonName).Enabled, Is.False);
+                Assert.That(Shown(panel, Button(panel, GateTab.StartAgainButtonName)), Is.False);
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Contain(
+                    "Recreate authority is off: the store would be left full, and nothing is served then. "
+                    + "Nothing on this page makes room."));
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.Not.Contain(GateTab.StartAgainButtonText));
+            }
+        }
+
+        [Test]
+        public void A_Delete_that_takes_the_last_of_the_room_leaves_Start_store_again_offered_as_the_way_out()
+        {
+            // Room for a single write more: the Delete pressed takes it, and the store as OK would
+            // leave it has no room for its next write, which stops it. The seal does not lift a
+            // stop for want of room; a start does, and the page offers it.
+            StoreRecords.NearlyFull(_database.Records, 1);
+
+            using (var panel = new AuthorityPanel(new PendingDatabase(_database, _log), new FakePrompt(true), _log))
+            {
+                panel.DeleteAuthority();
+
+                Assert.That(Label(panel, GateTab.StatusLabelName).Text, Is.EqualTo(AuthorityDescription.HeldBackHeadline(StoreWords.Stopped)));
+                Assert.That(Shown(panel, Button(panel, GateTab.SealButtonName)), Is.False, "no seal lifts a stop for want of room");
+                Assert.That(Shown(panel, Button(panel, GateTab.StartAgainButtonName)), Is.True);
+                Assert.That(Button(panel, GateTab.StartAgainButtonName).Enabled, Is.True);
+                Assert.That(Label(panel, GateTab.DetailLabelName).Text, Does.EndWith(AuthorityDescription.StartLine));
             }
         }
 

@@ -513,9 +513,14 @@ namespace KeePassGate.Store
                     continue;
                 }
 
+                // An item of a decision that names no subject is read in its kind's form with no
+                // subject, `STORE.md` §611; an item that holds its subject is read by that form
+                // alone, whatever else it holds.
                 StoreNames named;
                 StoreNames settles;
-                var members = Read(pair.Value, row.Item, out named, out settles);
+                var members = row.Unnamed != null && pair.Value.Text(row.RestatedBy) == null
+                    ? Read(pair.Value, row.Unnamed, out named, out settles)
+                    : Read(pair.Value, row.Item, out named, out settles);
                 if (members == null)
                 {
                     return false;
@@ -628,6 +633,10 @@ namespace KeePassGate.Store
                     return NumberOf(value) > 0;
                 case StoreForm.Version:
                     return IsVersion(value);
+                case StoreForm.TagAndSubject:
+                    return IsHex(value, (StoreFormat.TagLength + StoreFormat.SubjectLength) * 2);
+                case StoreForm.Identifier:
+                    return IsHex(value, (StoreFormat.TagLength + StoreFormat.SubjectLength + StoreFormat.HeightLength + StoreFormat.CheckLength) * 2);
                 default:
                     return false;
             }

@@ -75,6 +75,24 @@ namespace KeePassGate.Host.Tests
         }
 
         [Test]
+        public void The_nodes_the_tree_holds_are_the_bin_and_what_is_in_it_as_well_each_with_its_title()
+        {
+            // What the seal's dialog names a rule's node by, `STORE.md` §625: a rule a store lost
+            // may be about a node removed into the bin, which the database holds.
+            var database = Tree();
+            var bin = database.RootGroup.GetGroups(true).Single(group => group.Name == "first");
+            database.RecycleBinUuid = bin.Uuid;
+
+            var held = new DatabaseNodes(database).Held(null).ToList();
+
+            Assert.That(held.Select(node => node.Id), Is.EquivalentTo(new DatabaseNodes(database).All(null).Select(node => node.Id)
+                .Concat(new[] { IdOf(bin.Uuid) })
+                .Concat(bin.GetGroups(true).Select(group => IdOf(group.Uuid)))
+                .Concat(bin.GetEntries(true).Select(entry => IdOf(entry.Uuid)))));
+            Assert.That(held.Single(node => node.Id == IdOf(bin.Uuid)).Title, Is.EqualTo("first"));
+        }
+
+        [Test]
         public void Nothing_of_the_plugin_s_store_is_walked_wherever_its_entries_sit()
         {
             // The vault hides the store as it hides the bin, `STORE.md` §633: its group and the

@@ -26,6 +26,14 @@ namespace KeePassGate.Acl
         /// rule, its entries told as <paramref name="reading"/> tells them.
         /// </summary>
         IEnumerable<IRuledNode> All(StoreReading reading);
+
+        /// <summary>
+        /// Every group and entry the tree holds, the recycle bin and everything in it among them,
+        /// and not a node of the plugin's store: what the dialog that seals the store again names
+        /// a rule's node by, `STORE.md` §625, since a rule a store lost may be about a node
+        /// removed into the bin.
+        /// </summary>
+        IEnumerable<IRuledNode> Held(StoreReading reading);
     }
 
     /// <summary>One group or entry, as a count sees it.</summary>
@@ -36,5 +44,12 @@ namespace KeePassGate.Acl
         /// its bytes.
         /// </summary>
         string Id { get; }
+
+        /// <summary>
+        /// What the node is called, a group's name or an entry's title, read when it is asked
+        /// for: what the dialog that seals the store again names a rule's node by, `STORE.md` §625,
+        /// as <see cref="IRuledNodes.Held"/> hands the node over.
+        /// </summary>
+        string Title { get; }
     }
 }

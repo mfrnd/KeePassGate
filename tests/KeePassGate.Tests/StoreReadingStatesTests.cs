@@ -100,6 +100,28 @@ namespace KeePassGate.Tests
         }
 
         [Test]
+        public void Every_entry_that_is_damage_is_held_with_the_kind_its_tag_names()
+        {
+            // `STORE.md` §621 and §625: what the seal deletes, each by its identifier and kind.
+            var store = new ComposedStore(One);
+            var revoked = store.Revoked('c');
+            store.Replace(revoked, "{\"client\":\"edited\"}");
+            var version = store.Add(Version(One, "rule:" + new string('1', 32), string.Empty));
+            store.Replace(version, "{\"edited\":\"\"}");
+            var head = store.Head;
+            store.Replace(head, "{\"edited\":\"\"}");
+
+            var reading = store.Read();
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Stopped));
+            Assert.That(
+                reading.Damaged.Select(damaged => damaged.Hex + " " + damaged.Kind),
+                Is.EquivalentTo(new[] { revoked.Hex + " revoked", version.Hex + " version", head.Hex + " head" }));
+            Assert.That(reading.Damage, Is.EqualTo(3));
+            Assert.That(reading.Damaged.Select(damaged => damaged.Title()), Is.All.Empty, "an entry here holds no title");
+        }
+
+        [Test]
         public void An_identifier_that_differs_from_the_content_s_in_any_single_byte_is_no_record()
         {
             for (var at = 0; at < 16; at++)

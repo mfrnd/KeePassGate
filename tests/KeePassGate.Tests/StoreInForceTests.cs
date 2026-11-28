@@ -23,6 +23,7 @@ namespace KeePassGate.Tests
             { "ok", StoreState.Whole },
             { "incomplete", StoreState.Stopped },
             { "nostore", StoreState.None },
+            { "split", StoreState.Split },
         };
 
         private static IEnumerable<TestCaseData> Measured()
@@ -53,6 +54,14 @@ namespace KeePassGate.Tests
                 reading.Answering.Select(record => record.Form.Member("id")).OrderBy(id => id, System.StringComparer.Ordinal),
                 Is.EqualTo(((JArray)store["auths"]).Select(id => (string)id)),
                 "the authorities that stand");
+
+            // A split store has nothing in force, `STORE.md` §649: only its authorities are
+            // answered under.
+            if (reading.State == StoreState.Split)
+            {
+                Assert.That(reading.InForce, Is.Null, "nothing in force under several keys");
+                return;
+            }
 
             var refusals = reading.InForce.Taken("retired").Select(subject => "retired " + subject)
                 .Concat(reading.InForce.Taken("revoked").Select(subject => "revoked " + subject))
@@ -209,6 +218,172 @@ namespace KeePassGate.Tests
             var reading = store.Read();
 
             Assert.That(reading.InForce.Taken("removed"), Is.EquivalentTo(new[] { "reader", "writer", "auditor" }));
+        }
+
+        [Test]
+        public void An_item_with_no_subject_takes_away_from_every_subject_the_file_names_whose_keyed_tag_and_subject_hash_it_holds()
+        {
+            // `STORE.md` §611: a revocation and a retirement by the keyed tag and subject hash of
+            // their deletion records, a removal by its identifier, each in the form the measured
+            // model writes, and each telling of a subject the file names by another record.
+            var store = new ComposedStore(One);
+            store.Add(StoreComposer.Record(One, "client", "client:" + Hex('c'), StoreComposer.Content(("client", Hex('c')))));
+            store.Add(StoreComposer.Record(One, "client", "client:" + Hex('e'), StoreComposer.Content(("client", Hex('e')))));
+            store.Add(Profile("reader"));
+            var removal = StoreComposer.HexOf(Told(One, "removed", "profile:reader"));
+            store.RestateAll(new[]
+            {
+                HashItem("revoked", Told(One, "revoked", "client:" + Hex('c'))),
+                HashItem("retired", Told(One, "retired", "authority:" + Hex('a'))),
+                StoreComposer.Item(("id", removal), ("kind", "removed")),
+            });
+
+            var reading = store.Read();
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(reading.InForce.Taken("revoked"), Is.EqualTo(new[] { Hex('c') }), "the client the hash is of, and no other");
+            Assert.That(reading.InForce.Taken("retired"), Is.EqualTo(new[] { Hex('a') }));
+            Assert.That(reading.Answering, Is.Empty, "the authority retired stands no more");
+            Assert.That(reading.InForce.RemovalsOf("reader"), Is.EqualTo(new[] { removal }));
+            Assert.That(reading.InForce.ByDeletion("revoked"), Is.Empty, "an item carries it, and no deletion record alone");
+            Assert.That(Unnamed(reading, "revoked"), Is.Empty, "restated by its subject, which the file names");
+            Assert.That(Unnamed(reading, "retired"), Is.Empty);
+            Assert.That(Unnamed(reading, "removed"), Is.Empty);
+        }
+
+        [Test]
+        public void An_item_with_no_subject_restates_every_record_of_its_kind_its_hash_begins_and_a_removal_by_its_identifier()
+        {
+            // `STORE.md` §611 and §624: the revocation records of a client under two identifiers,
+            // a retirement and a removal, restated by items with no subject; a hash under another
+            // kind's tag restates nothing.
+            var store = new ComposedStore(One);
+            var revoked = store.Add(StoreComposer.Record(One, "revoked", "client:" + Hex('c'), StoreComposer.Content(("client", Hex('c')))));
+            var again = store.Add(StoreComposer.Record(One, "revoked", "client:" + Hex('c'), StoreComposer.Content(("client", Hex('c')), ("note", "made apart"))));
+            var retired = store.Add(Retired(One, '9'));
+            var removed = store.Add(Removal("reader"));
+            Assume.That(again.Hex, Is.Not.EqualTo(revoked.Hex));
+            store.RestateAll(new[]
+            {
+                StoreComposer.Item(("hash", revoked.Hex.Substring(0, 16)), ("kind", "revoked")),
+                StoreComposer.Item(("hash", retired.Hex.Substring(0, 16)), ("kind", "retired")),
+                StoreComposer.Item(("id", removed.Hex), ("kind", "removed")),
+            });
+
+            var reading = store.Read();
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(reading.InForce.NotRestated(), Is.Empty);
+
+            var otherTag = new ComposedStore(One);
+            var record = otherTag.Add(StoreComposer.Record(One, "revoked", "client:" + Hex('c'), StoreComposer.Content(("client", Hex('c')))));
+            otherTag.Restate(StoreComposer.Item(("hash", record.Hex.Substring(0, 16)), ("kind", "retired")));
+            var refused = otherTag.Read();
+            Assert.That(refused.State, Is.EqualTo(StoreState.Stopped));
+            Assert.That(refused.InForce.NotRestated().Select(found => found.Hex), Is.EqualTo(new[] { record.Hex }));
+        }
+
+        [Test]
+        public void A_decision_whose_subject_the_file_names_nowhere_takes_nothing_away_and_is_held_until_the_subject_is_named()
+        {
+            // `STORE.md` §611: a deletion record and an item with no subject, each of a subject
+            // no record or item names, are held by what an item with no subject is to hold: the
+            // keyed tag and subject hash, and a removal's identifier; two deletion records of a
+            // single revocation are a single decision.
+            var store = new ComposedStore(One);
+            var revocation = Told(One, "revoked", "client:" + Hex('c'));
+            var again = StoreComposer.IdentifierOf(One, "revoked", "client:" + Hex('c'), 0, new string('6', 64));
+            store.Deleted.Add(revocation);
+            store.Deleted.Add(again);
+            var retirement = Told(One, "retired", "authority:" + Hex('9'));
+            store.Restate(HashItem("retired", retirement));
+            var removal = Told(One, "removed", "profile:reader");
+            store.Deleted.Add(removal);
+
+            var reading = store.Read();
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Whole), reading.Reason);
+            Assert.That(reading.InForce.Taken("revoked"), Is.Empty);
+            Assert.That(reading.InForce.Taken("retired"), Is.Empty);
+            Assert.That(reading.InForce.Taken("removed"), Is.Empty);
+            Assert.That(Unnamed(reading, "revoked"), Is.EqualTo(new[] { StoreComposer.HexOf(revocation).Substring(0, 16) }));
+            Assert.That(Unnamed(reading, "retired"), Is.EqualTo(new[] { StoreComposer.HexOf(retirement).Substring(0, 16) }));
+            Assert.That(Unnamed(reading, "removed"), Is.EqualTo(new[] { StoreComposer.HexOf(removal) }));
+            Assert.That(
+                reading.InForce.UnnamedByDeletion.Select(decision => decision.Kind + " " + string.Join(" ", decision.Told)),
+                Is.EquivalentTo(new[]
+                {
+                    "revoked " + string.Join(" ", new[] { StoreComposer.HexOf(revocation), StoreComposer.HexOf(again) }.OrderBy(hex => hex, System.StringComparer.Ordinal)),
+                    "removed " + StoreComposer.HexOf(removal),
+                }),
+                "the retirement is carried by an item, and no deletion record alone");
+
+            store.Add(StoreComposer.Record(One, "client", "client:" + Hex('c'), StoreComposer.Content(("client", Hex('c')))));
+            store.Add(StoreRecords.Authority(One, '9'));
+            store.Add(Profile("reader"));
+            var named = store.Read();
+            Assert.That(named.InForce.Taken("revoked"), Is.EqualTo(new[] { Hex('c') }), "once the file names the client");
+            Assert.That(named.InForce.Taken("retired"), Is.EqualTo(new[] { Hex('9') }), "once the file names the authority");
+            Assert.That(named.InForce.RemovalsOf("reader"), Is.EqualTo(new[] { StoreComposer.HexOf(removal) }), "once the file names the name");
+            Assert.That(Unnamed(named, "revoked"), Is.Empty);
+            Assert.That(Unnamed(named, "retired"), Is.Empty);
+            Assert.That(Unnamed(named, "removed"), Is.Empty);
+        }
+
+        [Test]
+        public void The_removals_an_addition_names_include_those_an_item_with_no_subject_holds_once_the_name_is_known()
+        {
+            // `STORE.md` §616 and §611: an item with no subject counts as a carrier of the removal
+            // wherever a deletion record of it does.
+            var store = new ComposedStore(One);
+            var removal = StoreComposer.HexOf(Told(One, "removed", "profile:ops"));
+            store.Restate(StoreComposer.Item(("id", removal), ("kind", "removed")));
+
+            var reading = store.Read();
+
+            Assert.That(reading.InForce.RemovalsOf("ops"), Is.Empty, "a name the file does not know");
+            Assert.That(reading.InForce.RemovalsOnceKnown("ops"), Is.EqualTo(new[] { removal }), "told once it is known");
+            Assert.That(reading.InForce.RemovalsOnceKnown("reader"), Is.Empty);
+        }
+
+        [Test]
+        public void An_item_of_a_decision_with_neither_its_subject_nor_a_hash_in_form_is_no_item_of_its_kind()
+        {
+            foreach (var item in new[]
+                     {
+                         StoreComposer.Item(("kind", "revoked")),
+                         StoreComposer.Item(("hash", new string('a', 15)), ("kind", "revoked")),
+                         StoreComposer.Item(("hash", new string('A', 16)), ("kind", "retired")),
+                         StoreComposer.Item(("hash", new string('a', 32)), ("kind", "retired")),
+                         StoreComposer.Item(("hash", new string('a', 16)), ("kind", "removed")),
+                         StoreComposer.Item(("id", "not an identifier"), ("kind", "removed")),
+                         StoreComposer.Item(("id", new string('a', 31)), ("kind", "removed")),
+                         StoreComposer.Item(("id", new string('A', 32)), ("kind", "removed")),
+                     })
+            {
+                var store = new ComposedStore(One);
+                store.Restate(item);
+                Assert.That(store.Read().State, Is.Not.EqualTo(StoreState.Whole), item + ": the summary entry does not read as its kind");
+            }
+        }
+
+        /// <summary>
+        /// What a summary entry written over this reading restates with no subject for a kind: of a
+        /// revocation and a retirement each keyed tag and subject hash, and of a removal each
+        /// identifier, whose subject the file names nowhere.
+        /// </summary>
+        private static IEnumerable<string> Unnamed(StoreReading reading, string kind)
+        {
+            return reading.InForce.Restated()
+                .Where(item => item.Kind == kind && item.Member(StoreKinds.Find(kind).RestatedBy) == null)
+                .Select(item => item.Member(kind == StoreKinds.Removed ? StoreKinds.Id : StoreKinds.Hash))
+                .OrderBy(carried => carried, System.StringComparer.Ordinal);
+        }
+
+        /// <summary>An item with no subject restating the decision a deletion record of this identifier tells of.</summary>
+        private static string HashItem(string kind, byte[] told)
+        {
+            return StoreComposer.Item(("hash", StoreComposer.HexOf(told).Substring(0, 16)), ("kind", kind));
         }
 
         [Test]
@@ -663,6 +838,96 @@ namespace KeePassGate.Tests
             var none = new ComposedStore(One);
             none.Drop(none.Authority);
             Assert.That(none.Read().Answering, Is.Empty);
+        }
+
+        [Test]
+        public void Every_summary_entry_told_of_that_nothing_in_force_replaces_is_held_and_the_reading_names_the_first()
+        {
+            // `STORE.md` §624: two summary entries deleted that nothing present stands in for, and
+            // one the summary entry in force names, which is no loss.
+            var store = new ComposedStore(One);
+            var first = Told(One, "head", "store", 7);
+            var second = StoreComposer.IdentifierOf(One, "head", "store", 8, new string('6', 64));
+            store.Deleted.Add(second);
+            store.Deleted.Add(first);
+            store.Restate();
+
+            var reading = store.Read();
+
+            var lost = new[] { StoreComposer.HexOf(first), StoreComposer.HexOf(second) }.OrderBy(id => id, System.StringComparer.Ordinal).ToList();
+            Assert.That(reading.State, Is.EqualTo(StoreState.Stopped));
+            Assert.That(reading.InForce.LostHeads, Is.EqualTo(lost), "both, ascending, and not the summary entry the one in force names");
+            Assert.That(reading.Reason, Does.EndWith(lost[0].Substring(0, 8)));
+        }
+
+        [Test]
+        public void Every_record_no_summary_entry_restates_is_held_and_the_reading_names_the_first()
+        {
+            var store = new ComposedStore(One);
+            var revoked = store.Add(StoreComposer.Record(One, "revoked", "client:" + Hex('c'), StoreComposer.Content(("client", Hex('c')))));
+            var retired = store.Add(Retired(One, '9'));
+            store.Revoked('d');
+
+            var reading = store.Read();
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Stopped));
+            Assert.That(reading.InForce.NotRestated().Select(record => record.Hex), Is.EquivalentTo(new[] { revoked.Hex, retired.Hex }));
+            Assert.That(reading.Reason, Does.EndWith(reading.InForce.NotRestated()[0].Hex.Substring(0, 8)));
+        }
+
+        [Test]
+        public void What_a_deletion_record_alone_takes_away_is_held_apart_from_what_a_record_or_an_item_takes_away()
+        {
+            // `STORE.md` §623 step 2: each counts by the union, and only what no record present and
+            // no item of a summary entry present names is known by its deletion record alone.
+            var store = new ComposedStore(One);
+            store.Revoked('c');
+            store.Add(StoreComposer.Record(One, "client", "client:" + Hex('e'), StoreComposer.Content(("client", Hex('e')))));
+            store.Deleted.Add(Told(One, "revoked", "client:" + Hex('c')));
+            store.Deleted.Add(Told(One, "revoked", "client:" + Hex('e')));
+            store.Deleted.Add(Told(One, "retired", "authority:" + Hex('a')));
+            store.Add(Profile("reader"));
+            var removed = store.Add(Removal("writer"));
+            store.Add(Profile("writer"));
+            store.Restate(StoreComposer.Item(("id", removed.Hex), ("kind", "removed"), ("name", "writer")));
+            var byDeletion = Told(One, "removed", "profile:reader");
+            store.Deleted.Add(byDeletion);
+            store.Deleted.Add(removed.Identifier);
+
+            var inForce = store.Read().InForce;
+
+            Assert.That(inForce.Taken("revoked"), Is.EquivalentTo(new[] { Hex('c'), Hex('e') }));
+            Assert.That(inForce.ByDeletion("revoked"), Is.EquivalentTo(new[] { Hex('e') }));
+            Assert.That(inForce.ByDeletion("retired"), Is.EquivalentTo(new[] { Hex('a') }));
+            Assert.That(
+                inForce.RemovalsByDeletion.Select(pair => pair.Key + " " + pair.Value),
+                Is.EquivalentTo(new[] { "reader " + StoreComposer.HexOf(byDeletion) }),
+                "the removal of writer is a record and an item as well as a deletion record");
+        }
+
+        [Test]
+        public void A_damaged_version_tells_of_what_its_deletion_record_would_make_refuse_and_makes_nothing_refuse_now()
+        {
+            // `STORE.md` §625: once the seal deletes a damaged version with a deletion record, that
+            // record is told of at its place, unless a version in force names it in `after`: here
+            // at a node no object names, found by the tree, and at a row whose version names it.
+            StoreComposer.Composed standing;
+            var store = Ruled(out standing);
+            var damaged = store.Add(StoreComposer.RuleVersion(One, RowAt(Below, "pf"), "row:R"));
+            store.Replace(damaged, "{\"edited\":\"\"}");
+            var named = StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:C");
+            var naming = StoreComposer.RuleVersion(One, RowAt(Node, "pf"), "row:RU", standing.Hex, named.Hex);
+            store.Add(named);
+            store.Replace(named, "{\"edited\":\"\"}");
+            store.Add(naming);
+            store.RestateAll(new[] { naming }.Select(ItemOf));
+
+            var reading = store.Read();
+
+            Assert.That(reading.State, Is.EqualTo(StoreState.Stopped));
+            Assert.That(reading.Damage, Is.EqualTo(2));
+            Assert.That(Lost(reading.InForce), Is.Empty, "nothing is lost while the damaged entries stand");
+            Assert.That(reading.InForce.RefusesAfter, Is.EqualTo(new[] { RowAt(Below, "pf") }), "the version in force at the node names its damaged version");
         }
 
         private static StoreComposer.Composed Retired(byte[] key, char authority)
@@ -1857,36 +2122,9 @@ namespace KeePassGate.Tests
             throw new FileNotFoundException("tests/Shared/StoreMeaningVectors.json is not above the test's directory");
         }
 
-        /// <summary>
-        /// A store of the vectors read as the measured reading read it: its entries, each with its
-        /// history, its deletion records, and the tree it holds, the root and every group.
-        /// </summary>
         private static StoreReading Read(JObject store)
         {
-            var versions = new StoreVersions();
-            var candidates = new List<StoreCandidate>();
-            foreach (var entry in (JObject)store["entries"])
-            {
-                var current = Strings((JObject)entry.Value["strings"]);
-                var history = ((JArray)entry.Value["history"]).Select(item => Strings((JObject)item)).Reverse();
-                candidates.Add(versions.Candidate(StoreComposer.BytesOf(entry.Key), new[] { current }.Concat(history).ToArray()));
-            }
-
-            var deletions = ((JArray)store["deletions"]).Select(identifier => StoreComposer.BytesOf((string)identifier)).ToList();
-            var tree = new List<byte[]>();
-            var groups = (JObject)store["tree"];
-            if (groups != null)
-            {
-                tree.Add(StoreComposer.BytesOf((string)groups["root"]));
-                tree.AddRange(((JObject)groups["groups"]).Properties().Select(group => StoreComposer.BytesOf(group.Name)));
-            }
-
-            return StoreReading.Of(candidates, deletions, null, new StoreKept(), () => tree);
-        }
-
-        private static IReadOnlyDictionary<string, string> Strings(JObject strings)
-        {
-            return strings.Properties().ToDictionary(property => property.Name, property => (string)property.Value);
+            return RuleVectors.Reading(store);
         }
     }
 }
